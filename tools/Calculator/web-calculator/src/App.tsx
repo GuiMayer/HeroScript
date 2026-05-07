@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Calculator as CalculatorIcon, Loader2, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/Card';
-import { Button } from './components/ui/Button';
-import { Input } from './components/ui/Input';
+import { Calculator as CalculatorIcon, AlertCircle } from 'lucide-react';
 import { mathApi } from './services/mathApi';
-import { StepHistory } from './components/StepHistory';
-import { OperationButtons } from './components/OperationButtons';
-import { ModeSelector } from './components/ModeSelector';
-import { ParametersInput } from './components/ParametersInput';
+import { ModeSelectorTabs } from './components/ModeSelectorTabs';
+import { InputArea } from './components/InputArea';
+import { OperationsPanel } from './components/OperationsPanel';
+import { OutputArea } from './components/OutputArea';
 import type { MathStepDto, MathExpressionResponse, ApiMode } from './types/api';
 
 function App() {
@@ -22,20 +19,40 @@ function App() {
 
   // Check API connection on mount and poll every 2 seconds
   useEffect(() => {
-    // Initial check
     mathApi.healthCheck().then(setApiConnected);
-
-    // Poll every 2 seconds
     const intervalId = setInterval(() => {
       mathApi.healthCheck().then(setApiConnected);
     }, 2000);
-
-    // Cleanup interval on unmount
     return () => clearInterval(intervalId);
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Enter: Calculate
+      if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        if (steps.length > 0 && !loading) {
+          calculate();
+        }
+      }
+      // Ctrl+Z: Undo
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        removeLastStep();
+      }
+      // Ctrl+Shift+C: Clear all
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        clearAll();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [steps, loading]);
+
   const handleModeChange = (newMode: ApiMode) => {
-    // Clear steps when changing modes to avoid confusion
     if (steps.length > 0) {
       const confirmed = window.confirm(
         'Changing modes will clear all current steps. Continue?'
@@ -47,14 +64,12 @@ function App() {
     setSteps([]);
     setError(null);
     
-    // Clear parameters if switching away from symbolic mode
     if (newMode !== 'explicit-symbolic') {
       setParameters({});
     }
   };
 
   const addStep = (operation: string, values?: number[], operands?: string[]) => {
-    // Validate that only one of values or operands is provided
     if (values && operands) {
       setError('Cannot have both values and operands in a step');
       return;
@@ -99,7 +114,6 @@ function App() {
         steps,
       };
 
-      // Add parameters if in symbolic mode and parameters exist
       if (mode === 'explicit-symbolic' && Object.keys(parameters).length > 0) {
         request.parameters = parameters;
       }
@@ -124,21 +138,21 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-[1400px] mx-auto space-y-4">
         {/* Header */}
-        <div className="text-center space-y-2 pt-8">
+        <div className="text-center space-y-2 pt-6">
           <div className="flex items-center justify-center gap-3">
             <CalculatorIcon className="w-10 h-10 text-primary" />
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
               HeroScript Calculator
             </h1>
           </div>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             Testing MathExpression API with 15 operations and 3 modes
           </p>
           
           {/* API Status */}
-          <div className="flex items-center justify-center gap-2 text-sm">
+          <div className="flex items-center justify-center gap-2 text-xs">
             <div
               className={`w-2 h-2 rounded-full ${
                 apiConnected === null
@@ -158,139 +172,75 @@ function App() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Calculator */}
-          <div className="space-y-6">
-            {/* Mode Selector */}
-            <ModeSelector
-              selectedMode={mode}
-              onModeChange={handleModeChange}
+        {/* Mode Selector */}
+        <ModeSelectorTabs
+          selectedMode={mode}
+          onModeChange={handleModeChange}
+          disabled={loading}
+        />
+
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-start gap-3 text-red-800 dark:text-red-200">
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Error</p>
+                <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 3-Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_350px] gap-4">
+          {/* Column 1: Input Area */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <InputArea
+              mode={mode}
+              initialValue={initialValue}
+              onInitialValueChange={setInitialValue}
+              parameters={parameters}
+              onParametersChange={setParameters}
+              onClearAll={clearAll}
+              onUndo={removeLastStep}
+              canUndo={steps.length > 0}
               disabled={loading}
             />
-
-            {/* Initial Value */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Initial Value</CardTitle>
-                <CardDescription>
-                  Starting value for the calculation
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Input
-                  type="number"
-                  value={initialValue}
-                  onChange={(e) => setInitialValue(e.target.value)}
-                  placeholder="Enter initial value"
-                  className="text-2xl font-mono text-center"
-                  disabled={loading}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Parameters (only for Mode 3) */}
-            {mode === 'explicit-symbolic' && (
-              <ParametersInput
-                parameters={parameters}
-                onChange={setParameters}
-                disabled={loading}
-              />
-            )}
-
-            {/* Operations */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Operations</CardTitle>
-                <CardDescription>
-                  Add operations to build your expression
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <OperationButtons
-                  mode={mode}
-                  parameters={parameters}
-                  onAddStep={addStep}
-                  disabled={loading}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={calculate}
-                    disabled={loading || steps.length === 0}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Calculating...
-                      </>
-                    ) : (
-                      'Calculate'
-                    )}
-                  </Button>
-                  <Button
-                    onClick={clearAll}
-                    variant="outline"
-                    disabled={loading}
-                    className="w-full"
-                    size="lg"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-                <Button
-                  onClick={removeLastStep}
-                  variant="secondary"
-                  disabled={loading || steps.length === 0}
-                  className="w-full"
-                >
-                  Undo Last Step
-                </Button>
-                {result && (
-                  <Button
-                    onClick={continueFromResult}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    Continue from Result
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Error Display */}
-            {error && (
-              <Card className="border-destructive">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-3 text-destructive">
-                    <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold">Error</p>
-                      <p className="text-sm">{error}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
 
-          {/* Right Column - History & Result */}
-          <div className="space-y-6">
-            <StepHistory
+          {/* Column 2: Operations Panel */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h2 className="text-lg font-semibold mb-4">Operations</h2>
+            <OperationsPanel
+              mode={mode}
+              parameters={parameters}
+              onAddStep={addStep}
+              disabled={loading}
+            />
+          </div>
+
+          {/* Column 3: Output Area */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <OutputArea
               steps={steps}
               result={result}
               initialValue={parseFloat(initialValue) || 0}
+              loading={loading}
+              onCalculate={calculate}
+              onContinueFromResult={continueFromResult}
+              disabled={loading}
             />
           </div>
+        </div>
+
+        {/* Keyboard Shortcuts Hint */}
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400 pb-4">
+          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl+Enter</kbd> Calculate
+          {' • '}
+          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl+Z</kbd> Undo
+          {' • '}
+          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl+Shift+C</kbd> Clear
         </div>
       </div>
     </div>
