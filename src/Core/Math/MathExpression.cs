@@ -280,7 +280,7 @@ namespace Core.Math
                         break;
 
                     case "NEGATE":
-                        currentValue = -currentValue;
+                        currentValue = currentValue * -1;
                         break;
 
                     case "CLAMP":

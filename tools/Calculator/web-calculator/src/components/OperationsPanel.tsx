@@ -44,11 +44,8 @@ export function OperationsPanel({ mode, parameters, onAddStep, disabled }: Opera
     setErrors({});
 
     if (minValues === 0 && maxValues === 0) {
-      if (mode === 'implicit') {
-        onAddStep(operation, []);
-      } else {
-        onAddStep(operation, undefined, []);
-      }
+      // Operations with no parameters should not have values or operands fields
+      onAddStep(operation, undefined, undefined);
       return;
     }
 
