@@ -1,4 +1,6 @@
 ﻿using Core.Config;
+using Core.CLI.Commands;
+using Core.CLI;
 using System;
 using System.Linq;
 
@@ -9,6 +11,25 @@ namespace Core
         static void Main(string[] args)
         {
             Console.WriteLine("=== HERO-ENGINE ===\n");
+
+            // Parse comando
+            if (args.Length > 0 && args[0] == "sync-resources")
+            {
+                ExecuteSyncResources(args.Skip(1).ToArray());
+                return;
+            }
+
+            if (args.Length > 0 && args[0] == "test-resources")
+            {
+                ResourceLoadingTest.Execute();
+                return;
+            }
+
+            if (args.Length > 0 && args[0] == "test-input-validation")
+            {
+                Core.Tests.Math.MathEngineInputValidationTests.RunAllTests();
+                return;
+            }
 
             // Parse argumentos CLI
             string? configToLoad = null;
@@ -92,17 +113,68 @@ namespace Core
             Console.ReadLine();
         }
 
+        static void ExecuteSyncResources(string[] args)
+        {
+            var options = new SyncResourcesOptions();
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                string arg = args[i];
+
+                if (arg == "--source")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        options.SourcePath = args[i + 1];
+                        i++;
+                    }
+                }
+                else if (arg == "--target")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        options.TargetPath = args[i + 1];
+                        i++;
+                    }
+                }
+                else if (arg == "--configs")
+                {
+                    if (i + 1 < args.Length)
+                    {
+                        options.Configs = args[i + 1].Split(',');
+                        i++;
+                    }
+                }
+                else if (arg == "--force")
+                {
+                    options.Force = true;
+                }
+            }
+
+            var command = new SyncResourcesCommand();
+            command.Execute(options);
+        }
+
         static void ShowHelp()
         {
             Console.WriteLine("Hero-Engine - Sistema de configuração modular\n");
             Console.WriteLine("Uso: Core.exe [opções]\n");
-            Console.WriteLine("Opções:");
+            Console.WriteLine("Comandos:");
+            Console.WriteLine("  sync-resources         Sincronizar recursos do projeto para user data");
+            Console.WriteLine("\nOpções:");
             Console.WriteLine("  --config, -c <nome>    Carregar configuração específica");
             Console.WriteLine("  --list, -l             Listar configurações disponíveis");
             Console.WriteLine("  --help, -h             Mostrar esta ajuda\n");
+            Console.WriteLine("Opções do sync-resources:");
+            Console.WriteLine("  --source <path>        Caminho dos recursos fonte");
+            Console.WriteLine("  --target <path>        Caminho de destino");
+            Console.WriteLine("  --configs <list>       Configs para sincronizar (separadas por vírgula)");
+            Console.WriteLine("  --force                Forçar sobrescrita\n");
             Console.WriteLine("Exemplos:");
             Console.WriteLine("  Core.CLI.exe --config alisyum");
             Console.WriteLine("  Core.CLI.exe --list");
+            Console.WriteLine("  Core.CLI.exe sync-resources");
+            Console.WriteLine("  Core.CLI.exe sync-resources --configs alisyum,test-orc --force");
             Console.WriteLine("\nPara executar testes, use: dotnet test");
         }
 

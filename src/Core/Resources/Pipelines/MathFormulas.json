@@ -196,5 +196,20 @@
       { "op": "MULTIPLY", "value": "params.BONUS_MULTIPLIER" },
       { "op": "ADD", "value": "params.THRESHOLD" }
     ]
+  },
+
+  "LERP": {
+    "description": "Linear interpolation between start value and target. Formula: START + (TARGET - START) * T",
+    "params": {
+      "START": 0,
+      "TARGET": 100,
+      "T": 0.5
+    },
+    "operations": [
+      { "op": "ADD", "value": "params.TARGET" },
+      { "op": "SUBTRACT", "value": "params.START" },
+      { "op": "MULTIPLY", "value": "params.T" },
+      { "op": "ADD", "value": "params.START" }
+    ]
   }
 }

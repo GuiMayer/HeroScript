@@ -173,7 +173,7 @@ export function OperationsPanel({ mode, parameters, onAddStep, disabled }: Opera
   return (
     <div className="space-y-4">
       {/* Category Tabs */}
-      <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+      <div className="flex gap-1 p-1 bg-muted rounded-lg">
         {categories.map((cat) => (
           <button
             key={cat.id}
@@ -182,8 +182,8 @@ export function OperationsPanel({ mode, parameters, onAddStep, disabled }: Opera
               flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all
               ${
                 activeCategory === cat.id
-                  ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-card shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
               }
             `}
           >
@@ -237,7 +237,7 @@ export function OperationsPanel({ mode, parameters, onAddStep, disabled }: Opera
       </div>
 
       {/* Helper Text */}
-      <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
+      <div className="text-xs text-muted-foreground px-1">
         {mode === 'implicit' && 'Enter numeric values separated by commas'}
         {mode === 'explicit-literal' && 'Enter numeric strings separated by commas'}
         {mode === 'explicit-symbolic' && 'Use $current, $initial, or params.NAME'}

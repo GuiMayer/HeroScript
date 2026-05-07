@@ -73,5 +73,15 @@
         "operations": [
             { "op": "CLAMP", "operands": ["$input", "params.MIN", "params.MAX"] }
         ]
+    },
+
+    "LERP_EXAMPLE": {
+        "description": "Linear interpolation for smooth transitions",
+        "params": { "TARGET": 100, "T": 0.5 },
+        "operations": [
+            { "op": "SUBTRACT", "value": "params.TARGET" },
+            { "op": "MULTIPLY", "value": "params.T" },
+            { "op": "ADD", "value": "params.TARGET" }
+        ]
     }
 }

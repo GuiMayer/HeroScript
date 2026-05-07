@@ -101,9 +101,83 @@ namespace Core.Math
             return this;
         }
 
-        // Método genérico para adicionar steps vindos de APIs ou fontes externas
+        public MathExpression Min(params float[] values)
+        {
+            _steps.Add(new MathStep("MIN", values));
+            return this;
+        }
+
+        public MathExpression Max(params float[] values)
+        {
+            _steps.Add(new MathStep("MAX", values));
+            return this;
+        }
+
+        public MathExpression Abs()
+        {
+            _steps.Add(new MathStep("ABS", Array.Empty<float>()));
+            return this;
+        }
+
+        public MathExpression Pow(float exponent)
+        {
+            _steps.Add(new MathStep("POW", new float[] { exponent }));
+            return this;
+        }
+
+        public MathExpression Round(int decimals = 0)
+        {
+            _steps.Add(new MathStep("ROUND", new float[] { decimals }));
+            return this;
+        }
+
+        public MathExpression Floor()
+        {
+            _steps.Add(new MathStep("FLOOR", Array.Empty<float>()));
+            return this;
+        }
+
+        public MathExpression Ceil()
+        {
+            _steps.Add(new MathStep("CEIL", Array.Empty<float>()));
+            return this;
+        }
+
+        /// <summary>
+        /// Define o valor do acumulador, ignorando o valor anterior.
+        /// Usado para operações com operandos explícitos que calculam um resultado independente.
+        /// </summary>
+        public MathExpression Set(float value)
+        {
+            _steps.Add(new MathStep("SET", new float[] { value }));
+            return this;
+        }
+
+        // Método genérico para adicionar steps vindos de APIs ou fontes externas (modo implícito)
         public MathExpression AddRawStep(string operation, float[] values)
         {
+            _steps.Add(new MathStep(operation, values));
+            return this;
+        }
+
+        // Método para adicionar steps com operandos explícitos (novo sistema híbrido)
+        // Nota: Este método NÃO resolve os operandos - apenas armazena como literais numéricos
+        // A resolução de "$current", "params.X", etc. deve ser feita pelo MathEngine antes de chamar este método
+        public MathExpression AddRawStepWithOperands(string operation, List<string> operands)
+        {
+            // Converte operandos string para float[] para armazenamento interno
+            // Assume que os operandos já foram resolvidos para valores numéricos
+            var values = operands.Select(op => 
+            {
+                if (float.TryParse(op, System.Globalization.NumberStyles.Float, 
+                    System.Globalization.CultureInfo.InvariantCulture, out float val))
+                {
+                    return val;
+                }
+                throw new ArgumentException($"Operand '{op}' must be a numeric literal when using AddRawStepWithOperands. " +
+                    "Resolve '$current', '$initial', and 'params.X' references before calling this method.");
+            }).ToArray();
+            
             _steps.Add(new MathStep(operation, values));
             return this;
         }
@@ -217,6 +291,48 @@ namespace Core.Math
                         if (min > max)
                             throw new ArgumentException($"CLAMP min ({min}) cannot be greater than max ({max}).");
                         currentValue = SysMath.Clamp(currentValue, min, max);
+                        break;
+
+                    case "MIN":
+                        if (step.Values.Length == 0)
+                            throw new InvalidOperationException("MIN requires at least one value.");
+                        foreach (var v in step.Values)
+                        {
+                            currentValue = SysMath.Min(currentValue, v);
+                        }
+                        break;
+
+                    case "MAX":
+                        if (step.Values.Length == 0)
+                            throw new InvalidOperationException("MAX requires at least one value.");
+                        foreach (var v in step.Values)
+                        {
+                            currentValue = SysMath.Max(currentValue, v);
+                        }
+                        break;
+
+                    case "ABS":
+                        currentValue = SysMath.Abs(currentValue);
+                        break;
+
+                    case "ROUND":
+                        int decimals = step.Values.Length > 0 ? (int)step.Values[0] : 0;
+                        currentValue = (float)SysMath.Round(currentValue, decimals);
+                        break;
+
+                    case "FLOOR":
+                        currentValue = (float)SysMath.Floor(currentValue);
+                        break;
+
+                    case "CEIL":
+                        currentValue = (float)SysMath.Ceiling(currentValue);
+                        break;
+
+                    case "SET":
+                        if (step.Values.Length != 1)
+                            throw new InvalidOperationException("SET requires exactly one value.");
+                        currentValue = step.Values[0];
+                        ValidateResult(currentValue, step.Operation);
                         break;
 
                     default:

@@ -32,7 +32,7 @@ const modes = [
 
 export function ModeSelectorTabs({ selectedMode, onModeChange, disabled }: ModeSelectorTabsProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+    <div className="bg-card rounded-lg border border-border p-1">
       <div className="flex gap-1">
         {modes.map((mode) => {
           const isActive = selectedMode === mode.id;
@@ -46,7 +46,7 @@ export function ModeSelectorTabs({ selectedMode, onModeChange, disabled }: ModeS
                 ${
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    : 'text-muted-foreground hover:bg-muted'
                 }
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
@@ -56,7 +56,7 @@ export function ModeSelectorTabs({ selectedMode, onModeChange, disabled }: ModeS
                 <div className="flex items-center gap-2">
                   <span className={`
                     text-xs font-mono px-1.5 py-0.5 rounded
-                    ${isActive ? 'bg-primary-foreground/20' : 'bg-gray-200 dark:bg-gray-700'}
+                    ${isActive ? 'bg-primary-foreground/20' : 'bg-muted'}
                   `}>
                     {mode.badge}
                   </span>

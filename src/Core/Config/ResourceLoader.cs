@@ -23,6 +23,9 @@ namespace Core.Config
         
         private readonly object _cacheLock = new();
 
+        // NOVO: Resolver de caminhos
+        private ResourcePathResolver? _pathResolver;
+
         /// <summary>
         /// Singleton instance
         /// </summary>
@@ -41,7 +44,23 @@ namespace Core.Config
             }
         }
 
-        private ResourceLoader() { }
+        private ResourceLoader() 
+        {
+            // Inicializar com configuração padrão
+            InitializePathResolver(new ResourceConfiguration());
+        }
+
+        /// <summary>
+        /// Permite reconfigurar o resolver (útil para testes)
+        /// </summary>
+        public void InitializePathResolver(ResourceConfiguration config)
+        {
+            lock (_cacheLock)
+            {
+                _pathResolver = ResourceProviderFactory.CreateResolver(config);
+                InvalidateCache(); // Limpar cache ao reconfigurar
+            }
+        }
 
         /// <summary>
         /// Carrega um recurso JSON com herança delta.
@@ -70,35 +89,40 @@ namespace Core.Config
                 // Carregar e fazer merge de cada config na cadeia
                 foreach (var configName in configChain)
                 {
-                    var configPath = ConfigManager.GetConfigPath(configName);
-                    var fullPath = Path.Combine(configPath, "Resources", relativePath);
+                    // NOVO: Construir caminho relativo incluindo config
+                    var configRelativePath = Path.Combine(configName, "Resources", relativePath);
 
-                    // Fallback para dev mode
-                    if (!File.Exists(fullPath))
+                    // NOVO: Usar resolver para encontrar arquivo
+                    var stream = _pathResolver!.OpenResource(configRelativePath, out var result);
+
+                    if (stream == null)
                     {
-                        var devPath = Path.Combine(AppContext.BaseDirectory, "Resources", relativePath);
-                        if (File.Exists(devPath))
+                        Console.WriteLine($"[ResourceLoader] Resource not found for '{configName}': {relativePath}");
+                        if (result.SearchedLocations.Count > 0)
                         {
-                            fullPath = devPath;
-                            Console.WriteLine($"[ResourceLoader] Using dev fallback for '{configName}': {devPath}");
+                            Console.WriteLine($"[ResourceLoader] Searched locations:");
+                            foreach (var location in result.SearchedLocations)
+                            {
+                                Console.WriteLine($"[ResourceLoader]   - {location}");
+                            }
                         }
-                        else
-                        {
-                            Console.WriteLine($"[ResourceLoader] Resource not found for '{configName}': {relativePath}");
-                            continue;
-                        }
+                        continue;
                     }
 
                     // Carregar e fazer merge
                     try
                     {
-                        var resources = LoadFromFile(fullPath, configName, strictMode);
-                        MergeResources(merged, origins, resources, configName, strictMode);
-                        Console.WriteLine($"[ResourceLoader] Loaded {resources.Count} resources from {Path.GetFileName(fullPath)} ({configName})");
+                        using (stream)
+                        {
+                            var resources = LoadFromStream(stream, configName, strictMode);
+                            MergeResources(merged, origins, resources, configName, strictMode);
+                            Console.WriteLine($"[ResourceLoader] Loaded {resources.Count} resources from {relativePath} ({configName})");
+                            Console.WriteLine($"[ResourceLoader] Source: {result.Provider!.Name} - {result.PhysicalPath}");
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[ResourceLoader] Error loading {fullPath}: {ex.Message}");
+                        Console.WriteLine($"[ResourceLoader] Error loading {configRelativePath}: {ex.Message}");
                         if (strictMode)
                             throw;
                     }
@@ -114,18 +138,27 @@ namespace Core.Config
         }
 
         /// <summary>
-        /// Carrega recursos de um arquivo JSON.
+        /// Carrega recursos de um stream JSON.
         /// </summary>
-        private Dictionary<string, JsonElement> LoadFromFile(
-            string filePath,
+        private Dictionary<string, JsonElement> LoadFromStream(
+            Stream stream,
             string configName,
             bool strictMode)
         {
-            var jsonContent = File.ReadAllText(filePath);
+            using var reader = new StreamReader(stream);
+            var jsonContent = reader.ReadToEnd();
+            Console.WriteLine($"[ResourceLoader] File content length: {jsonContent.Length} bytes");
+
             var rawDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent);
 
             if (rawDict == null)
-                throw new InvalidOperationException($"Failed to deserialize {filePath}");
+                throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
+
+            Console.WriteLine($"[ResourceLoader] Deserialized {rawDict.Count} resources from file");
+            foreach (var key in rawDict.Keys)
+            {
+                Console.WriteLine($"[ResourceLoader]   - {key}");
+            }
 
             return rawDict;
         }

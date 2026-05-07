@@ -31,7 +31,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Disabled for development - using HTTP only
 app.UseCors();
 app.MapControllers();
 

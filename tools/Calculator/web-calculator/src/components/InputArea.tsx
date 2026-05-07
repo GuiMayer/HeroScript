@@ -63,7 +63,7 @@ export function InputArea({
     <div className="space-y-4">
       {/* Initial Value */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Starting Value
         </label>
         <Input
@@ -78,10 +78,10 @@ export function InputArea({
 
       {/* Parameters Section (Mode 3 only) */}
       {mode === 'explicit-symbolic' && (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+        <div className="border border-border rounded-lg overflow-hidden">
           <button
             onClick={() => setParamsExpanded(!paramsExpanded)}
-            className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="w-full flex items-center justify-between p-3 bg-muted hover:bg-muted/80 transition-colors"
             disabled={disabled}
           >
             <div className="flex items-center gap-2">
@@ -105,16 +105,16 @@ export function InputArea({
               {paramCount > 0 && (
                 <div className="space-y-2 mb-3">
                   {Object.entries(parameters).map(([name, value]) => (
-                    <div
-                      key={name}
-                      className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                    >
-                      <code className="flex-1 text-sm font-mono text-purple-600 dark:text-purple-400">
-                        params.{name}
-                      </code>
-                      <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                        = {value}
-                      </span>
+                  <div
+                    key={name}
+                    className="flex items-center gap-2 p-2 bg-muted rounded-lg"
+                  >
+                    <code className="flex-1 text-sm font-mono text-purple-600 dark:text-purple-400">
+                      params.{name}
+                    </code>
+                    <span className="text-sm font-mono text-muted-foreground">
+                      = {value}
+                    </span>
                       <Button
                         onClick={() => handleRemoveParameter(name)}
                         variant="ghost"
@@ -160,7 +160,7 @@ export function InputArea({
                 </Button>
               </div>
 
-              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+              <div className="text-xs text-muted-foreground space-y-1">
                 <p>Use parameters in operations:</p>
                 <code className="block text-purple-600 dark:text-purple-400">params.{newParamName || 'NAME'}</code>
               </div>

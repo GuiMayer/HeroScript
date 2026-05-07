@@ -46,8 +46,11 @@ namespace Core.Math
         {
             var result = new Dictionary<string, FormulaDefinition>(StringComparer.OrdinalIgnoreCase);
 
+            Console.WriteLine($"[FormulaLoader] Converting {rawData.Count} raw formulas to FormulaDefinition");
+            
             foreach (var kvp in rawData)
             {
+                Console.WriteLine($"[FormulaLoader] Processing formula: {kvp.Key}");
                 try
                 {
                     var formula = JsonSerializer.Deserialize<FormulaDefinition>(
@@ -61,6 +64,7 @@ namespace Core.Math
                     if (formula != null)
                     {
                         result[kvp.Key] = formula;
+                        Console.WriteLine($"[FormulaLoader] Successfully converted: {kvp.Key}");
                     }
                     else
                     {
@@ -72,6 +76,8 @@ namespace Core.Math
                     Console.WriteLine($"[FormulaLoader] Error deserializing formula '{kvp.Key}': {ex.Message}");
                 }
             }
+            
+            Console.WriteLine($"[FormulaLoader] Converted {result.Count} formulas successfully");
 
             return result;
         }

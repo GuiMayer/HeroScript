@@ -46,17 +46,17 @@ export function OutputArea({
     if (operand.startsWith('params.')) {
       return <span className="text-purple-600 dark:text-purple-400 font-semibold">{operand}</span>;
     }
-    return <span className="text-gray-700 dark:text-gray-300">{operand}</span>;
+    return <span className="text-foreground">{operand}</span>;
   };
 
   const formatOperands = (operands?: string[]) => {
     if (!operands || operands.length === 0) return null;
     return (
-      <span className="inline-flex flex-wrap gap-1 items-center">
+        <span className="inline-flex flex-wrap gap-1 items-center">
         {operands.map((operand, idx) => (
           <span key={idx} className="inline-flex items-center">
             {formatOperand(operand)}
-            {idx < operands.length - 1 && <span className="text-gray-400">,</span>}
+            {idx < operands.length - 1 && <span className="text-muted-foreground">,</span>}
           </span>
         ))}
       </span>
@@ -91,7 +91,7 @@ export function OutputArea({
           <div className="bg-gradient-to-br from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 rounded-lg border-2 border-primary/50 p-6">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-5 h-5 text-primary" />
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Result</span>
+              <span className="text-sm font-medium text-muted-foreground">Result</span>
             </div>
             <div className="text-6xl font-bold font-mono text-primary text-center">
               {formatValue(result.result)}
@@ -100,19 +100,19 @@ export function OutputArea({
 
           {/* Metadata */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <Clock className="w-4 h-4 text-gray-500" />
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <Clock className="w-4 h-4 text-muted-foreground" />
               <div>
-                <div className="text-xs text-gray-500">Time</div>
+                <div className="text-xs text-muted-foreground">Time</div>
                 <div className="font-semibold font-mono text-sm">
                   {result.executionTimeMs.toFixed(2)} ms
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <Zap className="w-4 h-4 text-gray-500" />
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              <Zap className="w-4 h-4 text-muted-foreground" />
               <div>
-                <div className="text-xs text-gray-500">Steps</div>
+                <div className="text-xs text-muted-foreground">Steps</div>
                 <div className="font-semibold font-mono text-sm">
                   {result.steps.length}
                 </div>
@@ -132,11 +132,11 @@ export function OutputArea({
       )}
 
       {/* Timeline */}
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="border border-border rounded-lg overflow-hidden">
+        <div className="bg-muted px-4 py-2 border-b border-border">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Timeline</span>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-muted-foreground">
               {steps.length} step{steps.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -144,7 +144,7 @@ export function OutputArea({
 
         <div className="max-h-[400px] overflow-y-auto">
           {steps.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <p className="text-sm">No operations yet</p>
               <p className="text-xs mt-1">Add operations to build your expression</p>
             </div>
@@ -152,11 +152,11 @@ export function OutputArea({
             <div className="p-3 space-y-2">
               {/* Initial Value */}
               <div className="flex items-center gap-2 text-sm">
-                <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-semibold">
+                <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
                   0
                 </div>
                 <span className="font-mono font-semibold">{formatValue(initialValue)}</span>
-                <span className="text-xs text-gray-500">initial</span>
+                <span className="text-xs text-muted-foreground">initial</span>
               </div>
 
               {/* Steps */}
@@ -165,14 +165,14 @@ export function OutputArea({
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-2 text-sm pl-2 border-l-2 border-gray-200 dark:border-gray-700 ml-3"
+                    className="flex items-center gap-2 text-sm pl-2 border-l-2 border-border ml-3"
                   >
                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-semibold text-primary">
                       {index + 1}
                     </div>
                     <span className="font-semibold">{metadata?.symbol || step.operation}</span>
                     {step.values && step.values.length > 0 && (
-                      <span className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {formatValues(step.values)}
                       </span>
                     )}

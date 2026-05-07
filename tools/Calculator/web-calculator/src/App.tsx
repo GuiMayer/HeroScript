@@ -143,11 +143,11 @@ function App() {
         <div className="text-center space-y-2 pt-6">
           <div className="flex items-center justify-center gap-3">
             <CalculatorIcon className="w-10 h-10 text-primary" />
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-4xl font-bold text-foreground">
               HeroScript Calculator
             </h1>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             Testing MathExpression API with 15 operations and 3 modes
           </p>
           
@@ -156,13 +156,13 @@ function App() {
             <div
               className={`w-2 h-2 rounded-full ${
                 apiConnected === null
-                  ? 'bg-gray-400'
+                  ? 'bg-muted-foreground'
                   : apiConnected
                   ? 'bg-green-500'
-                  : 'bg-red-500'
+                  : 'bg-destructive'
               }`}
             />
-            <span className="text-gray-600 dark:text-gray-400">
+            <span className="text-muted-foreground">
               {apiConnected === null
                 ? 'Checking API...'
                 : apiConnected
@@ -181,8 +181,8 @@ function App() {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-start gap-3 text-red-800 dark:text-red-200">
+          <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
+            <div className="flex items-start gap-3 text-destructive">
               <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-sm">Error</p>
@@ -195,7 +195,7 @@ function App() {
         {/* 3-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_350px] gap-4">
           {/* Column 1: Input Area */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <InputArea
               mode={mode}
               initialValue={initialValue}
@@ -210,7 +210,7 @@ function App() {
           </div>
 
           {/* Column 2: Operations Panel */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <h2 className="text-lg font-semibold mb-4">Operations</h2>
             <OperationsPanel
               mode={mode}
@@ -221,7 +221,7 @@ function App() {
           </div>
 
           {/* Column 3: Output Area */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <div className="bg-card rounded-lg border border-border p-4">
             <OutputArea
               steps={steps}
               result={result}
@@ -235,12 +235,12 @@ function App() {
         </div>
 
         {/* Keyboard Shortcuts Hint */}
-        <div className="text-center text-xs text-gray-500 dark:text-gray-400 pb-4">
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl+Enter</kbd> Calculate
+        <div className="text-center text-xs text-muted-foreground pb-4">
+          <kbd className="px-2 py-1 bg-muted rounded">Ctrl+Enter</kbd> Calculate
           {' • '}
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl+Z</kbd> Undo
+          <kbd className="px-2 py-1 bg-muted rounded">Ctrl+Z</kbd> Undo
           {' • '}
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">Ctrl+Shift+C</kbd> Clear
+          <kbd className="px-2 py-1 bg-muted rounded">Ctrl+Shift+C</kbd> Clear
         </div>
       </div>
     </div>
