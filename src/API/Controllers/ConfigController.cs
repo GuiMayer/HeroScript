@@ -1,3 +1,4 @@
+using API.Helpers;
 using API.Models;
 using Core.Config;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +14,16 @@ public class ConfigController : ControllerBase
 {
     private readonly ILogger<ConfigController> _logger;
     private readonly ConfigReloadSettings _reloadSettings;
+    private readonly IWebHostEnvironment _environment;
 
-    public ConfigController(ILogger<ConfigController> logger, ConfigReloadSettings reloadSettings)
+    public ConfigController(
+        ILogger<ConfigController> logger, 
+        ConfigReloadSettings reloadSettings,
+        IWebHostEnvironment environment)
     {
         _logger = logger;
         _reloadSettings = reloadSettings;
+        _environment = environment;
     }
 
     /// <summary>
@@ -147,12 +153,22 @@ public class ConfigController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public IActionResult GetConfig(string name)
     {
+        // Validate input to prevent path traversal
+        if (!ValidationHelper.IsValidConfigName(name))
+        {
+            return BadRequest(new ErrorResponse 
+            { 
+                Error = "Invalid configuration name",
+                Details = _environment.IsDevelopment() ? "Configuration name contains invalid characters" : null
+            });
+        }
+
         try
         {
             var metadata = ConfigManager.GetConfigMetadata(name);
             if (metadata == null)
             {
-                return NotFound(new { error = $"Configuration '{name}' not found" });
+                return NotFound(new ErrorResponse { Error = $"Configuration '{name}' not found" });
             }
 
             var currentConfig = ConfigManager.CurrentConfig;
@@ -173,7 +189,11 @@ public class ConfigController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting configuration {ConfigName}", name);
-            return StatusCode(500, new { error = "Failed to load configuration", details = ex.Message });
+            return StatusCode(500, new ErrorResponse 
+            { 
+                Error = "Failed to load configuration",
+                Details = _environment.IsDevelopment() ? ex.Message : null
+            });
         }
     }
 
@@ -189,13 +209,23 @@ public class ConfigController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public IActionResult GetConfigChain(string name)
     {
+        // Validate input to prevent path traversal
+        if (!ValidationHelper.IsValidConfigName(name))
+        {
+            return BadRequest(new ErrorResponse 
+            { 
+                Error = "Invalid configuration name",
+                Details = _environment.IsDevelopment() ? "Configuration name contains invalid characters" : null
+            });
+        }
+
         try
         {
             // Check if config exists
             var metadata = ConfigManager.GetConfigMetadata(name);
             if (metadata == null)
             {
-                return NotFound(new { error = $"Configuration '{name}' not found" });
+                return NotFound(new ErrorResponse { Error = $"Configuration '{name}' not found" });
             }
 
             var chain = ConfigManager.ResolveInheritanceChain(name);
