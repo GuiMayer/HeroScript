@@ -101,6 +101,13 @@ namespace Core.Math
             return this;
         }
 
+        // Método genérico para adicionar steps vindos de APIs ou fontes externas
+        public MathExpression AddRawStep(string operation, float[] values)
+        {
+            _steps.Add(new MathStep(operation, values));
+            return this;
+        }
+
         // Método extra para a IA ou UI lerem o que está planejado
         public IReadOnlyList<MathStep> GetSteps() => _steps.AsReadOnly();
 
