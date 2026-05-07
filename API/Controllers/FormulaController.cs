@@ -130,17 +130,7 @@ public class FormulaController : ControllerBase
 
             // Get formula info
             var description = _mathEngine.GetFormulaDescription(request.FormulaName) ?? string.Empty;
-            var defaultParams = _mathEngine.GetFormulaDefaultParams(request.FormulaName) ?? new Dictionary<string, float>();
-            
-            // Merge params (defaults + overrides)
-            var paramsUsed = new Dictionary<string, float>(defaultParams);
-            if (request.ParamOverrides != null)
-            {
-                foreach (var kvp in request.ParamOverrides)
-                {
-                    paramsUsed[kvp.Key] = kvp.Value;
-                }
-            }
+            var paramsUsed = _mathEngine.GetMergedParams(request.FormulaName, request.ParamOverrides) ?? new Dictionary<string, float>();
 
             var response = new FormulaResponse
             {

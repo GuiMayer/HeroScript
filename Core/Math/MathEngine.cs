@@ -126,6 +126,28 @@ namespace Core.Math
         }
 
         /// <summary>
+        /// Retorna parâmetros mesclados (defaults + overrides) de uma fórmula
+        /// </summary>
+        /// <param name="formulaName">Nome da fórmula</param>
+        /// <param name="paramOverrides">Parâmetros customizados (opcional, sobrescreve defaults do JSON)</param>
+        /// <returns>Dicionário com parâmetros mesclados ou null se fórmula não existir</returns>
+        public Dictionary<string, float>? GetMergedParams(string formulaName, Dictionary<string, float>? paramOverrides = null)
+        {
+            var formulas = LoadFormulas();
+            if (!formulas.TryGetValue(formulaName, out var formula))
+                return null;
+
+            var parameters = new Dictionary<string, float>(formula.Params, StringComparer.OrdinalIgnoreCase);
+            if (paramOverrides != null)
+            {
+                foreach (var kvp in paramOverrides)
+                    parameters[kvp.Key] = kvp.Value;
+            }
+
+            return parameters;
+        }
+
+        /// <summary>
         /// Constrói uma MathExpression a partir de uma fórmula do JSON
         /// </summary>
         /// <param name="formulaName">Nome da fórmula (ex: "HYPERBOLIC_CURVE")</param>
