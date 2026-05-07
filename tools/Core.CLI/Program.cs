@@ -1,6 +1,4 @@
-﻿using Core.Tests;
-using Core.Tests.Math;
-using Core.Config;
+﻿using Core.Config;
 using System;
 using System.Linq;
 
@@ -14,7 +12,6 @@ namespace Core
 
             // Parse argumentos CLI
             string? configToLoad = null;
-            bool runTests = false;
             bool listConfigs = false;
             bool showHelp = false;
 
@@ -34,10 +31,6 @@ namespace Core
                         Console.WriteLine("Error: --config requires a config name");
                         return;
                     }
-                }
-                else if (arg == "--test" || arg == "-t")
-                {
-                    runTests = true;
                 }
                 else if (arg == "--list" || arg == "-l")
                 {
@@ -92,16 +85,6 @@ namespace Core
                 }
             }
 
-            // Executar testes se solicitado
-            if (runTests)
-            {
-                MathEngineTests.RunAllTests();
-                ConfigTests.RunAllTests();
-                Console.WriteLine("\n[DEBUG]: Testes concluídos. Pressione ENTER para fechar.");
-                Console.ReadLine();
-                return;
-            }
-
             // Modo interativo (futuro)
             Console.WriteLine("Interactive mode not yet implemented.");
             Console.WriteLine("Use --help to see available options.");
@@ -116,12 +99,11 @@ namespace Core
             Console.WriteLine("Opções:");
             Console.WriteLine("  --config, -c <nome>    Carregar configuração específica");
             Console.WriteLine("  --list, -l             Listar configurações disponíveis");
-            Console.WriteLine("  --test, -t             Executar testes");
             Console.WriteLine("  --help, -h             Mostrar esta ajuda\n");
             Console.WriteLine("Exemplos:");
-            Console.WriteLine("  Core.exe --config alisyum");
-            Console.WriteLine("  Core.exe --config test-orc-mod --test");
-            Console.WriteLine("  Core.exe --list");
+            Console.WriteLine("  Core.CLI.exe --config alisyum");
+            Console.WriteLine("  Core.CLI.exe --list");
+            Console.WriteLine("\nPara executar testes, use: dotnet test");
         }
 
         static void ListAvailableConfigs()
