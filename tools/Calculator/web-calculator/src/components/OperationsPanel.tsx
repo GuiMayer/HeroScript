@@ -43,13 +43,19 @@ export function OperationsPanel({ mode, parameters, onAddStep, disabled }: Opera
   const handleOperation = (operation: MathOperation, minValues: number, maxValues: number) => {
     setErrors({});
 
-    if (minValues === 0 && maxValues === 0) {
-      // Operations with no parameters should not have values or operands fields
-      onAddStep(operation, undefined, undefined);
+    const inputValue = inputValues[operation] || '';
+    
+    // Operations with minValues: 0 can work without input in implicit mode
+    if (minValues === 0 && !inputValue.trim()) {
+      if (mode === 'implicit') {
+        // No input needed - operates on current value
+        onAddStep(operation, undefined, undefined);
+        return;
+      }
+      // In explicit modes, these operations need at least one operand
+      setErrors({ [operation]: `Enter operand(s)` });
       return;
     }
-
-    const inputValue = inputValues[operation] || '';
     
     if (!inputValue.trim()) {
       setErrors({ [operation]: `Enter value(s)` });

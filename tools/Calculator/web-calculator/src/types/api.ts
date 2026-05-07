@@ -120,7 +120,7 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '√',
     description: 'Square root',
     minValues: 0,
-    maxValues: 0,
+    maxValues: 1,
     category: 'advanced',
   },
   {
@@ -129,7 +129,7 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '|x|',
     description: 'Absolute value',
     minValues: 0,
-    maxValues: 0,
+    maxValues: 1,
     category: 'advanced',
   },
   {
@@ -138,7 +138,7 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '−x',
     description: 'Negate value',
     minValues: 0,
-    maxValues: 0,
+    maxValues: 1,
     category: 'advanced',
   },
   {
@@ -156,7 +156,7 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '⌊x⌋',
     description: 'Round down',
     minValues: 0,
-    maxValues: 0,
+    maxValues: 1,
     category: 'advanced',
   },
   {
@@ -165,7 +165,7 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '⌈x⌉',
     description: 'Round up',
     minValues: 0,
-    maxValues: 0,
+    maxValues: 1,
     category: 'advanced',
   },
   {
