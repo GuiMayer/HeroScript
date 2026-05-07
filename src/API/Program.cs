@@ -1,7 +1,13 @@
+using API.Models;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
+
+// Configure config reload settings (security flag)
+var allowConfigReload = builder.Configuration.GetValue<bool>("AllowConfigReload", false);
+builder.Services.AddSingleton(new ConfigReloadSettings { Enabled = allowConfigReload });
 
 // Configure CORS
 builder.Services.AddCors(options =>
