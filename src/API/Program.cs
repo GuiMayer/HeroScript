@@ -1,4 +1,6 @@
 using API.Models;
+using API.Logging;
+using Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +50,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Configure Core library logging
+var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
+var coreLogger = new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
+CoreLogger.Configure(coreLogger);
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
