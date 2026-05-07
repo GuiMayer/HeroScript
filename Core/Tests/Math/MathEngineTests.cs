@@ -2,7 +2,7 @@ using M = Core.Math;
 using System;
 using System.Collections.Generic;
 
-namespace Core.Tests
+namespace Core.Tests.Math
 {
     public static class MathEngineTests
     {
