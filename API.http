@@ -1,0 +1,60 @@
+### HeroScript Math API - Test Requests
+
+@baseUrl = http://localhost:5260/api
+
+### Get all formulas
+GET {{baseUrl}}/formula
+
+### Get specific formula
+GET {{baseUrl}}/formula/HYPERBOLIC_CURVE
+
+### Evaluate formula with default params
+POST {{baseUrl}}/formula/evaluate
+Content-Type: application/json
+
+{
+  "formulaName": "HYPERBOLIC_CURVE",
+  "inputValue": 50
+}
+
+### Evaluate formula with param overrides
+POST {{baseUrl}}/formula/evaluate
+Content-Type: application/json
+
+{
+  "formulaName": "HYPERBOLIC_CURVE",
+  "inputValue": 50,
+  "paramOverrides": {
+    "a": 100,
+    "b": 2,
+    "c": 10
+  }
+}
+
+### Get all operations
+GET {{baseUrl}}/math/expression/operations
+
+### Evaluate custom expression
+POST {{baseUrl}}/math/expression/evaluate
+Content-Type: application/json
+
+{
+  "initialValue": 10,
+  "steps": [
+    {
+      "operation": "MULTIPLY",
+      "values": [2]
+    },
+    {
+      "operation": "ADD",
+      "values": [5]
+    },
+    {
+      "operation": "POW",
+      "values": [2]
+    }
+  ]
+}
+
+### Reload formula cache
+POST {{baseUrl}}/formula/reload
