@@ -1,0 +1,10 @@
+{
+  "name": "test-orc",
+  "version": "1.0.0",
+  "author": "Hero-Engine Team",
+  "description": "Base config for orc-themed testing with example skills",
+  "parent": "alisyum",
+  "git_repo": null,
+  "git_hash": null,
+  "created_at": "2026-05-07"
+}
