@@ -1,185 +1,134 @@
 # HeroScript Engine
 
-Sistema de engine modular com suporte a herança delta para configurações e mods.
+HeroScript é uma engine headless para jogos de cartas roguelike, projetada para ser embarcável em qualquer game engine (Unity, Godot, etc.) através de uma arquitetura modular e data-driven.
 
 ## Estrutura do Projeto
 
 ```
 HeroScript/
-├── docs/                           # 📚 Documentação
-│   ├── CONFIG_SYSTEM.md           # Sistema de configuração e herança delta
-│   └── DELTA_REFERENCE.md         # Referência rápida de operações delta
-│
-├── scripts/                        # 🔧 Scripts de conveniência
-│   ├── list-configs.bat           # Lista configs disponíveis
-│   ├── run-alisyum.bat            # Executa com config padrão
-│   ├── run-orc-mod.bat            # Executa com mod de teste
-│   └── run-tests.bat              # Executa todos os testes
-│
-├── tests/                          # 🧪 Testes e configs de exemplo
-│   └── configs/                   # Configs para testes automatizados
-│       ├── test-orc/              # Config base de teste
-│       ├── test-orc-mod/          # Mod com deltas estruturados
-│       └── test-orc-mod-hardcore/ # Cadeia de 3 níveis
-│
-├── Core/                           # 💎 Engine principal
-│   ├── Config/                    # Sistema de configuração
-│   │   ├── Delta/                 # Sistema delta estruturado
-│   │   ├── ConfigManager.cs
-│   │   ├── ConfigValidator.cs
-│   │   └── ResourceLoader.cs
-│   ├── Math/                      # Engine matemático
-│   ├── Tests/                     # Testes unitários
-│   └── Resources/                 # Recursos base (dev mode)
-│
-├── API/                            # 🌐 API REST
-├── Dashboard/                      # 📊 Dashboard web
-└── Mods/                           # 🎮 Sistema de gerenciamento de mods
+├── src/                    # Código de produção
+│   ├── Core/              # Biblioteca principal (DLL embarcável)
+│   ├── API/               # REST API para exposição do Core
+│   └── Mods/              # Sistema de mods (futuro)
+├── tools/                  # Ferramentas de desenvolvimento
+│   ├── Core.CLI/          # CLI de debug e testes
+│   └── Calculator/        # Calculadora de debug
+└── tests/                  # Testes unitários
+    └── Core.Tests/        # Testes do Core
 ```
 
-## Quick Start
+## Componentes
 
-### Executar com Config Padrão
+### Core (Biblioteca)
+
+O Core é o coração da engine - uma biblioteca .NET que pode ser embarcada em qualquer projeto. Contém:
+
+- **MathEngine**: Sistema de fórmulas matemáticas serializadas (JSON)
+- **ConfigManager**: Sistema de configuração com herança delta
+- **ResourceLoader**: Carregamento de recursos data-driven
+
+**Output**: `Core.dll` - biblioteca embarcável
+
+### API (REST API)
+
+Camada de exposição HTTP do Core, permitindo consumo via REST API.
+
+- Swagger UI disponível em desenvolvimento
+- Endpoints para fórmulas matemáticas e expressões
+- CORS configurado para desenvolvimento
+
+**Output**: `API.dll` - aplicação web ASP.NET Core
+
+### Core.CLI (Debug Tool)
+
+Ferramenta de linha de comando para debug e testes do Core.
+
+- Execução de testes integrados
+- Listagem de configurações disponíveis
+- Carregamento de configs específicas
+
+**Output**: `Core.CLI.exe` - executável de console
+
+### Calculator (Debug Tool)
+
+Calculadora simples para testar expressões matemáticas.
+
+**Output**: `Calculator.exe` - executável de console
+
+### Core.Tests (Testes)
+
+Projeto de testes unitários usando xUnit.
+
+- Testes do MathEngine
+- Testes do ConfigManager
+- Testes do ResourceLoader
+
+## Como Usar
+
+### Como Biblioteca Embarcável
+
+```csharp
+using Core.Math;
+
+var engine = new MathEngine();
+var expr = engine.BuildFromFormula("HYPERBOLIC_CURVE", 100);
+var result = expr.Build();
+Console.WriteLine($"Result: {result}");
+```
+
+### Como API REST
 
 ```bash
-dotnet run --project Core -- --config alisyum
+cd src/API
+dotnet run
+# Acesse http://localhost:5260
 ```
 
-### Executar Testes
+### Como CLI de Debug
 
 ```bash
-dotnet test Core
-# ou
-scripts\run-tests.bat
+cd tools/Core.CLI
+dotnet run -- --help
+dotnet run -- --test
+dotnet run -- --config alisyum
 ```
 
-### Listar Configs Disponíveis
+## Build
 
 ```bash
-dotnet run --project Core -- --list
-# ou
-scripts\list-configs.bat
-```
+# Build Core library
+dotnet build src/Core/Core.csproj
 
-## Sistema de Configuração
+# Build API
+dotnet build src/API/API.csproj
 
-O HeroScript usa um sistema de **herança delta** que permite mods modificarem apenas as partes necessárias da configuração base.
+# Build CLI
+dotnet build tools/Core.CLI/Core.CLI.csproj
 
-### Localização de Configs
-
-- **Produção**: `%APPDATA%\HeroScript\` (user://)
-- **Desenvolvimento**: `Core/Resources/` (fallback)
-- **Testes**: `tests/configs/` (apenas para testes automatizados)
-
-### Criar um Mod
-
-1. Crie uma pasta em `%APPDATA%\HeroScript\seu-mod\`
-2. Adicione `config.json` com metadados
-3. Crie `Resources/Pipelines/MathFormulas.json` com deltas
-4. Execute: `dotnet run --project Core -- --config seu-mod`
-
-### Sistema Delta Estruturado
-
-O sistema suporta 9 operações delta para modificações granulares:
-
-- **REPLACE** - Substitui recurso inteiro
-- **MERGE_SHALLOW** - Mescla nível superior
-- **MERGE_DEEP** - Mescla recursivamente
-- **ARRAY_APPEND** - Adiciona ao final de array
-- **ARRAY_PREPEND** - Adiciona ao início de array
-- **ARRAY_REMOVE_INDEX** - Remove por índice
-- **ARRAY_REPLACE_INDEX** - Substitui por índice
-- **FIELD_DELETE** - Remove campo específico
-- **DELETE** - Remove recurso inteiro
-
-Exemplo de delta:
-
-```json
-{
-  "FIREBALL": {
-    "$delta": {
-      "$op": "MERGE_DEEP",
-      "$data": {
-        "damage": { "base": 120 }
-      }
-    }
-  }
-}
-```
-
-## Documentação
-
-- **[CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** - Documentação completa do sistema de configuração
-- **[DELTA_REFERENCE.md](docs/DELTA_REFERENCE.md)** - Referência rápida de operações delta
-- **[tests/configs/README.md](tests/configs/README.md)** - Documentação das configs de teste
-
-## Desenvolvimento
-
-### Estrutura de uma Config
-
-```
-my-config/
-├── config.json                    # Metadados (obrigatório)
-├── Resources/
-│   └── Pipelines/
-│       └── MathFormulas.json      # Fórmulas (obrigatório, pode ser {})
-├── runs/                          # Logs de execução
-└── saves/                         # Saves do jogo
-```
-
-### Executar Testes
-
-```bash
-# Todos os testes
-dotnet test Core
-
-# Testes específicos
-dotnet test Core --filter "FullyQualifiedName~ResourceLoaderTests"
-```
-
-### Build
-
-```bash
-dotnet build Core
+# Run tests
+dotnet test tests/Core.Tests/Core.Tests.csproj
 ```
 
 ## Arquitetura
 
-### Core Components
+O projeto segue a arquitetura descrita em `docs/01_Future/arquitetura-engine.md`:
 
-- **ConfigManager** - Gerencia carregamento e herança de configs
-- **ConfigValidator** - Valida estrutura e detecta ciclos
-- **ResourceLoader<T>** - Carregador genérico com suporte a delta
-- **DeltaMerger** - Aplica operações delta
-- **MathEngine** - Engine de fórmulas matemáticas
-- **FormulaLoader** - Carregador específico para fórmulas
+- **Headless**: Core é completamente independente de UI
+- **Data-driven**: Regras e fórmulas são dados (JSON), não código
+- **Event Sourcing**: Sistema de log built-in (futuro)
+- **Modular**: Configurações podem ser trocadas em runtime
 
-### Fluxo de Carregamento
+## Roadmap
 
-```
-1. ConfigManager.LoadConfig("test-orc-mod")
-2. ConfigValidator.ValidateConfig()
-3. ConfigManager.ResolveInheritanceChain() → ["alisyum", "test-orc", "test-orc-mod"]
-4. ResourceLoader.LoadResources()
-   ├─> Carrega base (alisyum)
-   ├─> Aplica deltas (test-orc)
-   └─> Aplica deltas (test-orc-mod)
-5. Resultado final mesclado
-```
+Estamos atualmente na **Fase 1 — O Kernel**:
 
-## Contribuindo
-
-1. Crie uma branch para sua feature
-2. Implemente com testes
-3. Execute `dotnet test Core` para validar
-4. Faça commit seguindo conventional commits
-5. Abra um pull request
+- ✅ MathEngine serializado (fórmulas JSON)
+- ✅ ConfigManager com herança delta
+- ✅ API REST básica implementada
+- ⏳ EventBus (próximo)
+- ⏳ GameState imutável (próximo)
+- ⏳ BucketPipeline (próximo)
 
 ## Licença
 
-[Adicionar licença aqui]
-
----
-
-**Versão:** 2.0.0  
-**Data:** 2026-05-07
+[A definir]
