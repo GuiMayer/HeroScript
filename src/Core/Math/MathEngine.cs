@@ -114,7 +114,7 @@ namespace Core.Math
 
                 // Usar FormulaLoader para carregar com herança delta
                 var loader = new FormulaLoader();
-                var chain = Config.ConfigManager.ResolveInheritanceChain(Config.ConfigManager.CurrentConfig);
+                var chain = Config.ConfigManager.Instance.ResolveInheritanceChain(Config.ConfigManager.Instance.CurrentConfig);
                 
                 _formulaCache = loader.LoadFormulas(chain, strictMode: false);
                 _formulaOrigins = loader.GetFormulaOrigins();

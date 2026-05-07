@@ -54,7 +54,7 @@ namespace Core.Config
             ResourceConfiguration config)
         {
             // 1. User data (highest priority - permite override local)
-            var userDataPath = ConfigManager.GetUserDataPath();
+            var userDataPath = ConfigManager.Instance.GetUserDataPath();
             if (Directory.Exists(userDataPath))
             {
                 resolver.RegisterProvider(new PhysicalFileResourceProvider(
@@ -91,7 +91,7 @@ namespace Core.Config
             ResourceConfiguration config)
         {
             // 1. User data (highest priority)
-            var userDataPath = ConfigManager.GetUserDataPath();
+            var userDataPath = ConfigManager.Instance.GetUserDataPath();
             if (Directory.Exists(userDataPath))
             {
                 resolver.RegisterProvider(new PhysicalFileResourceProvider(

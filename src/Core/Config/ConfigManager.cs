@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Core.Logging;
 
 namespace Core.Config
 {
@@ -11,19 +12,55 @@ namespace Core.Config
     /// Cada configuração é uma pasta independente com estrutura completa de Resources.
     /// Suporta herança delta: configs podem herdar de outras usando o campo 'parent'.
     /// </summary>
-    public static class ConfigManager
+    public class ConfigManager
     {
-        private static readonly object _configLock = new();
+        private static ConfigManager? _instance;
+        private static readonly object _instanceLock = new();
+        
+        private readonly object _configLock = new();
+        private readonly ILogger _logger;
+        private string _currentConfig;
+
+        /// <summary>
+        /// Singleton instance (for backward compatibility)
+        /// </summary>
+        public static ConfigManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    lock (_instanceLock)
+                    {
+                        _instance ??= new ConfigManager();
+                    }
+                }
+                return _instance;
+            }
+        }
 
         /// <summary>
         /// Config padrão (configurável, não hardcoded)
         /// </summary>
-        public static string DefaultConfig { get; set; } = "alisyum";
+        public string DefaultConfig { get; set; } = "alisyum";
 
         /// <summary>
         /// Config atualmente ativa
         /// </summary>
-        public static string CurrentConfig { get; private set; } = DefaultConfig;
+        public string CurrentConfig
+        {
+            get => _currentConfig;
+            private set => _currentConfig = value;
+        }
+
+        /// <summary>
+        /// Constructor for dependency injection
+        /// </summary>
+        public ConfigManager(ILogger? logger = null)
+        {
+            _logger = logger ?? CoreLogger.Current;
+            _currentConfig = DefaultConfig;
+        }
 
         /// <summary>
         /// Caminho base de todas as configs (user://)
@@ -31,7 +68,7 @@ namespace Core.Config
         /// Linux: ~/.local/share/HeroScript
         /// Mac: ~/Library/Application Support/HeroScript
         /// </summary>
-        public static string GetUserDataPath()
+        public string GetUserDataPath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             return Path.Combine(appData, "HeroScript");
@@ -40,7 +77,7 @@ namespace Core.Config
         /// <summary>
         /// Retorna caminho da config ativa
         /// </summary>
-        public static string GetCurrentConfigPath()
+        public string GetCurrentConfigPath()
         {
             return GetConfigPath(CurrentConfig);
         }
@@ -48,7 +85,7 @@ namespace Core.Config
         /// <summary>
         /// Retorna caminho de qualquer config
         /// </summary>
-        public static string GetConfigPath(string configName)
+        public string GetConfigPath(string configName)
         {
             return Path.Combine(GetUserDataPath(), configName);
         }
@@ -56,7 +93,7 @@ namespace Core.Config
         /// <summary>
         /// Lista todas as configs disponíveis em user://
         /// </summary>
-        public static IEnumerable<string> GetAvailableConfigs()
+        public IEnumerable<string> GetAvailableConfigs()
         {
             string userDataPath = GetUserDataPath();
 
@@ -71,7 +108,7 @@ namespace Core.Config
         /// <summary>
         /// Carrega metadados de uma config (config.json)
         /// </summary>
-        public static ConfigMetadata? GetConfigMetadata(string configName)
+        public ConfigMetadata? GetConfigMetadata(string configName)
         {
             string configPath = GetConfigPath(configName);
             string metadataPath = Path.Combine(configPath, "config.json");
@@ -86,7 +123,7 @@ namespace Core.Config
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ConfigManager] Error loading metadata for '{configName}': {ex.Message}");
+                _logger.LogError($"Error loading metadata for '{configName}': {ex.Message}", ex);
                 return null;
             }
         }
@@ -95,7 +132,7 @@ namespace Core.Config
         /// Resolve cadeia de herança de uma config.
         /// Retorna lista ordenada: [base, intermediário, atual]
         /// </summary>
-        public static List<string> ResolveInheritanceChain(string configName)
+        public List<string> ResolveInheritanceChain(string configName)
         {
             var chain = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -127,11 +164,11 @@ namespace Core.Config
         /// Carrega uma config (substitui tudo).
         /// Valida estrutura antes de carregar.
         /// </summary>
-        public static void LoadConfig(string configName)
+        public void LoadConfig(string configName)
         {
             lock (_configLock)
             {
-                Console.WriteLine($"[ConfigManager] Loading config: {configName}");
+                _logger.LogInformation($"Loading config: {configName}");
 
                 // 1. Validar estrutura de pastas
                 try
@@ -140,7 +177,7 @@ namespace Core.Config
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ConfigManager] Validation failed: {ex.Message}");
+                    _logger.LogError($"Validation failed: {ex.Message}", ex);
                     throw;
                 }
 
@@ -149,11 +186,11 @@ namespace Core.Config
                 try
                 {
                     chain = ResolveInheritanceChain(configName);
-                    Console.WriteLine($"[ConfigManager] Inheritance chain: {string.Join(" -> ", chain)}");
+                    _logger.LogInformation($"Inheritance chain: {string.Join(" -> ", chain)}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ConfigManager] Failed to resolve inheritance: {ex.Message}");
+                    _logger.LogError($"Failed to resolve inheritance: {ex.Message}", ex);
                     throw;
                 }
 
@@ -164,7 +201,7 @@ namespace Core.Config
                 Core.Math.MathEngine.ReloadFormulas();
                 // Futuro: invalidar outros sistemas (CardInterpreter, etc.)
 
-                Console.WriteLine($"[ConfigManager] Config '{configName}' loaded successfully");
+                _logger.LogInformation($"Config '{configName}' loaded successfully");
             }
         }
     }

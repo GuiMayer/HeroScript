@@ -83,7 +83,7 @@ namespace Core
             {
                 try
                 {
-                    ConfigManager.LoadConfig(configToLoad);
+                    ConfigManager.Instance.LoadConfig(configToLoad);
                     Console.WriteLine($"Config '{configToLoad}' loaded successfully\n");
                 }
                 catch (Exception ex)
@@ -97,8 +97,8 @@ namespace Core
                 // Carregar config padrão
                 try
                 {
-                    ConfigManager.LoadConfig(ConfigManager.DefaultConfig);
-                    Console.WriteLine($"Loaded default config: {ConfigManager.DefaultConfig}\n");
+                    ConfigManager.Instance.LoadConfig(ConfigManager.Instance.DefaultConfig);
+                    Console.WriteLine($"Loaded default config: {ConfigManager.Instance.DefaultConfig}\n");
                 }
                 catch (Exception ex)
                 {
@@ -183,18 +183,18 @@ namespace Core
         {
             Console.WriteLine("Configurações disponíveis:\n");
 
-            var configs = ConfigManager.GetAvailableConfigs().ToList();
+            var configs = ConfigManager.Instance.GetAvailableConfigs().ToList();
 
             if (configs.Count == 0)
             {
                 Console.WriteLine("  (nenhuma configuração encontrada em user://)");
-                Console.WriteLine($"  Caminho: {ConfigManager.GetUserDataPath()}");
+                Console.WriteLine($"  Caminho: {ConfigManager.Instance.GetUserDataPath()}");
                 return;
             }
 
             foreach (var configName in configs)
             {
-                var metadata = ConfigManager.GetConfigMetadata(configName);
+                var metadata = ConfigManager.Instance.GetConfigMetadata(configName);
                 
                 if (metadata != null)
                 {
@@ -213,7 +213,7 @@ namespace Core
                 }
             }
 
-            Console.WriteLine($"Config padrão: {ConfigManager.DefaultConfig}");
+            Console.WriteLine($"Config padrão: {ConfigManager.Instance.DefaultConfig}");
         }
     }
 }

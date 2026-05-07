@@ -45,7 +45,7 @@ public class ConfigTests
         var configName = "dev";
 
         // Act & Assert
-        var exception = Record.Exception(() => ConfigManager.LoadConfig(configName));
+        var exception = Record.Exception(() => ConfigManager.Instance.LoadConfig(configName));
         Assert.Null(exception);
     }
 
@@ -53,7 +53,7 @@ public class ConfigTests
     public void GetAvailableFormulas_AfterLoadingDevConfig_ShouldContainHyperbolicCurve()
     {
         // Arrange
-        ConfigManager.LoadConfig("dev");
+        ConfigManager.Instance.LoadConfig("dev");
         var engine = new M.MathEngine();
 
         // Act
@@ -67,7 +67,7 @@ public class ConfigTests
     public void GetAvailableFormulas_AfterLoadingDevConfig_ShouldContainLinearAdditive()
     {
         // Arrange
-        ConfigManager.LoadConfig("dev");
+        ConfigManager.Instance.LoadConfig("dev");
         var engine = new M.MathEngine();
 
         // Act
@@ -81,7 +81,7 @@ public class ConfigTests
     public void GetAvailableFormulas_AfterLoadingDevConfig_ShouldHave18Formulas()
     {
         // Arrange
-        ConfigManager.LoadConfig("dev");
+        ConfigManager.Instance.LoadConfig("dev");
         var engine = new M.MathEngine();
 
         // Act
@@ -95,7 +95,7 @@ public class ConfigTests
     public void GetFormulaOrigins_HyperbolicCurve_ReturnsOrigins()
     {
         // Arrange
-        ConfigManager.LoadConfig("dev");
+        ConfigManager.Instance.LoadConfig("dev");
 
         // Act
         var origins = M.MathEngine.GetFormulaOrigins();
@@ -108,7 +108,7 @@ public class ConfigTests
     public void GetFormulaOrigins_LinearAdditive_ReturnsOrigins()
     {
         // Arrange
-        ConfigManager.LoadConfig("dev");
+        ConfigManager.Instance.LoadConfig("dev");
 
         // Act
         var origins = M.MathEngine.GetFormulaOrigins();
@@ -121,7 +121,7 @@ public class ConfigTests
     public void ResolveInheritanceChain_WithCircularInheritance_ShouldThrowInvalidOperationException()
     {
         // Arrange - Create temporary configs with circular inheritance
-        string userDataPath = ConfigManager.GetUserDataPath();
+        string userDataPath = ConfigManager.Instance.GetUserDataPath();
         string configA = Path.Combine(userDataPath, "test-cycle-a");
         string configB = Path.Combine(userDataPath, "test-cycle-b");
 
@@ -169,7 +169,7 @@ public class ConfigTests
 
             // Act & Assert
             var exception = Assert.Throws<InvalidOperationException>(() =>
-                ConfigManager.ResolveInheritanceChain("test-cycle-a")
+                ConfigManager.Instance.ResolveInheritanceChain("test-cycle-a")
             );
             Assert.Contains("Circular inheritance", exception.Message);
         }

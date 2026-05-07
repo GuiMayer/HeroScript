@@ -57,7 +57,7 @@ namespace Core.Config
             var result = new ValidationResult { IsValid = true };
 
             // 1. Verificar que pasta da config existe (user:// ou fallback dev)
-            string configPath = ConfigManager.GetConfigPath(configName);
+            string configPath = ConfigManager.Instance.GetConfigPath(configName);
             bool configExists = Directory.Exists(configPath);
 
             // Fallback para dev (apenas se config for "dev" ou "alisyum" em modo dev)
@@ -65,7 +65,7 @@ namespace Core.Config
             {
                 // Apenas fazer fallback se for config "dev" explícita ou config padrão em ambiente dev
                 bool allowDevFallback = configName.Equals("dev", StringComparison.OrdinalIgnoreCase) ||
-                                       configName.Equals(ConfigManager.DefaultConfig, StringComparison.OrdinalIgnoreCase);
+                                       configName.Equals(ConfigManager.Instance.DefaultConfig, StringComparison.OrdinalIgnoreCase);
                 
                 if (allowDevFallback)
                 {
@@ -142,7 +142,7 @@ namespace Core.Config
                         // 5. Validar que parent existe (se definido)
                         if (!string.IsNullOrWhiteSpace(metadata.Parent))
                         {
-                            string parentPath = ConfigManager.GetConfigPath(metadata.Parent);
+                            string parentPath = ConfigManager.Instance.GetConfigPath(metadata.Parent);
                             if (!Directory.Exists(parentPath))
                             {
                                 result.IsValid = false;

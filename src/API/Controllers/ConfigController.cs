@@ -37,13 +37,13 @@ public class ConfigController : ControllerBase
     {
         try
         {
-            var configs = ConfigManager.GetAvailableConfigs();
-            var currentConfig = ConfigManager.CurrentConfig;
-            var userDataPath = ConfigManager.GetUserDataPath();
+            var configs = ConfigManager.Instance.GetAvailableConfigs();
+            var currentConfig = ConfigManager.Instance.CurrentConfig;
+            var userDataPath = ConfigManager.Instance.GetUserDataPath();
 
             var result = configs.Select(configName =>
             {
-                var metadata = ConfigManager.GetConfigMetadata(configName);
+                var metadata = ConfigManager.Instance.GetConfigMetadata(configName);
                 if (metadata == null)
                 {
                     return new ConfigInfoDto
@@ -91,13 +91,13 @@ public class ConfigController : ControllerBase
     {
         try
         {
-            var currentConfig = ConfigManager.CurrentConfig;
-            var chain = ConfigManager.ResolveInheritanceChain(currentConfig);
+            var currentConfig = ConfigManager.Instance.CurrentConfig;
+            var chain = ConfigManager.Instance.ResolveInheritanceChain(currentConfig);
             var chainDescription = string.Join(" -> ", chain);
 
             var chainMetadata = chain.Select(configName =>
             {
-                var metadata = ConfigManager.GetConfigMetadata(configName);
+                var metadata = ConfigManager.Instance.GetConfigMetadata(configName);
                 if (metadata == null)
                 {
                     return new ConfigInfoDto
@@ -165,13 +165,13 @@ public class ConfigController : ControllerBase
 
         try
         {
-            var metadata = ConfigManager.GetConfigMetadata(name);
+            var metadata = ConfigManager.Instance.GetConfigMetadata(name);
             if (metadata == null)
             {
                 return NotFound(new ErrorResponse { Error = $"Configuration '{name}' not found" });
             }
 
-            var currentConfig = ConfigManager.CurrentConfig;
+            var currentConfig = ConfigManager.Instance.CurrentConfig;
             var result = new ConfigInfoDto
             {
                 Name = metadata.Name,
@@ -222,19 +222,19 @@ public class ConfigController : ControllerBase
         try
         {
             // Check if config exists
-            var metadata = ConfigManager.GetConfigMetadata(name);
+            var metadata = ConfigManager.Instance.GetConfigMetadata(name);
             if (metadata == null)
             {
                 return NotFound(new ErrorResponse { Error = $"Configuration '{name}' not found" });
             }
 
-            var chain = ConfigManager.ResolveInheritanceChain(name);
+            var chain = ConfigManager.Instance.ResolveInheritanceChain(name);
             var chainDescription = string.Join(" -> ", chain);
-            var currentConfig = ConfigManager.CurrentConfig;
+            var currentConfig = ConfigManager.Instance.CurrentConfig;
 
             var chainMetadata = chain.Select(configName =>
             {
-                var configMeta = ConfigManager.GetConfigMetadata(configName);
+                var configMeta = ConfigManager.Instance.GetConfigMetadata(configName);
                 if (configMeta == null)
                 {
                     return new ConfigInfoDto
@@ -342,7 +342,7 @@ public class ConfigController : ControllerBase
         try
         {
             // Check if config exists
-            var metadata = ConfigManager.GetConfigMetadata(name);
+            var metadata = ConfigManager.Instance.GetConfigMetadata(name);
             if (metadata == null)
             {
                 return NotFound(new { error = $"Configuration '{name}' not found" });
@@ -369,16 +369,16 @@ public class ConfigController : ControllerBase
             _logger.LogWarning("Loading configuration '{ConfigName}' (admin operation)", name);
 
             // Load config
-            ConfigManager.LoadConfig(name);
+            ConfigManager.Instance.LoadConfig(name);
 
             // Return loaded config info
-            var chain = ConfigManager.ResolveInheritanceChain(name);
+            var chain = ConfigManager.Instance.ResolveInheritanceChain(name);
             var chainDescription = string.Join(" -> ", chain);
-            var currentConfig = ConfigManager.CurrentConfig;
+            var currentConfig = ConfigManager.Instance.CurrentConfig;
 
             var chainMetadata = chain.Select(configName =>
             {
-                var configMeta = ConfigManager.GetConfigMetadata(configName);
+                var configMeta = ConfigManager.Instance.GetConfigMetadata(configName);
                 if (configMeta == null)
                 {
                     return new ConfigInfoDto
