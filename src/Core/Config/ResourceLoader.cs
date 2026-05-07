@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Core.Logging;
 
 namespace Core.Config
 {
@@ -22,12 +23,13 @@ namespace Core.Config
         private readonly Dictionary<string, Dictionary<string, string>> _originCache = new();
         
         private readonly object _cacheLock = new();
+        private readonly ILogger _logger;
 
         // NOVO: Resolver de caminhos
         private ResourcePathResolver? _pathResolver;
 
         /// <summary>
-        /// Singleton instance
+        /// Singleton instance (for backward compatibility)
         /// </summary>
         public static ResourceLoader Instance
         {
@@ -44,8 +46,12 @@ namespace Core.Config
             }
         }
 
-        private ResourceLoader() 
+        /// <summary>
+        /// Constructor for dependency injection
+        /// </summary>
+        public ResourceLoader(ILogger? logger = null)
         {
+            _logger = logger ?? CoreLogger.Current;
             // Inicializar com configuração padrão
             InitializePathResolver(new ResourceConfiguration());
         }
@@ -80,8 +86,8 @@ namespace Core.Config
                 if (_cache.TryGetValue(relativePath, out var cached))
                     return cached;
 
-                Console.WriteLine($"[ResourceLoader] Loading resource: {relativePath}");
-                Console.WriteLine($"[ResourceLoader] Config chain: {string.Join(" -> ", configChain)}");
+                _logger.LogDebug($"Loading resource: {relativePath}");
+                _logger.LogDebug($"Config chain: {string.Join(" -> ", configChain)}");
 
                 var merged = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
                 var origins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -97,13 +103,13 @@ namespace Core.Config
 
                     if (stream == null)
                     {
-                        Console.WriteLine($"[ResourceLoader] Resource not found for '{configName}': {relativePath}");
+                        _logger.LogDebug($"Resource not found for '{configName}': {relativePath}");
                         if (result.SearchedLocations.Count > 0)
                         {
-                            Console.WriteLine($"[ResourceLoader] Searched locations:");
+                            _logger.LogDebug($"Searched locations:");
                             foreach (var location in result.SearchedLocations)
                             {
-                                Console.WriteLine($"[ResourceLoader]   - {location}");
+                                _logger.LogDebug($"  - {location}");
                             }
                         }
                         continue;
@@ -116,13 +122,13 @@ namespace Core.Config
                         {
                             var resources = LoadFromStream(stream, configName, strictMode);
                             MergeResources(merged, origins, resources, configName, strictMode);
-                            Console.WriteLine($"[ResourceLoader] Loaded {resources.Count} resources from {relativePath} ({configName})");
-                            Console.WriteLine($"[ResourceLoader] Source: {result.Provider!.Name} - {result.PhysicalPath}");
+                            _logger.LogDebug($"Loaded {resources.Count} resources from {relativePath} ({configName})");
+                            _logger.LogDebug($"Source: {result.Provider!.Name} - {result.PhysicalPath}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[ResourceLoader] Error loading {configRelativePath}: {ex.Message}");
+                        _logger.LogError($"Error loading {configRelativePath}: {ex.Message}", ex);
                         if (strictMode)
                             throw;
                     }
@@ -132,7 +138,7 @@ namespace Core.Config
                 _cache[relativePath] = merged;
                 _originCache[relativePath] = origins;
 
-                Console.WriteLine($"[ResourceLoader] Loaded {merged.Count} resources total for {relativePath}");
+                _logger.LogInformation($"Loaded {merged.Count} resources total for {relativePath}");
                 return merged;
             }
         }
@@ -147,17 +153,17 @@ namespace Core.Config
         {
             using var reader = new StreamReader(stream);
             var jsonContent = reader.ReadToEnd();
-            Console.WriteLine($"[ResourceLoader] File content length: {jsonContent.Length} bytes");
+            _logger.LogDebug($"File content length: {jsonContent.Length} bytes");
 
             var rawDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent);
 
             if (rawDict == null)
                 throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
 
-            Console.WriteLine($"[ResourceLoader] Deserialized {rawDict.Count} resources from file");
+            _logger.LogDebug($"Deserialized {rawDict.Count} resources from file");
             foreach (var key in rawDict.Keys)
             {
-                Console.WriteLine($"[ResourceLoader]   - {key}");
+                _logger.LogDebug($"  - {key}");
             }
 
             return rawDict;
@@ -195,7 +201,7 @@ namespace Core.Config
                     // Formato legado: substitui recurso inteiro
                     if (merged.ContainsKey(resourceId))
                     {
-                        Console.WriteLine($"[ResourceLoader] Override: {resourceId} (from {configName}) [legacy format]");
+                        _logger.LogDebug($"Override: {resourceId} (from {configName}) [legacy format]");
                     }
 
                     merged[resourceId] = resourceElement.Clone();
@@ -209,7 +215,7 @@ namespace Core.Config
                 // Logar warnings
                 foreach (var warning in validation.Warnings)
                 {
-                    Console.WriteLine($"[ResourceLoader] Warning: {warning}");
+                    _logger.LogWarning(warning);
                 }
 
                 // Logar erros
@@ -217,13 +223,13 @@ namespace Core.Config
                 {
                     foreach (var error in validation.Errors)
                     {
-                        Console.WriteLine($"[ResourceLoader] Error: {error}");
+                        _logger.LogError(error);
                     }
 
                     if (strictMode)
                         throw new InvalidOperationException($"Delta validation failed for '{resourceId}'");
 
-                    Console.WriteLine($"[ResourceLoader] Skipping invalid delta for '{resourceId}'");
+                    _logger.LogWarning($"Skipping invalid delta for '{resourceId}'");
                     continue;
                 }
 
@@ -240,11 +246,11 @@ namespace Core.Config
                         // Recurso modificado ou adicionado
                         if (merged.ContainsKey(resourceId))
                         {
-                            Console.WriteLine($"[ResourceLoader] Delta {operation}: {resourceId} (from {configName})");
+                            _logger.LogDebug($"Delta {operation}: {resourceId} (from {configName})");
                         }
                         else
                         {
-                            Console.WriteLine($"[ResourceLoader] New resource: {resourceId} (from {configName})");
+                            _logger.LogDebug($"New resource: {resourceId} (from {configName})");
                         }
 
                         merged[resourceId] = result.Value;
@@ -255,14 +261,14 @@ namespace Core.Config
                         // DELETE: remover recurso
                         if (merged.Remove(resourceId))
                         {
-                            Console.WriteLine($"[ResourceLoader] Deleted: {resourceId} (from {configName})");
+                            _logger.LogDebug($"Deleted: {resourceId} (from {configName})");
                             origins.Remove(resourceId);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[ResourceLoader] Error applying delta for '{resourceId}': {ex.Message}");
+                    _logger.LogError($"Error applying delta for '{resourceId}': {ex.Message}", ex);
                     if (strictMode)
                         throw;
                 }
@@ -280,13 +286,13 @@ namespace Core.Config
                 {
                     _cache.Remove(relativePath);
                     _originCache.Remove(relativePath);
-                    Console.WriteLine($"[ResourceLoader] Cache invalidated for: {relativePath}");
+                    _logger.LogInformation($"Cache invalidated for: {relativePath}");
                 }
                 else
                 {
                     _cache.Clear();
                     _originCache.Clear();
-                    Console.WriteLine("[ResourceLoader] All cache invalidated");
+                    _logger.LogInformation("All cache invalidated");
                 }
             }
         }
