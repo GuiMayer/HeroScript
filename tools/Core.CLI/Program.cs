@@ -27,7 +27,8 @@ namespace Core
 
             if (args.Length > 0 && args[0] == "test-input-validation")
             {
-                Core.Tests.Math.MathEngineInputValidationTests.RunAllTests();
+                Console.WriteLine("Input validation tests have been migrated to xUnit.");
+                Console.WriteLine("Run: dotnet test tests/Core.Tests/Core.Tests.csproj");
                 return;
             }
 
