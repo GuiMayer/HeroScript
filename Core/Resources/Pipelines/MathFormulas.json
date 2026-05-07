@@ -5,8 +5,8 @@
       "SCALING_VALUE": 100
     },
     "operations": [
-      { "op": "ADD", "operands": ["$input", "params.SCALING_VALUE"] },
-      { "op": "DIVIDE", "operands": ["params.SCALING_VALUE", "$result"] }
+      { "op": "ADD", "value": "params.SCALING_VALUE" },
+      { "op": "DIVIDE_INVERSE", "value": "params.SCALING_VALUE" }
     ]
   },
 
@@ -16,7 +16,7 @@
       "FLAT_BONUS": 10
     },
     "operations": [
-      { "op": "ADD", "operands": ["$input", "params.FLAT_BONUS"] }
+      { "op": "ADD", "value": "params.FLAT_BONUS" }
     ]
   },
 
@@ -26,7 +26,7 @@
       "MULTIPLIER": 1.5
     },
     "operations": [
-      { "op": "MULTIPLY", "operands": ["$input", "params.MULTIPLIER"] }
+      { "op": "MULTIPLY", "value": "params.MULTIPLIER" }
     ]
   },
 
@@ -37,8 +37,8 @@
       "EXPONENT": 2
     },
     "operations": [
-      { "op": "MULTIPLY", "operands": ["$input", "params.BASE"] },
-      { "op": "POW", "operands": ["$result", "params.EXPONENT"] }
+      { "op": "MULTIPLY", "value": "params.BASE" },
+      { "op": "POW", "value": "params.EXPONENT" }
     ]
   },
 
@@ -48,8 +48,8 @@
       "SCALE_FACTOR": 10
     },
     "operations": [
-      { "op": "LOG", "operands": ["$input"] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.SCALE_FACTOR"] }
+      { "op": "LOG" },
+      { "op": "MULTIPLY", "value": "params.SCALE_FACTOR" }
     ]
   },
 
@@ -61,12 +61,12 @@
       "MAX_VALUE": 100
     },
     "operations": [
-      { "op": "SUBTRACT", "operands": ["$input", "params.MIDPOINT"] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.STEEPNESS"] },
-      { "op": "MULTIPLY", "operands": ["$result", -1] },
-      { "op": "POW", "operands": [2.718281828, "$result"] },
-      { "op": "ADD", "operands": ["$result", 1] },
-      { "op": "DIVIDE", "operands": ["params.MAX_VALUE", "$result"] }
+      { "op": "SUBTRACT", "value": "params.MIDPOINT" },
+      { "op": "MULTIPLY", "value": "params.STEEPNESS" },
+      { "op": "NEGATE" },
+      { "op": "POW_BASE", "value": "2.718281828" },
+      { "op": "ADD", "value": "1" },
+      { "op": "DIVIDE_INVERSE", "value": "params.MAX_VALUE" }
     ]
   },
 
@@ -77,7 +77,7 @@
       "MAX_VALUE": 999
     },
     "operations": [
-      { "op": "CLAMP", "operands": ["$input", "params.MIN_VALUE", "params.MAX_VALUE"] }
+      { "op": "CLAMP", "min": "params.MIN_VALUE", "max": "params.MAX_VALUE" }
     ]
   },
 
@@ -87,7 +87,7 @@
       "STEAL_PERCENTAGE": 0.2
     },
     "operations": [
-      { "op": "MULTIPLY", "operands": ["$input", "params.STEAL_PERCENTAGE"] }
+      { "op": "MULTIPLY", "value": "params.STEAL_PERCENTAGE" }
     ]
   },
 
@@ -97,7 +97,7 @@
       "REFLECT_PERCENTAGE": 0.15
     },
     "operations": [
-      { "op": "MULTIPLY", "operands": ["$input", "params.REFLECT_PERCENTAGE"] }
+      { "op": "MULTIPLY", "value": "params.REFLECT_PERCENTAGE" }
     ]
   },
 
@@ -108,8 +108,8 @@
       "MANA_PER_THRESHOLD": 1
     },
     "operations": [
-      { "op": "DIVIDE", "operands": ["$input", "params.DAMAGE_THRESHOLD"] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.MANA_PER_THRESHOLD"] }
+      { "op": "DIVIDE", "value": "params.DAMAGE_THRESHOLD" },
+      { "op": "MULTIPLY", "value": "params.MANA_PER_THRESHOLD" }
     ]
   },
 
@@ -119,9 +119,9 @@
       "ARMOR_SCALING": 100
     },
     "operations": [
-      { "op": "DIVIDE", "operands": ["$input", "params.ARMOR_SCALING"] },
-      { "op": "ADD", "operands": ["$result", 1] },
-      { "op": "DIVIDE", "operands": [1, "$result"] }
+      { "op": "DIVIDE", "value": "params.ARMOR_SCALING" },
+      { "op": "ADD", "value": "1" },
+      { "op": "DIVIDE_INVERSE", "value": "1" }
     ]
   },
 
@@ -132,8 +132,8 @@
       "PERCENTAGE": 0.5
     },
     "operations": [
-      { "op": "ADD", "operands": ["$input", "params.BASE_DAMAGE"] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.PERCENTAGE"] }
+      { "op": "ADD", "value": "params.BASE_DAMAGE" },
+      { "op": "MULTIPLY", "value": "params.PERCENTAGE" }
     ]
   },
 
@@ -144,8 +144,8 @@
       "FLAT_BONUS": 50
     },
     "operations": [
-      { "op": "MULTIPLY", "operands": ["$input", "params.CRIT_MULTIPLIER"] },
-      { "op": "ADD", "operands": ["$result", "params.FLAT_BONUS"] }
+      { "op": "MULTIPLY", "value": "params.CRIT_MULTIPLIER" },
+      { "op": "ADD", "value": "params.FLAT_BONUS" }
     ]
   },
 
@@ -156,8 +156,8 @@
       "FLAT_BONUS": 25
     },
     "operations": [
-      { "op": "MULTIPLY", "operands": ["$input", "params.MULTIPLIER"] },
-      { "op": "ADD", "operands": ["$result", "params.FLAT_BONUS"] }
+      { "op": "MULTIPLY", "value": "params.MULTIPLIER" },
+      { "op": "ADD", "value": "params.FLAT_BONUS" }
     ]
   },
 
@@ -168,8 +168,8 @@
       "MULTIPLIER": 1.5
     },
     "operations": [
-      { "op": "ADD", "operands": ["$input", "params.FLAT_BONUS"] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.MULTIPLIER"] }
+      { "op": "ADD", "value": "params.FLAT_BONUS" },
+      { "op": "MULTIPLY", "value": "params.MULTIPLIER" }
     ]
   },
 
@@ -179,8 +179,8 @@
       "SCALE_FACTOR": 10
     },
     "operations": [
-      { "op": "SQRT", "operands": ["$input"] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.SCALE_FACTOR"] }
+      { "op": "SQRT" },
+      { "op": "MULTIPLY", "value": "params.SCALE_FACTOR" }
     ]
   },
 
@@ -191,10 +191,10 @@
       "BONUS_MULTIPLIER": 1.25
     },
     "operations": [
-      { "op": "SUBTRACT", "operands": ["$input", "params.THRESHOLD"] },
-      { "op": "CLAMP", "operands": ["$result", 0, 9999] },
-      { "op": "MULTIPLY", "operands": ["$result", "params.BONUS_MULTIPLIER"] },
-      { "op": "ADD", "operands": ["$result", "params.THRESHOLD"] }
+      { "op": "SUBTRACT", "value": "params.THRESHOLD" },
+      { "op": "CLAMP", "min": "0", "max": "9999" },
+      { "op": "MULTIPLY", "value": "params.BONUS_MULTIPLIER" },
+      { "op": "ADD", "value": "params.THRESHOLD" }
     ]
   }
 }
