@@ -11,6 +11,12 @@ public class MathExpressionRequest
     public float InitialValue { get; set; }
 
     /// <summary>
+    /// Optional parameters for symbolic operands (e.g., params.TARGET)
+    /// Required when using operands like "params.X" in steps
+    /// </summary>
+    public Dictionary<string, float>? Parameters { get; set; }
+
+    /// <summary>
     /// List of operations to apply
     /// </summary>
     public List<MathStepDto> Steps { get; set; } = new();
