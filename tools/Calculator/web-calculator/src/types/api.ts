@@ -53,6 +53,14 @@ export enum MathOperation {
 }
 
 /**
+ * Operation behavior types
+ */
+export type OperationBehavior = 
+  | 'accumulator'      // Operates on accumulator with values (ADD, MULTIPLY)
+  | 'unary'            // Operates on accumulator without values (NEGATE, SQRT, ABS)
+  | 'unary-optional';  // Can operate with or without values (ROUND)
+
+/**
  * Operation metadata for UI
  */
 export interface OperationMetadata {
@@ -63,6 +71,7 @@ export interface OperationMetadata {
   minValues: number;
   maxValues: number;
   category: 'basic' | 'advanced' | 'multi-value';
+  behavior: OperationBehavior;
 }
 
 export const OPERATIONS: OperationMetadata[] = [
@@ -75,6 +84,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: Infinity,
     category: 'basic',
+    behavior: 'accumulator',
   },
   {
     operation: MathOperation.SUBTRACT,
@@ -84,6 +94,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: Infinity,
     category: 'basic',
+    behavior: 'accumulator',
   },
   {
     operation: MathOperation.MULTIPLY,
@@ -93,6 +104,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: Infinity,
     category: 'basic',
+    behavior: 'accumulator',
   },
   {
     operation: MathOperation.DIVIDE,
@@ -102,6 +114,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: Infinity,
     category: 'basic',
+    behavior: 'accumulator',
   },
   
   // Advanced Operations
@@ -113,6 +126,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: 1,
     category: 'advanced',
+    behavior: 'accumulator',
   },
   {
     operation: MathOperation.SQRT,
@@ -120,8 +134,9 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '√',
     description: 'Square root',
     minValues: 0,
-    maxValues: 1,
+    maxValues: 0,
     category: 'advanced',
+    behavior: 'unary',
   },
   {
     operation: MathOperation.ABS,
@@ -129,8 +144,9 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '|x|',
     description: 'Absolute value',
     minValues: 0,
-    maxValues: 1,
+    maxValues: 0,
     category: 'advanced',
+    behavior: 'unary',
   },
   {
     operation: MathOperation.NEGATE,
@@ -138,8 +154,9 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '−x',
     description: 'Negate value',
     minValues: 0,
-    maxValues: 1,
+    maxValues: 0,
     category: 'advanced',
+    behavior: 'unary',
   },
   {
     operation: MathOperation.ROUND,
@@ -149,6 +166,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 0,
     maxValues: 1,
     category: 'advanced',
+    behavior: 'unary-optional',
   },
   {
     operation: MathOperation.FLOOR,
@@ -156,8 +174,9 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '⌊x⌋',
     description: 'Round down',
     minValues: 0,
-    maxValues: 1,
+    maxValues: 0,
     category: 'advanced',
+    behavior: 'unary',
   },
   {
     operation: MathOperation.CEIL,
@@ -165,8 +184,9 @@ export const OPERATIONS: OperationMetadata[] = [
     symbol: '⌈x⌉',
     description: 'Round up',
     minValues: 0,
-    maxValues: 1,
+    maxValues: 0,
     category: 'advanced',
+    behavior: 'unary',
   },
   {
     operation: MathOperation.SET,
@@ -176,6 +196,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: 1,
     category: 'advanced',
+    behavior: 'accumulator',
   },
   
   // Multi-Value Operations
@@ -187,6 +208,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: Infinity,
     category: 'multi-value',
+    behavior: 'accumulator',
   },
   {
     operation: MathOperation.MAX,
@@ -196,6 +218,7 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 1,
     maxValues: Infinity,
     category: 'multi-value',
+    behavior: 'accumulator',
   },
   {
     operation: MathOperation.CLAMP,
@@ -205,5 +228,6 @@ export const OPERATIONS: OperationMetadata[] = [
     minValues: 2,
     maxValues: 2,
     category: 'multi-value',
+    behavior: 'accumulator',
   },
 ];

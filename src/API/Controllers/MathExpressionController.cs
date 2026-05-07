@@ -59,16 +59,29 @@ public class MathExpressionController : ControllerBase
                     });
                 }
 
+                // Define unary operations that can work without values/operands
+                var unaryOperations = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "SQRT", "ABS", "NEGATE", "FLOOR", "CEIL", "LOG"
+                };
+
+                // MODE 0: Unary operations without values/operands (operates on current value)
                 if (!hasValues && !hasOperands)
                 {
-                    return BadRequest(new { 
-                        error = $"Step '{step.Operation}' must have either Values or Operands.",
-                        step = step.Operation
-                    });
-                }
+                    if (!unaryOperations.Contains(step.Operation))
+                    {
+                        return BadRequest(new { 
+                            error = $"Step '{step.Operation}' must have either Values or Operands.",
+                            step = step.Operation
+                        });
+                    }
 
+                    // Unary operation on current value - use empty array
+                    expression.AddRawStep(step.Operation, Array.Empty<float>());
+                    currentValue = MathEngine.SimulateOperationResult(step.Operation, currentValue, Array.Empty<float>());
+                }
                 // MODE 1: Implicit (Values) - legacy accumulator mode
-                if (hasValues)
+                else if (hasValues)
                 {
                     expression.AddRawStep(step.Operation, step.Values!);
                     currentValue = MathEngine.SimulateOperationResult(step.Operation, currentValue, step.Values!);
