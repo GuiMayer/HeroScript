@@ -1,0 +1,59 @@
+{
+  "ORC_RAGE_SCALING": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "description": "Raiva hardcore - escala ainda mais agressiva",
+        "params": {
+          "BASE_MULTIPLIER": 2.0,
+          "MAX_RAGE": 5.0
+        }
+      }
+    }
+  },
+  "EXPONENTIAL_SCALING": {
+    "$delta": {
+      "$op": "ARRAY_APPEND",
+      "$target": "operations",
+      "$value": [
+        { "op": "MULTIPLY", "value": 1.2 },
+        { "op": "ADD", "value": 5 }
+      ]
+    }
+  },
+  "BERSERKER_MODE": {
+    "$delta": {
+      "$op": "REPLACE",
+      "$data": {
+        "description": "Modo berserker - multiplicador extremo quando HP baixo",
+        "params": {
+          "HP_THRESHOLD": 0.3,
+          "BERSERKER_MULTIPLIER": 4.0,
+          "BASE_DAMAGE": 50
+        },
+        "operations": [
+          { "op": "MULTIPLY", "value": "input" },
+          { "op": "ADD", "value": "BASE_DAMAGE" },
+          { "op": "MULTIPLY", "value": "BERSERKER_MULTIPLIER" }
+        ]
+      }
+    }
+  },
+  "HYPERBOLIC_CURVE": {
+    "$delta": {
+      "$op": "FIELD_DELETE",
+      "$target": "params.SCALING_VALUE"
+    }
+  },
+  "HYPERBOLIC_CURVE": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "params": {
+          "SCALING_VALUE": 50,
+          "HARDCORE_BONUS": 25
+        }
+      }
+    }
+  }
+}

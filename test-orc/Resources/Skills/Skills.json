@@ -1,0 +1,50 @@
+{
+  "FIREBALL": {
+    "name": "Fireball",
+    "description": "Lança uma bola de fogo que causa dano em área",
+    "type": "OFFENSIVE",
+    "manaCost": 50,
+    "cooldown": 5,
+    "damage": {
+      "base": 100,
+      "scaling": "EXPONENTIAL_SCALING"
+    },
+    "areaOfEffect": 3,
+    "effects": [
+      {
+        "type": "BURN",
+        "duration": 3,
+        "damagePerTick": 10
+      }
+    ]
+  },
+  "HEALING_WAVE": {
+    "name": "Healing Wave",
+    "description": "Cura aliados em área",
+    "type": "SUPPORT",
+    "manaCost": 40,
+    "cooldown": 8,
+    "healing": {
+      "base": 80,
+      "scaling": "HYPERBOLIC_CURVE"
+    },
+    "areaOfEffect": 5
+  },
+  "SHIELD_BASH": {
+    "name": "Shield Bash",
+    "description": "Ataque corpo a corpo com escudo",
+    "type": "OFFENSIVE",
+    "manaCost": 20,
+    "cooldown": 3,
+    "damage": {
+      "base": 50,
+      "scaling": "LINEAR_ADDITIVE"
+    },
+    "effects": [
+      {
+        "type": "STUN",
+        "duration": 2
+      }
+    ]
+  }
+}

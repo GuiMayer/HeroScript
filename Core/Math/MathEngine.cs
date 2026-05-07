@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Core.Math
@@ -10,7 +8,7 @@ namespace Core.Math
     /// <summary>
     /// Modelo para representar uma fórmula completa do JSON
     /// </summary>
-    internal class FormulaDefinition
+    public class FormulaDefinition
     {
         [JsonPropertyName("description")]
         public string Description { get; set; } = string.Empty;
@@ -25,7 +23,7 @@ namespace Core.Math
     /// <summary>
     /// Modelo para representar uma operação individual
     /// </summary>
-    internal class OperationDefinition
+    public class OperationDefinition
     {
         [JsonPropertyName("op")]
         public string Op { get; set; } = string.Empty;
@@ -44,39 +42,61 @@ namespace Core.Math
     /// Engine para construir MathExpression a partir de fórmulas definidas em JSON.
     /// Carrega fórmulas de Resources/Pipelines/MathFormulas.json e as converte
     /// em objetos MathExpression executáveis.
+    /// Suporta herança delta: configs podem herdar fórmulas de configs pai.
     /// </summary>
     public class MathEngine
     {
+        private static readonly object _cacheLock = new();
+        
         // Cache estático de fórmulas carregadas
         private static Dictionary<string, FormulaDefinition>? _formulaCache;
+        
+        // Cache de origens das fórmulas (para introspecção)
+        private static Dictionary<string, string>? _formulaOrigins;
 
         /// <summary>
-        /// Carrega as fórmulas do arquivo JSON
+        /// Invalida cache (chamado quando config muda)
+        /// </summary>
+        public static void ReloadFormulas()
+        {
+            lock (_cacheLock)
+            {
+                _formulaCache = null;
+                _formulaOrigins = null;
+                Console.WriteLine("[MathEngine] Cache invalidated");
+            }
+        }
+
+        /// <summary>
+        /// Retorna de qual config cada fórmula veio (para introspecção)
+        /// </summary>
+        public static Dictionary<string, string> GetFormulaOrigins()
+        {
+            return _formulaOrigins ?? new Dictionary<string, string>();
+        }
+
+        /// <summary>
+        /// Carrega as fórmulas da config ativa (com herança delta)
         /// </summary>
         private Dictionary<string, FormulaDefinition> LoadFormulas()
         {
-            // Retornar cache se já carregado
             if (_formulaCache != null)
                 return _formulaCache;
 
-            // Construir caminho do arquivo JSON
-            string basePath = AppContext.BaseDirectory;
-            string jsonPath = Path.Combine(basePath, "Resources", "Pipelines", "MathFormulas.json");
+            lock (_cacheLock)
+            {
+                if (_formulaCache != null)
+                    return _formulaCache;
 
-            // Validar que arquivo existe
-            if (!File.Exists(jsonPath))
-                throw new FileNotFoundException($"MathFormulas.json not found at: {jsonPath}");
-
-            // Ler e deserializar JSON
-            string jsonContent = File.ReadAllText(jsonPath);
-            var formulas = JsonSerializer.Deserialize<Dictionary<string, FormulaDefinition>>(jsonContent);
-
-            if (formulas == null)
-                throw new InvalidOperationException("Failed to deserialize MathFormulas.json");
-
-            // Cachear e retornar
-            _formulaCache = formulas;
-            return _formulaCache;
+                // Usar FormulaLoader para carregar com herança delta
+                var loader = new FormulaLoader();
+                var chain = Config.ConfigManager.ResolveInheritanceChain(Config.ConfigManager.CurrentConfig);
+                
+                _formulaCache = loader.LoadFormulas(chain, strictMode: false);
+                _formulaOrigins = loader.GetFormulaOrigins();
+                
+                return _formulaCache;
+            }
         }
 
         /// <summary>

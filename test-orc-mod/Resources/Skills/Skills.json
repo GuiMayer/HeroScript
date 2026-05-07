@@ -1,0 +1,55 @@
+{
+  "FIREBALL": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "description": "Bola de fogo orc - mais brutal e menos controlada",
+        "damage": {
+          "base": 120,
+          "scaling": "ORC_RAGE_SCALING"
+        },
+        "effects": [
+          {
+            "type": "BURN",
+            "duration": 5,
+            "damagePerTick": 15
+          }
+        ]
+      }
+    }
+  },
+  "HEALING_WAVE": {
+    "$delta": {
+      "$op": "DELETE"
+    }
+  },
+  "SHIELD_BASH": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "name": "Brutal Bash",
+        "description": "Ataque selvagem com escudo - causa mais dano",
+        "damage": {
+          "base": 80
+        }
+      }
+    }
+  },
+  "BLOOD_RAGE": {
+    "$delta": {
+      "$op": "REPLACE",
+      "$data": {
+        "name": "Blood Rage",
+        "description": "Habilidade exclusiva de orcs - aumenta dano baseado em HP perdido",
+        "type": "BUFF",
+        "manaCost": 30,
+        "cooldown": 15,
+        "duration": 10,
+        "damageBonus": {
+          "base": 50,
+          "scaling": "ORC_RAGE_SCALING"
+        }
+      }
+    }
+  }
+}

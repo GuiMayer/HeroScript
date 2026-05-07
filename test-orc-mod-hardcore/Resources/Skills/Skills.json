@@ -1,0 +1,84 @@
+{
+  "BLOOD_RAGE": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "description": "Raiva sanguinária hardcore - bônus extremo",
+        "duration": 15,
+        "damageBonus": {
+          "base": 100,
+          "scaling": "BERSERKER_MODE"
+        }
+      }
+    }
+  },
+  "FIREBALL": {
+    "$delta": {
+      "$op": "ARRAY_APPEND",
+      "$target": "effects",
+      "$value": [
+        {
+          "type": "EXPLOSION",
+          "radius": 2,
+          "damage": 50
+        }
+      ]
+    }
+  },
+  "SHIELD_BASH": {
+    "$delta": {
+      "$op": "FIELD_DELETE",
+      "$target": "effects"
+    }
+  },
+  "SHIELD_BASH": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "name": "Devastating Bash",
+        "damage": {
+          "base": 150
+        },
+        "effects": [
+          {
+            "type": "KNOCKBACK",
+            "distance": 5
+          },
+          {
+            "type": "ARMOR_BREAK",
+            "duration": 10,
+            "armorReduction": 50
+          }
+        ]
+      }
+    }
+  },
+  "WARLORD_COMMAND": {
+    "$delta": {
+      "$op": "REPLACE",
+      "$data": {
+        "name": "Warlord Command",
+        "description": "Habilidade exclusiva hardcore - comanda aliados para ataque coordenado",
+        "type": "BUFF",
+        "manaCost": 100,
+        "cooldown": 30,
+        "duration": 20,
+        "areaOfEffect": 10,
+        "effects": [
+          {
+            "type": "DAMAGE_BUFF",
+            "multiplier": 2.0
+          },
+          {
+            "type": "ATTACK_SPEED_BUFF",
+            "multiplier": 1.5
+          },
+          {
+            "type": "LIFESTEAL",
+            "percentage": 25
+          }
+        ]
+      }
+    }
+  }
+}

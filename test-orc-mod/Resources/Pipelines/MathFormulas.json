@@ -1,0 +1,49 @@
+{
+  "HYPERBOLIC_CURVE": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "description": "Curva hiperbólica modificada para orcs (mais agressiva)",
+        "params": {
+          "SCALING_VALUE": 80
+        }
+      }
+    }
+  },
+  "ORC_RAGE_SCALING": {
+    "$delta": {
+      "$op": "REPLACE",
+      "$data": {
+        "description": "Escala de raiva para orcs - quanto mais dano, mais forte",
+        "params": {
+          "BASE_MULTIPLIER": 1.5,
+          "RAGE_FACTOR": 0.1,
+          "MAX_RAGE": 3.0
+        },
+        "operations": [
+          { "op": "MULTIPLY", "value": "BASE_MULTIPLIER" },
+          { "op": "ADD", "value": "input" },
+          { "op": "MULTIPLY", "value": "RAGE_FACTOR" },
+          { "op": "CLAMP", "min": "BASE_MULTIPLIER", "max": "MAX_RAGE" }
+        ]
+      }
+    }
+  },
+  "EXPONENTIAL_SCALING": {
+    "$delta": {
+      "$op": "MERGE_DEEP",
+      "$data": {
+        "description": "Escala exponencial modificada para orcs",
+        "params": {
+          "EXPONENT_VALUE": 2.5,
+          "ORC_BONUS": 10
+        }
+      }
+    }
+  },
+  "LOGARITHMIC_SCALING": {
+    "$delta": {
+      "$op": "DELETE"
+    }
+  }
+}

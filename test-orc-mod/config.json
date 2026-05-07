@@ -1,0 +1,5 @@
+{
+  "name": "test-orc-mod",
+  "description": "Mod de teste para orcs com delta estruturado",
+  "inherits": "test-orc"
+}

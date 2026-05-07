@@ -1,0 +1,5 @@
+{
+  "name": "test-orc-mod-hardcore",
+  "description": "Mod hardcore para orcs - cadeia de 3 níveis de herança",
+  "inherits": "test-orc-mod"
+}
