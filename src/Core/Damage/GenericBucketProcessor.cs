@@ -175,7 +175,7 @@ public class GenericBucketProcessor
 
     private DamageContext ExecuteRollCritTier(DamageContext context, BucketOperation op)
     {
-        // Sistema de Crítico Multi-Tier
+        // Sistema de Crítico Multi-Tier usando MathEngine
         // Tier garantido = floor(critChance / 100)
         // Resto = probabilidade de tier extra
         // Fórmula: Dcrit = Dbase × (1 + Tier × (mult - 1))
@@ -183,8 +183,21 @@ public class GenericBucketProcessor
         var critChance = context.Modifiers.GetValueOrDefault("crit_chance", 0f);
         var critMult = context.Modifiers.GetValueOrDefault("crit_multiplier", 2.0f);
 
-        int guaranteedTier = (int)Math.Floor(critChance / 100f);
-        float extraChance = critChance % 100f;
+        // Usar MathEngine para calcular tier garantido
+        var guaranteedTierExpr = _mathEngine.BuildFromFormula(
+            "CRIT_GUARANTEED_TIER",
+            0f,
+            new Dictionary<string, float> { { "CRIT_CHANCE", critChance } }
+        );
+        int guaranteedTier = (int)guaranteedTierExpr.Build();
+
+        // Usar MathEngine para calcular chance extra
+        var extraChanceExpr = _mathEngine.BuildFromFormula(
+            "CRIT_EXTRA_CHANCE",
+            0f,
+            new Dictionary<string, float> { { "CRIT_CHANCE", critChance } }
+        );
+        float extraChance = extraChanceExpr.Build();
 
         // Roll para tier extra
         int finalTier = guaranteedTier;
@@ -193,8 +206,20 @@ public class GenericBucketProcessor
             finalTier++;
         }
 
-        // Aplicar fórmula de crítico
-        float critDamage = context.CurrentDamage * (1 + finalTier * (critMult - 1));
+        // Usar MathEngine para calcular multiplicador de dano crítico
+        var critMultiplierExpr = _mathEngine.BuildFromFormula(
+            "CRIT_DAMAGE_MULTIPLIER",
+            0f,
+            new Dictionary<string, float> 
+            { 
+                { "CRIT_TIER", finalTier },
+                { "CRIT_MULT", critMult }
+            }
+        );
+        float damageMultiplier = critMultiplierExpr.Build();
+
+        // Aplicar multiplicador ao dano atual
+        float critDamage = context.CurrentDamage * damageMultiplier;
 
         // Adicionar metadata (tier apenas, sem cores - engine é agnóstica)
         var newContext = context.WithDamage(critDamage);

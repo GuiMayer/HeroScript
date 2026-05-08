@@ -216,5 +216,42 @@
       { "op": "MULTIPLY", "value": "params.T" },
       { "op": "ADD", "value": "params.START" }
     ]
+  },
+
+  "CRIT_GUARANTEED_TIER": {
+    "description": "Calculate guaranteed critical tier from crit chance. Formula: floor(crit_chance / 100)",
+    "params": {
+      "CRIT_CHANCE": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.CRIT_CHANCE" },
+      { "op": "DIVIDE", "value": "100" },
+      { "op": "FLOOR" }
+    ]
+  },
+
+  "CRIT_EXTRA_CHANCE": {
+    "description": "Calculate extra critical tier chance from crit chance. Formula: crit_chance % 100",
+    "params": {
+      "CRIT_CHANCE": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.CRIT_CHANCE" },
+      { "op": "MODULO", "value": "100" }
+    ]
+  },
+
+  "CRIT_DAMAGE_MULTIPLIER": {
+    "description": "Calculate critical damage multiplier from tier. Formula: 1 + (tier * (crit_mult - 1))",
+    "params": {
+      "CRIT_TIER": 0,
+      "CRIT_MULT": 2.0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.CRIT_MULT" },
+      { "op": "SUBTRACT", "value": "1" },
+      { "op": "MULTIPLY", "value": "params.CRIT_TIER" },
+      { "op": "ADD", "value": "1" }
+    ]
   }
 }

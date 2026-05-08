@@ -539,6 +539,14 @@ namespace Core.Math
                         throw new ArgumentException($"CEIL with explicit operands requires exactly 1 operand, got {operands.Length}");
                     return (float)System.Math.Ceiling(operands[0]);
 
+                case "MODULO":
+                case "MOD":
+                    if (operands.Length != 2)
+                        throw new ArgumentException($"MODULO with explicit operands requires exactly 2 operands (dividend, divisor), got {operands.Length}");
+                    if (operands[1] == 0)
+                        throw new DivideByZeroException("Cannot compute modulo with divisor zero");
+                    return operands[0] % operands[1];
+
                 default:
                     throw new NotSupportedException($"Operation '{op}' does not support explicit operands yet");
             }
@@ -671,6 +679,12 @@ namespace Core.Math
 
                 case "CEIL":
                     expression.Ceil();
+                    break;
+
+                case "MODULO":
+                case "MOD":
+                    ValidateOperationHasValue(operation, "MODULO");
+                    expression.Modulo(ResolveValue(operation.Value!, parameters));
                     break;
 
                 default:

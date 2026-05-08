@@ -143,6 +143,14 @@ namespace Core.Math
             return this;
         }
 
+        public MathExpression Modulo(float divisor)
+        {
+            if (divisor == 0)
+                throw new ArgumentException("Divisor cannot be zero in modulo operation.", nameof(divisor));
+            _steps.Add(new MathStep("MODULO", new float[] { divisor }));
+            return this;
+        }
+
         /// <summary>
         /// Define o valor do acumulador, ignorando o valor anterior.
         /// Usado para operações com operandos explícitos que calculam um resultado independente.
@@ -326,6 +334,16 @@ namespace Core.Math
 
                     case "CEIL":
                         currentValue = (float)SysMath.Ceiling(currentValue);
+                        break;
+
+                    case "MODULO":
+                    case "MOD":
+                        if (step.Values.Length != 1)
+                            throw new InvalidOperationException("MODULO requires exactly one value (divisor).");
+                        if (step.Values[0] == 0)
+                            throw new DivideByZeroException("Cannot compute modulo with divisor zero.");
+                        currentValue = currentValue % step.Values[0];
+                        ValidateResult(currentValue, step.Operation);
                         break;
 
                     case "SET":
