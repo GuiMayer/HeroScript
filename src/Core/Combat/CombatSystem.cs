@@ -128,7 +128,7 @@ public class CombatSystem : ICombatSystem
         }
     }
     
-    public Result<CombatState> ExecuteAction(Guid combatId, ActionType actionType, string? powerId = null, string? targetId = null)
+    public Result<CombatState> ExecuteAction(Guid combatId, ActionType actionType, string? powerId = null, string? targetId = null, string? costOptionId = null)
     {
         try
         {
@@ -140,7 +140,7 @@ public class CombatSystem : ICombatSystem
                 return Result<CombatState>.Failure($"Combat {combatId} is not active (status: {currentState.Status})");
             
             // Validar ação
-            var validationResult = ValidateAction(currentState, actionType, powerId, targetId);
+            var validationResult = ValidateAction(currentState, actionType, powerId, targetId, costOptionId);
             if (validationResult.IsFailure)
                 return Result<CombatState>.Failure(validationResult.Error);
             
@@ -186,7 +186,7 @@ public class CombatSystem : ICombatSystem
         }
     }
     
-    private Result<bool> ValidateAction(CombatState state, ActionType actionType, string? powerId, string? targetId)
+    private Result<bool> ValidateAction(CombatState state, ActionType actionType, string? powerId, string? targetId, string? costOptionId)
     {
         switch (actionType)
         {
@@ -213,6 +213,18 @@ public class CombatSystem : ICombatSystem
                     return Result<bool>.Failure($"Target {targetId} not found");
                 if (!state.GetEntity(targetId)!.IsAlive)
                     return Result<bool>.Failure($"Target {targetId} is already dead");
+                
+                // TODO: When ActionManager is integrated, validate costOptionId here
+                // Example:
+                // var actionDef = _actionManager.GetDefinition(powerId);
+                // if (actionDef.Costs.AlternativeCosts.Count > 0)
+                // {
+                //     if (string.IsNullOrWhiteSpace(costOptionId))
+                //         return Result<bool>.Failure("Cost option must be specified for this action");
+                //     
+                //     if (!actionDef.Costs.CanAffordOption(costOptionId, state.Hero.ResourceState.Resources))
+                //         return Result<bool>.Failure($"Cannot afford cost option: {costOptionId}");
+                // }
                 break;
                 
             case ActionType.PASS:
@@ -344,6 +356,58 @@ public class CombatSystem : ICombatSystem
             ActionHistory = newHistory,
             CurrentTurn = state.CurrentTurn + 1
         };
+    }
+    
+    /// <summary>
+    /// Aplica custos de uma ação ao herói.
+    /// Se costOptionId for fornecido, aplica custos da opção alternativa.
+    /// Caso contrário, aplica custos normais.
+    /// </summary>
+    /// <remarks>
+    /// TODO: This method is prepared for future integration with ActionManager.
+    /// Currently, CombatSystem uses hardcoded costs (DEFAULT_POWER_COST).
+    /// When ActionManager is integrated, replace hardcoded logic with this method.
+    /// </remarks>
+    private CombatEntity ApplyCosts(
+        CombatEntity hero, 
+        ActionCosts costs, 
+        string? costOptionId = null)
+    {
+        var updates = new Dictionary<string, ResourcePool>();
+        
+        // Se houver opção de custo alternativo, usar ela
+        if (!string.IsNullOrWhiteSpace(costOptionId) && costs.AlternativeCosts.Count > 0)
+        {
+            var option = costs.GetOption(costOptionId);
+            if (option == null)
+                throw new InvalidOperationException($"Cost option not found: {costOptionId}");
+            
+            // Aplicar custos da opção
+            foreach (var cost in option.Costs)
+            {
+                var pool = hero.GetResource(cost.ResourceId);
+                if (pool == null)
+                    throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
+                
+                var newPool = pool.Spend(cost.Amount);
+                updates[cost.ResourceId] = newPool;
+            }
+        }
+        else
+        {
+            // Aplicar custos normais
+            foreach (var cost in costs.Costs)
+            {
+                var pool = hero.GetResource(cost.ResourceId);
+                if (pool == null)
+                    throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
+                
+                var newPool = pool.Spend(cost.Amount);
+                updates[cost.ResourceId] = newPool;
+            }
+        }
+        
+        return hero.UpdateResources(updates);
     }
     
     private CombatState CheckCombatEnd(CombatState state)

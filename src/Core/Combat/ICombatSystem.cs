@@ -24,8 +24,9 @@ public interface ICombatSystem
     /// <param name="actionType">Tipo de ação</param>
     /// <param name="powerId">ID do poder (opcional, necessário para POWER)</param>
     /// <param name="targetId">ID do alvo (opcional, necessário para BASIC_ATTACK e POWER)</param>
+    /// <param name="costOptionId">ID da opção de custo alternativo (opcional, para ações com custos alternativos)</param>
     /// <returns>Result com o novo estado do combate</returns>
-    Result<CombatState> ExecuteAction(Guid combatId, ActionType actionType, string? powerId = null, string? targetId = null);
+    Result<CombatState> ExecuteAction(Guid combatId, ActionType actionType, string? powerId = null, string? targetId = null, string? costOptionId = null);
     
     /// <summary>
     /// Obtém estado atual de combate.
