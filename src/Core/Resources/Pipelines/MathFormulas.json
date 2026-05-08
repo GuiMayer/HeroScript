@@ -114,14 +114,19 @@
   },
 
   "ARMOR_REDUCTION": {
-    "description": "Armor-based damage reduction with diminishing returns",
+    "description": "Hyperbolic armor reduction (2x scaling): damage × (1 - armor / (armor + 2 × damage))",
     "params": {
-      "ARMOR_SCALING": 100
+      "ARMOR": 0,
+      "DAMAGE": 0
     },
     "operations": [
-      { "op": "DIVIDE", "value": "params.ARMOR_SCALING" },
-      { "op": "ADD", "value": "1" },
-      { "op": "DIVIDE_INVERSE", "value": "1" }
+      { "op": "SET", "value": "params.DAMAGE" },
+      { "op": "MULTIPLY", "value": "2" },
+      { "op": "ADD", "value": "params.ARMOR" },
+      { "op": "DIVIDE_INVERSE", "value": "params.ARMOR" },
+      { "op": "SUBTRACT", "value": "1" },
+      { "op": "NEGATE" },
+      { "op": "MULTIPLY", "value": "params.DAMAGE" }
     ]
   },
 
