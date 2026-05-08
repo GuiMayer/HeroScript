@@ -57,8 +57,9 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("CombatSystem"));
+    var resourceManager = sp.GetRequiredService<IResourceManager>();
     var eventBus = sp.GetRequiredService<IEventBus>();
-    return new CombatSystem(logger, eventBus);
+    return new CombatSystem(logger, resourceManager, eventBus);
 });
 
 // Configure CORS
