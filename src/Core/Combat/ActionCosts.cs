@@ -7,15 +7,23 @@ namespace Core.Combat;
 public record ActionCosts
 {
     /// <summary>
-    /// Lista de custos de recursos.
+    /// Lista de custos de recursos (AND logic - todos devem ser pagos).
     /// </summary>
     public List<ResourceCost> Costs { get; init; } = new();
     
     /// <summary>
+    /// Lista de opções de custos alternativos (OR logic - escolher uma opção).
+    /// Se não vazia, o jogador deve escolher UMA opção para pagar.
+    /// </summary>
+    public List<AlternativeCostOption> AlternativeCosts { get; init; } = new();
+    
+    /// <summary>
     /// Verifica se há recursos suficientes para pagar todos os custos.
+    /// Se houver custos alternativos, verifica se pelo menos UMA opção pode ser paga.
     /// </summary>
     public bool CanAfford(Dictionary<string, Resources.ResourcePool> resources)
     {
+        // Verificar custos normais (AND logic)
         foreach (var cost in Costs)
         {
             if (!resources.TryGetValue(cost.ResourceId, out var pool))
@@ -24,6 +32,13 @@ public record ActionCosts
             if (!cost.AllowOverdraft && !pool.CanAfford(cost.Amount))
                 return false;
         }
+        
+        // Se houver custos alternativos, verificar se pelo menos UMA opção pode ser paga
+        if (AlternativeCosts.Count > 0)
+        {
+            return AlternativeCosts.Any(option => option.CanAfford(resources));
+        }
+        
         return true;
     }
     
@@ -32,6 +47,7 @@ public record ActionCosts
     /// </summary>
     public string? GetAffordabilityError(Dictionary<string, Resources.ResourcePool> resources)
     {
+        // Verificar custos normais
         foreach (var cost in Costs)
         {
             if (!resources.TryGetValue(cost.ResourceId, out var pool))
@@ -43,6 +59,48 @@ public record ActionCosts
                 return $"Insufficient {resourceName}: has {pool.Current}, needs {cost.Amount}";
             }
         }
+        
+        // Se houver custos alternativos, verificar se pelo menos uma opção pode ser paga
+        if (AlternativeCosts.Count > 0)
+        {
+            var affordableOptions = GetAffordableOptions(resources);
+            if (affordableOptions.Count == 0)
+            {
+                var optionDescriptions = string.Join(" OR ", AlternativeCosts.Select(o => o.Description));
+                return $"Cannot afford any alternative: {optionDescriptions}";
+            }
+        }
+        
         return null;
+    }
+    
+    /// <summary>
+    /// Obtém lista de opções alternativas que podem ser pagas.
+    /// </summary>
+    public List<AlternativeCostOption> GetAffordableOptions(Dictionary<string, Resources.ResourcePool> resources)
+    {
+        return AlternativeCosts
+            .Where(option => option.CanAfford(resources))
+            .ToList();
+    }
+    
+    /// <summary>
+    /// Verifica se uma opção específica pode ser paga.
+    /// </summary>
+    public bool CanAffordOption(string optionId, Dictionary<string, Resources.ResourcePool> resources)
+    {
+        var option = AlternativeCosts.FirstOrDefault(o => o.OptionId == optionId);
+        if (option == null)
+            return false;
+        
+        return option.CanAfford(resources);
+    }
+    
+    /// <summary>
+    /// Obtém opção alternativa por ID.
+    /// </summary>
+    public AlternativeCostOption? GetOption(string optionId)
+    {
+        return AlternativeCosts.FirstOrDefault(o => o.OptionId == optionId);
     }
 }
