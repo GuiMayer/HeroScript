@@ -118,6 +118,21 @@ O projeto segue a arquitetura descrita em `docs/01_Future/arquitetura-engine.md`
 - **Event Sourcing**: Sistema de log built-in (futuro)
 - **Modular**: Configurações podem ser trocadas em runtime
 
+## Documentação
+
+### API REST
+
+- [API-ENDPOINTS.md](docs/API-ENDPOINTS.md) - Documentação detalhada dos endpoints atuais
+- [API Roadmap](docs/roadmap/README.md) - Roadmap completo da API (6 fases)
+- [API Conventions](docs/roadmap/API_CONVENTIONS.md) - Convenções e padrões da API
+- [Event Integration](docs/roadmap/EVENT_INTEGRATION.md) - Integração com EventBus (Polling vs WebSocket)
+
+### Sistemas Core
+
+- [CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md) - Sistema de configuração com herança delta
+- [CORE_MATH_SYSTEM.md](docs/CORE_MATH_SYSTEM.md) - Sistema matemático
+- [EVENTBUS_IMPLEMENTATION_PLAN.md](docs/EVENTBUS_IMPLEMENTATION_PLAN.md) - Plano de implementação do EventBus
+
 ## Roadmap
 
 Estamos atualmente na **Fase 1 — O Kernel**:
