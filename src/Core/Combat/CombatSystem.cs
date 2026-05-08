@@ -1,4 +1,5 @@
 using Core.Common;
+using Core.Damage;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
@@ -18,6 +19,7 @@ public class CombatSystem : ICombatSystem
     private readonly IEventBus? _eventBus;
     private readonly ILogger _logger;
     private readonly IResourceManager _resourceManager;
+    private readonly IDamageCalculator? _damageCalculator;
     
     // Constantes de gameplay (futuramente virão de config)
     private const int BASIC_ATTACK_DAMAGE = 10;
@@ -25,11 +27,12 @@ public class CombatSystem : ICombatSystem
     private const int DEFAULT_POWER_COST = 3;
     private const int DEFAULT_POWER_DAMAGE = 30;
     
-    public CombatSystem(ILogger logger, IResourceManager resourceManager, IEventBus? eventBus = null)
+    public CombatSystem(ILogger logger, IResourceManager resourceManager, IEventBus? eventBus = null, IDamageCalculator? damageCalculator = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _eventBus = eventBus;
+        _damageCalculator = damageCalculator;
     }
     
     public Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3)
@@ -242,7 +245,30 @@ public class CombatSystem : ICombatSystem
     private CombatState ExecuteBasicAttack(CombatState state, string targetId)
     {
         var target = state.GetEntity(targetId)!;
-        var newTarget = target.TakeDamage(BASIC_ATTACK_DAMAGE);
+        
+        // Calcular dano usando pipeline (se disponível)
+        float damageDealt;
+        if (_damageCalculator != null)
+        {
+            var actionDef = new ActionDefinition
+            {
+                ActionId = "basic_attack",
+                BaseDamage = BASIC_ATTACK_DAMAGE,
+                Tags = new List<string> { "physical", "melee", "can_crit" }
+            };
+            
+            var damageResult = _damageCalculator.CalculateDamage(actionDef, state.Hero, target);
+            damageDealt = damageResult.FinalDamage;
+            
+            _logger.LogDebug($"Basic attack damage: {damageDealt:F2} (crit tier: {damageResult.CritTier})");
+        }
+        else
+        {
+            // Fallback para dano fixo
+            damageDealt = BASIC_ATTACK_DAMAGE;
+        }
+        
+        var newTarget = target.TakeDamage(damageDealt);
         
         // Ganhar energia
         var energyPool = state.GetHeroResource("energy")!;
@@ -255,7 +281,7 @@ public class CombatSystem : ICombatSystem
             ActorId = state.Hero.EntityId,
             ActionType = ActionType.BASIC_ATTACK,
             TargetId = targetId,
-            DamageDealt = BASIC_ATTACK_DAMAGE,
+            DamageDealt = damageDealt,
             EnergyChange = BASIC_ATTACK_ENERGY_GAIN
         };
         
@@ -285,7 +311,30 @@ public class CombatSystem : ICombatSystem
     private CombatState ExecutePower(CombatState state, string powerId, string targetId)
     {
         var target = state.GetEntity(targetId)!;
-        var newTarget = target.TakeDamage(DEFAULT_POWER_DAMAGE);
+        
+        // Calcular dano usando pipeline (se disponível)
+        float damageDealt;
+        if (_damageCalculator != null)
+        {
+            var actionDef = new ActionDefinition
+            {
+                ActionId = powerId,
+                BaseDamage = DEFAULT_POWER_DAMAGE,
+                Tags = new List<string> { "spell", "fire", "can_crit" }
+            };
+            
+            var damageResult = _damageCalculator.CalculateDamage(actionDef, state.Hero, target);
+            damageDealt = damageResult.FinalDamage;
+            
+            _logger.LogDebug($"Power {powerId} damage: {damageDealt:F2} (crit tier: {damageResult.CritTier})");
+        }
+        else
+        {
+            // Fallback para dano fixo
+            damageDealt = DEFAULT_POWER_DAMAGE;
+        }
+        
+        var newTarget = target.TakeDamage(damageDealt);
         
         // Gastar energia
         var energyPool = state.GetHeroResource("energy")!;
@@ -299,7 +348,7 @@ public class CombatSystem : ICombatSystem
             ActionType = ActionType.POWER,
             PowerId = powerId,
             TargetId = targetId,
-            DamageDealt = DEFAULT_POWER_DAMAGE,
+            DamageDealt = damageDealt,
             EnergyChange = -DEFAULT_POWER_COST
         };
         
