@@ -59,7 +59,8 @@ public class CombatController : BaseApiController
                 combatId,
                 actionType,
                 request.PowerId,
-                request.TargetId);
+                request.TargetId,
+                request.CostOptionId);
 
             if (result.IsFailure)
                 return BadRequest(new { error = result.Error });
@@ -118,6 +119,59 @@ public class CombatController : BaseApiController
         catch (Exception ex)
         {
             return HandleException(ex, "get combat history", combatId.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Obtém opções de custo disponíveis para uma ação.
+    /// </summary>
+    /// <remarks>
+    /// TODO: This endpoint is prepared for future integration with ActionManager.
+    /// Currently returns a placeholder response.
+    /// When ActionManager is integrated, this will return actual cost options from action definitions.
+    /// </remarks>
+    [HttpGet("{combatId}/actions/{actionId}/cost-options")]
+    public IActionResult GetCostOptions(Guid combatId, string actionId)
+    {
+        try
+        {
+            var stateResult = _combatSystem.GetCombatState(combatId);
+            if (stateResult.IsFailure)
+                return NotFound(new { error = stateResult.Error });
+
+            // TODO: When ActionManager is integrated, replace this with:
+            // var actionDef = _actionManager.GetDefinition(actionId);
+            // if (actionDef == null)
+            //     return NotFound(new { error = $"Action {actionId} not found" });
+            //
+            // var heroResources = stateResult.Value.Hero.ResourceState.Resources;
+            // var affordableOptions = actionDef.Costs.GetAffordableOptions(heroResources);
+            //
+            // return Ok(new
+            // {
+            //     actionId = actionId,
+            //     normalCosts = actionDef.Costs.Costs.Select(c => new { c.ResourceId, c.Amount }),
+            //     alternativeCosts = actionDef.Costs.AlternativeCosts.Select(opt => new
+            //     {
+            //         opt.OptionId,
+            //         opt.Description,
+            //         costs = opt.Costs.Select(c => new { c.ResourceId, c.Amount }),
+            //         affordable = opt.CanAfford(heroResources)
+            //     })
+            // });
+
+            // Placeholder response for now
+            return Ok(new
+            {
+                actionId = actionId,
+                message = "Cost options endpoint ready. Awaiting ActionManager integration.",
+                normalCosts = new object[] { },
+                alternativeCosts = new object[] { }
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get cost options", combatId.ToString());
         }
     }
 
