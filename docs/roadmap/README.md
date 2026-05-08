@@ -54,6 +54,8 @@ http://localhost:5260/api
 - [EVENTBUS_SYSTEM.md](../EVENTBUS_SYSTEM.md) - Sistema EventBus (pub/sub e Event Sourcing)
 - [CONFIG_SYSTEM.md](../CONFIG_SYSTEM.md) - Sistema de configuração com herança delta
 - [API_MATH_EXPRESSION_MODES.md](../API_MATH_EXPRESSION_MODES.md) - Modos de expressão matemática
+- [DAMAGE_PIPELINE.md](../DAMAGE_PIPELINE.md) - Sistema de pipeline de dano configurável
+- [DAMAGE_PIPELINE_EXAMPLES.md](../DAMAGE_PIPELINE_EXAMPLES.md) - Exemplos práticos do pipeline de dano
 
 ## Como Usar Este Roadmap
 
@@ -66,6 +68,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-08 | Fase 1 | Damage Pipeline System implementado (7 buckets, 10 operações, 3 eventos, API REST) |
 | 2026-05-08 | Fase 1 | Combat System implementado com 53 testes |
 | 2026-05-08 | Fase 1 | Alternative Costs System implementado com 26 testes |
 | 2026-05-08 | Fase 1 | EventBus implementado e integrado |
@@ -73,4 +76,4 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** Implementar Damage Pipeline (Fase 1)
+**Próximo passo:** Implementar Status Effects System (Fase 2)
