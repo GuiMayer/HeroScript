@@ -11,12 +11,9 @@ public record CombatState
     public int CurrentTurn { get; init; } = 1;
     public CombatStatus Status { get; init; } = CombatStatus.ACTIVE;
     
-    // Entidades
+    // Entidades (agora com recursos genéricos)
     public CombatEntity Hero { get; init; } = null!;
     public IReadOnlyList<CombatEntity> Enemies { get; init; } = Array.Empty<CombatEntity>();
-    
-    // Energia
-    public EnergyPool Energy { get; init; } = null!;
     
     // Histórico
     public IReadOnlyList<CombatAction> ActionHistory { get; init; } = Array.Empty<CombatAction>();
@@ -36,4 +33,26 @@ public record CombatState
         if (Hero.EntityId == entityId) return Hero;
         return Enemies.FirstOrDefault(e => e.EntityId == entityId);
     }
+    
+    /// <summary>
+    /// Obtém recurso do herói.
+    /// </summary>
+    public Resources.ResourcePool? GetHeroResource(string resourceId) 
+        => Hero.GetResource(resourceId);
+    
+    /// <summary>
+    /// Obtém recurso de um inimigo.
+    /// </summary>
+    public Resources.ResourcePool? GetEnemyResource(string enemyId, string resourceId)
+    {
+        var enemy = Enemies.FirstOrDefault(e => e.EntityId == enemyId);
+        return enemy?.GetResource(resourceId);
+    }
+    
+    // Propriedade de conveniência para compatibilidade (delega para recurso "energy" do herói)
+    public EnergyPool Energy => new EnergyPool
+    {
+        Current = (int)(GetHeroResource("energy")?.Current ?? 0),
+        Maximum = (int)(GetHeroResource("energy")?.Maximum ?? 10)
+    };
 }

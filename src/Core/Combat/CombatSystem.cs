@@ -2,6 +2,7 @@ using Core.Common;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
+using Core.Resources;
 using System.Collections.Concurrent;
 
 namespace Core.Combat;
@@ -9,23 +10,25 @@ namespace Core.Combat;
 /// <summary>
 /// Sistema de combate com gerenciamento de estado imutável.
 /// Thread-safe usando ConcurrentDictionary.
+/// Usa sistema de recursos genérico configurável via JSON.
 /// </summary>
 public class CombatSystem : ICombatSystem
 {
     private readonly ConcurrentDictionary<Guid, CombatState> _activeCombats = new();
     private readonly IEventBus? _eventBus;
     private readonly ILogger _logger;
+    private readonly IResourceManager _resourceManager;
     
     // Constantes de gameplay (futuramente virão de config)
-    // TODO: Move to Damage Pipeline (Fase 1)
     private const int BASIC_ATTACK_DAMAGE = 10;
     private const int BASIC_ATTACK_ENERGY_GAIN = 1;
     private const int DEFAULT_POWER_COST = 3;
     private const int DEFAULT_POWER_DAMAGE = 30;
     
-    public CombatSystem(ILogger logger, IEventBus? eventBus = null)
+    public CombatSystem(ILogger logger, IResourceManager resourceManager, IEventBus? eventBus = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _eventBus = eventBus;
     }
     
@@ -43,23 +46,53 @@ public class CombatSystem : ICombatSystem
             if (initialEnergy < 0 || initialEnergy > 10)
                 return Result<CombatState>.Failure("Initial energy must be between 0 and 10");
             
-            // Criar entidades (valores hardcoded por enquanto)
+            // Criar recursos do herói
+            var heroHealthPool = _resourceManager.CreatePool("health", 100);
+            var heroEnergyPool = _resourceManager.CreatePool("energy", initialEnergy);
+            
+            var heroResources = new Dictionary<string, ResourcePool>
+            {
+                ["health"] = heroHealthPool,
+                ["energy"] = heroEnergyPool
+            };
+            
+            var heroResourceState = new EntityResourceState
+            {
+                EntityId = heroId,
+                Resources = heroResources
+            };
+            
+            // Criar herói
             var hero = new CombatEntity
             {
                 EntityId = heroId,
                 Name = "Hero",
-                CurrentHp = 100,
-                MaxHp = 100,
-                IsHero = true
+                IsHero = true,
+                ResourceState = heroResourceState
             };
             
-            var enemies = enemyIds.Select((id, index) => new CombatEntity
+            // Criar inimigos
+            var enemies = enemyIds.Select((id, index) =>
             {
-                EntityId = id,
-                Name = $"Enemy-{index + 1}",
-                CurrentHp = 50,
-                MaxHp = 50,
-                IsHero = false
+                var enemyHealthPool = _resourceManager.CreatePool("health", 50);
+                var enemyResources = new Dictionary<string, ResourcePool>
+                {
+                    ["health"] = enemyHealthPool
+                };
+                
+                var enemyResourceState = new EntityResourceState
+                {
+                    EntityId = id,
+                    Resources = enemyResources
+                };
+                
+                return new CombatEntity
+                {
+                    EntityId = id,
+                    Name = $"Enemy-{index + 1}",
+                    IsHero = false,
+                    ResourceState = enemyResourceState
+                };
             }).ToList();
             
             // Criar estado inicial
@@ -67,7 +100,6 @@ public class CombatSystem : ICombatSystem
             {
                 Hero = hero,
                 Enemies = enemies,
-                Energy = new EnergyPool { Current = initialEnergy, Maximum = 10 },
                 CurrentTurn = 1,
                 Status = CombatStatus.ACTIVE
             };
@@ -172,8 +204,11 @@ public class CombatSystem : ICombatSystem
                     return Result<bool>.Failure("Power ID is required");
                 if (string.IsNullOrWhiteSpace(targetId))
                     return Result<bool>.Failure("Target is required for power");
-                if (!state.Energy.CanAfford(DEFAULT_POWER_COST))
-                    return Result<bool>.Failure($"Insufficient energy: has {state.Energy.Current}, needs {DEFAULT_POWER_COST}");
+                
+                var energyPool = state.GetHeroResource("energy");
+                if (energyPool == null || !energyPool.CanAfford(DEFAULT_POWER_COST))
+                    return Result<bool>.Failure($"Insufficient energy: has {energyPool?.Current ?? 0}, needs {DEFAULT_POWER_COST}");
+                
                 if (state.GetEntity(targetId) == null)
                     return Result<bool>.Failure($"Target {targetId} not found");
                 if (!state.GetEntity(targetId)!.IsAlive)
@@ -196,7 +231,11 @@ public class CombatSystem : ICombatSystem
     {
         var target = state.GetEntity(targetId)!;
         var newTarget = target.TakeDamage(BASIC_ATTACK_DAMAGE);
-        var newEnergy = state.Energy.Gain(BASIC_ATTACK_ENERGY_GAIN);
+        
+        // Ganhar energia
+        var energyPool = state.GetHeroResource("energy")!;
+        var newEnergyPool = energyPool.Gain(BASIC_ATTACK_ENERGY_GAIN);
+        var newHero = state.Hero.UpdateResource("energy", newEnergyPool);
         
         var action = new CombatAction
         {
@@ -212,24 +251,21 @@ public class CombatSystem : ICombatSystem
         var newHistory = state.ActionHistory.Append(action).ToList();
         
         // Publicar evento de energia
-        if (newEnergy.Current != state.Energy.Current)
+        _eventBus?.Publish(new EnergyChangedEvent
         {
-            _eventBus?.Publish(new EnergyChangedEvent
-            {
-                CombatId = state.CombatId,
-                OldEnergy = state.Energy.Current,
-                NewEnergy = newEnergy.Current,
-                Delta = BASIC_ATTACK_ENERGY_GAIN,
-                Reason = "Basic attack",
-                Turn = state.CurrentTurn,
-                Target = state.Hero.EntityId
-            });
-        }
+            CombatId = state.CombatId,
+            OldEnergy = (int)energyPool.Current,
+            NewEnergy = (int)newEnergyPool.Current,
+            Delta = BASIC_ATTACK_ENERGY_GAIN,
+            Reason = "Basic attack",
+            Turn = state.CurrentTurn,
+            Target = state.Hero.EntityId
+        });
         
         return state with
         {
+            Hero = newHero,
             Enemies = newEnemies,
-            Energy = newEnergy,
             ActionHistory = newHistory
         };
     }
@@ -238,7 +274,11 @@ public class CombatSystem : ICombatSystem
     {
         var target = state.GetEntity(targetId)!;
         var newTarget = target.TakeDamage(DEFAULT_POWER_DAMAGE);
-        var newEnergy = state.Energy.Spend(DEFAULT_POWER_COST);
+        
+        // Gastar energia
+        var energyPool = state.GetHeroResource("energy")!;
+        var newEnergyPool = energyPool.Spend(DEFAULT_POWER_COST);
+        var newHero = state.Hero.UpdateResource("energy", newEnergyPool);
         
         var action = new CombatAction
         {
@@ -258,8 +298,8 @@ public class CombatSystem : ICombatSystem
         _eventBus?.Publish(new EnergyChangedEvent
         {
             CombatId = state.CombatId,
-            OldEnergy = state.Energy.Current,
-            NewEnergy = newEnergy.Current,
+            OldEnergy = (int)energyPool.Current,
+            NewEnergy = (int)newEnergyPool.Current,
             Delta = -DEFAULT_POWER_COST,
             Reason = $"Power: {powerId}",
             Turn = state.CurrentTurn,
@@ -268,8 +308,8 @@ public class CombatSystem : ICombatSystem
         
         return state with
         {
+            Hero = newHero,
             Enemies = newEnemies,
-            Energy = newEnergy,
             ActionHistory = newHistory
         };
     }
@@ -348,8 +388,7 @@ public class CombatSystem : ICombatSystem
             TotalTurns = result.TotalTurns,
             TotalActions = result.TotalActions,
             Duration = result.Duration,
-            Turn = state.CurrentTurn,
-            Target = combatId.ToString()
+            Target = state.Hero.EntityId
         });
         
         _logger.LogInformation($"Combat ended: {combatId} - {state.Status}");
