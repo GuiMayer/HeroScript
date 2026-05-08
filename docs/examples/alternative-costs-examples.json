@@ -1,0 +1,409 @@
+{
+  "examples": [
+    {
+      "name": "Powerful Spell - Multiple Payment Options",
+      "description": "A powerful spell that can be paid with mana, health, or a combination",
+      "actionDefinition": {
+        "actionId": "powerful_spell",
+        "name": "Powerful Spell",
+        "description": "Unleash devastating magical energy",
+        "actionType": "POWER",
+        "costs": {
+          "costs": [],
+          "alternativeCosts": [
+            {
+              "optionId": "mana_cost",
+              "description": "Pay 8 mana",
+              "costs": [
+                {
+                  "resourceId": "mana",
+                  "amount": 8,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "health_cost",
+              "description": "Pay 20 health (blood magic)",
+              "costs": [
+                {
+                  "resourceId": "health",
+                  "amount": 20,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "hybrid_cost",
+              "description": "Pay 3 mana + 10 health",
+              "costs": [
+                {
+                  "resourceId": "mana",
+                  "amount": 3,
+                  "allowOverdraft": false
+                },
+                {
+                  "resourceId": "health",
+                  "amount": 10,
+                  "allowOverdraft": false
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "usageExample": {
+        "endpoint": "POST /api/combat/{combatId}/action",
+        "requestBody": {
+          "actionType": "POWER",
+          "powerId": "powerful_spell",
+          "targetId": "enemy-1",
+          "costOptionId": "health_cost"
+        }
+      }
+    },
+    {
+      "name": "Desperate Strike - Risk vs Reward",
+      "description": "A risky attack that can be paid safely or dangerously",
+      "actionDefinition": {
+        "actionId": "desperate_strike",
+        "name": "Desperate Strike",
+        "description": "A powerful but risky attack",
+        "actionType": "POWER",
+        "costs": {
+          "costs": [],
+          "alternativeCosts": [
+            {
+              "optionId": "safe_cost",
+              "description": "Pay 6 energy (safe)",
+              "costs": [
+                {
+                  "resourceId": "energy",
+                  "amount": 6,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "risky_cost",
+              "description": "Pay 2 energy + 15 health (risky)",
+              "costs": [
+                {
+                  "resourceId": "energy",
+                  "amount": 2,
+                  "allowOverdraft": false
+                },
+                {
+                  "resourceId": "health",
+                  "amount": 15,
+                  "allowOverdraft": false
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Summon Ally - Resource Conversion",
+      "description": "Summon an ally using different resource types",
+      "actionDefinition": {
+        "actionId": "summon_ally",
+        "name": "Summon Ally",
+        "description": "Call forth a magical ally",
+        "actionType": "POWER",
+        "costs": {
+          "costs": [],
+          "alternativeCosts": [
+            {
+              "optionId": "mana_summon",
+              "description": "Pay 10 mana (pure magic)",
+              "costs": [
+                {
+                  "resourceId": "mana",
+                  "amount": 10,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "card_summon",
+              "description": "Discard 2 cards from hand",
+              "costs": [
+                {
+                  "resourceId": "cards_in_hand",
+                  "amount": 2,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "time_summon",
+              "description": "Pay 5 mana + skip next turn",
+              "costs": [
+                {
+                  "resourceId": "mana",
+                  "amount": 5,
+                  "allowOverdraft": false
+                },
+                {
+                  "resourceId": "action_points",
+                  "amount": 1,
+                  "allowOverdraft": false
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Dark Ritual - Thematic Choices",
+      "description": "A dark spell with morally different payment options",
+      "actionDefinition": {
+        "actionId": "dark_ritual",
+        "name": "Dark Ritual",
+        "description": "Perform a forbidden ritual",
+        "actionType": "POWER",
+        "costs": {
+          "costs": [],
+          "alternativeCosts": [
+            {
+              "optionId": "pure_magic",
+              "description": "Pay 12 mana (pure magic)",
+              "costs": [
+                {
+                  "resourceId": "mana",
+                  "amount": 12,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "blood_magic",
+              "description": "Pay 30 health (blood magic)",
+              "costs": [
+                {
+                  "resourceId": "health",
+                  "amount": 30,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "sacrifice",
+              "description": "Sacrifice 1 ally (forbidden)",
+              "costs": [
+                {
+                  "resourceId": "allies",
+                  "amount": 1,
+                  "allowOverdraft": false
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Traditional Fireball - Backward Compatible",
+      "description": "A traditional spell with fixed cost (no alternatives)",
+      "actionDefinition": {
+        "actionId": "fireball",
+        "name": "Fireball",
+        "description": "Launch a ball of fire",
+        "actionType": "POWER",
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "mana",
+              "amount": 3,
+              "allowOverdraft": false
+            }
+          ],
+          "alternativeCosts": []
+        }
+      },
+      "usageExample": {
+        "endpoint": "POST /api/combat/{combatId}/action",
+        "requestBody": {
+          "actionType": "POWER",
+          "powerId": "fireball",
+          "targetId": "enemy-1"
+        },
+        "note": "costOptionId is omitted - uses normal costs"
+      }
+    },
+    {
+      "name": "Flexible Shield - Situational Adaptation",
+      "description": "A defensive spell with options for different situations",
+      "actionDefinition": {
+        "actionId": "flexible_shield",
+        "name": "Flexible Shield",
+        "description": "Create a protective barrier",
+        "actionType": "POWER",
+        "costs": {
+          "costs": [],
+          "alternativeCosts": [
+            {
+              "optionId": "energy_shield",
+              "description": "Pay 8 energy (good when energy is abundant)",
+              "costs": [
+                {
+                  "resourceId": "energy",
+                  "amount": 8,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "focus_shield",
+              "description": "Pay 4 energy + 2 focus (balanced)",
+              "costs": [
+                {
+                  "resourceId": "energy",
+                  "amount": 4,
+                  "allowOverdraft": false
+                },
+                {
+                  "resourceId": "focus",
+                  "amount": 2,
+                  "allowOverdraft": false
+                }
+              ]
+            },
+            {
+              "optionId": "card_shield",
+              "description": "Pay 3 energy + discard 1 card (good when low on energy)",
+              "costs": [
+                {
+                  "resourceId": "energy",
+                  "amount": 3,
+                  "allowOverdraft": false
+                },
+                {
+                  "resourceId": "cards_in_hand",
+                  "amount": 1,
+                  "allowOverdraft": false
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "apiWorkflow": {
+    "description": "Complete workflow for using alternative costs in combat",
+    "steps": [
+      {
+        "step": 1,
+        "action": "Start Combat",
+        "endpoint": "POST /api/combat/start",
+        "request": {
+          "heroId": "hero-1",
+          "enemies": ["enemy-1", "enemy-2"],
+          "initialEnergy": 3
+        },
+        "response": {
+          "combatId": "550e8400-e29b-41d4-a716-446655440000",
+          "status": "ACTIVE",
+          "hero": {
+            "entityId": "hero-1",
+            "currentHp": 100,
+            "resources": {
+              "energy": { "current": 3, "maximum": 10 },
+              "mana": { "current": 5, "maximum": 10 },
+              "health": { "current": 100, "maximum": 100 }
+            }
+          }
+        }
+      },
+      {
+        "step": 2,
+        "action": "Get Available Cost Options (Future)",
+        "endpoint": "GET /api/combat/{combatId}/actions/powerful_spell/cost-options",
+        "note": "Currently returns placeholder. Will be populated when ActionManager is integrated.",
+        "futureResponse": {
+          "actionId": "powerful_spell",
+          "normalCosts": [],
+          "alternativeCosts": [
+            {
+              "optionId": "mana_cost",
+              "description": "Pay 8 mana",
+              "costs": [{ "resourceId": "mana", "amount": 8 }],
+              "affordable": false
+            },
+            {
+              "optionId": "health_cost",
+              "description": "Pay 20 health (blood magic)",
+              "costs": [{ "resourceId": "health", "amount": 20 }],
+              "affordable": true
+            },
+            {
+              "optionId": "hybrid_cost",
+              "description": "Pay 3 mana + 10 health",
+              "costs": [
+                { "resourceId": "mana", "amount": 3 },
+                { "resourceId": "health", "amount": 10 }
+              ],
+              "affordable": true
+            }
+          ]
+        }
+      },
+      {
+        "step": 3,
+        "action": "Execute Action with Cost Option",
+        "endpoint": "POST /api/combat/{combatId}/action",
+        "request": {
+          "actionType": "POWER",
+          "powerId": "powerful_spell",
+          "targetId": "enemy-1",
+          "costOptionId": "health_cost"
+        },
+        "response": {
+          "combatId": "550e8400-e29b-41d4-a716-446655440000",
+          "status": "ACTIVE",
+          "hero": {
+            "entityId": "hero-1",
+            "currentHp": 80,
+            "resources": {
+              "energy": { "current": 3, "maximum": 10 },
+              "mana": { "current": 5, "maximum": 10 },
+              "health": { "current": 80, "maximum": 100 }
+            }
+          },
+          "lastAction": {
+            "actionType": "POWER",
+            "powerId": "powerful_spell",
+            "targetId": "enemy-1",
+            "damageDealt": 50
+          }
+        }
+      }
+    ]
+  },
+  "designPatterns": {
+    "resourceConversion": {
+      "description": "Allow players to convert one resource into another",
+      "example": "Pay 5 mana OR Pay 15 health",
+      "useCase": "When players have abundance of one resource but lack another"
+    },
+    "riskVsReward": {
+      "description": "Give players choice between safe and risky options",
+      "example": "Pay 8 mana (safe) OR Pay 3 mana + 20 health (risky)",
+      "useCase": "Create tension and strategic decision-making"
+    },
+    "situationalFlexibility": {
+      "description": "Adapt to different combat situations",
+      "example": "Pay 10 energy OR Pay 5 energy + 1 card",
+      "useCase": "Allow players to adapt to resource availability"
+    },
+    "thematicChoices": {
+      "description": "Reflect character themes or moral choices",
+      "example": "Pay 6 mana (pure) OR Pay 25 health (blood magic)",
+      "useCase": "Add narrative depth and character expression"
+    }
+  }
+}
