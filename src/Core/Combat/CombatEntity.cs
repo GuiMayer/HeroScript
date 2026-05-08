@@ -67,7 +67,11 @@ public record CombatEntity
         var health = GetResource("health");
         if (health == null) return this;
         
-        var newHealth = health.Spend(damage);
+        // Calcula novo valor (pode ficar negativo ou abaixo do mínimo)
+        var newValue = health.Current - damage;
+        
+        // Usa Set() que respeita os limites da definição
+        var newHealth = health.Set(newValue);
         return UpdateResource("health", newHealth);
     }
     

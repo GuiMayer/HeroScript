@@ -2,19 +2,52 @@ using Core.Combat;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
+using Core.Resources;
+using Moq;
 using Xunit;
 
 namespace Core.Tests.Combat;
 
 public class CombatIntegrationTests
 {
+    private static IResourceManager CreateMockResourceManager()
+    {
+        var mock = new Mock<IResourceManager>();
+        
+        mock.Setup(rm => rm.CreatePool(It.IsAny<string>(), It.IsAny<float>()))
+            .Returns((string resourceId, float current) =>
+            {
+                var definition = new ResourceDefinition
+                {
+                    ResourceId = resourceId,
+                    DisplayName = resourceId == "health" ? "Health" : "Energy",
+                    Category = resourceId == "health" ? ResourceCategory.VITAL : ResourceCategory.TACTICAL,
+                    DefaultMin = 0,
+                    DefaultMax = resourceId == "health" ? 100 : 10,
+                    DefaultCurrent = current,
+                    CanBeNegative = false
+                };
+
+                return new ResourcePool
+                {
+                    Definition = definition,
+                    Current = current,
+                    Maximum = resourceId == "health" ? 100 : 10,
+                    Minimum = 0
+                };
+            });
+        
+        return mock.Object;
+    }
+
     [Fact]
     public void FullCombatFlow_ShouldPublishAllEvents()
     {
         // Arrange
         var logger = NullLogger.Instance;
         var eventBus = new EventBus(logger);
-        var combatSystem = new CombatSystem(logger, eventBus);
+        var resourceManager = CreateMockResourceManager();
+        var combatSystem = new CombatSystem(logger, resourceManager, eventBus);
 
         var eventsPublished = new List<string>();
         eventBus.Subscribe<CombatStartedEvent>(e => eventsPublished.Add("CombatStarted"));
@@ -43,7 +76,8 @@ public class CombatIntegrationTests
     {
         // Arrange
         var logger = NullLogger.Instance;
-        var combatSystem = new CombatSystem(logger);
+        var resourceManager = CreateMockResourceManager();
+        var combatSystem = new CombatSystem(logger, resourceManager);
 
         // Act
         var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);

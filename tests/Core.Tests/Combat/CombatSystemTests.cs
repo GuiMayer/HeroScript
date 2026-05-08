@@ -1,6 +1,7 @@
 using Core.Combat;
 using Core.Events;
 using Core.Logging;
+using Core.Resources;
 using Moq;
 using Xunit;
 
@@ -10,13 +11,40 @@ public class CombatSystemTests
 {
     private readonly Mock<ILogger> _mockLogger;
     private readonly Mock<IEventBus> _mockEventBus;
+    private readonly Mock<IResourceManager> _mockResourceManager;
     private readonly CombatSystem _combatSystem;
 
     public CombatSystemTests()
     {
         _mockLogger = new Mock<ILogger>();
         _mockEventBus = new Mock<IEventBus>();
-        _combatSystem = new CombatSystem(_mockLogger.Object, _mockEventBus.Object);
+        _mockResourceManager = new Mock<IResourceManager>();
+        
+        // Setup ResourceManager to return valid pools
+        _mockResourceManager.Setup(rm => rm.CreatePool(It.IsAny<string>(), It.IsAny<float>()))
+            .Returns((string resourceId, float current) =>
+            {
+                var definition = new ResourceDefinition
+                {
+                    ResourceId = resourceId,
+                    DisplayName = resourceId == "health" ? "Health" : "Energy",
+                    Category = resourceId == "health" ? ResourceCategory.VITAL : ResourceCategory.TACTICAL,
+                    DefaultMin = 0,
+                    DefaultMax = resourceId == "health" ? 100 : 10,
+                    DefaultCurrent = current,
+                    CanBeNegative = false
+                };
+
+                return new ResourcePool
+                {
+                    Definition = definition,
+                    Current = current,
+                    Maximum = resourceId == "health" ? 100 : 10,
+                    Minimum = 0
+                };
+            });
+        
+        _combatSystem = new CombatSystem(_mockLogger.Object, _mockResourceManager.Object, _mockEventBus.Object);
     }
 
     [Fact]
@@ -34,7 +62,7 @@ public class CombatSystemTests
         Assert.True(result.IsSuccess);
         Assert.Equal(heroId, result.Value.Hero.EntityId);
         Assert.Equal(2, result.Value.Enemies.Count);
-        Assert.Equal(initialEnergy, result.Value.Energy.Current);
+        Assert.Equal(initialEnergy, result.Value.GetHeroResource("energy")?.Current ?? 0);
         Assert.Equal(CombatStatus.ACTIVE, result.Value.Status);
     }
 
@@ -81,7 +109,7 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(1, result.Value.Energy.Current); // Gained 1 energy
+        Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? 0); // Gained 1 energy
         Assert.Equal(40, result.Value.Enemies[0].CurrentHp); // 50 - 10 = 40
         Assert.Single(result.Value.ActionHistory);
     }
@@ -103,7 +131,7 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(0, result.Value.Energy.Current); // 3 - 3 = 0
+        Assert.Equal(0, result.Value.GetHeroResource("energy")?.Current ?? -1); // 3 - 3 = 0
         Assert.Equal(20, result.Value.Enemies[0].CurrentHp); // 50 - 30 = 20
         Assert.Single(result.Value.ActionHistory);
     }
@@ -153,7 +181,7 @@ public class CombatSystemTests
         // Arrange
         var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
         var combatId = startResult.Value.CombatId;
-        var initialEnergy = startResult.Value.Energy.Current;
+        var initialEnergy = startResult.Value.GetHeroResource("energy")?.Current ?? 0;
         var initialEnemyHp = startResult.Value.Enemies[0].CurrentHp;
 
         // Act
@@ -161,7 +189,7 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(initialEnergy, result.Value.Energy.Current);
+        Assert.Equal(initialEnergy, result.Value.GetHeroResource("energy")?.Current ?? 0);
         Assert.Equal(initialEnemyHp, result.Value.Enemies[0].CurrentHp);
         Assert.Single(result.Value.ActionHistory);
     }

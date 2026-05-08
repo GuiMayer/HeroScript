@@ -5,6 +5,7 @@ using Core.Config;
 using Core.Math;
 using Core.Events;
 using Core.Combat;
+using Core.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
 
