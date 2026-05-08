@@ -1,0 +1,19 @@
+{
+  "resourceId": "energy",
+  "displayName": "Energy",
+  "shortName": "EN",
+  "category": "TACTICAL",
+  "defaultMin": 0,
+  "defaultMax": 10,
+  "defaultCurrent": 3,
+  "canBeNegative": false,
+  "canExceedMax": false,
+  "regeneration": {
+    "enabled": false,
+    "amountPerTurn": 0,
+    "formula": null,
+    "timing": "START_TURN"
+  },
+  "costMultiplier": 1.0,
+  "tags": ["tactical", "primary"]
+}

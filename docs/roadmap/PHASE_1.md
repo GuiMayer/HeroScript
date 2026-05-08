@@ -50,11 +50,11 @@ Sistema de eventos pub/sub para comunicação desacoplada entre sistemas.
 **Documentação:**
 - [EVENTBUS_SYSTEM.md](../EVENTBUS_SYSTEM.md) - Documentação completa do sistema
 
-## APIs Planejadas
-
-### 2. Combat API
+### 2. Combat API ✅
 
 Sistema de combate básico com gerenciamento de estado.
+
+**Status:** ✅ Implementado (2026-05-08)
 
 **Endpoints:**
 - `POST /api/combat/start` - Inicia novo combate
@@ -63,12 +63,20 @@ Sistema de combate básico com gerenciamento de estado.
 - `GET /api/combat/{combatId}/history` - Histórico de ações do combate
 - `POST /api/combat/{combatId}/end` - Finaliza combate
 
-**Recursos:**
-- Sistema de energia (energy pool)
-- Ataque básico gera energia
-- Execução de poderes
-- Tracking de turnos
-- Estado imutável (event-sourced)
+**Recursos Implementados:**
+- ✅ Sistema de energia (ataque básico gera, poderes consomem)
+- ✅ Execução de ações (BASIC_ATTACK, POWER, PASS, END_TURN)
+- ✅ Tracking de turnos e HP
+- ✅ Estado imutável (event-sourced)
+- ✅ Integração com EventBus
+- ✅ Validação de ações (energia, alvos)
+- ✅ Detecção de vitória/derrota
+- ✅ 27 testes (unitários + integração)
+
+**Documentação:**
+- [COMBAT_SYSTEM.md](../COMBAT_SYSTEM.md) - Documentação completa do sistema
+
+## APIs Planejadas
 
 ### 3. Damage API
 

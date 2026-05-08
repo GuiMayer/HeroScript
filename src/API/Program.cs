@@ -4,6 +4,7 @@ using Core;
 using Core.Config;
 using Core.Math;
 using Core.Events;
+using Core.Combat;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,6 +50,15 @@ builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
     var formulaLoader = sp.GetRequiredService<FormulaLoader>();
     var eventBus = sp.GetRequiredService<IEventBus>();
     return new MathEngine(configManager, formulaLoader, eventBus);
+});
+
+// Register CombatSystem
+builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("CombatSystem"));
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    return new CombatSystem(logger, eventBus);
 });
 
 // Configure CORS

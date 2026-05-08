@@ -1,0 +1,19 @@
+{
+  "resourceId": "health",
+  "displayName": "Health Points",
+  "shortName": "HP",
+  "category": "VITAL",
+  "defaultMin": 0,
+  "defaultMax": 100,
+  "defaultCurrent": 100,
+  "canBeNegative": false,
+  "canExceedMax": false,
+  "regeneration": {
+    "enabled": false,
+    "amountPerTurn": 0,
+    "formula": null,
+    "timing": "END_TURN"
+  },
+  "costMultiplier": 1.0,
+  "tags": ["vital", "primary"]
+}

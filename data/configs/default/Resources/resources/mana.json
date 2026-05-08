@@ -1,0 +1,19 @@
+{
+  "resourceId": "mana",
+  "displayName": "Mana",
+  "shortName": "MP",
+  "category": "TACTICAL",
+  "defaultMin": 0,
+  "defaultMax": 100,
+  "defaultCurrent": 100,
+  "canBeNegative": false,
+  "canExceedMax": false,
+  "regeneration": {
+    "enabled": true,
+    "amountPerTurn": 5,
+    "formula": null,
+    "timing": "START_TURN"
+  },
+  "costMultiplier": 1.0,
+  "tags": ["tactical", "magic"]
+}

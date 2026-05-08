@@ -1,0 +1,21 @@
+namespace Core.Events.Domain;
+
+/// <summary>
+/// Evento publicado quando um combate é iniciado.
+/// </summary>
+public record CombatStartedEvent : GameEvent
+{
+    public Guid CombatId { get; init; }
+    public string HeroId { get; init; } = string.Empty;
+    public List<string> EnemyIds { get; init; } = new();
+    public int InitialEnergy { get; init; }
+    
+    public CombatStartedEvent()
+    {
+        EventType = nameof(CombatStartedEvent);
+        Category = EventCategory.COMBAT;
+        Severity = EventSeverity.INFO;
+        Subject = "CombatSystem";
+        Verb = "started";
+    }
+}

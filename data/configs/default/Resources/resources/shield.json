@@ -1,0 +1,19 @@
+{
+  "resourceId": "shield",
+  "displayName": "Shield",
+  "shortName": "SH",
+  "category": "TEMPORARY",
+  "defaultMin": 0,
+  "defaultMax": 50,
+  "defaultCurrent": 0,
+  "canBeNegative": false,
+  "canExceedMax": true,
+  "regeneration": {
+    "enabled": false,
+    "amountPerTurn": 0,
+    "formula": null,
+    "timing": "START_TURN"
+  },
+  "costMultiplier": 1.0,
+  "tags": ["temporary", "defensive"]
+}

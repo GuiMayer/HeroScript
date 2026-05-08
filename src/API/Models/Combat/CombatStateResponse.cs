@@ -1,0 +1,36 @@
+namespace API.Models.Combat;
+
+public class CombatStateResponse
+{
+    public Guid CombatId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public int CurrentTurn { get; set; }
+    public HeroStateDto Hero { get; set; } = null!;
+    public List<EnemyStateDto> Enemies { get; set; } = new();
+    public EnergyDto Energy { get; set; } = null!;
+    public int TotalActions { get; set; }
+}
+
+public class HeroStateDto
+{
+    public string EntityId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int CurrentHp { get; set; }
+    public int MaxHp { get; set; }
+    public bool IsAlive { get; set; }
+}
+
+public class EnemyStateDto
+{
+    public string EntityId { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public int CurrentHp { get; set; }
+    public int MaxHp { get; set; }
+    public bool IsAlive { get; set; }
+}
+
+public class EnergyDto
+{
+    public int Current { get; set; }
+    public int Maximum { get; set; }
+}
