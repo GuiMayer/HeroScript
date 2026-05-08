@@ -10,12 +10,19 @@ namespace Core.CLI.Commands
     /// </summary>
     public class SyncResourcesCommand
     {
+        private readonly IConfigManager _configManager;
+
+        public SyncResourcesCommand(IConfigManager configManager)
+        {
+            _configManager = configManager;
+        }
+
         public void Execute(SyncResourcesOptions options)
         {
             Console.WriteLine("=== HeroScript Resource Sync ===\n");
 
             var sourceDir = options.SourcePath ?? FindProjectResourcesPath();
-            var targetDir = options.TargetPath ?? ConfigManager.Instance.GetUserDataPath();
+            var targetDir = options.TargetPath ?? _configManager.GetUserDataPath();
 
             if (sourceDir == null || !Directory.Exists(sourceDir))
             {
@@ -27,7 +34,7 @@ namespace Core.CLI.Commands
             Console.WriteLine($"Target: {targetDir}");
             Console.WriteLine();
 
-            var configs = options.Configs ?? new[] { ConfigManager.Instance.DefaultConfig };
+            var configs = options.Configs ?? new[] { _configManager.DefaultConfig };
 
             foreach (var config in configs)
             {

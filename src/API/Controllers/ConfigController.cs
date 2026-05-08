@@ -15,15 +15,21 @@ public class ConfigController : ControllerBase
     private readonly ILogger<ConfigController> _logger;
     private readonly ConfigReloadSettings _reloadSettings;
     private readonly IWebHostEnvironment _environment;
+    private readonly IConfigManager _configManager;
+    private readonly ConfigValidator _configValidator;
 
     public ConfigController(
         ILogger<ConfigController> logger, 
         ConfigReloadSettings reloadSettings,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IConfigManager configManager,
+        ConfigValidator configValidator)
     {
         _logger = logger;
         _reloadSettings = reloadSettings;
         _environment = environment;
+        _configManager = configManager;
+        _configValidator = configValidator;
     }
 
     /// <summary>
@@ -37,39 +43,11 @@ public class ConfigController : ControllerBase
     {
         try
         {
-            var configs = ConfigManager.Instance.GetAvailableConfigs();
-            var currentConfig = ConfigManager.Instance.CurrentConfig;
-            var userDataPath = ConfigManager.Instance.GetUserDataPath();
+            var configs = _configManager.GetAvailableConfigs();
+            var currentConfig = _configManager.CurrentConfig;
+            var userDataPath = _configManager.GetUserDataPath();
 
-            var result = configs.Select(configName =>
-            {
-                var metadata = ConfigManager.Instance.GetConfigMetadata(configName);
-                if (metadata == null)
-                {
-                    return new ConfigInfoDto
-                    {
-                        Name = configName,
-                        IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                        Path = configName,
-                        Version = "unknown",
-                        Author = "unknown",
-                        Description = "Metadata not available",
-                        CreatedAt = string.Empty
-                    };
-                }
-
-                return new ConfigInfoDto
-                {
-                    Name = metadata.Name,
-                    Version = metadata.Version,
-                    Author = metadata.Author,
-                    Description = metadata.Description,
-                    Parent = metadata.Parent,
-                    CreatedAt = metadata.CreatedAt,
-                    IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                    Path = configName
-                };
-            }).ToList();
+            var result = configs.Select(configName => MapToConfigInfoDto(configName, currentConfig)).ToList();
 
             return Ok(result);
         }
@@ -91,44 +69,16 @@ public class ConfigController : ControllerBase
     {
         try
         {
-            var currentConfig = ConfigManager.Instance.CurrentConfig;
-            var chain = ConfigManager.Instance.ResolveInheritanceChain(currentConfig);
+            var currentConfig = _configManager.CurrentConfig;
+            var chain = _configManager.ResolveInheritanceChain(currentConfig);
             var chainDescription = string.Join(" -> ", chain);
 
-            var chainMetadata = chain.Select(configName =>
-            {
-                var metadata = ConfigManager.Instance.GetConfigMetadata(configName);
-                if (metadata == null)
-                {
-                    return new ConfigInfoDto
-                    {
-                        Name = configName,
-                        IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                        Path = configName,
-                        Version = "unknown",
-                        Author = "unknown",
-                        Description = "Metadata not available",
-                        CreatedAt = string.Empty
-                    };
-                }
-
-                return new ConfigInfoDto
-                {
-                    Name = metadata.Name,
-                    Version = metadata.Version,
-                    Author = metadata.Author,
-                    Description = metadata.Description,
-                    Parent = metadata.Parent,
-                    CreatedAt = metadata.CreatedAt,
-                    IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                    Path = configName
-                };
-            }).ToList();
+            var chainMetadata = chain.Select(configName => MapToConfigInfoDto(configName, currentConfig)).ToList();
 
             var result = new ConfigChainDto
             {
                 CurrentConfig = currentConfig,
-                InheritanceChain = chain,
+                InheritanceChain = chain.ToList(),
                 ChainDescription = chainDescription,
                 ChainMetadata = chainMetadata
             };
@@ -165,13 +115,13 @@ public class ConfigController : ControllerBase
 
         try
         {
-            var metadata = ConfigManager.Instance.GetConfigMetadata(name);
+            var metadata = _configManager.GetConfigMetadata(name);
             if (metadata == null)
             {
                 return NotFound(new ErrorResponse { Error = $"Configuration '{name}' not found" });
             }
 
-            var currentConfig = ConfigManager.Instance.CurrentConfig;
+            var currentConfig = _configManager.CurrentConfig;
             var result = new ConfigInfoDto
             {
                 Name = metadata.Name,
@@ -222,50 +172,22 @@ public class ConfigController : ControllerBase
         try
         {
             // Check if config exists
-            var metadata = ConfigManager.Instance.GetConfigMetadata(name);
+            var metadata = _configManager.GetConfigMetadata(name);
             if (metadata == null)
             {
                 return NotFound(new ErrorResponse { Error = $"Configuration '{name}' not found" });
             }
 
-            var chain = ConfigManager.Instance.ResolveInheritanceChain(name);
+            var chain = _configManager.ResolveInheritanceChain(name);
             var chainDescription = string.Join(" -> ", chain);
-            var currentConfig = ConfigManager.Instance.CurrentConfig;
+            var currentConfig = _configManager.CurrentConfig;
 
-            var chainMetadata = chain.Select(configName =>
-            {
-                var configMeta = ConfigManager.Instance.GetConfigMetadata(configName);
-                if (configMeta == null)
-                {
-                    return new ConfigInfoDto
-                    {
-                        Name = configName,
-                        IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                        Path = configName,
-                        Version = "unknown",
-                        Author = "unknown",
-                        Description = "Metadata not available",
-                        CreatedAt = string.Empty
-                    };
-                }
-
-                return new ConfigInfoDto
-                {
-                    Name = configMeta.Name,
-                    Version = configMeta.Version,
-                    Author = configMeta.Author,
-                    Description = configMeta.Description,
-                    Parent = configMeta.Parent,
-                    CreatedAt = configMeta.CreatedAt,
-                    IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                    Path = configName
-                };
-            }).ToList();
+            var chainMetadata = chain.Select(configName => MapToConfigInfoDto(configName, currentConfig)).ToList();
 
             var result = new ConfigChainDto
             {
-                CurrentConfig = name,
-                InheritanceChain = chain,
+                CurrentConfig = currentConfig,
+                InheritanceChain = chain.ToList(),
                 ChainDescription = chainDescription,
                 ChainMetadata = chainMetadata
             };
@@ -296,7 +218,7 @@ public class ConfigController : ControllerBase
     {
         try
         {
-            var validationResult = ConfigValidator.ValidateConfigSafe(name);
+            var validationResult = _configValidator.ValidateConfigSafe(name);
 
             var result = new ConfigValidationDto
             {
@@ -342,14 +264,14 @@ public class ConfigController : ControllerBase
         try
         {
             // Check if config exists
-            var metadata = ConfigManager.Instance.GetConfigMetadata(name);
+            var metadata = _configManager.GetConfigMetadata(name);
             if (metadata == null)
             {
                 return NotFound(new { error = $"Configuration '{name}' not found" });
             }
 
             // Validate config before loading
-            var validationResult = ConfigValidator.ValidateConfigSafe(name);
+            var validationResult = _configValidator.ValidateConfigSafe(name);
             if (!validationResult.IsValid)
             {
                 return BadRequest(new
@@ -369,47 +291,19 @@ public class ConfigController : ControllerBase
             _logger.LogWarning("Loading configuration '{ConfigName}' (admin operation)", name);
 
             // Load config
-            ConfigManager.Instance.LoadConfig(name);
+            _configManager.LoadConfig(name);
 
             // Return loaded config info
-            var chain = ConfigManager.Instance.ResolveInheritanceChain(name);
+            var chain = _configManager.ResolveInheritanceChain(name);
             var chainDescription = string.Join(" -> ", chain);
-            var currentConfig = ConfigManager.Instance.CurrentConfig;
+            var currentConfig = _configManager.CurrentConfig;
 
-            var chainMetadata = chain.Select(configName =>
-            {
-                var configMeta = ConfigManager.Instance.GetConfigMetadata(configName);
-                if (configMeta == null)
-                {
-                    return new ConfigInfoDto
-                    {
-                        Name = configName,
-                        IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                        Path = configName,
-                        Version = "unknown",
-                        Author = "unknown",
-                        Description = "Metadata not available",
-                        CreatedAt = string.Empty
-                    };
-                }
-
-                return new ConfigInfoDto
-                {
-                    Name = configMeta.Name,
-                    Version = configMeta.Version,
-                    Author = configMeta.Author,
-                    Description = configMeta.Description,
-                    Parent = configMeta.Parent,
-                    CreatedAt = configMeta.CreatedAt,
-                    IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
-                    Path = configName
-                };
-            }).ToList();
+            var chainMetadata = chain.Select(configName => MapToConfigInfoDto(configName, currentConfig)).ToList();
 
             var result = new ConfigChainDto
             {
                 CurrentConfig = currentConfig,
-                InheritanceChain = chain,
+                InheritanceChain = chain.ToList(),
                 ChainDescription = chainDescription,
                 ChainMetadata = chainMetadata
             };
@@ -427,5 +321,38 @@ public class ConfigController : ControllerBase
             _logger.LogError(ex, "Error loading configuration {ConfigName}", name);
             return StatusCode(500, new { error = "Failed to load configuration", details = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Maps a config name to ConfigInfoDto with metadata
+    /// </summary>
+    private ConfigInfoDto MapToConfigInfoDto(string configName, string currentConfig)
+    {
+        var metadata = _configManager.GetConfigMetadata(configName);
+        if (metadata == null)
+        {
+            return new ConfigInfoDto
+            {
+                Name = configName,
+                IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
+                Path = configName,
+                Version = "unknown",
+                Author = "unknown",
+                Description = "Metadata not available",
+                CreatedAt = string.Empty
+            };
+        }
+
+        return new ConfigInfoDto
+        {
+            Name = metadata.Name,
+            Version = metadata.Version,
+            Author = metadata.Author,
+            Description = metadata.Description,
+            Parent = metadata.Parent,
+            CreatedAt = metadata.CreatedAt,
+            IsActive = configName.Equals(currentConfig, StringComparison.OrdinalIgnoreCase),
+            Path = configName
+        };
     }
 }

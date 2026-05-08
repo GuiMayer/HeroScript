@@ -1,0 +1,218 @@
+using Core.Events;
+using Core.Events.Domain;
+using Core.Logging;
+using Xunit;
+
+namespace Core.Tests.Events;
+
+public class EventBusTests
+{
+    private readonly IEventBus _eventBus;
+
+    public EventBusTests()
+    {
+        _eventBus = new EventBus(NullLogger.Instance);
+    }
+
+    [Fact]
+    public void Publish_SingleSubscriber_ReceivesEvent()
+    {
+        // Arrange
+        ConfigLoadedEvent? receivedEvent = null;
+        using var subscription = _eventBus.Subscribe<ConfigLoadedEvent>(e => receivedEvent = e);
+
+        var testEvent = new ConfigLoadedEvent
+        {
+            ConfigName = "test-config",
+            ResourcesLoaded = 5
+        };
+
+        // Act
+        _eventBus.Publish(testEvent);
+
+        // Assert
+        Assert.NotNull(receivedEvent);
+        Assert.Equal("test-config", receivedEvent.ConfigName);
+        Assert.Equal(5, receivedEvent.ResourcesLoaded);
+    }
+
+    [Fact]
+    public void Publish_MultipleSubscribers_AllReceiveEvent()
+    {
+        // Arrange
+        int callCount = 0;
+        using var sub1 = _eventBus.Subscribe<ConfigLoadedEvent>(e => callCount++);
+        using var sub2 = _eventBus.Subscribe<ConfigLoadedEvent>(e => callCount++);
+        using var sub3 = _eventBus.Subscribe<ConfigLoadedEvent>(e => callCount++);
+
+        // Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test" });
+
+        // Assert
+        Assert.Equal(3, callCount);
+    }
+
+    [Fact]
+    public void Subscribe_Dispose_StopsReceivingEvents()
+    {
+        // Arrange
+        int callCount = 0;
+        var subscription = _eventBus.Subscribe<ConfigLoadedEvent>(e => callCount++);
+
+        // Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test1" });
+        subscription.Dispose();
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test2" });
+
+        // Assert
+        Assert.Equal(1, callCount);
+    }
+
+    [Fact]
+    public void GetEventHistory_ReturnsAllPublishedEvents()
+    {
+        // Arrange & Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config2" });
+        _eventBus.Publish(new MathFormulaEvaluatedEvent { FormulaName = "formula1" });
+
+        var history = _eventBus.GetEventHistory();
+
+        // Assert
+        Assert.Equal(3, history.Count);
+    }
+
+    [Fact]
+    public void GetEventHistory_FilterByCategory_ReturnsMatchingEvents()
+    {
+        // Arrange
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" }); // CONFIG
+        _eventBus.Publish(new MathFormulaEvaluatedEvent { FormulaName = "formula1" }); // META
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config2" }); // CONFIG
+
+        // Act
+        var configEvents = _eventBus.GetEventHistory(EventCategory.CONFIG);
+
+        // Assert
+        Assert.Equal(2, configEvents.Count);
+        Assert.All(configEvents.Cast<GameEvent>(), e => Assert.Equal(EventCategory.CONFIG, e.Category));
+    }
+
+    [Fact]
+    public void GetEventHistory_FilterBySeverity_ReturnsMatchingEvents()
+    {
+        // Arrange
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" }); // INFO
+        _eventBus.Publish(new MathFormulaEvaluatedEvent { FormulaName = "formula1" }); // DEBUG
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config2" }); // INFO
+
+        // Act
+        var infoEvents = _eventBus.GetEventHistory(EventSeverity.INFO);
+
+        // Assert
+        Assert.Equal(2, infoEvents.Count);
+        Assert.All(infoEvents.Cast<GameEvent>(), e => Assert.Equal(EventSeverity.INFO, e.Severity));
+    }
+
+    [Fact]
+    public void Publish_DifferentEventTypes_OnlyMatchingSubscribersReceive()
+    {
+        // Arrange
+        int configCount = 0;
+        int mathCount = 0;
+
+        using var configSub = _eventBus.Subscribe<ConfigLoadedEvent>(e => configCount++);
+        using var mathSub = _eventBus.Subscribe<MathFormulaEvaluatedEvent>(e => mathCount++);
+
+        // Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test" });
+        _eventBus.Publish(new MathFormulaEvaluatedEvent { FormulaName = "test" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test2" });
+
+        // Assert
+        Assert.Equal(2, configCount);
+        Assert.Equal(1, mathCount);
+    }
+
+    [Fact]
+    public void ClearHistory_RemovesAllEvents()
+    {
+        // Arrange
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test1" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test2" });
+
+        // Act
+        _eventBus.ClearHistory();
+        var history = _eventBus.GetEventHistory();
+
+        // Assert
+        Assert.Empty(history);
+    }
+
+    [Fact]
+    public void Publish_AssignsSequenceNumbers()
+    {
+        // Arrange & Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config2" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config3" });
+
+        var history = _eventBus.GetEventHistory();
+
+        // Assert
+        var gameEvents = history.Cast<GameEvent>().ToList();
+        Assert.Equal(0, gameEvents[0].Sequence);
+        Assert.Equal(1, gameEvents[1].Sequence);
+        Assert.Equal(2, gameEvents[2].Sequence);
+    }
+
+    [Fact]
+    public void Publish_SetsTimestamp()
+    {
+        // Arrange
+        var beforePublish = DateTime.UtcNow;
+        
+        // Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test" });
+        
+        var afterPublish = DateTime.UtcNow;
+        var history = _eventBus.GetEventHistory();
+
+        // Assert
+        Assert.Single(history);
+        var @event = history[0];
+        Assert.True(@event.Timestamp >= beforePublish);
+        Assert.True(@event.Timestamp <= afterPublish);
+    }
+
+    [Fact]
+    public void Publish_GeneratesUniqueEventIds()
+    {
+        // Arrange & Act
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config2" });
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config3" });
+
+        var history = _eventBus.GetEventHistory();
+
+        // Assert
+        var eventIds = history.Select(e => e.EventId).ToList();
+        Assert.Equal(3, eventIds.Distinct().Count());
+    }
+
+    [Fact]
+    public void Subscribe_WithNullHandler_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => 
+            _eventBus.Subscribe<ConfigLoadedEvent>(null!));
+    }
+
+    [Fact]
+    public void Publish_WithNullEvent_ThrowsArgumentNullException()
+    {
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => 
+            _eventBus.Publish<ConfigLoadedEvent>(null!));
+    }
+}

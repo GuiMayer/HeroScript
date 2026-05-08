@@ -12,32 +12,13 @@ namespace Core.Config
     /// Cada configuração é uma pasta independente com estrutura completa de Resources.
     /// Suporta herança delta: configs podem herdar de outras usando o campo 'parent'.
     /// </summary>
-    public class ConfigManager
+    public class ConfigManager : IConfigManager
     {
-        private static ConfigManager? _instance;
-        private static readonly object _instanceLock = new();
-        
         private readonly object _configLock = new();
         private readonly ILogger _logger;
+        private readonly ConfigValidator? _validator;
+        private readonly Events.IEventBus? _eventBus;
         private string _currentConfig;
-
-        /// <summary>
-        /// Singleton instance (for backward compatibility)
-        /// </summary>
-        public static ConfigManager Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (_instanceLock)
-                    {
-                        _instance ??= new ConfigManager();
-                    }
-                }
-                return _instance;
-            }
-        }
 
         /// <summary>
         /// Config padrão (configurável, não hardcoded)
@@ -56,9 +37,11 @@ namespace Core.Config
         /// <summary>
         /// Constructor for dependency injection
         /// </summary>
-        public ConfigManager(ILogger? logger = null)
+        public ConfigManager(ILogger logger, ConfigValidator? validator = null, Events.IEventBus? eventBus = null)
         {
-            _logger = logger ?? CoreLogger.Current;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _validator = validator;
+            _eventBus = eventBus;
             _currentConfig = DefaultConfig;
         }
 
@@ -67,6 +50,11 @@ namespace Core.Config
         /// Windows: %APPDATA%/HeroScript
         /// Linux: ~/.local/share/HeroScript
         /// Mac: ~/Library/Application Support/HeroScript
+        /// </summary>
+        public string UserConfigsPath => GetUserDataPath();
+
+        /// <summary>
+        /// Gets the user data path (public for backward compatibility)
         /// </summary>
         public string GetUserDataPath()
         {
@@ -106,6 +94,15 @@ namespace Core.Config
         }
 
         /// <summary>
+        /// Checks if a configuration exists.
+        /// </summary>
+        public bool ConfigExists(string configName)
+        {
+            string configPath = GetConfigPath(configName);
+            return Directory.Exists(configPath);
+        }
+
+        /// <summary>
         /// Carrega metadados de uma config (config.json)
         /// </summary>
         public ConfigMetadata? GetConfigMetadata(string configName)
@@ -132,7 +129,7 @@ namespace Core.Config
         /// Resolve cadeia de herança de uma config.
         /// Retorna lista ordenada: [base, intermediário, atual]
         /// </summary>
-        public List<string> ResolveInheritanceChain(string configName)
+        public IEnumerable<string> ResolveInheritanceChain(string configName)
         {
             var chain = new List<string>();
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -170,22 +167,25 @@ namespace Core.Config
             {
                 _logger.LogInformation($"Loading config: {configName}");
 
-                // 1. Validar estrutura de pastas
-                try
+                // 1. Validar estrutura de pastas (se validator disponível)
+                if (_validator != null)
                 {
-                    ConfigValidator.ValidateConfig(configName);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Validation failed: {ex.Message}", ex);
-                    throw;
+                    try
+                    {
+                        _validator.ValidateConfig(configName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Validation failed: {ex.Message}", ex);
+                        throw;
+                    }
                 }
 
                 // 2. Resolver cadeia de herança
                 List<string> chain;
                 try
                 {
-                    chain = ResolveInheritanceChain(configName);
+                    chain = ResolveInheritanceChain(configName).ToList();
                     _logger.LogInformation($"Inheritance chain: {string.Join(" -> ", chain)}");
                 }
                 catch (Exception ex)
@@ -195,11 +195,34 @@ namespace Core.Config
                 }
 
                 // 3. Atualizar config atual
+                string oldConfig = CurrentConfig;
                 CurrentConfig = configName;
 
-                // 4. Invalidar caches de sistemas
-                Core.Math.MathEngine.ReloadFormulas();
-                // Futuro: invalidar outros sistemas (CardInterpreter, etc.)
+                // 4. Publicar evento se EventBus estiver configurado
+                var metadata = GetConfigMetadata(configName);
+                _eventBus?.Publish(new Events.Domain.ConfigLoadedEvent
+                {
+                    ConfigName = configName,
+                    ParentConfig = metadata?.Parent,
+                    ResourcesLoaded = chain.Count,
+                    Target = configName
+                });
+
+                // Se houve mudança de config, publicar evento de mudança
+                if (oldConfig != configName)
+                {
+                    _eventBus?.Publish(new Events.Domain.ConfigChangedEvent
+                    {
+                        OldConfig = oldConfig,
+                        NewConfig = configName,
+                        Reason = "LoadConfig called",
+                        Target = configName
+                    });
+                }
+
+                // 5. Invalidar caches de sistemas
+                // Note: MathEngine cache invalidation is now handled via DI
+                // Each MathEngine instance manages its own cache
 
                 _logger.LogInformation($"Config '{configName}' loaded successfully");
             }

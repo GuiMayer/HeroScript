@@ -1,20 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core.Validation;
 
 namespace Core.Config.Delta
 {
     /// <summary>
     /// Resultado da validação de uma operação delta.
+    /// Herda de ValidationResult para reutilizar estrutura comum.
     /// </summary>
-    public class DeltaValidationResult
+    public class DeltaValidationResult : ValidationResult
     {
-        public bool IsValid { get; set; }
-        public List<string> Errors { get; set; } = new();
-        public List<string> Warnings { get; set; } = new();
-
-        public void AddError(string error) => Errors.Add(error);
-        public void AddWarning(string warning) => Warnings.Add(warning);
     }
 
     /// <summary>

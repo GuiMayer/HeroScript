@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Core.Logging;
 
 namespace Core.Config
@@ -11,11 +13,8 @@ namespace Core.Config
     /// Loader universal de recursos JSON com suporte a herança delta.
     /// Funciona como um mod loader genérico para qualquer tipo de recurso do jogo.
     /// </summary>
-    public class ResourceLoader
+    public class ResourceLoader : IResourceLoader
     {
-        private static ResourceLoader? _instance;
-        private static readonly object _instanceLock = new();
-
         // Cache: relativePath -> (resourceId -> JsonElement)
         private readonly Dictionary<string, Dictionary<string, JsonElement>> _cache = new();
         
@@ -27,31 +26,15 @@ namespace Core.Config
 
         // NOVO: Resolver de caminhos
         private ResourcePathResolver? _pathResolver;
-
-        /// <summary>
-        /// Singleton instance (for backward compatibility)
-        /// </summary>
-        public static ResourceLoader Instance
-        {
-            get
-            {
-                if (_instance == null)
-                {
-                    lock (_instanceLock)
-                    {
-                        _instance ??= new ResourceLoader();
-                    }
-                }
-                return _instance;
-            }
-        }
+        private readonly ResourceProviderFactory _providerFactory;
 
         /// <summary>
         /// Constructor for dependency injection
         /// </summary>
-        public ResourceLoader(ILogger? logger = null)
+        public ResourceLoader(ILogger logger, ResourceProviderFactory providerFactory)
         {
-            _logger = logger ?? CoreLogger.Current;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _providerFactory = providerFactory ?? throw new ArgumentNullException(nameof(providerFactory));
             // Inicializar com configuração padrão
             InitializePathResolver(new ResourceConfiguration());
         }
@@ -63,7 +46,7 @@ namespace Core.Config
         {
             lock (_cacheLock)
             {
-                _pathResolver = ResourceProviderFactory.CreateResolver(config);
+                _pathResolver = _providerFactory.CreateResolver(config);
                 InvalidateCache(); // Limpar cache ao reconfigurar
             }
         }
@@ -144,6 +127,85 @@ namespace Core.Config
         }
 
         /// <summary>
+        /// Asynchronously loads a JSON resource with delta inheritance.
+        /// </summary>
+        /// <param name="relativePath">Relative path to the resource (e.g., "Pipelines/MathFormulas.json")</param>
+        /// <param name="configChain">Inheritance chain (base → mod)</param>
+        /// <param name="strictMode">If true, delta errors cause exceptions</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Dictionary of merged resources</returns>
+        public async Task<Dictionary<string, JsonElement>> LoadResourceAsync(
+            string relativePath,
+            IEnumerable<string> configChain,
+            bool strictMode = false,
+            CancellationToken cancellationToken = default)
+        {
+            // Check cache first (synchronous)
+            lock (_cacheLock)
+            {
+                if (_cache.TryGetValue(relativePath, out var cached))
+                    return cached;
+            }
+
+            _logger.LogDebug($"Loading resource async: {relativePath}");
+            _logger.LogDebug($"Config chain: {string.Join(" -> ", configChain)}");
+
+            var merged = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+            var origins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            // Load and merge each config in the chain
+            foreach (var configName in configChain)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var configRelativePath = Path.Combine(configName, "Resources", relativePath);
+                var stream = _pathResolver!.OpenResource(configRelativePath, out var result);
+
+                if (stream == null)
+                {
+                    _logger.LogDebug($"Resource not found for '{configName}': {relativePath}");
+                    if (result.SearchedLocations.Count > 0)
+                    {
+                        _logger.LogDebug($"Searched locations:");
+                        foreach (var location in result.SearchedLocations)
+                        {
+                            _logger.LogDebug($"  - {location}");
+                        }
+                    }
+                    continue;
+                }
+
+                // Load and merge asynchronously
+                try
+                {
+                    using (stream)
+                    {
+                        var resources = await LoadFromStreamAsync(stream, configName, strictMode, cancellationToken);
+                        MergeResources(merged, origins, resources, configName, strictMode);
+                        _logger.LogDebug($"Loaded {resources.Count} resources from {relativePath} ({configName})");
+                        _logger.LogDebug($"Source: {result.Provider!.Name} - {result.PhysicalPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error loading {configRelativePath}: {ex.Message}", ex);
+                    if (strictMode)
+                        throw;
+                }
+            }
+
+            // Cache result
+            lock (_cacheLock)
+            {
+                _cache[relativePath] = merged;
+                _originCache[relativePath] = origins;
+            }
+
+            _logger.LogInformation($"Loaded {merged.Count} resources total for {relativePath}");
+            return merged;
+        }
+
+        /// <summary>
         /// Carrega recursos de um stream JSON.
         /// </summary>
         private Dictionary<string, JsonElement> LoadFromStream(
@@ -153,6 +215,33 @@ namespace Core.Config
         {
             using var reader = new StreamReader(stream);
             var jsonContent = reader.ReadToEnd();
+            _logger.LogDebug($"File content length: {jsonContent.Length} bytes");
+
+            var rawDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent);
+
+            if (rawDict == null)
+                throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
+
+            _logger.LogDebug($"Deserialized {rawDict.Count} resources from file");
+            foreach (var key in rawDict.Keys)
+            {
+                _logger.LogDebug($"  - {key}");
+            }
+
+            return rawDict;
+        }
+
+        /// <summary>
+        /// Asynchronously loads resources from a JSON stream.
+        /// </summary>
+        private async Task<Dictionary<string, JsonElement>> LoadFromStreamAsync(
+            Stream stream,
+            string configName,
+            bool strictMode,
+            CancellationToken cancellationToken)
+        {
+            using var reader = new StreamReader(stream);
+            var jsonContent = await reader.ReadToEndAsync(cancellationToken);
             _logger.LogDebug($"File content length: {jsonContent.Length} bytes");
 
             var rawDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent);
@@ -294,6 +383,39 @@ namespace Core.Config
                     _originCache.Clear();
                     _logger.LogInformation("All cache invalidated");
                 }
+            }
+        }
+
+        /// <summary>
+        /// Implementação da interface IResourceLoader - invalida todo o cache
+        /// </summary>
+        void IResourceLoader.InvalidateCache()
+        {
+            InvalidateCache(null);
+        }
+
+        /// <summary>
+        /// Gets cache statistics for monitoring and diagnostics.
+        /// </summary>
+        public Dictionary<string, object> GetCacheStats()
+        {
+            lock (_cacheLock)
+            {
+                int totalResources = 0;
+                int totalResourceIds = 0;
+
+                foreach (var resourceDict in _cache.Values)
+                {
+                    totalResources++;
+                    totalResourceIds += resourceDict.Count;
+                }
+
+                return new Dictionary<string, object>
+                {
+                    ["CachedResources"] = totalResources,
+                    ["TotalResourceIds"] = totalResourceIds,
+                    ["CachedPaths"] = _cache.Keys.ToList()
+                };
             }
         }
 

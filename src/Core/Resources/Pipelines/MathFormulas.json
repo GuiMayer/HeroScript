@@ -132,7 +132,7 @@
       "PERCENTAGE": 0.5
     },
     "operations": [
-      { "op": "ADD", "value": "params.BASE_DAMAGE" },
+      { "op": "SET", "value": "params.BASE_DAMAGE" },
       { "op": "MULTIPLY", "value": "params.PERCENTAGE" }
     ]
   },

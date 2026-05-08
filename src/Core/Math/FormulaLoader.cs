@@ -10,11 +10,11 @@ namespace Core.Math
     /// </summary>
     public class FormulaLoader
     {
-        private readonly Config.ResourceLoader _resourceLoader;
+        private readonly Config.IResourceLoader _resourceLoader;
 
-        public FormulaLoader()
+        public FormulaLoader(Config.IResourceLoader resourceLoader)
         {
-            _resourceLoader = Config.ResourceLoader.Instance;
+            _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         }
 
         /// <summary>
@@ -42,9 +42,15 @@ namespace Core.Math
         /// Converte dicionário de JsonElement para FormulaDefinition.
         /// </summary>
         private Dictionary<string, FormulaDefinition> ConvertToFormulas(
-            Dictionary<string, JsonElement> rawData)
+            Dictionary<string, JsonElement>? rawData)
         {
             var result = new Dictionary<string, FormulaDefinition>(StringComparer.OrdinalIgnoreCase);
+
+            if (rawData == null)
+            {
+                Console.WriteLine("[FormulaLoader] Warning: rawData is null, returning empty formula dictionary");
+                return result;
+            }
 
             Console.WriteLine($"[FormulaLoader] Converting {rawData.Count} raw formulas to FormulaDefinition");
             

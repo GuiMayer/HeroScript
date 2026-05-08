@@ -8,9 +8,15 @@ namespace Core
 {
     class Program
     {
+        private static IConfigManager? _configManager;
+
         static void Main(string[] args)
         {
             Console.WriteLine("=== HERO-ENGINE ===\n");
+
+            // Initialize dependencies
+            var logger = new ConsoleLogger();
+            _configManager = new ConfigManager(logger);
 
             // Parse comando
             if (args.Length > 0 && args[0] == "sync-resources")
@@ -21,7 +27,7 @@ namespace Core
 
             if (args.Length > 0 && args[0] == "test-resources")
             {
-                ResourceLoadingTest.Execute();
+                ResourceLoadingTest.Execute(_configManager);
                 return;
             }
 
@@ -83,7 +89,7 @@ namespace Core
             {
                 try
                 {
-                    ConfigManager.Instance.LoadConfig(configToLoad);
+                    _configManager.LoadConfig(configToLoad);
                     Console.WriteLine($"Config '{configToLoad}' loaded successfully\n");
                 }
                 catch (Exception ex)
@@ -97,8 +103,8 @@ namespace Core
                 // Carregar config padrão
                 try
                 {
-                    ConfigManager.Instance.LoadConfig(ConfigManager.Instance.DefaultConfig);
-                    Console.WriteLine($"Loaded default config: {ConfigManager.Instance.DefaultConfig}\n");
+                    _configManager.LoadConfig(_configManager.DefaultConfig);
+                    Console.WriteLine($"Loaded default config: {_configManager.DefaultConfig}\n");
                 }
                 catch (Exception ex)
                 {
@@ -152,7 +158,11 @@ namespace Core
                 }
             }
 
-            var command = new SyncResourcesCommand();
+            // Create dependencies for sync command
+            var logger = new ConsoleLogger();
+            var configManager = new ConfigManager(logger);
+            
+            var command = new SyncResourcesCommand(configManager);
             command.Execute(options);
         }
 
@@ -183,18 +193,18 @@ namespace Core
         {
             Console.WriteLine("Configurações disponíveis:\n");
 
-            var configs = ConfigManager.Instance.GetAvailableConfigs().ToList();
+            var configs = _configManager!.GetAvailableConfigs().ToList();
 
             if (configs.Count == 0)
             {
                 Console.WriteLine("  (nenhuma configuração encontrada em user://)");
-                Console.WriteLine($"  Caminho: {ConfigManager.Instance.GetUserDataPath()}");
+                Console.WriteLine($"  Caminho: {_configManager.GetUserDataPath()}");
                 return;
             }
 
             foreach (var configName in configs)
             {
-                var metadata = ConfigManager.Instance.GetConfigMetadata(configName);
+                var metadata = _configManager.GetConfigMetadata(configName);
                 
                 if (metadata != null)
                 {
@@ -213,7 +223,7 @@ namespace Core
                 }
             }
 
-            Console.WriteLine($"Config padrão: {ConfigManager.Instance.DefaultConfig}");
+            Console.WriteLine($"Config padrão: {_configManager!.DefaultConfig}");
         }
     }
 }

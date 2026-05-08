@@ -9,24 +9,24 @@ namespace Core.CLI
     /// </summary>
     public class ResourceLoadingTest
     {
-        public static void Execute()
+        public static void Execute(IConfigManager configManager)
         {
             Console.WriteLine("=== Resource Loading System Test ===\n");
 
-            // Teste 1: Verificar inicialização do resolver
-            Console.WriteLine("[Test 1] Initializing ResourcePathResolver...");
-            var config = new ResourceConfiguration
-            {
-                Mode = ResourceMode.Auto
-            };
-            ResourceLoader.Instance.InitializePathResolver(config);
-            Console.WriteLine("✓ Resolver initialized\n");
+            // Teste 1: Verificar configuração atual
+            Console.WriteLine("[Test 1] Checking current configuration...");
+            Console.WriteLine($"✓ Current config: {configManager.CurrentConfig}\n");
+
+            // Initialize resource loader
+            var logger = new ConsoleLogger();
+            var providerFactory = new ResourceProviderFactory(configManager);
+            var resourceLoader = new ResourceLoader(logger, providerFactory);
 
             // Teste 2: Carregar recurso MathFormulas
             Console.WriteLine("[Test 2] Loading MathFormulas.json...");
             try
             {
-                var resources = ResourceLoader.Instance.LoadResource(
+                var resources = resourceLoader.LoadResource(
                     "Pipelines/MathFormulas.json",
                     new[] { "alisyum" },
                     strictMode: false
@@ -57,7 +57,7 @@ namespace Core.CLI
             Console.WriteLine("\n[Test 3] Testing cache...");
             try
             {
-                var resources2 = ResourceLoader.Instance.LoadResource(
+                var resources2 = resourceLoader.LoadResource(
                     "Pipelines/MathFormulas.json",
                     new[] { "alisyum" },
                     strictMode: false

@@ -1,3 +1,4 @@
+using API.Helpers;
 using API.Models;
 using Core.Math;
 using Microsoft.AspNetCore.Mvc;
@@ -12,13 +13,13 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class FormulaController : ControllerBase
 {
-    private readonly MathEngine _mathEngine;
+    private readonly IMathEngine _mathEngine;
     private readonly ILogger<FormulaController> _logger;
 
-    public FormulaController(ILogger<FormulaController> logger)
+    public FormulaController(ILogger<FormulaController> logger, IMathEngine mathEngine)
     {
         _logger = logger;
-        _mathEngine = new MathEngine();
+        _mathEngine = mathEngine;
     }
 
     /// <summary>
@@ -32,7 +33,7 @@ public class FormulaController : ControllerBase
         try
         {
             var formulas = _mathEngine.GetAvailableFormulas();
-            var origins = MathEngine.GetFormulaOrigins();
+            var origins = _mathEngine.GetFormulaOrigins();
             
             var result = formulas.Select(name => new FormulaInfoDto
             {
@@ -69,7 +70,7 @@ public class FormulaController : ControllerBase
                 return NotFound(new { error = $"Formula '{name}' not found" });
             }
 
-            var origins = MathEngine.GetFormulaOrigins();
+            var origins = _mathEngine.GetFormulaOrigins();
             var result = new FormulaInfoDto
             {
                 Name = name,
@@ -98,9 +99,10 @@ public class FormulaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult Evaluate([FromBody] FormulaRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.FormulaName))
+        var validation = ValidationHelper.ValidateRequired(request.FormulaName, "FormulaName");
+        if (!validation.IsValid)
         {
-            return BadRequest(new { error = "FormulaName is required" });
+            return BadRequest(new { error = validation.ErrorMessage });
         }
 
         try
@@ -176,14 +178,14 @@ public class FormulaController : ControllerBase
     {
         try
         {
-            MathEngine.ReloadFormulas();
-            _logger.LogInformation("Formula cache reloaded");
-            return Ok(new { message = "Formula cache reloaded successfully" });
+            _mathEngine.InvalidateCache();
+            _logger.LogInformation("Formula cache invalidated");
+            return Ok(new { message = "Formula cache invalidated successfully. Formulas will be reloaded on next access." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error reloading formulas");
-            return StatusCode(500, new { error = "Failed to reload formulas", details = ex.Message });
+            _logger.LogError(ex, "Error invalidating formula cache");
+            return StatusCode(500, new { error = "Failed to invalidate formula cache", details = ex.Message });
         }
     }
 }

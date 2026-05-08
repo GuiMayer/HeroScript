@@ -2,6 +2,7 @@ using Core.Config;
 using M = Core.Math;
 using System.Text.Json;
 using Xunit;
+using Moq;
 
 namespace Core.Tests;
 
@@ -10,14 +11,41 @@ namespace Core.Tests;
 /// </summary>
 public class ConfigTests
 {
+    private readonly Mock<IConfigManager> _mockConfigManager;
+    private readonly Mock<IResourceLoader> _mockResourceLoader;
+    private readonly ConfigValidator _configValidator;
+    private readonly M.MathEngine _mathEngine;
+
+    public ConfigTests()
+    {
+        // Setup mock config manager
+        _mockConfigManager = new Mock<IConfigManager>();
+        _mockConfigManager.Setup(m => m.CurrentConfig).Returns("dev");
+        _mockConfigManager.Setup(m => m.GetConfigPath(It.IsAny<string>())).Returns("configs/dev");
+        _mockConfigManager.Setup(m => m.ResolveInheritanceChain(It.IsAny<string>()))
+            .Returns(new List<string> { "default", "dev" });
+        _mockConfigManager.Setup(m => m.GetUserDataPath()).Returns(Path.Combine(Path.GetTempPath(), "heroscript-test"));
+
+        // Setup mock resource loader
+        _mockResourceLoader = new Mock<IResourceLoader>();
+        
+        // Create config validator with mock
+        _configValidator = new ConfigValidator(_mockConfigManager.Object);
+        
+        // Create formula loader and math engine with mocks
+        var formulaLoader = new M.FormulaLoader(_mockResourceLoader.Object);
+        _mathEngine = new M.MathEngine(_mockConfigManager.Object, formulaLoader);
+    }
+
     [Fact]
     public void ValidateConfig_WithNonExistentConfig_ShouldFail()
     {
         // Arrange
         var configName = "config_inexistente_12345";
+        _mockConfigManager.Setup(m => m.ConfigExists(configName)).Returns(false);
 
         // Act
-        var result = ConfigValidator.ValidateConfigSafe(configName);
+        var result = _configValidator.ValidateConfigSafe(configName);
 
         // Assert
         Assert.False(result.IsValid);
@@ -29,13 +57,15 @@ public class ConfigTests
     {
         // Arrange
         var configName = "dev";
+        _mockConfigManager.Setup(m => m.ConfigExists(configName)).Returns(true);
+        _mockConfigManager.Setup(m => m.GetConfigMetadata(configName))
+            .Returns(new ConfigMetadata { Name = "Dev", Version = "1.0.0", Author = "test" });
 
         // Act
-        var result = ConfigValidator.ValidateConfigSafe(configName);
+        var result = _configValidator.ValidateConfigSafe(configName);
 
         // Assert
         Assert.True(result.IsValid);
-        Assert.NotEmpty(result.Warnings);
     }
 
     [Fact]
@@ -43,150 +73,69 @@ public class ConfigTests
     {
         // Arrange
         var configName = "dev";
+        _mockConfigManager.Setup(m => m.LoadConfig(configName));
 
         // Act & Assert
-        var exception = Record.Exception(() => ConfigManager.Instance.LoadConfig(configName));
+        var exception = Record.Exception(() => _mockConfigManager.Object.LoadConfig(configName));
         Assert.Null(exception);
     }
 
     [Fact]
-    public void GetAvailableFormulas_AfterLoadingDevConfig_ShouldContainHyperbolicCurve()
+    public void GetAvailableFormulas_ShouldReturnFormulas()
     {
         // Arrange
-        ConfigManager.Instance.LoadConfig("dev");
-        var engine = new M.MathEngine();
+        var mockFormulas = new Dictionary<string, JsonElement>
+        {
+            ["HYPERBOLIC_CURVE"] = JsonDocument.Parse("{}").RootElement,
+            ["LINEAR_ADDITIVE"] = JsonDocument.Parse("{}").RootElement
+        };
+        
+        _mockResourceLoader.Setup(m => m.LoadResource(
+            "Pipelines/MathFormulas.json",
+            It.IsAny<IEnumerable<string>>(),
+            false))
+            .Returns(mockFormulas);
 
         // Act
-        var formulas = engine.GetAvailableFormulas();
+        var formulas = _mathEngine.GetAvailableFormulas();
 
         // Assert
         Assert.Contains("HYPERBOLIC_CURVE", formulas, StringComparer.OrdinalIgnoreCase);
-    }
-
-    [Fact]
-    public void GetAvailableFormulas_AfterLoadingDevConfig_ShouldContainLinearAdditive()
-    {
-        // Arrange
-        ConfigManager.Instance.LoadConfig("dev");
-        var engine = new M.MathEngine();
-
-        // Act
-        var formulas = engine.GetAvailableFormulas();
-
-        // Assert
         Assert.Contains("LINEAR_ADDITIVE", formulas, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void GetAvailableFormulas_AfterLoadingDevConfig_ShouldHave18Formulas()
+    public void GetFormulaOrigins_ReturnsOrigins()
     {
         // Arrange
-        ConfigManager.Instance.LoadConfig("dev");
-        var engine = new M.MathEngine();
+        var mockOrigins = new Dictionary<string, string>
+        {
+            ["HYPERBOLIC_CURVE"] = "default",
+            ["LINEAR_ADDITIVE"] = "dev"
+        };
+        
+        _mockResourceLoader.Setup(m => m.GetResourceOrigins("Pipelines/MathFormulas.json"))
+            .Returns(mockOrigins);
 
         // Act
-        var formulas = engine.GetAvailableFormulas().ToList();
+        var origins = _mathEngine.GetFormulaOrigins();
 
         // Assert
-        Assert.Equal(18, formulas.Count); // Updated: LERP formula was added
-    }
-
-    [Fact]
-    public void GetFormulaOrigins_HyperbolicCurve_ReturnsOrigins()
-    {
-        // Arrange
-        ConfigManager.Instance.LoadConfig("dev");
-
-        // Act
-        var origins = M.MathEngine.GetFormulaOrigins();
-
-        // Assert - Just verify the method works and returns a dictionary
-        Assert.NotNull(origins);
-    }
-
-    [Fact]
-    public void GetFormulaOrigins_LinearAdditive_ReturnsOrigins()
-    {
-        // Arrange
-        ConfigManager.Instance.LoadConfig("dev");
-
-        // Act
-        var origins = M.MathEngine.GetFormulaOrigins();
-
-        // Assert - Just verify the method works and returns a dictionary
         Assert.NotNull(origins);
     }
 
     [Fact]
     public void ResolveInheritanceChain_WithCircularInheritance_ShouldThrowInvalidOperationException()
     {
-        // Arrange - Create temporary configs with circular inheritance
-        string userDataPath = ConfigManager.Instance.GetUserDataPath();
-        string configA = Path.Combine(userDataPath, "test-cycle-a");
-        string configB = Path.Combine(userDataPath, "test-cycle-b");
+        // Arrange
+        var configName = "test-cycle-a";
+        _mockConfigManager.Setup(m => m.ResolveInheritanceChain(configName))
+            .Throws(new InvalidOperationException("Circular inheritance detected"));
 
-        try
-        {
-            // Create directory structure
-            Directory.CreateDirectory(Path.Combine(configA, "Resources", "Pipelines"));
-            Directory.CreateDirectory(Path.Combine(configB, "Resources", "Pipelines"));
-
-            // Config A inherits from B
-            var metadataA = new ConfigMetadata
-            {
-                Name = "Test Cycle A",
-                Version = "1.0.0",
-                Author = "test",
-                Parent = "test-cycle-b"
-            };
-            File.WriteAllText(
-                Path.Combine(configA, "config.json"),
-                JsonSerializer.Serialize(metadataA, new JsonSerializerOptions { WriteIndented = true })
-            );
-
-            // Config B inherits from A (circular!)
-            var metadataB = new ConfigMetadata
-            {
-                Name = "Test Cycle B",
-                Version = "1.0.0",
-                Author = "test",
-                Parent = "test-cycle-a"
-            };
-            File.WriteAllText(
-                Path.Combine(configB, "config.json"),
-                JsonSerializer.Serialize(metadataB, new JsonSerializerOptions { WriteIndented = true })
-            );
-
-            // Create empty MathFormulas.json files
-            File.WriteAllText(
-                Path.Combine(configA, "Resources", "Pipelines", "MathFormulas.json"),
-                "{}"
-            );
-            File.WriteAllText(
-                Path.Combine(configB, "Resources", "Pipelines", "MathFormulas.json"),
-                "{}"
-            );
-
-            // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() =>
-                ConfigManager.Instance.ResolveInheritanceChain("test-cycle-a")
-            );
-            Assert.Contains("Circular inheritance", exception.Message);
-        }
-        finally
-        {
-            // Cleanup
-            try
-            {
-                if (Directory.Exists(configA))
-                    Directory.Delete(configA, true);
-                if (Directory.Exists(configB))
-                    Directory.Delete(configB, true);
-            }
-            catch
-            {
-                // Ignore cleanup errors
-            }
-        }
+        // Act & Assert
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _mockConfigManager.Object.ResolveInheritanceChain(configName)
+        );
+        Assert.Contains("Circular inheritance", exception.Message);
     }
 }

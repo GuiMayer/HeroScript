@@ -1,0 +1,146 @@
+namespace Core.Events;
+
+using Core.Logging;
+
+/// <summary>
+/// Implementação thread-safe do EventBus com histórico para Event Sourcing.
+/// </summary>
+public class EventBus : IEventBus
+{
+    private readonly Dictionary<Type, List<Delegate>> _handlers = new();
+    private readonly List<IEvent> _eventHistory = new();
+    private readonly object _lock = new();
+    private readonly ILogger _logger;
+    private int _sequenceCounter = 0;
+
+    public EventBus(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    public void Publish<TEvent>(TEvent @event) where TEvent : IEvent
+    {
+        if (@event == null) throw new ArgumentNullException(nameof(@event));
+
+        List<Delegate>? handlersToInvoke = null;
+
+        lock (_lock)
+        {
+            // Atualizar sequence se for GameEvent antes de adicionar ao histórico
+            if (@event is GameEvent gameEvent)
+            {
+                var updatedEvent = gameEvent with { Sequence = _sequenceCounter++ };
+                _eventHistory.Add(updatedEvent);
+            }
+            else
+            {
+                _eventHistory.Add(@event);
+            }
+
+            // Copiar handlers para invocar fora do lock
+            var eventType = typeof(TEvent);
+            if (_handlers.TryGetValue(eventType, out var handlers))
+            {
+                handlersToInvoke = new List<Delegate>(handlers);
+            }
+        }
+
+        // Invocar handlers fora do lock para evitar deadlocks
+        if (handlersToInvoke != null)
+        {
+            foreach (var handler in handlersToInvoke)
+            {
+                try
+                {
+                    ((Action<TEvent>)handler)(@event);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error invoking event handler for {typeof(TEvent).Name}: {ex.Message}", ex);
+                }
+            }
+        }
+
+        _logger.LogDebug($"Published event: {typeof(TEvent).Name} (ID: {@event.EventId})");
+    }
+
+    public IDisposable Subscribe<TEvent>(Action<TEvent> handler) where TEvent : IEvent
+    {
+        if (handler == null) throw new ArgumentNullException(nameof(handler));
+
+        var eventType = typeof(TEvent);
+
+        lock (_lock)
+        {
+            if (!_handlers.ContainsKey(eventType))
+            {
+                _handlers[eventType] = new List<Delegate>();
+            }
+            _handlers[eventType].Add(handler);
+        }
+
+        _logger.LogDebug($"Subscribed to event: {typeof(TEvent).Name}");
+
+        return new EventSubscription(() => Unsubscribe(eventType, handler));
+    }
+
+    private void Unsubscribe(Type eventType, Delegate handler)
+    {
+        lock (_lock)
+        {
+            if (_handlers.TryGetValue(eventType, out var handlers))
+            {
+                handlers.Remove(handler);
+                if (handlers.Count == 0)
+                {
+                    _handlers.Remove(eventType);
+                }
+            }
+        }
+
+        _logger.LogDebug($"Unsubscribed from event: {eventType.Name}");
+    }
+
+    public IReadOnlyList<IEvent> GetEventHistory()
+    {
+        lock (_lock)
+        {
+            return _eventHistory.ToList();
+        }
+    }
+
+    public IReadOnlyList<IEvent> GetEventHistory(EventCategory category)
+    {
+        lock (_lock)
+        {
+            return _eventHistory
+                .OfType<GameEvent>()
+                .Where(e => e.Category == category)
+                .Cast<IEvent>()
+                .ToList();
+        }
+    }
+
+    public IReadOnlyList<IEvent> GetEventHistory(EventSeverity severity)
+    {
+        lock (_lock)
+        {
+            return _eventHistory
+                .OfType<GameEvent>()
+                .Where(e => e.Severity == severity)
+                .Cast<IEvent>()
+                .ToList();
+        }
+    }
+
+    public void ClearHistory()
+    {
+        lock (_lock)
+        {
+            _eventHistory.Clear();
+            _sequenceCounter = 0;
+        }
+
+        _logger.LogInformation("Event history cleared");
+    }
+}

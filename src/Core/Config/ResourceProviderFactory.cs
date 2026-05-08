@@ -8,12 +8,19 @@ namespace Core.Config
     /// <summary>
     /// Factory para criar ResourcePathResolver configurado para dev ou production
     /// </summary>
-    public static class ResourceProviderFactory
+    public class ResourceProviderFactory
     {
+        private readonly IConfigManager _configManager;
+
+        public ResourceProviderFactory(IConfigManager configManager)
+        {
+            _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        }
+
         /// <summary>
         /// Cria um resolver configurado baseado no modo
         /// </summary>
-        public static ResourcePathResolver CreateResolver(ResourceConfiguration config)
+        public ResourcePathResolver CreateResolver(ResourceConfiguration config)
         {
             var resolver = new ResourcePathResolver();
             var mode = config.Mode == ResourceMode.Auto ? DetectMode() : config.Mode;
@@ -49,12 +56,12 @@ namespace Core.Config
         /// <summary>
         /// Registra providers para modo desenvolvimento
         /// </summary>
-        private static void RegisterDevelopmentProviders(
+        private void RegisterDevelopmentProviders(
             ResourcePathResolver resolver,
             ResourceConfiguration config)
         {
             // 1. User data (highest priority - permite override local)
-            var userDataPath = ConfigManager.Instance.GetUserDataPath();
+            var userDataPath = _configManager.GetUserDataPath();
             if (Directory.Exists(userDataPath))
             {
                 resolver.RegisterProvider(new PhysicalFileResourceProvider(
@@ -86,12 +93,12 @@ namespace Core.Config
         /// <summary>
         /// Registra providers para modo produção
         /// </summary>
-        private static void RegisterProductionProviders(
+        private void RegisterProductionProviders(
             ResourcePathResolver resolver,
             ResourceConfiguration config)
         {
             // 1. User data (highest priority)
-            var userDataPath = ConfigManager.Instance.GetUserDataPath();
+            var userDataPath = _configManager.GetUserDataPath();
             if (Directory.Exists(userDataPath))
             {
                 resolver.RegisterProvider(new PhysicalFileResourceProvider(

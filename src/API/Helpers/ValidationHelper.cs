@@ -46,4 +46,29 @@ public static class ValidationHelper
 
         return true;
     }
+
+    /// <summary>
+    /// Validates a formula name
+    /// </summary>
+    /// <param name="formulaName">Formula name to validate</param>
+    /// <returns>True if valid, false otherwise</returns>
+    public static bool IsValidFormulaName(string formulaName)
+    {
+        return !string.IsNullOrWhiteSpace(formulaName);
+    }
+
+    /// <summary>
+    /// Validates that a string is not null or whitespace
+    /// </summary>
+    /// <param name="value">Value to validate</param>
+    /// <param name="parameterName">Parameter name for error messages</param>
+    /// <returns>Validation result with error message if invalid</returns>
+    public static (bool IsValid, string? ErrorMessage) ValidateRequired(string? value, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return (false, $"{parameterName} is required");
+        }
+        return (true, null);
+    }
 }

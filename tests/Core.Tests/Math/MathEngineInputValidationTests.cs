@@ -1,17 +1,48 @@
 using M = Core.Math;
+using Core.Config;
 using System;
 using System.Collections.Generic;
 using Xunit;
+using Moq;
 
 namespace Core.Tests.Math
 {
     public class MathEngineInputValidationTests
     {
         private readonly M.MathEngine _engine;
+        private readonly Mock<IConfigManager> _mockConfigManager;
+        private readonly Mock<IResourceLoader> _mockResourceLoader;
 
         public MathEngineInputValidationTests()
         {
-            _engine = new M.MathEngine();
+            // Setup mock config manager
+            _mockConfigManager = new Mock<IConfigManager>();
+            _mockConfigManager.Setup(m => m.CurrentConfig).Returns("default");
+            _mockConfigManager.Setup(m => m.GetConfigPath(It.IsAny<string>())).Returns("configs/default");
+            _mockConfigManager.Setup(m => m.ResolveInheritanceChain(It.IsAny<string>()))
+                .Returns(new List<string> { "default" });
+
+            // Setup mock resource loader to return formula data from JSON file
+            _mockResourceLoader = new Mock<IResourceLoader>();
+            var formulasPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Resources", "Pipelines", "MathFormulas.json");
+            var formulasJson = System.IO.File.ReadAllText(formulasPath);
+            var formulasDoc = System.Text.Json.JsonDocument.Parse(formulasJson);
+            var formulasDict = new Dictionary<string, System.Text.Json.JsonElement>();
+            foreach (var prop in formulasDoc.RootElement.EnumerateObject())
+            {
+                formulasDict[prop.Name] = prop.Value;
+            }
+            _mockResourceLoader.Setup(m => m.LoadResource(
+                "Pipelines/MathFormulas.json",
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<bool>()))
+                .Returns(formulasDict);
+
+            // Create formula loader with mock resource loader
+            var formulaLoader = new M.FormulaLoader(_mockResourceLoader.Object);
+            
+            // Create engine with dependencies
+            _engine = new M.MathEngine(_mockConfigManager.Object, formulaLoader);
         }
 
         // ========================================

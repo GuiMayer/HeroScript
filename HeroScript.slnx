@@ -11,5 +11,26 @@
   <Folder Name="/tests/">
     <Project Path="tests/Core.Tests/Core.Tests.csproj" />
   </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/API-ENDPOINTS.md" />
+    <File Path="docs/API_MATH_EXPRESSION_MODES.md" />
+    <File Path="docs/arquitetura-engine.md" />
+    <File Path="docs/CONFIG_SYSTEM.md" />
+    <File Path="docs/CORE_MATH_SYSTEM.md" />
+    <File Path="docs/DELTA_REFERENCE.md" />
+    <File Path="docs/EVENTBUS_IMPLEMENTATION_PLAN.md" />
+  </Folder>
+  <Folder Name="/docs/roadmap/">
+    <File Path="docs/roadmap/README.md" />
+    <File Path="docs/roadmap/API_CONVENTIONS.md" />
+    <File Path="docs/roadmap/EVENT_INTEGRATION.md" />
+    <File Path="docs/roadmap/PHASE_0.md" />
+    <File Path="docs/roadmap/PHASE_1.md" />
+    <File Path="docs/roadmap/PHASE_2.md" />
+    <File Path="docs/roadmap/PHASE_3.md" />
+    <File Path="docs/roadmap/PHASE_4.md" />
+    <File Path="docs/roadmap/PHASE_5.md" />
+    <File Path="docs/roadmap/PHASE_6.md" />
+  </Folder>
   <Folder Name="/Dashboard/" />
 </Solution>

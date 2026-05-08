@@ -26,7 +26,7 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 | Fase | Status | Descrição | Documento |
 |------|--------|-----------|-----------|
 | **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [PHASE_0.md](PHASE_0.md) |
-| **Fase 1** | ⏳ Próximo | EventBus e Combate Básico | [PHASE_1.md](PHASE_1.md) |
+| **Fase 1** | 🚧 Em Progresso | EventBus e Combate Básico | [PHASE_1.md](PHASE_1.md) |
 | **Fase 2** | 📋 Planejado | Camadas de Combate (Status, Modifiers, Gambits) | [PHASE_2.md](PHASE_2.md) |
 | **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [PHASE_3.md](PHASE_3.md) |
 | **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [PHASE_4.md](PHASE_4.md) |
@@ -51,7 +51,7 @@ http://localhost:5260/api
 ## Documentação Relacionada
 
 - [API-ENDPOINTS.md](../API-ENDPOINTS.md) - Documentação detalhada dos endpoints atuais
-- [EVENTBUS_IMPLEMENTATION_PLAN.md](../EVENTBUS_IMPLEMENTATION_PLAN.md) - Plano de implementação do EventBus
+- [EVENTBUS_SYSTEM.md](../EVENTBUS_SYSTEM.md) - Sistema EventBus (pub/sub e Event Sourcing)
 - [CONFIG_SYSTEM.md](../CONFIG_SYSTEM.md) - Sistema de configuração com herança delta
 - [API_MATH_EXPRESSION_MODES.md](../API_MATH_EXPRESSION_MODES.md) - Modos de expressão matemática
 
@@ -66,8 +66,9 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-08 | Fase 1 | EventBus implementado e integrado |
 | 2026-05-08 | Todas | Criação inicial do roadmap |
 
 ---
 
-**Próximo passo:** Implementar EventBus (Fase 1)
+**Próximo passo:** Implementar Combat API (Fase 1)

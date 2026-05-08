@@ -1,6 +1,6 @@
 # Fase 1 - EventBus e Combate Básico
 
-**Status:** ⏳ Próximo  
+**Status:** 🚧 Em Progresso  
 **Dependências:** Fase 0
 
 ---
@@ -9,17 +9,19 @@
 
 A Fase 1 introduz o sistema de eventos (EventBus) e o combate básico, estabelecendo a fundação para sistemas reativos e o pipeline de dano. Esta fase é crítica para permitir que diferentes sistemas se comuniquem de forma desacoplada.
 
-## APIs Planejadas
+## APIs Implementadas
 
-### 1. Events API
+### 1. Events API ✅
 
 Sistema de eventos pub/sub para comunicação desacoplada entre sistemas.
 
+**Status:** ✅ Implementado (2026-05-08)
+
 **Endpoints:**
-- `GET /api/events` - Lista eventos da sessão atual
+- `GET /api/events` - Lista eventos da sessão atual com filtros
 - `GET /api/events/{eventId}` - Obtém evento específico por ID
-- `GET /api/events/history` - Histórico completo com filtros
 - `GET /api/events/categories` - Lista categorias de eventos disponíveis
+- `GET /api/events/severities` - Lista severidades de eventos disponíveis
 - `DELETE /api/events` - Limpa histórico (dev mode apenas)
 
 **Categorias de Eventos:**
@@ -29,11 +31,26 @@ Sistema de eventos pub/sub para comunicação desacoplada entre sistemas.
 - `CONFIG` - Eventos de configuração
 - `REALITY_BEND` - Eventos especiais do jogo
 
-**Recursos:**
-- Event sourcing (todos eventos registrados)
-- Histórico queryável por categoria, severidade, timestamp
-- Suporte a replay (futuro)
-- Integração com todos os sistemas core
+**Severidades:**
+- `DEBUG` - Informação detalhada de debug
+- `INFO` - Informação normal
+- `WARN` - Aviso (inesperado mas não crítico)
+- `ANOMALY` - Anomalia (Reality Bend, comportamento especial)
+
+**Recursos Implementados:**
+- ✅ Event sourcing (todos eventos registrados em memória)
+- ✅ Histórico queryável por categoria e severidade
+- ✅ Pub/sub thread-safe com IDisposable subscriptions
+- ✅ Sequence numbers automáticos
+- ✅ Exception handling em handlers
+- ✅ Integração com MathEngine e ConfigManager
+- ✅ REST API completa
+- ✅ 18 testes (13 unitários + 5 integração)
+
+**Documentação:**
+- [EVENTBUS_SYSTEM.md](../EVENTBUS_SYSTEM.md) - Documentação completa do sistema
+
+## APIs Planejadas
 
 ### 2. Combat API
 

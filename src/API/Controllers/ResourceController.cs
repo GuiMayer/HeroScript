@@ -13,11 +13,13 @@ public class ResourceController : ControllerBase
 {
     private readonly ILogger<ResourceController> _logger;
     private readonly ConfigReloadSettings _reloadSettings;
+    private readonly IMathEngine _mathEngine;
 
-    public ResourceController(ILogger<ResourceController> logger, ConfigReloadSettings reloadSettings)
+    public ResourceController(ILogger<ResourceController> logger, ConfigReloadSettings reloadSettings, IMathEngine mathEngine)
     {
         _logger = logger;
         _reloadSettings = reloadSettings;
+        _mathEngine = mathEngine;
     }
 
     /// <summary>
@@ -42,7 +44,7 @@ public class ResourceController : ControllerBase
                 return NotFound(new { error = $"Resource '{resourcePath}' not found or not tracked" });
             }
 
-            var origins = MathEngine.GetFormulaOrigins();
+            var origins = _mathEngine.GetFormulaOrigins();
 
             var result = new ResourceOriginDto
             {
@@ -85,8 +87,8 @@ public class ResourceController : ControllerBase
             // Log admin operation
             _logger.LogWarning("Reloading resources (admin operation). Path: {Path}", path ?? "all");
 
-            // Reload formulas
-            MathEngine.ReloadFormulas();
+            // Invalidate formula cache
+            _mathEngine.InvalidateCache();
 
             var message = string.IsNullOrEmpty(path)
                 ? "All formula resources reloaded successfully"

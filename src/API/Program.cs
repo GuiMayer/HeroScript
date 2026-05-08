@@ -1,6 +1,9 @@
 using API.Models;
 using API.Logging;
 using Core;
+using Core.Config;
+using Core.Math;
+using Core.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +13,43 @@ builder.Services.AddControllers();
 // Configure config reload settings (security flag)
 var allowConfigReload = builder.Configuration.GetValue<bool>("AllowConfigReload", false);
 builder.Services.AddSingleton(new ConfigReloadSettings { Enabled = allowConfigReload });
+
+// Register EventBus first (singleton) - must be registered before other services that depend on it
+builder.Services.AddSingleton<IEventBus, EventBus>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EventBus"));
+    return new EventBus(logger);
+});
+
+// Register Core services with DI
+builder.Services.AddSingleton<ConfigValidator>();
+builder.Services.AddSingleton<IConfigManager, ConfigManager>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ConfigManager"));
+    var validator = sp.GetRequiredService<ConfigValidator>();
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    return new ConfigManager(logger, validator, eventBus);
+});
+
+builder.Services.AddSingleton<ResourceProviderFactory>();
+builder.Services.AddSingleton<IResourceLoader, ResourceLoader>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceLoader"));
+    var providerFactory = sp.GetRequiredService<ResourceProviderFactory>();
+    return new ResourceLoader(logger, providerFactory);
+});
+
+builder.Services.AddSingleton<FormulaLoader>();
+builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
+{
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var formulaLoader = sp.GetRequiredService<FormulaLoader>();
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    return new MathEngine(configManager, formulaLoader, eventBus);
+});
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -54,7 +94,8 @@ var app = builder.Build();
 // Configure Core library logging
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 var coreLogger = new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
-CoreLogger.Configure(coreLogger);
+Core.Logging.LoggerFactory.SetFactory(categoryName => 
+    new CoreLoggerAdapter(loggerFactory.CreateLogger(categoryName)));
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

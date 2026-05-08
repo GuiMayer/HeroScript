@@ -68,33 +68,33 @@ namespace Core.Math
     /// em objetos MathExpression executáveis.
     /// Suporta herança delta: configs podem herdar fórmulas de configs pai.
     /// </summary>
-    public class MathEngine
+    public class MathEngine : IMathEngine
     {
-        private static readonly object _cacheLock = new();
+        private readonly object _cacheLock = new();
+        private readonly Config.IConfigManager _configManager;
+        private readonly FormulaLoader _formulaLoader;
+        private readonly Events.IEventBus? _eventBus;
         
-        // Cache estático de fórmulas carregadas
-        private static Dictionary<string, FormulaDefinition>? _formulaCache;
+        // Cache de fórmulas carregadas
+        private Dictionary<string, FormulaDefinition>? _formulaCache;
         
         // Cache de origens das fórmulas (para introspecção)
-        private static Dictionary<string, string>? _formulaOrigins;
+        private Dictionary<string, string>? _formulaOrigins;
 
         /// <summary>
-        /// Invalida cache (chamado quando config muda)
+        /// Constructor for dependency injection
         /// </summary>
-        public static void ReloadFormulas()
+        public MathEngine(Config.IConfigManager configManager, FormulaLoader formulaLoader, Events.IEventBus? eventBus = null)
         {
-            lock (_cacheLock)
-            {
-                _formulaCache = null;
-                _formulaOrigins = null;
-                Console.WriteLine("[MathEngine] Cache invalidated");
-            }
+            _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+            _formulaLoader = formulaLoader ?? throw new ArgumentNullException(nameof(formulaLoader));
+            _eventBus = eventBus;
         }
 
         /// <summary>
         /// Retorna de qual config cada fórmula veio (para introspecção)
         /// </summary>
-        public static Dictionary<string, string> GetFormulaOrigins()
+        public Dictionary<string, string> GetFormulaOrigins()
         {
             return _formulaOrigins ?? new Dictionary<string, string>();
         }
@@ -113,11 +113,10 @@ namespace Core.Math
                     return _formulaCache;
 
                 // Usar FormulaLoader para carregar com herança delta
-                var loader = new FormulaLoader();
-                var chain = Config.ConfigManager.Instance.ResolveInheritanceChain(Config.ConfigManager.Instance.CurrentConfig);
+                var chain = _configManager.ResolveInheritanceChain(_configManager.CurrentConfig);
                 
-                _formulaCache = loader.LoadFormulas(chain, strictMode: false);
-                _formulaOrigins = loader.GetFormulaOrigins();
+                _formulaCache = _formulaLoader.LoadFormulas(chain, strictMode: false);
+                _formulaOrigins = _formulaLoader.GetFormulaOrigins();
                 
                 return _formulaCache;
             }
@@ -129,6 +128,54 @@ namespace Core.Math
         public IEnumerable<string> GetAvailableFormulas()
         {
             return LoadFormulas().Keys;
+        }
+
+        /// <summary>
+        /// Checks if a formula exists.
+        /// </summary>
+        public bool FormulaExists(string formulaName)
+        {
+            return LoadFormulas().ContainsKey(formulaName);
+        }
+
+        /// <summary>
+        /// Invalidates the formula cache, forcing reload on next access.
+        /// </summary>
+        public void InvalidateCache()
+        {
+            lock (_cacheLock)
+            {
+                _formulaCache = null;
+                _formulaOrigins = null;
+                Console.WriteLine("[MathEngine] Cache invalidated");
+            }
+        }
+
+        /// <summary>
+        /// Gets cache statistics for monitoring and diagnostics.
+        /// </summary>
+        public Dictionary<string, object> GetCacheStats()
+        {
+            lock (_cacheLock)
+            {
+                var stats = new Dictionary<string, object>
+                {
+                    ["IsCached"] = _formulaCache != null,
+                    ["FormulaCount"] = _formulaCache?.Count ?? 0
+                };
+
+                if (_formulaCache != null)
+                {
+                    stats["Formulas"] = _formulaCache.Keys.ToList();
+                }
+
+                if (_formulaOrigins != null)
+                {
+                    stats["Origins"] = _formulaOrigins;
+                }
+
+                return stats;
+            }
         }
 
         /// <summary>
@@ -227,6 +274,19 @@ namespace Core.Math
                 currentValue = SimulateCurrentValue(expression);
             }
 
+            // 10. Calcular resultado final
+            var result = expression.Build();
+
+            // 11. Publicar evento se EventBus estiver configurado
+            _eventBus?.Publish(new Events.Domain.MathFormulaEvaluatedEvent
+            {
+                FormulaName = formulaName,
+                InputValue = inputValue,
+                OutputValue = result,
+                Parameters = parameters,
+                Target = formulaName
+            });
+
             return expression;
         }
 
@@ -310,29 +370,8 @@ namespace Core.Math
         /// </summary>
         private float ResolveValue(string valueStr, Dictionary<string, float> parameters)
         {
-            if (string.IsNullOrWhiteSpace(valueStr))
-                throw new ArgumentException("Value string cannot be null or empty");
-
-            // Caso 1: Referência a parâmetro (params.PARAM_NAME)
-            if (valueStr.StartsWith("params.", StringComparison.OrdinalIgnoreCase))
-            {
-                string paramName = valueStr.Substring(7); // Remove "params."
-
-                if (!parameters.TryGetValue(paramName, out float paramValue))
-                    throw new InvalidOperationException($"Parameter '{paramName}' not found in formula parameters");
-
-                return paramValue;
-            }
-
-            // Caso 2: Literal numérico
-            if (float.TryParse(valueStr, System.Globalization.NumberStyles.Float,
-                               System.Globalization.CultureInfo.InvariantCulture, out float literalValue))
-            {
-                return literalValue;
-            }
-
-            // Caso 3: Valor inválido
-            throw new ArgumentException($"Invalid value format: '{valueStr}'. Expected literal number or 'params.NAME'");
+            // Reutilizar método estático para evitar duplicação
+            return ResolveValueStatic(valueStr, parameters);
         }
 
         /// <summary>
@@ -614,6 +653,11 @@ namespace Core.Math
                     expression.Abs();
                     break;
 
+                case "SET":
+                    ValidateOperationHasValue(operation, "SET");
+                    expression.Set(ResolveValue(operation.Value!, parameters));
+                    break;
+
                 case "ROUND":
                     int decimals = operation.Value != null 
                         ? (int)ResolveValue(operation.Value, parameters) 
@@ -854,24 +898,39 @@ namespace Core.Math
             if (operandStr.Equals("$initial", StringComparison.OrdinalIgnoreCase))
                 return initialValue;
 
-            // Parâmetros: params.NAME
-            if (operandStr.StartsWith("params.", StringComparison.OrdinalIgnoreCase))
+            // Reutilizar lógica comum para params.X e literais
+            return ResolveValueStatic(operandStr, parameters);
+        }
+
+        /// <summary>
+        /// Método auxiliar estático para resolver valores (params.X ou literais).
+        /// Extraído para evitar duplicação entre ResolveValue e ResolveOperandPublic.
+        /// </summary>
+        private static float ResolveValueStatic(string valueStr, Dictionary<string, float> parameters)
+        {
+            if (string.IsNullOrWhiteSpace(valueStr))
+                throw new ArgumentException("Value string cannot be null or empty");
+
+            // Caso 1: Referência a parâmetro (params.PARAM_NAME)
+            if (valueStr.StartsWith("params.", StringComparison.OrdinalIgnoreCase))
             {
-                string paramName = operandStr.Substring(7);
-                if (parameters.TryGetValue(paramName, out float value))
-                    return value;
-                
-                throw new ArgumentException($"Parameter '{paramName}' not found in parameters dictionary");
+                string paramName = valueStr.Substring(7); // Remove "params."
+
+                if (!parameters.TryGetValue(paramName, out float paramValue))
+                    throw new InvalidOperationException($"Parameter '{paramName}' not found in formula parameters");
+
+                return paramValue;
             }
 
-            // Literal numérico
-            if (float.TryParse(operandStr, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out float literal))
+            // Caso 2: Literal numérico
+            if (float.TryParse(valueStr, System.Globalization.NumberStyles.Float,
+                               System.Globalization.CultureInfo.InvariantCulture, out float literalValue))
             {
-                return literal;
+                return literalValue;
             }
 
-            throw new ArgumentException($"Invalid operand: '{operandStr}'. Must be $current, $initial, params.NAME, or a numeric literal");
+            // Caso 3: Valor inválido
+            throw new ArgumentException($"Invalid value format: '{valueStr}'. Expected literal number or 'params.NAME'");
         }
 
         /// <summary>
