@@ -249,8 +249,15 @@ public class GenericBucketProcessor
 
     private void EmitBucketProcessedEvent(float inputDamage, DamageContext outputContext)
     {
-        // Evento será criado na FASE 5
-        // Por enquanto, apenas log
-        _logger.LogDebug($"[Event] BucketProcessed: {_definition.BucketId}");
+        var evt = new Events.BucketProcessedEvent
+        {
+            BucketId = _definition.BucketId,
+            DamageBefore = inputDamage,
+            DamageAfter = outputContext.CurrentDamage,
+            Metadata = new Dictionary<string, object>(outputContext.Metadata)
+        };
+        
+        _eventBus.Publish(evt);
+        _logger.LogDebug($"[Event] BucketProcessed: {_definition.BucketId} ({inputDamage:F2} → {outputContext.CurrentDamage:F2})");
     }
 }

@@ -49,7 +49,19 @@ public class DamageCalculator : IDamageCalculator
         // 4. Extrair tier de crítico (se houver)
         var critTier = result.Metadata.TryGetValue("crit_tier", out var tier) ? Convert.ToInt32(tier) : 0;
         
-        // 5. Emitir evento (será implementado na FASE 5)
+        // 5. Emitir evento de dano calculado
+        _eventBus.Publish(new Events.DamageCalculatedEvent
+        {
+            ActionId = action.ActionId,
+            AttackerId = attacker.EntityId,
+            TargetId = target.EntityId,
+            BaseDamage = context.BaseDamage,
+            FinalDamage = finalDamage,
+            CritTier = critTier,
+            Tags = context.Tags,
+            Metadata = result.Metadata
+        });
+        
         _logger.LogDebug($"Damage calculated: {finalDamage:F2} (crit tier: {critTier})");
         
         return new DamageResult

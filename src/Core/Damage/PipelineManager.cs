@@ -63,11 +63,37 @@ public class PipelineManager : IPipelineManager
         {
             _logger.LogInfo("Reloading pipeline configuration");
             
-            _cachedConfig = _loader.LoadPipeline(configChain);
-            _cachedProcessors = InstantiateProcessors(_cachedConfig);
-            
-            // Evento será emitido na FASE 5
-            _logger.LogInfo($"Pipeline reloaded: {_cachedConfig.Buckets.Count} buckets");
+            try
+            {
+                _cachedConfig = _loader.LoadPipeline(configChain);
+                _cachedProcessors = InstantiateProcessors(_cachedConfig);
+                
+                // Emitir evento de sucesso
+                _eventBus.Publish(new Events.PipelineReloadedEvent
+                {
+                    BucketCount = _cachedConfig.Buckets.Count,
+                    BucketIds = _cachedConfig.Buckets.Select(b => b.BucketId).ToList(),
+                    Reason = "Manual reload",
+                    Success = true
+                });
+                
+                _logger.LogInfo($"Pipeline reloaded: {_cachedConfig.Buckets.Count} buckets");
+            }
+            catch (Exception ex)
+            {
+                // Emitir evento de falha
+                _eventBus.Publish(new Events.PipelineReloadedEvent
+                {
+                    BucketCount = 0,
+                    BucketIds = new List<string>(),
+                    Reason = "Manual reload",
+                    Success = false,
+                    ErrorMessage = ex.Message
+                });
+                
+                _logger.LogError($"Pipeline reload failed: {ex.Message}");
+                throw;
+            }
         }
     }
 
