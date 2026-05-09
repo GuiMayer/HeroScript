@@ -9,7 +9,7 @@ namespace Core.Combat;
 /// Gerenciador de ações configuráveis.
 /// Carrega definições de ações de arquivos JSON.
 /// </summary>
-public class ActionManager
+public class ActionManager : IActionManager
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;

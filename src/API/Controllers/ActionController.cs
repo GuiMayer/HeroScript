@@ -12,10 +12,10 @@ namespace API.Controllers;
 [Route("api/[controller]")]
 public class ActionController : ControllerBase
 {
-    private readonly ActionManager _actionManager;
+    private readonly IActionManager _actionManager;
     private readonly CoreLogger _logger;
 
-    public ActionController(ActionManager actionManager, CoreLogger logger)
+    public ActionController(IActionManager actionManager, CoreLogger logger)
     {
         _actionManager = actionManager ?? throw new ArgumentNullException(nameof(actionManager));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
