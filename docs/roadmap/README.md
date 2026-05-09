@@ -1,6 +1,6 @@
 # API Roadmap
 
-**Última atualização:** 2026-05-08  
+**Última atualização:** 2026-05-09  
 **Status:** Em Desenvolvimento Ativo
 
 ---
@@ -8,6 +8,8 @@
 ## Visão Geral
 
 Este roadmap documenta a evolução da API REST do HeroScript, mapeando todos os endpoints planejados organizados por fase de implementação. O objetivo é fornecer uma visão geral da arquitetura da API para guiar o desenvolvimento e garantir que todos os sistemas se integrem de forma coesa.
+
+**Análise Completa:** Para uma análise detalhada dos módulos Core implementados vs. necessários para criar um jogo completo, consulte [CORE_MODULES_ANALYSIS.md](CORE_MODULES_ANALYSIS.md).
 
 ## Filosofia da API
 
@@ -68,6 +70,8 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-09 | Análise | **Análise completa de módulos Core** - Documentado estado atual e roadmap para MVP jogável |
+| 2026-05-09 | Fase 6a | MathEngine melhorado com logging e Result<T> pattern (commit fb3d24d) |
 | 2026-05-09 | Fase 1 | **Fase 1 completa!** 126 testes de dano implementados (unitários, integração, edge cases, eventos) |
 | 2026-05-09 | Fase 1 | IRandomProvider adicionado para testabilidade do sistema de crítico |
 | 2026-05-09 | Fase 1 | Testes de integração simulando PoE, Genshin, Card Game e RPG styles |
@@ -81,13 +85,24 @@ http://localhost:5260/api
 
 **Próximo passo:** Implementar Status Effects System (Fase 2)
 
-## Estatísticas da Fase 1
+## Estatísticas Atuais
 
-- **Total de testes:** 294 testes (todos passando)
+### Fase 0 + Fase 1 (Implementadas)
+- **Total de testes:** 423 testes (todos passando)
   - Combat: 53 testes
   - Events: 18 testes  
   - Damage: 126 testes
   - Math: 97 testes
+  - Resources: 23 testes
+  - Config: incluído no total
+  - Outros: incluído no total
 - **APIs implementadas:** 3/3 (Events, Combat, Damage)
-- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline
-- **Documentação:** 8 documentos técnicos completos
+- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline, MathEngine, ResourceManager, ConfigManager
+- **Documentação:** 9 documentos técnicos completos
+
+### Estimativa para MVP Jogável
+- **Fases restantes:** 2, 3, 4 (críticas)
+- **Tempo estimado:** 19-29 dias de desenvolvimento
+- **Sistemas críticos faltando:** Run Management, Content System, Status Effects, Card Selection
+
+Para detalhes completos sobre módulos implementados e faltantes, consulte [CORE_MODULES_ANALYSIS.md](CORE_MODULES_ANALYSIS.md).
