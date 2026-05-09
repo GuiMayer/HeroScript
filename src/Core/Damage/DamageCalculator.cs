@@ -88,6 +88,7 @@ public class DamageCalculator : IDamageCalculator
             BaseDamage = baseDamage,
             CurrentDamage = baseDamage,
             Tags = new HashSet<string>(action.Tags ?? new List<string>()),
+            MoreMultipliers = new List<float>(),
             Modifiers = new Dictionary<string, float>
             {
                 // Base
@@ -96,11 +97,6 @@ public class DamageCalculator : IDamageCalculator
                 
                 // Increased (soma de todos "increased")
                 ["increased_damage_total"] = 0f,
-                
-                // More (multiplicadores separados)
-                ["more_multiplier_1"] = 1.0f,
-                ["more_multiplier_2"] = 1.0f,
-                ["more_multiplier_3"] = 1.0f,
                 
                 // Critical
                 ["crit_chance"] = attacker.GetCritChance(),

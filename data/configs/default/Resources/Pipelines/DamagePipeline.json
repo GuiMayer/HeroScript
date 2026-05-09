@@ -39,18 +39,8 @@
       "filterConditions": [],
       "operations": [
         {
-          "type": "MULTIPLY",
-          "source": "modifier:more_multiplier_1",
-          "parameters": {}
-        },
-        {
-          "type": "MULTIPLY",
-          "source": "modifier:more_multiplier_2",
-          "parameters": {}
-        },
-        {
-          "type": "MULTIPLY",
-          "source": "modifier:more_multiplier_3",
+          "type": "APPLY_MORE_MULTIPLIERS",
+          "source": "",
           "parameters": {}
         }
       ],

@@ -43,7 +43,17 @@ public enum OperationType
     /// <summary>
     /// Operação especial: rola tier de crítico multi-tier
     /// </summary>
-    ROLL_CRIT_TIER
+    ROLL_CRIT_TIER,
+    
+    /// <summary>
+    /// Adiciona multiplicador "more" à lista (não aplica imediatamente)
+    /// </summary>
+    ADD_MORE_MULTIPLIER,
+    
+    /// <summary>
+    /// Aplica todos os multiplicadores "more" acumulados sequencialmente
+    /// </summary>
+    APPLY_MORE_MULTIPLIERS
 }
 
 /// <summary>

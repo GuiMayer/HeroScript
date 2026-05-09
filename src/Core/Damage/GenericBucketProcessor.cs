@@ -119,6 +119,8 @@ public class GenericBucketProcessor
                 OperationType.REMOVE_TAG => ExecuteRemoveTag(context, op),
                 OperationType.SET_MODIFIER => ExecuteSetModifier(context, op),
                 OperationType.ADD_TO_MODIFIER => ExecuteAddToModifier(context, op),
+                OperationType.ADD_MORE_MULTIPLIER => ExecuteAddMoreMultiplier(context, op),
+                OperationType.APPLY_MORE_MULTIPLIERS => ExecuteApplyMoreMultipliers(context, op),
                 _ => throw new InvalidOperationException($"Unknown operation type: {op.Type}")
             };
         }
@@ -282,6 +284,38 @@ public class GenericBucketProcessor
         var key = op.Parameters.TryGetValue("key", out var keyObj) ? keyObj.ToString() : op.Source;
         var currentValue = context.Modifiers.GetValueOrDefault(key!, 0f);
         return context.WithModifier(key!, currentValue + result.Value);
+    }
+
+    private DamageContext ExecuteAddMoreMultiplier(DamageContext context, BucketOperation op)
+    {
+        var result = ResolveValueSafe(context, op.Source);
+        if (result.IsFailure)
+        {
+            _logger.LogError($"[{_definition.BucketId}] Failed to resolve multiplier in ADD_MORE_MULTIPLIER: {result.Error}");
+            return context;
+        }
+        
+        _logger.LogDebug($"Adding more multiplier: {result.Value:F2}x");
+        return context.WithMoreMultiplier(result.Value);
+    }
+
+    private DamageContext ExecuteApplyMoreMultipliers(DamageContext context, BucketOperation op)
+    {
+        if (context.MoreMultipliers.Count == 0)
+        {
+            _logger.LogDebug("No more multipliers to apply");
+            return context;
+        }
+
+        var finalDamage = context.CurrentDamage;
+        foreach (var multiplier in context.MoreMultipliers)
+        {
+            finalDamage *= multiplier;
+            _logger.LogDebug($"Applied more multiplier {multiplier:F2}x → {finalDamage:F2}");
+        }
+
+        _logger.LogDebug($"Applied {context.MoreMultipliers.Count} more multipliers: {context.CurrentDamage:F2} → {finalDamage:F2}");
+        return context.WithDamage(finalDamage);
     }
 
     /// <summary>

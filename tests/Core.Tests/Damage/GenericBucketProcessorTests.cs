@@ -467,4 +467,215 @@ public class GenericBucketProcessorTests
         // Assert
         Assert.Equal(250f, result.CurrentDamage);
     }
+
+    [Fact]
+    public void ExecuteAddMoreMultiplier_AddsMultiplierToList()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "1.5"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Single(result.MoreMultipliers);
+        Assert.Equal(1.5f, result.MoreMultipliers[0]);
+        Assert.Equal(100f, result.CurrentDamage); // Not applied yet
+    }
+
+    [Fact]
+    public void ExecuteAddMoreMultiplier_WithMultipleMultipliers_AddsAllToList()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "1.5"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "2.0"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "1.25"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(3, result.MoreMultipliers.Count);
+        Assert.Equal(1.5f, result.MoreMultipliers[0]);
+        Assert.Equal(2.0f, result.MoreMultipliers[1]);
+        Assert.Equal(1.25f, result.MoreMultipliers[2]);
+        Assert.Equal(100f, result.CurrentDamage); // Not applied yet
+    }
+
+    [Fact]
+    public void ExecuteApplyMoreMultipliers_AppliesAllMultipliersSequentially()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "1.5"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "2.0"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.APPLY_MORE_MULTIPLIERS,
+                    Source = ""
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        // 100 * 1.5 * 2.0 = 300
+        Assert.Equal(300f, result.CurrentDamage);
+    }
+
+    [Fact]
+    public void ExecuteApplyMoreMultipliers_WithNoMultipliers_ReturnsUnchanged()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.APPLY_MORE_MULTIPLIERS,
+                    Source = ""
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(100f, result.CurrentDamage);
+    }
+
+    [Fact]
+    public void MoreMultipliers_ComplexScenario_WorksCorrectly()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "50"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "1.5"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "1.2"
+                },
+                new BucketOperation
+                {
+                    Type = OperationType.APPLY_MORE_MULTIPLIERS,
+                    Source = ""
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        // (100 + 50) * 1.5 * 1.2 = 150 * 1.5 * 1.2 = 270
+        Assert.Equal(270f, result.CurrentDamage);
+    }
+
+    [Fact]
+    public void ExecuteAddMoreMultiplier_WithInvalidSource_ReturnsUnchanged()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_MORE_MULTIPLIER,
+                    Source = "modifier:nonexistent"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Empty(result.MoreMultipliers); // No multiplier added
+    }
 }

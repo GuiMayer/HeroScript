@@ -32,6 +32,12 @@ public record DamageContext
     public Dictionary<string, object> Metadata { get; init; } = new();
     
     /// <summary>
+    /// Lista de multiplicadores "more" aplicados sequencialmente.
+    /// Cada multiplicador é aplicado separadamente (não somados).
+    /// </summary>
+    public List<float> MoreMultipliers { get; init; } = new();
+    
+    /// <summary>
     /// Cria novo contexto com dano atualizado
     /// </summary>
     public DamageContext WithDamage(float newDamage)
@@ -80,5 +86,14 @@ public record DamageContext
             [key] = value
         };
         return this with { Metadata = newMetadata };
+    }
+    
+    /// <summary>
+    /// Cria novo contexto com multiplicador "more" adicionado à lista
+    /// </summary>
+    public DamageContext WithMoreMultiplier(float multiplier)
+    {
+        var newMultipliers = new List<float>(MoreMultipliers) { multiplier };
+        return this with { MoreMultipliers = newMultipliers };
     }
 }
