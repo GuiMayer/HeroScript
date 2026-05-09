@@ -1,5 +1,6 @@
 using M = Core.Math;
 using Core.Config;
+using Core.Logging;
 using System;
 using System.Collections.Generic;
 using Xunit;
@@ -41,8 +42,11 @@ namespace Core.Tests.Math
             // Create formula loader with mock resource loader
             var formulaLoader = new M.FormulaLoader(_mockResourceLoader.Object);
             
+            // Create mock logger
+            var mockLogger = new Mock<ILogger>();
+            
             // Create engine with dependencies
-            _engine = new M.MathEngine(_mockConfigManager.Object, formulaLoader);
+            _engine = new M.MathEngine(_mockConfigManager.Object, formulaLoader, mockLogger.Object);
         }
 
         // ========================================

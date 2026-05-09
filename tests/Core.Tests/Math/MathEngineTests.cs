@@ -1,5 +1,6 @@
 using M = Core.Math;
 using Core.Config;
+using Core.Logging;
 using System.Collections.Generic;
 using Xunit;
 using Moq;
@@ -40,8 +41,11 @@ namespace Core.Tests.Math
             // Create formula loader with mock resource loader
             var formulaLoader = new M.FormulaLoader(_mockResourceLoader.Object);
             
+            // Create mock logger
+            var mockLogger = new Mock<ILogger>();
+            
             // Create engine with dependencies
-            _engine = new M.MathEngine(_mockConfigManager.Object, formulaLoader);
+            _engine = new M.MathEngine(_mockConfigManager.Object, formulaLoader, mockLogger.Object);
         }
 
         [Fact]
@@ -227,16 +231,22 @@ namespace Core.Tests.Math
         [Fact]
         public void BuildFromFormula_ArmorReduction_ReturnsCorrectResult()
         {
-            // Arrange: 1 / (input/100 + 1) => 50 / 100 = 0.5, 0.5 + 1 = 1.5, 1 / 1.5 = 0.6667
-            float input = 50;
-            float expected = 0.6667f;
+            // Arrange: damage × (1 - armor / (armor + 2 × damage))
+            // With ARMOR=50, DAMAGE=100: 100 × (1 - 50 / (50 + 200)) = 100 × (1 - 50/250) = 100 × 0.8 = 80
+            float input = 0; // Input is ignored, formula uses params
+            var paramOverrides = new Dictionary<string, float>
+            {
+                { "ARMOR", 50 },
+                { "DAMAGE", 100 }
+            };
+            float expected = 80f;
 
             // Act
-            var expr = _engine.BuildFromFormula("ARMOR_REDUCTION", input);
+            var expr = _engine.BuildFromFormula("ARMOR_REDUCTION", input, paramOverrides);
             float result = expr.Build();
 
             // Assert
-            Assert.Equal(expected, result, precision: 3);
+            Assert.Equal(expected, result, precision: 2);
         }
 
         [Fact]

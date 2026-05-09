@@ -49,8 +49,10 @@ builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
     var formulaLoader = sp.GetRequiredService<FormulaLoader>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("MathEngine"));
     var eventBus = sp.GetRequiredService<IEventBus>();
-    return new MathEngine(configManager, formulaLoader, eventBus);
+    return new MathEngine(configManager, formulaLoader, logger, eventBus);
 });
 
 // Register ResourceManager

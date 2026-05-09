@@ -1,4 +1,5 @@
 using Core.Config;
+using Core.Logging;
 using M = Core.Math;
 using System.Text.Json;
 using Xunit;
@@ -34,7 +35,8 @@ public class ConfigTests
         
         // Create formula loader and math engine with mocks
         var formulaLoader = new M.FormulaLoader(_mockResourceLoader.Object);
-        _mathEngine = new M.MathEngine(_mockConfigManager.Object, formulaLoader);
+        var mockLogger = new Mock<ILogger>();
+        _mathEngine = new M.MathEngine(_mockConfigManager.Object, formulaLoader, mockLogger.Object);
     }
 
     [Fact]

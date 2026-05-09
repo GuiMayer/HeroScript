@@ -74,6 +74,7 @@ namespace Core.Math
         private readonly Config.IConfigManager _configManager;
         private readonly FormulaLoader _formulaLoader;
         private readonly Events.IEventBus? _eventBus;
+        private readonly Logging.ILogger _logger;
         
         // Cache de fórmulas carregadas
         private Dictionary<string, FormulaDefinition>? _formulaCache;
@@ -84,10 +85,11 @@ namespace Core.Math
         /// <summary>
         /// Constructor for dependency injection
         /// </summary>
-        public MathEngine(Config.IConfigManager configManager, FormulaLoader formulaLoader, Events.IEventBus? eventBus = null)
+        public MathEngine(Config.IConfigManager configManager, FormulaLoader formulaLoader, Logging.ILogger logger, Events.IEventBus? eventBus = null)
         {
             _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
             _formulaLoader = formulaLoader ?? throw new ArgumentNullException(nameof(formulaLoader));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _eventBus = eventBus;
         }
 
@@ -112,11 +114,15 @@ namespace Core.Math
                 if (_formulaCache != null)
                     return _formulaCache;
 
+                _logger.LogDebug($"Loading formulas for config '{_configManager.CurrentConfig}'");
+
                 // Usar FormulaLoader para carregar com herança delta
                 var chain = _configManager.ResolveInheritanceChain(_configManager.CurrentConfig);
                 
                 _formulaCache = _formulaLoader.LoadFormulas(chain, strictMode: false);
                 _formulaOrigins = _formulaLoader.GetFormulaOrigins();
+                
+                _logger.LogInformation($"Loaded {_formulaCache.Count} formulas from config chain");
                 
                 return _formulaCache;
             }
@@ -147,7 +153,7 @@ namespace Core.Math
             {
                 _formulaCache = null;
                 _formulaOrigins = null;
-                Console.WriteLine("[MathEngine] Cache invalidated");
+                _logger.LogDebug("Formula cache invalidated");
             }
         }
 
@@ -201,12 +207,21 @@ namespace Core.Math
         /// </summary>
         /// <param name="formulaName">Nome da fórmula</param>
         /// <param name="paramOverrides">Parâmetros customizados (opcional, sobrescreve defaults do JSON)</param>
-        /// <returns>Dicionário com parâmetros mesclados ou null se fórmula não existir</returns>
-        public Dictionary<string, float>? GetMergedParams(string formulaName, Dictionary<string, float>? paramOverrides = null)
+        /// <returns>Result contendo dicionário com parâmetros mesclados, ou falha se fórmula não existir</returns>
+        public Common.Result<Dictionary<string, float>> GetMergedParams(string formulaName, Dictionary<string, float>? paramOverrides = null)
         {
+            if (string.IsNullOrWhiteSpace(formulaName))
+            {
+                _logger.LogWarning("GetMergedParams called with empty formula name");
+                return Common.Result<Dictionary<string, float>>.Failure("Formula name cannot be empty");
+            }
+
             var formulas = LoadFormulas();
             if (!formulas.TryGetValue(formulaName, out var formula))
-                return null;
+            {
+                _logger.LogWarning($"Formula '{formulaName}' not found in GetMergedParams");
+                return Common.Result<Dictionary<string, float>>.Failure($"Formula '{formulaName}' not found");
+            }
 
             var parameters = new Dictionary<string, float>(formula.Params, StringComparer.OrdinalIgnoreCase);
             if (paramOverrides != null)
@@ -215,7 +230,8 @@ namespace Core.Math
                     parameters[kvp.Key] = kvp.Value;
             }
 
-            return parameters;
+            _logger.LogDebug($"Merged parameters for formula '{formulaName}': {parameters.Count} params");
+            return Common.Result<Dictionary<string, float>>.Success(parameters);
         }
 
         /// <summary>
@@ -229,6 +245,8 @@ namespace Core.Math
             float inputValue,
             Dictionary<string, float>? paramOverrides = null)
         {
+            _logger.LogDebug($"Building formula '{formulaName}' with input={inputValue}, overrides={paramOverrides?.Count ?? 0}");
+
             // 1. Validar inputs básicos (Fase 1)
             ValidateFormulaName(formulaName);
             ValidateInputValue(inputValue, nameof(inputValue));
@@ -239,7 +257,10 @@ namespace Core.Math
 
             // 3. Validar que fórmula existe
             if (!formulas.TryGetValue(formulaName, out var formula))
+            {
+                _logger.LogError($"Formula '{formulaName}' not found in MathFormulas.json");
                 throw new ArgumentException($"Formula '{formulaName}' not found in MathFormulas.json");
+            }
 
             // 4. Mesclar parâmetros (defaults + overrides)
             var parameters = new Dictionary<string, float>(formula.Params, StringComparer.OrdinalIgnoreCase);
@@ -276,6 +297,8 @@ namespace Core.Math
 
             // 10. Calcular resultado final
             var result = expression.Build();
+
+            _logger.LogDebug($"Formula '{formulaName}' evaluated: {inputValue} -> {result}");
 
             // 11. Publicar evento se EventBus estiver configurado
             _eventBus?.Publish(new Events.Domain.MathFormulaEvaluatedEvent

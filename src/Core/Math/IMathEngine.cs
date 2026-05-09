@@ -64,8 +64,8 @@ public interface IMathEngine
     /// </summary>
     /// <param name="formulaName">Name of the formula</param>
     /// <param name="paramOverrides">Optional parameter overrides</param>
-    /// <returns>Dictionary of merged parameters</returns>
-    Dictionary<string, float> GetMergedParams(string formulaName, Dictionary<string, float>? paramOverrides = null);
+    /// <returns>Result containing dictionary of merged parameters, or failure if formula not found</returns>
+    Common.Result<Dictionary<string, float>> GetMergedParams(string formulaName, Dictionary<string, float>? paramOverrides = null);
 
     /// <summary>
     /// Gets the origin information for all formulas.

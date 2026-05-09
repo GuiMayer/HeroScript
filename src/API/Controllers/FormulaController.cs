@@ -132,7 +132,8 @@ public class FormulaController : ControllerBase
 
             // Get formula info
             var description = _mathEngine.GetFormulaDescription(request.FormulaName) ?? string.Empty;
-            var paramsUsed = _mathEngine.GetMergedParams(request.FormulaName, request.ParamOverrides) ?? new Dictionary<string, float>();
+            var paramsResult = _mathEngine.GetMergedParams(request.FormulaName, request.ParamOverrides);
+            var paramsUsed = paramsResult.IsSuccess ? paramsResult.Value : new Dictionary<string, float>();
 
             var response = new FormulaResponse
             {
