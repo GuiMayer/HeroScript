@@ -1,0 +1,95 @@
+{
+  "buckets": [
+    {
+      "bucketId": "base",
+      "order": 1,
+      "filterConditions": [],
+      "operations": [
+        {
+          "type": "ADD_FLAT",
+          "source": "modifier:base_damage",
+          "parameters": {}
+        },
+        {
+          "type": "ADD_FLAT",
+          "source": "modifier:added_damage",
+          "parameters": {}
+        }
+      ],
+      "emitEvents": true
+    },
+    {
+      "bucketId": "increased",
+      "order": 2,
+      "filterConditions": [],
+      "operations": [
+        {
+          "type": "APPLY_FORMULA",
+          "source": "formula:LINEAR_ADDITIVE",
+          "parameters": {
+            "FLAT_BONUS": "modifier:increased_damage_total"
+          }
+        }
+      ],
+      "emitEvents": true
+    },
+    {
+      "bucketId": "critical",
+      "order": 3,
+      "filterConditions": [
+        {
+          "type": "TAG_PRESENT",
+          "parameter": "can_crit",
+          "value": null
+        }
+      ],
+      "operations": [
+        {
+          "type": "ROLL_CRIT_TIER",
+          "source": "",
+          "parameters": {}
+        }
+      ],
+      "emitEvents": true
+    },
+    {
+      "bucketId": "more",
+      "order": 4,
+      "filterConditions": [],
+      "operations": [
+        {
+          "type": "MULTIPLY",
+          "source": "modifier:more_multiplier_1",
+          "parameters": {}
+        },
+        {
+          "type": "MULTIPLY",
+          "source": "modifier:more_multiplier_2",
+          "parameters": {}
+        },
+        {
+          "type": "MULTIPLY",
+          "source": "modifier:more_multiplier_3",
+          "parameters": {}
+        }
+      ],
+      "emitEvents": true
+    },
+    {
+      "bucketId": "mitigation",
+      "order": 5,
+      "filterConditions": [],
+      "operations": [
+        {
+          "type": "APPLY_FORMULA",
+          "source": "formula:ARMOR_REDUCTION",
+          "parameters": {
+            "ARMOR": "modifier:target_armor",
+            "DAMAGE": "current_damage"
+          }
+        }
+      ],
+      "emitEvents": true
+    }
+  ]
+}

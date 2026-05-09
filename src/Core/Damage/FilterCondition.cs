@@ -32,7 +32,8 @@ public enum FilterType
 }
 
 /// <summary>
-/// Condição de filtro para determinar se um bucket deve ser executado
+/// Condição de filtro para determinar se um bucket deve ser executado.
+/// Para lista completa de tipos e exemplos, veja: src/Core/Damage/README.md
 /// </summary>
 public record FilterCondition
 {

@@ -1,0 +1,178 @@
+{
+  "_comment_intro": "=== DAMAGE PIPELINE CONFIGURATION EXAMPLE ===",
+  "_comment_overview": "This file demonstrates the structure of a damage calculation pipeline.",
+  "_comment_how_it_works": "The pipeline processes damage through sequential 'buckets', each applying transformations to the damage context.",
+  "_comment_customization": "To customize: modify bucket order, add/remove operations, or create new buckets with filters.",
+  
+  "buckets": [
+    {
+      "_comment": "BUCKET 1: BASE - Establishes initial damage value",
+      "_description": "Sums base damage from the action plus any flat added damage modifiers",
+      "_execution": "Always runs (no filters)",
+      
+      "bucketId": "base",
+      "order": 1,
+      "filterConditions": [],
+      "operations": [
+        {
+          "_comment": "Add base damage from action definition",
+          "type": "ADD_FLAT",
+          "source": "modifier:base_damage",
+          "parameters": {}
+        },
+        {
+          "_comment": "Add any flat damage bonuses (from equipment, buffs, etc.)",
+          "type": "ADD_FLAT",
+          "source": "modifier:added_damage",
+          "parameters": {}
+        }
+      ],
+      "emitEvents": true
+    },
+    
+    {
+      "_comment": "BUCKET 2: INCREASED - Applies additive percentage bonuses",
+      "_description": "Applies 'increased damage' modifiers (additive). Example: 50% + 30% = 80% total increase",
+      "_formula": "Uses LINEAR_ADDITIVE formula from MathEngine",
+      "_execution": "Always runs (no filters)",
+      
+      "bucketId": "increased",
+      "order": 2,
+      "filterConditions": [],
+      "operations": [
+        {
+          "_comment": "Apply all 'increased damage' bonuses as a single additive multiplier",
+          "_example": "If increased_damage_total = 0.8, damage becomes: damage * (1 + 0.8) = damage * 1.8",
+          "type": "APPLY_FORMULA",
+          "source": "formula:LINEAR_ADDITIVE",
+          "parameters": {
+            "FLAT_BONUS": "modifier:increased_damage_total"
+          }
+        }
+      ],
+      "emitEvents": true
+    },
+    
+    {
+      "_comment": "BUCKET 3: MORE - Applies multiplicative bonuses",
+      "_description": "Applies 'more damage' multipliers (multiplicative). Each multiplier is applied separately.",
+      "_example": "30% more + 20% more = 1.3 × 1.2 = 1.56x total (not 1.5x)",
+      "_execution": "Always runs (no filters)",
+      "_note": "Currently uses 3 fixed slots. This will be replaced with dynamic list in future versions.",
+      
+      "bucketId": "more",
+      "order": 3,
+      "filterConditions": [],
+      "operations": [
+        {
+          "_comment": "First 'more' multiplier slot",
+          "type": "MULTIPLY",
+          "source": "modifier:more_multiplier_1",
+          "parameters": {}
+        },
+        {
+          "_comment": "Second 'more' multiplier slot",
+          "type": "MULTIPLY",
+          "source": "modifier:more_multiplier_2",
+          "parameters": {}
+        },
+        {
+          "_comment": "Third 'more' multiplier slot",
+          "type": "MULTIPLY",
+          "source": "modifier:more_multiplier_3",
+          "parameters": {}
+        }
+      ],
+      "emitEvents": true
+    },
+    
+    {
+      "_comment": "BUCKET 4: CRITICAL - Multi-tier critical hit system",
+      "_description": "Rolls for critical hit and applies damage multiplier based on tier achieved",
+      "_execution": "Only runs if action has 'can_crit' tag",
+      "_system": "Tier 0 = normal hit, Tier 1+ = critical hit with increasing multipliers",
+      "_formula": "Uses CRIT_GUARANTEED_TIER, CRIT_EXTRA_CHANCE, and CRIT_DAMAGE_MULTIPLIER formulas",
+      
+      "bucketId": "critical",
+      "order": 4,
+      "filterConditions": [
+        {
+          "_comment": "Only process critical hits for actions that can crit",
+          "type": "TAG_PRESENT",
+          "parameter": "can_crit",
+          "value": null
+        }
+      ],
+      "operations": [
+        {
+          "_comment": "Roll for critical tier and apply damage multiplier",
+          "_mechanics": "Guaranteed tier = floor(crit_chance / 100), then roll for +1 tier based on remainder",
+          "_example": "150% crit chance = guaranteed Tier 1, 50% chance for Tier 2",
+          "type": "ROLL_CRIT_TIER",
+          "source": "",
+          "parameters": {}
+        }
+      ],
+      "emitEvents": true
+    },
+    
+    {
+      "_comment": "BUCKET 5: MITIGATION - Applies target's damage reduction",
+      "_description": "Reduces damage based on target's armor value",
+      "_formula": "Uses ARMOR_REDUCTION formula from MathEngine",
+      "_execution": "Always runs (no filters)",
+      "_typical_formula": "damage * (1 - armor / (armor + constant))",
+      
+      "bucketId": "mitigation",
+      "order": 5,
+      "filterConditions": [],
+      "operations": [
+        {
+          "_comment": "Apply armor-based damage reduction",
+          "_parameters_explained": "ARMOR = target's armor stat, DAMAGE = current damage value",
+          "type": "APPLY_FORMULA",
+          "source": "formula:ARMOR_REDUCTION",
+          "parameters": {
+            "ARMOR": "modifier:target_armor",
+            "DAMAGE": "current_damage"
+          }
+        }
+      ],
+      "emitEvents": true
+    }
+  ],
+  
+  "_comment_operation_types": "=== AVAILABLE OPERATION TYPES ===",
+  "_operation_ADD_FLAT": "Adds a flat value to current damage. Source: 'modifier:key', 'constant:123.45', or '123.45'",
+  "_operation_MULTIPLY": "Multiplies current damage by a value. Source: same as ADD_FLAT",
+  "_operation_APPLY_FORMULA": "Applies a MathEngine formula. Source: 'formula:FORMULA_NAME', parameters map to formula inputs",
+  "_operation_SET_TAG": "Adds a tag to the damage context. Source: tag name (with or without 'tag:' prefix)",
+  "_operation_REMOVE_TAG": "Removes a tag from the damage context. Source: tag name",
+  "_operation_SET_MODIFIER": "Sets a modifier value. Source: value, parameters.key = modifier name",
+  "_operation_ADD_TO_MODIFIER": "Adds to existing modifier. Source: value to add, parameters.key = modifier name",
+  "_operation_ROLL_CRIT_TIER": "Special operation for multi-tier critical system. No source needed.",
+  
+  "_comment_filter_types": "=== AVAILABLE FILTER TYPES ===",
+  "_filter_TAG_PRESENT": "Bucket runs only if specified tag exists. parameter = tag name",
+  "_filter_TAG_ABSENT": "Bucket runs only if specified tag is missing. parameter = tag name",
+  "_filter_MODIFIER_PRESENT": "Bucket runs only if modifier exists. parameter = modifier key",
+  "_filter_MODIFIER_ABOVE": "Bucket runs only if modifier > threshold. parameter = key, value = threshold",
+  "_filter_MODIFIER_BELOW": "Bucket runs only if modifier < threshold. parameter = key, value = threshold",
+  
+  "_comment_customization_examples": "=== CUSTOMIZATION EXAMPLES ===",
+  "_example_1": "To add elemental damage: Create new bucket with TAG_PRESENT filter for 'fire', apply fire-specific multipliers",
+  "_example_2": "To add resistance: Create bucket after mitigation with MODIFIER_PRESENT filter for 'fire_resistance'",
+  "_example_3": "To change calculation order: Modify 'order' values (critical before more, mitigation before increased, etc.)",
+  "_example_4": "To add conditional damage: Use MODIFIER_ABOVE/BELOW filters (e.g., bonus damage when target health < 30%)",
+  
+  "_comment_debugging": "=== DEBUGGING TIPS ===",
+  "_tip_1": "Set emitEvents: true to track each bucket's input/output damage via BucketProcessedEvent",
+  "_tip_2": "Check logs for 'Pipeline start' and 'Pipeline end' messages with damage deltas",
+  "_tip_3": "Use DamageCalculatedEvent to see final damage, crit tier, and full metadata",
+  "_tip_4": "Validate JSON structure with PipelineConfiguration.Validate() - checks for duplicate IDs and order gaps",
+  
+  "_comment_references": "=== REFERENCES ===",
+  "_ref_readme": "See src/Core/Damage/README.md for complete documentation",
+  "_ref_formulas": "Available formulas defined in MathEngine (LINEAR_ADDITIVE, ARMOR_REDUCTION, CRIT_* formulas)",
+  "_ref_alternative": "See DamagePipeline.high-crit.json for alternative configuration example"
+}

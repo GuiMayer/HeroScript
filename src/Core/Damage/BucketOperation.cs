@@ -47,7 +47,8 @@ public enum OperationType
 }
 
 /// <summary>
-/// Operação a ser executada em um bucket
+/// Operação a ser executada em um bucket.
+/// Para lista completa de tipos e exemplos, veja: src/Core/Damage/README.md
 /// </summary>
 public record BucketOperation
 {

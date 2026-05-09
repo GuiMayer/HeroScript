@@ -5,7 +5,8 @@ using System.Linq;
 namespace Core.Damage;
 
 /// <summary>
-/// Configuração completa do pipeline de dano (carregada de JSON)
+/// Configuração completa do pipeline de dano (carregada de JSON).
+/// Para estrutura do JSON e exemplos, veja: src/Core/Damage/README.md
 /// </summary>
 public record PipelineConfiguration
 {

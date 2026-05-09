@@ -1,7 +1,8 @@
 namespace Core.Damage;
 
 /// <summary>
-/// Definição de um bucket do pipeline de dano (carregado de JSON)
+/// Definição de um bucket do pipeline de dano (carregado de JSON).
+/// Para exemplos e guia completo, veja: src/Core/Damage/README.md
 /// </summary>
 public record BucketDefinition
 {
