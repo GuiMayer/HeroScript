@@ -92,6 +92,9 @@ builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilitySe
 // Register ExpressionEvaluator
 builder.Services.AddSingleton<IExpressionEvaluator, ExpressionEvaluator>();
 
+// Register OperationMetadataProvider
+builder.Services.AddSingleton<IOperationMetadataProvider, OperationMetadataProvider>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
