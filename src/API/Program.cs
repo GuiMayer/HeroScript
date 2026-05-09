@@ -86,6 +86,9 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 // Register EntityFactory
 builder.Services.AddSingleton<IEntityFactory, EntityFactory>();
 
+// Register ActionAffordabilityService
+builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {

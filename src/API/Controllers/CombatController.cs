@@ -13,12 +13,18 @@ public class CombatController : BaseApiController
 {
     private readonly ICombatSystem _combatSystem;
     private readonly ActionManager _actionManager;
+    private readonly IActionAffordabilityService _affordabilityService;
 
-    public CombatController(ICombatSystem combatSystem, ActionManager actionManager, ILogger<CombatController> logger)
+    public CombatController(
+        ICombatSystem combatSystem, 
+        ActionManager actionManager,
+        IActionAffordabilityService affordabilityService,
+        ILogger<CombatController> logger)
         : base(logger)
     {
         _combatSystem = combatSystem ?? throw new ArgumentNullException(nameof(combatSystem));
         _actionManager = actionManager ?? throw new ArgumentNullException(nameof(actionManager));
+        _affordabilityService = affordabilityService ?? throw new ArgumentNullException(nameof(affordabilityService));
     }
 
     /// <summary>
@@ -143,20 +149,18 @@ public class CombatController : BaseApiController
             var actionDef = actionDefResult.Value;
             var heroResources = stateResult.Value.Hero.ResourceState.Resources;
             
-            // Convert IReadOnlyDictionary to Dictionary for compatibility
-            var resourcesDict = heroResources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            var affordableOptions = actionDef.Costs.GetAffordableOptions(resourcesDict);
+            var costOptions = _affordabilityService.GetCostOptions(actionDef, heroResources);
 
             return Ok(new
             {
-                actionId = actionId,
-                normalCosts = actionDef.Costs.Costs.Select(c => new 
+                actionId = costOptions.ActionId,
+                normalCosts = costOptions.NormalCosts.Select(c => new 
                 { 
                     resourceId = c.ResourceId, 
                     amount = c.Amount,
                     allowOverdraft = c.AllowOverdraft
                 }),
-                alternativeOptions = actionDef.Costs.AlternativeCosts.Select(opt => new
+                alternativeOptions = costOptions.AlternativeOptions.Select(opt => new
                 {
                     optionId = opt.OptionId,
                     description = opt.Description,
@@ -166,9 +170,9 @@ public class CombatController : BaseApiController
                         amount = c.Amount,
                         allowOverdraft = c.AllowOverdraft
                     }),
-                    affordable = opt.CanAfford(resourcesDict)
+                    affordable = opt.Affordable
                 }),
-                affordableOptionIds = affordableOptions.Select(o => o.OptionId).ToList()
+                affordableOptionIds = costOptions.AffordableOptionIds
             });
         }
         catch (Exception ex)
@@ -192,19 +196,19 @@ public class CombatController : BaseApiController
             var allActions = _actionManager.GetAllDefinitions();
             var heroResources = stateResult.Value.Hero.ResourceState.Resources;
             
-            // Convert IReadOnlyDictionary to Dictionary for compatibility
-            var resourcesDict = heroResources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-
-            var availableActions = allActions.Select(action => new
+            var availableActions = allActions.Select(action =>
             {
-                actionId = action.ActionId,
-                displayName = action.DisplayName,
-                actionType = action.ActionType.ToString(),
-                baseDamage = action.BaseDamage,
-                tags = action.Tags,
-                canAfford = action.Costs.CanAfford(resourcesDict),
-                affordableOptions = action.Costs.GetAffordableOptions(resourcesDict)
-                    .Select(o => o.OptionId).ToList()
+                var affordability = _affordabilityService.CanAfford(action, heroResources);
+                return new
+                {
+                    actionId = action.ActionId,
+                    displayName = action.DisplayName,
+                    actionType = action.ActionType.ToString(),
+                    baseDamage = action.BaseDamage,
+                    tags = action.Tags,
+                    canAfford = affordability.CanAfford,
+                    affordableOptions = affordability.AffordableOptionIds
+                };
             }).ToList();
 
             return Ok(new
@@ -240,19 +244,14 @@ public class CombatController : BaseApiController
             var actionDef = actionDefResult.Value;
             var heroResources = stateResult.Value.Hero.ResourceState.Resources;
             
-            // Convert IReadOnlyDictionary to Dictionary for compatibility
-            var resourcesDict = heroResources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            
-            var canAfford = actionDef.Costs.CanAfford(resourcesDict);
-            var affordableOptions = actionDef.Costs.GetAffordableOptions(resourcesDict);
-            var affordabilityError = actionDef.Costs.GetAffordabilityError(resourcesDict);
+            var affordability = _affordabilityService.CanAfford(actionDef, heroResources);
 
             return Ok(new
             {
-                actionId = actionId,
-                canAfford = canAfford,
-                affordableOptionIds = affordableOptions.Select(o => o.OptionId).ToList(),
-                error = affordabilityError
+                actionId = affordability.ActionId,
+                canAfford = affordability.CanAfford,
+                affordableOptionIds = affordability.AffordableOptionIds,
+                error = affordability.Error
             });
         }
         catch (Exception ex)
