@@ -28,7 +28,7 @@ public class PipelineConfigLoader
     {
         try
         {
-            _logger.LogInfo("Loading damage pipeline configuration");
+            _logger.LogInformation("Loading damage pipeline configuration");
 
             // 1. Carregar JSON via ResourceLoader
             var rawData = _resourceLoader.LoadResource(
@@ -41,10 +41,13 @@ public class PipelineConfigLoader
             var config = DeserializePipeline(rawData);
 
             // 3. Validar
-            var validation = config.Validate();
-            if (!validation.IsSuccess)
+            try
             {
-                _logger.LogError($"Invalid pipeline config: {validation.Error}");
+                config.Validate();
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogError($"Invalid pipeline config: {ex.Message}");
                 _logger.LogWarning("Falling back to hardcoded configuration");
                 return GetFallbackConfiguration();
             }
@@ -55,7 +58,7 @@ public class PipelineConfigLoader
                 Buckets = config.Buckets.OrderBy(b => b.Order).ToList() 
             };
 
-            _logger.LogInfo($"Loaded pipeline '{config.ConfigName}' with {config.Buckets.Count} buckets");
+            _logger.LogInformation($"Loaded pipeline '{config.ConfigName}' with {config.Buckets.Count} buckets");
             return config;
         }
         catch (Exception ex)
@@ -91,7 +94,7 @@ public class PipelineConfigLoader
     /// </summary>
     private PipelineConfiguration GetFallbackConfiguration()
     {
-        _logger.LogInfo("Using fallback pipeline configuration (base bucket only)");
+        _logger.LogInformation("Using fallback pipeline configuration (base bucket only)");
 
         return new PipelineConfiguration
         {

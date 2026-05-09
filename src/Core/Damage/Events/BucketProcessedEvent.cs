@@ -8,6 +8,16 @@ namespace Core.Damage.Events;
 public class BucketProcessedEvent : IEvent
 {
     /// <summary>
+    /// Identificador único do evento
+    /// </summary>
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    
+    /// <summary>
+    /// Tipo do evento
+    /// </summary>
+    public string EventType { get; init; } = nameof(BucketProcessedEvent);
+    
+    /// <summary>
     /// ID do bucket processado
     /// </summary>
     public string BucketId { get; init; } = string.Empty;

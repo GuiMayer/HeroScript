@@ -281,7 +281,7 @@ public class CombatSystem : ICombatSystem
             ActorId = state.Hero.EntityId,
             ActionType = ActionType.BASIC_ATTACK,
             TargetId = targetId,
-            DamageDealt = damageDealt,
+            DamageDealt = (int)damageDealt,
             EnergyChange = BASIC_ATTACK_ENERGY_GAIN
         };
         
@@ -348,7 +348,7 @@ public class CombatSystem : ICombatSystem
             ActionType = ActionType.POWER,
             PowerId = powerId,
             TargetId = targetId,
-            DamageDealt = damageDealt,
+            DamageDealt = (int)damageDealt,
             EnergyChange = -DEFAULT_POWER_COST
         };
         

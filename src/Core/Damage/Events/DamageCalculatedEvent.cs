@@ -8,6 +8,16 @@ namespace Core.Damage.Events;
 public class DamageCalculatedEvent : IEvent
 {
     /// <summary>
+    /// Identificador único do evento
+    /// </summary>
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    
+    /// <summary>
+    /// Tipo do evento
+    /// </summary>
+    public string EventType { get; init; } = nameof(DamageCalculatedEvent);
+    
+    /// <summary>
     /// ID da ação que causou o dano
     /// </summary>
     public string ActionId { get; init; } = string.Empty;

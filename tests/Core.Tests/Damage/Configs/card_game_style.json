@@ -1,0 +1,82 @@
+{
+  "buckets": [
+    {
+      "bucketId": "base_power",
+      "order": 1,
+      "operations": [
+        {
+          "type": "ADD_FLAT",
+          "source": "modifier:card_power"
+        }
+      ]
+    },
+    {
+      "bucketId": "buff_stacks",
+      "order": 2,
+      "operations": [
+        {
+          "type": "ADD_FLAT",
+          "source": "formula:modifier:buff_stacks * modifier:buff_power"
+        }
+      ]
+    },
+    {
+      "bucketId": "type_advantage",
+      "order": 3,
+      "filterConditions": [
+        {
+          "type": "METADATA_EXISTS",
+          "parameter": "type_advantage"
+        }
+      ],
+      "operations": [
+        {
+          "type": "MULTIPLY",
+          "source": "constant:2"
+        }
+      ]
+    },
+    {
+      "bucketId": "weakness",
+      "order": 4,
+      "filterConditions": [
+        {
+          "type": "TAG_PRESENT",
+          "parameter": "weakness"
+        }
+      ],
+      "operations": [
+        {
+          "type": "MULTIPLY",
+          "source": "constant:0.5"
+        }
+      ]
+    },
+    {
+      "bucketId": "shield_reduction",
+      "order": 5,
+      "filterConditions": [
+        {
+          "type": "MODIFIER_ABOVE",
+          "parameter": "target_shield:0"
+        }
+      ],
+      "operations": [
+        {
+          "type": "ADD_FLAT",
+          "source": "formula:-1 * modifier:target_shield"
+        }
+      ]
+    },
+    {
+      "bucketId": "minimum_damage",
+      "order": 6,
+      "operations": [
+        {
+          "type": "APPLY_FORMULA",
+          "source": "max(current_damage, 1)"
+        }
+      ]
+    }
+  ]
+}

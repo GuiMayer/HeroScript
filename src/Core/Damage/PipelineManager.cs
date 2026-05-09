@@ -12,10 +12,11 @@ namespace Core.Damage;
 /// </summary>
 public class PipelineManager : IPipelineManager
 {
-    private readonly PipelineConfigLoader _loader;
+    private readonly PipelineConfigLoader? _loader;
     private readonly IMathEngine _mathEngine;
     private readonly IEventBus _eventBus;
     private readonly ILogger _logger;
+    private readonly IRandomProvider _randomProvider;
     
     // Cache de configuração e processadores
     private PipelineConfiguration? _cachedConfig;
@@ -26,12 +27,56 @@ public class PipelineManager : IPipelineManager
         PipelineConfigLoader loader,
         IMathEngine mathEngine,
         IEventBus eventBus,
-        ILogger logger)
+        ILogger logger,
+        IRandomProvider? randomProvider = null)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _randomProvider = randomProvider ?? new DefaultRandomProvider();
+    }
+
+    // Construtor privado para factory method
+    private PipelineManager(
+        PipelineConfiguration config,
+        IMathEngine mathEngine,
+        IEventBus eventBus,
+        ILogger logger,
+        IRandomProvider randomProvider,
+        bool isFactoryCall)
+    {
+        _loader = null;
+        _mathEngine = mathEngine;
+        _eventBus = eventBus;
+        _logger = logger;
+        _randomProvider = randomProvider;
+        _cachedConfig = config;
+        _cachedProcessors = InstantiateProcessors(config);
+    }
+
+    /// <summary>
+    /// Factory method para criar PipelineManager com configuração direta (útil para testes)
+    /// </summary>
+    public static PipelineManager CreateWithConfig(
+        PipelineConfiguration config,
+        IMathEngine mathEngine,
+        IEventBus eventBus,
+        ILogger logger,
+        IRandomProvider? randomProvider = null)
+    {
+        if (config == null) throw new ArgumentNullException(nameof(config));
+        if (mathEngine == null) throw new ArgumentNullException(nameof(mathEngine));
+        if (eventBus == null) throw new ArgumentNullException(nameof(eventBus));
+        if (logger == null) throw new ArgumentNullException(nameof(logger));
+        
+        return new PipelineManager(
+            config,
+            mathEngine,
+            eventBus,
+            logger,
+            randomProvider ?? new DefaultRandomProvider(),
+            isFactoryCall: true);
     }
 
     /// <summary>
@@ -61,7 +106,7 @@ public class PipelineManager : IPipelineManager
     {
         lock (_cacheLock)
         {
-            _logger.LogInfo("Reloading pipeline configuration");
+            _logger.LogInformation("Reloading pipeline configuration");
             
             try
             {
@@ -77,7 +122,7 @@ public class PipelineManager : IPipelineManager
                     Success = true
                 });
                 
-                _logger.LogInfo($"Pipeline reloaded: {_cachedConfig.Buckets.Count} buckets");
+                _logger.LogInformation($"Pipeline reloaded: {_cachedConfig.Buckets.Count} buckets");
             }
             catch (Exception ex)
             {
@@ -130,7 +175,7 @@ public class PipelineManager : IPipelineManager
         _logger.LogDebug($"Instantiating {config.Buckets.Count} bucket processors");
         
         return config.Buckets
-            .Select(b => new GenericBucketProcessor(b, _mathEngine, _eventBus, _logger))
+            .Select(b => new GenericBucketProcessor(b, _mathEngine, _eventBus, _logger, _randomProvider))
             .ToList();
     }
 

@@ -22,7 +22,8 @@ public record PipelineConfiguration
     /// <summary>
     /// Valida a configuração do pipeline
     /// </summary>
-    public Result<bool> Validate()
+    /// <exception cref="InvalidOperationException">Lançada quando a configuração é inválida</exception>
+    public bool Validate()
     {
         // Verificar IDs únicos
         var duplicateIds = Buckets
@@ -32,20 +33,20 @@ public record PipelineConfiguration
             .ToList();
         
         if (duplicateIds.Any())
-            return Result<bool>.Failure($"Duplicate bucket IDs: {string.Join(", ", duplicateIds)}");
+            throw new InvalidOperationException($"Duplicate bucket IDs: {string.Join(", ", duplicateIds)}");
         
         // Verificar ordem válida (sem gaps, sem duplicatas)
         var orders = Buckets.Select(b => b.Order).OrderBy(o => o).ToList();
         for (int i = 0; i < orders.Count; i++)
         {
             if (orders[i] != i + 1)
-                return Result<bool>.Failure($"Invalid bucket order: expected {i + 1}, got {orders[i]}");
+                throw new InvalidOperationException($"Invalid bucket order: expected {i + 1}, got {orders[i]}");
         }
         
         // Verificar que há pelo menos um bucket
         if (Buckets.Count == 0)
-            return Result<bool>.Failure("Pipeline must have at least one bucket");
+            throw new InvalidOperationException("Pipeline must have at least one bucket");
         
-        return Result<bool>.Success(true);
+        return true;
     }
 }

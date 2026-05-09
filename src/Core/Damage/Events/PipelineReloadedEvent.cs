@@ -8,6 +8,16 @@ namespace Core.Damage.Events;
 public class PipelineReloadedEvent : IEvent
 {
     /// <summary>
+    /// Identificador único do evento
+    /// </summary>
+    public Guid EventId { get; init; } = Guid.NewGuid();
+    
+    /// <summary>
+    /// Tipo do evento
+    /// </summary>
+    public string EventType { get; init; } = nameof(PipelineReloadedEvent);
+    
+    /// <summary>
     /// Número de buckets na nova configuração
     /// </summary>
     public int BucketCount { get; init; }

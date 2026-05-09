@@ -44,7 +44,7 @@ public class DamageCalculator : IDamageCalculator
         var result = _pipelineManager.ExecutePipeline(context);
         
         // 3. Garantir dano não-negativo
-        var finalDamage = Math.Max(0, result.CurrentDamage);
+        var finalDamage = System.Math.Max(0, result.CurrentDamage);
         
         // 4. Extrair tier de crítico (se houver)
         var critTier = result.Metadata.TryGetValue("crit_tier", out var tier) ? Convert.ToInt32(tier) : 0;

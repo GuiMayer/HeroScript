@@ -372,5 +372,174 @@ namespace Core.Tests.Math
             // Act & Assert
             Assert.Throws<ArgumentException>(() => _engine.BuildFromFormula(invalidFormula, input));
         }
+
+        // ===== FLOOR Operator Tests =====
+
+        [Theory]
+        [InlineData(5.9f, 5f)]
+        [InlineData(5.1f, 5f)]
+        [InlineData(5.0f, 5f)]
+        [InlineData(-5.1f, -6f)]
+        [InlineData(-5.9f, -6f)]
+        [InlineData(0.9f, 0f)]
+        public void Floor_WithVariousInputs_ReturnsCorrectResult(float input, float expected)
+        {
+            // Arrange & Act
+            var expr = new M.MathExpression(input);
+            expr.Floor();
+            float result = expr.Build();
+
+            // Assert
+            Assert.Equal(expected, result, precision: 2);
+        }
+
+        // ===== MODULO Operator Tests =====
+
+        [Theory]
+        [InlineData(10f, 3f, 1f)]
+        [InlineData(150f, 100f, 50f)]
+        [InlineData(250f, 100f, 50f)]
+        [InlineData(99f, 100f, 99f)]
+        [InlineData(7.5f, 2.5f, 0f)]
+        public void Modulo_WithVariousInputs_ReturnsCorrectResult(float dividend, float divisor, float expected)
+        {
+            // Arrange & Act
+            var expr = new M.MathExpression(dividend);
+            expr.Modulo(divisor);
+            float result = expr.Build();
+
+            // Assert
+            Assert.Equal(expected, result, precision: 2);
+        }
+
+        [Fact]
+        public void Modulo_WithZeroDivisor_ThrowsArgumentException()
+        {
+            // Arrange
+            var expr = new M.MathExpression(10f);
+
+            // Act & Assert
+            Assert.Throws<ArgumentException>(() => expr.Modulo(0f));
+        }
+
+        // ===== Critical System Formula Tests =====
+
+        [Theory]
+        [InlineData(0f, 0)]      // 0% crit = tier 0
+        [InlineData(50f, 0)]     // 50% crit = tier 0
+        [InlineData(99f, 0)]     // 99% crit = tier 0
+        [InlineData(100f, 1)]    // 100% crit = tier 1
+        [InlineData(150f, 1)]    // 150% crit = tier 1
+        [InlineData(200f, 2)]    // 200% crit = tier 2
+        [InlineData(250f, 2)]    // 250% crit = tier 2
+        [InlineData(300f, 3)]    // 300% crit = tier 3
+        public void BuildFromFormula_CritGuaranteedTier_ReturnsCorrectTier(float critChance, int expectedTier)
+        {
+            // Arrange
+            var customParams = new Dictionary<string, float> { { "CRIT_CHANCE", critChance } };
+
+            // Act
+            var expr = _engine.BuildFromFormula("CRIT_GUARANTEED_TIER", 0f, customParams);
+            float result = expr.Build();
+
+            // Assert
+            Assert.Equal(expectedTier, (int)result);
+        }
+
+        [Theory]
+        [InlineData(0f, 0f)]      // 0% crit = 0% extra chance
+        [InlineData(50f, 50f)]    // 50% crit = 50% extra chance
+        [InlineData(99f, 99f)]    // 99% crit = 99% extra chance
+        [InlineData(100f, 0f)]    // 100% crit = 0% extra chance (full tier)
+        [InlineData(150f, 50f)]   // 150% crit = 50% extra chance
+        [InlineData(199f, 99f)]   // 199% crit = 99% extra chance
+        [InlineData(200f, 0f)]    // 200% crit = 0% extra chance (full tier)
+        [InlineData(250f, 50f)]   // 250% crit = 50% extra chance
+        public void BuildFromFormula_CritExtraChance_ReturnsCorrectChance(float critChance, float expectedChance)
+        {
+            // Arrange
+            var customParams = new Dictionary<string, float> { { "CRIT_CHANCE", critChance } };
+
+            // Act
+            var expr = _engine.BuildFromFormula("CRIT_EXTRA_CHANCE", 0f, customParams);
+            float result = expr.Build();
+
+            // Assert
+            Assert.Equal(expectedChance, result, precision: 2);
+        }
+
+        [Theory]
+        [InlineData(0, 2.0f, 1.0f)]    // Tier 0 = 1x damage (no crit)
+        [InlineData(1, 2.0f, 2.0f)]    // Tier 1 = 2x damage
+        [InlineData(2, 2.0f, 3.0f)]    // Tier 2 = 3x damage
+        [InlineData(3, 2.0f, 4.0f)]    // Tier 3 = 4x damage
+        [InlineData(1, 1.5f, 1.5f)]    // Tier 1 with 1.5x mult = 1.5x damage
+        [InlineData(2, 1.5f, 2.0f)]    // Tier 2 with 1.5x mult = 2x damage
+        [InlineData(1, 3.0f, 3.0f)]    // Tier 1 with 3x mult = 3x damage
+        [InlineData(2, 3.0f, 5.0f)]    // Tier 2 with 3x mult = 5x damage
+        public void BuildFromFormula_CritDamageMultiplier_ReturnsCorrectMultiplier(int tier, float critMult, float expectedMultiplier)
+        {
+            // Arrange
+            var customParams = new Dictionary<string, float> 
+            { 
+                { "CRIT_TIER", tier },
+                { "CRIT_MULT", critMult }
+            };
+
+            // Act
+            var expr = _engine.BuildFromFormula("CRIT_DAMAGE_MULTIPLIER", 0f, customParams);
+            float result = expr.Build();
+
+            // Assert
+            Assert.Equal(expectedMultiplier, result, precision: 2);
+        }
+
+        // ===== Integration Test: Full Critical Calculation =====
+
+        [Fact]
+        public void CriticalSystem_FullCalculation_WorksCorrectly()
+        {
+            // Arrange: 250% crit chance, 2.0x multiplier, 100 base damage
+            float critChance = 250f;
+            float critMult = 2.0f;
+            float baseDamage = 100f;
+
+            // Act: Calculate guaranteed tier
+            var tierExpr = _engine.BuildFromFormula(
+                "CRIT_GUARANTEED_TIER",
+                0f,
+                new Dictionary<string, float> { { "CRIT_CHANCE", critChance } }
+            );
+            int guaranteedTier = (int)tierExpr.Build();
+
+            // Act: Calculate extra chance
+            var chanceExpr = _engine.BuildFromFormula(
+                "CRIT_EXTRA_CHANCE",
+                0f,
+                new Dictionary<string, float> { { "CRIT_CHANCE", critChance } }
+            );
+            float extraChance = chanceExpr.Build();
+
+            // Act: Calculate damage multiplier for guaranteed tier
+            var multExpr = _engine.BuildFromFormula(
+                "CRIT_DAMAGE_MULTIPLIER",
+                0f,
+                new Dictionary<string, float> 
+                { 
+                    { "CRIT_TIER", guaranteedTier },
+                    { "CRIT_MULT", critMult }
+                }
+            );
+            float damageMultiplier = multExpr.Build();
+
+            // Act: Calculate final damage
+            float finalDamage = baseDamage * damageMultiplier;
+
+            // Assert
+            Assert.Equal(2, guaranteedTier);           // 250 / 100 = 2
+            Assert.Equal(50f, extraChance, precision: 2);  // 250 % 100 = 50
+            Assert.Equal(3.0f, damageMultiplier, precision: 2); // 1 + (2 * (2 - 1)) = 3
+            Assert.Equal(300f, finalDamage, precision: 2);      // 100 * 3 = 300
+        }
     }
 }

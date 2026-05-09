@@ -17,19 +17,20 @@ public class GenericBucketProcessor
     private readonly IMathEngine _mathEngine;
     private readonly IEventBus _eventBus;
     private readonly ILogger _logger;
-    private readonly Random _random;
+    private readonly IRandomProvider _randomProvider;
 
     public GenericBucketProcessor(
         BucketDefinition definition,
         IMathEngine mathEngine,
         IEventBus eventBus,
-        ILogger logger)
+        ILogger logger,
+        IRandomProvider? randomProvider = null)
     {
         _definition = definition ?? throw new ArgumentNullException(nameof(definition));
         _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _random = Random.Shared; // Thread-safe random (.NET 6+)
+        _randomProvider = randomProvider ?? new DefaultRandomProvider();
     }
 
     /// <summary>
@@ -113,8 +114,8 @@ public class GenericBucketProcessor
                 OperationType.MULTIPLY => ExecuteMultiply(context, op),
                 OperationType.APPLY_FORMULA => ExecuteApplyFormula(context, op),
                 OperationType.ROLL_CRIT_TIER => ExecuteRollCritTier(context, op),
-                OperationType.SET_TAG => context.WithTag(op.Source),
-                OperationType.REMOVE_TAG => context.RemoveTag(op.Source),
+                OperationType.SET_TAG => ExecuteSetTag(context, op),
+                OperationType.REMOVE_TAG => ExecuteRemoveTag(context, op),
                 OperationType.SET_MODIFIER => ExecuteSetModifier(context, op),
                 OperationType.ADD_TO_MODIFIER => ExecuteAddToModifier(context, op),
                 _ => throw new InvalidOperationException($"Unknown operation type: {op.Type}")
@@ -125,6 +126,20 @@ public class GenericBucketProcessor
             _logger.LogError($"Error executing operation {op.Type} in bucket {_definition.BucketId}: {ex.Message}");
             return context; // Retorna contexto inalterado em caso de erro
         }
+    }
+
+    private DamageContext ExecuteSetTag(DamageContext context, BucketOperation op)
+    {
+        // Remove "tag:" prefix if present
+        var tagName = op.Source.StartsWith("tag:") ? op.Source.Replace("tag:", "") : op.Source;
+        return context.WithTag(tagName);
+    }
+
+    private DamageContext ExecuteRemoveTag(DamageContext context, BucketOperation op)
+    {
+        // Remove "tag:" prefix if present
+        var tagName = op.Source.StartsWith("tag:") ? op.Source.Replace("tag:", "") : op.Source;
+        return context.RemoveTag(tagName);
     }
 
     private DamageContext ExecuteAddFlat(DamageContext context, BucketOperation op)
@@ -163,14 +178,17 @@ public class GenericBucketProcessor
             }
         }
 
-        var result = _mathEngine.EvaluateFormula(formulaName, formulaParams);
-        if (!result.IsSuccess)
+        try
         {
-            _logger.LogError($"Formula evaluation failed: {result.Error}");
+            var expression = _mathEngine.BuildFromFormula(formulaName, context.CurrentDamage, formulaParams);
+            var result = expression.Build();
+            return context.WithDamage(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Formula evaluation failed: {ex.Message}");
             return context;
         }
-
-        return context.WithDamage(result.Value);
     }
 
     private DamageContext ExecuteRollCritTier(DamageContext context, BucketOperation op)
@@ -201,7 +219,7 @@ public class GenericBucketProcessor
 
         // Roll para tier extra
         int finalTier = guaranteedTier;
-        if (_random.NextDouble() * 100 < extraChance)
+        if (_randomProvider.NextDouble() * 100 < extraChance)
         {
             finalTier++;
         }
@@ -248,9 +266,19 @@ public class GenericBucketProcessor
     private float ResolveValue(DamageContext context, string source)
     {
         // Source pode ser:
+        // - "constant:123.45" - valor literal com prefixo
         // - "modifier:key" - valor de um modifier
-        // - "123.45" - valor literal
         // - "current_damage" - dano atual
+        // - "123.45" - valor literal sem prefixo
+
+        if (source.StartsWith("constant:"))
+        {
+            var valueStr = source.Replace("constant:", "");
+            if (float.TryParse(valueStr, out var constantValue))
+            {
+                return constantValue;
+            }
+        }
 
         if (source.StartsWith("modifier:"))
         {
