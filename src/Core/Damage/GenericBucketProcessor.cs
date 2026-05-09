@@ -126,8 +126,10 @@ public class GenericBucketProcessor
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error executing operation {op.Type} in bucket {_definition.BucketId}: {ex.Message}");
-            return context; // Retorna contexto inalterado em caso de erro
+            _logger.LogError($"Error executing operation {op.Type} in bucket {_definition.BucketId}: {ex.Message}", ex);
+            throw new InvalidOperationException(
+                $"Failed to execute operation {op.Type} in bucket {_definition.BucketId}: {ex.Message}", 
+                ex);
         }
     }
 
