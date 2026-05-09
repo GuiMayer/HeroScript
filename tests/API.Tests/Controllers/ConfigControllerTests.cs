@@ -1,6 +1,7 @@
 using API.Controllers;
 using API.Models;
 using Core.Config;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -12,13 +13,24 @@ public class ConfigControllerTests
 {
     private readonly Mock<ILogger<ConfigController>> _mockLogger;
     private readonly Mock<ConfigReloadSettings> _mockReloadSettings;
+    private readonly Mock<IWebHostEnvironment> _mockEnvironment;
+    private readonly Mock<IConfigManager> _mockConfigManager;
+    private readonly ConfigValidator _configValidator;
     private readonly ConfigController _controller;
 
     public ConfigControllerTests()
     {
         _mockLogger = new Mock<ILogger<ConfigController>>();
         _mockReloadSettings = new Mock<ConfigReloadSettings>();
-        _controller = new ConfigController(_mockLogger.Object, _mockReloadSettings.Object);
+        _mockEnvironment = new Mock<IWebHostEnvironment>();
+        _mockConfigManager = new Mock<IConfigManager>();
+        _configValidator = new ConfigValidator(_mockConfigManager.Object);
+        _controller = new ConfigController(
+            _mockLogger.Object, 
+            _mockReloadSettings.Object,
+            _mockEnvironment.Object,
+            _mockConfigManager.Object,
+            _configValidator);
     }
 
     [Fact]

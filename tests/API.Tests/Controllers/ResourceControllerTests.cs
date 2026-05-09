@@ -12,13 +12,15 @@ public class ResourceControllerTests
 {
     private readonly Mock<ILogger<ResourceController>> _mockLogger;
     private readonly Mock<ConfigReloadSettings> _mockReloadSettings;
+    private readonly Mock<IMathEngine> _mockMathEngine;
     private readonly ResourceController _controller;
 
     public ResourceControllerTests()
     {
         _mockLogger = new Mock<ILogger<ResourceController>>();
         _mockReloadSettings = new Mock<ConfigReloadSettings>();
-        _controller = new ResourceController(_mockLogger.Object, _mockReloadSettings.Object);
+        _mockMathEngine = new Mock<IMathEngine>();
+        _controller = new ResourceController(_mockLogger.Object, _mockReloadSettings.Object, _mockMathEngine.Object);
     }
 
     [Fact]
