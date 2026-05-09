@@ -12,11 +12,13 @@ namespace API.Controllers;
 public class CombatController : BaseApiController
 {
     private readonly ICombatSystem _combatSystem;
+    private readonly ActionManager _actionManager;
 
-    public CombatController(ICombatSystem combatSystem, ILogger<CombatController> logger)
+    public CombatController(ICombatSystem combatSystem, ActionManager actionManager, ILogger<CombatController> logger)
         : base(logger)
     {
         _combatSystem = combatSystem ?? throw new ArgumentNullException(nameof(combatSystem));
+        _actionManager = actionManager ?? throw new ArgumentNullException(nameof(actionManager));
     }
 
     /// <summary>
@@ -125,11 +127,6 @@ public class CombatController : BaseApiController
     /// <summary>
     /// Obtém opções de custo disponíveis para uma ação.
     /// </summary>
-    /// <remarks>
-    /// TODO: This endpoint is prepared for future integration with ActionManager.
-    /// Currently returns a placeholder response.
-    /// When ActionManager is integrated, this will return actual cost options from action definitions.
-    /// </remarks>
     [HttpGet("{combatId}/actions/{actionId}/cost-options")]
     public IActionResult GetCostOptions(Guid combatId, string actionId)
     {
@@ -139,39 +136,128 @@ public class CombatController : BaseApiController
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
-            // TODO: When ActionManager is integrated, replace this with:
-            // var actionDef = _actionManager.GetDefinition(actionId);
-            // if (actionDef == null)
-            //     return NotFound(new { error = $"Action {actionId} not found" });
-            //
-            // var heroResources = stateResult.Value.Hero.ResourceState.Resources;
-            // var affordableOptions = actionDef.Costs.GetAffordableOptions(heroResources);
-            //
-            // return Ok(new
-            // {
-            //     actionId = actionId,
-            //     normalCosts = actionDef.Costs.Costs.Select(c => new { c.ResourceId, c.Amount }),
-            //     alternativeCosts = actionDef.Costs.AlternativeCosts.Select(opt => new
-            //     {
-            //         opt.OptionId,
-            //         opt.Description,
-            //         costs = opt.Costs.Select(c => new { c.ResourceId, c.Amount }),
-            //         affordable = opt.CanAfford(heroResources)
-            //     })
-            // });
+            var actionDefResult = _actionManager.GetDefinition(actionId);
+            if (actionDefResult.IsFailure)
+                return NotFound(new { error = $"Action {actionId} not found" });
 
-            // Placeholder response for now
+            var actionDef = actionDefResult.Value;
+            var heroResources = stateResult.Value.Hero.ResourceState.Resources;
+            
+            // Convert IReadOnlyDictionary to Dictionary for compatibility
+            var resourcesDict = heroResources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            var affordableOptions = actionDef.Costs.GetAffordableOptions(resourcesDict);
+
             return Ok(new
             {
                 actionId = actionId,
-                message = "Cost options endpoint ready. Awaiting ActionManager integration.",
-                normalCosts = new object[] { },
-                alternativeCosts = new object[] { }
+                normalCosts = actionDef.Costs.Costs.Select(c => new 
+                { 
+                    resourceId = c.ResourceId, 
+                    amount = c.Amount,
+                    allowOverdraft = c.AllowOverdraft
+                }),
+                alternativeOptions = actionDef.Costs.AlternativeCosts.Select(opt => new
+                {
+                    optionId = opt.OptionId,
+                    description = opt.Description,
+                    costs = opt.Costs.Select(c => new 
+                    { 
+                        resourceId = c.ResourceId, 
+                        amount = c.Amount,
+                        allowOverdraft = c.AllowOverdraft
+                    }),
+                    affordable = opt.CanAfford(resourcesDict)
+                }),
+                affordableOptionIds = affordableOptions.Select(o => o.OptionId).ToList()
             });
         }
         catch (Exception ex)
         {
             return HandleException(ex, "get cost options", combatId.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Lista ações disponíveis para o herói no combate atual
+    /// </summary>
+    [HttpGet("{combatId}/available-actions")]
+    public IActionResult GetAvailableActions(Guid combatId)
+    {
+        try
+        {
+            var stateResult = _combatSystem.GetCombatState(combatId);
+            if (stateResult.IsFailure)
+                return NotFound(new { error = stateResult.Error });
+
+            var allActions = _actionManager.GetAllDefinitions();
+            var heroResources = stateResult.Value.Hero.ResourceState.Resources;
+            
+            // Convert IReadOnlyDictionary to Dictionary for compatibility
+            var resourcesDict = heroResources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            var availableActions = allActions.Select(action => new
+            {
+                actionId = action.ActionId,
+                displayName = action.DisplayName,
+                actionType = action.ActionType.ToString(),
+                baseDamage = action.BaseDamage,
+                tags = action.Tags,
+                canAfford = action.Costs.CanAfford(resourcesDict),
+                affordableOptions = action.Costs.GetAffordableOptions(resourcesDict)
+                    .Select(o => o.OptionId).ToList()
+            }).ToList();
+
+            return Ok(new
+            {
+                combatId = combatId,
+                totalActions = availableActions.Count,
+                affordableActions = availableActions.Count(a => a.canAfford || a.affordableOptions.Any()),
+                actions = availableActions
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get available actions", combatId.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Verifica se o herói pode pagar por uma ação específica
+    /// </summary>
+    [HttpPost("{combatId}/actions/{actionId}/can-afford")]
+    public IActionResult CanAffordAction(Guid combatId, string actionId)
+    {
+        try
+        {
+            var stateResult = _combatSystem.GetCombatState(combatId);
+            if (stateResult.IsFailure)
+                return NotFound(new { error = stateResult.Error });
+
+            var actionDefResult = _actionManager.GetDefinition(actionId);
+            if (actionDefResult.IsFailure)
+                return NotFound(new { error = $"Action {actionId} not found" });
+
+            var actionDef = actionDefResult.Value;
+            var heroResources = stateResult.Value.Hero.ResourceState.Resources;
+            
+            // Convert IReadOnlyDictionary to Dictionary for compatibility
+            var resourcesDict = heroResources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            
+            var canAfford = actionDef.Costs.CanAfford(resourcesDict);
+            var affordableOptions = actionDef.Costs.GetAffordableOptions(resourcesDict);
+            var affordabilityError = actionDef.Costs.GetAffordabilityError(resourcesDict);
+
+            return Ok(new
+            {
+                actionId = actionId,
+                canAfford = canAfford,
+                affordableOptionIds = affordableOptions.Select(o => o.OptionId).ToList(),
+                error = affordabilityError
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "check affordability", combatId.ToString());
         }
     }
 

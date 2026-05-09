@@ -1,8 +1,8 @@
 using API.Models;
 using Core.Combat;
 using Core.Damage;
-using Core.Logging;
 using Microsoft.AspNetCore.Mvc;
+using CoreLogger = Core.Logging.ILogger;
 
 namespace API.Controllers;
 
@@ -15,12 +15,12 @@ public class DamageController : ControllerBase
 {
     private readonly IDamageCalculator _damageCalculator;
     private readonly IPipelineManager _pipelineManager;
-    private readonly ILogger _logger;
+    private readonly CoreLogger _logger;
 
     public DamageController(
         IDamageCalculator damageCalculator,
         IPipelineManager pipelineManager,
-        ILogger logger)
+        CoreLogger logger)
     {
         _damageCalculator = damageCalculator ?? throw new ArgumentNullException(nameof(damageCalculator));
         _pipelineManager = pipelineManager ?? throw new ArgumentNullException(nameof(pipelineManager));
@@ -74,7 +74,7 @@ public class DamageController : ControllerBase
                 Breakdown = new List<BucketBreakdownDto>() // TODO: Capturar breakdown dos eventos
             };
             
-            _logger.LogInfo($"Damage calculated via API: {request.ActionId} -> {result.FinalDamage:F2}");
+            _logger.LogDebug($"Damage calculated via API: {request.ActionId} -> {result.FinalDamage:F2}");
             
             return Ok(response);
         }
@@ -103,7 +103,7 @@ public class DamageController : ControllerBase
                 Buckets = config.Buckets.Select(b => new BucketInfoDto
                 {
                     BucketId = b.BucketId,
-                    Description = b.Description,
+                    Description = b.BucketId, // BucketDefinition doesn't have Description property
                     OperationCount = b.Operations.Count,
                     EmitEvents = b.EmitEvents
                 }).ToList()
@@ -140,14 +140,13 @@ public class DamageController : ControllerBase
                 Buckets = config.Buckets.Select(b => new BucketInfoDto
                 {
                     BucketId = b.BucketId,
-                    Description = b.Description,
+                    Description = b.BucketId, // BucketDefinition doesn't have Description property
                     OperationCount = b.Operations.Count,
                     EmitEvents = b.EmitEvents
                 }).ToList()
             };
-            
-            _logger.LogInfo("Pipeline reloaded via API");
-            
+
+            _logger.LogDebug("Pipeline reloaded via API");
             return Ok(response);
         }
         catch (Exception ex)
@@ -162,18 +161,45 @@ public class DamageController : ControllerBase
     /// </summary>
     private CombatEntity CreateMockEntity(EntityStatsDto stats)
     {
-        // Criar pools de recursos mock
-        var healthPool = new Core.Resources.ResourcePool("health", 100, 100, 0, 100);
+        // Criar definição de recurso health mock
+        var healthDef = new Core.Resources.ResourceDefinition
+        {
+            ResourceId = "health",
+            DisplayName = "Health",
+            Category = Core.Resources.ResourceCategory.VITAL,
+            DefaultCurrent = 100,
+            DefaultMax = 100,
+            DefaultMin = 0,
+            CanBeNegative = false,
+            CanExceedMax = false,
+            Tags = new List<string>()
+        };
         
-        var entity = new CombatEntity(
-            stats.EntityId,
-            stats.EntityId,
-            new Dictionary<string, Core.Resources.ResourcePool> { ["health"] = healthPool }
-        );
+        // Criar pool de health usando record syntax
+        var healthPool = new Core.Resources.ResourcePool
+        {
+            ResourceId = "health",
+            Current = 100,
+            Maximum = 100,
+            Minimum = 0,
+            Definition = healthDef
+        };
         
-        // Aplicar stats (em produção isso viria do sistema de stats)
-        // Por enquanto, apenas retornar a entidade base
-        // TODO: Implementar sistema de stats/modifiers
+        // Criar EntityResourceState usando record syntax
+        var resourceState = new EntityResourceState
+        {
+            EntityId = stats.EntityId,
+            Resources = new Dictionary<string, Core.Resources.ResourcePool> { ["health"] = healthPool }
+        };
+        
+        // Criar entidade usando record syntax
+        var entity = new CombatEntity
+        {
+            EntityId = stats.EntityId,
+            Name = stats.EntityId,
+            IsHero = false,
+            ResourceState = resourceState
+        };
         
         return entity;
     }

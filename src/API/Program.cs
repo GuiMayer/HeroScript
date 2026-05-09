@@ -53,6 +53,26 @@ builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
     return new MathEngine(configManager, formulaLoader, eventBus);
 });
 
+// Register ResourceManager
+builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
+{
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceManager"));
+    return new ResourceManager(configManager, resourceLoader, logger);
+});
+
+// Register ActionManager
+builder.Services.AddSingleton<ActionManager>(sp =>
+{
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ActionManager"));
+    return new ActionManager(configManager, resourceLoader, logger);
+});
+
 // Register CombatSystem
 builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 {
