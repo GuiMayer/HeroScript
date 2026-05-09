@@ -122,7 +122,20 @@ O projeto segue a arquitetura descrita em `docs/01_Future/arquitetura-engine.md`
 
 ### API REST
 
-- [API-ENDPOINTS.md](docs/API-ENDPOINTS.md) - Documentação detalhada dos endpoints atuais
+A API REST expõe funcionalidades do Core através de endpoints HTTP com documentação Swagger interativa.
+
+**Documentação Completa:**
+- [API-ENDPOINTS.md](docs/API_ENDPOINTS.md) - Documentação detalhada com exemplos em C#, JavaScript e Python
+- Swagger UI disponível em `http://localhost:5000/` (modo desenvolvimento)
+
+**APIs Disponíveis:**
+- **Action Management** (`/api/action`) - Gerenciamento de definições de ações de combate
+- **Resource Management** (`/api/game-resources`) - Gerenciamento de recursos de gameplay (HP, MP, etc)
+- **Combat System** (`/api/combat`) - Sistema de combate integrado com ações e recursos
+- **Configuration** (`/api/config`) - Gerenciamento de configurações e herança delta
+- **Math Engine** (`/api/math`) - Execução de fórmulas matemáticas
+
+**Roadmap:**
 - [API Roadmap](docs/roadmap/README.md) - Roadmap completo da API (6 fases)
 - [API Conventions](docs/roadmap/API_CONVENTIONS.md) - Convenções e padrões da API
 - [Event Integration](docs/roadmap/EVENT_INTEGRATION.md) - Integração com EventBus (Polling vs WebSocket)
@@ -140,9 +153,20 @@ Estamos atualmente na **Fase 1 — O Kernel**:
 - ✅ MathEngine serializado (fórmulas JSON)
 - ✅ ConfigManager com herança delta
 - ✅ API REST básica implementada
+- ✅ ActionManager API completa (14 endpoints)
+- ✅ ResourceManager API completa (8 endpoints)
+- ✅ Combat System integrado com Actions e Resources
+- ✅ Documentação Swagger/OpenAPI
 - ⏳ EventBus (próximo)
 - ⏳ GameState imutável (próximo)
 - ⏳ BucketPipeline (próximo)
+
+**Novidades Recentes (2026-05-09):**
+- 14 novos endpoints REST para Actions e Resources
+- Integração completa entre Combat, Actions e Resources
+- Documentação interativa via Swagger
+- Exemplos de código em múltiplas linguagens (C#, JS, Python)
+- Suporte para modding e extensibilidade
 
 ## Licença
 
