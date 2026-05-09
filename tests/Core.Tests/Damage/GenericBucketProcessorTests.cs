@@ -208,4 +208,263 @@ public class GenericBucketProcessorTests
         // (100 + 50) * 2 = 300
         Assert.Equal(300f, result.CurrentDamage);
     }
+
+    [Fact]
+    public void ExecuteAddFlat_WithInvalidSource_ReturnsUnchangedContext()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "modifier:nonexistent_key"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(100f, result.CurrentDamage); // Unchanged
+    }
+
+    [Fact]
+    public void ExecuteAddFlat_WithInvalidSource_LogsError()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "modifier:missing_key"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        processor.Process(context);
+
+        // Assert
+        _mockLogger.Verify(
+            l => l.LogError(It.Is<string>(s => s.Contains("Failed to resolve value") && s.Contains("missing_key"))),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public void ExecuteMultiply_WithInvalidSource_ReturnsUnchangedContext()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.MULTIPLY,
+                    Source = "constant:invalid_number"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(100f, result.CurrentDamage); // Unchanged
+    }
+
+    [Fact]
+    public void ExecuteSetModifier_WithInvalidSource_ReturnsUnchangedContext()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.SET_MODIFIER,
+                    Source = "",
+                    Parameters = new Dictionary<string, object> { ["key"] = "test_key" }
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.False(result.Modifiers.ContainsKey("test_key")); // Modifier not added
+    }
+
+    [Fact]
+    public void ExecuteAddToModifier_WithInvalidSource_ReturnsUnchangedContext()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_TO_MODIFIER,
+                    Source = "modifier:nonexistent",
+                    Parameters = new Dictionary<string, object> { ["key"] = "test_key" }
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f)
+            .WithModifier("test_key", 50f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(50f, result.Modifiers["test_key"]); // Unchanged
+    }
+
+    [Fact]
+    public void ResolveValue_WithValidConstant_ReturnsValue()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "constant:123.45"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(223.45f, result.CurrentDamage, precision: 2);
+    }
+
+    [Fact]
+    public void ResolveValue_WithExistingModifier_ReturnsValue()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "modifier:bonus_damage"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f)
+            .WithModifier("bonus_damage", 25f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(125f, result.CurrentDamage);
+    }
+
+    [Fact]
+    public void ResolveValue_WithCurrentDamage_ReturnsCurrentDamage()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "current_damage"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(200f, result.CurrentDamage); // 100 + 100
+    }
+
+    [Fact]
+    public void ResolveValue_WithLiteralNumber_ReturnsValue()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "test_bucket",
+            Order = 1,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.MULTIPLY,
+                    Source = "2.5"
+                }
+            }
+        };
+        
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(250f, result.CurrentDamage);
+    }
 }

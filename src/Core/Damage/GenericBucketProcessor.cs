@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core.Common;
 using Core.Events;
 using Core.Logging;
 using Core.Math;
@@ -144,14 +145,24 @@ public class GenericBucketProcessor
 
     private DamageContext ExecuteAddFlat(DamageContext context, BucketOperation op)
     {
-        var value = ResolveValue(context, op.Source);
-        return context.WithDamage(context.CurrentDamage + value);
+        var result = ResolveValueSafe(context, op.Source);
+        if (result.IsFailure)
+        {
+            _logger.LogError($"[{_definition.BucketId}] Failed to resolve value in ADD_FLAT: {result.Error}");
+            return context;
+        }
+        return context.WithDamage(context.CurrentDamage + result.Value);
     }
 
     private DamageContext ExecuteMultiply(DamageContext context, BucketOperation op)
     {
-        var multiplier = ResolveValue(context, op.Source);
-        return context.WithDamage(context.CurrentDamage * multiplier);
+        var result = ResolveValueSafe(context, op.Source);
+        if (result.IsFailure)
+        {
+            _logger.LogError($"[{_definition.BucketId}] Failed to resolve multiplier in MULTIPLY: {result.Error}");
+            return context;
+        }
+        return context.WithDamage(context.CurrentDamage * result.Value);
     }
 
     private DamageContext ExecuteApplyFormula(DamageContext context, BucketOperation op)
@@ -250,54 +261,76 @@ public class GenericBucketProcessor
 
     private DamageContext ExecuteSetModifier(DamageContext context, BucketOperation op)
     {
-        var value = ResolveValue(context, op.Source);
+        var result = ResolveValueSafe(context, op.Source);
+        if (result.IsFailure)
+        {
+            _logger.LogError($"[{_definition.BucketId}] Failed to resolve value in SET_MODIFIER: {result.Error}");
+            return context;
+        }
         var key = op.Parameters.TryGetValue("key", out var keyObj) ? keyObj.ToString() : op.Source;
-        return context.WithModifier(key!, value);
+        return context.WithModifier(key!, result.Value);
     }
 
     private DamageContext ExecuteAddToModifier(DamageContext context, BucketOperation op)
     {
-        var value = ResolveValue(context, op.Source);
+        var result = ResolveValueSafe(context, op.Source);
+        if (result.IsFailure)
+        {
+            _logger.LogError($"[{_definition.BucketId}] Failed to resolve value in ADD_TO_MODIFIER: {result.Error}");
+            return context;
+        }
         var key = op.Parameters.TryGetValue("key", out var keyObj) ? keyObj.ToString() : op.Source;
         var currentValue = context.Modifiers.GetValueOrDefault(key!, 0f);
-        return context.WithModifier(key!, currentValue + value);
+        return context.WithModifier(key!, currentValue + result.Value);
     }
 
-    private float ResolveValue(DamageContext context, string source)
+    /// <summary>
+    /// Resolves a value from source string with explicit error handling using Result pattern.
+    /// </summary>
+    private Result<float> ResolveValueSafe(DamageContext context, string source)
     {
-        // Source pode ser:
-        // - "constant:123.45" - valor literal com prefixo
-        // - "modifier:key" - valor de um modifier
-        // - "current_damage" - dano atual
-        // - "123.45" - valor literal sem prefixo
+        if (string.IsNullOrWhiteSpace(source))
+            return Result<float>.Failure("Source cannot be empty");
 
+        // "constant:123.45" - valor literal com prefixo
         if (source.StartsWith("constant:"))
         {
             var valueStr = source.Replace("constant:", "");
             if (float.TryParse(valueStr, out var constantValue))
-            {
-                return constantValue;
-            }
+                return Result<float>.Success(constantValue);
+            return Result<float>.Failure($"Invalid constant format: {source}");
         }
 
+        // "modifier:key" - valor de um modifier
         if (source.StartsWith("modifier:"))
         {
             var key = source.Replace("modifier:", "");
-            return context.Modifiers.GetValueOrDefault(key, 0f);
+            if (context.Modifiers.TryGetValue(key, out var value))
+                return Result<float>.Success(value);
+            return Result<float>.Failure($"Modifier '{key}' not found in context");
         }
 
+        // "current_damage" - dano atual
         if (source == "current_damage")
-        {
-            return context.CurrentDamage;
-        }
+            return Result<float>.Success(context.CurrentDamage);
 
+        // "123.45" - valor literal sem prefixo
         if (float.TryParse(source, out var literal))
-        {
-            return literal;
-        }
+            return Result<float>.Success(literal);
 
-        _logger.LogWarning($"Could not resolve value from source: {source}");
-        return 0f;
+        return Result<float>.Failure($"Could not resolve value from source: {source}");
+    }
+
+    [Obsolete("Use ResolveValueSafe for better error handling. This method will be removed in v2.0.")]
+    private float ResolveValue(DamageContext context, string source)
+    {
+        var result = ResolveValueSafe(context, source);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning($"[{_definition.BucketId}] {result.Error} (returning 0)");
+            return 0f;
+        }
+        return result.Value;
     }
 
     private void EmitBucketProcessedEvent(float inputDamage, DamageContext outputContext)
