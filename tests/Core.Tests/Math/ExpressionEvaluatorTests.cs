@@ -1,3 +1,4 @@
+using Core.Logging;
 using Core.Math;
 using Xunit;
 
@@ -9,7 +10,8 @@ public class ExpressionEvaluatorTests
 
     public ExpressionEvaluatorTests()
     {
-        _evaluator = new ExpressionEvaluator();
+        var logger = NullLogger.Instance;
+        _evaluator = new ExpressionEvaluator(logger);
     }
 
     [Fact]

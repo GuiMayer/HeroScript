@@ -1,3 +1,5 @@
+using Core.Common;
+using Core.Logging;
 using Core.Resources;
 
 namespace Core.Combat;
@@ -12,8 +14,8 @@ public interface IActionAffordabilityService
     /// </summary>
     /// <param name="actions">Lista de ações disponíveis</param>
     /// <param name="resources">Recursos disponíveis do jogador</param>
-    /// <returns>Lista de ações que podem ser pagas</returns>
-    IEnumerable<ActionDefinition> GetAffordableActions(
+    /// <returns>Resultado com lista de ações que podem ser pagas</returns>
+    Result<IReadOnlyList<ActionDefinition>> GetAffordableActions(
         IEnumerable<ActionDefinition> actions,
         IReadOnlyDictionary<string, ResourcePool> resources);
 
@@ -22,8 +24,8 @@ public interface IActionAffordabilityService
     /// </summary>
     /// <param name="action">Definição da ação</param>
     /// <param name="resources">Recursos disponíveis do jogador</param>
-    /// <returns>Informações sobre custos e opções disponíveis</returns>
-    ActionCostOptions GetCostOptions(
+    /// <returns>Resultado com informações sobre custos e opções disponíveis</returns>
+    Result<ActionCostOptions> GetCostOptions(
         ActionDefinition action,
         IReadOnlyDictionary<string, ResourcePool> resources);
 
@@ -33,7 +35,7 @@ public interface IActionAffordabilityService
     /// <param name="action">Definição da ação</param>
     /// <param name="resources">Recursos disponíveis do jogador</param>
     /// <returns>Resultado da verificação com detalhes</returns>
-    AffordabilityResult CanAfford(
+    Result<AffordabilityResult> CanAfford(
         ActionDefinition action,
         IReadOnlyDictionary<string, ResourcePool> resources);
 }

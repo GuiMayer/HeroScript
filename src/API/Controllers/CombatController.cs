@@ -149,29 +149,29 @@ public class CombatController : BaseApiController
             var actionDef = actionDefResult.Value;
             var heroResources = stateResult.Value.Hero.ResourceState.Resources;
             
-            var costOptions = _affordabilityService.GetCostOptions(actionDef, heroResources);
+            var costOptionsResult = _affordabilityService.GetCostOptions(actionDef, heroResources);
+            
+            if (costOptionsResult.IsFailure)
+                return BadRequest(new { error = costOptionsResult.Error });
+
+            var costOptions = costOptionsResult.Value;
 
             return Ok(new
             {
                 actionId = costOptions.ActionId,
-                normalCosts = costOptions.NormalCosts.Select(c => new 
-                { 
-                    resourceId = c.ResourceId, 
+                normalCosts = costOptions.NormalCosts.Select(c => new
+                {
+                    resourceId = c.ResourceId,
                     amount = c.Amount,
                     allowOverdraft = c.AllowOverdraft
-                }),
+                }).ToList(),
                 alternativeOptions = costOptions.AlternativeOptions.Select(opt => new
                 {
                     optionId = opt.OptionId,
                     description = opt.Description,
-                    costs = opt.Costs.Select(c => new 
-                    { 
-                        resourceId = c.ResourceId, 
-                        amount = c.Amount,
-                        allowOverdraft = c.AllowOverdraft
-                    }),
+                    costs = opt.Costs.Select(c => new { resourceId = c.ResourceId, amount = c.Amount }).ToList(),
                     affordable = opt.Affordable
-                }),
+                }).ToList(),
                 affordableOptionIds = costOptions.AffordableOptionIds
             });
         }
@@ -198,7 +198,11 @@ public class CombatController : BaseApiController
             
             var availableActions = allActions.Select(action =>
             {
-                var affordability = _affordabilityService.CanAfford(action, heroResources);
+                var affordabilityResult = _affordabilityService.CanAfford(action, heroResources);
+                var affordability = affordabilityResult.IsSuccess 
+                    ? affordabilityResult.Value 
+                    : new AffordabilityResult { ActionId = action.ActionId, CanAfford = false };
+                
                 return new
                 {
                     actionId = action.ActionId,
@@ -244,7 +248,12 @@ public class CombatController : BaseApiController
             var actionDef = actionDefResult.Value;
             var heroResources = stateResult.Value.Hero.ResourceState.Resources;
             
-            var affordability = _affordabilityService.CanAfford(actionDef, heroResources);
+            var affordabilityResult = _affordabilityService.CanAfford(actionDef, heroResources);
+            
+            if (affordabilityResult.IsFailure)
+                return BadRequest(new { error = affordabilityResult.Error });
+
+            var affordability = affordabilityResult.Value;
 
             return Ok(new
             {

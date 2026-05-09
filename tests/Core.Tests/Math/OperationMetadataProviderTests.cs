@@ -1,3 +1,4 @@
+using Core.Logging;
 using Core.Math;
 using Xunit;
 
@@ -9,7 +10,8 @@ public class OperationMetadataProviderTests
 
     public OperationMetadataProviderTests()
     {
-        _provider = new OperationMetadataProvider();
+        var logger = NullLogger.Instance;
+        _provider = new OperationMetadataProvider(logger);
     }
 
     [Fact]
@@ -25,42 +27,54 @@ public class OperationMetadataProviderTests
     }
 
     [Fact]
-    public void GetOperation_WithValidName_ReturnsOperation()
+    public void GetOperation_WithValidName_ReturnsSuccess()
     {
         // Act
-        var operation = _provider.GetOperation("ADD");
+        var result = _provider.GetOperation("ADD");
 
         // Assert
-        Assert.NotNull(operation);
-        Assert.Equal("ADD", operation.Name);
-        Assert.Equal("+", operation.Symbol);
-        Assert.Equal("basic", operation.Category);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("ADD", result.Value.Name);
+        Assert.Equal("+", result.Value.Symbol);
+        Assert.Equal("basic", result.Value.Category);
     }
 
     [Fact]
-    public void GetOperation_WithInvalidName_ReturnsNull()
+    public void GetOperation_WithInvalidName_ReturnsFailure()
     {
         // Act
-        var operation = _provider.GetOperation("NONEXISTENT");
+        var result = _provider.GetOperation("NONEXISTENT");
 
         // Assert
-        Assert.Null(operation);
+        Assert.True(result.IsFailure);
+        Assert.Contains("not found", result.Error);
+    }
+
+    [Fact]
+    public void GetOperation_WithEmptyName_ReturnsFailure()
+    {
+        // Act
+        var result = _provider.GetOperation("");
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("cannot be empty", result.Error);
     }
 
     [Fact]
     public void GetOperation_IsCaseInsensitive()
     {
         // Act
-        var operation1 = _provider.GetOperation("ADD");
-        var operation2 = _provider.GetOperation("add");
-        var operation3 = _provider.GetOperation("Add");
+        var result1 = _provider.GetOperation("ADD");
+        var result2 = _provider.GetOperation("add");
+        var result3 = _provider.GetOperation("Add");
 
         // Assert
-        Assert.NotNull(operation1);
-        Assert.NotNull(operation2);
-        Assert.NotNull(operation3);
-        Assert.Equal(operation1.Name, operation2.Name);
-        Assert.Equal(operation1.Name, operation3.Name);
+        Assert.True(result1.IsSuccess);
+        Assert.True(result2.IsSuccess);
+        Assert.True(result3.IsSuccess);
+        Assert.Equal(result1.Value.Name, result2.Value.Name);
+        Assert.Equal(result1.Value.Name, result3.Value.Name);
     }
 
     [Fact]
@@ -108,10 +122,11 @@ public class OperationMetadataProviderTests
     public void OperationMetadata_HasRequiredFields()
     {
         // Act
-        var operation = _provider.GetOperation("ADD");
+        var result = _provider.GetOperation("ADD");
 
         // Assert
-        Assert.NotNull(operation);
+        Assert.True(result.IsSuccess);
+        var operation = result.Value;
         Assert.False(string.IsNullOrEmpty(operation.Name));
         Assert.False(string.IsNullOrEmpty(operation.Symbol));
         Assert.False(string.IsNullOrEmpty(operation.Description));

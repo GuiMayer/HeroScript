@@ -61,8 +61,16 @@ public class DamageController : ControllerBase
             };
             
             // Criar entidades mock (em produção viriam do CombatSystem)
-            var attacker = _entityFactory.CreateMockEntity(request.Attacker.EntityId);
-            var target = _entityFactory.CreateMockEntity(request.Target.EntityId);
+            var attackerResult = _entityFactory.CreateMockEntity(request.Attacker.EntityId);
+            if (attackerResult.IsFailure)
+                return BadRequest(new { error = $"Failed to create attacker: {attackerResult.Error}" });
+
+            var targetResult = _entityFactory.CreateMockEntity(request.Target.EntityId);
+            if (targetResult.IsFailure)
+                return BadRequest(new { error = $"Failed to create target: {targetResult.Error}" });
+
+            var attacker = attackerResult.Value;
+            var target = targetResult.Value;
             
             // Calcular dano
             var result = _damageCalculator.CalculateDamage(actionDef, attacker, target);

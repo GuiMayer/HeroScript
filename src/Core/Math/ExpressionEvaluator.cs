@@ -1,4 +1,5 @@
 using Core.Common;
+using Core.Logging;
 using System.Diagnostics;
 
 namespace Core.Math;
@@ -9,26 +10,37 @@ namespace Core.Math;
 /// 1. Implicit mode (Values) - operações baseadas em acumulador
 /// 2. Explicit literal mode (Operands com strings numéricas) - operações com valores fixos
 /// 3. Explicit symbolic mode (Operands com $current, $initial, params.X) - operações com parâmetros dinâmicos
+/// Segue padrões estabelecidos em docs/core-service-patterns.md
 /// </summary>
 public class ExpressionEvaluator : IExpressionEvaluator
 {
+    private readonly ILogger _logger;
+
     private static readonly HashSet<string> UnaryOperations = new(StringComparer.OrdinalIgnoreCase)
     {
         "SQRT", "ABS", "NEGATE", "FLOOR", "CEIL", "LOG"
     };
+
+    public ExpressionEvaluator(ILogger logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
 
     /// <summary>
     /// Avalia uma expressão matemática com múltiplos passos
     /// </summary>
     public Result<ExpressionEvaluationResult> Evaluate(ExpressionEvaluationRequest request)
     {
+        if (request == null)
+            return Result<ExpressionEvaluationResult>.Failure("Request cannot be null");
+
         if (request.Steps == null || request.Steps.Count == 0)
-        {
             return Result<ExpressionEvaluationResult>.Failure("At least one step is required");
-        }
 
         try
         {
+            _logger.LogDebug($"Evaluating expression with {request.Steps.Count} steps, initial value: {request.InitialValue}");
+
             var stopwatch = Stopwatch.StartNew();
             var expression = new MathExpression(request.InitialValue);
             float currentValue = request.InitialValue;
@@ -38,12 +50,15 @@ public class ExpressionEvaluator : IExpressionEvaluator
                 var stepResult = ProcessStep(step, request, ref currentValue, expression);
                 if (stepResult.IsFailure)
                 {
+                    _logger.LogError($"Step '{step.Operation}' failed: {stepResult.Error}");
                     return Result<ExpressionEvaluationResult>.Failure(stepResult.Error);
                 }
             }
 
             var result = expression.Build();
             stopwatch.Stop();
+
+            _logger.LogDebug($"Expression evaluated successfully: {request.InitialValue} -> {result} in {stopwatch.Elapsed.TotalMilliseconds:F2}ms");
 
             return Result<ExpressionEvaluationResult>.Success(new ExpressionEvaluationResult
             {
@@ -55,18 +70,22 @@ public class ExpressionEvaluator : IExpressionEvaluator
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogError($"Invalid operation: {ex.Message}", ex);
             return Result<ExpressionEvaluationResult>.Failure($"Invalid operation: {ex.Message}");
         }
         catch (DivideByZeroException ex)
         {
+            _logger.LogError($"Division by zero: {ex.Message}", ex);
             return Result<ExpressionEvaluationResult>.Failure($"Division by zero: {ex.Message}");
         }
         catch (ArgumentException ex)
         {
+            _logger.LogError($"Invalid argument: {ex.Message}", ex);
             return Result<ExpressionEvaluationResult>.Failure($"Invalid argument: {ex.Message}");
         }
         catch (Exception ex)
         {
+            _logger.LogError($"Evaluation failed: {ex.Message}", ex);
             return Result<ExpressionEvaluationResult>.Failure($"Evaluation failed: {ex.Message}");
         }
     }

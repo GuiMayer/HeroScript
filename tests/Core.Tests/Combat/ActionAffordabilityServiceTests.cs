@@ -1,4 +1,5 @@
 using Core.Combat;
+using Core.Logging;
 using Core.Resources;
 using Xunit;
 
@@ -7,10 +8,12 @@ namespace Core.Tests.Combat;
 public class ActionAffordabilityServiceTests
 {
     private readonly ActionAffordabilityService _service;
+    private readonly ILogger _logger;
 
     public ActionAffordabilityServiceTests()
     {
-        _service = new ActionAffordabilityService();
+        _logger = NullLogger.Instance;
+        _service = new ActionAffordabilityService(_logger);
     }
 
     private IReadOnlyDictionary<string, ResourcePool> CreateMockResources(float energy = 100f, float mana = 50f)
@@ -90,15 +93,17 @@ public class ActionAffordabilityServiceTests
         };
 
         // Act
-        var affordableActions = _service.GetAffordableActions(actions, resources).ToList();
+        var result = _service.GetAffordableActions(actions, resources);
 
         // Assert
+        Assert.True(result.IsSuccess);
+        var affordableActions = result.Value;
         Assert.Single(affordableActions);
         Assert.Equal("affordable_action", affordableActions[0].ActionId);
     }
 
     [Fact]
-    public void GetCostOptions_ReturnsCorrectCostInformation()
+    public void GetCostOptions_WithValidAction_ReturnsOptions()
     {
         // Arrange
         var resources = CreateMockResources(energy: 100f, mana: 50f);
@@ -109,17 +114,18 @@ public class ActionAffordabilityServiceTests
             {
                 Costs = new List<ResourceCost>
                 {
-                    new ResourceCost { ResourceId = "energy", Amount = 30f, AllowOverdraft = false }
+                    new ResourceCost { ResourceId = "energy", Amount = 30f },
+                    new ResourceCost { ResourceId = "mana", Amount = 20f }
                 },
                 AlternativeCosts = new List<AlternativeCostOption>
                 {
                     new AlternativeCostOption
                     {
-                        OptionId = "mana_option",
-                        Description = "Use mana instead",
+                        OptionId = "alt1",
+                        Description = "Alternative cost",
                         Costs = new List<ResourceCost>
                         {
-                            new ResourceCost { ResourceId = "mana", Amount = 20f, AllowOverdraft = false }
+                            new ResourceCost { ResourceId = "energy", Amount = 50f }
                         }
                     }
                 }
@@ -127,16 +133,17 @@ public class ActionAffordabilityServiceTests
         };
 
         // Act
-        var costOptions = _service.GetCostOptions(action, resources);
+        var result = _service.GetCostOptions(action, resources);
 
         // Assert
-        Assert.Equal("test_action", costOptions.ActionId);
-        Assert.Single(costOptions.NormalCosts);
-        Assert.Equal("energy", costOptions.NormalCosts[0].ResourceId);
-        Assert.Equal(30f, costOptions.NormalCosts[0].Amount);
-        Assert.Single(costOptions.AlternativeOptions);
-        Assert.Equal("mana_option", costOptions.AlternativeOptions[0].OptionId);
-        Assert.True(costOptions.AlternativeOptions[0].Affordable);
+        Assert.True(result.IsSuccess);
+        var options = result.Value;
+        Assert.Equal("test_action", options.ActionId);
+        Assert.Equal(2, options.NormalCosts.Count);
+        Assert.Equal("energy", options.NormalCosts[0].ResourceId);
+        Assert.Equal(30f, options.NormalCosts[0].Amount);
+        Assert.Single(options.AlternativeOptions);
+        Assert.Equal("alt1", options.AlternativeOptions[0].OptionId);
     }
 
     [Fact]
@@ -146,7 +153,7 @@ public class ActionAffordabilityServiceTests
         var resources = CreateMockResources(energy: 100f, mana: 50f);
         var action = new ActionDefinition
         {
-            ActionId = "test_action",
+            ActionId = "affordable_action",
             Costs = new ActionCosts
             {
                 Costs = new List<ResourceCost>
@@ -160,9 +167,10 @@ public class ActionAffordabilityServiceTests
         var result = _service.CanAfford(action, resources);
 
         // Assert
-        Assert.Equal("test_action", result.ActionId);
-        Assert.True(result.CanAfford);
-        Assert.Null(result.Error);
+        Assert.True(result.IsSuccess);
+        var affordability = result.Value;
+        Assert.Equal("affordable_action", affordability.ActionId);
+        Assert.True(affordability.CanAfford);
     }
 
     [Fact]
@@ -172,12 +180,12 @@ public class ActionAffordabilityServiceTests
         var resources = CreateMockResources(energy: 10f, mana: 5f);
         var action = new ActionDefinition
         {
-            ActionId = "test_action",
+            ActionId = "expensive_action",
             Costs = new ActionCosts
             {
                 Costs = new List<ResourceCost>
                 {
-                    new ResourceCost { ResourceId = "energy", Amount = 30f }
+                    new ResourceCost { ResourceId = "energy", Amount = 50f }
                 }
             }
         };
@@ -186,34 +194,35 @@ public class ActionAffordabilityServiceTests
         var result = _service.CanAfford(action, resources);
 
         // Assert
-        Assert.Equal("test_action", result.ActionId);
-        Assert.False(result.CanAfford);
-        Assert.NotNull(result.Error);
+        Assert.True(result.IsSuccess);
+        var affordability = result.Value;
+        Assert.Equal("expensive_action", affordability.ActionId);
+        Assert.False(affordability.CanAfford);
     }
 
     [Fact]
-    public void CanAfford_WithAffordableAlternative_ReturnsAlternativeOptionId()
+    public void CanAfford_WithAlternativeCosts_ReturnsAffordableOptions()
     {
         // Arrange
-        var resources = CreateMockResources(energy: 10f, mana: 50f);
+        var resources = CreateMockResources(energy: 20f, mana: 100f);
         var action = new ActionDefinition
         {
-            ActionId = "test_action",
+            ActionId = "flexible_action",
             Costs = new ActionCosts
             {
                 Costs = new List<ResourceCost>
                 {
-                    new ResourceCost { ResourceId = "energy", Amount = 30f }
+                    new ResourceCost { ResourceId = "energy", Amount = 50f }
                 },
                 AlternativeCosts = new List<AlternativeCostOption>
                 {
                     new AlternativeCostOption
                     {
                         OptionId = "mana_option",
-                        Description = "Use mana instead",
+                        Description = "Pay with mana",
                         Costs = new List<ResourceCost>
                         {
-                            new ResourceCost { ResourceId = "mana", Amount = 20f }
+                            new ResourceCost { ResourceId = "mana", Amount = 30f }
                         }
                     }
                 }
@@ -224,9 +233,57 @@ public class ActionAffordabilityServiceTests
         var result = _service.CanAfford(action, resources);
 
         // Assert
-        Assert.Equal("test_action", result.ActionId);
-        Assert.False(result.CanAfford); // Normal cost not affordable
-        Assert.Single(result.AffordableOptionIds);
-        Assert.Equal("mana_option", result.AffordableOptionIds[0]);
+        Assert.True(result.IsSuccess);
+        var affordability = result.Value;
+        Assert.Equal("flexible_action", affordability.ActionId);
+        Assert.False(affordability.CanAfford); // Normal cost not affordable
+        Assert.Single(affordability.AffordableOptionIds); // But alternative is
+        Assert.Equal("mana_option", affordability.AffordableOptionIds[0]);
+    }
+
+    [Fact]
+    public void GetAffordableActions_WithNullActions_ReturnsFailure()
+    {
+        // Arrange
+        var resources = CreateMockResources();
+
+        // Act
+        var result = _service.GetAffordableActions(null!, resources);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("cannot be null", result.Error);
+    }
+
+    [Fact]
+    public void GetCostOptions_WithNullAction_ReturnsFailure()
+    {
+        // Arrange
+        var resources = CreateMockResources();
+
+        // Act
+        var result = _service.GetCostOptions(null!, resources);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("cannot be null", result.Error);
+    }
+
+    [Fact]
+    public void CanAfford_WithNullResources_ReturnsFailure()
+    {
+        // Arrange
+        var action = new ActionDefinition
+        {
+            ActionId = "test_action",
+            Costs = new ActionCosts()
+        };
+
+        // Act
+        var result = _service.CanAfford(action, null!);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("cannot be null", result.Error);
     }
 }

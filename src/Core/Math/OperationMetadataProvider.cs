@@ -1,16 +1,23 @@
+using Core.Common;
+using Core.Logging;
+
 namespace Core.Math;
 
 /// <summary>
 /// Provedor de metadados de operações matemáticas
 /// Fonte única de verdade para informações sobre operações disponíveis
+/// Segue padrões estabelecidos em docs/core-service-patterns.md
 /// </summary>
 public class OperationMetadataProvider : IOperationMetadataProvider
 {
+    private readonly ILogger _logger;
     private readonly List<OperationMetadata> _operations;
 
-    public OperationMetadataProvider()
+    public OperationMetadataProvider(ILogger logger)
     {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _operations = InitializeOperations();
+        _logger.LogDebug($"Initialized {_operations.Count} operation metadata entries");
     }
 
     /// <summary>
@@ -24,10 +31,23 @@ public class OperationMetadataProvider : IOperationMetadataProvider
     /// <summary>
     /// Obtém metadados de uma operação específica
     /// </summary>
-    public OperationMetadata? GetOperation(string name)
+    public Result<OperationMetadata> GetOperation(string name)
     {
-        return _operations.FirstOrDefault(op =>
+        if (string.IsNullOrWhiteSpace(name))
+            return Result<OperationMetadata>.Failure("Operation name cannot be empty");
+
+        _logger.LogDebug($"Looking up operation metadata for '{name}'");
+
+        var operation = _operations.FirstOrDefault(op =>
             op.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+        if (operation == null)
+        {
+            _logger.LogWarning($"Operation '{name}' not found");
+            return Result<OperationMetadata>.Failure($"Operation '{name}' not found");
+        }
+
+        return Result<OperationMetadata>.Success(operation);
     }
 
     /// <summary>

@@ -45,14 +45,14 @@ public class OperationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public IActionResult GetOperation(string name)
     {
-        var operation = _metadataProvider.GetOperation(name);
+        var result = _metadataProvider.GetOperation(name);
 
-        if (operation == null)
+        if (result.IsFailure)
         {
-            return NotFound(new { error = $"Operation '{name}' not found" });
+            return NotFound(new { error = result.Error });
         }
 
-        return Ok(MapToDto(operation));
+        return Ok(MapToDto(result.Value));
     }
 
     /// <summary>

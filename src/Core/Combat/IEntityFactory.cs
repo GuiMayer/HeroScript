@@ -1,3 +1,5 @@
+using Core.Common;
+
 namespace Core.Combat;
 
 /// <summary>
@@ -10,6 +12,6 @@ public interface IEntityFactory
     /// </summary>
     /// <param name="entityId">ID da entidade</param>
     /// <param name="health">Vida inicial (padrão: 100)</param>
-    /// <returns>Entidade criada</returns>
-    CombatEntity CreateMockEntity(string entityId, float health = 100f);
+    /// <returns>Resultado com a entidade criada</returns>
+    Result<CombatEntity> CreateMockEntity(string entityId, float health = 100f);
 }
