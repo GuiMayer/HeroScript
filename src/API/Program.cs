@@ -89,6 +89,9 @@ builder.Services.AddSingleton<IEntityFactory, EntityFactory>();
 // Register ActionAffordabilityService
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 
+// Register ExpressionEvaluator
+builder.Services.AddSingleton<IExpressionEvaluator, ExpressionEvaluator>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
