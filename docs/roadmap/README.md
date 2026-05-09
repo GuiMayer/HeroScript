@@ -26,7 +26,7 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 | Fase | Status | Descrição | Documento |
 |------|--------|-----------|-----------|
 | **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [PHASE_0.md](PHASE_0.md) |
-| **Fase 1** | 🚧 Parcialmente Implementado | EventBus e Combate Básico | [PHASE_1.md](PHASE_1.md) |
+| **Fase 1** | ✅ Implementado | EventBus e Combate Básico | [PHASE_1.md](PHASE_1.md) |
 | **Fase 2** | 📋 Planejado | Camadas de Combate (Status, Modifiers, Gambits) | [PHASE_2.md](PHASE_2.md) |
 | **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [PHASE_3.md](PHASE_3.md) |
 | **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [PHASE_4.md](PHASE_4.md) |
@@ -68,7 +68,10 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
-| 2026-05-08 | Fase 1 | Damage Pipeline System implementado (7 buckets, 10 operações, 3 eventos, API REST) |
+| 2026-05-09 | Fase 1 | **Fase 1 completa!** 126 testes de dano implementados (unitários, integração, edge cases, eventos) |
+| 2026-05-09 | Fase 1 | IRandomProvider adicionado para testabilidade do sistema de crítico |
+| 2026-05-09 | Fase 1 | Testes de integração simulando PoE, Genshin, Card Game e RPG styles |
+| 2026-05-08 | Fase 1 | Damage Pipeline System implementado (7 operações, 5 filtros, 3 eventos, API REST) |
 | 2026-05-08 | Fase 1 | Combat System implementado com 53 testes |
 | 2026-05-08 | Fase 1 | Alternative Costs System implementado com 26 testes |
 | 2026-05-08 | Fase 1 | EventBus implementado e integrado |
@@ -77,3 +80,14 @@ http://localhost:5260/api
 ---
 
 **Próximo passo:** Implementar Status Effects System (Fase 2)
+
+## Estatísticas da Fase 1
+
+- **Total de testes:** 294 testes (todos passando)
+  - Combat: 53 testes
+  - Events: 18 testes  
+  - Damage: 126 testes
+  - Math: 97 testes
+- **APIs implementadas:** 3/3 (Events, Combat, Damage)
+- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline
+- **Documentação:** 8 documentos técnicos completos

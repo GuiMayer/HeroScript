@@ -1,8 +1,8 @@
 # Fase 1 - EventBus e Combate Básico
 
-**Status:** 🚧 Parcialmente Implementado  
+**Status:** ✅ Implementado  
 **Dependências:** Fase 0  
-**Última atualização:** 2026-05-08
+**Última atualização:** 2026-05-09
 
 ---
 
@@ -118,37 +118,56 @@ Sistema de custos alternativos para ações (implementado como parte do Combat).
 - ⏳ Aplicação automática de custos em ExecutePower (aguardando ActionManager)
 - ⏳ Endpoint /cost-options retornando dados reais (aguardando ActionManager)
 
-## APIs Planejadas
+### 3. Damage API ✅
 
-### 3. Damage API ❌
+Pipeline de cálculo de dano JSON-driven configurável.
 
-Pipeline de cálculo de dano com 6 baldes.
-
-**Status:** ❌ Não Implementado
+**Status:** ✅ Implementado (2026-05-09)
 
 **Endpoints:**
-- `POST /api/damage/calculate` - Calcula dano (simulação)
-- `POST /api/damage/pipeline` - Simula pipeline completo com detalhes
-- `GET /api/damage/buckets` - Lista baldes disponíveis e ordem
+- `POST /api/damage/calculate` - Calcula dano através do pipeline
+- `POST /api/damage/simulate` - Simula pipeline com detalhes de cada bucket
+- `GET /api/damage/config` - Obtém configuração atual do pipeline
+- `POST /api/damage/config/reload` - Recarrega configuração do pipeline
 
-**Buckets (6 baldes):**
-1. **Base** - Dano base da habilidade
-2. **Aditivo** - Bônus aditivos (+X dano)
-3. **Multiplicativo** - Multiplicadores (×Y%)
-4. **Crítico** - Cálculo de crítico multi-tier (0-5+)
-5. **Mitigação** - Armadura e resistências
-6. **Residual** - Efeitos finais (arredondamento, mínimo)
+**Arquitetura:**
+- **JSON-driven:** Pipeline completamente configurável via JSON
+- **Bucket-based:** Sistema de buckets ordenados com operações
+- **Filter system:** Condições para aplicação condicional de buckets
+- **Event-driven:** Emite eventos para cada bucket processado
 
-**Recursos:**
-- Simulação de dano sem afetar estado
-- Visualização de cada bucket
-- Suporte a crítico multi-tier
-- Integração com MathEngine
+**Buckets Configuráveis:**
+- Ordem definida por configuração JSON
+- Operações: ADD_FLAT, MULTIPLY, APPLY_FORMULA, ROLL_CRIT_TIER, CLAMP, FLOOR, CEIL
+- Filtros: TAG_PRESENT, TAG_ABSENT, MODIFIER_PRESENT, MODIFIER_ABSENT, MODIFIER_COMPARE
+- Suporte a crítico multi-tier (0-5+)
 
-**Observações:**
-- Diretório `src/Core/Damage/` existe mas está vazio
-- Sistema de combate atual usa dano direto sem pipeline
-- Prioridade alta para próxima implementação
+**Recursos Implementados:**
+- ✅ Pipeline JSON-driven com herança delta
+- ✅ GenericBucketProcessor com 7 operações
+- ✅ Sistema de filtros com 5 tipos de condições
+- ✅ PipelineConfigLoader com validação
+- ✅ PipelineManager com cache e reload
+- ✅ DamageCalculator integrado com CombatSystem
+- ✅ IRandomProvider para testabilidade
+- ✅ 3 eventos (BucketProcessedEvent, DamageCalculatedEvent, PipelineReloadedEvent)
+- ✅ REST API completa
+- ✅ 126 testes (unitários, integração, edge cases, eventos)
+
+**Testes Implementados:**
+- 30 testes GenericBucketProcessor
+- 20 testes FilterCondition
+- 10 testes PipelineConfigLoader
+- 12 testes PipelineManager
+- 16 testes DamageCalculator
+- 19 testes Edge Cases
+- 11 testes Eventos
+- 8 testes Integração (PoE, Genshin, Card Game, RPG styles)
+
+**Documentação:**
+- [DAMAGE_PIPELINE.md](../DAMAGE_PIPELINE.md) - Documentação completa do sistema
+- [DAMAGE_PIPELINE_EXAMPLES.md](../DAMAGE_PIPELINE_EXAMPLES.md) - Exemplos práticos
+- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - Plano de implementação
 
 ---
 
@@ -168,9 +187,9 @@ Ver: [EVENT_INTEGRATION.md](EVENT_INTEGRATION.md) para detalhes sobre as duas ab
 
 - ✅ MathEngine (Fase 0)
 - ✅ ConfigManager (Fase 0)
-- ⏳ EventBus (implementar primeiro)
-- ⏳ CombatSystem (implementar depois)
-- ⏳ BucketPipeline (implementar depois)
+- ✅ EventBus (implementado)
+- ✅ CombatSystem (implementado)
+- ✅ DamagePipeline (implementado)
 
 ### Ordem de Implementação
 
@@ -268,7 +287,7 @@ GET /api/events?category=COMBAT&limit=50
 
 ## Resumo de Implementação
 
-### ✅ Implementado (2/3 APIs)
+### ✅ Implementado (3/3 APIs)
 
 1. **Events API** - Sistema completo de eventos pub/sub
    - 18 testes (13 unitários + 5 integração)
@@ -287,20 +306,22 @@ GET /api/events?category=COMBAT&limit=50
    - Documentação completa com exemplos
    - Preparado para integração com ActionManager
 
-### ❌ Pendente (1/3 APIs)
-
-1. **Damage API** - Pipeline de cálculo de dano
-   - Diretório existe mas está vazio
-   - Prioridade alta para próxima implementação
-   - Necessário para gameplay complexo
+4. **Damage API** - Pipeline de cálculo de dano JSON-driven
+   - 126 testes (unitários, integração, edge cases, eventos)
+   - Pipeline completamente configurável via JSON
+   - Sistema de buckets com 7 operações e 5 tipos de filtros
+   - Integração com EventBus e CombatSystem
+   - REST API completa
 
 ### 📊 Estatísticas
 
-- **Total de testes:** 168 testes (todos passando)
-- **Cobertura Combat:** 53 testes
-- **Cobertura Events:** 18 testes
-- **Arquivos Core:** 76 arquivos .cs
-- **Controllers API:** 9 controllers
+- **Total de testes:** 294 testes (todos passando)
+  - Combat: 53 testes
+  - Events: 18 testes
+  - Damage: 126 testes
+  - Math: 97 testes
+- **Arquivos Core:** 85+ arquivos .cs
+- **Controllers API:** 10 controllers
 
 ---
 
