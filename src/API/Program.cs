@@ -135,7 +135,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "HeroScript Math API v1");
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "HeroScript API v1");
         options.RoutePrefix = string.Empty; // Serve Swagger UI at root
     });
 }
