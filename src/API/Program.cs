@@ -83,6 +83,9 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     return new CombatSystem(logger, resourceManager, eventBus);
 });
 
+// Register EntityFactory
+builder.Services.AddSingleton<IEntityFactory, EntityFactory>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {

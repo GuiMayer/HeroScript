@@ -15,15 +15,18 @@ public class DamageController : ControllerBase
 {
     private readonly IDamageCalculator _damageCalculator;
     private readonly IPipelineManager _pipelineManager;
+    private readonly IEntityFactory _entityFactory;
     private readonly CoreLogger _logger;
 
     public DamageController(
         IDamageCalculator damageCalculator,
         IPipelineManager pipelineManager,
+        IEntityFactory entityFactory,
         CoreLogger logger)
     {
         _damageCalculator = damageCalculator ?? throw new ArgumentNullException(nameof(damageCalculator));
         _pipelineManager = pipelineManager ?? throw new ArgumentNullException(nameof(pipelineManager));
+        _entityFactory = entityFactory ?? throw new ArgumentNullException(nameof(entityFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -58,8 +61,8 @@ public class DamageController : ControllerBase
             };
             
             // Criar entidades mock (em produção viriam do CombatSystem)
-            var attacker = CreateMockEntity(request.Attacker);
-            var target = CreateMockEntity(request.Target);
+            var attacker = _entityFactory.CreateMockEntity(request.Attacker.EntityId);
+            var target = _entityFactory.CreateMockEntity(request.Target.EntityId);
             
             // Calcular dano
             var result = _damageCalculator.CalculateDamage(actionDef, attacker, target);
@@ -154,53 +157,5 @@ public class DamageController : ControllerBase
             _logger.LogError($"Error reloading pipeline: {ex.Message}");
             return BadRequest(ex.Message);
         }
-    }
-
-    /// <summary>
-    /// Cria entidade mock para cálculo de dano
-    /// </summary>
-    private CombatEntity CreateMockEntity(EntityStatsDto stats)
-    {
-        // Criar definição de recurso health mock
-        var healthDef = new Core.Resources.ResourceDefinition
-        {
-            ResourceId = "health",
-            DisplayName = "Health",
-            Category = Core.Resources.ResourceCategory.VITAL,
-            DefaultCurrent = 100,
-            DefaultMax = 100,
-            DefaultMin = 0,
-            CanBeNegative = false,
-            CanExceedMax = false,
-            Tags = new List<string>()
-        };
-        
-        // Criar pool de health usando record syntax
-        var healthPool = new Core.Resources.ResourcePool
-        {
-            ResourceId = "health",
-            Current = 100,
-            Maximum = 100,
-            Minimum = 0,
-            Definition = healthDef
-        };
-        
-        // Criar EntityResourceState usando record syntax
-        var resourceState = new EntityResourceState
-        {
-            EntityId = stats.EntityId,
-            Resources = new Dictionary<string, Core.Resources.ResourcePool> { ["health"] = healthPool }
-        };
-        
-        // Criar entidade usando record syntax
-        var entity = new CombatEntity
-        {
-            EntityId = stats.EntityId,
-            Name = stats.EntityId,
-            IsHero = false,
-            ResourceState = resourceState
-        };
-        
-        return entity;
     }
 }
