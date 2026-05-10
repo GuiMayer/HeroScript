@@ -1,0 +1,89 @@
+{
+  "statusEffects": [
+    {
+      "statusId": "BURNING",
+      "displayName": "Burning",
+      "description": "Takes fire damage at the end of each turn. Stacks increase damage.",
+      "type": "DEBUFF",
+      
+      // Stacking Configuration
+      // isStackable: Can multiple instances stack together?
+      // maxStacks: Maximum number of stacks allowed (prevents infinite scaling)
+      "isStackable": true,
+      "maxStacks": 10,
+      
+      // Duration Configuration
+      // defaultDuration: How many turns this lasts (-1 = permanent)
+      // refreshDuration: When reapplied, should duration reset to max?
+      "defaultDuration": 3,
+      "refreshDuration": true,
+      
+      // Behaviors: What this status effect actually does
+      "behaviors": [
+        {
+          // timing: When does this behavior trigger?
+          // Options: START_OF_TURN, END_OF_TURN, ON_DAMAGE_TAKEN, ON_DEATH, PASSIVE
+          "timing": "END_OF_TURN",
+          
+          // type: What kind of effect is this?
+          // DAMAGE_OVER_TIME: Deals damage each turn
+          "type": "DAMAGE_OVER_TIME",
+          
+          // value: Base damage per tick
+          "value": 5.0,
+          
+          // scalesWithStacks: Does damage multiply by stack count?
+          // true: 3 stacks = 15 damage (5 * 3)
+          // false: 3 stacks = 5 damage (always base value)
+          "scalesWithStacks": true
+        }
+      ]
+    },
+    
+    {
+      "statusId": "POISON",
+      "displayName": "Poison",
+      "description": "Takes poison damage at the end of each turn. Stacks increase damage.",
+      "type": "DEBUFF",
+      "isStackable": true,
+      "maxStacks": 10,
+      "defaultDuration": 3,
+      "refreshDuration": true,
+      "behaviors": [
+        {
+          "timing": "END_OF_TURN",
+          "type": "DAMAGE_OVER_TIME",
+          
+          // Poison deals less damage per tick than Burning (3 vs 5)
+          // but can be applied more frequently in typical gameplay
+          "value": 3.0,
+          "scalesWithStacks": true
+        }
+      ]
+    },
+    
+    {
+      "statusId": "BLEEDING",
+      "displayName": "Bleeding",
+      "description": "Takes physical damage at the end of each turn. Stacks increase damage.",
+      "type": "DEBUFF",
+      "isStackable": true,
+      
+      // Bleeding has lower max stacks (5 vs 10)
+      // but deals moderate damage per stack (4)
+      "maxStacks": 5,
+      
+      // Shorter duration (2 turns) - more tactical, less sustained
+      "defaultDuration": 2,
+      "refreshDuration": true,
+      "behaviors": [
+        {
+          "timing": "END_OF_TURN",
+          "type": "DAMAGE_OVER_TIME",
+          "value": 4.0,
+          "scalesWithStacks": true
+        }
+      ]
+    }
+  ]
+}

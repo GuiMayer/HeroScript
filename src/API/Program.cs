@@ -6,6 +6,9 @@ using Core.Math;
 using Core.Events;
 using Core.Combat;
 using Core.Resources;
+using Core.Damage;
+using Core.Effects;
+using Core.StatusEffects;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +58,16 @@ builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
     return new MathEngine(configManager, formulaLoader, logger, eventBus);
 });
 
+// Register ResourceRegenerationProcessor
+builder.Services.AddSingleton<IResourceRegenerationProcessor, ResourceRegenerationProcessor>(sp =>
+{
+    var mathEngine = sp.GetRequiredService<IMathEngine>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceRegenerationProcessor"));
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    return new ResourceRegenerationProcessor(mathEngine, logger, eventBus);
+});
+
 // Register ResourceManager
 builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
 {
@@ -62,7 +75,17 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceManager"));
-    return new ResourceManager(configManager, resourceLoader, logger);
+    var regenerationProcessor = sp.GetRequiredService<IResourceRegenerationProcessor>();
+    return new ResourceManager(configManager, resourceLoader, logger, regenerationProcessor);
+});
+
+// Register StatusEffectManager
+builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
+{
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceManager = sp.GetRequiredService<IResourceManager>();
+    var mathEngine = sp.GetRequiredService<IMathEngine>();
+    return new StatusEffectManager(configManager, resourceManager, mathEngine);
 });
 
 // Register ActionManager
@@ -75,6 +98,28 @@ builder.Services.AddSingleton<ActionManager>(sp =>
     return new ActionManager(configManager, resourceLoader, logger);
 });
 
+// Register DamageCalculator
+builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
+{
+    var pipelineManager = sp.GetRequiredService<IPipelineManager>();
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("DamageCalculator"));
+    return new DamageCalculator(pipelineManager, eventBus, logger);
+});
+
+// Register EffectResolver
+builder.Services.AddSingleton<IEffectResolver, EffectResolver>(sp =>
+{
+    var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
+    var resourceManager = sp.GetRequiredService<IResourceManager>();
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EffectResolver"));
+    var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
+    return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, randomProvider: null, statusEffectManager: statusEffectManager);
+});
+
 // Register CombatSystem
 builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 {
@@ -82,7 +127,9 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("CombatSystem"));
     var resourceManager = sp.GetRequiredService<IResourceManager>();
     var eventBus = sp.GetRequiredService<IEventBus>();
-    return new CombatSystem(logger, resourceManager, eventBus);
+    var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
+    var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
+    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager);
 });
 
 // Register EntityFactory
@@ -142,6 +189,19 @@ var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 var coreLogger = new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
 Core.Logging.LoggerFactory.SetFactory(categoryName => 
     new CoreLoggerAdapter(loggerFactory.CreateLogger(categoryName)));
+
+// Load status effect definitions
+var statusEffectManager = app.Services.GetRequiredService<IStatusEffectManager>();
+var loadResult = statusEffectManager.LoadStatusDefinitions("default");
+var logger = loggerFactory.CreateLogger("Startup");
+if (loadResult.IsSuccess)
+{
+    logger.LogInformation("Successfully loaded status effect definitions from config 'default'");
+}
+else
+{
+    logger.LogError("Failed to load status effect definitions: {Error}", loadResult.Error);
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

@@ -1,0 +1,146 @@
+{
+  "statusEffects": [
+    {
+      "statusId": "ARTIFACT",
+      "displayName": "Artifact",
+      "description": "Prevents the next debuff from being applied. Consumes one stack when triggered.",
+      "type": "BUFF",
+      "isStackable": true,
+      
+      // Can stack up to 5 times - each stack blocks one debuff
+      "maxStacks": 5,
+      
+      // Permanent - lasts until consumed or removed
+      "defaultDuration": -1,
+      "refreshDuration": false,
+      
+      "behaviors": [
+        {
+          // ON_DEBUFF_APPLIED: Triggers when a debuff is about to be applied
+          // This is a special timing that intercepts debuff application
+          "timing": "ON_DEBUFF_APPLIED",
+          
+          // PREVENT_NEXT_DEBUFF: Blocks the debuff entirely
+          // The debuff is never applied - completely negated
+          "type": "PREVENT_NEXT_DEBUFF",
+          
+          // consumesStack: true - Each blocked debuff removes 1 stack
+          // When stacks reach 0, Artifact is removed
+          "consumesStack": true
+        }
+      ]
+    },
+    
+    {
+      "statusId": "INTANGIBLE",
+      "displayName": "Intangible",
+      "description": "Limits all incoming damage to 1. Does not stack.",
+      "type": "BUFF",
+      
+      // Not stackable - you're either intangible or not
+      "isStackable": false,
+      "maxStacks": 1,
+      
+      // Very short duration (1 turn) - extremely powerful effect
+      // Taking only 1 damage from any attack is game-changing
+      "defaultDuration": 1,
+      "refreshDuration": false,
+      
+      "behaviors": [
+        {
+          "timing": "ON_DAMAGE_TAKEN",
+          
+          // DAMAGE_CAP: Limits damage to a maximum value
+          // No matter how much damage would be dealt, only 1 goes through
+          "type": "DAMAGE_CAP",
+          
+          // Maximum damage that can be taken
+          // 100 damage attack becomes 1 damage
+          "value": 1.0
+        }
+      ]
+    },
+    
+    {
+      "statusId": "BUFFER",
+      "displayName": "Buffer",
+      "description": "Prevents death once. When fatal damage would be taken, survive with 1 HP and consume one stack.",
+      "type": "BUFF",
+      "isStackable": true,
+      
+      // Can stack up to 3 times - 3 "lives"
+      "maxStacks": 3,
+      
+      // Permanent - lasts until consumed
+      "defaultDuration": -1,
+      "refreshDuration": false,
+      
+      "behaviors": [
+        {
+          // ON_DEATH: Triggers when HP would reach 0 or below
+          // This is checked BEFORE death is applied
+          "timing": "ON_DEATH",
+          
+          // DEATH_PREVENTION: Prevents death and sets HP to 1
+          // Entity survives with 1 HP instead of dying
+          "type": "DEATH_PREVENTION",
+          
+          // consumesStack: true - Each death prevention removes 1 stack
+          // After 3 deaths (with 3 stacks), Buffer is gone
+          "consumesStack": true
+        }
+      ]
+    },
+    
+    {
+      "statusId": "THORNS",
+      "displayName": "Thorns",
+      "description": "Reflects damage back to attackers. Each stack reflects 3 damage.",
+      "type": "BUFF",
+      "isStackable": true,
+      "maxStacks": 10,
+      "defaultDuration": 3,
+      "refreshDuration": true,
+      
+      "behaviors": [
+        {
+          "timing": "ON_DAMAGE_TAKEN",
+          
+          // REFLECT_DAMAGE: Deals damage back to the attacker
+          // This creates a counter-attack effect
+          "type": "REFLECT_DAMAGE",
+          
+          // Amount of damage reflected per stack
+          // 5 stacks = 15 damage reflected (3 * 5)
+          // Note: Reflected damage typically cannot trigger more Thorns
+          // (to prevent infinite loops)
+          "value": 3.0,
+          "scalesWithStacks": true
+        }
+      ]
+    }
+  ],
+  
+  "notes": {
+    "implementation_status": "PARTIAL",
+    "todo": [
+      "Implement ON_DEBUFF_APPLIED timing in StatusEffectProcessor",
+      "Implement PREVENT_NEXT_DEBUFF behavior",
+      "Implement ON_DEATH timing in CombatSystem",
+      "Implement DEATH_PREVENTION behavior",
+      "Implement DAMAGE_CAP behavior",
+      "Implement REFLECT_DAMAGE behavior",
+      "Add consumesStack logic to StatusEffectProcessor",
+      "Test interaction between Artifact and various debuffs",
+      "Test Buffer with fatal damage scenarios",
+      "Test Intangible with high damage attacks",
+      "Test Thorns reflection loop prevention"
+    ],
+    "design_notes": {
+      "artifact": "Should block ALL debuffs, including Weakness, Vulnerable, Frail, Poison, etc. Does NOT block damage.",
+      "intangible": "Caps damage AFTER all other calculations. Even 9999 damage becomes 1.",
+      "buffer": "Triggers BEFORE death. Entity survives with exactly 1 HP. Does NOT prevent the damage, just prevents death.",
+      "thorns": "Reflected damage should NOT trigger more Thorns (prevent infinite loops). Consider adding 'reflected' flag to damage."
+    }
+  }
+}
