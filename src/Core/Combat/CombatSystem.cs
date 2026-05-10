@@ -1,9 +1,11 @@
 using Core.Common;
 using Core.Damage;
+using Core.Effects;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
 using Core.Resources;
+using Core.StatusEffects;
 using System.Collections.Concurrent;
 
 namespace Core.Combat;
@@ -20,6 +22,7 @@ public class CombatSystem : ICombatSystem
     private readonly ILogger _logger;
     private readonly IResourceManager _resourceManager;
     private readonly IDamageCalculator? _damageCalculator;
+    private readonly IStatusEffectManager? _statusEffectManager;
     
     // Constantes de gameplay (futuramente virão de config)
     private const int BASIC_ATTACK_DAMAGE = 10;
@@ -27,12 +30,18 @@ public class CombatSystem : ICombatSystem
     private const int DEFAULT_POWER_COST = 3;
     private const int DEFAULT_POWER_DAMAGE = 30;
     
-    public CombatSystem(ILogger logger, IResourceManager resourceManager, IEventBus? eventBus = null, IDamageCalculator? damageCalculator = null)
+    public CombatSystem(
+        ILogger logger, 
+        IResourceManager resourceManager, 
+        IEventBus? eventBus = null, 
+        IDamageCalculator? damageCalculator = null,
+        IStatusEffectManager? statusEffectManager = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _eventBus = eventBus;
         _damageCalculator = damageCalculator;
+        _statusEffectManager = statusEffectManager;
     }
     
     public Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3)
@@ -191,6 +200,25 @@ public class CombatSystem : ICombatSystem
     
     private Result<bool> ValidateAction(CombatState state, ActionType actionType, string? powerId, string? targetId, string? costOptionId)
     {
+        // Verificar se o herói está sob controle (STUN, FREEZE, etc.)
+        if (actionType != ActionType.PASS && actionType != ActionType.END_TURN)
+        {
+            if (_statusEffectManager != null && Guid.TryParse(state.Hero.EntityId, out var heroGuid))
+            {
+                var activeStatusResult = _statusEffectManager.GetActiveStatus(heroGuid);
+                if (activeStatusResult.IsSuccess)
+                {
+                    var hasControlEffect = activeStatusResult.Value.Any(s => 
+                        s.Definition.Behavior == StatusEffectBehavior.CONTROL);
+                    
+                    if (hasControlEffect)
+                    {
+                        return Result<bool>.Failure("Cannot perform action: hero is under control effect (stunned, frozen, etc.)");
+                    }
+                }
+            }
+        }
+        
         switch (actionType)
         {
             case ActionType.BASIC_ATTACK:
@@ -253,8 +281,16 @@ public class CombatSystem : ICombatSystem
             var actionDef = new ActionDefinition
             {
                 ActionId = "basic_attack",
-                BaseDamage = BASIC_ATTACK_DAMAGE,
-                Tags = new List<string> { "physical", "melee", "can_crit" }
+                Tags = new List<string> { "physical", "melee", "can_crit" },
+                Effects = new List<EffectDefinition>
+                {
+                    new EffectDefinition
+                    {
+                        Type = EffectType.DAMAGE,
+                        FlatValue = BASIC_ATTACK_DAMAGE,
+                        Target = EffectTarget.TARGET
+                    }
+                }
             };
             
             var damageResult = _damageCalculator.CalculateDamage(actionDef, state.Hero, target);
@@ -268,12 +304,15 @@ public class CombatSystem : ICombatSystem
             damageDealt = BASIC_ATTACK_DAMAGE;
         }
         
-        var newTarget = target.TakeDamage(damageDealt);
+        // Processar status effects ON_DAMAGE_TAKEN (THORNS, SHIELD, etc.)
+        var (modifiedDamage, updatedHero) = ProcessOnDamageTakenEffects(target, state.Hero, damageDealt, state.CurrentTurn);
+        
+        var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
         
         // Ganhar energia
-        var energyPool = state.GetHeroResource("energy")!;
+        var energyPool = updatedHero.GetResource("energy")!;
         var newEnergyPool = energyPool.Gain(BASIC_ATTACK_ENERGY_GAIN);
-        var newHero = state.Hero.UpdateResource("energy", newEnergyPool);
+        var newHero = updatedHero.UpdateResource("energy", newEnergyPool);
         
         var action = new CombatAction
         {
@@ -319,8 +358,16 @@ public class CombatSystem : ICombatSystem
             var actionDef = new ActionDefinition
             {
                 ActionId = powerId,
-                BaseDamage = DEFAULT_POWER_DAMAGE,
-                Tags = new List<string> { "spell", "fire", "can_crit" }
+                Tags = new List<string> { "spell", "fire", "can_crit" },
+                Effects = new List<EffectDefinition>
+                {
+                    new EffectDefinition
+                    {
+                        Type = EffectType.DAMAGE,
+                        FlatValue = DEFAULT_POWER_DAMAGE,
+                        Target = EffectTarget.TARGET
+                    }
+                }
             };
             
             var damageResult = _damageCalculator.CalculateDamage(actionDef, state.Hero, target);
@@ -334,12 +381,15 @@ public class CombatSystem : ICombatSystem
             damageDealt = DEFAULT_POWER_DAMAGE;
         }
         
-        var newTarget = target.TakeDamage(damageDealt);
+        // Processar status effects ON_DAMAGE_TAKEN (THORNS, SHIELD, etc.)
+        var (modifiedDamage, updatedHero) = ProcessOnDamageTakenEffects(target, state.Hero, damageDealt, state.CurrentTurn);
+        
+        var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
         
         // Gastar energia
-        var energyPool = state.GetHeroResource("energy")!;
+        var energyPool = updatedHero.GetResource("energy")!;
         var newEnergyPool = energyPool.Spend(DEFAULT_POWER_COST);
-        var newHero = state.Hero.UpdateResource("energy", newEnergyPool);
+        var newHero = updatedHero.UpdateResource("energy", newEnergyPool);
         
         var action = new CombatAction
         {
@@ -400,11 +450,254 @@ public class CombatSystem : ICombatSystem
         
         var newHistory = state.ActionHistory.Append(action).ToList();
         
-        return state with
+        // Incrementar turno primeiro
+        var updatedState = state with
         {
             ActionHistory = newHistory,
             CurrentTurn = state.CurrentTurn + 1
         };
+        
+        if (_statusEffectManager != null)
+        {
+            // Processar START_OF_TURN (regeneração, energia, verificar stun)
+            updatedState = ProcessStartOfTurnStatusEffects(updatedState);
+            
+            // Processar END_OF_TURN (DoT, decrementar durações)
+            updatedState = ProcessEndOfTurnStatusEffects(updatedState);
+        }
+        
+        return updatedState;
+    }
+    
+    /// <summary>
+    /// Processa status effects no início do turno (Regeneração, Energia, verificar Stun)
+    /// </summary>
+    private CombatState ProcessStartOfTurnStatusEffects(CombatState state)
+    {
+        _logger.LogDebug("Processing start-of-turn status effects");
+        
+        var updatedHero = state.Hero;
+        var updatedEnemies = state.Enemies.ToList();
+        
+        // Processar status effects do herói
+        if (Guid.TryParse(state.Hero.EntityId, out var heroGuid))
+        {
+            var processResult = _statusEffectManager!.ProcessStatusEffects(heroGuid, StatusEffectTiming.START_OF_TURN, state.CurrentTurn);
+            if (processResult.IsSuccess)
+            {
+                updatedHero = ApplyStatusEffectResults(updatedHero, processResult.Value.TickResults);
+            }
+        }
+        
+        // Processar status effects dos inimigos
+        for (int i = 0; i < updatedEnemies.Count; i++)
+        {
+            var enemy = updatedEnemies[i];
+            if (Guid.TryParse(enemy.EntityId, out var enemyGuid))
+            {
+                var processResult = _statusEffectManager!.ProcessStatusEffects(enemyGuid, StatusEffectTiming.START_OF_TURN, state.CurrentTurn);
+                if (processResult.IsSuccess)
+                {
+                    updatedEnemies[i] = ApplyStatusEffectResults(enemy, processResult.Value.TickResults);
+                }
+            }
+        }
+        
+        return state with
+        {
+            Hero = updatedHero,
+            Enemies = updatedEnemies
+        };
+    }
+    
+    /// <summary>
+    /// Processa status effects no final do turno (DoT, HoT, decrementar durações)
+    /// </summary>
+    private CombatState ProcessEndOfTurnStatusEffects(CombatState state)
+    {
+        _logger.LogDebug("Processing end-of-turn status effects");
+        
+        var updatedHero = state.Hero;
+        var updatedEnemies = state.Enemies.ToList();
+        
+        // Processar status effects do herói
+        if (Guid.TryParse(state.Hero.EntityId, out var heroGuid))
+        {
+            var processResult = _statusEffectManager!.ProcessStatusEffects(heroGuid, StatusEffectTiming.END_OF_TURN, state.CurrentTurn);
+            if (processResult.IsSuccess)
+            {
+                updatedHero = ApplyStatusEffectResults(updatedHero, processResult.Value.TickResults);
+            }
+            
+            // Decrementar durações
+            _statusEffectManager.TickDurations(heroGuid);
+        }
+        
+        // Processar status effects dos inimigos
+        for (int i = 0; i < updatedEnemies.Count; i++)
+        {
+            var enemy = updatedEnemies[i];
+            if (Guid.TryParse(enemy.EntityId, out var enemyGuid))
+            {
+                var processResult = _statusEffectManager!.ProcessStatusEffects(enemyGuid, StatusEffectTiming.END_OF_TURN, state.CurrentTurn);
+                if (processResult.IsSuccess)
+                {
+                    updatedEnemies[i] = ApplyStatusEffectResults(enemy, processResult.Value.TickResults);
+                }
+                
+                // Decrementar durações
+                _statusEffectManager.TickDurations(enemyGuid);
+            }
+        }
+        
+        return state with
+        {
+            Hero = updatedHero,
+            Enemies = updatedEnemies
+        };
+    }
+    
+    /// <summary>
+    /// Aplica os resultados de status effects a uma entidade (dano, cura, etc.)
+    /// </summary>
+    private CombatEntity ApplyStatusEffectResults(CombatEntity entity, List<StatusEffectTickResult> results)
+    {
+        var updatedEntity = entity;
+        
+        foreach (var result in results)
+        {
+            // StatusEffectTickResult usa Value para representar o valor aplicado
+            // Verificar se é DoT (dano) ou HoT (cura) baseado no tipo específico
+            
+            // DoTs: BURNING, POISON, BLEEDING
+            if (result.Type == StatusEffectType.BURNING || 
+                result.Type == StatusEffectType.POISON || 
+                result.Type == StatusEffectType.BLEEDING)
+            {
+                if (result.Value > 0)
+                {
+                    _logger.LogDebug($"Status effect {result.StatusId} dealt {result.Value} damage to {entity.EntityId}");
+                    updatedEntity = ApplyDamageWithBufferCheck(updatedEntity, result.Value);
+                }
+            }
+            // HoT: REGENERATION
+            else if (result.Type == StatusEffectType.REGENERATION)
+            {
+                if (result.Value > 0)
+                {
+                    _logger.LogDebug($"Status effect {result.StatusId} healed {result.Value} to {entity.EntityId}");
+                    var healthPool = updatedEntity.GetResource("health");
+                    if (healthPool != null)
+                    {
+                        var newHealthPool = healthPool.Gain(result.Value);
+                        updatedEntity = updatedEntity.UpdateResource("health", newHealthPool);
+                    }
+                }
+            }
+        }
+        
+        return updatedEntity;
+    }
+    
+    /// <summary>
+    /// Processa status effects quando uma entidade recebe dano (THORNS, SHIELD, etc.)
+    /// Retorna o dano modificado e a entidade atacante atualizada (para THORNS)
+    /// </summary>
+    private (float modifiedDamage, CombatEntity updatedAttacker) ProcessOnDamageTakenEffects(
+        CombatEntity target, 
+        CombatEntity attacker, 
+        float incomingDamage,
+        int currentTurn)
+    {
+        if (_statusEffectManager == null || !Guid.TryParse(target.EntityId, out var targetGuid))
+        {
+            return (incomingDamage, attacker);
+        }
+        
+        var processResult = _statusEffectManager.ProcessStatusEffects(targetGuid, StatusEffectTiming.ON_DAMAGE_TAKEN, currentTurn);
+        if (processResult.IsFailure)
+        {
+            return (incomingDamage, attacker);
+        }
+        
+        var modifiedDamage = incomingDamage;
+        var updatedAttacker = attacker;
+        
+        foreach (var result in processResult.Value.TickResults)
+        {
+            // SHIELD: Absorve dano
+            if (result.Type == StatusEffectType.SHIELD && result.Value > 0)
+            {
+                var absorbed = System.Math.Min(modifiedDamage, result.Value);
+                modifiedDamage -= absorbed;
+                _logger.LogDebug($"SHIELD absorbed {absorbed} damage, remaining damage: {modifiedDamage}");
+            }
+            // THORNS: Reflete dano ao atacante
+            else if (result.Type == StatusEffectType.THORNS && result.Value > 0)
+            {
+                _logger.LogDebug($"THORNS reflected {result.Value} damage to {attacker.EntityId}");
+                updatedAttacker = ApplyDamageWithBufferCheck(updatedAttacker, result.Value);
+            }
+            // INTANGIBLE: Limita dano máximo recebido
+            else if (result.Type == StatusEffectType.INTANGIBLE && result.Value > 0)
+            {
+                if (modifiedDamage > result.Value)
+                {
+                    var capped = modifiedDamage - result.Value;
+                    modifiedDamage = result.Value;
+                    _logger.LogDebug($"INTANGIBLE capped {capped} damage, damage limited to: {modifiedDamage}");
+                }
+            }
+        }
+        
+        return (modifiedDamage, updatedAttacker);
+    }
+    
+    /// <summary>
+    /// Aplica dano a uma entidade, verificando BUFFER para prevenir morte
+    /// Retorna a entidade atualizada
+    /// </summary>
+    private CombatEntity ApplyDamageWithBufferCheck(CombatEntity entity, float damage)
+    {
+        if (_statusEffectManager == null || !Guid.TryParse(entity.EntityId, out var entityGuid))
+        {
+            return entity.TakeDamage(damage);
+        }
+        
+        var healthPool = entity.GetResource("health");
+        if (healthPool == null)
+        {
+            return entity;
+        }
+        
+        // Verificar se o dano seria fatal
+        var wouldDie = (healthPool.Current - damage) <= 0;
+        
+        if (wouldDie)
+        {
+            // Verificar se há BUFFER ativo
+            var activeStatusResult = _statusEffectManager.GetActiveStatus(entityGuid);
+            if (activeStatusResult.IsSuccess)
+            {
+                var bufferEffect = activeStatusResult.Value.FirstOrDefault(s => 
+                    s.Definition.Type == StatusEffectType.BUFFER);
+                
+                if (bufferEffect != null)
+                {
+                    _logger.LogDebug($"BUFFER prevented death for {entity.EntityId}, leaving at 1 HP");
+                    
+                    // Remover o BUFFER
+                    _statusEffectManager.RemoveStatus(entityGuid, bufferEffect.InstanceId);
+                    
+                    // Deixar a entidade com 1 HP
+                    var newHealthPool = healthPool.Set(1);
+                    return entity.UpdateResource("health", newHealthPool);
+                }
+            }
+        }
+        
+        // Sem BUFFER ou dano não-fatal: aplicar dano normalmente
+        return entity.TakeDamage(damage);
     }
     
     /// <summary>

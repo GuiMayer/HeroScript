@@ -1,6 +1,7 @@
 using API.Models;
 using Core.Combat;
 using Core.Damage;
+using Core.Effects;
 using Microsoft.AspNetCore.Mvc;
 using CoreLogger = Core.Logging.ILogger;
 
@@ -56,8 +57,16 @@ public class DamageController : ControllerBase
             var actionDef = new ActionDefinition
             {
                 ActionId = request.ActionId,
-                BaseDamage = request.BaseDamage,
-                Tags = request.Tags
+                Tags = request.Tags,
+                Effects = new List<EffectDefinition>
+                {
+                    new EffectDefinition
+                    {
+                        Type = EffectType.DAMAGE,
+                        FlatValue = request.BaseDamage,
+                        Target = EffectTarget.TARGET
+                    }
+                }
             };
             
             // Criar entidades mock (em produção viriam do CombatSystem)

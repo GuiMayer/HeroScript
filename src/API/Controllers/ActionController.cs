@@ -1,5 +1,6 @@
 using API.Models.Actions;
 using Core.Combat;
+using Core.Effects;
 using Microsoft.AspNetCore.Mvc;
 using CoreLogger = Core.Logging.ILogger;
 
@@ -193,7 +194,9 @@ public class ActionController : ControllerBase
             Description = definition.Description,
             ActionType = definition.ActionType.ToString(),
             Cooldown = definition.Cooldown,
-            BaseDamage = definition.BaseDamage ?? 0f,
+            BaseDamage = definition.Effects
+                .Where(e => e.Type == EffectType.DAMAGE)
+                .Sum(e => e.FlatValue ?? 0f),
             Tags = definition.Tags,
             Costs = new ActionCostsDto
             {
@@ -227,7 +230,15 @@ public class ActionController : ControllerBase
             Description = dto.Description,
             ActionType = Enum.TryParse<ActionType>(dto.ActionType, true, out var type) ? type : ActionType.POWER,
             Cooldown = dto.Cooldown,
-            BaseDamage = dto.BaseDamage,
+            Effects = new List<EffectDefinition>
+            {
+                new EffectDefinition
+                {
+                    Type = EffectType.DAMAGE,
+                    FlatValue = dto.BaseDamage,
+                    Target = EffectTarget.TARGET
+                }
+            },
             Tags = dto.Tags,
             Costs = new ActionCosts
             {

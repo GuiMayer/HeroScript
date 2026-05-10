@@ -9,8 +9,8 @@
   "canBeNegative": false,
   "canExceedMax": false,
   "regeneration": {
-    "enabled": false,
-    "amountPerTurn": 0,
+    "enabled": true,
+    "amountPerTurn": 3,
     "formula": null,
     "timing": "START_TURN"
   },

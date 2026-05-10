@@ -9,21 +9,30 @@ namespace Core.Resources;
 /// Gerenciador de recursos configuráveis.
 /// Carrega definições de recursos de arquivos JSON.
 /// </summary>
-public class ResourceManager : IResourceManager
+public class ResourceManager : IResourceManager, IDisposable
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
+    private readonly IResourceRegenerationProcessor _regenerationProcessor;
     private readonly Dictionary<string, ResourceDefinition> _definitions = new();
+    private readonly object _lock = new();
+    
+    // Hot-reload support
+    private FileSystemWatcher? _fileWatcher;
+    private string? _currentConfigName;
+    private bool _hotReloadEnabled;
     
     public ResourceManager(
         IConfigManager configManager,
         IResourceLoader resourceLoader,
-        ILogger logger)
+        ILogger logger,
+        IResourceRegenerationProcessor regenerationProcessor)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _regenerationProcessor = regenerationProcessor ?? throw new ArgumentNullException(nameof(regenerationProcessor));
     }
     
     public void LoadResourceDefinitions(string configName)
@@ -35,10 +44,12 @@ public class ResourceManager : IResourceManager
             // Obter cadeia de herança do config
             var configChain = _configManager.ResolveInheritanceChain(configName);
             
-            // Tentar carregar recursos conhecidos
-            var resourceNames = new[] { "health", "energy", "mana", "shield", "stamina", "rage" };
+            // Descobrir automaticamente todos os recursos disponíveis
+            var discoveredResources = _resourceLoader.DiscoverResources("resources", configChain, "*.json");
             
-            foreach (var resourceName in resourceNames)
+            _logger.LogDebug($"Discovered {discoveredResources.Count()} resource files");
+            
+            foreach (var resourceName in discoveredResources)
             {
                 try
                 {
@@ -53,9 +64,15 @@ public class ResourceManager : IResourceManager
                     if (firstElement.ValueKind == System.Text.Json.JsonValueKind.Undefined)
                         continue;
                     
+                    var options = new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true,
+                        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                    };
+                    
                     var definition = JsonSerializer.Deserialize<ResourceDefinition>(
                         firstElement.GetRawText(),
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        options);
                     
                     if (definition == null)
                     {
@@ -186,5 +203,188 @@ public class ResourceManager : IResourceManager
             return Result.Failure("Default current cannot exceed default max");
         
         return Result.Success();
+    }
+    
+    public Result<Combat.EntityResourceState> ProcessRegeneration(
+        Combat.EntityResourceState entityResourceState,
+        RegenerationTiming timing,
+        Dictionary<string, float>? context = null)
+    {
+        return _regenerationProcessor.ProcessRegeneration(entityResourceState, timing, context);
+    }
+    
+    public void EnableHotReload(string configName)
+    {
+        lock (_lock)
+        {
+            if (_hotReloadEnabled)
+            {
+                _logger.LogWarning("Hot-reload is already enabled");
+                return;
+            }
+            
+            _currentConfigName = configName;
+            
+            // Get the config path to monitor
+            var configPath = _configManager.GetConfigPath(configName);
+            var resourcesPath = Path.Combine(configPath, "Resources", "resources");
+            
+            if (!Directory.Exists(resourcesPath))
+            {
+                _logger.LogWarning($"Resources directory not found: {resourcesPath}");
+                return;
+            }
+            
+            _fileWatcher = new FileSystemWatcher(resourcesPath)
+            {
+                Filter = "*.json",
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.CreationTime,
+                EnableRaisingEvents = true
+            };
+            
+            _fileWatcher.Changed += OnResourceFileChanged;
+            _fileWatcher.Created += OnResourceFileChanged;
+            _fileWatcher.Deleted += OnResourceFileDeleted;
+            _fileWatcher.Renamed += OnResourceFileRenamed;
+            
+            _hotReloadEnabled = true;
+            _logger.LogInformation($"Hot-reload enabled for config '{configName}' at {resourcesPath}");
+        }
+    }
+    
+    public void DisableHotReload()
+    {
+        lock (_lock)
+        {
+            if (_fileWatcher != null)
+            {
+                _fileWatcher.EnableRaisingEvents = false;
+                _fileWatcher.Changed -= OnResourceFileChanged;
+                _fileWatcher.Created -= OnResourceFileChanged;
+                _fileWatcher.Deleted -= OnResourceFileDeleted;
+                _fileWatcher.Renamed -= OnResourceFileRenamed;
+                _fileWatcher.Dispose();
+                _fileWatcher = null;
+            }
+            
+            _hotReloadEnabled = false;
+            _currentConfigName = null;
+            _logger.LogInformation("Hot-reload disabled");
+        }
+    }
+    
+    public Result ReloadResource(string resourceId)
+    {
+        if (string.IsNullOrWhiteSpace(_currentConfigName))
+            return Result.Failure("No config loaded for hot-reload");
+        
+        try
+        {
+            var configChain = _configManager.ResolveInheritanceChain(_currentConfigName);
+            var relativePath = $"resources/{resourceId}.json";
+            
+            // Invalidate cache for this resource
+            _resourceLoader.InvalidateCache(relativePath);
+            
+            // Reload the resource
+            var resourceData = _resourceLoader.LoadResource(relativePath, configChain, strictMode: false);
+            
+            if (resourceData.Count == 0)
+            {
+                lock (_lock)
+                {
+                    _definitions.Remove(resourceId);
+                }
+                _logger.LogInformation($"Resource '{resourceId}' removed (file not found or empty)");
+                return Result.Success();
+            }
+            
+            var firstElement = resourceData.Values.FirstOrDefault();
+            if (firstElement.ValueKind == System.Text.Json.JsonValueKind.Undefined)
+            {
+                return Result.Failure($"Invalid resource data for '{resourceId}'");
+            }
+            
+            var definition = JsonSerializer.Deserialize<ResourceDefinition>(
+                firstElement.GetRawText(),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (definition == null)
+            {
+                return Result.Failure($"Failed to deserialize resource '{resourceId}'");
+            }
+            
+            var validation = ValidateResourceDefinition(definition);
+            if (validation.IsFailure)
+            {
+                return Result.Failure($"Invalid resource definition '{resourceId}': {validation.Error}");
+            }
+            
+            lock (_lock)
+            {
+                _definitions[definition.ResourceId] = definition;
+            }
+            
+            _logger.LogInformation($"Resource '{resourceId}' reloaded successfully");
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error reloading resource '{resourceId}': {ex.Message}");
+            return Result.Failure($"Error reloading resource: {ex.Message}");
+        }
+    }
+    
+    private void OnResourceFileChanged(object sender, FileSystemEventArgs e)
+    {
+        var resourceId = Path.GetFileNameWithoutExtension(e.Name);
+        _logger.LogDebug($"Resource file changed: {e.Name}");
+        
+        // Debounce: wait a bit for file to be fully written
+        Task.Delay(100).ContinueWith(_ =>
+        {
+            var result = ReloadResource(resourceId);
+            if (result.IsFailure)
+            {
+                _logger.LogWarning($"Failed to reload resource '{resourceId}': {result.Error}");
+            }
+        });
+    }
+    
+    private void OnResourceFileDeleted(object sender, FileSystemEventArgs e)
+    {
+        var resourceId = Path.GetFileNameWithoutExtension(e.Name);
+        _logger.LogDebug($"Resource file deleted: {e.Name}");
+        
+        lock (_lock)
+        {
+            _definitions.Remove(resourceId);
+        }
+        
+        _logger.LogInformation($"Resource '{resourceId}' removed from definitions");
+    }
+    
+    private void OnResourceFileRenamed(object sender, RenamedEventArgs e)
+    {
+        var oldResourceId = Path.GetFileNameWithoutExtension(e.OldName);
+        var newResourceId = Path.GetFileNameWithoutExtension(e.Name);
+        
+        _logger.LogDebug($"Resource file renamed: {e.OldName} -> {e.Name}");
+        
+        lock (_lock)
+        {
+            _definitions.Remove(oldResourceId);
+        }
+        
+        var result = ReloadResource(newResourceId);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning($"Failed to reload renamed resource '{newResourceId}': {result.Error}");
+        }
+    }
+    
+    public void Dispose()
+    {
+        DisableHotReload();
     }
 }

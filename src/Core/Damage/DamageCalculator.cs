@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core.Combat;
+using Core.Effects;
 using Core.Events;
 using Core.Logging;
+using Core.StatusEffects;
 
 namespace Core.Damage;
 
@@ -16,15 +18,18 @@ public class DamageCalculator : IDamageCalculator
     private readonly IPipelineManager _pipelineManager;
     private readonly IEventBus _eventBus;
     private readonly ILogger _logger;
+    private readonly IStatusEffectManager? _statusEffectManager;
 
     public DamageCalculator(
         IPipelineManager pipelineManager,
         IEventBus eventBus,
-        ILogger logger)
+        ILogger logger,
+        IStatusEffectManager? statusEffectManager = null)
     {
         _pipelineManager = pipelineManager ?? throw new ArgumentNullException(nameof(pipelineManager));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _statusEffectManager = statusEffectManager;
     }
 
     /// <summary>
@@ -80,8 +85,10 @@ public class DamageCalculator : IDamageCalculator
         CombatEntity attacker,
         CombatEntity target)
     {
-        // Obter dano base da ação (usa BaseDamage se disponível, senão 0)
-        var baseDamage = action.BaseDamage ?? 0f;
+        // Obter dano base da ação através dos efeitos de dano
+        var baseDamage = action.Effects
+            .Where(e => e.Type == EffectType.DAMAGE)
+            .Sum(e => e.FlatValue ?? 0f);
         
         var context = new DamageContext
         {
@@ -113,11 +120,68 @@ public class DamageCalculator : IDamageCalculator
             }
         };
         
-        // TODO: Aplicar modifiers do attacker (buffs, equipment, etc.)
-        // Isso virá de outro sistema (Status Effects, futuro)
+        // Aplicar modifiers do attacker (buffs, debuffs, status effects)
+        if (_statusEffectManager != null)
+        {
+            ApplyStatusModifiers(context, attacker.EntityId, target.EntityId);
+        }
         
         _logger.LogDebug($"Initial context: base={baseDamage:F2}, crit_chance={attacker.GetCritChance():F1}%, armor={target.GetArmor():F1}");
         
         return context;
+    }
+    
+    /// <summary>
+    /// Aplica modificadores de status effects ao contexto de dano
+    /// </summary>
+    private void ApplyStatusModifiers(DamageContext context, string attackerId, string targetId)
+    {
+        if (_statusEffectManager == null)
+            return;
+        
+        // Converter IDs para Guid
+        if (!Guid.TryParse(attackerId, out var attackerGuid) || !Guid.TryParse(targetId, out var targetGuid))
+        {
+            _logger.LogWarning("Invalid entity IDs for status modifier application");
+            return;
+        }
+        
+        // Obter modificadores do atacante (ex: Strength aumenta dano)
+        var attackerModifiers = _statusEffectManager.GetPipelineModifiers(attackerGuid);
+        if (attackerModifiers != null && attackerModifiers.Count > 0)
+        {
+            foreach (var modifier in attackerModifiers)
+            {
+                if (context.Modifiers.ContainsKey(modifier.Key))
+                {
+                    context.Modifiers[modifier.Key] += modifier.Value;
+                }
+                else
+                {
+                    context.Modifiers[modifier.Key] = modifier.Value;
+                }
+                
+                _logger.LogDebug($"Applied attacker modifier: {modifier.Key} = {modifier.Value}");
+            }
+        }
+        
+        // Obter modificadores do alvo (ex: Vulnerable aumenta dano recebido)
+        var targetModifiers = _statusEffectManager.GetPipelineModifiers(targetGuid);
+        if (targetModifiers != null && targetModifiers.Count > 0)
+        {
+            foreach (var modifier in targetModifiers)
+            {
+                if (context.Modifiers.ContainsKey(modifier.Key))
+                {
+                    context.Modifiers[modifier.Key] += modifier.Value;
+                }
+                else
+                {
+                    context.Modifiers[modifier.Key] = modifier.Value;
+                }
+                
+                _logger.LogDebug($"Applied target modifier: {modifier.Key} = {modifier.Value}");
+            }
+        }
     }
 }

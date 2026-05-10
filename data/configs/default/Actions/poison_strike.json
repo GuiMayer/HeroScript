@@ -1,0 +1,37 @@
+{
+  "actionId": "POISON_STRIKE",
+  "displayName": "Poison Strike",
+  "description": "Deal 4 damage. Apply 3 stacks of Poison.",
+  "actionType": "ATTACK",
+  "costs": {
+    "resources": [
+      {
+        "resourceId": "energy",
+        "amount": 1
+      }
+    ]
+  },
+  "effects": [
+    {
+      "type": "DAMAGE",
+      "target": "TARGET",
+      "timing": "IMMEDIATE",
+      "flatValue": 4,
+      "targetResource": "health",
+      "tags": ["physical", "attack", "poison"]
+    },
+    {
+      "type": "APPLY_STATUS",
+      "target": "TARGET",
+      "timing": "IMMEDIATE",
+      "statusId": "POISON",
+      "statusStacks": 3,
+      "chance": 1.0,
+      "tags": ["poison", "status"]
+    }
+  ],
+  "requiresTarget": true,
+  "multiTarget": false,
+  "cooldown": 0,
+  "tags": ["attack", "poison", "common"]
+}

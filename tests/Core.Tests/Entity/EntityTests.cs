@@ -1,6 +1,7 @@
 using Core.Entity;
 using Core.Entity.Components;
 using Core.Entity.Controllers;
+using Xunit;
 
 namespace Core.Tests.Entity;
 

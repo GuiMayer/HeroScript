@@ -4,6 +4,7 @@ using Core.Entity.Components;
 using Core.Entity.Controllers;
 using Core.Logging;
 using Core.Resources;
+using Xunit;
 
 namespace Core.Tests.Entity.Controllers;
 
@@ -259,11 +260,11 @@ public class AIControllerTests
         
         return new CombatState
         {
-            CombatId = "test-combat",
+            CombatId = Guid.NewGuid(),
             Hero = hero,
             Enemies = new List<CombatEntity>(),
-            TurnNumber = 1,
-            Status = CombatStatus.IN_PROGRESS
+            CurrentTurn = 1,
+            Status = CombatStatus.ACTIVE
         };
     }
 }

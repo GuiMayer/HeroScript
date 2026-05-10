@@ -1,6 +1,7 @@
 using Core.Combat;
 using Core.Entity.Components;
 using Core.Resources;
+using Xunit;
 
 namespace Core.Tests.Entity.Components;
 
@@ -194,7 +195,7 @@ public class ResourceComponentTests
         var energyDef = new ResourceDefinition
         {
             ResourceId = "energy",
-            Category = ResourceCategory.RESOURCE,
+            Category = ResourceCategory.TACTICAL,
             DefaultCurrent = 10,
             DefaultMax = 10
         };

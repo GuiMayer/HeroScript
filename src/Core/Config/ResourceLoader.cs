@@ -442,5 +442,54 @@ namespace Core.Config
                 return _cache.ContainsKey(relativePath);
             }
         }
+
+        /// <summary>
+        /// Discovers all available resource files in a directory across the configuration chain.
+        /// </summary>
+        public IEnumerable<string> DiscoverResources(
+            string relativeDirectory,
+            IEnumerable<string> configChain,
+            string filePattern = "*.json")
+        {
+            if (_pathResolver == null)
+                throw new InvalidOperationException("PathResolver not initialized");
+
+            var discoveredFiles = new HashSet<string>();
+
+            // Traverse the config chain from base to most specific
+            foreach (var configName in configChain.Reverse())
+            {
+                try
+                {
+                    // Try to resolve a dummy file in the directory to get the base path
+                    var testPath = Path.Combine(configName, "Resources", relativeDirectory, "_test.json");
+                    var result = _pathResolver.Resolve(testPath);
+                    
+                    if (result.PhysicalPath != null)
+                    {
+                        // Extract the directory path from the physical path
+                        var directoryPath = Path.GetDirectoryName(result.PhysicalPath);
+                        
+                        if (directoryPath != null && Directory.Exists(directoryPath))
+                        {
+                            var files = Directory.GetFiles(directoryPath, filePattern, SearchOption.TopDirectoryOnly);
+                            
+                            foreach (var file in files)
+                            {
+                                var fileName = Path.GetFileNameWithoutExtension(file);
+                                discoveredFiles.Add(fileName);
+                                _logger.LogDebug($"Discovered resource: {fileName} in config '{configName}'");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Error discovering resources in config '{configName}': {ex.Message}");
+                }
+            }
+
+            return discoveredFiles.OrderBy(f => f).ToList();
+        }
     }
 }

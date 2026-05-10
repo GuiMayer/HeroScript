@@ -1,8 +1,11 @@
+using Core.Effects;
+
 namespace Core.Combat;
 
 /// <summary>
 /// Definição de uma ação configurável.
 /// Carregada de JSON, permite criar ações customizadas.
+/// Effect é a unidade fundamental - todas as ações são compostas por Effects.
 /// </summary>
 public record ActionDefinition
 {
@@ -28,29 +31,15 @@ public record ActionDefinition
     
     /// <summary>
     /// Custos de recursos para executar a ação.
+    /// Custos também são representados como Effects (MODIFY_RESOURCE com valor negativo).
     /// </summary>
     public ActionCosts Costs { get; init; } = new();
     
     /// <summary>
-    /// Dano base da ação (se aplicável).
+    /// Efeitos da ação (dano, cura, status, etc.).
+    /// Effect é a unidade fundamental de todas as ações em combate.
     /// </summary>
-    public float? BaseDamage { get; init; }
-    
-    /// <summary>
-    /// Fórmula de dano dinâmica (opcional).
-    /// Contexto disponível: actor_attack, target_defense, etc.
-    /// </summary>
-    public string? DamageFormula { get; init; }
-    
-    /// <summary>
-    /// Cura base da ação (se aplicável).
-    /// </summary>
-    public float? BaseHealing { get; init; }
-    
-    /// <summary>
-    /// Fórmula de cura dinâmica (opcional).
-    /// </summary>
-    public string? HealingFormula { get; init; }
+    public List<EffectDefinition> Effects { get; init; } = new();
     
     /// <summary>
     /// Se a ação requer um alvo.

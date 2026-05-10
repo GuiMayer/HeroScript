@@ -69,4 +69,35 @@ public interface IResourceManager
     /// Valida definição de recurso.
     /// </summary>
     Result ValidateResourceDefinition(ResourceDefinition definition);
+    
+    /// <summary>
+    /// Processa regeneração de recursos para uma entidade.
+    /// </summary>
+    /// <param name="entityResourceState">Estado de recursos da entidade</param>
+    /// <param name="timing">Timing da regeneração (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
+    /// <param name="context">Contexto opcional para avaliação de fórmulas</param>
+    /// <returns>Resultado contendo EntityResourceState atualizado ou falha</returns>
+    Result<Combat.EntityResourceState> ProcessRegeneration(
+        Combat.EntityResourceState entityResourceState,
+        RegenerationTiming timing,
+        Dictionary<string, float>? context = null);
+    
+    /// <summary>
+    /// Habilita hot-reload de recursos.
+    /// Monitora mudanças em arquivos de recursos e recarrega automaticamente.
+    /// </summary>
+    /// <param name="configName">Nome do config a monitorar</param>
+    void EnableHotReload(string configName);
+    
+    /// <summary>
+    /// Desabilita hot-reload de recursos.
+    /// </summary>
+    void DisableHotReload();
+    
+    /// <summary>
+    /// Recarrega um recurso específico.
+    /// </summary>
+    /// <param name="resourceId">ID do recurso a recarregar</param>
+    /// <returns>Resultado da operação</returns>
+    Result ReloadResource(string resourceId);
 }

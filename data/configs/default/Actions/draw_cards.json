@@ -1,0 +1,27 @@
+{
+  "actionId": "DRAW_CARDS",
+  "displayName": "Preparation",
+  "description": "Draw 2 cards",
+  "actionType": "UTILITY",
+  "costs": {
+    "resources": [
+      {
+        "resourceId": "energy",
+        "amount": 1
+      }
+    ]
+  },
+  "effects": [
+    {
+      "type": "DRAW_CARD",
+      "target": "SELF",
+      "timing": "IMMEDIATE",
+      "repeat": 2,
+      "tags": ["draw", "utility"]
+    }
+  ],
+  "requiresTarget": false,
+  "multiTarget": false,
+  "cooldown": 0,
+  "tags": ["draw", "utility", "uncommon"]
+}

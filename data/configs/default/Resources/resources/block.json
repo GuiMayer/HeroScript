@@ -1,0 +1,19 @@
+{
+  "resourceId": "block",
+  "displayName": "Block",
+  "shortName": "BL",
+  "category": "TEMPORARY",
+  "defaultMin": 0,
+  "defaultMax": 999,
+  "defaultCurrent": 0,
+  "canBeNegative": false,
+  "canExceedMax": true,
+  "regeneration": {
+    "enabled": true,
+    "amountPerTurn": -999,
+    "formula": null,
+    "timing": "END_TURN"
+  },
+  "costMultiplier": 1.0,
+  "tags": ["temporary", "defensive", "slay-the-spire"]
+}

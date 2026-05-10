@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Combat;
+using Core.Effects;
 using API.Models.Combat;
 
 namespace API.Controllers;
@@ -208,7 +209,9 @@ public class CombatController : BaseApiController
                     actionId = action.ActionId,
                     displayName = action.DisplayName,
                     actionType = action.ActionType.ToString(),
-                    baseDamage = action.BaseDamage,
+                    baseDamage = action.Effects
+                        .Where(e => e.Type == EffectType.DAMAGE)
+                        .Sum(e => e.FlatValue ?? 0f),
                     tags = action.Tags,
                     canAfford = affordability.CanAfford,
                     affordableOptions = affordability.AffordableOptionIds

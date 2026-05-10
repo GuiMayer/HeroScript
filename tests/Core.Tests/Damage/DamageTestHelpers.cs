@@ -142,4 +142,30 @@ public static class DamageTestHelpers
             throw new System.Exception($"Context does not contain metadata '{key}'");
         }
     }
+    
+    // ==================== ACTION DEFINITION HELPERS ====================
+    
+    /// <summary>
+    /// Cria uma ActionDefinition com dano base usando Effects
+    /// </summary>
+    public static Core.Combat.ActionDefinition CreateActionWithDamage(
+        string actionId,
+        float baseDamage,
+        List<string>? tags = null)
+    {
+        return new Core.Combat.ActionDefinition
+        {
+            ActionId = actionId,
+            Tags = tags ?? new List<string>(),
+            Effects = new List<Core.Effects.EffectDefinition>
+            {
+                new Core.Effects.EffectDefinition
+                {
+                    Type = Core.Effects.EffectType.DAMAGE,
+                    FlatValue = baseDamage,
+                    Target = Core.Effects.EffectTarget.TARGET
+                }
+            }
+        };
+    }
 }

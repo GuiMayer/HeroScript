@@ -1,6 +1,7 @@
 using Core.Combat;
 using Core.Common;
 using Core.Config;
+using Core.Effects;
 using Core.Logging;
 using Core.Resources;
 using Moq;
@@ -171,7 +172,7 @@ public class ActionManagerTests
             ActionId = "valid_action",
             DisplayName = "Valid Action",
             ActionType = ActionType.BASIC_ATTACK,
-            BaseDamage = 10,
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
             Cooldown = 0,
             Tags = new List<string> { "test" },
             Costs = new ActionCosts { Costs = new List<ResourceCost>() }
@@ -193,7 +194,7 @@ public class ActionManagerTests
             ActionId = "",
             DisplayName = "Test",
             ActionType = ActionType.BASIC_ATTACK,
-            BaseDamage = 10,
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
             Cooldown = 0,
             Tags = new List<string>(),
             Costs = new ActionCosts { Costs = new List<ResourceCost>() }
@@ -216,7 +217,7 @@ public class ActionManagerTests
             ActionId = "test",
             DisplayName = "",
             ActionType = ActionType.BASIC_ATTACK,
-            BaseDamage = 10,
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
             Cooldown = 0,
             Tags = new List<string>(),
             Costs = new ActionCosts { Costs = new List<ResourceCost>() }
@@ -239,7 +240,7 @@ public class ActionManagerTests
             ActionId = "test",
             DisplayName = "Test",
             ActionType = ActionType.BASIC_ATTACK,
-            BaseDamage = 10,
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
             Cooldown = -1,
             Tags = new List<string>(),
             Costs = new ActionCosts { Costs = new List<ResourceCost>() }
@@ -262,7 +263,7 @@ public class ActionManagerTests
             ActionId = "test",
             DisplayName = "Test",
             ActionType = ActionType.BASIC_ATTACK,
-            BaseDamage = 10,
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
             Cooldown = 0,
             Tags = new List<string>(),
             Costs = new ActionCosts
@@ -291,7 +292,7 @@ public class ActionManagerTests
             ActionId = "test",
             DisplayName = "Test",
             ActionType = ActionType.BASIC_ATTACK,
-            BaseDamage = 10,
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
             Cooldown = 0,
             Tags = new List<string>(),
             Costs = new ActionCosts

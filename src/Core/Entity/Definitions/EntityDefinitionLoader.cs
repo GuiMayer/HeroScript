@@ -27,7 +27,8 @@ public class EntityDefinitionLoader
         {
             PropertyNameCaseInsensitive = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true
+            AllowTrailingCommas = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
     
@@ -54,6 +55,11 @@ public class EntityDefinitionLoader
             
             // Carregar JSON
             var json = File.ReadAllText(filePath);
+            
+            // Parse como JsonDocument para detectar campos presentes
+            using var jsonDoc = JsonDocument.Parse(json);
+            var root = jsonDoc.RootElement;
+            
             var definition = JsonSerializer.Deserialize<EntityDefinition>(json, _jsonOptions);
             
             if (definition == null)
@@ -71,7 +77,7 @@ public class EntityDefinitionLoader
                         $"Failed to load base definition '{definition.BaseDefinitionId}': {baseResult.Error}");
                 }
                 
-                definition = MergeDefinitions(baseResult.Value!, definition);
+                definition = MergeDefinitions(baseResult.Value!, definition, root);
             }
             
             // Validar definição
@@ -166,8 +172,46 @@ public class EntityDefinitionLoader
     /// <summary>
     /// Mescla definição base com definição derivada (herança delta)
     /// </summary>
-    private EntityDefinition MergeDefinitions(EntityDefinition baseDefinition, EntityDefinition derived)
+    private EntityDefinition MergeDefinitions(
+        EntityDefinition baseDefinition, 
+        EntityDefinition derived,
+        JsonElement derivedJson)
     {
+        // Merge Stats com base nos campos presentes no JSON
+        StatsDefinition? mergedStats = null;
+        if (baseDefinition.Stats != null || derived.Stats != null)
+        {
+            if (derivedJson.TryGetProperty("stats", out var statsJson))
+            {
+                var baseS = baseDefinition.Stats ?? new StatsDefinition();
+                var derivedS = derived.Stats ?? new StatsDefinition();
+                
+                mergedStats = new StatsDefinition
+                {
+                    Strength = statsJson.TryGetProperty("strength", out _) 
+                        ? derivedS.Strength : baseS.Strength,
+                    Dexterity = statsJson.TryGetProperty("dexterity", out _) 
+                        ? derivedS.Dexterity : baseS.Dexterity,
+                    Intelligence = statsJson.TryGetProperty("intelligence", out _) 
+                        ? derivedS.Intelligence : baseS.Intelligence,
+                    Constitution = statsJson.TryGetProperty("constitution", out _) 
+                        ? derivedS.Constitution : baseS.Constitution,
+                    Wisdom = statsJson.TryGetProperty("wisdom", out _) 
+                        ? derivedS.Wisdom : baseS.Wisdom,
+                    Charisma = statsJson.TryGetProperty("charisma", out _) 
+                        ? derivedS.Charisma : baseS.Charisma,
+                    CustomStats = MergeDictionaries(
+                        baseS.CustomStats.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
+                        derivedS.CustomStats.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value))
+                        .ToDictionary(kvp => kvp.Key, kvp => (float)kvp.Value)
+                };
+            }
+            else
+            {
+                mergedStats = baseDefinition.Stats;
+            }
+        }
+        
         return new EntityDefinition
         {
             DefinitionId = derived.DefinitionId,
@@ -179,7 +223,7 @@ public class EntityDefinitionLoader
                 ? derived.Description
                 : baseDefinition.Description,
             Resources = derived.Resources ?? baseDefinition.Resources,
-            Stats = derived.Stats ?? baseDefinition.Stats,
+            Stats = mergedStats,
             Inventory = derived.Inventory ?? baseDefinition.Inventory,
             AI = derived.AI ?? baseDefinition.AI,
             Gambits = derived.Gambits ?? baseDefinition.Gambits,

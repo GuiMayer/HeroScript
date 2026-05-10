@@ -1,0 +1,28 @@
+{
+  "actionId": "WHIRLWIND",
+  "displayName": "Whirlwind",
+  "description": "Deal 5 damage to ALL enemies",
+  "actionType": "ATTACK",
+  "costs": {
+    "resources": [
+      {
+        "resourceId": "energy",
+        "amount": 2
+      }
+    ]
+  },
+  "effects": [
+    {
+      "type": "DAMAGE",
+      "target": "ALL_ENEMIES",
+      "timing": "IMMEDIATE",
+      "flatValue": 5,
+      "targetResource": "health",
+      "tags": ["physical", "attack", "aoe"]
+    }
+  ],
+  "requiresTarget": false,
+  "multiTarget": true,
+  "cooldown": 0,
+  "tags": ["attack", "aoe", "uncommon"]
+}

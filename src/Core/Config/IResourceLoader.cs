@@ -60,4 +60,16 @@ public interface IResourceLoader
     /// </summary>
     /// <returns>Dictionary containing cache metrics (hit rate, size, etc.)</returns>
     Dictionary<string, object> GetCacheStats();
+
+    /// <summary>
+    /// Discovers all available resource files in a directory across the configuration chain.
+    /// </summary>
+    /// <param name="relativeDirectory">Relative directory path (e.g., "resources")</param>
+    /// <param name="configChain">Configuration inheritance chain</param>
+    /// <param name="filePattern">File pattern to match (e.g., "*.json")</param>
+    /// <returns>List of discovered resource file names (without extension)</returns>
+    IEnumerable<string> DiscoverResources(
+        string relativeDirectory,
+        IEnumerable<string> configChain,
+        string filePattern = "*.json");
 }

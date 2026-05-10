@@ -1,0 +1,38 @@
+{
+  "actionId": "CONDITIONAL_HEAL",
+  "displayName": "Emergency Heal",
+  "description": "If HP is below 50%, heal for 15. Otherwise, heal for 5.",
+  "actionType": "UTILITY",
+  "costs": {
+    "resources": [
+      {
+        "resourceId": "energy",
+        "amount": 1
+      }
+    ]
+  },
+  "effects": [
+    {
+      "type": "HEAL",
+      "target": "SELF",
+      "timing": "IMMEDIATE",
+      "flatValue": 15,
+      "targetResource": "health",
+      "condition": "target_hp < target_max_hp * 0.5",
+      "tags": ["heal", "conditional"]
+    },
+    {
+      "type": "HEAL",
+      "target": "SELF",
+      "timing": "IMMEDIATE",
+      "flatValue": 5,
+      "targetResource": "health",
+      "condition": "target_hp >= target_max_hp * 0.5",
+      "tags": ["heal", "conditional"]
+    }
+  ],
+  "requiresTarget": false,
+  "multiTarget": false,
+  "cooldown": 2,
+  "tags": ["heal", "utility", "conditional", "rare"]
+}
