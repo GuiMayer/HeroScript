@@ -1,0 +1,24 @@
+{
+  "definitionId": "mage",
+  "type": "HERO",
+  "displayName": "Mage",
+  "description": "A powerful spellcaster with high mana and magical damage",
+  "resources": {
+    "health": {
+      "current": 80.0,
+      "max": 80.0
+    },
+    "mana": {
+      "current": 200.0,
+      "max": 200.0
+    }
+  },
+  "stats": {
+    "strength": 8,
+    "agility": 10,
+    "intelligence": 20,
+    "vitality": 10,
+    "spellPower": 60,
+    "manaRegen": 5
+  }
+}

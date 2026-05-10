@@ -1,6 +1,7 @@
 using Core.Common;
 using Core.Damage;
 using Core.Effects;
+using Core.Entity.Integration;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
@@ -23,6 +24,7 @@ public class CombatSystem : ICombatSystem
     private readonly IResourceManager _resourceManager;
     private readonly IDamageCalculator? _damageCalculator;
     private readonly IStatusEffectManager? _statusEffectManager;
+    private readonly EntityCombatAdapter _entityAdapter;
     
     // Constantes de gameplay (futuramente virão de config)
     private const int BASIC_ATTACK_DAMAGE = 10;
@@ -42,6 +44,7 @@ public class CombatSystem : ICombatSystem
         _eventBus = eventBus;
         _damageCalculator = damageCalculator;
         _statusEffectManager = statusEffectManager;
+        _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
     
     public Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3)
@@ -136,6 +139,54 @@ public class CombatSystem : ICombatSystem
         catch (Exception ex)
         {
             _logger.LogError($"Error starting combat: {ex.Message}");
+            return Result<CombatState>.Failure($"Failed to start combat: {ex.Message}");
+        }
+    }
+    
+    public Result<CombatState> StartCombatWithEntities(Entity.Entity hero, List<Entity.Entity> enemies)
+    {
+        try
+        {
+            // Validações
+            if (hero == null)
+                return Result<CombatState>.Failure("Hero entity cannot be null");
+            
+            if (enemies == null || enemies.Count == 0)
+                return Result<CombatState>.Failure("At least one enemy is required");
+            
+            // Converter entidades para CombatEntity usando o adapter
+            var heroCombat = _entityAdapter.ToCombatEntity(hero);
+            var enemiesCombat = _entityAdapter.ToCombatEntities(enemies);
+            
+            // Criar estado inicial
+            var combatState = new CombatState
+            {
+                Hero = heroCombat,
+                Enemies = enemiesCombat.ToList(),
+                CurrentTurn = 1,
+                Status = CombatStatus.ACTIVE
+            };
+            
+            // Adicionar ao dicionário
+            if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
+                return Result<CombatState>.Failure("Failed to create combat (ID collision)");
+            
+            // Publicar evento
+            _eventBus?.Publish(new CombatStartedEvent
+            {
+                CombatId = combatState.CombatId,
+                HeroId = hero.EntityId,
+                EnemyIds = enemies.Select(e => e.EntityId).ToList(),
+                InitialEnergy = (int)(heroCombat.GetResource("energy")?.Current ?? 0),
+                Target = combatState.CombatId.ToString()
+            });
+            
+            _logger.LogInformation($"Combat started with entities: {combatState.CombatId}");
+            return Result<CombatState>.Success(combatState);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error starting combat with entities: {ex.Message}");
             return Result<CombatState>.Failure($"Failed to start combat: {ex.Message}");
         }
     }

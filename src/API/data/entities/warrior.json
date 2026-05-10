@@ -1,0 +1,24 @@
+{
+  "definitionId": "warrior",
+  "type": "HERO",
+  "displayName": "Warrior",
+  "description": "A strong melee fighter with high health and physical damage",
+  "resources": {
+    "health": {
+      "current": 150.0,
+      "max": 150.0
+    },
+    "energy": {
+      "current": 100.0,
+      "max": 100.0
+    }
+  },
+  "stats": {
+    "strength": 18,
+    "agility": 12,
+    "intelligence": 8,
+    "vitality": 16,
+    "armor": 25,
+    "attackPower": 45
+  }
+}

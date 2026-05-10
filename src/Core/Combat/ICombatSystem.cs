@@ -18,6 +18,14 @@ public interface ICombatSystem
     Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3);
     
     /// <summary>
+    /// Inicia novo combate usando entidades do novo sistema Entity.
+    /// </summary>
+    /// <param name="hero">Entidade do herói</param>
+    /// <param name="enemies">Lista de entidades inimigas</param>
+    /// <returns>Result com o estado inicial do combate</returns>
+    Result<CombatState> StartCombatWithEntities(Entity.Entity hero, List<Entity.Entity> enemies);
+    
+    /// <summary>
     /// Executa ação em combate.
     /// </summary>
     /// <param name="combatId">ID do combate</param>

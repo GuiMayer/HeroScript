@@ -9,6 +9,7 @@ using Core.Resources;
 using Core.Damage;
 using Core.Effects;
 using Core.StatusEffects;
+using Core.Entity.Definitions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,6 +80,15 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
     return new ResourceManager(configManager, resourceLoader, logger, regenerationProcessor);
 });
 
+// Register EntityDefinitionLoader
+builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EntityDefinitionLoader"));
+    var basePath = Path.Combine(AppContext.BaseDirectory, "data", "entities");
+    return new EntityDefinitionLoader(basePath, logger);
+});
+
 // Register StatusEffectManager
 builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
 {
@@ -133,7 +143,7 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 });
 
 // Register EntityFactory
-builder.Services.AddSingleton<IEntityFactory, EntityFactory>();
+builder.Services.AddSingleton<IEntityFactory, Core.Combat.EntityFactory>();
 
 // Register ActionAffordabilityService
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();

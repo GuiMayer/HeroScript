@@ -1,0 +1,20 @@
+{
+  "definitionId": "goblin",
+  "type": "ENEMY",
+  "displayName": "Goblin",
+  "description": "A weak but agile enemy creature",
+  "resources": {
+    "health": {
+      "current": 50.0,
+      "max": 50.0
+    }
+  },
+  "stats": {
+    "strength": 8,
+    "agility": 15,
+    "intelligence": 5,
+    "vitality": 8,
+    "armor": 10,
+    "attackPower": 15
+  }
+}
