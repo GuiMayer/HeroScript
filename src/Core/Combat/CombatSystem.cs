@@ -1,3 +1,4 @@
+using Core.Combat.Models;
 using Core.Common;
 using Core.Damage;
 using Core.Effects;
@@ -24,6 +25,7 @@ public class CombatSystem : ICombatSystem
     private readonly IResourceManager _resourceManager;
     private readonly IDamageCalculator? _damageCalculator;
     private readonly IStatusEffectManager? _statusEffectManager;
+    private readonly IResourceRegenerationProcessor? _regenerationProcessor;
     private readonly EntityCombatAdapter _entityAdapter;
     
     // Constantes de gameplay (futuramente virão de config)
@@ -37,13 +39,15 @@ public class CombatSystem : ICombatSystem
         IResourceManager resourceManager, 
         IEventBus? eventBus = null, 
         IDamageCalculator? damageCalculator = null,
-        IStatusEffectManager? statusEffectManager = null)
+        IStatusEffectManager? statusEffectManager = null,
+        IResourceRegenerationProcessor? regenerationProcessor = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _eventBus = eventBus;
         _damageCalculator = damageCalculator;
         _statusEffectManager = statusEffectManager;
+        _regenerationProcessor = regenerationProcessor;
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
     
@@ -517,6 +521,10 @@ public class CombatSystem : ICombatSystem
             updatedState = ProcessEndOfTurnStatusEffects(updatedState);
         }
         
+        // Processar regeneração de recursos
+        updatedState = ProcessEndOfTurnRegeneration(updatedState);
+        updatedState = ProcessStartOfTurnRegeneration(updatedState);
+        
         return updatedState;
     }
     
@@ -878,5 +886,101 @@ public class CombatSystem : ICombatSystem
         }
         
         _logger.LogInformation($"Cleared {inactiveCombats.Count} inactive combats");
+    }
+    
+    /// <summary>
+    /// Processa regeneração de recursos no início do turno
+    /// </summary>
+    private CombatState ProcessStartOfTurnRegeneration(CombatState state)
+    {
+        if (_regenerationProcessor == null)
+            return state;
+        
+        _logger.LogDebug("Processing start-of-turn resource regeneration");
+        
+        var updatedHero = state.Hero;
+        var updatedEnemies = state.Enemies.ToList();
+        
+        // Processar regeneração do herói
+        var heroRegenResult = _regenerationProcessor.ProcessRegeneration(
+            state.Hero.ResourceState,
+            RegenerationTiming.START_TURN,
+            new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
+        );
+        
+        if (heroRegenResult.IsSuccess)
+        {
+            updatedHero = updatedHero with { ResourceState = heroRegenResult.Value };
+        }
+        
+        // Processar regeneração dos inimigos
+        for (int i = 0; i < updatedEnemies.Count; i++)
+        {
+            var enemy = updatedEnemies[i];
+            var enemyRegenResult = _regenerationProcessor.ProcessRegeneration(
+                enemy.ResourceState,
+                RegenerationTiming.START_TURN,
+                new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
+            );
+            
+            if (enemyRegenResult.IsSuccess)
+            {
+                updatedEnemies[i] = enemy with { ResourceState = enemyRegenResult.Value };
+            }
+        }
+        
+        return state with
+        {
+            Hero = updatedHero,
+            Enemies = updatedEnemies
+        };
+    }
+    
+    /// <summary>
+    /// Processa regeneração de recursos no final do turno
+    /// </summary>
+    private CombatState ProcessEndOfTurnRegeneration(CombatState state)
+    {
+        if (_regenerationProcessor == null)
+            return state;
+        
+        _logger.LogDebug("Processing end-of-turn resource regeneration");
+        
+        var updatedHero = state.Hero;
+        var updatedEnemies = state.Enemies.ToList();
+        
+        // Processar regeneração do herói
+        var heroRegenResult = _regenerationProcessor.ProcessRegeneration(
+            state.Hero.ResourceState,
+            RegenerationTiming.END_TURN,
+            new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
+        );
+        
+        if (heroRegenResult.IsSuccess)
+        {
+            updatedHero = updatedHero with { ResourceState = heroRegenResult.Value };
+        }
+        
+        // Processar regeneração dos inimigos
+        for (int i = 0; i < updatedEnemies.Count; i++)
+        {
+            var enemy = updatedEnemies[i];
+            var enemyRegenResult = _regenerationProcessor.ProcessRegeneration(
+                enemy.ResourceState,
+                RegenerationTiming.END_TURN,
+                new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
+            );
+            
+            if (enemyRegenResult.IsSuccess)
+            {
+                updatedEnemies[i] = enemy with { ResourceState = enemyRegenResult.Value };
+            }
+        }
+        
+        return state with
+        {
+            Hero = updatedHero,
+            Enemies = updatedEnemies
+        };
     }
 }
