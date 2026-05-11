@@ -1,6 +1,6 @@
 # API Roadmap
 
-**Última atualização:** 2026-05-09  
+**Última atualização:** 2026-05-11  
 **Status:** Em Desenvolvimento Ativo
 
 ---
@@ -9,7 +9,7 @@
 
 Este roadmap documenta a evolução da API REST do HeroScript, mapeando todos os endpoints planejados organizados por fase de implementação. O objetivo é fornecer uma visão geral da arquitetura da API para guiar o desenvolvimento e garantir que todos os sistemas se integrem de forma coesa.
 
-**Análise Completa:** Para uma análise detalhada dos módulos Core implementados vs. necessários para criar um jogo completo, consulte [CORE_MODULES_ANALYSIS.md](CORE_MODULES_ANALYSIS.md).
+**Análise Completa:** Para uma análise detalhada dos módulos Core implementados vs. necessários para criar um jogo completo, consulte [analysis/core-modules.md](analysis/core-modules.md).
 
 ## Filosofia da API
 
@@ -27,20 +27,20 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 
 | Fase | Status | Descrição | Documento |
 |------|--------|-----------|-----------|
-| **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [PHASE_0.md](PHASE_0.md) |
-| **Fase 1** | ✅ Implementado | EventBus e Combate Básico | [PHASE_1.md](PHASE_1.md) |
-| **Fase 2** | 📋 Planejado | Camadas de Combate (Status, Modifiers, Gambits) | [PHASE_2.md](PHASE_2.md) |
-| **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [PHASE_3.md](PHASE_3.md) |
-| **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [PHASE_4.md](PHASE_4.md) |
-| **Fase 5** | 📋 Planejado | Persistência (Save/Load, MetaProgression) | [PHASE_5.md](PHASE_5.md) |
-| **Fase 6** | 📋 Planejado | Modos Especiais (Seed, Daily, Custom) | [PHASE_6.md](PHASE_6.md) |
+| **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [phases/phase-0.md](phases/phase-0.md) |
+| **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System | [phases/phase-1.md](phases/phase-1.md) |
+| **Fase 2** | 📋 Planejado | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
+| **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [phases/phase-3.md](phases/phase-3.md) |
+| **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [phases/phase-4.md](phases/phase-4.md) |
+| **Fase 5** | 📋 Planejado | Persistência (Save/Load, MetaProgression) | [phases/phase-5.md](phases/phase-5.md) |
+| **Fase 6** | 📋 Planejado | Modos Especiais (Seed, Daily, Custom) | [phases/phase-6.md](phases/phase-6.md) |
 
 ## Convenções da API
 
 Para detalhes sobre padrões, nomenclatura, segurança e versionamento, consulte:
 
-- [API_CONVENTIONS.md](API_CONVENTIONS.md) - Convenções gerais da API
-- [EVENT_INTEGRATION.md](EVENT_INTEGRATION.md) - Integração com EventBus
+- [analysis/api-conventions.md](analysis/api-conventions.md) - Convenções gerais da API
+- [analysis/event-integration.md](analysis/event-integration.md) - Integração com EventBus
 
 ## Base URL
 
@@ -52,12 +52,13 @@ http://localhost:5260/api
 
 ## Documentação Relacionada
 
-- [API-ENDPOINTS.md](../API-ENDPOINTS.md) - Documentação detalhada dos endpoints atuais
-- [EVENTBUS_SYSTEM.md](../EVENTBUS_SYSTEM.md) - Sistema EventBus (pub/sub e Event Sourcing)
-- [CONFIG_SYSTEM.md](../CONFIG_SYSTEM.md) - Sistema de configuração com herança delta
-- [API_MATH_EXPRESSION_MODES.md](../API_MATH_EXPRESSION_MODES.md) - Modos de expressão matemática
-- [DAMAGE_PIPELINE.md](../DAMAGE_PIPELINE.md) - Sistema de pipeline de dano configurável
-- [DAMAGE_PIPELINE_EXAMPLES.md](../DAMAGE_PIPELINE_EXAMPLES.md) - Exemplos práticos do pipeline de dano
+- [../api/endpoints.md](../api/endpoints.md) - Documentação detalhada dos endpoints atuais
+- [../systems/events/eventbus-system.md](../systems/events/eventbus-system.md) - Sistema EventBus (pub/sub e Event Sourcing)
+- [../systems/config/config-system.md](../systems/config/config-system.md) - Sistema de configuração com herança delta
+- [../systems/math/expression-modes.md](../systems/math/expression-modes.md) - Modos de expressão matemática
+- [../systems/damage/damage-pipeline.md](../systems/damage/damage-pipeline.md) - Sistema de pipeline de dano configurável
+- [../systems/damage/damage-examples.md](../systems/damage/damage-examples.md) - Exemplos práticos do pipeline de dano
+- [../systems/combat/turn-phase-system.md](../systems/combat/turn-phase-system.md) - Sistema de fases de turno para TCGs
 
 ## Como Usar Este Roadmap
 
@@ -70,6 +71,10 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-11 | Docs | **Documentação reorganizada** - Nova estrutura com diretórios temáticos (architecture/, systems/, api/, roadmap/) |
+| 2026-05-11 | Fase 1 | **TurnPhase System documentado** - Sistema de fases para TCGs completamente documentado |
+| 2026-05-11 | Fase 1 | **TurnPhase System implementado** - Sistema modular de fases (Magic, Yu-Gi-Oh!, Hearthstone, Classic) |
+| 2026-05-11 | Fase 1 | TurnOrder System implementado - 5 calculadores de ordem de turno (ATB, Initiative, Speed, Fixed, Conditional) |
 | 2026-05-09 | Análise | **Análise completa de módulos Core** - Documentado estado atual e roadmap para MVP jogável |
 | 2026-05-09 | Fase 6a | MathEngine melhorado com logging e Result<T> pattern (commit fb3d24d) |
 | 2026-05-09 | Fase 1 | **Fase 1 completa!** 126 testes de dano implementados (unitários, integração, edge cases, eventos) |
@@ -85,6 +90,8 @@ http://localhost:5260/api
 
 **Próximo passo:** Implementar Status Effects System (Fase 2)
 
+**Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
+
 ## Estatísticas Atuais
 
 ### Fase 0 + Fase 1 (Implementadas)
@@ -97,7 +104,7 @@ http://localhost:5260/api
   - Config: incluído no total
   - Outros: incluído no total
 - **APIs implementadas:** 3/3 (Events, Combat, Damage)
-- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline, MathEngine, ResourceManager, ConfigManager
+- **Sistemas Core:** EventBus, CombatSystem, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager
 - **Documentação:** 9 documentos técnicos completos
 
 ### Estimativa para MVP Jogável
@@ -105,4 +112,4 @@ http://localhost:5260/api
 - **Tempo estimado:** 19-29 dias de desenvolvimento
 - **Sistemas críticos faltando:** Run Management, Content System, Status Effects, Card Selection
 
-Para detalhes completos sobre módulos implementados e faltantes, consulte [CORE_MODULES_ANALYSIS.md](CORE_MODULES_ANALYSIS.md).
+Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

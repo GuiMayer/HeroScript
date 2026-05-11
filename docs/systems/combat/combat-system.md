@@ -1,8 +1,8 @@
 # Combat System
 
 **Status:** ✅ Implementado  
-**Versão:** 1.0.0  
-**Data:** 2026-05-08
+**Versão:** 1.1.0  
+**Data:** 2026-05-11
 
 ---
 
@@ -17,6 +17,7 @@ O Combat System é o núcleo do sistema de combate do HeroScript, gerenciando es
 - **Thread-Safe**: Usa `ConcurrentDictionary` para gerenciar combates ativos
 - **Sistema de Energia**: Ataques básicos geram energia, poderes consomem
 - **Histórico Completo**: Todas as ações são registradas para auditoria e replay
+- **Turn Phase System**: Sistema modular de fases opcional para TCGs (Magic, Yu-Gi-Oh!, etc.)
 
 ---
 
@@ -73,8 +74,11 @@ public record CombatState
     public IReadOnlyList<CombatEntity> Enemies { get; init; }
     public EnergyPool Energy { get; init; }
     public IReadOnlyList<CombatAction> ActionHistory { get; init; }
+    public PhaseState? PhaseState { get; init; }  // Opcional: sistema de fases TCG
 }
 ```
+
+**Nota:** O campo `PhaseState` é opcional. Se `null`, o combate funciona no modo clássico sem fases. Veja [Turn Phase System](turn-phase-system.md) para detalhes.
 
 #### CombatAction
 Representa uma ação executada.
@@ -469,6 +473,72 @@ dotnet test
 # Apenas testes de Combat
 dotnet test --filter "FullyQualifiedName~Combat"
 ```
+
+---
+
+## Turn Phase System Integration
+
+O Combat System possui integração opcional com o **Turn Phase System**, que permite suportar múltiplos estilos de Trading Card Games (TCG).
+
+### Ativação do Sistema de Fases
+
+O sistema de fases é **completamente opcional** e ativado através do campo `PhaseState?` no `CombatState`:
+
+```csharp
+// Combate SEM fases (modo clássico)
+var result = combatSystem.StartCombat(hero, enemy);
+// result.Value.PhaseState == null
+
+// Combate COM fases (TCG style)
+var result = combatSystem.StartCombatWithPhases(hero, enemy, phaseSystem, sequence);
+// result.Value.PhaseState != null
+```
+
+### Funcionalidades do Sistema de Fases
+
+- **Sequências Configuráveis**: Defina fases via JSON (Magic, Yu-Gi-Oh!, Hearthstone, etc.)
+- **Sistema de Prioridade**: Controle de ordem de ações entre jogadores
+- **Action Stack**: Pilha LIFO para resolução de ações (estilo Magic)
+- **Transições Automáticas/Manuais**: Fases podem avançar automaticamente ou aguardar input
+- **Event-Driven**: Publica eventos de fase no EventBus
+
+### Exemplo de Uso
+
+```csharp
+// Carregar sequência de fases
+var loader = new PhaseSequenceLoader(logger);
+var sequence = loader.LoadFromFile("magic-style.json");
+
+// Criar sistema de fases
+var factory = new PhaseSystemFactory(logger, eventBus);
+
+// Iniciar combate com fases
+var result = combatSystem.StartCombatWithPhases(hero, enemy, factory, sequence);
+
+if (result.IsSuccess)
+{
+    var state = result.Value;
+    Console.WriteLine($"Phase: {state.PhaseState.CurrentPhase}");
+    Console.WriteLine($"Active Player: {state.PhaseState.ActivePlayerId}");
+}
+
+// Passar prioridade
+var passResult = combatSystem.PassPriority(combatId, playerId, factory);
+
+// Transicionar para próxima fase
+var transitionResult = combatSystem.TransitionPhase(combatId, factory);
+```
+
+### Configurações Pré-Definidas
+
+O sistema inclui 4 estilos pré-configurados:
+
+1. **Magic: The Gathering** - 12 fases com prioridade interativa
+2. **Yu-Gi-Oh!** - 6 fases com turnos alternados
+3. **Hearthstone** - 3 fases simplificadas
+4. **Classic** - 2 fases minimalistas
+
+**Documentação completa:** [Turn Phase System](turn-phase-system.md)
 
 ---
 
