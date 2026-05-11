@@ -1,5 +1,6 @@
 using API.Models.Actions;
 using Core.Combat;
+using Core.Combat.Models;
 using Core.Effects;
 using Microsoft.AspNetCore.Mvc;
 using CoreLogger = Core.Logging.ILogger;

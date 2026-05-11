@@ -1,3 +1,4 @@
+using Core.Combat.Models;
 using Core.Common;
 using Core.Logging;
 using Core.Resources;

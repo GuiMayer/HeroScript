@@ -1,0 +1,119 @@
+{
+  "$schema": "phase-sequence-schema.json",
+  "name": "Magic: The Gathering Style",
+  "description": "Sistema de fases inspirado em Magic: The Gathering com múltiplas fases de combate e prioridade interativa",
+  "version": "1.0.0",
+  "allowPhaseSkipping": false,
+  "phases": [
+    "UNTAP",
+    "UPKEEP",
+    "DRAW",
+    "MAIN_1",
+    "BEGIN_COMBAT",
+    "DECLARE_ATTACKERS",
+    "DECLARE_BLOCKERS",
+    "COMBAT_DAMAGE",
+    "END_COMBAT",
+    "MAIN_2",
+    "END_STEP",
+    "CLEANUP"
+  ],
+  "phaseDetails": {
+    "UNTAP": {
+      "name": "Untap",
+      "description": "Desvire permanentes, recarregue recursos. Sem prioridade nesta fase.",
+      "allowedActions": [],
+      "validNextPhases": ["UPKEEP"],
+      "autoTransition": true,
+      "allowPriority": false
+    },
+    "UPKEEP": {
+      "name": "Upkeep",
+      "description": "Gatilhos de início de turno. Jogadores podem responder com instantes.",
+      "allowedActions": ["PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["DRAW"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "DRAW": {
+      "name": "Draw",
+      "description": "Compre uma carta. Jogadores podem responder após o compramento.",
+      "allowedActions": ["PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["MAIN_1"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "MAIN_1": {
+      "name": "Main Phase 1",
+      "description": "Fase principal pré-combate. Jogue permanentes, feitiços, e ative habilidades.",
+      "allowedActions": ["POWER", "PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY", "TRANSITION_PHASE"],
+      "validNextPhases": ["BEGIN_COMBAT"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "BEGIN_COMBAT": {
+      "name": "Beginning of Combat",
+      "description": "Início do combate. Última chance para ações antes de declarar atacantes.",
+      "allowedActions": ["PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["DECLARE_ATTACKERS"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "DECLARE_ATTACKERS": {
+      "name": "Declare Attackers",
+      "description": "Jogador ativo declara atacantes. Oponentes podem responder.",
+      "allowedActions": ["DECLARE_ATTACKER", "PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["DECLARE_BLOCKERS"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "DECLARE_BLOCKERS": {
+      "name": "Declare Blockers",
+      "description": "Oponentes declaram bloqueadores. Jogadores podem responder.",
+      "allowedActions": ["DECLARE_BLOCKER", "PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["COMBAT_DAMAGE"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "COMBAT_DAMAGE": {
+      "name": "Combat Damage",
+      "description": "Dano de combate é causado. Jogadores podem responder após o dano.",
+      "allowedActions": ["PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["END_COMBAT"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "END_COMBAT": {
+      "name": "End of Combat",
+      "description": "Fim do combate. Última chance para ações de combate.",
+      "allowedActions": ["PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["MAIN_2"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "MAIN_2": {
+      "name": "Main Phase 2",
+      "description": "Fase principal pós-combate. Jogue permanentes e feitiços restantes.",
+      "allowedActions": ["POWER", "PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY", "TRANSITION_PHASE"],
+      "validNextPhases": ["END_STEP"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "END_STEP": {
+      "name": "End Step",
+      "description": "Fim do turno. Gatilhos de fim de turno acontecem aqui.",
+      "allowedActions": ["PLAY_INSTANT", "ACTIVATE_ABILITY", "PASS_PRIORITY"],
+      "validNextPhases": ["CLEANUP"],
+      "autoTransition": false,
+      "allowPriority": true
+    },
+    "CLEANUP": {
+      "name": "Cleanup",
+      "description": "Descarte até o tamanho máximo de mão. Remova dano e efeitos 'até o fim do turno'.",
+      "allowedActions": [],
+      "validNextPhases": ["UNTAP"],
+      "autoTransition": true,
+      "allowPriority": false
+    }
+  }
+}

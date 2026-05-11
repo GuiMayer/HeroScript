@@ -1,4 +1,4 @@
-using Core.Combat;
+using Core.Combat.Models;
 
 namespace Core.Damage;
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Core.Combat.Models;
 using Core.Damage;
 using Core.Events;
 using Core.Logging;
@@ -148,12 +149,12 @@ public static class DamageTestHelpers
     /// <summary>
     /// Cria uma ActionDefinition com dano base usando Effects
     /// </summary>
-    public static Core.Combat.ActionDefinition CreateActionWithDamage(
+    public static ActionDefinition CreateActionWithDamage(
         string actionId,
         float baseDamage,
         List<string>? tags = null)
     {
-        return new Core.Combat.ActionDefinition
+        return new ActionDefinition
         {
             ActionId = actionId,
             Tags = tags ?? new List<string>(),

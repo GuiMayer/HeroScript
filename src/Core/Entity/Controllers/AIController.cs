@@ -1,4 +1,4 @@
-using Core.Combat;
+using Core.Combat.Models;
 using Core.Common;
 using Core.Entity.Components;
 using Core.Logging;
@@ -158,7 +158,7 @@ public class AIController : IEntityController
         }
     }
     
-    private Combat.CombatEntity? FindWeakestTarget(CombatState state)
+    private CombatEntity? FindWeakestTarget(CombatState state)
     {
         // Encontra o alvo com menor HP
         // Prioriza o herói se estiver vivo

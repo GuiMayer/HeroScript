@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Core.Combat;
+using Core.Combat.Models;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;

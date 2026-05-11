@@ -1,11 +1,9 @@
-using Core.Combat;
+using Core.Combat.Models;
 using Core.Common;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
 using Core.Math;
-using System;
-using System.Collections.Generic;
 
 namespace Core.Resources;
 

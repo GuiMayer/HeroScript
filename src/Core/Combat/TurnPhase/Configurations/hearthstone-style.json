@@ -1,0 +1,38 @@
+{
+  "$schema": "phase-sequence-schema.json",
+  "name": "Hearthstone Style",
+  "description": "Sistema de fases inspirado em Hearthstone com fases simplificadas e ações automáticas",
+  "version": "1.0.0",
+  "allowPhaseSkipping": false,
+  "phases": [
+    "START",
+    "MAIN",
+    "END"
+  ],
+  "phaseDetails": {
+    "START": {
+      "name": "Start of Turn",
+      "description": "Recarregue cristais de mana, compre uma carta, gatilhos de início de turno.",
+      "allowedActions": [],
+      "validNextPhases": ["MAIN"],
+      "autoTransition": true,
+      "allowPriority": false
+    },
+    "MAIN": {
+      "name": "Main Phase",
+      "description": "Jogue cartas, ataque com lacaios, use poderes de herói. Ações resolvem imediatamente.",
+      "allowedActions": ["POWER", "BASIC_ATTACK", "ACTIVATE_ABILITY", "PASS", "END_TURN"],
+      "validNextPhases": ["END"],
+      "autoTransition": false,
+      "allowPriority": false
+    },
+    "END": {
+      "name": "End of Turn",
+      "description": "Gatilhos de fim de turno. Transição automática para o próximo jogador.",
+      "allowedActions": [],
+      "validNextPhases": ["START"],
+      "autoTransition": true,
+      "allowPriority": false
+    }
+  }
+}

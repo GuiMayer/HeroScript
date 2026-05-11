@@ -1,4 +1,5 @@
 using Core.Combat;
+using Core.Combat.Models;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;

@@ -1,4 +1,5 @@
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Damage;
 using Core.Effects;
@@ -26,6 +27,7 @@ public class CombatSystem : ICombatSystem
     private readonly IDamageCalculator? _damageCalculator;
     private readonly IStatusEffectManager? _statusEffectManager;
     private readonly IResourceRegenerationProcessor? _regenerationProcessor;
+    private readonly ITurnOrderCalculator? _turnOrderCalculator;
     private readonly EntityCombatAdapter _entityAdapter;
     
     // Constantes de gameplay (futuramente virão de config)
@@ -40,7 +42,8 @@ public class CombatSystem : ICombatSystem
         IEventBus? eventBus = null, 
         IDamageCalculator? damageCalculator = null,
         IStatusEffectManager? statusEffectManager = null,
-        IResourceRegenerationProcessor? regenerationProcessor = null)
+        IResourceRegenerationProcessor? regenerationProcessor = null,
+        ITurnOrderCalculator? turnOrderCalculator = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
@@ -48,6 +51,7 @@ public class CombatSystem : ICombatSystem
         _damageCalculator = damageCalculator;
         _statusEffectManager = statusEffectManager;
         _regenerationProcessor = regenerationProcessor;
+        _turnOrderCalculator = turnOrderCalculator;
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
     
@@ -123,6 +127,25 @@ public class CombatSystem : ICombatSystem
                 Status = CombatStatus.ACTIVE
             };
             
+            // Inicializar calculadora de ordem de turnos e calcular ordem inicial
+            if (_turnOrderCalculator != null)
+            {
+                var initResult = _turnOrderCalculator.Initialize(combatState);
+                if (initResult.IsFailure)
+                {
+                    _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
+                }
+                else
+                {
+                    var turnOrderResult = _turnOrderCalculator.CalculateTurnOrder(combatState);
+                    if (turnOrderResult.IsSuccess)
+                    {
+                        combatState = combatState with { TurnOrder = turnOrderResult.Value };
+                        _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value)}");
+                    }
+                }
+            }
+            
             // Adicionar ao dicionário
             if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
                 return Result<CombatState>.Failure("Failed to create combat (ID collision)");
@@ -170,6 +193,25 @@ public class CombatSystem : ICombatSystem
                 CurrentTurn = 1,
                 Status = CombatStatus.ACTIVE
             };
+            
+            // Inicializar calculadora de ordem de turnos e calcular ordem inicial
+            if (_turnOrderCalculator != null)
+            {
+                var initResult = _turnOrderCalculator.Initialize(combatState);
+                if (initResult.IsFailure)
+                {
+                    _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
+                }
+                else
+                {
+                    var turnOrderResult = _turnOrderCalculator.CalculateTurnOrder(combatState);
+                    if (turnOrderResult.IsSuccess)
+                    {
+                        combatState = combatState with { TurnOrder = turnOrderResult.Value };
+                        _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value)}");
+                    }
+                }
+            }
             
             // Adicionar ao dicionário
             if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
@@ -524,6 +566,17 @@ public class CombatSystem : ICombatSystem
         // Processar regeneração de recursos
         updatedState = ProcessEndOfTurnRegeneration(updatedState);
         updatedState = ProcessStartOfTurnRegeneration(updatedState);
+        
+        // Recalcular ordem de turnos para o próximo turno
+        if (_turnOrderCalculator != null)
+        {
+            var turnOrderResult = _turnOrderCalculator.CalculateTurnOrder(updatedState);
+            if (turnOrderResult.IsSuccess)
+            {
+                updatedState = updatedState with { TurnOrder = turnOrderResult.Value };
+                _logger.LogDebug($"Turn order for turn {updatedState.CurrentTurn}: {string.Join(", ", turnOrderResult.Value)}");
+            }
+        }
         
         return updatedState;
     }

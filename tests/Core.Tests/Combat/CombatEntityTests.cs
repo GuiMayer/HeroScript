@@ -1,4 +1,4 @@
-using Core.Combat;
+using Core.Combat.Models;
 using Core.Resources;
 using Xunit;
 

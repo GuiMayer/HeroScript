@@ -1,4 +1,4 @@
-using Core.Combat;
+using Core.Combat.Models;
 using Core.Common;
 
 namespace Core.Entity.Controllers;

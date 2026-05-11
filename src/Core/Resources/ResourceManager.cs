@@ -1,3 +1,4 @@
+using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
 using Core.Logging;
@@ -205,8 +206,8 @@ public class ResourceManager : IResourceManager, IDisposable
         return Result.Success();
     }
     
-    public Result<Combat.EntityResourceState> ProcessRegeneration(
-        Combat.EntityResourceState entityResourceState,
+    public Result<EntityResourceState> ProcessRegeneration(
+        EntityResourceState entityResourceState,
         RegenerationTiming timing,
         Dictionary<string, float>? context = null)
     {

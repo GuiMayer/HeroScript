@@ -1,4 +1,5 @@
 using Core.Combat;
+using Core.Combat.Models;
 using Xunit;
 
 namespace Core.Tests.Combat;

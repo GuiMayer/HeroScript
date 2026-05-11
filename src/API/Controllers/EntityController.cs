@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Combat;
+using Core.Combat.Models;
 using Core.Entity;
 using Core.Entity.Components;
 using Core.Entity.Definitions;

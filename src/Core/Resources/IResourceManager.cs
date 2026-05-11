@@ -1,3 +1,4 @@
+using Core.Combat.Models;
 using Core.Common;
 
 namespace Core.Resources;
@@ -77,8 +78,8 @@ public interface IResourceManager
     /// <param name="timing">Timing da regeneração (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
     /// <param name="context">Contexto opcional para avaliação de fórmulas</param>
     /// <returns>Resultado contendo EntityResourceState atualizado ou falha</returns>
-    Result<Combat.EntityResourceState> ProcessRegeneration(
-        Combat.EntityResourceState entityResourceState,
+    Result<EntityResourceState> ProcessRegeneration(
+        EntityResourceState entityResourceState,
         RegenerationTiming timing,
         Dictionary<string, float>? context = null);
     

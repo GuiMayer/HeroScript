@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Combat;
+using Core.Combat.Models;
 using Core.Effects;
 using API.Models.Combat;
 
