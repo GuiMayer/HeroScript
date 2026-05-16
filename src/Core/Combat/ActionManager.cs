@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Config;
 using Core.Logging;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Core.Combat;
 
@@ -39,8 +40,7 @@ public class ActionManager : IActionManager
             // Obter cadeia de herança do config
             var configChain = _configManager.ResolveInheritanceChain(configName);
             
-            // Tentar carregar ações conhecidas
-            var actionNames = new[] { "basic_attack", "power_attack", "heal", "defend" };
+            var actionNames = _resourceLoader.DiscoverResources("actions", configChain);
             
             foreach (var actionName in actionNames)
             {
@@ -58,7 +58,7 @@ public class ActionManager : IActionManager
                     
                     var definition = JsonSerializer.Deserialize<ActionDefinition>(
                         firstElement.GetRawText(),
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        CreateJsonOptions());
                     
                     if (definition == null)
                     {
@@ -160,5 +160,12 @@ public class ActionManager : IActionManager
         }
         
         return Result.Success();
+    }
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 }

@@ -73,6 +73,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-16 | DC-1 | `ActionManager` passou a descobrir ações JSON em vez de usar lista fixa de nomes |
 | 2026-05-16 | Data-driven Compliance | Diagnóstico criado: `ActionManager`, `CombatSystem`, início de combate, Status/Effects e AI ainda tinham regras hardcoded a migrar para JSON |
 | 2026-05-16 | Estabilização | Build/Core.Tests estabilizados; Resource reload corrigido; `*.lscache` ignorado; rotas REST de Status Effects alinhadas; DamageCalculator passou a receber StatusEffectManager via DI |
 | 2026-05-16 | Análise | Auditoria atualizada: Status Effects existem parcialmente; Script Modifiers, Run, CardSelection, Shop, Preparation e Content continuam faltando; EffectResolver e CombatSystem ainda precisam de integração/refatoração |

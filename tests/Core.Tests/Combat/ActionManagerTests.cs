@@ -6,6 +6,7 @@ using Core.Effects;
 using Core.Logging;
 using Core.Resources;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat;
@@ -100,6 +101,54 @@ public class ActionManagerTests
 
         // Assert
         Assert.Empty(results);
+    }
+
+    [Fact]
+    public void LoadActionDefinitions_WithDiscoveredAction_LoadsJsonWithoutHardcodedName()
+    {
+        // Arrange
+        _mockConfigManager
+            .Setup(m => m.ResolveInheritanceChain("test"))
+            .Returns(new[] { "test" });
+
+        _mockResourceLoader
+            .Setup(m => m.DiscoverResources("actions", It.IsAny<IEnumerable<string>>(), "*.json"))
+            .Returns(new[] { "new_json_action" });
+
+        var json = """
+        {
+          "actionId": "new_json_action",
+          "displayName": "New JSON Action",
+          "actionType": "POWER",
+          "costs": {
+            "costs": [
+              { "resourceId": "energy", "amount": 2 }
+            ]
+          },
+          "effects": [
+            { "type": "DAMAGE", "target": "TARGET", "flatValue": 7, "targetResource": "health" }
+          ],
+          "requiresTarget": true,
+          "tags": ["json", "test"]
+        }
+        """;
+
+        _mockResourceLoader
+            .Setup(m => m.LoadResource("actions/new_json_action.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["new_json_action"] = JsonDocument.Parse(json).RootElement.Clone()
+            });
+
+        // Act
+        _actionManager.LoadActionDefinitions("test");
+
+        // Assert
+        var result = _actionManager.GetDefinition("new_json_action");
+        Assert.True(result.IsSuccess);
+        Assert.Equal("New JSON Action", result.Value.DisplayName);
+        Assert.Equal(ActionType.POWER, result.Value.ActionType);
+        Assert.Equal(7, result.Value.Effects.Single().FlatValue);
     }
 
     #endregion

@@ -61,7 +61,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | Fase | Status | Entregavel | Evidencia |
 |---|---|---|---|
 | DC-0 | ✅ Documentado | Diagnostico e plano de controle em `docs/` | Este documento |
-| DC-1 | ⏳ Pendente | `ActionManager` descobre acoes a partir dos arquivos JSON | Adicionar novo JSON deve carregar sem alterar C# |
+| DC-1 | ✅ Implementado | `ActionManager` descobre acoes a partir dos arquivos JSON | Teste cobre acao nova carregada via discovery |
 | DC-2 | ⏳ Pendente | `CombatSystem` executa `ActionDefinition` para ataque basico/poder | Remover dano/custo/tags hardcoded |
 | DC-3 | ⏳ Pendente | Inicio de combate usa definicoes de entidade JSON quando disponiveis | HP/nome/recursos vêm de JSON |
 | DC-4 | ⏳ Pendente | Status sao aplicados por comportamento generico | Remover checagens especificas de `BURNING`/`POISON` etc. |
