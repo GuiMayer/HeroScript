@@ -153,7 +153,7 @@ public class GameResourceController : ControllerBase
     [HttpPost("reload")]
     [ProducesResponseType(200)]
     [ProducesResponseType(500)]
-    public IActionResult ReloadResources([FromQuery] string configName = "base")
+    public IActionResult ReloadResources([FromQuery] string configName = "default")
     {
         try
         {

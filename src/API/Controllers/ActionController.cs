@@ -155,7 +155,7 @@ public class ActionController : ControllerBase
     [HttpPost("reload")]
     [ProducesResponseType(200)]
     [ProducesResponseType(500)]
-    public IActionResult ReloadActions([FromQuery] string configName = "base")
+    public IActionResult ReloadActions([FromQuery] string configName = "default")
     {
         try
         {

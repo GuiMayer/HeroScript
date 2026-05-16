@@ -14,12 +14,12 @@ namespace API.Controllers;
 public class CombatController : BaseApiController
 {
     private readonly ICombatSystem _combatSystem;
-    private readonly ActionManager _actionManager;
+    private readonly IActionManager _actionManager;
     private readonly IActionAffordabilityService _affordabilityService;
 
     public CombatController(
         ICombatSystem combatSystem, 
-        ActionManager actionManager,
+        IActionManager actionManager,
         IActionAffordabilityService affordabilityService,
         ILogger<CombatController> logger)
         : base(logger)
