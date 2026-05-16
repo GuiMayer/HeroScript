@@ -33,7 +33,7 @@ public abstract class BaseApiController : ControllerBase
     private IActionResult HandleArgumentException(ArgumentException ex, string context)
     {
         _logger.LogWarning(ex, "Invalid argument: {Context}", context);
-        return NotFound(new { error = ex.Message });
+        return BadRequest(new { error = ex.Message });
     }
 
     private IActionResult HandleInvalidOperationException(InvalidOperationException ex, string context)

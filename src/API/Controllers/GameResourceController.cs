@@ -103,6 +103,9 @@ public class GameResourceController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(tag))
+                return BadRequest(new { error = "Tag cannot be empty" });
+
             var definitions = _resourceManager.GetDefinitionsByTag(tag);
             var summaries = definitions.Select(MapToSummary).ToList();
             
@@ -191,6 +194,9 @@ public class GameResourceController : ControllerBase
         }
         catch (Exception ex)
         {
+            if (ex is InvalidOperationException)
+                return NotFound(new { error = ex.Message });
+
             _logger.LogError($"Error creating pool: {ex.Message}");
             return StatusCode(500, new { error = "Failed to create pool", details = ex.Message });
         }
@@ -208,13 +214,20 @@ public class GameResourceController : ControllerBase
         {
             if (string.IsNullOrEmpty(request?.ResourceId))
                 return BadRequest(new { error = "ResourceId is required" });
+
+            if (request.Cost < 0)
+                return BadRequest(new { error = "Cost cannot be negative" });
+
+            if (request.CurrentAmount < 0)
+                return BadRequest(new { error = "CurrentAmount cannot be negative" });
             
-            // Create a mock pool with the current amount
-            var poolResult = _resourceManager.GetDefinition(request.ResourceId);
-            if (poolResult.IsFailure)
-                return NotFound(new { error = $"Resource {request.ResourceId} not found" });
-            
-            var pool = _resourceManager.CreatePool(request.ResourceId, request.CurrentAmount);
+            var pool = new ResourcePool
+            {
+                ResourceId = request.ResourceId,
+                Current = request.CurrentAmount,
+                Maximum = Math.Max(request.CurrentAmount, request.Cost),
+                Minimum = 0
+            };
             var validationResult = _resourceManager.ValidateCost(pool, request.Cost);
             
             var response = new ValidateCostResponse
