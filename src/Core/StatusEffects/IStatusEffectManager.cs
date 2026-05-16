@@ -207,6 +207,12 @@ public record StatusEffectTickResult
     /// Tipo do status effect
     /// </summary>
     public StatusEffectType Type { get; init; }
+
+    /// <summary>
+    /// Comportamento configurado do status effect.
+    /// Usado pelo motor para aplicar semântica sem depender de tipos específicos.
+    /// </summary>
+    public StatusEffectBehavior Behavior { get; init; }
     
     /// <summary>
     /// Valor aplicado (dano causado, cura aplicada, etc.)

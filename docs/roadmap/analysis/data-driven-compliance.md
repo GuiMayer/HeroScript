@@ -10,7 +10,7 @@
 
 O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha regras de gameplay em C# que deveriam estar em JSON.
 
-**Score atual:** 6.8/10
+**Score atual:** 7.2/10
 
 ### O que ja esta alinhado
 
@@ -29,7 +29,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | BLOCKING | Actions | `ActionManager` carregava lista fixa de acoes conhecidas | Descobrir acoes por JSON/manifest |
 | ✅ Resolvido | Combat | `CombatSystem` ainda tinha dano/custo/tags de `BASIC_ATTACK` e fallback de `POWER` hardcoded | `BASIC_ATTACK` e `POWER` agora exigem `ActionDefinition` e aplicam dano/custo/energia por effects |
 | ✅ Resolvido parcial | Combat start | `StartCombat` criava Hero/Enemy com HP, energia e nomes fixos | Quando ha `EntityDefinitionLoader`, IDs de entidade sao resolvidos por JSON; fallback legado permanece para compatibilidade |
-| HIGH | Status | `CombatSystem` conhece tipos especificos como `BURNING`, `POISON`, `SHIELD`, `THORNS`, `BUFFER` | Aplicar status por comportamento/effects genericos |
+| ✅ Resolvido parcial | Status | `CombatSystem` conhecia tipos especificos como `BURNING`, `POISON`, `SHIELD`, `THORNS`, `BUFFER` | Aplicacao em combate agora usa `StatusEffectBehavior`; falta centralizar execucao completa em Effects |
 | HIGH | Effects | `EffectResolver` ainda nao aplica todos os tipos nem altera estado completo sozinho | Centralizar execucao/aplicacao de effects |
 | MEDIUM | Formulas | Existem avaliadores simples duplicados em status/effects | Usar um avaliador canonico |
 | MEDIUM | AI | `AIController` decide comportamento por enum/thresholds em codigo | Migrar para regras/gambits JSON |
@@ -64,11 +64,11 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | DC-1 | ✅ Implementado | `ActionManager` descobre acoes a partir dos arquivos JSON | Teste cobre acao nova carregada via discovery |
 | DC-2 | ✅ Implementado | `CombatSystem` executa `ActionDefinition` para ataque basico/poder | Dano, custo, tags e ganho de energia vêm da definicao da acao/testes |
 | DC-3 | ✅ Implementado | Inicio de combate usa definicoes de entidade JSON quando disponiveis | Teste cobre `player_warrior` e `enemy_orc_warrior` carregados de JSON |
-| DC-4 | ⏳ Pendente | Status sao aplicados por comportamento generico | Remover checagens especificas de `BURNING`/`POISON` etc. |
+| DC-4 | ✅ Implementado | Status sao aplicados por comportamento generico | `CombatSystem` nao depende mais de tipos especificos para DoT/HoT/shield/reactive/cap/death-prevention |
 | DC-5 | ⏳ Pendente | Docs atualizados com progresso final e lacunas restantes | Roadmap reflete estado real |
 
 ---
 
 ## Proximo Passo Natural
 
-Priorizar DC-4: remover semantica especifica de status do `CombatSystem` e aplicar resultados por comportamento/effects genericos. Acoes e inicio de combate ja usam definicoes JSON quando disponiveis.
+Priorizar DC-5: consolidar documentacao final, registrar lacunas restantes e definir a proxima fase tecnica. As maiores lacunas restantes sao `EffectResolver` ainda incompleto, schemas divergentes de status e AI/Gambit parcialmente hardcoded.

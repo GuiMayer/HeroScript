@@ -408,7 +408,7 @@ public class CombatSystem : ICombatSystem
 
         var damageDealt = CalculateActionDamage(actionDefinition, state.Hero, target);
 
-        // Processar status effects ON_DAMAGE_TAKEN (THORNS, SHIELD, etc.)
+        // Processar status effects ON_DAMAGE_TAKEN por comportamento configurado.
         var (modifiedDamage, updatedHero) = ProcessOnDamageTakenEffects(target, state.Hero, damageDealt, state.CurrentTurn);
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
 
@@ -668,13 +668,7 @@ public class CombatSystem : ICombatSystem
         
         foreach (var result in results)
         {
-            // StatusEffectTickResult usa Value para representar o valor aplicado
-            // Verificar se é DoT (dano) ou HoT (cura) baseado no tipo específico
-            
-            // DoTs: BURNING, POISON, BLEEDING
-            if (result.Type == StatusEffectType.BURNING || 
-                result.Type == StatusEffectType.POISON || 
-                result.Type == StatusEffectType.BLEEDING)
+            if (result.Behavior == StatusEffectBehavior.DAMAGE_OVER_TIME)
             {
                 if (result.Value > 0)
                 {
@@ -682,8 +676,7 @@ public class CombatSystem : ICombatSystem
                     updatedEntity = ApplyDamageWithBufferCheck(updatedEntity, result.Value);
                 }
             }
-            // HoT: REGENERATION
-            else if (result.Type == StatusEffectType.REGENERATION)
+            else if (result.Behavior == StatusEffectBehavior.HEAL_OVER_TIME)
             {
                 if (result.Value > 0)
                 {
@@ -702,8 +695,8 @@ public class CombatSystem : ICombatSystem
     }
     
     /// <summary>
-    /// Processa status effects quando uma entidade recebe dano (THORNS, SHIELD, etc.)
-    /// Retorna o dano modificado e a entidade atacante atualizada (para THORNS)
+    /// Processa status effects quando uma entidade recebe dano.
+    /// Retorna o dano modificado e a entidade atacante atualizada para efeitos reativos.
     /// </summary>
     private (float modifiedDamage, CombatEntity updatedAttacker) ProcessOnDamageTakenEffects(
         CombatEntity target, 
@@ -727,27 +720,24 @@ public class CombatSystem : ICombatSystem
         
         foreach (var result in processResult.Value.TickResults)
         {
-            // SHIELD: Absorve dano
-            if (result.Type == StatusEffectType.SHIELD && result.Value > 0)
+            if (result.Behavior == StatusEffectBehavior.SHIELD && result.Value > 0)
             {
                 var absorbed = System.Math.Min(modifiedDamage, result.Value);
                 modifiedDamage -= absorbed;
                 _logger.LogDebug($"SHIELD absorbed {absorbed} damage, remaining damage: {modifiedDamage}");
             }
-            // THORNS: Reflete dano ao atacante
-            else if (result.Type == StatusEffectType.THORNS && result.Value > 0)
+            else if (result.Behavior == StatusEffectBehavior.REACTIVE && result.Value > 0)
             {
-                _logger.LogDebug($"THORNS reflected {result.Value} damage to {attacker.EntityId}");
+                _logger.LogDebug($"Reactive status {result.StatusId} applied {result.Value} damage to {attacker.EntityId}");
                 updatedAttacker = ApplyDamageWithBufferCheck(updatedAttacker, result.Value);
             }
-            // INTANGIBLE: Limita dano máximo recebido
-            else if (result.Type == StatusEffectType.INTANGIBLE && result.Value > 0)
+            else if (result.Behavior == StatusEffectBehavior.DAMAGE_CAP && result.Value > 0)
             {
                 if (modifiedDamage > result.Value)
                 {
                     var capped = modifiedDamage - result.Value;
                     modifiedDamage = result.Value;
-                    _logger.LogDebug($"INTANGIBLE capped {capped} damage, damage limited to: {modifiedDamage}");
+                    _logger.LogDebug($"Status effect {result.StatusId} capped {capped} damage, damage limited to: {modifiedDamage}");
                 }
             }
         }
@@ -756,7 +746,7 @@ public class CombatSystem : ICombatSystem
     }
     
     /// <summary>
-    /// Aplica dano a uma entidade, verificando BUFFER para prevenir morte
+    /// Aplica dano a uma entidade, verificando status de prevenção de morte
     /// Retorna a entidade atualizada
     /// </summary>
     private CombatEntity ApplyDamageWithBufferCheck(CombatEntity entity, float damage)
@@ -777,18 +767,18 @@ public class CombatSystem : ICombatSystem
         
         if (wouldDie)
         {
-            // Verificar se há BUFFER ativo
+            // Verificar se há status ativo com comportamento de prevenção de morte
             var activeStatusResult = _statusEffectManager.GetActiveStatus(entityGuid);
             if (activeStatusResult.IsSuccess)
             {
                 var bufferEffect = activeStatusResult.Value.FirstOrDefault(s => 
-                    s.Definition.Type == StatusEffectType.BUFFER);
+                    s.Definition.Behavior == StatusEffectBehavior.DEATH_PREVENTION);
                 
                 if (bufferEffect != null)
                 {
-                    _logger.LogDebug($"BUFFER prevented death for {entity.EntityId}, leaving at 1 HP");
+                    _logger.LogDebug($"Status effect {bufferEffect.StatusId} prevented death for {entity.EntityId}, leaving at 1 HP");
                     
-                    // Remover o BUFFER
+                    // Consumir a prevenção de morte
                     _statusEffectManager.RemoveStatus(entityGuid, bufferEffect.InstanceId);
                     
                     // Deixar a entidade com 1 HP
@@ -798,7 +788,7 @@ public class CombatSystem : ICombatSystem
             }
         }
         
-        // Sem BUFFER ou dano não-fatal: aplicar dano normalmente
+        // Sem prevenção de morte ou dano não-fatal: aplicar dano normalmente
         return entity.TakeDamage(damage);
     }
     

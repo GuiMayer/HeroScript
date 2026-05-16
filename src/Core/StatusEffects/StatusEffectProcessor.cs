@@ -61,6 +61,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = damage,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} dealt {damage} damage"
@@ -83,6 +84,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = healing,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} healed {healing} HP"
@@ -103,6 +105,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = 0,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is active"
@@ -115,15 +118,13 @@ public class StatusEffectProcessor
     
     private Result<StatusEffectTickResult> ProcessShield(StatusEffectInstance instance, Guid targetId)
     {
-        // Shield é processado quando dano é recebido
-        // Não precisa de tick ativo
-        
         var result = new StatusEffectTickResult
         {
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
-            Value = 0,
+            Behavior = instance.Definition.Behavior,
+            Value = CalculateValue(instance),
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is protecting"
         };
@@ -135,15 +136,13 @@ public class StatusEffectProcessor
     
     private Result<StatusEffectTickResult> ProcessReactive(StatusEffectInstance instance, Guid targetId)
     {
-        // Reactive effects são processados quando eventos específicos ocorrem
-        // Não precisam de tick ativo
-        
         var result = new StatusEffectTickResult
         {
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
-            Value = 0,
+            Behavior = instance.Definition.Behavior,
+            Value = CalculateValue(instance),
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is ready"
         };
@@ -163,6 +162,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = 0,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is preventing actions"
@@ -183,6 +183,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = 0,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is ready to block debuffs"
@@ -193,15 +194,13 @@ public class StatusEffectProcessor
     
     private Result<StatusEffectTickResult> ProcessDamageCap(StatusEffectInstance instance, Guid targetId)
     {
-        // Intangible: Limita dano recebido
-        // Processado quando dano é recebido
-        
         var result = new StatusEffectTickResult
         {
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
-            Value = 0,
+            Behavior = instance.Definition.Behavior,
+            Value = CalculateValue(instance),
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is capping damage"
         };
@@ -219,6 +218,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = 0,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is ready to prevent death"
@@ -237,6 +237,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = 0,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is modifying game rules"
@@ -255,6 +256,7 @@ public class StatusEffectProcessor
             InstanceId = instance.InstanceId,
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
+            Behavior = instance.Definition.Behavior,
             Value = 0,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is ready to trigger"

@@ -54,6 +54,11 @@ public class StatusEffectTickResponse
     public string Type { get; set; } = string.Empty;
     
     /// <summary>
+    /// Comportamento configurado do status effect
+    /// </summary>
+    public string Behavior { get; set; } = string.Empty;
+    
+    /// <summary>
     /// Valor aplicado (dano, cura, etc.)
     /// </summary>
     public float Value { get; set; }
@@ -75,6 +80,7 @@ public class StatusEffectTickResponse
             InstanceId = result.InstanceId,
             StatusId = result.StatusId,
             Type = result.Type.ToString(),
+            Behavior = result.Behavior.ToString(),
             Value = result.Value,
             WasBlocked = result.WasBlocked,
             Message = result.Message
