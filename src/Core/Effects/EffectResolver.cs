@@ -7,6 +7,7 @@ using Core.Logging;
 using Core.Math;
 using Core.Resources;
 using Core.StatusEffects;
+using System.Globalization;
 
 namespace Core.Effects;
 
@@ -213,9 +214,21 @@ public class EffectResolver : IEffectResolver
         var resourceId = effect.Definition.TargetResource ?? "health";
         
         _logger.LogDebug($"Executing DAMAGE effect: {value} to {resourceId} on {targetId}");
-        
-        // TODO: Integrar com DamageCalculator para processar através do pipeline
-        // Por enquanto, aplicação direta
+
+        var source = state.GetEntity(effect.SourceEntityId);
+        var target = state.GetEntity(targetId);
+        if (source != null && target != null && resourceId == "health")
+        {
+            var action = new ActionDefinition
+            {
+                ActionId = effect.SourceActionId ?? effect.Definition.EffectId,
+                Effects = new List<EffectDefinition> { effect.Definition with { FlatValue = value, FormulaValue = null } },
+                Tags = effect.Definition.Tags
+            };
+
+            var damageResult = _damageCalculator.CalculateDamage(action, source, target);
+            value = damageResult.FinalDamage;
+        }
         
         return EffectResult.CreateSuccess(value, resourceId) with
         {
@@ -372,16 +385,76 @@ public class EffectResolver : IEffectResolver
 
     private float CalculateEffectValue(EffectInstance effect, string targetId, CombatState state)
     {
-        // Se tem fórmula, avaliar (implementação simplificada por enquanto)
         if (!string.IsNullOrEmpty(effect.Definition.FormulaValue))
         {
-            // TODO: Implementar avaliação de fórmulas via MathEngine ou ExpressionEvaluator
-            _logger.LogWarning($"Formula evaluation not yet implemented for effect {effect.InstanceId}. Using flat value.");
-            return effect.Definition.FlatValue ?? 0f;
+            var variables = BuildFormulaVariables(effect, targetId, state);
+            if (TryEvaluateFormula(effect.Definition.FormulaValue, variables, out var formulaValue))
+                return formulaValue;
+
+            _logger.LogWarning($"Failed to evaluate formula for effect {effect.InstanceId}. Using flat value.");
         }
         
-        // Senão, usar valor flat
         return effect.Definition.FlatValue ?? 0f;
+    }
+
+    private Dictionary<string, float> BuildFormulaVariables(EffectInstance effect, string targetId, CombatState state)
+    {
+        var variables = new Dictionary<string, float>();
+        var source = state.GetEntity(effect.SourceEntityId);
+        var target = state.GetEntity(targetId);
+
+        if (source != null)
+        {
+            variables["source_hp"] = source.CurrentHp;
+            variables["source_max_hp"] = source.MaxHp;
+        }
+
+        if (target != null)
+        {
+            variables["target_hp"] = target.CurrentHp;
+            variables["target_max_hp"] = target.MaxHp;
+        }
+
+        return variables;
+    }
+
+    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
+    {
+        result = 0;
+        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length == 0 || tokens.Length % 2 == 0)
+            return false;
+
+        if (!TryReadValue(tokens[0], variables, out result))
+            return false;
+
+        for (var i = 1; i < tokens.Length; i += 2)
+        {
+            if (!TryReadValue(tokens[i + 1], variables, out var right))
+                return false;
+
+            result = tokens[i] switch
+            {
+                "+" => result + right,
+                "-" => result - right,
+                "*" => result * right,
+                "/" when right != 0 => result / right,
+                _ => float.NaN
+            };
+
+            if (float.IsNaN(result))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
+    {
+        if (variables.TryGetValue(token, out value))
+            return true;
+
+        return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
     private bool EvaluateCondition(string condition, EffectInstance effect, CombatState state)
