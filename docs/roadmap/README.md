@@ -1,7 +1,7 @@
 # API Roadmap
 
 **Última atualização:** 2026-05-16  
-**Status:** Em estabilização da Fase 2
+**Status:** Em estabilização da Fase 2 + Data-driven Compliance
 
 ---
 
@@ -10,6 +10,8 @@
 Este roadmap documenta a evolução da API REST do HeroScript, mapeando todos os endpoints planejados organizados por fase de implementação. O objetivo é fornecer uma visão geral da arquitetura da API para guiar o desenvolvimento e garantir que todos os sistemas se integrem de forma coesa.
 
 **Análise Completa:** Para uma análise detalhada dos módulos Core implementados vs. necessários para criar um jogo completo, consulte [analysis/core-modules.md](analysis/core-modules.md).
+
+**Diagnóstico Data-driven:** Para controlar a aderência à filosofia principal de regras/conteúdo em JSON, consulte [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md).
 
 ## Filosofia da API
 
@@ -71,6 +73,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-16 | Data-driven Compliance | Diagnóstico criado: `ActionManager`, `CombatSystem`, início de combate, Status/Effects e AI ainda tinham regras hardcoded a migrar para JSON |
 | 2026-05-16 | Estabilização | Build/Core.Tests estabilizados; Resource reload corrigido; `*.lscache` ignorado; rotas REST de Status Effects alinhadas; DamageCalculator passou a receber StatusEffectManager via DI |
 | 2026-05-16 | Análise | Auditoria atualizada: Status Effects existem parcialmente; Script Modifiers, Run, CardSelection, Shop, Preparation e Content continuam faltando; EffectResolver e CombatSystem ainda precisam de integração/refatoração |
 | 2026-05-11 | Docs | **Documentação reorganizada** - Nova estrutura com diretórios temáticos (architecture/, systems/, api/, roadmap/) |
@@ -90,7 +93,7 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** concluir estabilização da Fase 2 antes de iniciar Run/Shop/CardSelection/Content.
+**Próximo passo:** concluir Data-driven Compliance da Fase 2 antes de iniciar Run/Shop/CardSelection/Content.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
@@ -100,6 +103,7 @@ http://localhost:5260/api
 - **Core.Tests:** 524 testes passando após estabilização
 - **API.Tests:** compila e sobe o host depois dos ajustes de DI; suíte completa ainda possui falhas legadas de contrato em Config/Resource/Action e testes filtrados de StatusEffect ficam pendurados no runner atual
 - **Status Effects:** Core, API e configuração existem, mas a semântica ainda é parcial
+- **Data-driven Compliance:** 5.5/10; ações, combate, status e entidades ainda precisam remover regras hardcoded conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 (Implementadas)

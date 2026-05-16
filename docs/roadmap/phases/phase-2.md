@@ -32,6 +32,16 @@ A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects 
 - `CombatSystem` concentra responsabilidades demais e ainda possui TODOs de integração com `ActionManager`/custos preparados
 - API.Tests compila e o host sobe, mas a suíte completa ainda tem falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
 
+### Data-driven Compliance
+
+A Fase 2 agora inclui uma trilha obrigatória de compliance data-driven antes de Run/Shop/CardSelection/Content:
+
+- `ActionManager` deve carregar ações por discovery/manifest JSON, não por lista fixa em C#.
+- `CombatSystem` deve executar `ActionDefinition` e seus `EffectDefinition`, não constantes como `BASIC_ATTACK_DAMAGE` ou `DEFAULT_POWER_COST`.
+- `StartCombat` deve preferir `EntityDefinition` JSON para recursos, nomes e stats.
+- Status effects devem ser aplicados por comportamento genérico (`DAMAGE_OVER_TIME`, `HEAL_OVER_TIME`, `SHIELD`, `REACTIVE`, etc.), não por nomes específicos como `BURNING`/`POISON`.
+- O progresso detalhado fica em [../analysis/data-driven-compliance.md](../analysis/data-driven-compliance.md).
+
 ## APIs Planejadas
 
 ### 1. Status API
@@ -169,9 +179,15 @@ Gambits reagem a eventos de combate:
    - Condições e fórmulas data-driven
 
 3. **CombatSystem + ActionManager** - integrar
-   - Validar `costOptionId`
-   - Substituir custos hardcoded por `ApplyCosts`
-   - Processar ações via EffectResolver quando aplicável
+    - Validar `costOptionId`
+    - Substituir custos hardcoded por `ApplyCosts`
+    - Processar ações via EffectResolver quando aplicável
+
+3.1. **Data-driven Compliance** - remover regras hardcoded remanescentes
+   - Carregar todas as ações JSON descobertas
+   - Mapear `BASIC_ATTACK`/`POWER` legados para `ActionDefinition`
+   - Usar entidades JSON no início de combate
+   - Aplicar status por comportamento genérico
 
 4. **ScriptModifier Core** (src/Core/Combat/Modifiers/)
    - ScriptModifier, ModifierDefinition

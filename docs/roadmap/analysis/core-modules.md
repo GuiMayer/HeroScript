@@ -13,6 +13,7 @@
 - **API.Tests:** compila e o host sobe; ainda há falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
 - **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 parcialmente implementada
 - **Próxima fase:** concluir estabilização da Fase 2 antes de iniciar Run/Shop/CardSelection/Content
+- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 5.5/10
 
 ### Capacidade Atual
 Com os módulos implementados, é possível criar:
@@ -22,6 +23,7 @@ Com os módulos implementados, é possível criar:
 - ✅ Sistema de ações com custos alternativos
 - ✅ Sistema de eventos (pub/sub)
 - ✅ Configuração data-driven com herança
+- ⚠️ Ações e combate ainda parcialmente hardcoded apesar de existirem JSONs
 
 ### O Que Falta Para Um Jogo Completo
 - ❌ Loop de run (progressão, mapa, recompensas)
@@ -125,6 +127,11 @@ Com os módulos implementados, é possível criar:
 - ActionManager - Gerenciamento de ações
 - Validação de custos (recursos + alternativos)
 - Execução de ações
+
+**Gap data-driven:**
+- `CombatSystem` ainda carrega regras de gameplay em C# quando uma ação configurada não é encontrada.
+- Ataque básico e início de combate precisam usar JSON como fonte da verdade.
+- Detalhes e checklist: [data-driven-compliance.md](data-driven-compliance.md).
 
 **Testes:** 53 testes
 
