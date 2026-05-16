@@ -105,6 +105,9 @@ public class ActionController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(tag))
+                return BadRequest(new { error = "Tag cannot be empty" });
+
             var definitions = _actionManager.GetDefinitionsByTag(tag);
             var summaries = definitions.Select(MapToSummary).ToList();
             
@@ -181,8 +184,12 @@ public class ActionController : ControllerBase
             DisplayName = definition.DisplayName,
             ActionType = definition.ActionType.ToString(),
             Cooldown = definition.Cooldown,
+            RequiresTarget = definition.RequiresTarget,
+            MultiTarget = definition.MultiTarget,
+            BaseDamage = GetBaseDamage(definition),
             Tags = definition.Tags,
-            CostOptionsCount = definition.Costs.AlternativeCosts.Count + (definition.Costs.Costs.Any() ? 1 : 0)
+            CostOptionsCount = definition.Costs.AlternativeCosts.Count + (definition.Costs.Costs.Any() ? 1 : 0),
+            EffectCount = definition.Effects.Count
         };
     }
 
@@ -195,10 +202,11 @@ public class ActionController : ControllerBase
             Description = definition.Description,
             ActionType = definition.ActionType.ToString(),
             Cooldown = definition.Cooldown,
-            BaseDamage = definition.Effects
-                .Where(e => e.Type == EffectType.DAMAGE)
-                .Sum(e => e.FlatValue ?? 0f),
+            RequiresTarget = definition.RequiresTarget,
+            MultiTarget = definition.MultiTarget,
+            BaseDamage = GetBaseDamage(definition),
             Tags = definition.Tags,
+            Effects = definition.Effects.Select(MapEffectToDto).ToList(),
             Costs = new ActionCostsDto
             {
                 Costs = definition.Costs.Costs.Select(c => new ResourceCostDto
@@ -231,15 +239,9 @@ public class ActionController : ControllerBase
             Description = dto.Description,
             ActionType = Enum.TryParse<ActionType>(dto.ActionType, true, out var type) ? type : ActionType.POWER,
             Cooldown = dto.Cooldown,
-            Effects = new List<EffectDefinition>
-            {
-                new EffectDefinition
-                {
-                    Type = EffectType.DAMAGE,
-                    FlatValue = dto.BaseDamage,
-                    Target = EffectTarget.TARGET
-                }
-            },
+            RequiresTarget = dto.RequiresTarget,
+            MultiTarget = dto.MultiTarget,
+            Effects = MapEffectsFromDto(dto),
             Tags = dto.Tags,
             Costs = new ActionCosts
             {
@@ -261,6 +263,94 @@ public class ActionController : ControllerBase
                     }).ToList()
                 }).ToList()
             }
+        };
+    }
+
+    private static float GetBaseDamage(ActionDefinition definition)
+    {
+        return definition.Effects
+            .Where(e => e.Type == EffectType.DAMAGE)
+            .Sum(e => e.FlatValue ?? 0f);
+    }
+
+    private static List<EffectDefinition> MapEffectsFromDto(ActionDefinitionDto dto)
+    {
+        if (dto.Effects.Count > 0)
+            return dto.Effects.Select(MapEffectFromDto).ToList();
+
+        if (dto.BaseDamage > 0)
+        {
+            return new List<EffectDefinition>
+            {
+                new()
+                {
+                    Type = EffectType.DAMAGE,
+                    FlatValue = dto.BaseDamage,
+                    Target = EffectTarget.TARGET
+                }
+            };
+        }
+
+        return new List<EffectDefinition>();
+    }
+
+    private static EffectDefinitionDto MapEffectToDto(EffectDefinition effect)
+    {
+        return new EffectDefinitionDto
+        {
+            EffectId = effect.EffectId,
+            Type = effect.Type.ToString(),
+            Target = effect.Target.ToString(),
+            Timing = effect.Timing.ToString(),
+            FlatValue = effect.FlatValue,
+            FormulaValue = effect.FormulaValue,
+            IsPercentage = effect.IsPercentage,
+            TargetResource = effect.TargetResource,
+            StatusId = effect.StatusId,
+            StatusStacks = effect.StatusStacks,
+            StatusDuration = effect.StatusDuration,
+            ModifierKey = effect.ModifierKey,
+            ModifierValue = effect.ModifierValue,
+            ModifierFormula = effect.ModifierFormula,
+            Condition = effect.Condition,
+            RequiredTags = effect.RequiredTags,
+            ExcludedTags = effect.ExcludedTags,
+            Chance = effect.Chance,
+            Repeat = effect.Repeat,
+            Tags = effect.Tags,
+            Metadata = effect.Metadata,
+            ChainedEffects = effect.ChainedEffects?.Select(MapEffectToDto).ToList(),
+            ConditionalEffects = effect.ConditionalEffects?.Select(MapEffectToDto).ToList()
+        };
+    }
+
+    private static EffectDefinition MapEffectFromDto(EffectDefinitionDto dto)
+    {
+        return new EffectDefinition
+        {
+            EffectId = string.IsNullOrWhiteSpace(dto.EffectId) ? Guid.NewGuid().ToString() : dto.EffectId,
+            Type = Enum.TryParse<EffectType>(dto.Type, true, out var type) ? type : EffectType.DAMAGE,
+            Target = Enum.TryParse<EffectTarget>(dto.Target, true, out var target) ? target : EffectTarget.TARGET,
+            Timing = Enum.TryParse<EffectTiming>(dto.Timing, true, out var timing) ? timing : EffectTiming.IMMEDIATE,
+            FlatValue = dto.FlatValue,
+            FormulaValue = dto.FormulaValue,
+            IsPercentage = dto.IsPercentage,
+            TargetResource = dto.TargetResource,
+            StatusId = dto.StatusId,
+            StatusStacks = dto.StatusStacks,
+            StatusDuration = dto.StatusDuration,
+            ModifierKey = dto.ModifierKey,
+            ModifierValue = dto.ModifierValue,
+            ModifierFormula = dto.ModifierFormula,
+            Condition = dto.Condition,
+            RequiredTags = dto.RequiredTags,
+            ExcludedTags = dto.ExcludedTags,
+            Chance = dto.Chance,
+            Repeat = dto.Repeat,
+            Tags = dto.Tags,
+            Metadata = dto.Metadata,
+            ChainedEffects = dto.ChainedEffects?.Select(MapEffectFromDto).ToList(),
+            ConditionalEffects = dto.ConditionalEffects?.Select(MapEffectFromDto).ToList()
         };
     }
 }
