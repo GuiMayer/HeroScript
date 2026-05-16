@@ -1,5 +1,6 @@
 using Core.Common;
 using Core.Math;
+using System.Globalization;
 
 namespace Core.StatusEffects;
 
@@ -266,39 +267,57 @@ public class StatusEffectProcessor
     
     private float CalculateValue(StatusEffectInstance instance)
     {
-        // Se tem fórmula, avaliar manualmente (por enquanto)
-        // TODO: Integrar com MathEngine quando suportar fórmulas string
         if (!string.IsNullOrWhiteSpace(instance.Definition.FormulaValue))
         {
-            try
+            var variables = new Dictionary<string, float>
             {
-                // Parse simples para fórmulas básicas como "stacks * 3"
-                var formula = instance.Definition.FormulaValue.Replace("stacks", instance.Stacks.ToString());
-                formula = formula.Replace("duration", instance.Duration.ToString());
-                
-                // Avaliar expressão simples (apenas multiplicação por enquanto)
-                if (formula.Contains("*"))
-                {
-                    var parts = formula.Split('*');
-                    if (parts.Length == 2 && 
-                        float.TryParse(parts[0].Trim(), out var left) && 
-                        float.TryParse(parts[1].Trim(), out var right))
-                    {
-                        return left * right;
-                    }
-                }
-                
-                // Fallback para BaseValue
-                return instance.Definition.BaseValue * (instance.Definition.ScalesWithStacks ? instance.Stacks : 1);
-            }
-            catch
-            {
-                // Fallback para BaseValue
-                return instance.Definition.BaseValue * (instance.Definition.ScalesWithStacks ? instance.Stacks : 1);
-            }
+                ["stacks"] = instance.Stacks,
+                ["duration"] = instance.Duration
+            };
+
+            if (TryEvaluateFormula(instance.Definition.FormulaValue, variables, out var formulaValue))
+                return formulaValue;
         }
         
-        // Usar BaseValue
         return instance.Definition.BaseValue * (instance.Definition.ScalesWithStacks ? instance.Stacks : 1);
+    }
+
+    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
+    {
+        result = 0;
+        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length == 0 || tokens.Length % 2 == 0)
+            return false;
+
+        if (!TryReadValue(tokens[0], variables, out result))
+            return false;
+
+        for (var i = 1; i < tokens.Length; i += 2)
+        {
+            if (!TryReadValue(tokens[i + 1], variables, out var right))
+                return false;
+
+            result = tokens[i] switch
+            {
+                "+" => result + right,
+                "-" => result - right,
+                "*" => result * right,
+                "/" when right != 0 => result / right,
+                _ => float.NaN
+            };
+
+            if (float.IsNaN(result))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
+    {
+        if (variables.TryGetValue(token, out value))
+            return true;
+
+        return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 }

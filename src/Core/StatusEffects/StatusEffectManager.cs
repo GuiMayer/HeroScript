@@ -3,6 +3,9 @@ using Core.Common;
 using Core.Config;
 using Core.Math;
 using Core.Resources;
+using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Core.StatusEffects;
 
@@ -372,7 +375,12 @@ public class StatusEffectManager : IStatusEffectManager
                 return Result.Failure($"Status effects file not found: {statusPath}");
             
             var json = File.ReadAllText(statusPath);
-            var definitions = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, StatusEffectDefinition>>(json);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            var definitions = JsonSerializer.Deserialize<Dictionary<string, StatusEffectDefinition>>(json, options);
             
             if (definitions == null)
                 return Result.Failure("Failed to deserialize status effects");
@@ -427,39 +435,57 @@ public class StatusEffectManager : IStatusEffectManager
     
     private float CalculateModifierValue(StatusEffectInstance status)
     {
-        // Se tem fórmula, avaliar manualmente (por enquanto)
-        // TODO: Integrar com MathEngine quando suportar fórmulas string
         if (!string.IsNullOrWhiteSpace(status.Definition.ModifierFormula))
         {
-            try
+            var variables = new Dictionary<string, float>
             {
-                // Parse simples para fórmulas básicas como "stacks * 0.25"
-                var formula = status.Definition.ModifierFormula.Replace("stacks", status.Stacks.ToString());
-                formula = formula.Replace("duration", status.Duration.ToString());
-                
-                // Avaliar expressão simples (apenas multiplicação por enquanto)
-                if (formula.Contains("*"))
-                {
-                    var parts = formula.Split('*');
-                    if (parts.Length == 2 && 
-                        float.TryParse(parts[0].Trim(), out var left) && 
-                        float.TryParse(parts[1].Trim(), out var right))
-                    {
-                        return left * right;
-                    }
-                }
-                
-                // Fallback para BaseValue
-                return status.Definition.BaseValue * (status.Definition.ScalesWithStacks ? status.Stacks : 1);
-            }
-            catch
-            {
-                // Fallback para BaseValue
-                return status.Definition.BaseValue * (status.Definition.ScalesWithStacks ? status.Stacks : 1);
-            }
+                ["stacks"] = status.Stacks,
+                ["duration"] = status.Duration
+            };
+
+            if (TryEvaluateFormula(status.Definition.ModifierFormula, variables, out var formulaValue))
+                return formulaValue;
         }
         
-        // Usar BaseValue
         return status.Definition.BaseValue * (status.Definition.ScalesWithStacks ? status.Stacks : 1);
+    }
+
+    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
+    {
+        result = 0;
+        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length == 0 || tokens.Length % 2 == 0)
+            return false;
+
+        if (!TryReadValue(tokens[0], variables, out result))
+            return false;
+
+        for (var i = 1; i < tokens.Length; i += 2)
+        {
+            if (!TryReadValue(tokens[i + 1], variables, out var right))
+                return false;
+
+            result = tokens[i] switch
+            {
+                "+" => result + right,
+                "-" => result - right,
+                "*" => result * right,
+                "/" when right != 0 => result / right,
+                _ => float.NaN
+            };
+
+            if (float.IsNaN(result))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
+    {
+        if (variables.TryGetValue(token, out value))
+            return true;
+
+        return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 }
