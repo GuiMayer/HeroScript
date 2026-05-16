@@ -9,6 +9,7 @@ namespace API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/status")]
 public class StatusEffectController : BaseApiController
 {
     private readonly IStatusEffectManager _statusEffectManager;
