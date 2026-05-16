@@ -47,16 +47,25 @@ public class EffectResolver : IEffectResolver
 
     public Result<EffectResult> ResolveEffect(EffectInstance effect, CombatState state)
     {
+        var result = ApplyEffect(effect, CombatEffectContext.FromEffect(effect, state));
+        if (result.IsFailure)
+            return Result<EffectResult>.Failure(result.Error);
+
+        return Result<EffectResult>.Success(result.Value.EffectResult);
+    }
+
+    public Result<EffectApplicationResult> ApplyEffect(EffectInstance effect, IEffectContext context)
+    {
         try
         {
             _logger.LogDebug($"Resolving effect {effect.InstanceId} of type {effect.Definition.Type}");
             
             // 1. Validar se pode executar
-            var canExecute = CanExecuteEffect(effect, state);
+            var canExecute = CanExecuteEffect(effect, context);
             if (!canExecute.IsSuccess)
             {
                 _logger.LogDebug($"Effect {effect.InstanceId} cannot be executed: {canExecute.Error}");
-                return Result<EffectResult>.Failure(canExecute.Error);
+                return Result<EffectApplicationResult>.Failure(canExecute.Error);
             }
             
             // 2. Marcar como executando
@@ -65,12 +74,12 @@ public class EffectResolver : IEffectResolver
             // 3. Avaliar condição (se houver)
             if (effect.Definition.Condition != null)
             {
-                var conditionMet = EvaluateCondition(effect.Definition.Condition, effect, state);
+                var conditionMet = EvaluateCondition(effect.Definition.Condition, effect, context);
                 if (!conditionMet)
                 {
                     _logger.LogDebug($"Effect {effect.InstanceId} condition not met");
                     var failResult = EffectResult.CreateFailure("Condition not met");
-                    return Result<EffectResult>.Success(failResult);
+                    return Result<EffectApplicationResult>.Success(EffectApplicationResult.FromEffectResult(context.Scope, failResult, context.CombatState));
                 }
             }
             
@@ -82,16 +91,16 @@ public class EffectResolver : IEffectResolver
                 {
                     _logger.LogDebug($"Effect {effect.InstanceId} failed probability check ({roll} > {effect.Definition.Chance})");
                     var failResult = EffectResult.CreateFailure("Probability check failed");
-                    return Result<EffectResult>.Success(failResult);
+                    return Result<EffectApplicationResult>.Success(EffectApplicationResult.FromEffectResult(context.Scope, failResult, context.CombatState));
                 }
             }
             
             // 5. Resolver alvo(s)
-            var targets = ResolveTargets(effect.Definition.Target, effect.SourceEntityId, effect.TargetEntityId, state);
+            var targets = ResolveTargets(effect.Definition.Target, effect.SourceEntityId, effect.TargetEntityId, context);
             if (targets.Count == 0)
             {
                 _logger.LogWarning($"Effect {effect.InstanceId} has no valid targets");
-                return Result<EffectResult>.Success(EffectResult.CreateFailure("No valid targets"));
+                return Result<EffectApplicationResult>.Success(EffectApplicationResult.FromEffectResult(context.Scope, EffectResult.CreateFailure("No valid targets"), context.CombatState));
             }
             
             // 6. Executar effect para cada alvo (com repetições)
@@ -102,7 +111,7 @@ public class EffectResolver : IEffectResolver
             {
                 foreach (var targetId in targets)
                 {
-                    var result = ExecuteEffectOnTarget(effect, targetId, state);
+                    var result = ExecuteEffectOnTarget(effect, targetId, context);
                     allResults.Add(result);
                 }
             }
@@ -120,7 +129,7 @@ public class EffectResolver : IEffectResolver
                     chainedEffects.Add(chainedInstance);
                     
                     // Executar recursivamente
-                    var chainedResult = ResolveEffect(chainedInstance, state);
+                    var chainedResult = ApplyEffect(chainedInstance, context);
                     if (chainedResult.IsSuccess)
                     {
                         aggregatedResult = aggregatedResult with 
@@ -151,12 +160,12 @@ public class EffectResolver : IEffectResolver
             });
             
             _logger.LogDebug($"Effect {effect.InstanceId} resolved successfully");
-            return Result<EffectResult>.Success(aggregatedResult);
+            return Result<EffectApplicationResult>.Success(EffectApplicationResult.FromEffectResult(context.Scope, aggregatedResult, context.CombatState));
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error resolving effect {effect.InstanceId}: {ex.Message}", ex);
-            return Result<EffectResult>.Failure($"Error resolving effect: {ex.Message}");
+            return Result<EffectApplicationResult>.Failure($"Error resolving effect: {ex.Message}");
         }
     }
 
@@ -182,21 +191,42 @@ public class EffectResolver : IEffectResolver
         return Result<List<EffectResult>>.Success(results);
     }
 
+    public Result<List<EffectApplicationResult>> ApplyEffects(List<EffectInstance> effects, IEffectContext context)
+    {
+        var results = new List<EffectApplicationResult>();
+        
+        foreach (var effect in effects)
+        {
+            var result = ApplyEffect(effect, context);
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning($"Effect {effect.InstanceId} failed: {result.Error}");
+            }
+            
+            if (result.IsSuccess)
+            {
+                results.Add(result.Value);
+            }
+        }
+        
+        return Result<List<EffectApplicationResult>>.Success(results);
+    }
+
     // ===== EXECUÇÃO POR TIPO =====
 
-    private EffectResult ExecuteEffectOnTarget(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteEffectOnTarget(EffectInstance effect, string targetId, IEffectContext context)
     {
         try
         {
             return effect.Definition.Type switch
             {
-                EffectType.DAMAGE => ExecuteDamageEffect(effect, targetId, state),
-                EffectType.HEAL => ExecuteHealEffect(effect, targetId, state),
-                EffectType.MODIFY_RESOURCE => ExecuteModifyResourceEffect(effect, targetId, state),
-                EffectType.GAIN_GOLD => ExecuteGainGoldEffect(effect, targetId, state),
-                EffectType.LOSE_GOLD => ExecuteLoseGoldEffect(effect, targetId, state),
-                EffectType.APPLY_STATUS => ExecuteApplyStatusEffect(effect, targetId, state),
-                EffectType.REMOVE_STATUS => ExecuteRemoveStatusEffect(effect, targetId, state),
+                EffectType.DAMAGE => ExecuteDamageEffect(effect, targetId, context),
+                EffectType.HEAL => ExecuteHealEffect(effect, targetId, context),
+                EffectType.MODIFY_RESOURCE => ExecuteModifyResourceEffect(effect, targetId, context),
+                EffectType.GAIN_GOLD => ExecuteGainGoldEffect(effect, targetId, context),
+                EffectType.LOSE_GOLD => ExecuteLoseGoldEffect(effect, targetId, context),
+                EffectType.APPLY_STATUS => ExecuteApplyStatusEffect(effect, targetId, context),
+                EffectType.REMOVE_STATUS => ExecuteRemoveStatusEffect(effect, targetId, context),
                 // TODO: Implementar outros tipos conforme necessário
                 _ => EffectResult.CreateFailure($"Effect type {effect.Definition.Type} not yet implemented")
             };
@@ -208,15 +238,18 @@ public class EffectResolver : IEffectResolver
         }
     }
 
-    private EffectResult ExecuteDamageEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteDamageEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
-        var value = CalculateEffectValue(effect, targetId, state);
+        if (context.CombatState == null)
+            return EffectResult.CreateFailure("DAMAGE effect requires combat context");
+
+        var value = CalculateEffectValue(effect, targetId, context);
         var resourceId = effect.Definition.TargetResource ?? "health";
         
         _logger.LogDebug($"Executing DAMAGE effect: {value} to {resourceId} on {targetId}");
 
-        var source = state.GetEntity(effect.SourceEntityId);
-        var target = state.GetEntity(targetId);
+        var source = context.CombatState.GetEntity(effect.SourceEntityId);
+        var target = context.CombatState.GetEntity(targetId);
         if (source != null && target != null && resourceId == "health")
         {
             var action = new ActionDefinition
@@ -236,9 +269,9 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteHealEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteHealEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
-        var value = CalculateEffectValue(effect, targetId, state);
+        var value = CalculateEffectValue(effect, targetId, context);
         var resourceId = effect.Definition.TargetResource ?? "health";
         
         _logger.LogDebug($"Executing HEAL effect: {value} to {resourceId} on {targetId}");
@@ -251,9 +284,9 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteModifyResourceEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteModifyResourceEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
-        var value = CalculateEffectValue(effect, targetId, state);
+        var value = CalculateEffectValue(effect, targetId, context);
         var resourceId = effect.Definition.TargetResource ?? "energy";
         
         _logger.LogDebug($"Executing MODIFY_RESOURCE effect: {value} to {resourceId} on {targetId}");
@@ -264,9 +297,9 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteGainGoldEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteGainGoldEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
-        var value = CalculateEffectValue(effect, targetId, state);
+        var value = CalculateEffectValue(effect, targetId, context);
         
         _logger.LogDebug($"Executing GAIN_GOLD effect: {value} gold to {targetId}");
         
@@ -276,9 +309,9 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteLoseGoldEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteLoseGoldEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
-        var value = CalculateEffectValue(effect, targetId, state);
+        var value = CalculateEffectValue(effect, targetId, context);
         
         _logger.LogDebug($"Executing LOSE_GOLD effect: {value} gold from {targetId}");
         
@@ -288,7 +321,7 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteApplyStatusEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteApplyStatusEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
         var statusId = effect.Definition.StatusId;
         if (string.IsNullOrEmpty(statusId))
@@ -339,7 +372,7 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteRemoveStatusEffect(EffectInstance effect, string targetId, CombatState state)
+    private EffectResult ExecuteRemoveStatusEffect(EffectInstance effect, string targetId, IEffectContext context)
     {
         var statusId = effect.Definition.StatusId;
         if (string.IsNullOrEmpty(statusId))
@@ -383,11 +416,11 @@ public class EffectResolver : IEffectResolver
 
     // ===== HELPERS =====
 
-    private float CalculateEffectValue(EffectInstance effect, string targetId, CombatState state)
+    private float CalculateEffectValue(EffectInstance effect, string targetId, IEffectContext context)
     {
         if (!string.IsNullOrEmpty(effect.Definition.FormulaValue))
         {
-            var variables = BuildFormulaVariables(effect, targetId, state);
+            var variables = BuildFormulaVariables(effect, targetId, context);
             if (TryEvaluateFormula(effect.Definition.FormulaValue, variables, out var formulaValue))
                 return formulaValue;
 
@@ -397,11 +430,11 @@ public class EffectResolver : IEffectResolver
         return effect.Definition.FlatValue ?? 0f;
     }
 
-    private Dictionary<string, float> BuildFormulaVariables(EffectInstance effect, string targetId, CombatState state)
+    private Dictionary<string, float> BuildFormulaVariables(EffectInstance effect, string targetId, IEffectContext context)
     {
         var variables = new Dictionary<string, float>();
-        var source = state.GetEntity(effect.SourceEntityId);
-        var target = state.GetEntity(targetId);
+        var source = context.CombatState?.GetEntity(effect.SourceEntityId);
+        var target = context.CombatState?.GetEntity(targetId);
 
         if (source != null)
         {
@@ -457,24 +490,34 @@ public class EffectResolver : IEffectResolver
         return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 
-    private bool EvaluateCondition(string condition, EffectInstance effect, CombatState state)
+    private bool EvaluateCondition(string condition, EffectInstance effect, IEffectContext context)
     {
         // TODO: Implementar avaliação de condições via MathEngine ou ExpressionEvaluator
         _logger.LogWarning($"Condition evaluation not yet implemented for effect {effect.InstanceId}. Assuming true.");
         return true;
     }
 
-    private List<string> ResolveTargets(EffectTarget targetType, string sourceId, string primaryTargetId, CombatState state)
+    private List<string> ResolveTargets(EffectTarget targetType, string sourceId, string primaryTargetId, IEffectContext context)
     {
+        if (context.CombatState == null)
+        {
+            return targetType switch
+            {
+                EffectTarget.SELF => new List<string> { sourceId },
+                EffectTarget.TARGET => new List<string> { primaryTargetId },
+                _ => new List<string>()
+            };
+        }
+
         return targetType switch
         {
             EffectTarget.SELF => new List<string> { sourceId },
             EffectTarget.TARGET => new List<string> { primaryTargetId },
-            EffectTarget.ALL_ENEMIES => state.Enemies.Select(e => e.EntityId).ToList(),
-            EffectTarget.ALL_ALLIES => new List<string> { state.Hero.EntityId }, // TODO: Adicionar aliados quando implementado
-            EffectTarget.RANDOM_ENEMY => new List<string> { SelectRandomEnemy(state) },
-            EffectTarget.LOWEST_HP_ENEMY => new List<string> { SelectLowestHpEnemy(state) },
-            EffectTarget.HIGHEST_HP_ENEMY => new List<string> { SelectHighestHpEnemy(state) },
+            EffectTarget.ALL_ENEMIES => context.CombatState.Enemies.Select(e => e.EntityId).ToList(),
+            EffectTarget.ALL_ALLIES => new List<string> { context.CombatState.Hero.EntityId }, // TODO: Adicionar aliados quando implementado
+            EffectTarget.RANDOM_ENEMY => new List<string> { SelectRandomEnemy(context.CombatState) },
+            EffectTarget.LOWEST_HP_ENEMY => new List<string> { SelectLowestHpEnemy(context.CombatState) },
+            EffectTarget.HIGHEST_HP_ENEMY => new List<string> { SelectHighestHpEnemy(context.CombatState) },
             _ => new List<string> { primaryTargetId }
         };
     }
@@ -692,14 +735,26 @@ public class EffectResolver : IEffectResolver
 
     public Result<bool> CanExecuteEffect(EffectInstance effect, CombatState state)
     {
+        return CanExecuteEffect(effect, CombatEffectContext.FromEffect(effect, state));
+    }
+
+    public Result<bool> CanExecuteEffect(EffectInstance effect, IEffectContext context)
+    {
+        if (context.CombatState == null)
+        {
+            return RequiresCombatContext(effect.Definition.Type)
+                ? Result<bool>.Failure($"Effect type {effect.Definition.Type} requires combat context")
+                : Result<bool>.Success(true);
+        }
+
         // Verificar se entidades existem
-        var source = state.GetEntity(effect.SourceEntityId);
+        var source = context.CombatState.GetEntity(effect.SourceEntityId);
         if (source == null)
         {
             return Result<bool>.Failure($"Source entity {effect.SourceEntityId} not found");
         }
         
-        var target = state.GetEntity(effect.TargetEntityId);
+        var target = context.CombatState.GetEntity(effect.TargetEntityId);
         if (target == null && effect.Definition.Target == EffectTarget.TARGET)
         {
             return Result<bool>.Failure($"Target entity {effect.TargetEntityId} not found");
@@ -721,6 +776,24 @@ public class EffectResolver : IEffectResolver
             EffectType.DAMAGE => true,
             EffectType.HEAL => true,
             EffectType.APPLY_STATUS => true,
+            _ => false
+        };
+    }
+
+    private static bool RequiresCombatContext(EffectType type)
+    {
+        return type switch
+        {
+            EffectType.DAMAGE => true,
+            EffectType.HEAL => true,
+            EffectType.APPLY_STATUS => true,
+            EffectType.REMOVE_STATUS => true,
+            EffectType.DISPEL_STATUS => true,
+            EffectType.PREVENT_ACTIONS => true,
+            EffectType.FORCE_TARGET => true,
+            EffectType.SKIP_TURN => true,
+            EffectType.REFLECT_DAMAGE => true,
+            EffectType.ABSORB_DAMAGE => true,
             _ => false
         };
     }

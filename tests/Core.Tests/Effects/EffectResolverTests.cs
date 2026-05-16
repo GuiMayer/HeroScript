@@ -116,6 +116,64 @@ public class EffectResolverTests
         _statusEffectManager.Verify(m => m.RemoveStatusByStatusId(targetId, "burning"), Times.Once);
     }
 
+    [Fact]
+    public void ApplyEffect_RunGoldEffect_DoesNotRequireCombatState()
+    {
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = "reward-node",
+            TargetEntityId = "player",
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.GAIN_GOLD,
+                FlatValue = 25
+            }
+        };
+        var context = new RunEffectContext
+        {
+            RunId = "run-1",
+            SourceEntityId = "reward-node",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True(result.Value!.Success);
+        Assert.Equal(EffectScope.RUN, result.Value.Scope);
+        Assert.Equal(25f, result.Value.EffectResult.ValueApplied);
+        Assert.Equal("gold", result.Value.EffectResult.ResourceAffected);
+        Assert.Null(result.Value.UpdatedCombatState);
+    }
+
+    [Fact]
+    public void ApplyEffect_RunDamageEffect_FailsWithoutCombatState()
+    {
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = "reward-node",
+            TargetEntityId = "player",
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.DAMAGE,
+                FlatValue = 10
+            }
+        };
+        var context = new RunEffectContext
+        {
+            RunId = "run-1",
+            SourceEntityId = "reward-node",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("requires combat context", result.Error);
+    }
+
     private EffectResolver CreateResolver()
     {
         return new EffectResolver(

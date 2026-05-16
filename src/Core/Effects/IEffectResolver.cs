@@ -20,12 +20,22 @@ public interface IEffectResolver
     Result<EffectResult> ResolveEffect(EffectInstance effect, CombatState state);
     
     /// <summary>
+    /// Aplica um efeito em um contexto generico de jogo/run.
+    /// </summary>
+    Result<EffectApplicationResult> ApplyEffect(EffectInstance effect, IEffectContext context);
+    
+    /// <summary>
     /// Resolve múltiplos efeitos em sequência
     /// </summary>
     /// <param name="effects">Lista de efeitos a executar</param>
     /// <param name="state">Estado atual do combate</param>
     /// <returns>Lista de resultados</returns>
     Result<List<EffectResult>> ResolveEffects(List<EffectInstance> effects, CombatState state);
+    
+    /// <summary>
+    /// Aplica múltiplos efeitos em sequência em um contexto generico de jogo/run.
+    /// </summary>
+    Result<List<EffectApplicationResult>> ApplyEffects(List<EffectInstance> effects, IEffectContext context);
     
     // ===== MODIFICAÇÃO =====
     
@@ -60,6 +70,11 @@ public interface IEffectResolver
     /// <param name="state">Estado atual do combate</param>
     /// <returns>True se pode executar, false caso contrário</returns>
     Result<bool> CanExecuteEffect(EffectInstance effect, CombatState state);
+    
+    /// <summary>
+    /// Verifica se um efeito pode ser executado no contexto informado.
+    /// </summary>
+    Result<bool> CanExecuteEffect(EffectInstance effect, IEffectContext context);
     
     /// <summary>
     /// Valida uma definição de efeito
