@@ -30,6 +30,7 @@ public class CombatSystem : ICombatSystem
     private readonly IResourceRegenerationProcessor? _regenerationProcessor;
     private readonly ITurnOrderCalculator? _turnOrderCalculator;
     private readonly IActionManager? _actionManager;
+    private readonly IEffectResolver? _effectResolver;
     private readonly EntityDefinitionLoader? _entityDefinitionLoader;
     private readonly EntityCombatAdapter _entityAdapter;
     
@@ -44,7 +45,8 @@ public class CombatSystem : ICombatSystem
         IResourceRegenerationProcessor? regenerationProcessor = null,
         ITurnOrderCalculator? turnOrderCalculator = null,
         IActionManager? actionManager = null,
-        EntityDefinitionLoader? entityDefinitionLoader = null)
+        EntityDefinitionLoader? entityDefinitionLoader = null,
+        IEffectResolver? effectResolver = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
@@ -54,6 +56,7 @@ public class CombatSystem : ICombatSystem
         _regenerationProcessor = regenerationProcessor;
         _turnOrderCalculator = turnOrderCalculator;
         _actionManager = actionManager;
+        _effectResolver = effectResolver;
         _entityDefinitionLoader = entityDefinitionLoader;
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
@@ -444,8 +447,14 @@ public class CombatSystem : ICombatSystem
 
     private float CalculateActionDamage(ActionDefinition actionDefinition, CombatEntity actor, CombatEntity target)
     {
-        if (!actionDefinition.Effects.Any(e => e.Type == EffectType.DAMAGE))
+        var damageEffects = actionDefinition.Effects.Where(e => e.Type == EffectType.DAMAGE).ToList();
+        if (damageEffects.Count == 0)
             return 0;
+
+        if (_effectResolver != null)
+        {
+            return damageEffects.Sum(effect => ResolveActionEffectValue(effect, actionDefinition.ActionId, actor, target));
+        }
 
         if (_damageCalculator != null)
         {
@@ -454,9 +463,26 @@ public class CombatSystem : ICombatSystem
             return damageResult.FinalDamage;
         }
 
-        return actionDefinition.Effects
-            .Where(e => e.Type == EffectType.DAMAGE)
-            .Sum(e => e.FlatValue ?? 0);
+        return damageEffects.Sum(e => e.FlatValue ?? 0);
+    }
+
+    private float ResolveActionEffectValue(EffectDefinition effect, string actionId, CombatEntity actor, CombatEntity target)
+    {
+        var instance = CreateActionEffectInstance(effect, actionId, actor.EntityId, target.EntityId);
+        var context = new CombatEffectContext
+        {
+            CombatState = new CombatState { Hero = actor, Enemies = new List<CombatEntity> { target } },
+            SourceEntityId = actor.EntityId,
+            TargetEntityId = target.EntityId,
+            SourceActionId = actionId
+        };
+
+        var result = _effectResolver!.ApplyEffect(instance, context);
+        if (result.IsSuccess && result.Value.Success && result.Value.EffectResult.ValueApplied.HasValue)
+            return result.Value.EffectResult.ValueApplied.Value;
+
+        _logger.LogWarning($"Effect resolver failed for action {actionId}: {(result.IsFailure ? result.Error : result.Value.ErrorMessage)}. Falling back to flat value.");
+        return effect.FlatValue ?? 0;
     }
 
     private CombatEntity ApplyActionResourceEffects(
@@ -468,7 +494,7 @@ public class CombatSystem : ICombatSystem
 
         foreach (var effect in effects.Where(e => e.Type == EffectType.MODIFY_RESOURCE))
         {
-            var value = effect.FlatValue ?? 0;
+            var value = ResolveResourceEffectValue(effect, updatedActor, target);
             var resourceId = effect.TargetResource;
             if (string.IsNullOrWhiteSpace(resourceId) || value == 0)
                 continue;
@@ -488,6 +514,38 @@ public class CombatSystem : ICombatSystem
         }
 
         return updatedActor;
+    }
+
+    private float ResolveResourceEffectValue(EffectDefinition effect, CombatEntity actor, CombatEntity target)
+    {
+        if (_effectResolver == null)
+            return effect.FlatValue ?? 0;
+
+        var instance = CreateActionEffectInstance(effect, string.Empty, actor.EntityId, target.EntityId);
+        var context = new CombatEffectContext
+        {
+            CombatState = new CombatState { Hero = actor, Enemies = new List<CombatEntity> { target } },
+            SourceEntityId = actor.EntityId,
+            TargetEntityId = target.EntityId
+        };
+
+        var result = _effectResolver.ApplyEffect(instance, context);
+        if (result.IsSuccess && result.Value.Success && result.Value.EffectResult.ValueApplied.HasValue)
+            return result.Value.EffectResult.ValueApplied.Value;
+
+        _logger.LogWarning($"Effect resolver failed for resource effect: {(result.IsFailure ? result.Error : result.Value.ErrorMessage)}. Falling back to flat value.");
+        return effect.FlatValue ?? 0;
+    }
+
+    private static EffectInstance CreateActionEffectInstance(EffectDefinition effect, string sourceActionId, string actorId, string targetId)
+    {
+        return new EffectInstance
+        {
+            Definition = effect,
+            SourceEntityId = actorId,
+            TargetEntityId = targetId,
+            SourceActionId = sourceActionId
+        };
     }
 
     private static ResourcePool ApplyResourceDelta(ResourcePool pool, float value)

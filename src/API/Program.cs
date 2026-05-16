@@ -148,7 +148,8 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
     var actionManager = sp.GetRequiredService<IActionManager>();
     var entityDefinitionLoader = sp.GetRequiredService<EntityDefinitionLoader>();
-    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader);
+    var effectResolver = sp.GetRequiredService<IEffectResolver>();
+    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver);
 });
 
 // Register EntityFactory
