@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Effects;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
@@ -11,6 +12,23 @@ namespace Core.Tests.Combat;
 
 public class CombatIntegrationTests
 {
+    private static IActionManager CreateActionManager()
+    {
+        var mock = new Mock<IActionManager>();
+        var actions = new[] { CreateBasicAttack(), CreateFireball() };
+
+        foreach (var action in actions)
+        {
+            mock.Setup(m => m.GetDefinition(action.ActionId))
+                .Returns(Core.Common.Result<ActionDefinition>.Success(action));
+        }
+
+        mock.Setup(m => m.GetDefinition(It.Is<string>(id => actions.All(a => a.ActionId != id))))
+            .Returns((string id) => Core.Common.Result<ActionDefinition>.Failure($"Action definition not found: {id}"));
+
+        return mock.Object;
+    }
+
     private static IResourceManager CreateMockResourceManager()
     {
         var mock = new Mock<IResourceManager>();
@@ -48,7 +66,7 @@ public class CombatIntegrationTests
         var logger = NullLogger.Instance;
         var eventBus = new EventBus(logger);
         var resourceManager = CreateMockResourceManager();
-        var combatSystem = new CombatSystem(logger, resourceManager, eventBus);
+        var combatSystem = new CombatSystem(logger, resourceManager, eventBus, actionManager: CreateActionManager());
 
         var eventsPublished = new List<string>();
         eventBus.Subscribe<CombatStartedEvent>(e => eventsPublished.Add("CombatStarted"));
@@ -78,7 +96,7 @@ public class CombatIntegrationTests
         // Arrange
         var logger = NullLogger.Instance;
         var resourceManager = CreateMockResourceManager();
-        var combatSystem = new CombatSystem(logger, resourceManager);
+        var combatSystem = new CombatSystem(logger, resourceManager, actionManager: CreateActionManager());
 
         // Act
         var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
@@ -96,5 +114,40 @@ public class CombatIntegrationTests
         Assert.Equal(CombatStatus.VICTORY, finalState.Status);
         Assert.False(finalState.Enemies[0].IsAlive);
         Assert.Equal(3, finalState.ActionHistory.Count);
+    }
+
+    private static ActionDefinition CreateBasicAttack()
+    {
+        return new ActionDefinition
+        {
+            ActionId = "basic_attack",
+            ActionType = ActionType.BASIC_ATTACK,
+            Tags = new List<string> { "physical", "melee", "can_crit" },
+            Effects = new List<EffectDefinition>
+            {
+                new() { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET },
+                new() { Type = EffectType.MODIFY_RESOURCE, FlatValue = 1, TargetResource = "energy", Target = EffectTarget.SELF }
+            }
+        };
+    }
+
+    private static ActionDefinition CreateFireball()
+    {
+        return new ActionDefinition
+        {
+            ActionId = "FIREBALL",
+            ActionType = ActionType.POWER,
+            Costs = new ActionCosts
+            {
+                Costs = new List<ResourceCost>
+                {
+                    new() { ResourceId = "energy", Amount = 3 }
+                }
+            },
+            Effects = new List<EffectDefinition>
+            {
+                new() { Type = EffectType.DAMAGE, FlatValue = 30, Target = EffectTarget.TARGET }
+            }
+        };
     }
 }

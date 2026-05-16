@@ -10,7 +10,7 @@
 
 O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha regras de gameplay em C# que deveriam estar em JSON.
 
-**Score atual:** 5.5/10
+**Score atual:** 6.3/10
 
 ### O que ja esta alinhado
 
@@ -27,7 +27,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | Severidade | Area | Problema | Acao |
 |---|---|---|---|
 | BLOCKING | Actions | `ActionManager` carregava lista fixa de acoes conhecidas | Descobrir acoes por JSON/manifest |
-| BLOCKING | Combat | `CombatSystem` ainda tinha dano/custo/tags de `BASIC_ATTACK` e fallback de `POWER` hardcoded | Executar `ActionDefinition` por dados |
+| ✅ Resolvido | Combat | `CombatSystem` ainda tinha dano/custo/tags de `BASIC_ATTACK` e fallback de `POWER` hardcoded | `BASIC_ATTACK` e `POWER` agora exigem `ActionDefinition` e aplicam dano/custo/energia por effects |
 | HIGH | Combat start | `StartCombat` cria Hero/Enemy com HP, energia e nomes fixos | Resolver entidades via definicoes JSON |
 | HIGH | Status | `CombatSystem` conhece tipos especificos como `BURNING`, `POISON`, `SHIELD`, `THORNS`, `BUFFER` | Aplicar status por comportamento/effects genericos |
 | HIGH | Effects | `EffectResolver` ainda nao aplica todos os tipos nem altera estado completo sozinho | Centralizar execucao/aplicacao de effects |
@@ -62,7 +62,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 |---|---|---|---|
 | DC-0 | ✅ Documentado | Diagnostico e plano de controle em `docs/` | Este documento |
 | DC-1 | ✅ Implementado | `ActionManager` descobre acoes a partir dos arquivos JSON | Teste cobre acao nova carregada via discovery |
-| DC-2 | ⏳ Pendente | `CombatSystem` executa `ActionDefinition` para ataque basico/poder | Remover dano/custo/tags hardcoded |
+| DC-2 | ✅ Implementado | `CombatSystem` executa `ActionDefinition` para ataque basico/poder | Dano, custo, tags e ganho de energia vêm da definicao da acao/testes |
 | DC-3 | ⏳ Pendente | Inicio de combate usa definicoes de entidade JSON quando disponiveis | HP/nome/recursos vêm de JSON |
 | DC-4 | ⏳ Pendente | Status sao aplicados por comportamento generico | Remover checagens especificas de `BURNING`/`POISON` etc. |
 | DC-5 | ⏳ Pendente | Docs atualizados com progresso final e lacunas restantes | Roadmap reflete estado real |
@@ -71,4 +71,4 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 
 ## Proximo Passo Natural
 
-Priorizar `ActionManager + CombatSystem`. Enquanto acoes nao forem descobertas e executadas por `ActionDefinition`, o jogo nao consegue cumprir a promessa de que conteudo novo entra apenas por JSON.
+Priorizar DC-3: iniciar combate a partir de definicoes de entidade JSON quando disponiveis. As acoes ja sao descobertas e executadas por `ActionDefinition`, mas `StartCombat` ainda cria HP/energia/nome padrao em C#.

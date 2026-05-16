@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Effects;
 using Core.Events;
 using Core.Logging;
 using Core.Resources;
@@ -13,6 +14,7 @@ public class CombatSystemTests
     private readonly Mock<ILogger> _mockLogger;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IResourceManager> _mockResourceManager;
+    private readonly Mock<IActionManager> _mockActionManager;
     private readonly CombatSystem _combatSystem;
 
     public CombatSystemTests()
@@ -20,6 +22,7 @@ public class CombatSystemTests
         _mockLogger = new Mock<ILogger>();
         _mockEventBus = new Mock<IEventBus>();
         _mockResourceManager = new Mock<IResourceManager>();
+        _mockActionManager = new Mock<IActionManager>();
         
         // Setup ResourceManager to return valid pools
         _mockResourceManager.Setup(rm => rm.CreatePool(It.IsAny<string>(), It.IsAny<float>()))
@@ -45,7 +48,13 @@ public class CombatSystemTests
                 };
             });
         
-        _combatSystem = new CombatSystem(_mockLogger.Object, _mockResourceManager.Object, _mockEventBus.Object);
+        SetupActionDefinitions(_mockActionManager, CreateBasicAttack(), CreateFireball());
+
+        _combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            _mockEventBus.Object,
+            actionManager: _mockActionManager.Object);
     }
 
     [Fact]
@@ -154,7 +163,7 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(result.IsFailure);
-        Assert.Contains("Insufficient energy", result.Error);
+        Assert.Contains("Insufficient", result.Error);
     }
 
     [Fact]
@@ -162,22 +171,7 @@ public class CombatSystemTests
     {
         // Arrange
         var actionManager = new Mock<IActionManager>();
-        actionManager.Setup(m => m.GetDefinition("ice_bolt"))
-            .Returns(Core.Common.Result<ActionDefinition>.Success(new ActionDefinition
-            {
-                ActionId = "ice_bolt",
-                Costs = new ActionCosts
-                {
-                    Costs = new List<ResourceCost>
-                    {
-                        new() { ResourceId = "energy", Amount = 2 }
-                    }
-                },
-                Effects = new List<Core.Effects.EffectDefinition>
-                {
-                    new() { Type = Core.Effects.EffectType.DAMAGE, FlatValue = 12 }
-                }
-            }));
+        SetupActionDefinitions(actionManager, CreatePower("ice_bolt", 2, 12));
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
@@ -202,27 +196,26 @@ public class CombatSystemTests
     {
         // Arrange
         var actionManager = new Mock<IActionManager>();
-        actionManager.Setup(m => m.GetDefinition("blood_cast"))
-            .Returns(Core.Common.Result<ActionDefinition>.Success(new ActionDefinition
+        SetupActionDefinitions(actionManager, new ActionDefinition
+        {
+            ActionId = "blood_cast",
+            Costs = new ActionCosts
             {
-                ActionId = "blood_cast",
-                Costs = new ActionCosts
+                AlternativeCosts = new List<AlternativeCostOption>
                 {
-                    AlternativeCosts = new List<AlternativeCostOption>
+                    new()
                     {
-                        new()
-                        {
-                            OptionId = "energy",
-                            Description = "Pay energy",
-                            Costs = new List<ResourceCost> { new() { ResourceId = "energy", Amount = 1 } }
-                        }
+                        OptionId = "energy",
+                        Description = "Pay energy",
+                        Costs = new List<ResourceCost> { new() { ResourceId = "energy", Amount = 1 } }
                     }
-                },
-                Effects = new List<Core.Effects.EffectDefinition>
-                {
-                    new() { Type = Core.Effects.EffectType.DAMAGE, FlatValue = 12 }
                 }
-            }));
+            },
+            Effects = new List<EffectDefinition>
+            {
+                new() { Type = EffectType.DAMAGE, FlatValue = 12 }
+            }
+        });
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
@@ -337,5 +330,57 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(exists);
+    }
+
+    private static void SetupActionDefinitions(Mock<IActionManager> actionManager, params ActionDefinition[] definitions)
+    {
+        foreach (var definition in definitions)
+        {
+            actionManager.Setup(m => m.GetDefinition(definition.ActionId))
+                .Returns(Core.Common.Result<ActionDefinition>.Success(definition));
+        }
+
+        actionManager.Setup(m => m.GetDefinition(It.Is<string>(id => definitions.All(d => d.ActionId != id))))
+            .Returns((string id) => Core.Common.Result<ActionDefinition>.Failure($"Action definition not found: {id}"));
+    }
+
+    private static ActionDefinition CreateBasicAttack()
+    {
+        return new ActionDefinition
+        {
+            ActionId = "basic_attack",
+            ActionType = ActionType.BASIC_ATTACK,
+            Tags = new List<string> { "physical", "melee", "can_crit" },
+            Effects = new List<EffectDefinition>
+            {
+                new() { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET },
+                new() { Type = EffectType.MODIFY_RESOURCE, FlatValue = 1, TargetResource = "energy", Target = EffectTarget.SELF }
+            }
+        };
+    }
+
+    private static ActionDefinition CreateFireball()
+    {
+        return CreatePower("FIREBALL", 3, 30);
+    }
+
+    private static ActionDefinition CreatePower(string actionId, float energyCost, float damage)
+    {
+        return new ActionDefinition
+        {
+            ActionId = actionId,
+            ActionType = ActionType.POWER,
+            Costs = new ActionCosts
+            {
+                Costs = new List<ResourceCost>
+                {
+                    new() { ResourceId = "energy", Amount = energyCost }
+                }
+            },
+            Effects = new List<EffectDefinition>
+            {
+                new() { Type = EffectType.DAMAGE, FlatValue = damage, Target = EffectTarget.TARGET }
+            }
+        };
     }
 }

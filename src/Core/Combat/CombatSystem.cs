@@ -31,11 +31,7 @@ public class CombatSystem : ICombatSystem
     private readonly IActionManager? _actionManager;
     private readonly EntityCombatAdapter _entityAdapter;
     
-    // Constantes de gameplay (futuramente virão de config)
-    private const int BASIC_ATTACK_DAMAGE = 10;
-    private const int BASIC_ATTACK_ENERGY_GAIN = 1;
-    private const int DEFAULT_POWER_COST = 3;
-    private const int DEFAULT_POWER_DAMAGE = 30;
+    private const string BasicAttackActionId = "basic_attack";
     
     public CombatSystem(
         ILogger logger, 
@@ -259,8 +255,8 @@ public class CombatSystem : ICombatSystem
             // Executar ação e criar novo estado
             var newState = actionType switch
             {
-                ActionType.BASIC_ATTACK => ExecuteBasicAttack(currentState, targetId!),
-                ActionType.POWER => ExecutePower(currentState, powerId!, targetId!, costOptionId),
+                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, ActionType.BASIC_ATTACK, BasicAttackActionId, targetId!, costOptionId),
+                ActionType.POWER => ExecuteConfiguredAction(currentState, ActionType.POWER, powerId!, targetId!, costOptionId),
                 ActionType.PASS => ExecutePass(currentState),
                 ActionType.END_TURN => ExecuteEndTurn(currentState),
                 _ => throw new InvalidOperationException($"Unknown action type: {actionType}")
@@ -328,6 +324,14 @@ public class CombatSystem : ICombatSystem
                     return Result<bool>.Failure($"Target {targetId} not found");
                 if (!state.GetEntity(targetId)!.IsAlive)
                     return Result<bool>.Failure($"Target {targetId} is already dead");
+
+                var basicActionDefinition = GetConfiguredAction(BasicAttackActionId);
+                if (basicActionDefinition == null)
+                    return Result<bool>.Failure($"Action definition not found: {BasicAttackActionId}");
+
+                var basicAffordabilityError = ValidateActionCosts(state.Hero, basicActionDefinition.Costs, costOptionId);
+                if (basicAffordabilityError != null)
+                    return Result<bool>.Failure(basicAffordabilityError);
                 break;
                 
             case ActionType.POWER:
@@ -337,18 +341,12 @@ public class CombatSystem : ICombatSystem
                     return Result<bool>.Failure("Target is required for power");
 
                 var actionDefinition = GetConfiguredAction(powerId);
-                if (actionDefinition != null)
-                {
-                    var affordabilityError = ValidateActionCosts(state.Hero, actionDefinition.Costs, costOptionId);
-                    if (affordabilityError != null)
-                        return Result<bool>.Failure(affordabilityError);
-                }
-                else
-                {
-                    var energyPool = state.GetHeroResource("energy");
-                    if (energyPool == null || !energyPool.CanAfford(DEFAULT_POWER_COST))
-                        return Result<bool>.Failure($"Insufficient energy: has {energyPool?.Current ?? 0}, needs {DEFAULT_POWER_COST}");
-                }
+                if (actionDefinition == null)
+                    return Result<bool>.Failure($"Action definition not found: {powerId}");
+
+                var affordabilityError = ValidateActionCosts(state.Hero, actionDefinition.Costs, costOptionId);
+                if (affordabilityError != null)
+                    return Result<bool>.Failure(affordabilityError);
                 
                 if (state.GetEntity(targetId) == null)
                     return Result<bool>.Failure($"Target {targetId} not found");
@@ -368,166 +366,121 @@ public class CombatSystem : ICombatSystem
         return Result<bool>.Success(true);
     }
     
-    private CombatState ExecuteBasicAttack(CombatState state, string targetId)
+    private CombatState ExecuteConfiguredAction(
+        CombatState state,
+        ActionType actionType,
+        string actionId,
+        string targetId,
+        string? costOptionId)
     {
         var target = state.GetEntity(targetId)!;
-        
-        // Calcular dano usando pipeline (se disponível)
-        float damageDealt;
-        if (_damageCalculator != null)
-        {
-            var actionDef = new ActionDefinition
-            {
-                ActionId = "basic_attack",
-                Tags = new List<string> { "physical", "melee", "can_crit" },
-                Effects = new List<EffectDefinition>
-                {
-                    new EffectDefinition
-                    {
-                        Type = EffectType.DAMAGE,
-                        FlatValue = BASIC_ATTACK_DAMAGE,
-                        Target = EffectTarget.TARGET
-                    }
-                }
-            };
-            
-            var damageResult = _damageCalculator.CalculateDamage(actionDef, state.Hero, target);
-            damageDealt = damageResult.FinalDamage;
-            
-            _logger.LogDebug($"Basic attack damage: {damageDealt:F2} (crit tier: {damageResult.CritTier})");
-        }
-        else
-        {
-            // Fallback para dano fixo
-            damageDealt = BASIC_ATTACK_DAMAGE;
-        }
-        
+        var actionDefinition = GetConfiguredAction(actionId)
+            ?? throw new InvalidOperationException($"Action definition not found: {actionId}");
+
+        var damageDealt = CalculateActionDamage(actionDefinition, state.Hero, target);
+
         // Processar status effects ON_DAMAGE_TAKEN (THORNS, SHIELD, etc.)
         var (modifiedDamage, updatedHero) = ProcessOnDamageTakenEffects(target, state.Hero, damageDealt, state.CurrentTurn);
-        
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
-        
-        // Ganhar energia
-        var energyPool = updatedHero.GetResource("energy")!;
-        var newEnergyPool = energyPool.Gain(BASIC_ATTACK_ENERGY_GAIN);
-        var newHero = updatedHero.UpdateResource("energy", newEnergyPool);
-        
+
+        updatedHero = ApplyCosts(updatedHero, actionDefinition.Costs, costOptionId);
+        updatedHero = ApplyActionResourceEffects(updatedHero, newTarget, actionDefinition.Effects);
+
+        var previousEnergy = state.Hero.GetResource("energy")?.Current ?? 0;
+        var currentEnergy = updatedHero.GetResource("energy")?.Current ?? previousEnergy;
+        var energyChange = (int)(currentEnergy - previousEnergy);
         var action = new CombatAction
         {
             Turn = state.CurrentTurn,
             ActorId = state.Hero.EntityId,
-            ActionType = ActionType.BASIC_ATTACK,
-            TargetId = targetId,
-            DamageDealt = (int)damageDealt,
-            EnergyChange = BASIC_ATTACK_ENERGY_GAIN
-        };
-        
-        var newEnemies = state.Enemies.Select(e => e.EntityId == targetId ? newTarget : e).ToList();
-        var newHistory = state.ActionHistory.Append(action).ToList();
-        
-        // Publicar evento de energia
-        _eventBus?.Publish(new EnergyChangedEvent
-        {
-            CombatId = state.CombatId,
-            OldEnergy = (int)energyPool.Current,
-            NewEnergy = (int)newEnergyPool.Current,
-            Delta = BASIC_ATTACK_ENERGY_GAIN,
-            Reason = "Basic attack",
-            Turn = state.CurrentTurn,
-            Target = state.Hero.EntityId
-        });
-        
-        return state with
-        {
-            Hero = newHero,
-            Enemies = newEnemies,
-            ActionHistory = newHistory
-        };
-    }
-    
-    private CombatState ExecutePower(CombatState state, string powerId, string targetId, string? costOptionId)
-    {
-        var target = state.GetEntity(targetId)!;
-        var actionDefinition = GetConfiguredAction(powerId);
-        var damageDefinition = actionDefinition?.Effects.FirstOrDefault(e => e.Type == EffectType.DAMAGE);
-        var damageValue = damageDefinition?.FlatValue ?? DEFAULT_POWER_DAMAGE;
-        var tags = actionDefinition?.Tags ?? new List<string> { "spell", "fire", "can_crit" };
-        
-        // Calcular dano usando pipeline (se disponível)
-        float damageDealt;
-        if (_damageCalculator != null)
-        {
-            var actionDef = new ActionDefinition
-            {
-                ActionId = powerId,
-                Tags = tags,
-                Effects = new List<EffectDefinition>
-                {
-                    damageDefinition ?? new EffectDefinition
-                    {
-                        Type = EffectType.DAMAGE,
-                        FlatValue = damageValue,
-                        Target = EffectTarget.TARGET
-                    }
-                }
-            };
-            
-            var damageResult = _damageCalculator.CalculateDamage(actionDef, state.Hero, target);
-            damageDealt = damageResult.FinalDamage;
-            
-            _logger.LogDebug($"Power {powerId} damage: {damageDealt:F2} (crit tier: {damageResult.CritTier})");
-        }
-        else
-        {
-            // Fallback para dano fixo
-            damageDealt = damageValue;
-        }
-        
-        // Processar status effects ON_DAMAGE_TAKEN (THORNS, SHIELD, etc.)
-        var (modifiedDamage, updatedHero) = ProcessOnDamageTakenEffects(target, state.Hero, damageDealt, state.CurrentTurn);
-        
-        var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
-        
-        // Gastar recursos
-        var energyPool = updatedHero.GetResource("energy")!;
-        var newHero = actionDefinition != null
-            ? ApplyCosts(updatedHero, actionDefinition.Costs, costOptionId)
-            : updatedHero.UpdateResource("energy", energyPool.Spend(DEFAULT_POWER_COST));
-        var newEnergyPool = newHero.GetResource("energy") ?? energyPool;
-        var energyChange = (int)(newEnergyPool.Current - energyPool.Current);
-        
-        var action = new CombatAction
-        {
-            Turn = state.CurrentTurn,
-            ActorId = state.Hero.EntityId,
-            ActionType = ActionType.POWER,
-            PowerId = powerId,
+            ActionType = actionType,
+            PowerId = actionType == ActionType.POWER ? actionId : null,
             TargetId = targetId,
             DamageDealt = (int)damageDealt,
             EnergyChange = energyChange
         };
-        
+
         var newEnemies = state.Enemies.Select(e => e.EntityId == targetId ? newTarget : e).ToList();
         var newHistory = state.ActionHistory.Append(action).ToList();
-        
-        // Publicar evento de energia
-        _eventBus?.Publish(new EnergyChangedEvent
-        {
-            CombatId = state.CombatId,
-            OldEnergy = (int)energyPool.Current,
-            NewEnergy = (int)newEnergyPool.Current,
-            Delta = energyChange,
-            Reason = $"Power: {powerId}",
-            Turn = state.CurrentTurn,
-            Target = state.Hero.EntityId
-        });
-        
+
+        PublishEnergyChange(state, previousEnergy, currentEnergy, energyChange, $"Action: {actionId}");
+
         return state with
         {
-            Hero = newHero,
+            Hero = updatedHero,
             Enemies = newEnemies,
             ActionHistory = newHistory
         };
+    }
+
+    private float CalculateActionDamage(ActionDefinition actionDefinition, CombatEntity actor, CombatEntity target)
+    {
+        if (!actionDefinition.Effects.Any(e => e.Type == EffectType.DAMAGE))
+            return 0;
+
+        if (_damageCalculator != null)
+        {
+            var damageResult = _damageCalculator.CalculateDamage(actionDefinition, actor, target);
+            _logger.LogDebug($"Action {actionDefinition.ActionId} damage: {damageResult.FinalDamage:F2} (crit tier: {damageResult.CritTier})");
+            return damageResult.FinalDamage;
+        }
+
+        return actionDefinition.Effects
+            .Where(e => e.Type == EffectType.DAMAGE)
+            .Sum(e => e.FlatValue ?? 0);
+    }
+
+    private CombatEntity ApplyActionResourceEffects(
+        CombatEntity actor,
+        CombatEntity target,
+        IEnumerable<EffectDefinition> effects)
+    {
+        var updatedActor = actor;
+
+        foreach (var effect in effects.Where(e => e.Type == EffectType.MODIFY_RESOURCE))
+        {
+            var value = effect.FlatValue ?? 0;
+            var resourceId = effect.TargetResource;
+            if (string.IsNullOrWhiteSpace(resourceId) || value == 0)
+                continue;
+
+            if (effect.Target == EffectTarget.SELF)
+            {
+                var pool = updatedActor.GetResource(resourceId);
+                if (pool != null)
+                    updatedActor = updatedActor.UpdateResource(resourceId, ApplyResourceDelta(pool, value));
+            }
+            else if (effect.Target == EffectTarget.TARGET && target.EntityId == actor.EntityId)
+            {
+                var pool = updatedActor.GetResource(resourceId);
+                if (pool != null)
+                    updatedActor = updatedActor.UpdateResource(resourceId, ApplyResourceDelta(pool, value));
+            }
+        }
+
+        return updatedActor;
+    }
+
+    private static ResourcePool ApplyResourceDelta(ResourcePool pool, float value)
+    {
+        return value >= 0 ? pool.Gain(value) : pool.Spend(-value);
+    }
+
+    private void PublishEnergyChange(CombatState state, float oldEnergy, float newEnergy, int energyChange, string reason)
+    {
+        if (energyChange == 0)
+            return;
+
+        _eventBus?.Publish(new EnergyChangedEvent
+        {
+            CombatId = state.CombatId,
+            OldEnergy = (int)oldEnergy,
+            NewEnergy = (int)newEnergy,
+            Delta = energyChange,
+            Reason = reason,
+            Turn = state.CurrentTurn,
+            Target = state.Hero.EntityId
+        });
     }
     
     private CombatState ExecutePass(CombatState state)
@@ -825,11 +778,6 @@ public class CombatSystem : ICombatSystem
     /// Se costOptionId for fornecido, aplica custos da opção alternativa.
     /// Caso contrário, aplica custos normais.
     /// </summary>
-    /// <remarks>
-    /// TODO: This method is prepared for future integration with ActionManager.
-    /// Currently, CombatSystem uses hardcoded costs (DEFAULT_POWER_COST).
-    /// When ActionManager is integrated, replace hardcoded logic with this method.
-    /// </remarks>
     private CombatEntity ApplyCosts(
         CombatEntity hero, 
         ActionCosts costs, 
