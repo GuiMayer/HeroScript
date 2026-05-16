@@ -11,7 +11,7 @@ public class PhaseSequenceLoaderTests
     
     public PhaseSequenceLoaderTests()
     {
-        _logger = new ConsoleLogger();
+        _logger = new ConsoleLogger(nameof(PhaseSequenceLoaderTests));
         _loader = new PhaseSequenceLoader(_logger);
     }
     
@@ -23,17 +23,17 @@ public class PhaseSequenceLoaderTests
             ""name"": ""Test Sequence"",
             ""description"": ""Test description"",
             ""version"": ""1.0.0"",
-            ""phases"": [""MAIN_1"", ""END_STEP""],
+            ""phases"": [""MAIN_1"", ""END""],
             ""phaseDetails"": {
                 ""MAIN_1"": {
                     ""name"": ""Main Phase"",
                     ""description"": ""Main phase description"",
                     ""allowedActions"": [""POWER"", ""PASS""],
-                    ""validNextPhases"": [""END_STEP""],
+                    ""validNextPhases"": [""END""],
                     ""autoTransition"": false,
                     ""allowPriority"": true
                 },
-                ""END_STEP"": {
+                ""END"": {
                     ""name"": ""End Step"",
                     ""description"": ""End step description"",
                     ""allowedActions"": [""PASS""],
@@ -99,7 +99,7 @@ public class PhaseSequenceLoaderTests
         // Arrange
         var json = @"{
             ""name"": ""Test"",
-            ""phases"": [""MAIN_1"", ""END_STEP""],
+            ""phases"": [""MAIN_1"", ""END""],
             ""phaseDetails"": {
                 ""MAIN_1"": {
                     ""name"": ""Main"",
@@ -138,7 +138,7 @@ public class PhaseSequenceLoaderTests
         
         // Assert
         Assert.True(result.IsFailure);
-        Assert.Contains("invalid next phase", result.Error);
+        Assert.Contains("Invalid next phase", result.Error);
     }
     
     [Fact]

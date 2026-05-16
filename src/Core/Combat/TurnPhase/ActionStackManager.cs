@@ -22,6 +22,11 @@ public class ActionStackManager : IActionStackManager
     
     public Result<ActionStack> PushAction(ActionStack stack, PendingAction action)
     {
+        if (action == null)
+        {
+            return Result<ActionStack>.Failure("Action cannot be null");
+        }
+
         if (stack.IsResolving)
         {
             return Result<ActionStack>.Failure("Cannot push action while stack is resolving");

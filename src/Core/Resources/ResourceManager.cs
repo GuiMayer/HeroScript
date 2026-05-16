@@ -39,6 +39,7 @@ public class ResourceManager : IResourceManager, IDisposable
     public void LoadResourceDefinitions(string configName)
     {
         _definitions.Clear();
+        _currentConfigName = configName;
         
         try
         {
@@ -306,9 +307,15 @@ public class ResourceManager : IResourceManager, IDisposable
                 return Result.Failure($"Invalid resource data for '{resourceId}'");
             }
             
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+            };
+
             var definition = JsonSerializer.Deserialize<ResourceDefinition>(
                 firstElement.GetRawText(),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                options);
             
             if (definition == null)
             {

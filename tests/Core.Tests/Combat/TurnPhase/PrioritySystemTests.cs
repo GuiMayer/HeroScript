@@ -10,7 +10,18 @@ public class PrioritySystemTests
     
     public PrioritySystemTests()
     {
-        _logger = new ConsoleLogger();
+        _logger = new ConsoleLogger(nameof(PrioritySystemTests));
+    }
+
+    private static PhaseState CreatePhaseState(params string[] players)
+    {
+        return new PhaseState
+        {
+            CurrentPhase = Core.Combat.TurnPhase.TurnPhase.MAIN_1,
+            ActivePlayerId = players.FirstOrDefault() ?? string.Empty,
+            PriorityOrder = players.ToList(),
+            PlayerPassedPriority = players.ToDictionary(player => player, _ => false)
+        };
     }
     
     [Fact]
@@ -21,11 +32,13 @@ public class PrioritySystemTests
         var players = new List<string> { "player1", "player2", "player3" };
         
         // Act
-        var result = prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
+        var combatState = new Core.Combat.Models.CombatState { PhaseState = state };
+        var result = prioritySystem.GetPriorityPlayer(combatState);
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal("player1", prioritySystem.GetCurrentPriorityPlayer());
+        Assert.Equal("player1", result.Value);
     }
     
     [Fact]
@@ -36,10 +49,11 @@ public class PrioritySystemTests
         var players = new List<string>();
         
         // Act
-        var result = prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Assert
-        Assert.True(result.IsFailure);
+        Assert.Empty(state.ActivePlayerId);
+        Assert.Empty(state.PlayerPassedPriority);
     }
     
     [Fact]
@@ -48,14 +62,15 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2", "player3" };
-        prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Act
-        var result = prioritySystem.PassPriority();
+        var result = prioritySystem.PassPriority(state, "player1");
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal("player2", prioritySystem.GetCurrentPriorityPlayer());
+        Assert.True(result.Value.PlayerPassedPriority["player1"]);
+        Assert.False(result.Value.PlayerPassedPriority["player2"]);
     }
     
     [Fact]
@@ -64,15 +79,15 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2" };
-        prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Act
-        prioritySystem.PassPriority(); // player2
-        var result = prioritySystem.PassPriority(); // wrap to player1
+        var result1 = prioritySystem.PassPriority(state, "player1");
+        var result = prioritySystem.PassPriority(result1.Value, "player2");
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal("player1", prioritySystem.GetCurrentPriorityPlayer());
+        Assert.True(prioritySystem.AllPlayersPassedPriority(result.Value));
     }
     
     [Fact]
@@ -81,11 +96,11 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2" };
-        prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Act & Assert
-        Assert.True(prioritySystem.HasPriority("player1"));
-        Assert.False(prioritySystem.HasPriority("player2"));
+        Assert.Equal("player1", state.ActivePlayerId);
+        Assert.NotEqual("player2", state.ActivePlayerId);
     }
     
     [Fact]
@@ -94,16 +109,19 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2", "player3" };
-        prioritySystem.Initialize(players);
-        prioritySystem.PassPriority(); // player2
-        prioritySystem.PassPriority(); // player3
+        var state = CreatePhaseState(players.ToArray());
+        var passedState = state with
+        {
+            PlayerPassedPriority = players.ToDictionary(player => player, _ => true)
+        };
         
         // Act
-        var result = prioritySystem.ResetPriority();
+        var result = prioritySystem.ResetPriority(passedState, "player1");
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal("player1", prioritySystem.GetCurrentPriorityPlayer());
+        Assert.Equal("player1", result.Value.ActivePlayerId);
+        Assert.All(result.Value.PlayerPassedPriority.Values, Assert.False);
     }
     
     [Fact]
@@ -112,14 +130,14 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2", "player3" };
-        prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Act
-        var result = prioritySystem.SetPriorityPlayer("player3");
+        var result = prioritySystem.ResetPriority(state, "player3");
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal("player3", prioritySystem.GetCurrentPriorityPlayer());
+        Assert.Equal("player3", result.Value.ActivePlayerId);
     }
     
     [Fact]
@@ -128,14 +146,14 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2" };
-        prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Act
-        var result = prioritySystem.SetPriorityPlayer("player999");
+        var result = prioritySystem.PassPriority(state, string.Empty);
         
         // Assert
         Assert.True(result.IsFailure);
-        Assert.Contains("not in priority order", result.Error);
+        Assert.Contains("cannot be empty", result.Error);
     }
     
     [Fact]
@@ -144,10 +162,10 @@ public class PrioritySystemTests
         // Arrange
         var prioritySystem = new PrioritySystem(_logger);
         var players = new List<string> { "player1", "player2", "player3" };
-        prioritySystem.Initialize(players);
+        var state = CreatePhaseState(players.ToArray());
         
         // Act
-        var order = prioritySystem.GetPriorityOrder();
+        var order = state.PriorityOrder;
         
         // Assert
         Assert.Equal(3, order.Count);

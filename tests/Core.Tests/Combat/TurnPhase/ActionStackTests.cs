@@ -6,6 +6,8 @@ namespace Core.Tests.Combat.TurnPhase;
 
 public class ActionStackTests
 {
+    private readonly ActionStackManager _manager = new(new Core.Logging.ConsoleLogger(nameof(ActionStackTests)));
+
     [Fact]
     public void NewStack_ShouldBeEmpty()
     {
@@ -25,18 +27,18 @@ public class ActionStackTests
         var action = new PendingAction
         {
             ActionId = Guid.NewGuid(),
-            PlayerId = "player1",
-            ActionType = ActionType.BASIC_ATTACK,
+            ActorId = "player1",
+            Type = ActionType.BASIC_ATTACK,
             TargetId = "enemy1"
         };
         
         // Act
-        var result = stack.Push(action);
+        var result = _manager.PushAction(stack, action);
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(1, stack.Size);
-        Assert.False(stack.IsEmpty);
+        Assert.Equal(1, result.Value.Size);
+        Assert.False(result.Value.IsEmpty);
     }
     
     [Fact]
@@ -46,7 +48,7 @@ public class ActionStackTests
         var stack = new ActionStack();
         
         // Act
-        var result = stack.Push(null!);
+        var result = _manager.PushAction(stack, null!);
         
         // Assert
         Assert.True(result.IsFailure);
@@ -61,26 +63,26 @@ public class ActionStackTests
         var action1 = new PendingAction
         {
             ActionId = Guid.NewGuid(),
-            PlayerId = "player1",
-            ActionType = ActionType.BASIC_ATTACK
+            ActorId = "player1",
+            Type = ActionType.BASIC_ATTACK
         };
         var action2 = new PendingAction
         {
             ActionId = Guid.NewGuid(),
-            PlayerId = "player2",
-            ActionType = ActionType.POWER
+            ActorId = "player2",
+            Type = ActionType.POWER
         };
         
-        stack.Push(action1);
-        stack.Push(action2);
+        stack = _manager.PushAction(stack, action1).Value;
+        stack = _manager.PushAction(stack, action2).Value;
         
         // Act
-        var result = stack.Pop();
+        var result = _manager.PopAction(stack);
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(action2.ActionId, result.Value.ActionId);
-        Assert.Equal(1, stack.Size);
+        Assert.Equal(action2.ActionId, result.Value.Item2.ActionId);
+        Assert.Equal(1, result.Value.Item1.Size);
     }
     
     [Fact]
@@ -90,7 +92,7 @@ public class ActionStackTests
         var stack = new ActionStack();
         
         // Act
-        var result = stack.Pop();
+        var result = _manager.PopAction(stack);
         
         // Assert
         Assert.True(result.IsFailure);
@@ -105,14 +107,14 @@ public class ActionStackTests
         var action = new PendingAction
         {
             ActionId = Guid.NewGuid(),
-            PlayerId = "player1",
-            ActionType = ActionType.BASIC_ATTACK
+            ActorId = "player1",
+            Type = ActionType.BASIC_ATTACK
         };
         
-        stack.Push(action);
+        stack = _manager.PushAction(stack, action).Value;
         
         // Act
-        var result = stack.Peek();
+        var result = _manager.PeekTop(stack);
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -125,12 +127,12 @@ public class ActionStackTests
     {
         // Arrange
         var stack = new ActionStack();
-        stack.Push(new PendingAction { ActionId = Guid.NewGuid(), PlayerId = "p1", ActionType = ActionType.BASIC_ATTACK });
-        stack.Push(new PendingAction { ActionId = Guid.NewGuid(), PlayerId = "p2", ActionType = ActionType.POWER });
-        stack.Push(new PendingAction { ActionId = Guid.NewGuid(), PlayerId = "p3", ActionType = ActionType.PASS });
+        stack = _manager.PushAction(stack, new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p1", Type = ActionType.BASIC_ATTACK }).Value;
+        stack = _manager.PushAction(stack, new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p2", Type = ActionType.POWER }).Value;
+        stack = _manager.PushAction(stack, new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p3", Type = ActionType.PASS }).Value;
         
         // Act
-        stack.Clear();
+        stack = stack with { Actions = new Stack<PendingAction>() };
         
         // Assert
         Assert.Equal(0, stack.Size);
@@ -142,16 +144,16 @@ public class ActionStackTests
     {
         // Arrange
         var stack = new ActionStack();
-        var action1 = new PendingAction { ActionId = Guid.NewGuid(), PlayerId = "p1", ActionType = ActionType.BASIC_ATTACK };
-        var action2 = new PendingAction { ActionId = Guid.NewGuid(), PlayerId = "p2", ActionType = ActionType.POWER };
-        var action3 = new PendingAction { ActionId = Guid.NewGuid(), PlayerId = "p3", ActionType = ActionType.PASS };
+        var action1 = new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p1", Type = ActionType.BASIC_ATTACK };
+        var action2 = new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p2", Type = ActionType.POWER };
+        var action3 = new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p3", Type = ActionType.PASS };
         
-        stack.Push(action1);
-        stack.Push(action2);
-        stack.Push(action3);
+        stack = _manager.PushAction(stack, action1).Value;
+        stack = _manager.PushAction(stack, action2).Value;
+        stack = _manager.PushAction(stack, action3).Value;
         
         // Act
-        var all = stack.GetAll();
+        var all = stack.Actions.ToList();
         
         // Assert
         Assert.Equal(3, all.Count);

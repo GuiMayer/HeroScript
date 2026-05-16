@@ -11,7 +11,7 @@ public class PhaseSystemFactoryTests
     
     public PhaseSystemFactoryTests()
     {
-        _logger = new ConsoleLogger();
+        _logger = new ConsoleLogger(nameof(PhaseSystemFactoryTests));
         _factory = new PhaseSystemFactory(_logger);
     }
     
@@ -71,7 +71,7 @@ public class PhaseSystemFactoryTests
         Assert.True(result.IsSuccess);
         Assert.Equal("Disabled", result.Value.Sequence.Name);
         Assert.Single(result.Value.Sequence.Phases);
-        Assert.Equal(TurnPhase.NONE, result.Value.Sequence.Phases[0]);
+        Assert.Equal(Core.Combat.TurnPhase.TurnPhase.NONE, result.Value.Sequence.Phases[0]);
     }
     
     [Fact]
