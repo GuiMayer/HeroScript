@@ -28,6 +28,7 @@ public class CombatSystem : ICombatSystem
     private readonly IStatusEffectManager? _statusEffectManager;
     private readonly IResourceRegenerationProcessor? _regenerationProcessor;
     private readonly ITurnOrderCalculator? _turnOrderCalculator;
+    private readonly IActionManager? _actionManager;
     private readonly EntityCombatAdapter _entityAdapter;
     
     // Constantes de gameplay (futuramente virão de config)
@@ -43,7 +44,8 @@ public class CombatSystem : ICombatSystem
         IDamageCalculator? damageCalculator = null,
         IStatusEffectManager? statusEffectManager = null,
         IResourceRegenerationProcessor? regenerationProcessor = null,
-        ITurnOrderCalculator? turnOrderCalculator = null)
+        ITurnOrderCalculator? turnOrderCalculator = null,
+        IActionManager? actionManager = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
@@ -52,6 +54,7 @@ public class CombatSystem : ICombatSystem
         _statusEffectManager = statusEffectManager;
         _regenerationProcessor = regenerationProcessor;
         _turnOrderCalculator = turnOrderCalculator;
+        _actionManager = actionManager;
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
     
@@ -257,7 +260,7 @@ public class CombatSystem : ICombatSystem
             var newState = actionType switch
             {
                 ActionType.BASIC_ATTACK => ExecuteBasicAttack(currentState, targetId!),
-                ActionType.POWER => ExecutePower(currentState, powerId!, targetId!),
+                ActionType.POWER => ExecutePower(currentState, powerId!, targetId!, costOptionId),
                 ActionType.PASS => ExecutePass(currentState),
                 ActionType.END_TURN => ExecuteEndTurn(currentState),
                 _ => throw new InvalidOperationException($"Unknown action type: {actionType}")
@@ -332,27 +335,25 @@ public class CombatSystem : ICombatSystem
                     return Result<bool>.Failure("Power ID is required");
                 if (string.IsNullOrWhiteSpace(targetId))
                     return Result<bool>.Failure("Target is required for power");
-                
-                var energyPool = state.GetHeroResource("energy");
-                if (energyPool == null || !energyPool.CanAfford(DEFAULT_POWER_COST))
-                    return Result<bool>.Failure($"Insufficient energy: has {energyPool?.Current ?? 0}, needs {DEFAULT_POWER_COST}");
+
+                var actionDefinition = GetConfiguredAction(powerId);
+                if (actionDefinition != null)
+                {
+                    var affordabilityError = ValidateActionCosts(state.Hero, actionDefinition.Costs, costOptionId);
+                    if (affordabilityError != null)
+                        return Result<bool>.Failure(affordabilityError);
+                }
+                else
+                {
+                    var energyPool = state.GetHeroResource("energy");
+                    if (energyPool == null || !energyPool.CanAfford(DEFAULT_POWER_COST))
+                        return Result<bool>.Failure($"Insufficient energy: has {energyPool?.Current ?? 0}, needs {DEFAULT_POWER_COST}");
+                }
                 
                 if (state.GetEntity(targetId) == null)
                     return Result<bool>.Failure($"Target {targetId} not found");
                 if (!state.GetEntity(targetId)!.IsAlive)
                     return Result<bool>.Failure($"Target {targetId} is already dead");
-                
-                // TODO: When ActionManager is integrated, validate costOptionId here
-                // Example:
-                // var actionDef = _actionManager.GetDefinition(powerId);
-                // if (actionDef.Costs.AlternativeCosts.Count > 0)
-                // {
-                //     if (string.IsNullOrWhiteSpace(costOptionId))
-                //         return Result<bool>.Failure("Cost option must be specified for this action");
-                //     
-                //     if (!actionDef.Costs.CanAffordOption(costOptionId, state.Hero.ResourceState.Resources))
-                //         return Result<bool>.Failure($"Cannot afford cost option: {costOptionId}");
-                // }
                 break;
                 
             case ActionType.PASS:
@@ -444,9 +445,13 @@ public class CombatSystem : ICombatSystem
         };
     }
     
-    private CombatState ExecutePower(CombatState state, string powerId, string targetId)
+    private CombatState ExecutePower(CombatState state, string powerId, string targetId, string? costOptionId)
     {
         var target = state.GetEntity(targetId)!;
+        var actionDefinition = GetConfiguredAction(powerId);
+        var damageDefinition = actionDefinition?.Effects.FirstOrDefault(e => e.Type == EffectType.DAMAGE);
+        var damageValue = damageDefinition?.FlatValue ?? DEFAULT_POWER_DAMAGE;
+        var tags = actionDefinition?.Tags ?? new List<string> { "spell", "fire", "can_crit" };
         
         // Calcular dano usando pipeline (se disponível)
         float damageDealt;
@@ -455,13 +460,13 @@ public class CombatSystem : ICombatSystem
             var actionDef = new ActionDefinition
             {
                 ActionId = powerId,
-                Tags = new List<string> { "spell", "fire", "can_crit" },
+                Tags = tags,
                 Effects = new List<EffectDefinition>
                 {
-                    new EffectDefinition
+                    damageDefinition ?? new EffectDefinition
                     {
                         Type = EffectType.DAMAGE,
-                        FlatValue = DEFAULT_POWER_DAMAGE,
+                        FlatValue = damageValue,
                         Target = EffectTarget.TARGET
                     }
                 }
@@ -475,7 +480,7 @@ public class CombatSystem : ICombatSystem
         else
         {
             // Fallback para dano fixo
-            damageDealt = DEFAULT_POWER_DAMAGE;
+            damageDealt = damageValue;
         }
         
         // Processar status effects ON_DAMAGE_TAKEN (THORNS, SHIELD, etc.)
@@ -483,10 +488,13 @@ public class CombatSystem : ICombatSystem
         
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
         
-        // Gastar energia
+        // Gastar recursos
         var energyPool = updatedHero.GetResource("energy")!;
-        var newEnergyPool = energyPool.Spend(DEFAULT_POWER_COST);
-        var newHero = updatedHero.UpdateResource("energy", newEnergyPool);
+        var newHero = actionDefinition != null
+            ? ApplyCosts(updatedHero, actionDefinition.Costs, costOptionId)
+            : updatedHero.UpdateResource("energy", energyPool.Spend(DEFAULT_POWER_COST));
+        var newEnergyPool = newHero.GetResource("energy") ?? energyPool;
+        var energyChange = (int)(newEnergyPool.Current - energyPool.Current);
         
         var action = new CombatAction
         {
@@ -496,7 +504,7 @@ public class CombatSystem : ICombatSystem
             PowerId = powerId,
             TargetId = targetId,
             DamageDealt = (int)damageDealt,
-            EnergyChange = -DEFAULT_POWER_COST
+            EnergyChange = energyChange
         };
         
         var newEnemies = state.Enemies.Select(e => e.EntityId == targetId ? newTarget : e).ToList();
@@ -508,7 +516,7 @@ public class CombatSystem : ICombatSystem
             CombatId = state.CombatId,
             OldEnergy = (int)energyPool.Current,
             NewEnergy = (int)newEnergyPool.Current,
-            Delta = -DEFAULT_POWER_COST,
+            Delta = energyChange,
             Reason = $"Power: {powerId}",
             Turn = state.CurrentTurn,
             Target = state.Hero.EntityId
@@ -862,6 +870,34 @@ public class CombatSystem : ICombatSystem
         }
         
         return hero.UpdateResources(updates);
+    }
+
+    private ActionDefinition? GetConfiguredAction(string actionId)
+    {
+        if (_actionManager == null)
+            return null;
+
+        var result = _actionManager.GetDefinition(actionId);
+        return result.IsSuccess ? result.Value : null;
+    }
+
+    private static string? ValidateActionCosts(CombatEntity hero, ActionCosts costs, string? costOptionId)
+    {
+        var resources = new Dictionary<string, ResourcePool>(hero.ResourceState.Resources);
+
+        if (costs.AlternativeCosts.Count > 0)
+        {
+            if (string.IsNullOrWhiteSpace(costOptionId))
+                return "Cost option must be specified for this action";
+
+            var option = costs.GetOption(costOptionId);
+            if (option == null)
+                return $"Cost option not found: {costOptionId}";
+
+            return option.GetAffordabilityError(resources);
+        }
+
+        return costs.GetAffordabilityError(resources);
     }
     
     private CombatState CheckCombatEnd(CombatState state)

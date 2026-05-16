@@ -158,6 +158,89 @@ public class CombatSystemTests
     }
 
     [Fact]
+    public void ExecuteAction_PowerWithConfiguredAction_ShouldUseConfiguredDamageAndCosts()
+    {
+        // Arrange
+        var actionManager = new Mock<IActionManager>();
+        actionManager.Setup(m => m.GetDefinition("ice_bolt"))
+            .Returns(Core.Common.Result<ActionDefinition>.Success(new ActionDefinition
+            {
+                ActionId = "ice_bolt",
+                Costs = new ActionCosts
+                {
+                    Costs = new List<ResourceCost>
+                    {
+                        new() { ResourceId = "energy", Amount = 2 }
+                    }
+                },
+                Effects = new List<Core.Effects.EffectDefinition>
+                {
+                    new() { Type = Core.Effects.EffectType.DAMAGE, FlatValue = 12 }
+                }
+            }));
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            _mockEventBus.Object,
+            actionManager: actionManager.Object);
+        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var combatId = startResult.Value.CombatId;
+        var targetId = startResult.Value.Enemies[0].EntityId;
+
+        // Act
+        var result = combatSystem.ExecuteAction(combatId, ActionType.POWER, powerId: "ice_bolt", targetId: targetId);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? -1);
+        Assert.Equal(38, result.Value.Enemies[0].CurrentHp);
+        Assert.Equal(-2, result.Value.ActionHistory.Single().EnergyChange);
+    }
+
+    [Fact]
+    public void ExecuteAction_PowerWithAlternativeCosts_ShouldRequireCostOption()
+    {
+        // Arrange
+        var actionManager = new Mock<IActionManager>();
+        actionManager.Setup(m => m.GetDefinition("blood_cast"))
+            .Returns(Core.Common.Result<ActionDefinition>.Success(new ActionDefinition
+            {
+                ActionId = "blood_cast",
+                Costs = new ActionCosts
+                {
+                    AlternativeCosts = new List<AlternativeCostOption>
+                    {
+                        new()
+                        {
+                            OptionId = "energy",
+                            Description = "Pay energy",
+                            Costs = new List<ResourceCost> { new() { ResourceId = "energy", Amount = 1 } }
+                        }
+                    }
+                },
+                Effects = new List<Core.Effects.EffectDefinition>
+                {
+                    new() { Type = Core.Effects.EffectType.DAMAGE, FlatValue = 12 }
+                }
+            }));
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            _mockEventBus.Object,
+            actionManager: actionManager.Object);
+        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var combatId = startResult.Value.CombatId;
+        var targetId = startResult.Value.Enemies[0].EntityId;
+
+        // Act
+        var result = combatSystem.ExecuteAction(combatId, ActionType.POWER, powerId: "blood_cast", targetId: targetId);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("Cost option must be specified", result.Error);
+    }
+
+    [Fact]
     public void ExecuteAction_KillAllEnemies_ShouldSetStatusToVictory()
     {
         // Arrange

@@ -105,7 +105,7 @@ builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
 });
 
 // Register ActionManager
-builder.Services.AddSingleton<ActionManager>(sp =>
+builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
@@ -146,7 +146,8 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     var eventBus = sp.GetRequiredService<IEventBus>();
     var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
     var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
-    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager);
+    var actionManager = sp.GetRequiredService<IActionManager>();
+    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager);
 });
 
 // Register EntityFactory
