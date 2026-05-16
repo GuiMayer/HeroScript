@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Entity.Definitions;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;
@@ -74,6 +75,34 @@ public class CombatSystemTests
         Assert.Equal(2, result.Value.Enemies.Count);
         Assert.Equal(initialEnergy, result.Value.GetHeroResource("energy")?.Current ?? 0);
         Assert.Equal(CombatStatus.ACTIVE, result.Value.Status);
+    }
+
+    [Fact]
+    public void StartCombat_WithEntityDefinitions_ShouldUseJsonResourcesAndNames()
+    {
+        // Arrange
+        var workspaceRoot = Path.GetFullPath(
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", ".."));
+        var entityPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Entities");
+        var loader = new EntityDefinitionLoader(entityPath, _mockLogger.Object);
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            _mockEventBus.Object,
+            actionManager: _mockActionManager.Object,
+            entityDefinitionLoader: loader);
+
+        // Act
+        var result = combatSystem.StartCombat("player_warrior", new List<string> { "enemy_orc_warrior" }, 4);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Warrior", result.Value.Hero.Name);
+        Assert.Equal(150, result.Value.Hero.GetResource("health")?.Maximum);
+        Assert.Equal(4, result.Value.Hero.GetResource("energy")?.Current);
+        Assert.Equal("Orc Warrior", result.Value.Enemies[0].Name);
+        Assert.Equal(100, result.Value.Enemies[0].GetResource("health")?.Current);
+        Assert.Equal(100, result.Value.Enemies[0].GetResource("health")?.Maximum);
     }
 
     [Fact]

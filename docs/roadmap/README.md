@@ -73,6 +73,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-16 | DC-3 | `StartCombat` passou a criar entidades por `EntityDefinition` JSON quando o ID existir no loader |
 | 2026-05-16 | DC-2 | `CombatSystem` passou a executar ataque básico e poderes por `ActionDefinition`, sem dano/custo/tags numéricos hardcoded |
 | 2026-05-16 | DC-1 | `ActionManager` passou a descobrir ações JSON em vez de usar lista fixa de nomes |
 | 2026-05-16 | Data-driven Compliance | Diagnóstico criado: `ActionManager`, `CombatSystem`, início de combate, Status/Effects e AI ainda tinham regras hardcoded a migrar para JSON |
@@ -102,14 +103,14 @@ http://localhost:5260/api
 ## Estatísticas Atuais
 
 ### Estado Verificado em 2026-05-16
-- **Core.Tests:** 535 testes passando após Data-driven Compliance DC-2
+- **Core.Tests:** 536 testes passando após Data-driven Compliance DC-3
 - **API.Tests:** compila e sobe o host depois dos ajustes de DI; suíte completa ainda possui falhas legadas de contrato em Config/Resource/Action e testes filtrados de StatusEffect ficam pendurados no runner atual
 - **Status Effects:** Core, API e configuração existem, mas a semântica ainda é parcial
-- **Data-driven Compliance:** 6.3/10; ações e execução básica de combate foram migradas para `ActionDefinition`; status e entidades ainda precisam remover regras hardcoded conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
+- **Data-driven Compliance:** 6.8/10; ações, execução básica de combate e início de combate por entidades JSON foram migrados; status ainda precisa remover regras hardcoded conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 (Implementadas)
-- **Total de testes Core:** 535 testes passando
+- **Total de testes Core:** 536 testes passando
   - Combat: 53 testes
   - Events: 18 testes  
   - Damage: 126 testes
@@ -125,6 +126,6 @@ http://localhost:5260/api
 - **Fases restantes:** 2, 3, 4 (críticas)
 - **Tempo estimado:** 19-29 dias de desenvolvimento
 - **Sistemas críticos faltando:** Run Management, Content System, Card Selection, Shop, Preparation, Script Modifiers, Gambit Engine real
-- **Sistemas críticos parciais:** Status Effects, EffectResolver, entidades JSON em `StartCombat`, aplicação genérica de status
+- **Sistemas críticos parciais:** Status Effects, EffectResolver, aplicação genérica de status
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

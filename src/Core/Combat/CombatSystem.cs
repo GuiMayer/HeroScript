@@ -3,6 +3,7 @@ using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Damage;
 using Core.Effects;
+using Core.Entity.Definitions;
 using Core.Entity.Integration;
 using Core.Events;
 using Core.Events.Domain;
@@ -29,6 +30,7 @@ public class CombatSystem : ICombatSystem
     private readonly IResourceRegenerationProcessor? _regenerationProcessor;
     private readonly ITurnOrderCalculator? _turnOrderCalculator;
     private readonly IActionManager? _actionManager;
+    private readonly EntityDefinitionLoader? _entityDefinitionLoader;
     private readonly EntityCombatAdapter _entityAdapter;
     
     private const string BasicAttackActionId = "basic_attack";
@@ -41,7 +43,8 @@ public class CombatSystem : ICombatSystem
         IStatusEffectManager? statusEffectManager = null,
         IResourceRegenerationProcessor? regenerationProcessor = null,
         ITurnOrderCalculator? turnOrderCalculator = null,
-        IActionManager? actionManager = null)
+        IActionManager? actionManager = null,
+        EntityDefinitionLoader? entityDefinitionLoader = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
@@ -51,6 +54,7 @@ public class CombatSystem : ICombatSystem
         _regenerationProcessor = regenerationProcessor;
         _turnOrderCalculator = turnOrderCalculator;
         _actionManager = actionManager;
+        _entityDefinitionLoader = entityDefinitionLoader;
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
     
@@ -68,54 +72,8 @@ public class CombatSystem : ICombatSystem
             if (initialEnergy < 0 || initialEnergy > 10)
                 return Result<CombatState>.Failure("Initial energy must be between 0 and 10");
             
-            // Criar recursos do herói
-            var heroHealthPool = _resourceManager.CreatePool("health", 100);
-            var heroEnergyPool = _resourceManager.CreatePool("energy", initialEnergy);
-            
-            var heroResources = new Dictionary<string, ResourcePool>
-            {
-                ["health"] = heroHealthPool,
-                ["energy"] = heroEnergyPool
-            };
-            
-            var heroResourceState = new EntityResourceState
-            {
-                EntityId = heroId,
-                Resources = heroResources
-            };
-            
-            // Criar herói
-            var hero = new CombatEntity
-            {
-                EntityId = heroId,
-                Name = "Hero",
-                IsHero = true,
-                ResourceState = heroResourceState
-            };
-            
-            // Criar inimigos
-            var enemies = enemyIds.Select((id, index) =>
-            {
-                var enemyHealthPool = _resourceManager.CreatePool("health", 50);
-                var enemyResources = new Dictionary<string, ResourcePool>
-                {
-                    ["health"] = enemyHealthPool
-                };
-                
-                var enemyResourceState = new EntityResourceState
-                {
-                    EntityId = id,
-                    Resources = enemyResources
-                };
-                
-                return new CombatEntity
-                {
-                    EntityId = id,
-                    Name = $"Enemy-{index + 1}",
-                    IsHero = false,
-                    ResourceState = enemyResourceState
-                };
-            }).ToList();
+            var hero = CreateHeroCombatEntity(heroId, initialEnergy);
+            var enemies = enemyIds.Select(CreateEnemyCombatEntity).ToList();
             
             // Criar estado inicial
             var combatState = new CombatState
@@ -155,7 +113,7 @@ public class CombatSystem : ICombatSystem
                 CombatId = combatState.CombatId,
                 HeroId = heroId,
                 EnemyIds = enemyIds,
-                InitialEnergy = initialEnergy,
+                InitialEnergy = (int)(hero.GetResource("energy")?.Current ?? initialEnergy),
                 Target = combatState.CombatId.ToString()
             });
             
@@ -364,6 +322,77 @@ public class CombatSystem : ICombatSystem
         }
         
         return Result<bool>.Success(true);
+    }
+
+    private CombatEntity CreateHeroCombatEntity(string heroId, int initialEnergy)
+    {
+        var definition = TryLoadEntityDefinition(heroId);
+        if (definition != null)
+        {
+            var hero = _entityAdapter.CreateCombatEntityFromDefinition(heroId, definition);
+            var energyPool = hero.GetResource("energy");
+            return energyPool == null
+                ? hero
+                : hero.UpdateResource("energy", energyPool.Set(initialEnergy));
+        }
+
+        var heroHealthPool = _resourceManager.CreatePool("health", 100);
+        var heroEnergyPool = _resourceManager.CreatePool("energy", initialEnergy);
+        var heroResources = new Dictionary<string, ResourcePool>
+        {
+            ["health"] = heroHealthPool,
+            ["energy"] = heroEnergyPool
+        };
+
+        return new CombatEntity
+        {
+            EntityId = heroId,
+            Name = "Hero",
+            IsHero = true,
+            ResourceState = new EntityResourceState
+            {
+                EntityId = heroId,
+                Resources = heroResources
+            }
+        };
+    }
+
+    private CombatEntity CreateEnemyCombatEntity(string enemyId)
+    {
+        var definition = TryLoadEntityDefinition(enemyId);
+        if (definition != null)
+            return _entityAdapter.CreateCombatEntityFromDefinition(enemyId, definition);
+
+        var enemyHealthPool = _resourceManager.CreatePool("health", 50);
+        var enemyResources = new Dictionary<string, ResourcePool>
+        {
+            ["health"] = enemyHealthPool
+        };
+
+        return new CombatEntity
+        {
+            EntityId = enemyId,
+            Name = enemyId,
+            IsHero = false,
+            ResourceState = new EntityResourceState
+            {
+                EntityId = enemyId,
+                Resources = enemyResources
+            }
+        };
+    }
+
+    private EntityDefinition? TryLoadEntityDefinition(string definitionId)
+    {
+        if (_entityDefinitionLoader == null)
+            return null;
+
+        var result = _entityDefinitionLoader.LoadDefinition(definitionId);
+        if (result.IsSuccess)
+            return result.Value;
+
+        _logger.LogDebug($"Entity definition not found for combat start: {definitionId}");
+        return null;
     }
     
     private CombatState ExecuteConfiguredAction(

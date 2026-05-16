@@ -91,7 +91,7 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EntityDefinitionLoader"));
-    var basePath = Path.Combine(AppContext.BaseDirectory, "data", "entities");
+    var basePath = Path.Combine(Directory.GetCurrentDirectory(), "data", "configs", "default", "Entities");
     return new EntityDefinitionLoader(basePath, logger);
 });
 
@@ -147,7 +147,8 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
     var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
     var actionManager = sp.GetRequiredService<IActionManager>();
-    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager);
+    var entityDefinitionLoader = sp.GetRequiredService<EntityDefinitionLoader>();
+    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader);
 });
 
 // Register EntityFactory
