@@ -27,6 +27,18 @@ public class StatusEffectController : BaseApiController
     [HttpPost("apply")]
     public IActionResult ApplyStatus([FromBody] ApplyStatusRequest request)
     {
+        return ApplyStatusInternal(request);
+    }
+
+    [HttpPost("/api/combat/{combatId:guid}/entities/{targetId:guid}/status")]
+    public IActionResult ApplyStatusForEntity(Guid combatId, Guid targetId, [FromBody] ApplyStatusRequest request)
+    {
+        request.TargetId = targetId;
+        return ApplyStatusInternal(request);
+    }
+
+    private IActionResult ApplyStatusInternal(ApplyStatusRequest request)
+    {
         try
         {
             var result = _statusEffectManager.ApplyStatus(
@@ -52,6 +64,21 @@ public class StatusEffectController : BaseApiController
     /// </summary>
     [HttpDelete("remove")]
     public IActionResult RemoveStatus([FromBody] RemoveStatusRequest request)
+    {
+        return RemoveStatusInternal(request);
+    }
+
+    [HttpDelete("/api/combat/{combatId:guid}/entities/{targetId:guid}/status/{instanceId:guid}")]
+    public IActionResult RemoveStatusForEntity(Guid combatId, Guid targetId, Guid instanceId)
+    {
+        return RemoveStatusInternal(new RemoveStatusRequest
+        {
+            TargetId = targetId,
+            InstanceId = instanceId
+        });
+    }
+
+    private IActionResult RemoveStatusInternal(RemoveStatusRequest request)
     {
         try
         {
@@ -124,6 +151,19 @@ public class StatusEffectController : BaseApiController
     [HttpPost("add-stacks")]
     public IActionResult AddStacks([FromBody] ModifyStacksRequest request)
     {
+        return AddStacksInternal(request);
+    }
+
+    [HttpPost("/api/combat/{combatId:guid}/entities/{targetId:guid}/status/{instanceId:guid}/add-stacks")]
+    public IActionResult AddStacksForEntity(Guid combatId, Guid targetId, Guid instanceId, [FromBody] ModifyStacksRequest request)
+    {
+        request.TargetId = targetId;
+        request.InstanceId = instanceId;
+        return AddStacksInternal(request);
+    }
+
+    private IActionResult AddStacksInternal(ModifyStacksRequest request)
+    {
         try
         {
             var result = _statusEffectManager.AddStacks(
@@ -147,6 +187,19 @@ public class StatusEffectController : BaseApiController
     /// </summary>
     [HttpPost("remove-stacks")]
     public IActionResult RemoveStacks([FromBody] ModifyStacksRequest request)
+    {
+        return RemoveStacksInternal(request);
+    }
+
+    [HttpPost("/api/combat/{combatId:guid}/entities/{targetId:guid}/status/{instanceId:guid}/remove-stacks")]
+    public IActionResult RemoveStacksForEntity(Guid combatId, Guid targetId, Guid instanceId, [FromBody] ModifyStacksRequest request)
+    {
+        request.TargetId = targetId;
+        request.InstanceId = instanceId;
+        return RemoveStacksInternal(request);
+    }
+
+    private IActionResult RemoveStacksInternal(ModifyStacksRequest request)
     {
         try
         {
@@ -175,6 +228,17 @@ public class StatusEffectController : BaseApiController
     [HttpPut("{targetId}/status/{instanceId}/duration")]
     public IActionResult RefreshDuration(Guid targetId, Guid instanceId, [FromBody] int duration)
     {
+        return RefreshDurationInternal(targetId, instanceId, duration);
+    }
+
+    [HttpPost("/api/combat/{combatId:guid}/entities/{targetId:guid}/status/{instanceId:guid}/refresh")]
+    public IActionResult RefreshDurationForEntity(Guid combatId, Guid targetId, Guid instanceId, [FromBody] RefreshDurationRequest request)
+    {
+        return RefreshDurationInternal(targetId, instanceId, request.Duration);
+    }
+
+    private IActionResult RefreshDurationInternal(Guid targetId, Guid instanceId, int duration)
+    {
         try
         {
             var result = _statusEffectManager.RefreshDuration(targetId, instanceId, duration);
@@ -195,6 +259,17 @@ public class StatusEffectController : BaseApiController
     /// </summary>
     [HttpGet("{targetId}/active")]
     public IActionResult GetActiveStatus(Guid targetId)
+    {
+        return GetActiveStatusInternal(targetId);
+    }
+
+    [HttpGet("/api/combat/{combatId:guid}/entities/{targetId:guid}/status")]
+    public IActionResult GetActiveStatusForEntity(Guid combatId, Guid targetId)
+    {
+        return GetActiveStatusInternal(targetId);
+    }
+
+    private IActionResult GetActiveStatusInternal(Guid targetId)
     {
         try
         {
@@ -306,6 +381,17 @@ public class StatusEffectController : BaseApiController
     [HttpPost("{targetId}/tick")]
     public IActionResult TickDurations(Guid targetId)
     {
+        return TickDurationsInternal(targetId);
+    }
+
+    [HttpPost("/api/combat/{combatId:guid}/entities/{targetId:guid}/status/tick")]
+    public IActionResult TickDurationsForEntity(Guid combatId, Guid targetId)
+    {
+        return TickDurationsInternal(targetId);
+    }
+
+    private IActionResult TickDurationsInternal(Guid targetId)
+    {
         try
         {
             var result = _statusEffectManager.TickDurations(targetId);
@@ -319,6 +405,12 @@ public class StatusEffectController : BaseApiController
         {
             return HandleException(ex, "tick durations", targetId.ToString());
         }
+    }
+
+    [HttpDelete("/api/combat/{combatId:guid}/entities/{targetId:guid}/status")]
+    public IActionResult RemoveAllStatusForEntity(Guid combatId, Guid targetId)
+    {
+        return RemoveAllStatus(targetId);
     }
 
     /// <summary>

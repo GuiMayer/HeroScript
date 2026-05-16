@@ -1,5 +1,6 @@
 using API.Controllers;
 using API.Models;
+using Core.Math;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -10,12 +11,14 @@ namespace API.Tests.Controllers;
 public class OperationControllerTests
 {
     private readonly Mock<ILogger<OperationController>> _mockLogger;
+    private readonly OperationMetadataProvider _metadataProvider;
     private readonly OperationController _controller;
 
     public OperationControllerTests()
     {
         _mockLogger = new Mock<ILogger<OperationController>>();
-        _controller = new OperationController(_mockLogger.Object);
+        _metadataProvider = new OperationMetadataProvider(new Core.Logging.ConsoleLogger(nameof(OperationControllerTests)));
+        _controller = new OperationController(_mockLogger.Object, _metadataProvider);
     }
 
     [Fact]

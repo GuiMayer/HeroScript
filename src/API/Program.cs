@@ -29,6 +29,12 @@ builder.Services.AddSingleton<IEventBus, EventBus>(sp =>
 });
 
 // Register Core services with DI
+builder.Services.AddSingleton<Core.Logging.ILogger>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    return new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
+});
+
 builder.Services.AddSingleton<ConfigValidator>();
 builder.Services.AddSingleton<IConfigManager, ConfigManager>(sp =>
 {
@@ -113,9 +119,10 @@ builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
 {
     var pipelineManager = sp.GetRequiredService<IPipelineManager>();
     var eventBus = sp.GetRequiredService<IEventBus>();
+    var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("DamageCalculator"));
-    return new DamageCalculator(pipelineManager, eventBus, logger);
+    return new DamageCalculator(pipelineManager, eventBus, logger, statusEffectManager);
 });
 
 // Register EffectResolver

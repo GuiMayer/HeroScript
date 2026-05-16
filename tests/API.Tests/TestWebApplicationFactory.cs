@@ -12,6 +12,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        var projectRoot = FindProjectRoot();
+
         builder.ConfigureServices(services =>
         {
             // Configurações adicionais de teste podem ser adicionadas aqui
@@ -20,21 +22,12 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         // Usar ambiente de teste
         builder.UseEnvironment("Development");
-        
+         
         // Configurar content root para encontrar arquivos de configuração
-        builder.UseContentRoot(Directory.GetCurrentDirectory());
-    }
-
-    protected override IHost CreateHost(IHostBuilder builder)
-    {
-        // Garantir que o diretório de trabalho está correto
-        var projectRoot = FindProjectRoot();
         if (projectRoot != null)
         {
-            Directory.SetCurrentDirectory(projectRoot);
+            builder.UseContentRoot(projectRoot);
         }
-        
-        return base.CreateHost(builder);
     }
 
     private static string? FindProjectRoot()

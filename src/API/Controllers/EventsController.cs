@@ -12,11 +12,13 @@ public class EventsController : ControllerBase
 {
     private readonly IEventBus _eventBus;
     private readonly ILogger<EventsController> _logger;
+    private readonly IWebHostEnvironment _environment;
 
-    public EventsController(IEventBus eventBus, ILogger<EventsController> logger)
+    public EventsController(IEventBus eventBus, ILogger<EventsController> logger, IWebHostEnvironment environment)
     {
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _environment = environment ?? throw new ArgumentNullException(nameof(environment));
     }
 
     /// <summary>
@@ -116,7 +118,11 @@ public class EventsController : ControllerBase
     {
         try
         {
-            // TODO: Adicionar verificação de ambiente (apenas dev)
+            if (!_environment.IsDevelopment())
+            {
+                return NotFound();
+            }
+
             _eventBus.ClearHistory();
             _logger.LogInformation("Event history cleared via API");
             return Ok(new { message = "Event history cleared successfully" });

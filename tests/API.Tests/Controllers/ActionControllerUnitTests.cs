@@ -1,6 +1,7 @@
 using API.Controllers;
 using API.Models.Actions;
 using Core.Combat;
+using Core.Combat.Models;
 using Core.Common;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
