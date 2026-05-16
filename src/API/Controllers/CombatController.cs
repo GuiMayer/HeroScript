@@ -62,13 +62,14 @@ public class CombatController : BaseApiController
     {
         try
         {
-            if (!Enum.TryParse<ActionType>(request.ActionType, true, out var actionType))
-                return BadRequest(new { error = $"Invalid action type: {request.ActionType}" });
+            var resolveResult = ResolveExecutionRequest(request, out var actionType, out var powerId);
+            if (resolveResult != null)
+                return resolveResult;
 
             var result = _combatSystem.ExecuteAction(
                 combatId,
                 actionType,
-                request.PowerId,
+                powerId,
                 request.TargetId,
                 request.CostOptionId);
 
@@ -213,6 +214,20 @@ public class CombatController : BaseApiController
                     baseDamage = action.Effects
                         .Where(e => e.Type == EffectType.DAMAGE)
                         .Sum(e => e.FlatValue ?? 0f),
+                    requiresTarget = action.RequiresTarget,
+                    multiTarget = action.MultiTarget,
+                    effectCount = action.Effects.Count,
+                    effects = action.Effects.Select(e => new
+                    {
+                        effectId = e.EffectId,
+                        type = e.Type.ToString(),
+                        target = e.Target.ToString(),
+                        timing = e.Timing.ToString(),
+                        flatValue = e.FlatValue,
+                        formulaValue = e.FormulaValue,
+                        targetResource = e.TargetResource,
+                        statusId = e.StatusId
+                    }).ToList(),
                     tags = action.Tags,
                     canAfford = affordability.CanAfford,
                     affordableOptions = affordability.AffordableOptionIds
@@ -305,6 +320,31 @@ public class CombatController : BaseApiController
     }
 
     // Mappers
+    private IActionResult? ResolveExecutionRequest(ExecuteActionRequest request, out ActionType actionType, out string? powerId)
+    {
+        actionType = ActionType.PASS;
+        powerId = request.PowerId;
+
+        if (!string.IsNullOrWhiteSpace(request.ActionId))
+        {
+            var actionResult = _actionManager.GetDefinition(request.ActionId);
+            if (actionResult.IsFailure)
+                return NotFound(new { error = $"Action {request.ActionId} not found" });
+
+            var actionDefinition = actionResult.Value;
+            actionType = actionDefinition.ActionType == ActionType.BASIC_ATTACK
+                ? ActionType.BASIC_ATTACK
+                : ActionType.POWER;
+            powerId = actionType == ActionType.POWER ? actionDefinition.ActionId : null;
+            return null;
+        }
+
+        if (!Enum.TryParse<ActionType>(request.ActionType, true, out actionType))
+            return BadRequest(new { error = $"Invalid action type: {request.ActionType}" });
+
+        return null;
+    }
+
     private CombatStateResponse MapToStateResponse(CombatState state)
     {
         return new CombatStateResponse
