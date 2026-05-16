@@ -5,6 +5,9 @@ namespace API.Models;
 /// </summary>
 public class CalculateDamageResponse
 {
+    public string ActionId { get; set; } = string.Empty;
+    public string Mode { get; set; } = "simulation";
+
     /// <summary>
     /// Dano final calculado
     /// </summary>

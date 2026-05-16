@@ -33,11 +33,13 @@ public class DamageController : ControllerBase
     }
 
     /// <summary>
-    /// Calcula dano de uma ação
+    /// Simula o cálculo de dano de uma ação.
+    /// Este endpoint é diagnóstico; execução real de efeitos deve usar /api/effect/apply ou /api/combat/{id}/action.
     /// </summary>
     /// <param name="request">Dados da ação e entidades</param>
     /// <returns>Resultado do cálculo com breakdown</returns>
     [HttpPost("calculate")]
+    [HttpPost("simulate")]
     [ProducesResponseType(typeof(CalculateDamageResponse), 200)]
     [ProducesResponseType(400)]
     public IActionResult CalculateDamage([FromBody] CalculateDamageRequest request)
@@ -88,6 +90,8 @@ public class DamageController : ControllerBase
             // Montar response
             var response = new CalculateDamageResponse
             {
+                ActionId = request.ActionId,
+                Mode = "simulation",
                 FinalDamage = result.FinalDamage,
                 CritTier = result.CritTier,
                 BaseDamage = request.BaseDamage,
