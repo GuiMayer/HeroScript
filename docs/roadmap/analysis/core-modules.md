@@ -9,11 +9,11 @@
 ## Resumo Executivo
 
 ### Estado Atual
-- **Core.Tests:** 524 testes passando após estabilização
+- **Core.Tests:** 536 testes passando após Data-driven Compliance DC-4
 - **API.Tests:** compila e o host sobe; ainda há falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
 - **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 parcialmente implementada
-- **Próxima fase:** concluir estabilização da Fase 2 antes de iniciar Run/Shop/CardSelection/Content
-- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 5.5/10
+- **Próxima fase:** implementar Effect Application Engine antes de iniciar Run/Shop/CardSelection/Content
+- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 7.8/10
 
 ### Capacidade Atual
 Com os módulos implementados, é possível criar:
@@ -23,7 +23,7 @@ Com os módulos implementados, é possível criar:
 - ✅ Sistema de ações com custos alternativos
 - ✅ Sistema de eventos (pub/sub)
 - ✅ Configuração data-driven com herança
-- ⚠️ Ações e combate ainda parcialmente hardcoded apesar de existirem JSONs
+- ✅ Ações e execução básica de combate migradas para `ActionDefinition`/JSON na primeira rodada de compliance
 
 ### O Que Falta Para Um Jogo Completo
 - ❌ Loop de run (progressão, mapa, recompensas)
@@ -128,9 +128,9 @@ Com os módulos implementados, é possível criar:
 - Validação de custos (recursos + alternativos)
 - Execução de ações
 
-**Gap data-driven:**
-- `CombatSystem` ainda carrega regras de gameplay em C# quando uma ação configurada não é encontrada.
-- Ataque básico e início de combate precisam usar JSON como fonte da verdade.
+**Gap data-driven restante:**
+- Ataque básico e poderes usam `ActionDefinition`; início de combate prefere `EntityDefinition` JSON.
+- `CombatSystem` ainda aplica parte dos effects/status diretamente; o próximo passo é extrair isso para um executor central de effects.
 - Detalhes e checklist: [data-driven-compliance.md](data-driven-compliance.md).
 
 **Testes:** 53 testes
@@ -234,11 +234,11 @@ Com os módulos implementados, é possível criar:
 - `StatusEffectManager`, `StatusEffectProcessor`, `StatusEffectDefinition`, `StatusEffectInstance`
 - API REST principal em `/api/StatusEffect/*`
 - Rotas compatíveis por entidade em `/api/combat/{combatId}/entities/{targetId}/status`
-- Integração parcial com `CombatSystem` para controle, DoT/HoT, shield/thorns/intangible e BUFFER
+- Integração com `CombatSystem` por comportamento para controle, DoT/HoT, shield/reactive/damage cap/death prevention
 - `DamageCalculator` recebe `IStatusEffectManager` via DI e pode aplicar modificadores de pipeline
 
 **O que falta estabilizar:**
-- Processamento real de DoT/HoT deve aplicar dano/cura via sistemas de recurso/dano, não apenas retornar resultados intermediários
+- Consolidar o contrato entre `StatusEffectProcessor`, `CombatSystem` e o futuro Effect Application Engine
 - Fórmulas e modificadores ainda usam parsing manual em alguns pontos; integrar com `MathEngine`/`ExpressionEvaluator`
 - Ciclo de expiração/tick precisa de testes mais fortes e contrato claro entre `ProcessStatusEffects` e `TickDurations`
 - Testes API de StatusEffect precisam ser destravados no runner de integração

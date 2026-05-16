@@ -1,7 +1,7 @@
 # Diagnostico Data-driven - HeroScript
 
 **Data:** 2026-05-16  
-**Status:** Em execucao  
+**Status:** Compliance inicial concluido; lacunas restantes documentadas  
 **Objetivo:** medir e controlar a aderencia do projeto a filosofia principal: conteudo e regras de sistema devem morar em JSON; o codigo deve interpretar dados e aplicar primitivas de engine.
 
 ---
@@ -10,7 +10,7 @@
 
 O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha regras de gameplay em C# que deveriam estar em JSON.
 
-**Score atual:** 7.2/10
+**Score atual:** 7.8/10
 
 ### O que ja esta alinhado
 
@@ -26,7 +26,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 
 | Severidade | Area | Problema | Acao |
 |---|---|---|---|
-| BLOCKING | Actions | `ActionManager` carregava lista fixa de acoes conhecidas | Descobrir acoes por JSON/manifest |
+| ✅ Resolvido | Actions | `ActionManager` carregava lista fixa de acoes conhecidas | Acoes agora sao descobertas por JSON |
 | ✅ Resolvido | Combat | `CombatSystem` ainda tinha dano/custo/tags de `BASIC_ATTACK` e fallback de `POWER` hardcoded | `BASIC_ATTACK` e `POWER` agora exigem `ActionDefinition` e aplicam dano/custo/energia por effects |
 | ✅ Resolvido parcial | Combat start | `StartCombat` criava Hero/Enemy com HP, energia e nomes fixos | Quando ha `EntityDefinitionLoader`, IDs de entidade sao resolvidos por JSON; fallback legado permanece para compatibilidade |
 | ✅ Resolvido parcial | Status | `CombatSystem` conhecia tipos especificos como `BURNING`, `POISON`, `SHIELD`, `THORNS`, `BUFFER` | Aplicacao em combate agora usa `StatusEffectBehavior`; falta centralizar execucao completa em Effects |
@@ -65,10 +65,30 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | DC-2 | ✅ Implementado | `CombatSystem` executa `ActionDefinition` para ataque basico/poder | Dano, custo, tags e ganho de energia vêm da definicao da acao/testes |
 | DC-3 | ✅ Implementado | Inicio de combate usa definicoes de entidade JSON quando disponiveis | Teste cobre `player_warrior` e `enemy_orc_warrior` carregados de JSON |
 | DC-4 | ✅ Implementado | Status sao aplicados por comportamento generico | `CombatSystem` nao depende mais de tipos especificos para DoT/HoT/shield/reactive/cap/death-prevention |
-| DC-5 | ⏳ Pendente | Docs atualizados com progresso final e lacunas restantes | Roadmap reflete estado real |
+| DC-5 | ✅ Implementado | Docs atualizados com progresso final e lacunas restantes | Roadmap reflete estado real apos DC-1..DC-4 |
 
 ---
 
+## Resultado da Trilha DC-0..DC-5
+
+A primeira rodada de compliance removeu os principais bloqueios data-driven de combate:
+
+- Acoes deixaram de depender de lista fixa em C#.
+- Ataque basico e poderes passaram a exigir `ActionDefinition`.
+- Dano, custo, tags e alteracao de energia passaram a vir dos effects/custos configurados.
+- Inicio de combate passou a preferir `EntityDefinition` JSON para recursos, nomes e stats.
+- Status em combate passaram a ser interpretados por `StatusEffectBehavior`, nao por tipos especificos como Burning/Poison/Buffer.
+
+## Lacunas Restantes
+
+| Prioridade | Lacuna | Motivo |
+|---|---|---|
+| HIGH | `EffectResolver` nao e executor universal de estado | Ainda resolve parte dos effects como resultado intermediario; `CombatSystem` ainda aplica efeitos de combate diretamente |
+| HIGH | Schemas de status divergentes | `UserData/Configs` e `data/configs` usam formatos diferentes; isso aumenta risco de conteudo quebrar conforme o loader usado |
+| MEDIUM | Formula evaluators duplicados | Status e Effects ainda possuem avaliadores simples locais; a fonte canonica deveria ser `MathEngine`/`ExpressionEvaluator` |
+| MEDIUM | AI/Gambit ainda nao e JSON-driven | `AIController`/gambit placeholder ainda usam decisoes estruturais em codigo |
+| MEDIUM | Fallback legado de entidades | `StartCombat` ainda cria entidades padrao se JSON nao existir; aceitavel por compatibilidade, mas producao deve tratar definicao ausente como erro |
+
 ## Proximo Passo Natural
 
-Priorizar DC-5: consolidar documentacao final, registrar lacunas restantes e definir a proxima fase tecnica. As maiores lacunas restantes sao `EffectResolver` ainda incompleto, schemas divergentes de status e AI/Gambit parcialmente hardcoded.
+Priorizar a fase tecnica **Effect Application Engine**: consolidar `EffectResolver`/aplicacao de effects como o caminho unico para dano, cura, recurso, status, draw/discard e modificadores. Depois disso, migrar AI/Gambit para JSON e unificar o schema de Status Effects.

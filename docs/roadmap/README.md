@@ -1,7 +1,7 @@
 # API Roadmap
 
 **Última atualização:** 2026-05-16  
-**Status:** Em estabilização da Fase 2 + Data-driven Compliance
+**Status:** Fase 2 estabilizada parcialmente; Data-driven Compliance inicial concluido
 
 ---
 
@@ -73,6 +73,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-16 | DC-5 | Documentação consolidada com resultado final da trilha Data-driven Compliance, lacunas restantes e próxima fase técnica |
 | 2026-05-16 | DC-4 | Aplicação de Status Effects em combate passou a usar `StatusEffectBehavior` em vez de tipos específicos como Burning/Poison/Buffer |
 | 2026-05-16 | DC-3 | `StartCombat` passou a criar entidades por `EntityDefinition` JSON quando o ID existir no loader |
 | 2026-05-16 | DC-2 | `CombatSystem` passou a executar ataque básico e poderes por `ActionDefinition`, sem dano/custo/tags numéricos hardcoded |
@@ -97,17 +98,17 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** concluir Data-driven Compliance da Fase 2 antes de iniciar Run/Shop/CardSelection/Content.
+**Próximo passo:** implementar a fase **Effect Application Engine** antes de iniciar Run/Shop/CardSelection/Content.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
 ## Estatísticas Atuais
 
 ### Estado Verificado em 2026-05-16
-- **Core.Tests:** 536 testes passando após Data-driven Compliance DC-3
+- **Core.Tests:** 536 testes passando após Data-driven Compliance DC-4
 - **API.Tests:** compila e sobe o host depois dos ajustes de DI; suíte completa ainda possui falhas legadas de contrato em Config/Resource/Action e testes filtrados de StatusEffect ficam pendurados no runner atual
-- **Status Effects:** Core, API e configuração existem, mas a semântica ainda é parcial
-- **Data-driven Compliance:** 7.2/10; ações, execução básica de combate, início de combate por entidades JSON e aplicação de status por comportamento foram migrados; Effects/AI/schemas ainda têm lacunas conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
+- **Status Effects:** Core, API e configuração existem; aplicação em combate usa comportamentos genéricos, mas schema e executor central ainda precisam consolidação
+- **Data-driven Compliance:** 7.8/10; ações, execução básica de combate, início de combate por entidades JSON e aplicação de status por comportamento foram migrados; Effects/AI/schemas ainda têm lacunas conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 (Implementadas)
@@ -127,6 +128,6 @@ http://localhost:5260/api
 - **Fases restantes:** 2, 3, 4 (críticas)
 - **Tempo estimado:** 19-29 dias de desenvolvimento
 - **Sistemas críticos faltando:** Run Management, Content System, Card Selection, Shop, Preparation, Script Modifiers, Gambit Engine real
-- **Sistemas críticos parciais:** Status Effects, EffectResolver, schemas de status, AI/Gambit data-driven
+- **Sistemas críticos parciais:** EffectResolver/Effect Application Engine, schemas de status, AI/Gambit data-driven
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).
