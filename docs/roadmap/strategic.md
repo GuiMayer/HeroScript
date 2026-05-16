@@ -1,7 +1,7 @@
 # HeroScript - Roadmap Estratégico
 
-**Última atualização:** 2026-05-09  
-**Status:** Em Desenvolvimento Ativo  
+**Última atualização:** 2026-05-16  
+**Status:** Em estabilização da Fase 2  
 **Escopo:** Engine versátil para Card Games (Slay the Spire, Balatro, TCGs)
 
 ---
@@ -267,17 +267,21 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 **Tempo estimado:** 14-18 dias  
 **Prioridade:** CRÍTICA (desbloqueia Slay the Spire e outros card games)
 
+**Atualização 2026-05-16:** a Fase 2 não está mais totalmente em planejamento. `StatusEffectManager`, `StatusEffectProcessor`, API de StatusEffect e configs de status existem, mas ainda estão em estabilização. Antes de iniciar Run/Shop/CardSelection/Content, o próximo passo natural é fechar Status lifecycle, EffectResolver e integração ActionManager/CombatSystem.
+
 **Sistemas a implementar:**
 
 #### **2.1. Status Effect System (3-4 dias)**
-- `StatusEffect.cs` - Definição de status (burning, poison, strength)
-- `StatusEffectInstance.cs` - Instância ativa com stacks e duração
-- `StatusEffectManager.cs` - Gerenciador de status ativos
-- Integração com `EffectResolver` para `APPLY_STATUS` e `REMOVE_STATUS`
-- Processamento de status no início/fim do turno (DoTs, buffs, debuffs)
-- 30+ testes unitários + 3 testes de integração
+- ✅ `StatusEffectDefinition` - Definição de status (burning, poison, shield, etc.)
+- ✅ `StatusEffectInstance` - Instância ativa com stacks e duração
+- ✅ `StatusEffectManager` - Gerenciador de status ativos
+- ⚠️ Integração com `EffectResolver` para `APPLY_STATUS` e `REMOVE_STATUS` ainda precisa fechamento semântico
+- ⚠️ Processamento de status no início/fim do turno existe parcialmente; DoT/HoT ainda precisam aplicar dano/cura real via sistemas corretos
+- ⚠️ API.Tests de StatusEffect ainda precisam ser destravados no runner de integração
 
 **Entregável:** Ações podem aplicar status effects que são processados ao longo do tempo.
+
+**Correções recentes:** rotas REST de StatusEffect alinhadas, `DamageCalculator` recebe `IStatusEffectManager` via DI, Core.Tests estabilizados em 524 testes passando.
 
 ---
 
@@ -1089,6 +1093,15 @@ Antes de prosseguir, é necessário decidir qual estratégia seguir:
 
 ### Implementação Imediata (Fase 2 - Prioridade CRÍTICA)
 
+**Atualização 2026-05-16:** executar primeiro a estabilização abaixo; só depois iniciar sistemas novos.
+
+**Estabilização imediata:**
+1. Fechar ciclo de vida de Status Effects: aplicação real de DoT/HoT, expiração, stacks e fórmulas via MathEngine/ExpressionEvaluator
+2. Completar `EffectResolver`: dano via DamageCalculator, cura/recurso via ResourceManager, status via StatusEffectManager
+3. Integrar `ActionManager` com `CombatSystem`: `costOptionId`, custos preparados e remoção de hardcodes de custo/dano
+4. Quebrar gradualmente responsabilidades do `CombatSystem` sem alterar comportamento público
+5. Atualizar/recuperar API.Tests legados de Config/Resource/Action e destravar testes de StatusEffect
+
 **Semana 1-2:**
 1. Status Effect System (3-4 dias)
 2. Turn Management System (2-3 dias)
@@ -1107,6 +1120,8 @@ Antes de prosseguir, é necessário decidir qual estratégia seguir:
 
 | Data | Mudança |
 |------|---------|
+| 2026-05-16 | **Auditoria de estabilização** - Fase 2 classificada como parcial; StatusEffects existem mas precisam fechamento semântico; EffectResolver e CombatSystem/ActionManager são os próximos high priority |
+| 2026-05-16 | **Correções aplicadas** - Core.Tests estabilizados, Resource reload corrigido, rotas StatusEffect alinhadas, DamageCalculator integrado ao StatusEffectManager, guard de ambiente em EventsController |
 | 2026-05-09 | **Roadmap Estratégico criado** - Integração de session.md com roadmap técnico |
 | 2026-05-09 | Análise de gaps críticos (Timeline, Baralhos Modulares, Effect Resolver) |
 | 2026-05-09 | Definição de 3 estratégias de implementação (Pragmático, Completo, Híbrido) |

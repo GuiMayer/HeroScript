@@ -1,7 +1,7 @@
 # Análise de Módulos Core - HeroScript Engine
 
-**Data:** 2026-05-09  
-**Status:** Análise Completa  
+**Data:** 2026-05-16  
+**Status:** Análise Atualizada  
 **Objetivo:** Avaliar quais submódulos do HeroScript.Core estão implementados e quais faltam para criar um jogo completo
 
 ---
@@ -9,9 +9,10 @@
 ## Resumo Executivo
 
 ### Estado Atual
-- **Total de testes:** 423 testes (todos passando)
-- **Fases implementadas:** Fase 0 e Fase 1 (completas)
-- **Próxima fase:** Fase 2 (Status Effects, Modifiers, Gambits)
+- **Core.Tests:** 524 testes passando após estabilização
+- **API.Tests:** compila e o host sobe; ainda há falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
+- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 parcialmente implementada
+- **Próxima fase:** concluir estabilização da Fase 2 antes de iniciar Run/Shop/CardSelection/Content
 
 ### Capacidade Atual
 Com os módulos implementados, é possível criar:
@@ -24,7 +25,7 @@ Com os módulos implementados, é possível criar:
 
 ### O Que Falta Para Um Jogo Completo
 - ❌ Loop de run (progressão, mapa, recompensas)
-- ❌ Sistema de status effects (buffs/debuffs)
+- ⚠️ Sistema de status effects parcial (Core/API/config existem; semântica ainda incompleta)
 - ❌ Sistema de modificadores (Go Again, Multi-Hit, etc.)
 - ❌ Sistema de companions com gambits
 - ❌ Conteúdo jogável (raças, poderes, inimigos)
@@ -218,15 +219,22 @@ Com os módulos implementados, é possível criar:
 
 ## Módulos Core Faltando (Críticos para um Jogo)
 
-### 1. Status Effects System ❌ (Fase 2)
+### 1. Status Effects System ⚠️ Parcial (Fase 2)
 **Prioridade:** ALTA  
-**Localização planejada:** `src/Core/Combat/Status/`
+**Localização:** `src/Core/StatusEffects/`, `src/API/Controllers/StatusEffectController.cs`, `UserData/Configs/default/StatusEffects/status_effects.json`
 
-**O que falta:**
-- StatusEffect - Efeitos temporários
-- StatusManager - Gerenciamento de status
-- StatusProcessor - Processamento de ticks
-- Tipos: Buffs, Debuffs, DoTs, HoTs, Control
+**Implementado:**
+- `StatusEffectManager`, `StatusEffectProcessor`, `StatusEffectDefinition`, `StatusEffectInstance`
+- API REST principal em `/api/StatusEffect/*`
+- Rotas compatíveis por entidade em `/api/combat/{combatId}/entities/{targetId}/status`
+- Integração parcial com `CombatSystem` para controle, DoT/HoT, shield/thorns/intangible e BUFFER
+- `DamageCalculator` recebe `IStatusEffectManager` via DI e pode aplicar modificadores de pipeline
+
+**O que falta estabilizar:**
+- Processamento real de DoT/HoT deve aplicar dano/cura via sistemas de recurso/dano, não apenas retornar resultados intermediários
+- Fórmulas e modificadores ainda usam parsing manual em alguns pontos; integrar com `MathEngine`/`ExpressionEvaluator`
+- Ciclo de expiração/tick precisa de testes mais fortes e contrato claro entre `ProcessStatusEffects` e `TickDurations`
+- Testes API de StatusEffect precisam ser destravados no runner de integração
 
 **Impacto:**
 Sem status effects, não há:
@@ -235,7 +243,29 @@ Sem status effects, não há:
 - Stun, silence, root
 - Regeneração
 
-**Estimativa:** 2-3 dias de implementação
+**Estimativa:** 2-4 dias de estabilização
+
+---
+
+### 1.1. Effect System ⚠️ Parcial (Fase 2)
+**Prioridade:** ALTA  
+**Localização:** `src/Core/Effects/`
+
+**Implementado:**
+- `EffectResolver`, `EffectDefinition`, `EffectInstance`, `EffectResult`, `EffectType`
+- Esqueleto para dano, cura, recursos, status, gold e draw/discard/exhaust
+
+**O que falta:**
+- `DAMAGE` precisa usar o `DamageCalculator` de forma completa e alterar estado real
+- `HEAL` e `MODIFY_RESOURCE` precisam aplicar mudanças no `ResourceManager`
+- `APPLY_STATUS`/`REMOVE_STATUS` precisam fechar o contrato com `StatusEffectManager`
+- Fórmulas, condições e filtros devem usar `MathEngine`/`ExpressionEvaluator`
+- Efeitos de cartas (`DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`) aguardam Hand/Deck System
+
+**Impacto:**
+Sem isso, ações continuam parcialmente hardcoded e o jogo não fica plenamente data-driven.
+
+**Estimativa:** 2-3 dias de estabilização
 
 ---
 
@@ -443,7 +473,8 @@ Sem seed/mode, não há:
 - Damage System
 
 ### Fase 2 📋 (Próxima - 6-9 dias)
-- Status Effects System
+- Status Effects System (parcial; estabilizar)
+- Effect System / EffectResolver (parcial; estabilizar)
 - Script Modifiers System
 - Gambit System
 
@@ -481,22 +512,23 @@ Sem seed/mode, não há:
 ## Priorização Recomendada
 
 ### Crítico (Sem isso não há jogo)
-1. **Run Management System** - Loop de jogo
-2. **Content System** - Conteúdo jogável
-3. **Status Effects System** - Profundidade de combate
+1. **Estabilização Fase 2** - Status lifecycle, EffectResolver e integração ActionManager/CombatSystem
+2. **Run Management System** - Loop de jogo
+3. **Content System** - Conteúdo jogável
+4. **Status Effects System** - Profundidade de combate
 
 ### Importante (Jogo funciona mas limitado)
-4. **Script Modifiers System** - Customização
-5. **Card Selection System** - Progressão de deck
-6. **Shop System** - Economia
+5. **Script Modifiers System** - Customização
+6. **Card Selection System** - Progressão de deck
+7. **Shop System** - Economia
 
 ### Desejável (Adiciona profundidade)
-7. **Gambit System** - Companions inteligentes
-8. **Preparation System** - Customização pré-combate
+8. **Gambit System** - Companions inteligentes
+9. **Preparation System** - Customização pré-combate
 
 ### Opcional (Pode vir depois do MVP)
-9. **Persistence System** - Save/load
-10. **Seed & Mode System** - Replayability
+10. **Persistence System** - Save/load
+11. **Seed & Mode System** - Replayability
 
 ---
 
@@ -504,19 +536,19 @@ Sem seed/mode, não há:
 
 ### Estado Atual
 O HeroScript.Core tem uma **fundação sólida** (Fases 0 e 1) com:
-- 423 testes passando
+- 524 testes Core passando
 - Sistemas core bem arquitetados
 - Padrões consistentes (Result<T>, EventBus, data-driven)
 
 ### O Que Falta
-Para criar um jogo jogável, faltam **4 sistemas críticos**:
-1. Run Management (loop de jogo)
-2. Content System (raças, poderes, inimigos)
-3. Status Effects (buffs/debuffs)
+Para criar um jogo jogável, faltam **4 frentes críticas**:
+1. Estabilização Fase 2 (Status lifecycle, EffectResolver, ActionManager/CombatSystem)
+2. Run Management (loop de jogo)
+3. Content System (raças, poderes, inimigos)
 4. Card Selection (progressão)
 
 ### Próximos Passos
-**Recomendação:** Implementar Fase 2 (Status, Modifiers, Gambits) antes de partir para Fase 3 (Run loop), pois os sistemas de combate precisam estar completos antes de construir o loop de jogo em cima deles.
+**Recomendação:** concluir a estabilização da Fase 2 antes de partir para Fase 3 (Run loop), pois os sistemas de combate precisam estar completos antes de construir o loop de jogo em cima deles.
 
 **Ordem sugerida:**
 1. Fase 2 (6-9 dias) - Completar sistemas de combate

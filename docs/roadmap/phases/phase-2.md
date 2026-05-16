@@ -1,13 +1,36 @@
 # Fase 2 - Camadas de Combate
 
-**Status:** 📋 Planejado  
+**Status:** ⚠️ Parcial / Estabilização  
 **Dependências:** Fase 1 (EventBus, Combat, Damage)
 
 ---
 
 ## Visão Geral
 
-A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects (buffs/debuffs), modificadores de script (Go Again, Multi-Hit, etc.), e o sistema de Gambits para companions. Estas camadas transformam o combate básico em um sistema rico e estratégico.
+A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects (buffs/debuffs), modificadores de script (Go Again, Multi-Hit, etc.), e o sistema de Gambits para companions. A auditoria de 2026-05-16 mostrou que Status Effects já existem parcialmente no Core/API/config, mas ainda precisam de estabilização semântica antes de avançar para Run/Shop/CardSelection/Content.
+
+## Estado Atual Verificado (2026-05-16)
+
+### Já implementado
+- `src/Core/StatusEffects/` com manager, processor, definitions, instances, timings, behaviors e types
+- `src/API/Controllers/StatusEffectController.cs`
+- Configuração `UserData/Configs/default/StatusEffects/status_effects.json`
+- Integração parcial com `CombatSystem` para controle, DoT/HoT, shield/thorns/intangible, BUFFER e modificadores de pipeline
+- Rotas REST compatíveis com `/api/StatusEffect/*` e `/api/combat/{combatId}/entities/{targetId}/status`
+- `DamageCalculator` recebe `IStatusEffectManager` via DI
+
+### Correções de estabilização aplicadas
+- Build/Core.Tests estabilizados; 524 testes Core passando
+- Resource reload/hot reload corrigido
+- `*.lscache` ignorado no Git
+- `EventsController.ClearHistory` protegido por ambiente de desenvolvimento
+- `TestWebApplicationFactory` deixou de alterar o diretório global do processo
+
+### Pendências high priority
+- `EffectResolver` ainda é parcialmente esquelético: precisa aplicar dano/cura/recurso/status em estado real, usando `DamageCalculator`, `ResourceManager` e `StatusEffectManager`
+- `StatusEffectProcessor` ainda retorna resultados intermediários para DoT/HoT; precisa fechar aplicação real de dano/cura e fórmulas via `MathEngine`/`ExpressionEvaluator`
+- `CombatSystem` concentra responsabilidades demais e ainda possui TODOs de integração com `ActionManager`/custos preparados
+- API.Tests compila e o host sobe, mas a suíte completa ainda tem falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
 
 ## APIs Planejadas
 
@@ -16,11 +39,14 @@ A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects 
 Sistema de buffs, debuffs, e efeitos ao longo do tempo (DoTs).
 
 **Endpoints:**
-- `POST /api/status/apply` - Aplica status a uma entidade
-- `GET /api/status/active` - Lista status ativos em combate
-- `POST /api/status/tick` - Processa tick de status (início/fim de turno)
-- `GET /api/status/definitions` - Lista definições de status disponíveis
-- `DELETE /api/status/{statusId}` - Remove status específico
+- `POST /api/StatusEffect/apply` - Aplica status a uma entidade
+- `GET /api/StatusEffect/{targetId}/active` - Lista status ativos em uma entidade
+- `POST /api/StatusEffect/{targetId}/tick` - Processa duração de status
+- `GET /api/StatusEffect/definitions` - Lista definições de status disponíveis
+- `DELETE /api/StatusEffect/remove` - Remove status específico via body
+- `POST /api/combat/{combatId}/entities/{targetId}/status` - Alias por entidade
+- `GET /api/combat/{combatId}/entities/{targetId}/status` - Alias por entidade
+- `DELETE /api/combat/{combatId}/entities/{targetId}/status/{instanceId}` - Remove status por instância
 
 **Tipos de Status:**
 - **Buffs** - Efeitos positivos (força, velocidade, escudo)
@@ -125,38 +151,44 @@ Gambits reagem a eventos de combate:
 - ✅ EventBus (Fase 1)
 - ✅ CombatSystem (Fase 1)
 - ✅ BucketPipeline (Fase 1)
-- ⏳ StatusSystem (implementar)
+- ⚠️ StatusSystem (parcial; estabilizar)
 - ⏳ ScriptModifierSystem (implementar)
 - ⏳ GambitEngine (implementar)
 
 ### Ordem de Implementação
 
-1. **Status Core** (src/Core/Combat/Status/)
-   - StatusEffect, StatusDefinition
-   - StatusManager, StatusProcessor
-   - Tick timing e stack logic
+1. **Status Core** (`src/Core/StatusEffects/`) - estabilizar
+   - Aplicação real de DoT/HoT
+   - Fórmulas via MathEngine/ExpressionEvaluator
+   - Testes de ciclo de vida, stacks, expiração e modificadores de pipeline
 
-2. **Status API** (src/API/Controllers/StatusController.cs)
-   - Apply/remove status
-   - Query active status
-   - Process ticks
+2. **EffectResolver** (`src/Core/Effects/`) - estabilizar
+   - Dano via DamageCalculator
+   - Cura/recurso via ResourceManager
+   - Apply/remove status via StatusEffectManager
+   - Condições e fórmulas data-driven
 
-3. **ScriptModifier Core** (src/Core/Combat/Modifiers/)
+3. **CombatSystem + ActionManager** - integrar
+   - Validar `costOptionId`
+   - Substituir custos hardcoded por `ApplyCosts`
+   - Processar ações via EffectResolver quando aplicável
+
+4. **ScriptModifier Core** (src/Core/Combat/Modifiers/)
    - ScriptModifier, ModifierDefinition
    - ModifierValidator (compatibilidade)
    - Integration com CombatSystem
 
-4. **ScriptModifier API** (src/API/Controllers/ModifierController.cs)
+5. **ScriptModifier API** (src/API/Controllers/ModifierController.cs)
    - List modifiers
    - Validate compatibility
    - Query by category
 
-5. **Gambit Core** (src/Core/Combat/Gambits/)
+6. **Gambit Core** (src/Core/Combat/Gambits/)
    - Gambit, GambitCondition, GambitAction
    - GambitEngine (evaluation)
    - Sincronia com EventBus
 
-6. **Gambit API** (src/API/Controllers/GambitController.cs)
+7. **Gambit API** (src/API/Controllers/GambitController.cs)
    - Configure gambits
    - Evaluate conditions
    - Execute actions
@@ -168,16 +200,14 @@ Gambits reagem a eventos de combate:
 ### Aplicar Status
 
 ```http
-POST /api/status/apply
+POST /api/combat/{combatId}/entities/{targetId}/status
 Content-Type: application/json
 
 {
-  "combatId": "combat-123",
-  "targetId": "player-1",
-  "statusName": "STRENGTH_BUFF",
+  "statusId": "burning",
   "duration": 3,
   "stacks": 2,
-  "source": "companion-1"
+  "sourceId": "00000000-0000-0000-0000-000000000000"
 }
 ```
 
@@ -219,10 +249,10 @@ Content-Type: application/json
 
 ## Próximos Passos
 
-Após completar a Fase 2, a Fase 3 implementará o loop completo de run:
+Após estabilizar a Fase 2, a Fase 3 implementará o loop completo de run:
 - **Run API** - Gerenciamento de runs
 - **CardSelection API** - Aprender/decompilar poderes
 - **Shop API** - Sistema de loja
 - **Preparation API** - Injeção de modificadores
 
-Ver: [PHASE_3.md](PHASE_3.md)
+Ver: [phase-3.md](phase-3.md)

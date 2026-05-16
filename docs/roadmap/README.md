@@ -1,7 +1,7 @@
 # API Roadmap
 
-**Última atualização:** 2026-05-11  
-**Status:** Em Desenvolvimento Ativo
+**Última atualização:** 2026-05-16  
+**Status:** Em estabilização da Fase 2
 
 ---
 
@@ -29,7 +29,7 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 |------|--------|-----------|-----------|
 | **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [phases/phase-0.md](phases/phase-0.md) |
 | **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System | [phases/phase-1.md](phases/phase-1.md) |
-| **Fase 2** | 📋 Planejado | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
+| **Fase 2** | ⚠️ Parcial / Estabilização | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
 | **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [phases/phase-3.md](phases/phase-3.md) |
 | **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [phases/phase-4.md](phases/phase-4.md) |
 | **Fase 5** | 📋 Planejado | Persistência (Save/Load, MetaProgression) | [phases/phase-5.md](phases/phase-5.md) |
@@ -71,6 +71,8 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-16 | Estabilização | Build/Core.Tests estabilizados; Resource reload corrigido; `*.lscache` ignorado; rotas REST de Status Effects alinhadas; DamageCalculator passou a receber StatusEffectManager via DI |
+| 2026-05-16 | Análise | Auditoria atualizada: Status Effects existem parcialmente; Script Modifiers, Run, CardSelection, Shop, Preparation e Content continuam faltando; EffectResolver e CombatSystem ainda precisam de integração/refatoração |
 | 2026-05-11 | Docs | **Documentação reorganizada** - Nova estrutura com diretórios temáticos (architecture/, systems/, api/, roadmap/) |
 | 2026-05-11 | Fase 1 | **TurnPhase System documentado** - Sistema de fases para TCGs completamente documentado |
 | 2026-05-11 | Fase 1 | **TurnPhase System implementado** - Sistema modular de fases (Magic, Yu-Gi-Oh!, Hearthstone, Classic) |
@@ -88,14 +90,20 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** Implementar Status Effects System (Fase 2)
+**Próximo passo:** concluir estabilização da Fase 2 antes de iniciar Run/Shop/CardSelection/Content.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
 ## Estatísticas Atuais
 
+### Estado Verificado em 2026-05-16
+- **Core.Tests:** 524 testes passando após estabilização
+- **API.Tests:** compila e sobe o host depois dos ajustes de DI; suíte completa ainda possui falhas legadas de contrato em Config/Resource/Action e testes filtrados de StatusEffect ficam pendurados no runner atual
+- **Status Effects:** Core, API e configuração existem, mas a semântica ainda é parcial
+- **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
+
 ### Fase 0 + Fase 1 (Implementadas)
-- **Total de testes:** 423 testes (todos passando)
+- **Total de testes Core:** 524 testes passando
   - Combat: 53 testes
   - Events: 18 testes  
   - Damage: 126 testes
@@ -103,13 +111,14 @@ http://localhost:5260/api
   - Resources: 23 testes
   - Config: incluído no total
   - Outros: incluído no total
-- **APIs implementadas:** 3/3 (Events, Combat, Damage)
-- **Sistemas Core:** EventBus, CombatSystem, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager
+- **APIs implementadas:** Events, Combat, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
+- **Sistemas Core:** EventBus, CombatSystem, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects parcial
 - **Documentação:** 9 documentos técnicos completos
 
 ### Estimativa para MVP Jogável
 - **Fases restantes:** 2, 3, 4 (críticas)
 - **Tempo estimado:** 19-29 dias de desenvolvimento
-- **Sistemas críticos faltando:** Run Management, Content System, Status Effects, Card Selection
+- **Sistemas críticos faltando:** Run Management, Content System, Card Selection, Shop, Preparation, Script Modifiers, Gambit Engine real
+- **Sistemas críticos parciais:** Status Effects, EffectResolver, integração ActionManager/CombatSystem
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).
