@@ -1,0 +1,35 @@
+{
+  "heal_low_hp": {
+    "GambitId": "heal_low_hp",
+    "DisplayName": "Heal Low HP",
+    "Description": "Use a healing power when the hero is below 30% health.",
+    "Priority": 100,
+    "Conditions": [
+      {
+        "Type": "HERO_RESOURCE_PERCENT",
+        "ResourceId": "health",
+        "LessThanOrEqual": 0.30
+      }
+    ],
+    "Action": {
+      "ActionType": "POWER",
+      "PowerId": "heal",
+      "Target": "HERO"
+    },
+    "Tags": ["healing", "defensive"]
+  },
+  "attack_first_alive_enemy": {
+    "GambitId": "attack_first_alive_enemy",
+    "DisplayName": "Attack First Alive Enemy",
+    "Description": "Attack the first alive enemy when no higher priority rule matches.",
+    "Priority": 10,
+    "Conditions": [
+      { "Type": "ANY_ENEMY_ALIVE" }
+    ],
+    "Action": {
+      "ActionType": "BASIC_ATTACK",
+      "Target": "FIRST_ALIVE_ENEMY"
+    },
+    "Tags": ["attack", "fallback"]
+  }
+}

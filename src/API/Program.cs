@@ -6,6 +6,7 @@ using Core.Math;
 using Core.Events;
 using Core.Combat;
 using Core.Combat.Modifiers;
+using Core.Combat.Gambits;
 using Core.Resources;
 using Core.Damage;
 using Core.Effects;
@@ -117,6 +118,9 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 
 // Register ScriptModifierManager
 builder.Services.AddSingleton<IScriptModifierManager, ScriptModifierManager>();
+
+// Register GambitEngine
+builder.Services.AddSingleton<IGambitEngine, GambitEngine>();
 
 // Register DamageCalculator
 builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
@@ -236,6 +240,17 @@ if (modifierLoadResult.IsSuccess)
 else
 {
     logger.LogWarning("Script modifier definitions were not loaded: {Error}", modifierLoadResult.Error);
+}
+
+var gambitEngine = app.Services.GetRequiredService<IGambitEngine>();
+var gambitLoadResult = gambitEngine.LoadDefinitions("default");
+if (gambitLoadResult.IsSuccess)
+{
+    logger.LogInformation("Successfully loaded gambit definitions from config 'default'");
+}
+else
+{
+    logger.LogWarning("Gambit definitions were not loaded: {Error}", gambitLoadResult.Error);
 }
 
 // Configure the HTTP request pipeline
