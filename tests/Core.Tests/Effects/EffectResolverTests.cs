@@ -174,6 +174,168 @@ public class EffectResolverTests
         Assert.Contains("requires combat context", result.Error);
     }
 
+    [Fact]
+    public void ApplyEffect_GainPP_ReturnsResourcePP()
+    {
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            InstanceId = Guid.NewGuid().ToString(),
+            Definition = new EffectDefinition
+            {
+                EffectId = "pp1",
+                Type = EffectType.GAIN_PP,
+                Target = EffectTarget.SELF,
+                FlatValue = 5
+            },
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var context = new RunEffectContext
+        {
+            RunId = "run-1",
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(EffectScope.RUN, result.Value!.Scope);
+        Assert.Equal(5f, result.Value.EffectResult.ValueApplied);
+        Assert.Equal("pp", result.Value.EffectResult.ResourceAffected);
+    }
+
+    [Fact]
+    public void ApplyEffect_DrawCard_ReturnsMetadataWithoutState()
+    {
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            InstanceId = Guid.NewGuid().ToString(),
+            Definition = new EffectDefinition
+            {
+                EffectId = "draw1",
+                Type = EffectType.DRAW_CARD,
+                Target = EffectTarget.SELF,
+                FlatValue = 2
+            },
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var context = new RunEffectContext
+        {
+            RunId = "run-1",
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value!.UpdatedCombatState);
+        Assert.Equal(2f, result.Value.EffectResult.ValueApplied);
+        Assert.Equal("DRAW_CARD", result.Value.EffectResult.Metadata["deckOperation"]);
+        Assert.Equal(false, result.Value.EffectResult.Metadata["stateApplied"]);
+    }
+
+    [Fact]
+    public void ApplyEffect_DispelStatus_RemovesAllStatus()
+    {
+        var targetGuid = Guid.NewGuid();
+        _statusEffectManager
+            .Setup(m => m.RemoveAllStatus(targetGuid, null))
+            .Returns(Result.Success());
+
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            InstanceId = Guid.NewGuid().ToString(),
+            Definition = new EffectDefinition
+            {
+                EffectId = "dispel1",
+                Type = EffectType.DISPEL_STATUS,
+                Target = EffectTarget.TARGET
+            },
+            SourceEntityId = Guid.NewGuid().ToString(),
+            TargetEntityId = targetGuid.ToString()
+        };
+
+        var state = CreateCombatState(effect.SourceEntityId, effect.TargetEntityId);
+        var context = CombatEffectContext.FromEffect(effect, state);
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Contains("*", result.Value!.EffectResult.StatusRemoved);
+        _statusEffectManager.Verify(m => m.RemoveAllStatus(targetGuid, null), Times.Once);
+    }
+
+    [Fact]
+    public void ApplyEffect_ModifierEffect_ReturnsKeyAndValue()
+    {
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            InstanceId = Guid.NewGuid().ToString(),
+            Definition = new EffectDefinition
+            {
+                EffectId = "mod1",
+                Type = EffectType.MODIFY_DAMAGE_DEALT,
+                Target = EffectTarget.SELF,
+                FlatValue = 0.25f
+            },
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var context = new RunEffectContext
+        {
+            RunId = "run-1",
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0.25f, result.Value!.EffectResult.ValueApplied);
+        Assert.Equal("damage_dealt", result.Value.EffectResult.ResourceAffected);
+        Assert.Equal("damage_dealt", result.Value.EffectResult.Metadata["modifierKey"]);
+    }
+
+    [Fact]
+    public void ApplyEffect_ControlEffect_FailsWithoutCombatContext()
+    {
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            InstanceId = Guid.NewGuid().ToString(),
+            Definition = new EffectDefinition
+            {
+                EffectId = "ctrl1",
+                Type = EffectType.SKIP_TURN,
+                Target = EffectTarget.TARGET
+            },
+            SourceEntityId = "player",
+            TargetEntityId = "enemy"
+        };
+
+        var context = new RunEffectContext
+        {
+            RunId = "run-1",
+            SourceEntityId = "player",
+            TargetEntityId = "enemy"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("requires combat context", result.Error);
+    }
+
     private EffectResolver CreateResolver()
     {
         return new EffectResolver(

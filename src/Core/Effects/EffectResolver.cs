@@ -220,14 +220,42 @@ public class EffectResolver : IEffectResolver
         {
             return effect.Definition.Type switch
             {
+                // Combat
                 EffectType.DAMAGE => ExecuteDamageEffect(effect, targetId, context),
                 EffectType.HEAL => ExecuteHealEffect(effect, targetId, context),
                 EffectType.MODIFY_RESOURCE => ExecuteModifyResourceEffect(effect, targetId, context),
+
+                // Economy
                 EffectType.GAIN_GOLD => ExecuteGainGoldEffect(effect, targetId, context),
                 EffectType.LOSE_GOLD => ExecuteLoseGoldEffect(effect, targetId, context),
+                EffectType.GAIN_PP => ExecuteEconomyEffect(effect, targetId, "pp", 1f),
+                EffectType.LOSE_PP => ExecuteEconomyEffect(effect, targetId, "pp", -1f),
+
+                // Status
                 EffectType.APPLY_STATUS => ExecuteApplyStatusEffect(effect, targetId, context),
                 EffectType.REMOVE_STATUS => ExecuteRemoveStatusEffect(effect, targetId, context),
-                // TODO: Implementar outros tipos conforme necessário
+                EffectType.DISPEL_STATUS => ExecuteDispelStatusEffect(effect, targetId, context),
+
+                // Deck
+                EffectType.DRAW_CARD => ExecuteDeckEffect(effect, targetId, "DRAW_CARD"),
+                EffectType.DISCARD_CARD => ExecuteDeckEffect(effect, targetId, "DISCARD_CARD"),
+                EffectType.EXHAUST_CARD => ExecuteDeckEffect(effect, targetId, "EXHAUST_CARD"),
+                EffectType.ADD_CARD_TO_HAND => ExecuteDeckEffect(effect, targetId, "ADD_CARD_TO_HAND"),
+
+                // Modifiers (metadata-only, applied by caller/pipeline)
+                EffectType.MODIFY_DAMAGE_DEALT => ExecuteModifierEffect(effect, targetId, "damage_dealt"),
+                EffectType.MODIFY_DAMAGE_TAKEN => ExecuteModifierEffect(effect, targetId, "damage_taken"),
+                EffectType.MODIFY_CRIT_CHANCE => ExecuteModifierEffect(effect, targetId, "crit_chance"),
+                EffectType.MODIFY_CRIT_MULT => ExecuteModifierEffect(effect, targetId, "crit_mult"),
+                EffectType.MODIFY_COOLDOWNS => ExecuteModifierEffect(effect, targetId, "cooldowns"),
+
+                // Combat control (require status/combat state in future)
+                EffectType.PREVENT_ACTIONS or
+                EffectType.FORCE_TARGET or
+                EffectType.SKIP_TURN or
+                EffectType.REFLECT_DAMAGE or
+                EffectType.ABSORB_DAMAGE => ExecuteControlEffect(effect, targetId, context),
+
                 _ => EffectResult.CreateFailure($"Effect type {effect.Definition.Type} not yet implemented")
             };
         }
@@ -411,6 +439,120 @@ public class EffectResolver : IEffectResolver
         {
             AffectedEntityIds = new List<string> { targetId },
             StatusRemoved = new List<string> { statusId }
+        };
+    }
+
+    private EffectResult ExecuteDispelStatusEffect(EffectInstance effect, string targetId, IEffectContext context)
+    {
+        _logger.LogDebug($"Executing DISPEL_STATUS effect on {targetId}");
+
+        if (_statusEffectManager != null)
+        {
+            if (!Guid.TryParse(targetId, out var targetGuid))
+            {
+                return EffectResult.CreateFailure($"Invalid target ID format: {targetId}");
+            }
+
+            var result = _statusEffectManager.RemoveAllStatus(targetGuid);
+
+            if (!result.IsSuccess)
+            {
+                return EffectResult.CreateFailure(result.Error ?? "Failed to dispel status effects");
+            }
+
+            return EffectResult.CreateSuccess() with
+            {
+                AffectedEntityIds = new List<string> { targetId },
+                StatusRemoved = new List<string> { "*" }
+            };
+        }
+
+        _logger.LogWarning("StatusEffectManager not available, dispel not applied");
+        return EffectResult.CreateSuccess() with
+        {
+            AffectedEntityIds = new List<string> { targetId },
+            StatusRemoved = new List<string> { "*" }
+        };
+    }
+
+    private EffectResult ExecuteEconomyEffect(EffectInstance effect, string targetId, string resource, float sign)
+    {
+        var value = (effect.Definition.FlatValue ?? 0f) * System.Math.Abs(sign);
+        var signed = sign < 0 ? -value : value;
+
+        _logger.LogDebug($"Executing economy effect: {resource} {signed:+0;-#} for {targetId}");
+
+        return EffectResult.CreateSuccess() with
+        {
+            ValueApplied = signed,
+            ResourceAffected = resource,
+            AffectedEntityIds = new List<string> { targetId },
+            Metadata = new Dictionary<string, object>
+            {
+                ["economyResource"] = resource,
+                ["stateApplied"] = false
+            }
+        };
+    }
+
+    private EffectResult ExecuteDeckEffect(EffectInstance effect, string targetId, string operation)
+    {
+        var count = (int)(effect.Definition.FlatValue ?? 1f);
+
+        _logger.LogDebug($"Executing deck effect: {operation} x{count} for {targetId}");
+
+        return EffectResult.CreateSuccess() with
+        {
+            ValueApplied = count,
+            AffectedEntityIds = new List<string> { targetId },
+            Metadata = new Dictionary<string, object>
+            {
+                ["deckOperation"] = operation,
+                ["count"] = count,
+                ["stateApplied"] = false
+            }
+        };
+    }
+
+    private EffectResult ExecuteModifierEffect(EffectInstance effect, string targetId, string modifierKey)
+    {
+        var value = effect.Definition.FlatValue ?? effect.Definition.ModifierValue ?? 0f;
+
+        _logger.LogDebug($"Executing modifier effect: {modifierKey} = {value} for {targetId}");
+
+        return EffectResult.CreateSuccess() with
+        {
+            ValueApplied = value,
+            ResourceAffected = modifierKey,
+            AffectedEntityIds = new List<string> { targetId },
+            Metadata = new Dictionary<string, object>
+            {
+                ["modifierKey"] = modifierKey,
+                ["modifierValue"] = value,
+                ["stateApplied"] = false
+            }
+        };
+    }
+
+    private EffectResult ExecuteControlEffect(EffectInstance effect, string targetId, IEffectContext context)
+    {
+        if (context.CombatState == null)
+            return EffectResult.CreateFailure($"{effect.Definition.Type} effect requires combat context");
+
+        var typeName = effect.Definition.Type.ToString();
+
+        _logger.LogDebug($"Executing control effect: {typeName} on {targetId}");
+
+        // Control effects are applied as status/flags by CombatSystem;
+        // here we signal intent and metadata for the caller to act on.
+        return EffectResult.CreateSuccess() with
+        {
+            AffectedEntityIds = new List<string> { targetId },
+            Metadata = new Dictionary<string, object>
+            {
+                ["controlEffect"] = typeName,
+                ["stateApplied"] = false
+            }
         };
     }
 
