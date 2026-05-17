@@ -20,6 +20,10 @@ public class ResourceControllerTests
         _mockLogger = new Mock<ILogger<ResourceController>>();
         _mockReloadSettings = new Mock<ConfigReloadSettings>();
         _mockMathEngine = new Mock<IMathEngine>();
+        _mockMathEngine.Setup(m => m.GetFormulaOrigins()).Returns(new Dictionary<string, string>
+        {
+            ["base_damage"] = "Pipelines/MathFormulas.json"
+        });
         _controller = new ResourceController(_mockLogger.Object, _mockReloadSettings.Object, _mockMathEngine.Object);
     }
 

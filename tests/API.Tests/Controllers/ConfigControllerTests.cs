@@ -24,6 +24,21 @@ public class ConfigControllerTests
         _mockReloadSettings = new Mock<ConfigReloadSettings>();
         _mockEnvironment = new Mock<IWebHostEnvironment>();
         _mockConfigManager = new Mock<IConfigManager>();
+        _mockConfigManager.SetupGet(m => m.CurrentConfig).Returns("alisyum");
+        _mockConfigManager.SetupGet(m => m.DefaultConfig).Returns("alisyum");
+        _mockConfigManager.Setup(m => m.GetAvailableConfigs()).Returns(new[] { "alisyum" });
+        _mockConfigManager.Setup(m => m.ResolveInheritanceChain("alisyum")).Returns(new[] { "alisyum" });
+        _mockConfigManager.Setup(m => m.GetConfigMetadata("alisyum")).Returns(new ConfigMetadata
+        {
+            Name = "alisyum",
+            Version = "1.0.0",
+            Author = "HeroScript",
+            Description = "Default test configuration"
+        });
+        _mockConfigManager.Setup(m => m.GetConfigPath("alisyum")).Returns(AppContext.BaseDirectory);
+        _mockConfigManager.Setup(m => m.GetConfigPath("nonexistent_config_12345")).Returns("Z:/missing/nonexistent_config_12345");
+        _mockConfigManager.Setup(m => m.GetConfigPath("nonexistent_config")).Returns("Z:/missing/nonexistent_config");
+        _mockConfigManager.Setup(m => m.LoadConfig("alisyum"));
         _configValidator = new ConfigValidator(_mockConfigManager.Object);
         _controller = new ConfigController(
             _mockLogger.Object, 
