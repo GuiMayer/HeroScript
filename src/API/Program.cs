@@ -5,6 +5,7 @@ using Core.Config;
 using Core.Math;
 using Core.Events;
 using Core.Combat;
+using Core.Combat.Modifiers;
 using Core.Resources;
 using Core.Damage;
 using Core.Effects;
@@ -114,6 +115,9 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
     return new ActionManager(configManager, resourceLoader, logger);
 });
 
+// Register ScriptModifierManager
+builder.Services.AddSingleton<IScriptModifierManager, ScriptModifierManager>();
+
 // Register DamageCalculator
 builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
 {
@@ -221,6 +225,17 @@ if (loadResult.IsSuccess)
 else
 {
     logger.LogError("Failed to load status effect definitions: {Error}", loadResult.Error);
+}
+
+var scriptModifierManager = app.Services.GetRequiredService<IScriptModifierManager>();
+var modifierLoadResult = scriptModifierManager.LoadDefinitions("default");
+if (modifierLoadResult.IsSuccess)
+{
+    logger.LogInformation("Successfully loaded script modifier definitions from config 'default'");
+}
+else
+{
+    logger.LogWarning("Script modifier definitions were not loaded: {Error}", modifierLoadResult.Error);
 }
 
 // Configure the HTTP request pipeline

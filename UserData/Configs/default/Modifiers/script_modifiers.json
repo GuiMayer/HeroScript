@@ -1,0 +1,27 @@
+{
+  "glass_cannon": {
+    "ModifierId": "glass_cannon",
+    "DisplayName": "Glass Cannon",
+    "Description": "Attack effects deal 25% increased damage per stack.",
+    "ModifierKey": "increased_damage_total",
+    "FormulaValue": "stacks * 0.25",
+    "BaseValue": 0.25,
+    "DefaultStacks": 1,
+    "MaxStacks": 4,
+    "DefaultDuration": -1,
+    "RequiredTags": ["attack"],
+    "Tags": ["damage", "run"]
+  },
+  "flat_power_bonus": {
+    "ModifierId": "flat_power_bonus",
+    "DisplayName": "Flat Power Bonus",
+    "Description": "Power effects gain flat damage.",
+    "ModifierKey": "added_damage",
+    "BaseValue": 3.0,
+    "DefaultStacks": 1,
+    "MaxStacks": 99,
+    "DefaultDuration": -1,
+    "RequiredTags": ["power"],
+    "Tags": ["damage", "power"]
+  }
+}
