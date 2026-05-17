@@ -1,47 +1,50 @@
 # Fase 2 - Camadas de Combate
 
-**Status:** ⚠️ Parcial / Compliance inicial concluido  
+**Status:** ✅ Estabilizado  
 **Dependências:** Fase 1 (EventBus, Combat, Damage)
 
 ---
 
 ## Visão Geral
 
-A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects (buffs/debuffs), modificadores de script (Go Again, Multi-Hit, etc.), e o sistema de Gambits para companions. A auditoria de 2026-05-16 mostrou que Status Effects já existem no Core/API/config e que a primeira trilha de Data-driven Compliance foi concluída, mas `EffectResolver`, schema de status e AI/Gambit ainda precisam de fechamento antes de Run/Shop/CardSelection/Content.
+A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects (buffs/debuffs), modificadores de script (Go Again, Multi-Hit, etc.), e o sistema de Gambits para companions. A estabilização foi concluída em 2026-05-17 com Status schemas unificados, Script Modifiers, Gambit Engine data-driven e Effect Engine consolidado cobrindo 20+ tipos de efeito.
 
-## Estado Atual Verificado (2026-05-16)
+## Estado Atual Verificado (2026-05-17)
 
-### Já implementado
+### Implementado e estabilizado
 - `src/Core/StatusEffects/` com manager, processor, definitions, instances, timings, behaviors e types
+- `StatusEffectManager.DeserializeStatusDefinitions` aceita schema legado (array) e canonical (dictionary)
+- `src/Core/Modifiers/ScriptModifierManager.cs` com pipeline filtrado por tags, stacking e tick
+- `src/Core/AI/GambitEngine.cs` carrega regras JSON com condicoes/prioridade/acoes
+- `src/Core/Effects/EffectResolver.cs` consolidado: economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb)
 - `src/API/Controllers/StatusEffectController.cs`
+- `src/API/Controllers/ModifierController.cs` com apply/active/pipeline/tick
+- `src/API/Controllers/GambitController.cs` com decide/definitions/reload
 - Configuração `UserData/Configs/default/StatusEffects/status_effects.json`
 - Integração com `CombatSystem` por `StatusEffectBehavior` para controle, DoT/HoT, shield/reactive/damage cap/death prevention e modificadores de pipeline
-- Rotas REST compatíveis com `/api/StatusEffect/*` e `/api/combat/{combatId}/entities/{targetId}/status`
+- Rotas REST compatíveis com `/api/StatusEffect/*`, `/api/status`, `/api/modifiers`, `/api/gambits`
 - `DamageCalculator` recebe `IStatusEffectManager` via DI
+- **Core.Tests:** 553 testes passando
 
-### Correções de estabilização aplicadas
-- Build/Core.Tests estabilizados; 524 testes Core passando
-- Resource reload/hot reload corrigido
-- `*.lscache` ignorado no Git
-- `EventsController.ClearHistory` protegido por ambiente de desenvolvimento
-- `TestWebApplicationFactory` deixou de alterar o diretório global do processo
+### Data-driven Compliance — Fase 2 concluída
 
-### Pendências high priority
-- `EffectResolver` ainda é parcialmente esquelético: precisa se tornar executor universal de efeitos e aplicar dano/cura/recurso/status em estado real
-- `StatusEffectProcessor` ainda retorna resultados intermediários para DoT/HoT; o contrato precisa ser consolidado com o futuro executor de effects
-- `CombatSystem` ainda concentra responsabilidades demais, embora ataque básico/poderes e status já usem definições/comportamentos data-driven
-- API.Tests compila e o host sobe, mas a suíte completa ainda tem falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
-
-### Data-driven Compliance
-
-A Fase 2 agora inclui uma trilha obrigatória de compliance data-driven antes de Run/Shop/CardSelection/Content:
+A Fase 2 incluiu uma trilha obrigatória de compliance data-driven:
 
 - ✅ `ActionManager` carrega ações por discovery JSON, não por lista fixa em C#.
 - ✅ `CombatSystem` executa `ActionDefinition` e seus `EffectDefinition` para ataque básico/poderes, sem constantes como `BASIC_ATTACK_DAMAGE` ou `DEFAULT_POWER_COST`.
 - ✅ `StartCombat` prefere `EntityDefinition` JSON para recursos, nomes e stats quando a definição existe.
 - ✅ Status effects são aplicados por comportamento genérico (`DAMAGE_OVER_TIME`, `HEAL_OVER_TIME`, `SHIELD`, `REACTIVE`, etc.), não por nomes específicos como `BURNING`/`POISON`.
-- ⚠️ Lacunas restantes: `EffectResolver` como executor universal, schema único de status, fórmulas via avaliador canônico e AI/Gambit JSON-driven.
-- O progresso detalhado fica em [../analysis/data-driven-compliance.md](../analysis/data-driven-compliance.md).
+- ✅ Status schemas unificados: loader aceita formato legado e canonical.
+- ✅ Script Modifiers implementados com pipeline data-driven.
+- ✅ Gambit Engine implementado com regras JSON.
+- ✅ Effect Engine consolidado cobrindo 20+ tipos de efeito.
+- **Score:** 9.0/10 conforme [../analysis/data-driven-compliance.md](../analysis/data-driven-compliance.md).
+
+### Lacunas restantes (baixa prioridade)
+- Formula evaluators duplicados em status/effects/modifiers (usar avaliador canônico)
+- Fallback legado de entidades (produção deve tratar definição ausente como erro)
+- Runner de `API.Tests` instável em suite completa
+- Deck/Run/Shop state não existe (effects de deck/economia retornam metadata; precisa de `RunState`/`DeckState` na Fase 3)
 
 ## APIs Planejadas
 

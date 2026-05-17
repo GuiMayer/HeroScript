@@ -1,7 +1,7 @@
 # API Roadmap
 
-**Última atualização:** 2026-05-16  
-**Status:** Fase 2 estabilizada parcialmente; API atualizada para contratos data-driven
+**Última atualização:** 2026-05-17  
+**Status:** Fase 2 estabilizada — Modifiers, Gambits, Effect Engine e API data-driven concluidos
 
 ---
 
@@ -31,7 +31,7 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 |------|--------|-----------|-----------|
 | **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [phases/phase-0.md](phases/phase-0.md) |
 | **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System | [phases/phase-1.md](phases/phase-1.md) |
-| **Fase 2** | ⚠️ Parcial / Estabilização | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
+| **Fase 2** | ✅ Estabilizado | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
 | **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [phases/phase-3.md](phases/phase-3.md) |
 | **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [phases/phase-4.md](phases/phase-4.md) |
 | **Fase 5** | 📋 Planejado | Persistência (Save/Load, MetaProgression) | [phases/phase-5.md](phases/phase-5.md) |
@@ -73,6 +73,10 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-17 | Estab-4 | `EffectResolver` consolidado: cobre economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb); 553 testes Core |
+| 2026-05-17 | Estab-3 | `GambitEngine` data-driven implementado; `GambitController` delegando ao engine; API `/api/gambits` com decide/definitions/reload |
+| 2026-05-17 | Estab-2 | `ScriptModifierManager` implementado com pipeline/tags/tick; API `/api/modifiers` com apply/active/pipeline/tick |
+| 2026-05-17 | Estab-1 | `StatusEffectManager` unificado para aceitar schema legado (array) e canonical (dictionary) |
 | 2026-05-16 | API-9 | `docs/api/endpoints.md` atualizado para os contratos atuais: `actionId`, `effects[]`, `/api/effect`, `/api/status` e dano como simulacao |
 | 2026-05-16 | API-8 | Testes unitarios de Config/Resource alinhados aos mocks atuais; projeto `API.Tests` compila, mas o runner local ainda congela em `ResourceControllerTests` filtrado |
 | 2026-05-16 | API-7 | Respostas de validacao normalizadas para `400/404` em erros esperados de API |
@@ -107,21 +111,24 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** corrigir o congelamento do runner de `API.Tests` em `ResourceControllerTests` e entao iniciar Run/Shop/CardSelection/Content sobre o contrato central de effects.
+**Próximo passo:** iniciar **Fase 3 — Loop de Run** (Run Management, Card Selection, Shop) usando `/api/effect/apply` como contrato base para acontecimentos unicos.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
 ## Estatísticas Atuais
 
-### Estado Verificado em 2026-05-16
-- **Core.Tests:** 540 testes passando apos Effect Application Engine e atualizacao de API
-- **API.Tests:** projeto compila; `ActionControllerTests`, `GameResourceControllerTests` e `ConfigControllerTests` foram alinhados/validados; o runner local ainda congela ao filtrar `ResourceControllerTests`, sem falha de assercao reportada
-- **Status Effects:** Core, API e configuração existem; aplicação em combate usa comportamentos genéricos, mas schema e executor central ainda precisam consolidação
-- **Data-driven Compliance:** 8.2/10; ações, execução básica de combate, início de combate por entidades JSON, aplicação de status por comportamento e API baseada em `effects[]` foram migrados; AI/schemas e cobertura completa de run/deck/shop ainda têm lacunas conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
+### Estado Verificado em 2026-05-17
+- **Core.Tests:** 553 testes passando apos estabilizacao da Fase 2 (Status schemas, Modifiers, Gambits, Effect Engine)
+- **API.Tests:** projeto compila; `ActionControllerTests`, `GameResourceControllerTests` e `ConfigControllerTests` foram alinhados/validados; o runner local ainda congela em suite completa, sem falha de assercao reportada em testes individuais
+- **Status Effects:** Core, API e configuração existem; loader aceita schema legado e canonical; aplicação em combate usa comportamentos genéricos
+- **Script Modifiers:** Core (`ScriptModifierManager`) e API (`/api/modifiers`) implementados; definicoes JSON, pipeline filtrado por tags, stacking e tick
+- **Gambit Engine:** Core (`GambitEngine`) e API (`/api/gambits`) implementados; decisoes por regras JSON com condicoes/prioridade/acoes
+- **Effect Engine:** `EffectResolver` cobre 20+ tipos de efeito incluindo economia, deck, modifiers e controle; contextos `COMBAT` e `RUN`
+- **Data-driven Compliance:** 9.0/10; todas as areas criticas migradas; lacunas restantes sao formula evaluator duplicado e fallbacks de compatibilidade conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 (Implementadas)
-- **Total de testes Core:** 540 testes passando
+- **Total de testes Core:** 553 testes passando
   - Combat: 53 testes
   - Events: 18 testes  
   - Damage: 126 testes
@@ -136,7 +143,7 @@ http://localhost:5260/api
 ### Estimativa para MVP Jogável
 - **Fases restantes:** 2, 3, 4 (críticas)
 - **Tempo estimado:** 19-29 dias de desenvolvimento
-- **Sistemas críticos faltando:** Run Management, Content System, Card Selection, Shop, Preparation, Script Modifiers, Gambit Engine real
-- **Sistemas críticos parciais:** EffectResolver/Effect Application Engine, schemas de status, AI/Gambit data-driven
+- **Sistemas críticos faltando:** Run Management, Content System, Card Selection, Shop, Preparation
+- **Sistemas implementados na Fase 2:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

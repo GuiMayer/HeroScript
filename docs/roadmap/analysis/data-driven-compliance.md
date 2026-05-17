@@ -1,7 +1,7 @@
 # Diagnostico Data-driven - HeroScript
 
-**Data:** 2026-05-16  
-**Status:** Compliance inicial concluido; API alinhada aos contratos data-driven  
+**Data:** 2026-05-17  
+**Status:** Fase 2 estabilizada — Modifiers, Gambits e Effect Engine consolidados  
 **Objetivo:** medir e controlar a aderencia do projeto a filosofia principal: conteudo e regras de sistema devem morar em JSON; o codigo deve interpretar dados e aplicar primitivas de engine.
 
 ---
@@ -10,7 +10,7 @@
 
 O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha regras de gameplay em C# que deveriam estar em JSON.
 
-**Score atual:** 8.2/10
+**Score atual:** 9.0/10
 
 ### O que ja esta alinhado
 
@@ -19,9 +19,13 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 - `DamagePipeline` usa buckets, filtros e operacoes configuraveis por JSON.
 - `StatusEffectManager` carrega definicoes de status em JSON.
 - `ActionManager` existe e interpreta `ActionDefinition`.
+- `ScriptModifierManager` carrega modificadores de JSON, filtra por tags e calcula pipeline modifiers.
+- `GambitEngine` carrega regras de decisao de AI em JSON (condicoes, prioridade, acoes).
 - API de acoes expoe `effects[]` como contrato principal; `baseDamage` e apenas derivado/compatibilidade.
 - API de combate aceita `actionId` como forma preferida de executar acoes data-driven.
 - API central `/api/effect/apply` aplica efeitos por contexto `COMBAT`/`RUN`.
+- API `/api/modifiers` expoe Script Modifiers para aplicar/consultar/tick modificadores data-driven.
+- API `/api/gambits` expoe decisoes de AI data-driven e definicoes de gambit.
 - Entidades possuem definicoes JSON em `data/configs/default/Entities/`.
 - TurnPhase possui configuracoes JSON para estilos de TCG.
 
@@ -33,11 +37,13 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | ✅ Resolvido | Combat | `CombatSystem` ainda tinha dano/custo/tags de `BASIC_ATTACK` e fallback de `POWER` hardcoded | `BASIC_ATTACK` e `POWER` agora exigem `ActionDefinition` e aplicam dano/custo/energia por effects |
 | ✅ Resolvido parcial | Combat start | `StartCombat` criava Hero/Enemy com HP, energia e nomes fixos | Quando ha `EntityDefinitionLoader`, IDs de entidade sao resolvidos por JSON; fallback legado permanece para compatibilidade |
 | ✅ Resolvido parcial | Status | `CombatSystem` conhecia tipos especificos como `BURNING`, `POISON`, `SHIELD`, `THORNS`, `BUFFER` | Aplicacao em combate agora usa `StatusEffectBehavior`; falta centralizar execucao completa em Effects |
-| HIGH | Effects | `EffectResolver` ainda nao aplica todos os tipos nem altera estado completo sozinho | Centralizar execucao/aplicacao de effects |
+| ✅ Resolvido | Schemas | Ha formatos divergentes de status entre `data/configs` e `UserData/Configs` | `StatusEffectManager.DeserializeStatusDefinitions` aceita ambos os formatos e converte legado para canonical |
+| ✅ Resolvido | AI/Gambit | `AIController`/gambit placeholder decidia por enum/thresholds em codigo | `GambitEngine` carrega regras JSON; `GambitController` delega decisoes ao engine data-driven |
+| ✅ Resolvido | Effects | `EffectResolver` so cobria 7 tipos de efeito | Agora cobre economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb) |
+| ✅ Resolvido | Modifiers | Nao existia sistema de script modifiers | `ScriptModifierManager` carrega/aplica/tick modificadores JSON com pipeline filtrado por tags |
 | MEDIUM | Formulas | Existem avaliadores simples duplicados em status/effects | Usar um avaliador canonico |
-| MEDIUM | AI | `AIController` decide comportamento por enum/thresholds em codigo | Migrar para regras/gambits JSON |
-| MEDIUM | Schemas | Ha formatos divergentes de status entre `data/configs` e `UserData/Configs` | Definir schema canonico e migrar legado |
-| MEDIUM | Test runner API | `API.Tests` compila, mas o runner local congela ao filtrar `ResourceControllerTests` | Investigar ambiente/fixture antes de usar a suite API como gate obrigatório |
+| MEDIUM | Test runner API | `API.Tests` compila, mas o runner local congela ao filtrar `ResourceControllerTests` | Investigar ambiente/fixture antes de usar a suite API como gate obrigatorio |
+| LOW | Fallback legado | `StartCombat` e `GambitController` ainda possuem fallback para compatibilidade sem JSON | Producao deve tratar definicao ausente como erro |
 
 ---
 
@@ -71,6 +77,10 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | DC-4 | ✅ Implementado | Status sao aplicados por comportamento generico | `CombatSystem` nao depende mais de tipos especificos para DoT/HoT/shield/reactive/cap/death-prevention |
 | DC-5 | ✅ Implementado | Docs atualizados com progresso final e lacunas restantes | Roadmap reflete estado real apos DC-1..DC-4 |
 | API-1..9 | ✅ Implementado parcial | API atualizada para contratos data-driven e docs sincronizadas | `actionId`, `effects[]`, `/api/effect`, `/api/status`; API.Tests compila, com pendencia de runner |
+| Estab-1 | ✅ Implementado | Status schemas unificados com loader dual | `StatusEffectManager.DeserializeStatusDefinitions` aceita legacy array e canonical dictionary |
+| Estab-2 | ✅ Implementado | Script Modifiers Core + API | `ScriptModifierManager` com pipeline/tags/tick; API `/api/modifiers` |
+| Estab-3 | ✅ Implementado | Gambit Engine Core + API data-driven | `GambitEngine` carrega regras JSON; `GambitController` delega; API `/api/gambits` |
+| Estab-4 | ✅ Implementado | Effect Engine consolidado com 20+ tipos | Economia, deck, modifiers e controle resolvidos por `EffectResolver`; 553 testes Core passando |
 
 ---
 
@@ -90,13 +100,11 @@ A primeira rodada de compliance removeu os principais bloqueios data-driven de c
 
 | Prioridade | Lacuna | Motivo |
 |---|---|---|
-| HIGH | `EffectResolver` nao e executor universal de estado | Ainda resolve parte dos effects como resultado intermediario; `CombatSystem` ainda aplica efeitos de combate diretamente |
-| HIGH | Schemas de status divergentes | `UserData/Configs` e `data/configs` usam formatos diferentes; isso aumenta risco de conteudo quebrar conforme o loader usado |
-| MEDIUM | Formula evaluators duplicados | Status e Effects ainda possuem avaliadores simples locais; a fonte canonica deveria ser `MathEngine`/`ExpressionEvaluator` |
-| MEDIUM | AI/Gambit ainda nao e JSON-driven | `AIController`/gambit placeholder ainda usam decisoes estruturais em codigo |
+| MEDIUM | Formula evaluators duplicados | Status, Effects e Modifiers ainda possuem avaliadores simples locais; a fonte canonica deveria ser `MathEngine`/`ExpressionEvaluator` |
 | MEDIUM | Fallback legado de entidades | `StartCombat` ainda cria entidades padrao se JSON nao existir; aceitavel por compatibilidade, mas producao deve tratar definicao ausente como erro |
-| MEDIUM | Runner de `API.Tests` instavel | Testes compilam e subsets passam, mas `ResourceControllerTests` filtrado congela no ambiente atual |
+| MEDIUM | Runner de `API.Tests` instavel | Testes compilam e subsets passam, mas runner completo congela no ambiente atual |
+| LOW | Deck/Run/Shop state nao existe | Effects de deck/economia retornam metadata sem aplicar estado real; precisa de `RunState`/`DeckState` na Fase 3 |
 
 ## Proximo Passo Natural
 
-Priorizar a estabilizacao do runner de `API.Tests` e depois iniciar Run/Deck/Shop usando `/api/effect/apply` como contrato base para acontecimentos unicos. Em paralelo, migrar AI/Gambit para JSON e unificar o schema de Status Effects.
+Fase 2 esta estabilizada. O proximo passo e iniciar a **Fase 3 — Loop de Run** (Run Management, Card Selection, Shop) usando `/api/effect/apply` como contrato base para acontecimentos unicos. A Fase 3 trara `RunState` e `DeckState` que permitirao efeitos de economia/deck aplicarem estado real.
