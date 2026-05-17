@@ -380,7 +380,7 @@ public class StatusEffectManager : IStatusEffectManager
                 PropertyNameCaseInsensitive = true
             };
             options.Converters.Add(new JsonStringEnumConverter());
-            var definitions = JsonSerializer.Deserialize<Dictionary<string, StatusEffectDefinition>>(json, options);
+            var definitions = DeserializeStatusDefinitions(json, options);
             
             if (definitions == null)
                 return Result.Failure("Failed to deserialize status effects");
@@ -410,6 +410,151 @@ public class StatusEffectManager : IStatusEffectManager
     public List<StatusEffectDefinition> GetAllDefinitions()
     {
         return _definitions.Values.ToList();
+    }
+
+    private static Dictionary<string, StatusEffectDefinition>? DeserializeStatusDefinitions(string json, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        if (document.RootElement.TryGetProperty("statusEffects", out var legacyStatusEffects) &&
+            legacyStatusEffects.ValueKind == JsonValueKind.Array)
+        {
+            return DeserializeLegacyStatusDefinitions(legacyStatusEffects);
+        }
+
+        return JsonSerializer.Deserialize<Dictionary<string, StatusEffectDefinition>>(json, options);
+    }
+
+    private static Dictionary<string, StatusEffectDefinition> DeserializeLegacyStatusDefinitions(JsonElement statusEffects)
+    {
+        var definitions = new Dictionary<string, StatusEffectDefinition>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var element in statusEffects.EnumerateArray())
+        {
+            var rawStatusId = GetString(element, "statusId");
+            if (string.IsNullOrWhiteSpace(rawStatusId))
+                continue;
+
+            var statusId = rawStatusId.ToLowerInvariant();
+            var behavior = GetPrimaryLegacyBehavior(element);
+            var definition = new StatusEffectDefinition
+            {
+                StatusId = statusId,
+                Type = ParseEnum(rawStatusId, StatusEffectType.CUSTOM),
+                DisplayName = GetString(element, "displayName") ?? rawStatusId,
+                Description = GetString(element, "description") ?? string.Empty,
+                Behavior = MapLegacyBehavior(GetString(behavior, "type")),
+                DefaultDuration = GetInt(element, "defaultDuration", -1),
+                DefaultStacks = 1,
+                MaxStacks = GetInt(element, "maxStacks", 99),
+                BaseValue = GetFloat(behavior, "value", 0f),
+                FormulaValue = GetString(behavior, "formulaValue"),
+                ScalesWithStacks = GetBool(behavior, "scalesWithStacks", true),
+                ModifierKey = GetString(behavior, "modifierKey"),
+                ModifierFormula = GetString(behavior, "formulaValue"),
+                Timing = MapLegacyTiming(GetString(behavior, "timing")),
+                Tags = GetLegacyTags(element)
+            };
+
+            definitions[statusId] = definition;
+        }
+
+        return definitions;
+    }
+
+    private static JsonElement GetPrimaryLegacyBehavior(JsonElement element)
+    {
+        if (element.TryGetProperty("behaviors", out var behaviors) &&
+            behaviors.ValueKind == JsonValueKind.Array &&
+            behaviors.GetArrayLength() > 0)
+        {
+            return behaviors[0];
+        }
+
+        return default;
+    }
+
+    private static StatusEffectBehavior MapLegacyBehavior(string? behavior)
+    {
+        return behavior?.ToUpperInvariant() switch
+        {
+            "DAMAGE_OVER_TIME" => StatusEffectBehavior.DAMAGE_OVER_TIME,
+            "HEAL_OVER_TIME" => StatusEffectBehavior.HEAL_OVER_TIME,
+            "STAT_MODIFIER" => StatusEffectBehavior.STAT_MODIFIER,
+            "ABSORB_DAMAGE" => StatusEffectBehavior.SHIELD,
+            "REFLECT_DAMAGE" => StatusEffectBehavior.REACTIVE,
+            "SKIP_TURN" or "DISABLE_POWERS" => StatusEffectBehavior.CONTROL,
+            "PREVENT_NEXT_DEBUFF" => StatusEffectBehavior.PREVENT_NEXT_DEBUFF,
+            "DAMAGE_CAP" => StatusEffectBehavior.DAMAGE_CAP,
+            "DEATH_PREVENTION" => StatusEffectBehavior.DEATH_PREVENTION,
+            _ => StatusEffectBehavior.RULE_MODIFIER
+        };
+    }
+
+    private static StatusEffectTiming MapLegacyTiming(string? timing)
+    {
+        return timing?.ToUpperInvariant() switch
+        {
+            "START_OF_TURN" => StatusEffectTiming.START_OF_TURN,
+            "END_OF_TURN" => StatusEffectTiming.END_OF_TURN,
+            "ON_DAMAGE_DEALT" => StatusEffectTiming.ON_DAMAGE_DEALT,
+            "ON_DAMAGE_TAKEN" => StatusEffectTiming.ON_DAMAGE_TAKEN,
+            "ON_DEBUFF_APPLIED" or "ON_STATUS_APPLIED" => StatusEffectTiming.ON_STATUS_APPLIED,
+            "ON_STATUS_REMOVED" => StatusEffectTiming.ON_STATUS_REMOVED,
+            "PASSIVE" or "PERMANENT" => StatusEffectTiming.PERMANENT,
+            _ => StatusEffectTiming.PERMANENT
+        };
+    }
+
+    private static TEnum ParseEnum<TEnum>(string value, TEnum fallback) where TEnum : struct
+    {
+        return Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed) ? parsed : fallback;
+    }
+
+    private static string? GetString(JsonElement element, string propertyName)
+    {
+        return element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(propertyName, out var property) &&
+            property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
+    }
+
+    private static int GetInt(JsonElement element, string propertyName, int fallback)
+    {
+        return element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(propertyName, out var property) &&
+            property.TryGetInt32(out var value)
+            ? value
+            : fallback;
+    }
+
+    private static float GetFloat(JsonElement element, string propertyName, float fallback)
+    {
+        return element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(propertyName, out var property) &&
+            property.TryGetSingle(out var value)
+            ? value
+            : fallback;
+    }
+
+    private static bool GetBool(JsonElement element, string propertyName, bool fallback)
+    {
+        return element.ValueKind == JsonValueKind.Object &&
+            element.TryGetProperty(propertyName, out var property) &&
+            property.ValueKind is JsonValueKind.True or JsonValueKind.False
+            ? property.GetBoolean()
+            : fallback;
+    }
+
+    private static List<string> GetLegacyTags(JsonElement element)
+    {
+        var tags = new List<string>();
+        var type = GetString(element, "type");
+        if (!string.IsNullOrWhiteSpace(type))
+            tags.Add(type.ToLowerInvariant());
+
+        return tags;
     }
     
     // ===== HELPERS =====

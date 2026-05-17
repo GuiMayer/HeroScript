@@ -43,6 +43,29 @@ public sealed class StatusEffectManagerTests : IDisposable
     }
 
     [Fact]
+    public void LoadStatusDefinitions_WithLegacyStatusEffectsArray_MapsToCanonicalDefinitions()
+    {
+        var manager = CreateManagerWithJson(LegacyStatusDefinitionsJson);
+
+        var burning = manager.GetDefinition("burning");
+        var strength = manager.GetDefinition("strength");
+
+        Assert.True(burning.IsSuccess, burning.IsFailure ? burning.Error : null);
+        Assert.Equal(StatusEffectType.BURNING, burning.Value!.Type);
+        Assert.Equal(StatusEffectBehavior.DAMAGE_OVER_TIME, burning.Value.Behavior);
+        Assert.Equal(StatusEffectTiming.END_OF_TURN, burning.Value.Timing);
+        Assert.Equal(5f, burning.Value.BaseValue);
+        Assert.Equal(10, burning.Value.MaxStacks);
+
+        Assert.True(strength.IsSuccess, strength.IsFailure ? strength.Error : null);
+        Assert.Equal(StatusEffectType.STRENGTH, strength.Value!.Type);
+        Assert.Equal(StatusEffectBehavior.STAT_MODIFIER, strength.Value.Behavior);
+        Assert.Equal(StatusEffectTiming.PERMANENT, strength.Value.Timing);
+        Assert.Equal("increased_damage_total", strength.Value.ModifierKey);
+        Assert.Equal("stacks * 0.25", strength.Value.ModifierFormula);
+    }
+
+    [Fact]
     public void ApplyStatus_WithExistingStatus_ClampsStacksAndDoesNotDuplicate()
     {
         var targetId = Guid.NewGuid();
@@ -114,6 +137,34 @@ public sealed class StatusEffectManagerTests : IDisposable
             Directory.Delete(_tempRoot, recursive: true);
     }
 
+    private static StatusEffectManager CreateManagerWithJson(string json)
+    {
+        var tempRoot = Path.Combine(Path.GetTempPath(), $"heroscript-status-legacy-tests-{Guid.NewGuid():N}");
+        var statusDirectory = Path.Combine(tempRoot, "StatusEffects");
+        Directory.CreateDirectory(statusDirectory);
+        File.WriteAllText(Path.Combine(statusDirectory, "status_effects.json"), json);
+
+        try
+        {
+            var configManager = new Mock<IConfigManager>();
+            configManager.Setup(m => m.GetConfigPath("legacy")).Returns(tempRoot);
+
+            var manager = new StatusEffectManager(
+                configManager.Object,
+                new Mock<IResourceManager>().Object,
+                new Mock<IMathEngine>().Object);
+
+            var load = manager.LoadStatusDefinitions("legacy");
+            Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);
+            return manager;
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+                Directory.Delete(tempRoot, recursive: true);
+        }
+    }
+
     private const string TestStatusDefinitionsJson = """
     {
       "burning": {
@@ -160,6 +211,46 @@ public sealed class StatusEffectManagerTests : IDisposable
         "ModifierFormula": "stacks * 0.25",
         "Timing": "PERMANENT"
       }
+    }
+    """;
+
+    private const string LegacyStatusDefinitionsJson = """
+    {
+      "statusEffects": [
+        {
+          "statusId": "BURNING",
+          "displayName": "Burning",
+          "description": "Takes fire damage",
+          "type": "DEBUFF",
+          "maxStacks": 10,
+          "defaultDuration": 3,
+          "behaviors": [
+            {
+              "timing": "END_OF_TURN",
+              "type": "DAMAGE_OVER_TIME",
+              "value": 5.0,
+              "scalesWithStacks": true
+            }
+          ]
+        },
+        {
+          "statusId": "STRENGTH",
+          "displayName": "Strength",
+          "description": "Increases damage",
+          "type": "BUFF",
+          "maxStacks": 5,
+          "defaultDuration": -1,
+          "behaviors": [
+            {
+              "timing": "PASSIVE",
+              "type": "STAT_MODIFIER",
+              "modifierKey": "increased_damage_total",
+              "formulaValue": "stacks * 0.25",
+              "scalesWithStacks": true
+            }
+          ]
+        }
+      ]
     }
     """;
 }
