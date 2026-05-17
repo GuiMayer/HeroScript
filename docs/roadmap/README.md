@@ -1,7 +1,7 @@
 # API Roadmap
 
 **Última atualização:** 2026-05-16  
-**Status:** Fase 2 estabilizada parcialmente; Data-driven Compliance inicial concluido
+**Status:** Fase 2 estabilizada parcialmente; API atualizada para contratos data-driven
 
 ---
 
@@ -73,6 +73,15 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-16 | API-9 | `docs/api/endpoints.md` atualizado para os contratos atuais: `actionId`, `effects[]`, `/api/effect`, `/api/status` e dano como simulacao |
+| 2026-05-16 | API-8 | Testes unitarios de Config/Resource alinhados aos mocks atuais; projeto `API.Tests` compila, mas o runner local ainda congela em `ResourceControllerTests` filtrado |
+| 2026-05-16 | API-7 | Respostas de validacao normalizadas para `400/404` em erros esperados de API |
+| 2026-05-16 | API-6 | Rota canonica `/api/status` adicionada mantendo compatibilidade com `/api/StatusEffect` e aliases de combate |
+| 2026-05-16 | API-5 | Damage API reposicionada como simulacao/diagnostico (`/api/damage/simulate`) |
+| 2026-05-16 | API-4 | Endpoint central `/api/effect/apply` criado para aplicar effects por contexto `COMBAT` ou `RUN` |
+| 2026-05-16 | API-3 | Combat API passou a aceitar `actionId` como contrato preferido para executar acoes |
+| 2026-05-16 | API-2 | Action API passou a expor `effects[]` completo; `baseDamage` virou campo derivado/compatibilidade |
+| 2026-05-16 | API-1 | DI/defaults de API alinhados aos contratos atuais (`IActionManager`, config `default`) |
 | 2026-05-16 | DC-5 | Documentação consolidada com resultado final da trilha Data-driven Compliance, lacunas restantes e próxima fase técnica |
 | 2026-05-16 | DC-4 | Aplicação de Status Effects em combate passou a usar `StatusEffectBehavior` em vez de tipos específicos como Burning/Poison/Buffer |
 | 2026-05-16 | DC-3 | `StartCombat` passou a criar entidades por `EntityDefinition` JSON quando o ID existir no loader |
@@ -98,21 +107,21 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** implementar a fase **Effect Application Engine** antes de iniciar Run/Shop/CardSelection/Content.
+**Próximo passo:** corrigir o congelamento do runner de `API.Tests` em `ResourceControllerTests` e entao iniciar Run/Shop/CardSelection/Content sobre o contrato central de effects.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
 ## Estatísticas Atuais
 
 ### Estado Verificado em 2026-05-16
-- **Core.Tests:** 536 testes passando após Data-driven Compliance DC-4
-- **API.Tests:** compila e sobe o host depois dos ajustes de DI; suíte completa ainda possui falhas legadas de contrato em Config/Resource/Action e testes filtrados de StatusEffect ficam pendurados no runner atual
+- **Core.Tests:** 540 testes passando apos Effect Application Engine e atualizacao de API
+- **API.Tests:** projeto compila; `ActionControllerTests`, `GameResourceControllerTests` e `ConfigControllerTests` foram alinhados/validados; o runner local ainda congela ao filtrar `ResourceControllerTests`, sem falha de assercao reportada
 - **Status Effects:** Core, API e configuração existem; aplicação em combate usa comportamentos genéricos, mas schema e executor central ainda precisam consolidação
-- **Data-driven Compliance:** 7.8/10; ações, execução básica de combate, início de combate por entidades JSON e aplicação de status por comportamento foram migrados; Effects/AI/schemas ainda têm lacunas conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
+- **Data-driven Compliance:** 8.2/10; ações, execução básica de combate, início de combate por entidades JSON, aplicação de status por comportamento e API baseada em `effects[]` foram migrados; AI/schemas e cobertura completa de run/deck/shop ainda têm lacunas conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 (Implementadas)
-- **Total de testes Core:** 536 testes passando
+- **Total de testes Core:** 540 testes passando
   - Combat: 53 testes
   - Events: 18 testes  
   - Damage: 126 testes
