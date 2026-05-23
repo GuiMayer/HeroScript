@@ -57,6 +57,21 @@ public sealed class RunManagerTests
         Assert.Equal(3, run.PowerPoints);
     }
 
+    [Fact]
+    public void PickCards_AddsRewardToDiscardPile()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var selection = manager.CreateCardSelection(run.RunId, "basic_reward");
+        var pick = manager.PickCards(run.RunId, selection.Value.SelectionInstanceId, new[] { "zap" });
+
+        Assert.True(selection.IsSuccess, selection.IsFailure ? selection.Error : null);
+        Assert.True(pick.IsSuccess, pick.IsFailure ? pick.Error : null);
+        Assert.True(pick.Value.Completed);
+        Assert.Contains("zap", run.Deck.DiscardPile);
+    }
+
     private RunManager CreateManager()
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
@@ -65,6 +80,12 @@ public sealed class RunManagerTests
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["default_run"] = JsonDocument.Parse(RunJson).RootElement.GetProperty("default_run").Clone()
+            });
+        _resourceLoader
+            .Setup(m => m.LoadResource("card-selections/basic_reward.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["basic_reward"] = JsonDocument.Parse(CardSelectionJson).RootElement.GetProperty("basic_reward").Clone()
             });
 
         return new RunManager(_configManager.Object, _resourceLoader.Object);
@@ -81,6 +102,16 @@ public sealed class RunManagerTests
         "mapNodes": [
           { "nodeId": "start", "nodeType": "combat", "nextNodeIds": [] }
         ]
+      }
+    }
+    """;
+
+    private const string CardSelectionJson = """
+    {
+      "basic_reward": {
+        "selectionId": "basic_reward",
+        "pickCount": 1,
+        "cardPool": ["strike", "defend", "zap"]
       }
     }
     """;

@@ -149,6 +149,64 @@ public sealed class RunManager : IRunManager
         }
     }
 
+    public Result<CardSelectionState> CreateCardSelection(Guid runId, string selectionId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
+
+            var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selectionId);
+            if (definitionResult.IsFailure)
+                return Result<CardSelectionState>.Failure(definitionResult.Error);
+
+            var definition = definitionResult.Value;
+            var selection = new CardSelectionState
+            {
+                RunId = runId,
+                SelectionId = definition.SelectionId,
+                PickCount = definition.PickCount,
+                Options = definition.CardPool.ToList()
+            };
+
+            state.CardSelections.Add(selection);
+            return Result<CardSelectionState>.Success(selection);
+        }
+    }
+
+    public Result<CardSelectionState> PickCards(Guid runId, Guid selectionInstanceId, IReadOnlyList<string> cardIds)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
+
+            var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
+            if (selection == null)
+                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+
+            if (selection.Completed)
+                return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+
+            var picks = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+            if (picks.Count == 0 || picks.Count > selection.PickCount)
+                return Result<CardSelectionState>.Failure($"Pick between 1 and {selection.PickCount} cards");
+
+            var invalid = picks.Where(id => !selection.Options.Contains(id)).ToList();
+            if (invalid.Count > 0)
+                return Result<CardSelectionState>.Failure($"Invalid card options: {string.Join(", ", invalid)}");
+
+            foreach (var cardId in picks)
+            {
+                state.Deck.DiscardPile.Add(cardId);
+                selection.PickedCardIds.Add(cardId);
+            }
+
+            selection.Completed = true;
+            return Result<CardSelectionState>.Success(selection);
+        }
+    }
+
     private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)
     {
         try
@@ -167,6 +225,27 @@ public sealed class RunManager : IRunManager
         catch (Exception ex)
         {
             return Result<RunDefinition>.Failure($"Could not load run definition '{runDefinitionId}': {ex.Message}", ex);
+        }
+    }
+
+    private Result<CardSelectionDefinition> LoadCardSelectionDefinition(string configName, string selectionId)
+    {
+        try
+        {
+            var chain = _configManager.ResolveInheritanceChain(configName);
+            var data = _resourceLoader.LoadResource($"card-selections/{selectionId}.json", chain, strictMode: false);
+            if (data.Count == 0)
+                return Result<CardSelectionDefinition>.Failure($"Card selection definition not found: {selectionId}");
+
+            var element = data.TryGetValue(selectionId, out var exact) ? exact : data.Values.First();
+            var definition = JsonSerializer.Deserialize<CardSelectionDefinition>(element.GetRawText(), _jsonOptions);
+            return definition == null
+                ? Result<CardSelectionDefinition>.Failure($"Failed to deserialize card selection definition: {selectionId}")
+                : Result<CardSelectionDefinition>.Success(definition);
+        }
+        catch (Exception ex)
+        {
+            return Result<CardSelectionDefinition>.Failure($"Could not load card selection definition '{selectionId}': {ex.Message}", ex);
         }
     }
 

@@ -1,0 +1,10 @@
+{
+  "basic_reward": {
+    "selectionId": "basic_reward",
+    "pickCount": 1,
+    "cardPool": ["basic_attack", "defend", "fireball", "heal"],
+    "metadata": {
+      "description": "Recompensa basica de carta para o loop inicial de run."
+    }
+  }
+}
