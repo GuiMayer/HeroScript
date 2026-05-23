@@ -1,6 +1,6 @@
 # Fase 3 - Loop de Run
 
-**Status:** 📋 Próximo foco técnico
+**Status:** 🚧 Em implementação — primeiras fatias concluídas
 **Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers, Gambits)
 
 ---
@@ -16,6 +16,8 @@ A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs,
 - Conectar os efeitos de deck/economia já existentes no `EffectResolver` a estado real antes de expor fluxos de UI.
 - Manter o frontend como camada de apresentação: sem regra de compra, descarte, loja, recompensa ou IA duplicada no cliente.
 - Corrigir a lacuna de integração visual com endpoints explícitos para mão/deck e processamento de turno/IA.
+- Combate já usa ator arbitrário via `CombatActionCommand`; player, IA, scripts e futuro multiplayer devem passar pelo mesmo contrato com `actorId`.
+- Ownership/autorização de controle por ator fica como TODO futuro, antes de multiplayer ou API multi-cliente.
 
 ## APIs Planejadas
 
@@ -23,10 +25,12 @@ A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs,
 
 Gerenciamento do estado e progressão de runs.
 
-**Endpoints:**
-- `POST /api/run/start` - Inicia nova run com raça selecionada
-- `POST /api/run/{runId}/advance` - Avança para próximo nó
+**Endpoints implementados na primeira fatia:**
+- `POST /api/run/start` - Inicia nova run a partir de `runs/{runDefinitionId}.json`
 - `GET /api/run/{runId}/state` - Obtém estado completo da run
+
+**Endpoints futuros:**
+- `POST /api/run/{runId}/advance` - Avança para próximo nó
 - `GET /api/run/{runId}/map` - Obtém mapa de nós disponíveis
 - `GET /api/run/{runId}/current-node` - Obtém nó atual
 - `POST /api/run/{runId}/end` - Finaliza run (vitória/derrota)
@@ -53,7 +57,7 @@ Gerenciamento do estado e progressão de runs.
 
 Estado de cartas da run e do combate atual.
 
-**Endpoints planejados:**
+**Endpoints implementados:**
 - `GET /api/run/{runId}/deck` - Obtém deck, descarte, exhaust e pilha de compra
 - `GET /api/run/{runId}/hand` - Obtém mão atual
 - `POST /api/run/{runId}/draw` - Compra cartas conforme regras data-driven
@@ -210,7 +214,8 @@ Preparação permite customização:
 - ✅ Shop primeira fatia implementada
 - ✅ Preparation primeira fatia implementada
 - ✅ CombatSystem executa acoes por ator arbitrario via `CombatActionCommand`
-- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores, ownership multiplayer e turnos por entidade
+- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e turnos por entidade
+- 🧭 TODO futuro: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente
 
 ### Ordem de Implementação
 
@@ -227,37 +232,44 @@ Preparação permite customização:
    - Query hand/deck state
 
 3. **Integração Visual de Combate**
-    - `POST /api/combat/{combatId}/end-turn`
+   - `POST /api/combat/{combatId}/end-turn`
    - `POST /api/combat/{combatId}/process-ai-turns` executa decisoes de IA no backend
    - `POST /api/combat/{combatId}/action` exige `actorId` para player, IA, script e futuro multiplayer
-    - Eventos/polling/SSE para mudanças de estado
+   - Eventos/polling/SSE para mudanças de estado
 
-4. **CardSelection Core** (src/Core/Run/CardSelection/)
+4. **TODO Futuro: Ownership/Autorizacao por Ator**
+   - Definir `controllerId`/`playerId`/`source` para comandos externos
+   - Mapear quais atores cada controlador pode comandar
+   - Separar fontes `PLAYER_INPUT`, `AI`, `SYSTEM` e `SCRIPT` sem criar caminhos diferentes no combate
+   - Validar permissao antes de chamar `CombatSystem.ExecuteAction`
+   - Manter `CombatSystem` actor-agnostic; autorizacao deve ficar na camada de controle/API
+
+5. **CardSelection Core** (src/Core/Run/CardSelection/)
    - CardOffer, CardPool
    - OfferGenerator, DeckManager
    - Reroll logic
 
-5. **CardSelection API** (src/API/Controllers/CardSelectionController.cs)
+6. **CardSelection API** (src/API/Controllers/CardSelectionController.cs)
    - Generate offers
    - Learn/decompose
    - Reroll
 
-6. **Shop Core** (src/Core/Run/Shop/)
+7. **Shop Core** (src/Core/Run/Shop/)
    - ShopInventory, ShopItem
    - PricingEngine, RerollCostCalculator
    - Purchase validation
 
-7. **Shop API** (src/API/Controllers/ShopController.cs)
+8. **Shop API** (src/API/Controllers/ShopController.cs)
    - Generate shop
    - Buy/sell items
    - Reroll
 
-8. **Preparation Core** (src/Core/Run/Preparation/)
+9. **Preparation Core** (src/Core/Run/Preparation/)
    - PreparationState
    - ModifierInjector
    - GambitConfigurator
 
-9. **Preparation API** (src/API/Controllers/PreparationController.cs)
+10. **Preparation API** (src/API/Controllers/PreparationController.cs)
    - Inject modifiers
    - Configure gambits
    - Preview changes

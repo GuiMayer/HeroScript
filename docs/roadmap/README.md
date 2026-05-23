@@ -1,7 +1,7 @@
 # API Roadmap
 
 **Última atualização:** 2026-05-23
-**Status:** Fase 2 estabilizada — Modifiers, Gambits, Effect Engine e API data-driven concluidos
+**Status:** Fase 3 em implementação — Run/Deck, CardSelection, Shop, Preparation e combate por ator arbitrário iniciados
 
 ---
 
@@ -34,7 +34,7 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 | **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [phases/phase-0.md](phases/phase-0.md) |
 | **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System | [phases/phase-1.md](phases/phase-1.md) |
 | **Fase 2** | ✅ Estabilizado | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
-| **Fase 3** | 📋 Planejado | Loop de Run (Run, CardSelection, Shop) | [phases/phase-3.md](phases/phase-3.md) |
+| **Fase 3** | 🚧 Em implementação | Loop de Run (Run, CardSelection, Shop, Preparation, ator arbitrário) | [phases/phase-3.md](phases/phase-3.md) |
 | **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [phases/phase-4.md](phases/phase-4.md) |
 | **Fase 5** | 📋 Planejado | Persistência (Save/Load, MetaProgression) | [phases/phase-5.md](phases/phase-5.md) |
 | **Fase 6** | 📋 Planejado | Modos Especiais (Seed, Daily, Custom) | [phases/phase-6.md](phases/phase-6.md) |
@@ -75,6 +75,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-23 | Fase 3 | Primeiras fatias implementadas: Run/Deck state, Run API, CardSelection, Shop, Preparation, `CombatActionCommand` com `actorId`, IA executada no backend; ownership/autorizacao por ator registrado como TODO futuro para multiplayer |
 | 2026-05-23 | Docs | Índices e análises sincronizados com o estado real: Fase 2 estabilizada, Fase 3 como próximo foco, links antigos corrigidos |
 | 2026-05-17 | Análise | Lacunas de integração frontend documentadas: sistema de mão de cartas, deck, end turn, polling/websocket, turno de IA automático |
 | 2026-05-17 | Estab-4 | `EffectResolver` consolidado: cobre economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb); 553 testes Core |
@@ -115,15 +116,15 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** iniciar **Fase 3 — Loop de Run** (Run Management, Card Selection, Shop) usando `/api/effect/apply` como contrato base para acontecimentos unicos.
+**Próximo passo:** continuar **Fase 3 — Loop de Run**, priorizando integração combate↔deck/hand, turnos/ativação por entidade e eventos/polling. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
 ## Estatísticas Atuais
 
-### Estado Verificado em 2026-05-17
-- **Core.Tests:** 553 testes passando apos estabilizacao da Fase 2 (Status schemas, Modifiers, Gambits, Effect Engine)
-- **API.Tests:** projeto compila; `ActionControllerTests`, `GameResourceControllerTests` e `ConfigControllerTests` foram alinhados/validados; o runner local ainda congela em suite completa, sem falha de assercao reportada em testes individuais
+### Estado Verificado em 2026-05-23
+- **Core.Tests:** suites focadas de Fase 3 e ator arbitrario passaram; historico da Fase 2 tinha 553 testes Core passando apos estabilizacao
+- **API.Tests:** suites focadas de Run/CardSelection/Shop/Preparation/Combat turn passaram; suite completa ainda deve ser tratada com cautela por historico de runner local instavel
 - **Status Effects:** Core, API e configuração existem; loader aceita schema legado e canonical; aplicação em combate usa comportamentos genéricos
 - **Script Modifiers:** Core (`ScriptModifierManager`) e API (`/api/modifiers`) implementados; definicoes JSON, pipeline filtrado por tags, stacking e tick
 - **Gambit Engine:** Core (`GambitEngine`) e API (`/api/gambits`) implementados; decisoes por regras JSON com condicoes/prioridade/acoes
@@ -140,14 +141,14 @@ http://localhost:5260/api
   - Resources: 23 testes
   - Config: incluído no total
   - Outros: incluído no total
-- **APIs implementadas:** Events, Combat, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
-- **Sistemas Core:** EventBus, CombatSystem, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects parcial
+- **APIs implementadas:** Events, Combat, Run, CardSelection, Shop, Preparation, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
+- **Sistemas Core:** EventBus, CombatSystem actor-agnostic, RunManager, DeckState, CardSelection, Shop, Preparation, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects
 - **Documentação:** 9 documentos técnicos completos
 
 ### Estimativa para MVP Jogável
 - **Fases restantes críticas:** 3 e 4
 - **Tempo estimado:** 13-20 dias de desenvolvimento para Run loop + conteúdo MVP inicial, sem persistência
-- **Sistemas críticos faltando:** Run Management, Deck/Hand State, Card Selection, Shop, Preparation e Content System
-- **Sistemas implementados na Fase 2:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados
+- **Sistemas críticos restantes:** integração combate↔deck/hand, turnos/ativação por entidade, Content System, raridades/reroll/pricing dinâmico, persistência posterior
+- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, CardSelection, Shop, Preparation, execução de combate por ator arbitrário
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

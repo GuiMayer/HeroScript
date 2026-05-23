@@ -2,7 +2,7 @@
 
 **Data:** 2026-05-23  
 **Contexto:** Análise realizada durante planejamento de protótipo visual (Phaser 3 + React)  
-**Status:** 📋 Documentado — Lacunas identificadas para Fase 3
+**Status:** 🚧 Atualizado — primeiras lacunas da Fase 3 fechadas
 
 ---
 
@@ -51,15 +51,16 @@ Response: {
 - Sistema de Draw/Discard
 - `RunState` para persistir deck entre combates
 
-**Workaround Temporário:**
-- Frontend pode pegar as primeiras N ações de `/available-actions` e simular uma "mão"
-- Não é ideal, mas permite prototipar a UI
+**Estado atual:**
+- `GET /api/run/{runId}/hand` retorna a mão da run.
+- `POST /api/run/{runId}/draw` e `POST /api/run/{runId}/discard` mutam o estado no backend.
+- A integração combate↔mão ainda precisa de refinamento para consumo real de cartas durante combate.
 
 ---
 
 ### 2. Sistema de Deck
 
-**Status:** ❌ Ausente  
+**Status:** ✅ Implementado na primeira fatia
 **Prioridade:** HIGH  
 **Fase:** 3
 
@@ -103,9 +104,10 @@ Request: { actionId: string, count: number }
 - `CardSelection` API (Fase 3)
 - Sistema de shuffle/draw/discard
 
-**Workaround Temporário:**
-- Frontend pode simular um "deck virtual" em memória
-- Não persiste entre combates, mas permite prototipar mecânicas
+**Estado atual:**
+- `RunState` contém `DeckState` com draw pile, hand, discard e exhaust.
+- `GET /api/run/{runId}/deck` expõe o estado real.
+- `CardSelection`, `Shop` e `Preparation` já adicionam cartas ao estado da run.
 
 ---
 
@@ -117,7 +119,7 @@ Request: { actionId: string, count: number }
 
 **Estado atual:**
 - `POST /api/combat/{combatId}/end-turn` existe e executa `END_TURN` pelo backend.
-- `ExecuteAction` continua aceitando `actionType: "END_TURN"` por compatibilidade.
+- `POST /api/combat/{combatId}/action` tambem aceita `actionType: "END_TURN"`, mas agora exige `actorId`.
 
 **Impacto:**
 - Frontend precisa conhecer detalhes de implementação do backend
@@ -130,7 +132,7 @@ Request: { actionId: string, count: number }
 POST /api/combat/{combatId}/end-turn
 Response: CombatStateResponse
 
-// Mantém compatibilidade com ExecuteAction para não quebrar código existente
+// Para atores nao-heroi, use /action com actorId explicito.
 ```
 
 **Dependências:**
@@ -194,7 +196,7 @@ Messages:
 
 ### 5. Turno de IA Automático
 
-**Status:** ❌ Ausente  
+**Status:** ✅ Implementado
 **Prioridade:** MEDIUM  
 **Fase:** 2-3
 
@@ -246,11 +248,12 @@ Response: {
 
 | Lacuna | Prioridade | Fase | Bloqueador para Protótipo? |
 |--------|-----------|------|---------------------------|
-| Sistema de Mão de Cartas | HIGH | 3 | ⚠️ Parcial (workaround possível) |
-| Sistema de Deck | HIGH | 3 | ⚠️ Parcial (workaround possível) |
-| Endpoint End Turn | MEDIUM | 2 | ❌ Não (workaround funciona) |
+| Sistema de Mão de Cartas | HIGH | 3 | ✅ Primeira fatia implementada |
+| Sistema de Deck | HIGH | 3 | ✅ Primeira fatia implementada |
+| Endpoint End Turn | MEDIUM | 2 | ✅ Implementado |
 | Polling/WebSocket | MEDIUM | 3 | ❌ Não (polling funciona) |
-| Turno de IA Automático | MEDIUM | 2-3 | ❌ Não (polling funciona) |
+| Turno de IA Automático | MEDIUM | 2-3 | ✅ Implementado |
+| Ownership/autorizacao por ator | LOW agora / HIGH antes de multiplayer | Futuro | ❌ Não para single player |
 
 ---
 
@@ -258,16 +261,16 @@ Response: {
 
 ### Para Protótipo Imediato (Fase 2.5)
 
-1. **Usar workarounds documentados** para criar protótipo visual básico
-2. **Focar em validar integração** backend ↔ frontend
-3. **Identificar outras lacunas** durante implementação
+1. **Usar endpoints implementados** para validar protótipo visual básico.
+2. **Focar em validar integração** backend ↔ frontend.
+3. **Identificar outras lacunas** durante implementação.
 
 ### Para Fase 3 (Loop de Run)
 
-1. **Implementar `RunState` e `DeckState`** como fonte de verdade para deck, mão, descarte e exhaust.
-2. **Criar endpoints Hand/Deck** em `/api/run/{runId}/hand` e `/api/run/{runId}/deck` antes de CardSelection/Shop.
-3. **Ator arbitrario implementado no `CombatSystem`**; proxima evolucao e modelar ownership/autorizacao para multiplayer e turnos por entidade.
-4. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
+1. **Refinar integração combate↔deck/hand** para consumir cartas reais durante combate.
+2. **Modelar turnos/ativacao por entidade** de forma data-driven, antes de aprofundar multiplayer.
+3. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
+4. **TODO futuro:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
 
 ### Para Fase 4 (Conteúdo MVP)
 
@@ -279,13 +282,23 @@ Response: {
 
 ## Notas de Implementação
 
-### Compatibilidade com Código Existente
+### Contrato Atual
 
 Todas as soluções propostas devem:
-- **Manter compatibilidade** com endpoints existentes
-- **Não quebrar** testes Core (553 testes passando)
+- **Usar `actorId` explicito** para comandos de combate vindos de player, IA, script ou futuro multiplayer
+- **Evitar caminhos especiais** para player vs IA dentro do `CombatSystem`
 - **Seguir convenções** da API REST existente
 - **Usar contratos** data-driven (JSON configs)
+
+### TODO Futuro: Ownership/Autorizacao
+
+Ownership/autorizacao nao e prioridade para single player local. Deve ser implementado antes de multiplayer, API multi-cliente ou controle remoto real.
+
+Responsabilidades esperadas:
+- Mapear qual `controllerId`/sessao/jogador pode comandar cada `actorId`.
+- Permitir fontes distintas (`PLAYER_INPUT`, `AI`, `SYSTEM`, `SCRIPT`) sem mudar o caminho de execucao do combate.
+- Bloquear comandos externos tentando controlar inimigos, atores de outro jogador ou atores de sistema.
+- Manter autorizacao na camada de controle/API; `CombatSystem` deve continuar actor-agnostic.
 
 ### Filosofia Data-Driven
 
