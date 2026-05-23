@@ -1,7 +1,7 @@
 # API Roadmap
 
 **Última atualização:** 2026-05-23
-**Status:** Fase 3 em implementação — Run/Deck, CardSelection, Shop, Preparation e combate por ator arbitrário iniciados
+**Status:** Fase 3 em implementação — Run/Deck, CardSelection, Shop, Preparation, ator arbitrário e consumo real de cartas iniciados
 
 ---
 
@@ -75,6 +75,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-23 | Fase 3 | Integração combate↔deck/hand implementada: `POST /api/combat/{combatId}/action` aceita `runId`/`cardId`, valida mão real, executa combate e consome carta para discard/exhaust/retain por tags JSON |
 | 2026-05-23 | Fase 3 | Primeiras fatias implementadas: Run/Deck state, Run API, CardSelection, Shop, Preparation, `CombatActionCommand` com `actorId`, IA executada no backend; ownership/autorizacao por ator registrado como TODO futuro para multiplayer |
 | 2026-05-23 | Docs | Índices e análises sincronizados com o estado real: Fase 2 estabilizada, Fase 3 como próximo foco, links antigos corrigidos |
 | 2026-05-17 | Análise | Lacunas de integração frontend documentadas: sistema de mão de cartas, deck, end turn, polling/websocket, turno de IA automático |
@@ -116,7 +117,7 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** continuar **Fase 3 — Loop de Run**, priorizando integração combate↔deck/hand, turnos/ativação por entidade e eventos/polling. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
+**Próximo passo:** continuar **Fase 3 — Loop de Run**, priorizando turnos/ativação por entidade, draw/discard automático conforme regra JSON e eventos/polling para sincronização visual. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
@@ -148,7 +149,7 @@ http://localhost:5260/api
 ### Estimativa para MVP Jogável
 - **Fases restantes críticas:** 3 e 4
 - **Tempo estimado:** 13-20 dias de desenvolvimento para Run loop + conteúdo MVP inicial, sem persistência
-- **Sistemas críticos restantes:** integração combate↔deck/hand, turnos/ativação por entidade, Content System, raridades/reroll/pricing dinâmico, persistência posterior
-- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, CardSelection, Shop, Preparation, execução de combate por ator arbitrário
+- **Sistemas críticos restantes:** turnos/ativação por entidade, Content System, raridades/reroll/pricing dinâmico, eventos/polling, persistência posterior
+- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, CardSelection, Shop, Preparation, execução de combate por ator arbitrário, consumo real de cartas da mão em combate
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

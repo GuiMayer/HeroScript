@@ -54,7 +54,8 @@ Response: {
 **Estado atual:**
 - `GET /api/run/{runId}/hand` retorna a mão da run.
 - `POST /api/run/{runId}/draw` e `POST /api/run/{runId}/discard` mutam o estado no backend.
-- A integração combate↔mão ainda precisa de refinamento para consumo real de cartas durante combate.
+- `POST /api/combat/{combatId}/action` aceita `runId` e `cardId`; `CombatRunCoordinator` valida que a carta está na mão, executa combate e consome a carta apenas após sucesso.
+- `GET /api/combat/{combatId}/available-actions?actorId=...&runId=...` filtra ações pela mão real e informa `cardCountInHand`/`willConsumeTo`.
 
 ---
 
@@ -108,6 +109,7 @@ Request: { actionId: string, count: number }
 - `RunState` contém `DeckState` com draw pile, hand, discard e exhaust.
 - `GET /api/run/{runId}/deck` expõe o estado real.
 - `CardSelection`, `Shop` e `Preparation` já adicionam cartas ao estado da run.
+- Ações de combate agora movem cartas da mão para discard/exhaust ou mantêm na mão por tag `retain`.
 
 ---
 
@@ -267,9 +269,9 @@ Response: {
 
 ### Para Fase 3 (Loop de Run)
 
-1. **Refinar integração combate↔deck/hand** para consumir cartas reais durante combate.
-2. **Modelar turnos/ativacao por entidade** de forma data-driven, antes de aprofundar multiplayer.
-3. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
+1. **Modelar turnos/ativacao por entidade** de forma data-driven, antes de aprofundar multiplayer.
+2. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
+3. **Refinar Run/CardSelection/Shop/Preparation** com reroll, raridades, pricing dinâmico e inject real de modificadores.
 4. **TODO futuro:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
 
 ### Para Fase 4 (Conteúdo MVP)

@@ -172,11 +172,15 @@ Request recomendado:
 ```json
 {
   "actorId": "player_warrior",
+  "runId": "6ca12c0f-9f93-4b6a-8de4-9cb7f9cf4e8b",
+  "cardId": "fireball",
   "actionId": "fireball",
   "targetId": "enemy-1",
   "costOptionId": null
 }
 ```
+
+Quando `runId` é informado, a API delega para `CombatRunCoordinator`: a carta precisa existir na `RunState.Deck.Hand`, o combate é executado por `CombatSystem` e a carta só é consumida após sucesso. O destino é data-driven por tags da `ActionDefinition`: `retain` mantém na mão, `exhaust` move para exhaust, e o padrão move para discard.
 
 Request por tipo/poder:
 
@@ -201,6 +205,8 @@ Retorna historico de acoes do combate.
 
 Lista acoes disponiveis no estado atual, incluindo custos, alvo e resumo de effects.
 
+Query params opcionais: `actorId` escolhe o ator usado para recursos; `runId` filtra pelas cartas presentes na mão da run e adiciona `inHand`, `cardCountInHand` e `willConsumeTo`.
+
 ### GET `/api/combat/{combatId}/actions/{actionId}/cost-options`
 
 Lista opcoes de custo normal/alternativo para a acao.
@@ -208,6 +214,8 @@ Lista opcoes de custo normal/alternativo para a acao.
 ### POST `/api/combat/{combatId}/actions/{actionId}/can-afford`
 
 Valida se uma acao pode ser paga com os recursos atuais.
+
+Query params opcionais: `actorId` escolhe o ator usado para recursos; `runId` adiciona `inHand`, `cardCountInHand` e `willConsumeTo`.
 
 ### POST `/api/combat/{combatId}/end-turn`
 

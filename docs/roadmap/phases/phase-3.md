@@ -17,6 +17,7 @@ A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs,
 - Manter o frontend como camada de apresentação: sem regra de compra, descarte, loja, recompensa ou IA duplicada no cliente.
 - Corrigir a lacuna de integração visual com endpoints explícitos para mão/deck e processamento de turno/IA.
 - Combate já usa ator arbitrário via `CombatActionCommand`; player, IA, scripts e futuro multiplayer devem passar pelo mesmo contrato com `actorId`.
+- Integração combate↔mão já passa por `CombatRunCoordinator`: `runId`/`cardId` validam carta na mão, executam combate e consomem para discard/exhaust/retain conforme tags JSON da `ActionDefinition`.
 - Ownership/autorização de controle por ator fica como TODO futuro, antes de multiplayer ou API multi-cliente.
 
 ## APIs Planejadas
@@ -214,7 +215,8 @@ Preparação permite customização:
 - ✅ Shop primeira fatia implementada
 - ✅ Preparation primeira fatia implementada
 - ✅ CombatSystem executa acoes por ator arbitrario via `CombatActionCommand`
-- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e turnos por entidade
+- ✅ Integração combate↔deck/hand implementada para consumo real de cartas da mão durante ações com `runId`
+- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e turnos/ativação por entidade
 - 🧭 TODO futuro: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente
 
 ### Ordem de Implementação
@@ -232,10 +234,12 @@ Preparação permite customização:
    - Query hand/deck state
 
 3. **Integração Visual de Combate**
-   - `POST /api/combat/{combatId}/end-turn`
-   - `POST /api/combat/{combatId}/process-ai-turns` executa decisoes de IA no backend
-   - `POST /api/combat/{combatId}/action` exige `actorId` para player, IA, script e futuro multiplayer
-   - Eventos/polling/SSE para mudanças de estado
+    - `POST /api/combat/{combatId}/end-turn`
+    - `POST /api/combat/{combatId}/process-ai-turns` executa decisoes de IA no backend
+    - `POST /api/combat/{combatId}/action` exige `actorId` para player, IA, script e futuro multiplayer
+   - `POST /api/combat/{combatId}/action` com `runId`/`cardId` consome carta real da mão apenas após sucesso do combate
+   - `GET /api/combat/{combatId}/available-actions?actorId=...&runId=...` filtra por mão e informa destino de consumo
+    - Eventos/polling/SSE para mudanças de estado
 
 4. **TODO Futuro: Ownership/Autorizacao por Ator**
    - Definir `controllerId`/`playerId`/`source` para comandos externos
@@ -337,6 +341,11 @@ Content-Type: application/json
 ---
 
 ## Próximos Passos
+
+Próximo foco dentro da Fase 3:
+- **Turnos/ativação por entidade** - substituir o end-turn global por regras data-driven de início/fim de ativação, compra/descarte automática e janelas de IA/player.
+- **Eventos/polling/SSE** - expor mudanças de estado para o frontend animar ações já resolvidas no backend.
+- **Refinamentos de Run** - reroll, raridades, pricing dinamico e inject real de modificadores.
 
 Após completar a Fase 3, a Fase 4 adicionará conteúdo MVP:
 - **Race API** - Raças jogáveis
