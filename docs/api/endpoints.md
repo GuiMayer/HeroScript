@@ -225,6 +225,66 @@ Executa `END_TURN` pelo `CombatSystem` e retorna `CombatStateResponse` atualizad
 
 Centraliza e executa decisoes de IA no backend usando `GambitEngine` para inimigos vivos. Cada decisao e convertida em um `CombatActionCommand` com `actorId` do inimigo e aplicada pelo `CombatSystem`; a resposta inclui `decisions` e o estado final.
 
+### POST `/api/combat/{combatId}/activation/start`
+
+Inicia o ciclo de ativacao por entidade usando regras JSON de `combat-turn-rules/{rulesId}.json`. A resposta inclui `activation`, resumo de `deck`, `drawnCardIds` e `discardedCardIds`.
+
+Request exemplo:
+
+```json
+{
+  "runId": "6ca12c0f-9f93-4b6a-8de4-9cb7f9cf4e8b",
+  "rulesId": "default_activation"
+}
+```
+
+### GET `/api/combat/{combatId}/activation/state`
+
+Retorna o estado de ativacao atual: `activeActorId`, `round`, `activationIndex`, `activationOrder`, atores completados, `waitingForInput`, regras usadas e resumo do deck da run.
+
+### POST `/api/combat/{combatId}/activation/end`
+
+Encerra a ativacao do ator ativo, aplica descarte automatico conforme JSON e avanca para o proximo ator elegivel.
+
+Request exemplo:
+
+```json
+{
+  "runId": "6ca12c0f-9f93-4b6a-8de4-9cb7f9cf4e8b",
+  "actorId": "player_warrior"
+}
+```
+
+### POST `/api/combat/{combatId}/activation/advance`
+
+Avanca explicitamente para a proxima ativacao sem aplicar descarte do ator atual. Use para ferramentas/debug; o fluxo normal de jogo deve preferir `/activation/end`.
+
+### POST `/api/combat/{combatId}/activation/process-ai`
+
+Processa a IA do ator ativo quando ele nao e controlado pelo player. Usa `GambitEngine` e, se `ai.autoEndAfterAction` estiver ativo no JSON, encerra a ativacao automaticamente.
+
+Regras default ficam em:
+
+```text
+data/configs/default/Resources/combat-turn-rules/default_activation.json
+```
+
+Campos principais:
+
+```json
+{
+  "startActivation": { "drawCount": 1, "drawActorScope": "PlayerOnly" },
+  "endActivation": {
+    "discardPolicy": "DiscardNonRetain",
+    "discardActorScope": "PlayerOnly",
+    "handLimit": 5,
+    "retainTags": ["retain"],
+    "unknownCardPolicy": "Fail"
+  },
+  "ai": { "autoProcess": false, "autoEndAfterAction": true }
+}
+```
+
 ### POST `/api/combat/{combatId}/end`
 
 Encerra uma instancia de combate.
@@ -658,7 +718,33 @@ Lista categorias de operacao.
 
 ### GET `/api/events`
 
-Lista eventos em memoria.
+Lista eventos em memoria. Suporta polling incremental e filtros:
+
+- `afterSequence`: retorna apenas `GameEvent.Sequence` maior que o valor informado.
+- `combatId`: filtra eventos cujo payload contenha este combate.
+- `runId`: filtra eventos cujo payload contenha esta run.
+- `eventType`: filtra por tipo, como `ActivationStartedEvent`.
+- `limit`: limita o retorno.
+
+Exemplo:
+
+```http
+GET /api/events?afterSequence=10&combatId=...&runId=...&eventType=ActivationStartedEvent&limit=100
+```
+
+Resposta inclui `afterSequence`, `lastSequence`, `returned` e `events`.
+
+### GET `/api/combat/{combatId}/events`
+
+Alias combat-scoped para polling incremental. Aceita `afterSequence`, `runId`, `eventType` e `limit`.
+
+### GET `/api/events/stream`
+
+Stream SSE simples (`text/event-stream`) usando o historico do `EventBus`. Aceita `afterSequence`, `combatId`, `runId`, `eventType` e `delayMs`.
+
+### GET `/api/combat/{combatId}/events/stream`
+
+Alias SSE filtrado por combate. Polling incremental continua sendo o contrato mais estavel para frontend; SSE existe como base para sincronizacao visual em tempo real.
 
 ### GET `/api/events/{eventId}`
 

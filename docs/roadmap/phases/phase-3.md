@@ -216,7 +216,9 @@ Preparação permite customização:
 - ✅ Preparation primeira fatia implementada
 - ✅ CombatSystem executa acoes por ator arbitrario via `CombatActionCommand`
 - ✅ Integração combate↔deck/hand implementada para consumo real de cartas da mão durante ações com `runId`
-- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e turnos/ativação por entidade
+- ✅ Turnos/ativação por entidade implementados com `ActivationState`, regras JSON, draw/discard automatico e eventos de ativacao
+- ✅ Polling incremental e base SSE implementados para eventos de combate/run
+- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e refinamentos de turnos por entidade
 - 🧭 TODO futuro: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente
 
 ### Ordem de Implementação
@@ -239,7 +241,10 @@ Preparação permite customização:
     - `POST /api/combat/{combatId}/action` exige `actorId` para player, IA, script e futuro multiplayer
    - `POST /api/combat/{combatId}/action` com `runId`/`cardId` consome carta real da mão apenas após sucesso do combate
    - `GET /api/combat/{combatId}/available-actions?actorId=...&runId=...` filtra por mão e informa destino de consumo
-    - Eventos/polling/SSE para mudanças de estado
+    - `POST /api/combat/{combatId}/activation/start|end|advance|process-ai` coordena ativacao por entidade
+    - Regras em `combat-turn-rules/{rulesId}.json` controlam draw/discard automatico, escopo player/all actors e IA
+    - `GET /api/events?afterSequence=...` e `GET /api/combat/{combatId}/events` fornecem polling incremental
+    - `GET /api/events/stream` e `GET /api/combat/{combatId}/events/stream` fornecem base SSE
 
 4. **TODO Futuro: Ownership/Autorizacao por Ator**
    - Definir `controllerId`/`playerId`/`source` para comandos externos

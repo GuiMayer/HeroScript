@@ -117,7 +117,7 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** continuar **Fase 3 — Loop de Run**, priorizando turnos/ativação por entidade, draw/discard automático conforme regra JSON e eventos/polling para sincronização visual. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
+**Próximo passo:** continuar **Fase 3 — Loop de Run**, refinando reroll/raridades/pricing dinamico, inject real de modificadores e regras avançadas de ativacao. Turnos/ativação por entidade, draw/discard automatico por JSON e eventos/polling/SSE ja têm primeira fatia implementada. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
@@ -125,7 +125,7 @@ http://localhost:5260/api
 
 ### Estado Verificado em 2026-05-23
 - **Core.Tests:** suites focadas de Fase 3 e ator arbitrario passaram; historico da Fase 2 tinha 553 testes Core passando apos estabilizacao
-- **API.Tests:** suites focadas de Run/CardSelection/Shop/Preparation/Combat turn passaram; suite completa ainda deve ser tratada com cautela por historico de runner local instavel
+- **API.Tests:** suites focadas de Run/CardSelection/Shop/Preparation/Combat turn/Activation/Events passaram; suite completa ainda deve ser tratada com cautela por historico de runner local instavel
 - **Status Effects:** Core, API e configuração existem; loader aceita schema legado e canonical; aplicação em combate usa comportamentos genéricos
 - **Script Modifiers:** Core (`ScriptModifierManager`) e API (`/api/modifiers`) implementados; definicoes JSON, pipeline filtrado por tags, stacking e tick
 - **Gambit Engine:** Core (`GambitEngine`) e API (`/api/gambits`) implementados; decisoes por regras JSON com condicoes/prioridade/acoes
@@ -142,14 +142,14 @@ http://localhost:5260/api
   - Resources: 23 testes
   - Config: incluído no total
   - Outros: incluído no total
-- **APIs implementadas:** Events, Combat, Run, CardSelection, Shop, Preparation, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
-- **Sistemas Core:** EventBus, CombatSystem actor-agnostic, RunManager, DeckState, CardSelection, Shop, Preparation, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects
+- **APIs implementadas:** Events com polling/SSE, Combat/Activation, Run, CardSelection, Shop, Preparation, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
+- **Sistemas Core:** EventBus, CombatSystem actor-agnostic, ActivationState/CombatActivationCoordinator, RunManager, DeckState, CardSelection, Shop, Preparation, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects
 - **Documentação:** 9 documentos técnicos completos
 
 ### Estimativa para MVP Jogável
 - **Fases restantes críticas:** 3 e 4
 - **Tempo estimado:** 13-20 dias de desenvolvimento para Run loop + conteúdo MVP inicial, sem persistência
-- **Sistemas críticos restantes:** turnos/ativação por entidade, Content System, raridades/reroll/pricing dinâmico, eventos/polling, persistência posterior
-- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, CardSelection, Shop, Preparation, execução de combate por ator arbitrário, consumo real de cartas da mão em combate
+- **Sistemas críticos restantes:** Content System, raridades/reroll/pricing dinâmico, inject real de modificadores, refinamentos de ativacao, persistência posterior
+- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, CardSelection, Shop, Preparation, execução de combate por ator arbitrário, consumo real de cartas da mão em combate, ativacao por entidade e eventos/polling/SSE
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

@@ -253,7 +253,7 @@ Response: {
 | Sistema de Mão de Cartas | HIGH | 3 | ✅ Primeira fatia implementada |
 | Sistema de Deck | HIGH | 3 | ✅ Primeira fatia implementada |
 | Endpoint End Turn | MEDIUM | 2 | ✅ Implementado |
-| Polling/WebSocket | MEDIUM | 3 | ❌ Não (polling funciona) |
+| Polling/WebSocket | MEDIUM | 3 | ✅ Polling incremental + base SSE implementados |
 | Turno de IA Automático | MEDIUM | 2-3 | ✅ Implementado |
 | Ownership/autorizacao por ator | LOW agora / HIGH antes de multiplayer | Futuro | ❌ Não para single player |
 
@@ -269,8 +269,8 @@ Response: {
 
 ### Para Fase 3 (Loop de Run)
 
-1. **Modelar turnos/ativacao por entidade** de forma data-driven, antes de aprofundar multiplayer.
-2. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
+1. **Usar turnos/ativacao por entidade implementados** via `/api/combat/{combatId}/activation/*`.
+2. **Usar polling incremental** via `/api/events?afterSequence=...` ou `/api/combat/{combatId}/events`; SSE já existe como base em `/events/stream`.
 3. **Refinar Run/CardSelection/Shop/Preparation** com reroll, raridades, pricing dinâmico e inject real de modificadores.
 4. **TODO futuro:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
 
@@ -291,6 +291,7 @@ Todas as soluções propostas devem:
 - **Evitar caminhos especiais** para player vs IA dentro do `CombatSystem`
 - **Seguir convenções** da API REST existente
 - **Usar contratos** data-driven (JSON configs)
+- **Sincronizar UI por eventos**: preferir polling incremental por `afterSequence`; SSE pode ser usado quando o cliente suportar stream persistente.
 
 ### TODO Futuro: Ownership/Autorizacao
 
@@ -307,6 +308,7 @@ Responsabilidades esperadas:
 - Sistema de Deck deve ser configurável via JSON
 - Tamanho de mão, regras de draw, limite de deck devem ser data-driven
 - Não hardcodar valores como "5 cartas na mão" ou "30 cartas no deck"
+- Ativacao por entidade usa `combat-turn-rules/{rulesId}.json` para `drawCount`, `discardPolicy`, `retainTags`, escopo de ator e comportamento de IA
 
 ### Testes
 
