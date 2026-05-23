@@ -269,6 +269,67 @@ public sealed class RunManager : IRunManager
         }
     }
 
+    public Result<PreparationState> CreatePreparation(Guid runId, string preparationId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<PreparationState>.Failure($"Run not found: {runId}");
+
+            var definitionResult = LoadPreparationDefinition(state.ConfigName, preparationId);
+            if (definitionResult.IsFailure)
+                return Result<PreparationState>.Failure(definitionResult.Error);
+
+            var definition = definitionResult.Value;
+            var preparation = new PreparationState
+            {
+                RunId = runId,
+                PreparationId = definition.PreparationId,
+                Options = definition.Options.Select(option => new PreparationOptionState
+                {
+                    OptionId = option.OptionId,
+                    GoldCost = option.GoldCost,
+                    PowerPointCost = option.PowerPointCost,
+                    AddCardsToDiscard = option.AddCardsToDiscard.ToList()
+                }).ToList()
+            };
+
+            state.Preparations.Add(preparation);
+            return Result<PreparationState>.Success(preparation);
+        }
+    }
+
+    public Result<PreparationOptionState> ApplyPreparationOption(Guid runId, Guid preparationInstanceId, string optionId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<PreparationOptionState>.Failure($"Run not found: {runId}");
+
+            var preparation = state.Preparations.FirstOrDefault(p => p.PreparationInstanceId == preparationInstanceId);
+            if (preparation == null)
+                return Result<PreparationOptionState>.Failure($"Preparation not found: {preparationInstanceId}");
+
+            var option = preparation.Options.FirstOrDefault(o => o.OptionId == optionId);
+            if (option == null)
+                return Result<PreparationOptionState>.Failure($"Preparation option not found: {optionId}");
+
+            if (option.Applied)
+                return Result<PreparationOptionState>.Failure($"Preparation option already applied: {optionId}");
+
+            if (state.Gold < option.GoldCost || state.PowerPoints < option.PowerPointCost)
+                return Result<PreparationOptionState>.Failure($"Insufficient resources for preparation option: {optionId}");
+
+            state.Gold -= option.GoldCost;
+            state.PowerPoints -= option.PowerPointCost;
+            state.Deck.DiscardPile.AddRange(option.AddCardsToDiscard);
+            option.Applied = true;
+            preparation.AppliedOptionIds.Add(option.OptionId);
+
+            return Result<PreparationOptionState>.Success(option);
+        }
+    }
+
     private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)
     {
         try
@@ -329,6 +390,27 @@ public sealed class RunManager : IRunManager
         catch (Exception ex)
         {
             return Result<ShopDefinition>.Failure($"Could not load shop definition '{shopId}': {ex.Message}", ex);
+        }
+    }
+
+    private Result<PreparationDefinition> LoadPreparationDefinition(string configName, string preparationId)
+    {
+        try
+        {
+            var chain = _configManager.ResolveInheritanceChain(configName);
+            var data = _resourceLoader.LoadResource($"preparations/{preparationId}.json", chain, strictMode: false);
+            if (data.Count == 0)
+                return Result<PreparationDefinition>.Failure($"Preparation definition not found: {preparationId}");
+
+            var element = data.TryGetValue(preparationId, out var exact) ? exact : data.Values.First();
+            var definition = JsonSerializer.Deserialize<PreparationDefinition>(element.GetRawText(), _jsonOptions);
+            return definition == null
+                ? Result<PreparationDefinition>.Failure($"Failed to deserialize preparation definition: {preparationId}")
+                : Result<PreparationDefinition>.Success(definition);
+        }
+        catch (Exception ex)
+        {
+            return Result<PreparationDefinition>.Failure($"Could not load preparation definition '{preparationId}': {ex.Message}", ex);
         }
     }
 

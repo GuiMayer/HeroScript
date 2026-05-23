@@ -11,5 +11,6 @@ public sealed record RunState
     public DeckState Deck { get; init; } = new();
     public List<CardSelectionState> CardSelections { get; init; } = new();
     public List<ShopState> Shops { get; init; } = new();
+    public List<PreparationState> Preparations { get; init; } = new();
     public Dictionary<string, object> Metadata { get; init; } = new();
 }

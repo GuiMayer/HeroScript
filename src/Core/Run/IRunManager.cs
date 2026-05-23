@@ -16,4 +16,6 @@ public interface IRunManager
     Result<CardSelectionState> PickCards(Guid runId, Guid selectionInstanceId, IReadOnlyList<string> cardIds);
     Result<ShopState> CreateShop(Guid runId, string shopId);
     Result<ShopItemState> BuyShopItem(Guid runId, Guid shopInstanceId, string itemId);
+    Result<PreparationState> CreatePreparation(Guid runId, string preparationId);
+    Result<PreparationOptionState> ApplyPreparationOption(Guid runId, Guid preparationInstanceId, string optionId);
 }

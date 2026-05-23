@@ -88,6 +88,22 @@ public sealed class RunManagerTests
         Assert.Contains("zap", run.Deck.DiscardPile);
     }
 
+    [Fact]
+    public void ApplyPreparationOption_SpendsResourcesAndAddsConfiguredCards()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var preparation = manager.CreatePreparation(run.RunId, "basic_preparation");
+        var option = manager.ApplyPreparationOption(run.RunId, preparation.Value.PreparationInstanceId, "pack_supplies");
+
+        Assert.True(preparation.IsSuccess, preparation.IsFailure ? preparation.Error : null);
+        Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
+        Assert.True(option.Value.Applied);
+        Assert.Equal(20, run.Gold);
+        Assert.Contains("heal", run.Deck.DiscardPile);
+    }
+
     private RunManager CreateManager()
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
@@ -108,6 +124,12 @@ public sealed class RunManagerTests
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["basic_shop"] = JsonDocument.Parse(ShopJson).RootElement.GetProperty("basic_shop").Clone()
+            });
+        _resourceLoader
+            .Setup(m => m.LoadResource("preparations/basic_preparation.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["basic_preparation"] = JsonDocument.Parse(PreparationJson).RootElement.GetProperty("basic_preparation").Clone()
             });
 
         return new RunManager(_configManager.Object, _resourceLoader.Object);
@@ -144,6 +166,17 @@ public sealed class RunManagerTests
         "shopId": "basic_shop",
         "items": [
           { "itemId": "buy_zap", "cardId": "zap", "goldCost": 10, "powerPointCost": 0 }
+        ]
+      }
+    }
+    """;
+
+    private const string PreparationJson = """
+    {
+      "basic_preparation": {
+        "preparationId": "basic_preparation",
+        "options": [
+          { "optionId": "pack_supplies", "goldCost": 5, "powerPointCost": 0, "addCardsToDiscard": ["heal"] }
         ]
       }
     }
