@@ -3,12 +3,45 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Core.Config;
 using Core.Config.Delta;
+using Core.Logging;
 using Xunit;
 
 namespace Core.Tests
 {
     public class ResourceLoaderTests
     {
+        [Fact]
+        public void LoadResource_WithDifferentConfigChains_DoesNotShareCachedPath()
+        {
+            var root = Path.Combine(Path.GetTempPath(), $"heroscript-resource-loader-{Guid.NewGuid():N}");
+            try
+            {
+                Directory.CreateDirectory(Path.Combine(root, "base", "Resources", "test"));
+                Directory.CreateDirectory(Path.Combine(root, "mod", "Resources", "test"));
+                File.WriteAllText(Path.Combine(root, "base", "Resources", "test", "items.json"), "{\"item\":{\"value\":1}}");
+                File.WriteAllText(Path.Combine(root, "mod", "Resources", "test", "items.json"), "{\"item\":{\"value\":2}}");
+
+                var configManager = new TestConfigManager(root);
+                var loader = new ResourceLoader(NullLogger.Instance, new ResourceProviderFactory(configManager));
+                loader.InitializePathResolver(new ResourceConfiguration
+                {
+                    Mode = ResourceMode.Production,
+                    CoreResourcesPath = root
+                });
+
+                var baseResult = loader.LoadResource("test/items.json", new[] { "base" });
+                var modResult = loader.LoadResource("test/items.json", new[] { "mod" });
+
+                Assert.Equal(1, baseResult["item"].GetProperty("value").GetInt32());
+                Assert.Equal(2, modResult["item"].GetProperty("value").GetInt32());
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                    Directory.Delete(root, recursive: true);
+            }
+        }
+
         // ========================================
         // TESTES DE VALIDAÇÃO
         // ========================================
@@ -371,6 +404,28 @@ namespace Core.Tests
                 default:
                     return false;
             }
+        }
+
+        private sealed class TestConfigManager : IConfigManager
+        {
+            private readonly string _root;
+
+            public TestConfigManager(string root)
+            {
+                _root = root;
+            }
+
+            public string CurrentConfig => "base";
+            public string DefaultConfig { get; set; } = "base";
+            public string UserConfigsPath => _root;
+            public string GetUserDataPath() => _root;
+            public string GetCurrentConfigPath() => GetConfigPath(CurrentConfig);
+            public string GetConfigPath(string configName) => Path.Combine(_root, configName);
+            public IEnumerable<string> GetAvailableConfigs() => Directory.GetDirectories(_root).Select(Path.GetFileName)!;
+            public bool ConfigExists(string configName) => Directory.Exists(GetConfigPath(configName));
+            public ConfigMetadata? GetConfigMetadata(string configName) => null;
+            public IEnumerable<string> ResolveInheritanceChain(string configName) => new[] { configName };
+            public void LoadConfig(string configName) { }
         }
     }
 }

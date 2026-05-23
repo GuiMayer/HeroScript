@@ -15,11 +15,11 @@ namespace Core.Config
     /// </summary>
     public class ResourceLoader : IResourceLoader
     {
-        // Cache: relativePath -> (resourceId -> JsonElement)
-        private readonly Dictionary<string, Dictionary<string, JsonElement>> _cache = new();
+        // Cache: resource path + resolved config chain -> (resourceId -> JsonElement)
+        private readonly Dictionary<ResourceCacheKey, Dictionary<string, JsonElement>> _cache = new();
         
-        // Cache de origens: relativePath -> (resourceId -> configName)
-        private readonly Dictionary<string, Dictionary<string, string>> _originCache = new();
+        // Cache de origens: resource path + resolved config chain -> (resourceId -> configName)
+        private readonly Dictionary<ResourceCacheKey, Dictionary<string, string>> _originCache = new();
         
         private readonly object _cacheLock = new();
         private readonly ILogger _logger;
@@ -65,18 +65,21 @@ namespace Core.Config
         {
             lock (_cacheLock)
             {
+                var chain = configChain.ToArray();
+                var cacheKey = ResourceCacheKey.From(relativePath, chain);
+
                 // Verificar cache
-                if (_cache.TryGetValue(relativePath, out var cached))
+                if (_cache.TryGetValue(cacheKey, out var cached))
                     return cached;
 
                 _logger.LogDebug($"Loading resource: {relativePath}");
-                _logger.LogDebug($"Config chain: {string.Join(" -> ", configChain)}");
+                _logger.LogDebug($"Config chain: {string.Join(" -> ", chain)}");
 
                 var merged = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
                 var origins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
                 // Carregar e fazer merge de cada config na cadeia
-                foreach (var configName in configChain)
+                foreach (var configName in chain)
                 {
                     // NOVO: Construir caminho relativo incluindo config
                     var configRelativePath = Path.Combine(configName, "Resources", relativePath);
@@ -118,8 +121,8 @@ namespace Core.Config
                 }
 
                 // Cachear resultado
-                _cache[relativePath] = merged;
-                _originCache[relativePath] = origins;
+                _cache[cacheKey] = merged;
+                _originCache[cacheKey] = origins;
 
                 _logger.LogInformation($"Loaded {merged.Count} resources total for {relativePath}");
                 return merged;
@@ -140,21 +143,24 @@ namespace Core.Config
             bool strictMode = false,
             CancellationToken cancellationToken = default)
         {
+            var chain = configChain.ToArray();
+            var cacheKey = ResourceCacheKey.From(relativePath, chain);
+
             // Check cache first (synchronous)
             lock (_cacheLock)
             {
-                if (_cache.TryGetValue(relativePath, out var cached))
+                if (_cache.TryGetValue(cacheKey, out var cached))
                     return cached;
             }
 
             _logger.LogDebug($"Loading resource async: {relativePath}");
-            _logger.LogDebug($"Config chain: {string.Join(" -> ", configChain)}");
+            _logger.LogDebug($"Config chain: {string.Join(" -> ", chain)}");
 
             var merged = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
             var origins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             // Load and merge each config in the chain
-            foreach (var configName in configChain)
+            foreach (var configName in chain)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -197,8 +203,8 @@ namespace Core.Config
             // Cache result
             lock (_cacheLock)
             {
-                _cache[relativePath] = merged;
-                _originCache[relativePath] = origins;
+                _cache[cacheKey] = merged;
+                _originCache[cacheKey] = origins;
             }
 
             _logger.LogInformation($"Loaded {merged.Count} resources total for {relativePath}");
@@ -373,8 +379,11 @@ namespace Core.Config
             {
                 if (relativePath != null)
                 {
-                    _cache.Remove(relativePath);
-                    _originCache.Remove(relativePath);
+                    foreach (var key in _cache.Keys.Where(k => k.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase)).ToList())
+                    {
+                        _cache.Remove(key);
+                        _originCache.Remove(key);
+                    }
                     _logger.LogInformation($"Cache invalidated for: {relativePath}");
                 }
                 else
@@ -414,7 +423,8 @@ namespace Core.Config
                 {
                     ["CachedResources"] = totalResources,
                     ["TotalResourceIds"] = totalResourceIds,
-                    ["CachedPaths"] = _cache.Keys.ToList()
+                    ["CachedPaths"] = _cache.Keys.Select(k => k.RelativePath).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                    ["CachedProfiles"] = _cache.Keys.Select(k => k.ConfigChainKey).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
                 };
             }
         }
@@ -426,7 +436,8 @@ namespace Core.Config
         {
             lock (_cacheLock)
             {
-                return _originCache.TryGetValue(relativePath, out var origins)
+                var key = _originCache.Keys.LastOrDefault(k => k.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase));
+                return key != null && _originCache.TryGetValue(key, out var origins)
                     ? new Dictionary<string, string>(origins)
                     : new Dictionary<string, string>();
             }
@@ -439,7 +450,7 @@ namespace Core.Config
         {
             lock (_cacheLock)
             {
-                return _cache.ContainsKey(relativePath);
+                return _cache.Keys.Any(k => k.RelativePath.Equals(relativePath, StringComparison.OrdinalIgnoreCase));
             }
         }
 
@@ -490,6 +501,15 @@ namespace Core.Config
             }
 
             return discoveredFiles.OrderBy(f => f).ToList();
+        }
+    }
+
+    internal sealed record ResourceCacheKey(string RelativePath, string ConfigChainKey)
+    {
+        public static ResourceCacheKey From(string relativePath, IReadOnlyList<string> configChain)
+        {
+            var chainKey = string.Join("|", configChain.Select(c => c.Trim().ToLowerInvariant()));
+            return new ResourceCacheKey(relativePath.Replace('\\', '/').ToLowerInvariant(), chainKey);
         }
     }
 }
