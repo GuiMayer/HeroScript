@@ -43,6 +43,20 @@ public sealed class ShopController : BaseApiController
         }
     }
 
+    [HttpPost("{shopInstanceId:guid}/reroll")]
+    public IActionResult Reroll(Guid runId, Guid shopInstanceId)
+    {
+        try
+        {
+            var result = _runManager.RerollShop(runId, shopInstanceId);
+            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapShop(result.Value));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "reroll shop", runId.ToString());
+        }
+    }
+
     private static object MapShop(ShopState shop)
     {
         return new
@@ -50,6 +64,11 @@ public sealed class ShopController : BaseApiController
             shop.ShopInstanceId,
             shop.RunId,
             shop.ShopId,
+            shop.CardPoolId,
+            shop.OfferCount,
+            shop.RerollsUsed,
+            shop.RerollCostGold,
+            shop.Pricing,
             shop.Items
         };
     }
