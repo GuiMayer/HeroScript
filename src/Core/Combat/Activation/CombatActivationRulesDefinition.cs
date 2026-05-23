@@ -16,11 +16,13 @@ public sealed record CombatActivationRulesDefinition
 public sealed record ActivationStartRules
 {
     public int DrawCount { get; init; }
+    public ActivationActorScope DrawActorScope { get; init; } = ActivationActorScope.PlayerOnly;
 }
 
 public sealed record ActivationEndRules
 {
     public ActivationDiscardPolicy DiscardPolicy { get; init; } = ActivationDiscardPolicy.None;
+    public ActivationActorScope DiscardActorScope { get; init; } = ActivationActorScope.PlayerOnly;
     public int? HandLimit { get; init; }
     public List<string> RetainTags { get; init; } = new() { "retain" };
     public UnknownCardPolicy UnknownCardPolicy { get; init; } = UnknownCardPolicy.Fail;
@@ -52,4 +54,11 @@ public enum UnknownCardPolicy
 {
     Fail,
     Discard
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ActivationActorScope
+{
+    PlayerOnly,
+    AllActors
 }
