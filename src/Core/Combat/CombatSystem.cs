@@ -955,6 +955,32 @@ public class CombatSystem : ICombatSystem
         
         return Result<CombatState>.Success(state);
     }
+
+    public Result<CombatState> UpdateCombatState(Guid combatId, Func<CombatState, CombatState> update)
+    {
+        if (update == null)
+            return Result<CombatState>.Failure("Combat state update is required");
+
+        try
+        {
+            while (true)
+            {
+                if (!_activeCombats.TryGetValue(combatId, out var currentState))
+                    return Result<CombatState>.Failure($"Combat {combatId} not found");
+
+                var updatedState = update(currentState);
+                if (updatedState == null)
+                    return Result<CombatState>.Failure("Combat state update returned null");
+
+                if (_activeCombats.TryUpdate(combatId, updatedState, currentState))
+                    return Result<CombatState>.Success(updatedState);
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result<CombatState>.Failure($"Failed to update combat state: {ex.Message}");
+        }
+    }
     
     public Result<CombatResult> EndCombat(Guid combatId)
     {

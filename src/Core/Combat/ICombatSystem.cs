@@ -40,6 +40,12 @@ public interface ICombatSystem
     /// <param name="combatId">ID do combate</param>
     /// <returns>Result com o estado do combate</returns>
     Result<CombatState> GetCombatState(Guid combatId);
+
+    /// <summary>
+    /// Atualiza estado de combate ativo de forma controlada.
+    /// Usado por coordenadores externos para anexar estados actor-agnostic como ativação.
+    /// </summary>
+    Result<CombatState> UpdateCombatState(Guid combatId, Func<CombatState, CombatState> update);
     
     /// <summary>
     /// Finaliza combate.

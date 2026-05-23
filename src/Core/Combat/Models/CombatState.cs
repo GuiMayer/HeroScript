@@ -1,3 +1,4 @@
+using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
 
 namespace Core.Combat.Models;
@@ -26,6 +27,9 @@ public record CombatState
     // Sistema de fases (opcional - se null, usa sistema de turno simples sem fases)
     // Quando não-null, habilita sistema de fases TCG-style com prioridade e validação de ações por fase
     public PhaseState? PhaseState { get; init; }
+
+    // Estado de ativação por entidade (opcional - Fase 3 run loop)
+    public ActivationState? ActivationState { get; init; }
     
     // Helpers
     public bool IsActive => Status == CombatStatus.ACTIVE;
