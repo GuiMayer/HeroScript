@@ -1,5 +1,6 @@
 using Core.Config;
 using Core.Run;
+using Core.Run.Content;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -70,6 +71,54 @@ public sealed class RunManagerTests
         Assert.True(pick.IsSuccess, pick.IsFailure ? pick.Error : null);
         Assert.True(pick.Value.Completed);
         Assert.Contains("zap", run.Deck.DiscardPile);
+    }
+
+    [Fact]
+    public void CreateCardSelection_WithPool_GeneratesEnrichedOptions()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var selection = manager.CreateCardSelection(run.RunId, "pool_reward");
+
+        Assert.True(selection.IsSuccess, selection.IsFailure ? selection.Error : null);
+        Assert.Equal(2, selection.Value.Options.Count);
+        Assert.Equal("basic_rewards", selection.Value.CardPoolId);
+        Assert.Contains(selection.Value.Options, option => option.CardId == "heal" && option.Rarity == CardRarity.Common);
+        Assert.Contains(selection.Value.Options, option => option.CardId == "fireball" && option.Rarity == CardRarity.Uncommon);
+    }
+
+    [Fact]
+    public void RerollCardSelection_FreeReroll_ReplacesUnlockedOptionsWithoutSpendingGold()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
+
+        var reroll = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId, new[] { "heal" });
+
+        Assert.True(reroll.IsSuccess, reroll.IsFailure ? reroll.Error : null);
+        Assert.Equal(25, run.Gold);
+        Assert.Equal(1, reroll.Value.RerollsUsed);
+        Assert.Equal(0, reroll.Value.FreeRerollsRemaining);
+        Assert.Contains(reroll.Value.Options, option => option.CardId == "heal");
+    }
+
+    [Fact]
+    public void DecomposeCardSelectionOption_AddsPowerPointsAndBlocksPick()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
+
+        var decompose = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
+        var pick = manager.PickCards(run.RunId, selection.SelectionInstanceId, new[] { "fireball" });
+
+        Assert.True(decompose.IsSuccess, decompose.IsFailure ? decompose.Error : null);
+        Assert.Equal(2, run.PowerPoints);
+        Assert.Contains("fireball", decompose.Value.DecomposedCardIds);
+        Assert.True(pick.IsFailure);
+        Assert.Contains("Invalid card options", pick.Error);
     }
 
     [Fact]
@@ -216,6 +265,40 @@ public sealed class RunManagerTests
         return new RunManager(_configManager.Object, _resourceLoader.Object);
     }
 
+    private RunManager CreateManagerWithContent()
+    {
+        _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
+        _resourceLoader
+            .Setup(m => m.LoadResource("runs/default_run.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["default_run"] = JsonDocument.Parse(RunJson).RootElement.GetProperty("default_run").Clone()
+            });
+        _resourceLoader
+            .Setup(m => m.LoadResource("card-selections/pool_reward.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["pool_reward"] = JsonDocument.Parse(PoolCardSelectionJson).RootElement.GetProperty("pool_reward").Clone()
+            });
+        _resourceLoader
+            .Setup(m => m.LoadResource("cards/card_catalog.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(CardCatalogJson));
+        _resourceLoader
+            .Setup(m => m.LoadResource("card-pools/basic_rewards.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(CardPoolsJson));
+
+        var catalog = new CardContentCatalog(_configManager.Object, _resourceLoader.Object);
+        var resolver = new CardPoolResolver(_configManager.Object, _resourceLoader.Object, catalog);
+        return new RunManager(_configManager.Object, _resourceLoader.Object, resolver, catalog);
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
+    }
+
     private const string RunJson = """
     {
       "default_run": {
@@ -237,6 +320,67 @@ public sealed class RunManagerTests
         "selectionId": "basic_reward",
         "pickCount": 1,
         "cardPool": ["strike", "defend", "zap"]
+      }
+    }
+    """;
+
+    private const string PoolCardSelectionJson = """
+    {
+      "pool_reward": {
+        "selectionId": "pool_reward",
+        "pickCount": 1,
+        "offerCount": 2,
+        "cardPoolId": "basic_rewards",
+        "reroll": {
+          "freeRerolls": 1,
+          "baseGoldCost": 10,
+          "goldCostPerReroll": 5
+        },
+        "decompose": {
+          "enabled": true
+        }
+      }
+    }
+    """;
+
+    private const string CardCatalogJson = """
+    {
+      "basic_attack": {
+        "cardId": "basic_attack",
+        "actionId": "basic_attack",
+        "rarity": "Common",
+        "baseGoldPrice": 10,
+        "decomposePowerPoints": 1,
+        "tags": ["attack", "common", "starter"]
+      },
+      "fireball": {
+        "cardId": "fireball",
+        "actionId": "fireball",
+        "rarity": "Uncommon",
+        "baseGoldPrice": 25,
+        "decomposePowerPoints": 2,
+        "tags": ["attack", "fire", "magic", "uncommon"]
+      },
+      "heal": {
+        "cardId": "heal",
+        "actionId": "heal",
+        "rarity": "Common",
+        "baseGoldPrice": 18,
+        "decomposePowerPoints": 1,
+        "tags": ["heal", "utility", "common"]
+      }
+    }
+    """;
+
+    private const string CardPoolsJson = """
+    {
+      "basic_rewards": {
+        "poolId": "basic_rewards",
+        "excludeTags": ["starter"],
+        "rarityWeights": {
+          "Common": 70,
+          "Uncommon": 25
+        }
       }
     }
     """;

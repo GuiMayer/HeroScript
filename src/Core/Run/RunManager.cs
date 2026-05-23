@@ -1,5 +1,6 @@
 using Core.Common;
 using Core.Config;
+using Core.Run.Content;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -9,14 +10,22 @@ public sealed class RunManager : IRunManager
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
+    private readonly ICardPoolResolver? _cardPoolResolver;
+    private readonly ICardContentCatalog? _cardContentCatalog;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public RunManager(IConfigManager configManager, IResourceLoader resourceLoader)
+    public RunManager(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        ICardPoolResolver? cardPoolResolver = null,
+        ICardContentCatalog? cardContentCatalog = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+        _cardPoolResolver = cardPoolResolver;
+        _cardContentCatalog = cardContentCatalog;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -216,7 +225,13 @@ public sealed class RunManager : IRunManager
                 RunId = runId,
                 SelectionId = definition.SelectionId,
                 PickCount = definition.PickCount,
-                Options = definition.CardPool.ToList()
+                OfferCount = definition.OfferCount,
+                CardPoolId = definition.CardPoolId,
+                Reroll = definition.Reroll,
+                Decompose = definition.Decompose,
+                FreeRerollsRemaining = definition.Reroll.FreeRerolls,
+                RerollCostGold = CalculateRerollCost(definition.Reroll, 0),
+                Options = GenerateCardSelectionOptions(state, definition, new HashSet<string>(StringComparer.OrdinalIgnoreCase))
             };
 
             state.CardSelections.Add(selection);
@@ -242,7 +257,11 @@ public sealed class RunManager : IRunManager
             if (picks.Count == 0 || picks.Count > selection.PickCount)
                 return Result<CardSelectionState>.Failure($"Pick between 1 and {selection.PickCount} cards");
 
-            var invalid = picks.Where(id => !selection.Options.Contains(id)).ToList();
+            var availableOptions = selection.Options
+                .Where(option => !option.Decomposed)
+                .Select(option => option.CardId)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var invalid = picks.Where(id => !availableOptions.Contains(id)).ToList();
             if (invalid.Count > 0)
                 return Result<CardSelectionState>.Failure($"Invalid card options: {string.Join(", ", invalid)}");
 
@@ -253,6 +272,75 @@ public sealed class RunManager : IRunManager
             }
 
             selection.Completed = true;
+            return Result<CardSelectionState>.Success(selection);
+        }
+    }
+
+    public Result<CardSelectionState> RerollCardSelection(Guid runId, Guid selectionInstanceId, IReadOnlyList<string>? lockedCardIds = null)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
+
+            var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
+            if (selection == null)
+                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+
+            if (selection.Completed)
+                return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+
+            var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selection.SelectionId);
+            if (definitionResult.IsFailure)
+                return Result<CardSelectionState>.Failure(definitionResult.Error);
+
+            var cost = selection.FreeRerollsRemaining > 0 ? 0 : selection.RerollCostGold;
+            if (state.Gold < cost)
+                return Result<CardSelectionState>.Failure($"Insufficient gold for reroll: {selection.SelectionId}");
+
+            state.Gold -= cost;
+            selection.RerollsUsed++;
+            selection.FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1);
+            selection.RerollCostGold = CalculateRerollCost(selection.Reroll, selection.RerollsUsed);
+
+            var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            foreach (var option in selection.Options.Where(option => locked.Contains(option.CardId)))
+                option.Decomposed = false;
+
+            var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
+            selection.Options.Clear();
+            selection.Options.AddRange(generated);
+            return Result<CardSelectionState>.Success(selection);
+        }
+    }
+
+    public Result<CardSelectionState> DecomposeCardSelectionOption(Guid runId, Guid selectionInstanceId, string cardId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
+
+            var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
+            if (selection == null)
+                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+
+            if (selection.Completed)
+                return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+
+            if (!selection.Decompose.Enabled)
+                return Result<CardSelectionState>.Failure($"Decompose is disabled for card selection: {selection.SelectionId}");
+
+            var option = selection.Options.FirstOrDefault(o => o.CardId.Equals(cardId, StringComparison.OrdinalIgnoreCase));
+            if (option == null)
+                return Result<CardSelectionState>.Failure($"Card option not found: {cardId}");
+
+            if (option.Decomposed)
+                return Result<CardSelectionState>.Failure($"Card option already decomposed: {cardId}");
+
+            option.Decomposed = true;
+            selection.DecomposedCardIds.Add(option.CardId);
+            state.PowerPoints += option.DecomposePowerPoints;
             return Result<CardSelectionState>.Success(selection);
         }
     }
@@ -378,6 +466,78 @@ public sealed class RunManager : IRunManager
 
             return Result<PreparationOptionState>.Success(option);
         }
+    }
+
+    private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
+    {
+        var lockedOptions = lockedCardIds
+            .Select(cardId => CreateCardSelectionOption(state.ConfigName, cardId))
+            .Where(option => option != null)
+            .Cast<CardSelectionOptionState>()
+            .ToList();
+
+        var candidates = ResolveCardSelectionCandidates(state.ConfigName, definition)
+            .Where(option => !lockedCardIds.Contains(option.CardId))
+            .Where(option => !lockedOptions.Any(locked => locked.CardId.Equals(option.CardId, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(option => RarityRank(option.Rarity))
+            .ThenBy(option => option.CardId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var desiredCount = System.Math.Max(1, definition.OfferCount) - lockedOptions.Count;
+        lockedOptions.AddRange(candidates.Take(System.Math.Max(0, desiredCount)));
+        return lockedOptions;
+    }
+
+    private List<CardSelectionOptionState> ResolveCardSelectionCandidates(string configName, CardSelectionDefinition definition)
+    {
+        if (!string.IsNullOrWhiteSpace(definition.CardPoolId) && _cardPoolResolver != null)
+        {
+            var poolResult = _cardPoolResolver.ResolvePool(definition.CardPoolId, configName);
+            if (poolResult.IsSuccess)
+                return poolResult.Value.Cards.Select(ToOption).ToList();
+        }
+
+        return definition.CardPool
+            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+            .Select(cardId => CreateCardSelectionOption(configName, cardId) ?? new CardSelectionOptionState { CardId = cardId })
+            .ToList();
+    }
+
+    private CardSelectionOptionState? CreateCardSelectionOption(string configName, string cardId)
+    {
+        if (_cardContentCatalog == null)
+            return null;
+
+        var cardResult = _cardContentCatalog.GetCard(cardId, configName);
+        return cardResult.IsSuccess ? ToOption(cardResult.Value) : null;
+    }
+
+    private static CardSelectionOptionState ToOption(CardContentDefinition card)
+    {
+        return new CardSelectionOptionState
+        {
+            CardId = card.CardId,
+            Rarity = card.Rarity,
+            Tags = card.Tags.ToList(),
+            DecomposePowerPoints = card.DecomposePowerPoints
+        };
+    }
+
+    private static int CalculateRerollCost(RerollRulesDefinition rules, int rerollsUsed)
+    {
+        return rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll;
+    }
+
+    private static int RarityRank(CardRarity rarity)
+    {
+        return rarity switch
+        {
+            CardRarity.Common => 0,
+            CardRarity.Uncommon => 1,
+            CardRarity.Rare => 2,
+            CardRarity.Legendary => 3,
+            _ => 99
+        };
     }
 
     private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)

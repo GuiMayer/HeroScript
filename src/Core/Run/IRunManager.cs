@@ -16,6 +16,8 @@ public interface IRunManager
     Result ShuffleDiscardIntoDrawPile(Guid runId);
     Result<CardSelectionState> CreateCardSelection(Guid runId, string selectionId);
     Result<CardSelectionState> PickCards(Guid runId, Guid selectionInstanceId, IReadOnlyList<string> cardIds);
+    Result<CardSelectionState> RerollCardSelection(Guid runId, Guid selectionInstanceId, IReadOnlyList<string>? lockedCardIds = null);
+    Result<CardSelectionState> DecomposeCardSelectionOption(Guid runId, Guid selectionInstanceId, string cardId);
     Result<ShopState> CreateShop(Guid runId, string shopId);
     Result<ShopItemState> BuyShopItem(Guid runId, Guid shopInstanceId, string itemId);
     Result<PreparationState> CreatePreparation(Guid runId, string preparationId);

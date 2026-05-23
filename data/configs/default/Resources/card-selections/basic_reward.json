@@ -2,7 +2,17 @@
   "basic_reward": {
     "selectionId": "basic_reward",
     "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "basic_rewards",
     "cardPool": ["basic_attack", "defend", "fireball", "heal"],
+    "reroll": {
+      "freeRerolls": 1,
+      "baseGoldCost": 10,
+      "goldCostPerReroll": 5
+    },
+    "decompose": {
+      "enabled": true
+    },
     "metadata": {
       "description": "Recompensa basica de carta para o loop inicial de run."
     }
