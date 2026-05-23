@@ -43,4 +43,29 @@ public sealed class PreparationControllerTests
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
+
+    [Fact]
+    public void Apply_ReturnsModifierMetadata()
+    {
+        var runId = Guid.NewGuid();
+        var preparationId = Guid.NewGuid();
+        var instanceId = Guid.NewGuid();
+        var option = new PreparationOptionState
+        {
+            OptionId = "train_spell",
+            ApplyModifiers =
+            {
+                new PreparationModifierGrantState { OwnerId = "run", ModifierId = "flat_power_bonus", Stacks = 1 }
+            },
+            AppliedModifierInstanceIds = { instanceId },
+            Applied = true
+        };
+        _runManager.Setup(m => m.ApplyPreparationOption(runId, preparationId, "train_spell"))
+            .Returns(Result<PreparationOptionState>.Success(option));
+
+        var result = _controller.Apply(runId, preparationId, "train_spell");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+    }
 }

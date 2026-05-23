@@ -35,7 +35,7 @@ public sealed class PreparationController : BaseApiController
         try
         {
             var result = _runManager.ApplyPreparationOption(runId, preparationInstanceId, optionId);
-            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(result.Value);
+            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapOption(result.Value));
         }
         catch (Exception ex)
         {
@@ -52,6 +52,20 @@ public sealed class PreparationController : BaseApiController
             preparation.PreparationId,
             preparation.Options,
             preparation.AppliedOptionIds
+        };
+    }
+
+    private static object MapOption(PreparationOptionState option)
+    {
+        return new
+        {
+            option.OptionId,
+            option.GoldCost,
+            option.PowerPointCost,
+            option.AddCardsToDiscard,
+            option.ApplyModifiers,
+            option.AppliedModifierInstanceIds,
+            option.Applied
         };
     }
 }
