@@ -207,6 +207,68 @@ public sealed class RunManager : IRunManager
         }
     }
 
+    public Result<ShopState> CreateShop(Guid runId, string shopId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<ShopState>.Failure($"Run not found: {runId}");
+
+            var definitionResult = LoadShopDefinition(state.ConfigName, shopId);
+            if (definitionResult.IsFailure)
+                return Result<ShopState>.Failure(definitionResult.Error);
+
+            var definition = definitionResult.Value;
+            var shop = new ShopState
+            {
+                RunId = runId,
+                ShopId = definition.ShopId,
+                Items = definition.Items.Select(item => new ShopItemState
+                {
+                    ItemId = item.ItemId,
+                    CardId = item.CardId,
+                    GoldCost = item.GoldCost,
+                    PowerPointCost = item.PowerPointCost
+                }).ToList()
+            };
+
+            state.Shops.Add(shop);
+            return Result<ShopState>.Success(shop);
+        }
+    }
+
+    public Result<ShopItemState> BuyShopItem(Guid runId, Guid shopInstanceId, string itemId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<ShopItemState>.Failure($"Run not found: {runId}");
+
+            var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
+            if (shop == null)
+                return Result<ShopItemState>.Failure($"Shop not found: {shopInstanceId}");
+
+            var item = shop.Items.FirstOrDefault(i => i.ItemId == itemId);
+            if (item == null)
+                return Result<ShopItemState>.Failure($"Shop item not found: {itemId}");
+
+            if (item.Purchased)
+                return Result<ShopItemState>.Failure($"Shop item already purchased: {itemId}");
+
+            if (state.Gold < item.GoldCost || state.PowerPoints < item.PowerPointCost)
+                return Result<ShopItemState>.Failure($"Insufficient resources for shop item: {itemId}");
+
+            state.Gold -= item.GoldCost;
+            state.PowerPoints -= item.PowerPointCost;
+
+            if (!string.IsNullOrWhiteSpace(item.CardId))
+                state.Deck.DiscardPile.Add(item.CardId);
+
+            item.Purchased = true;
+            return Result<ShopItemState>.Success(item);
+        }
+    }
+
     private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)
     {
         try
@@ -246,6 +308,27 @@ public sealed class RunManager : IRunManager
         catch (Exception ex)
         {
             return Result<CardSelectionDefinition>.Failure($"Could not load card selection definition '{selectionId}': {ex.Message}", ex);
+        }
+    }
+
+    private Result<ShopDefinition> LoadShopDefinition(string configName, string shopId)
+    {
+        try
+        {
+            var chain = _configManager.ResolveInheritanceChain(configName);
+            var data = _resourceLoader.LoadResource($"shops/{shopId}.json", chain, strictMode: false);
+            if (data.Count == 0)
+                return Result<ShopDefinition>.Failure($"Shop definition not found: {shopId}");
+
+            var element = data.TryGetValue(shopId, out var exact) ? exact : data.Values.First();
+            var definition = JsonSerializer.Deserialize<ShopDefinition>(element.GetRawText(), _jsonOptions);
+            return definition == null
+                ? Result<ShopDefinition>.Failure($"Failed to deserialize shop definition: {shopId}")
+                : Result<ShopDefinition>.Success(definition);
+        }
+        catch (Exception ex)
+        {
+            return Result<ShopDefinition>.Failure($"Could not load shop definition '{shopId}': {ex.Message}", ex);
         }
     }
 

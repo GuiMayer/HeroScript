@@ -10,5 +10,6 @@ public sealed record RunState
     public string? CurrentNodeId { get; set; }
     public DeckState Deck { get; init; } = new();
     public List<CardSelectionState> CardSelections { get; init; } = new();
+    public List<ShopState> Shops { get; init; } = new();
     public Dictionary<string, object> Metadata { get; init; } = new();
 }

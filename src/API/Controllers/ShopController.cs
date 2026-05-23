@@ -1,0 +1,58 @@
+using Core.Run;
+using Microsoft.AspNetCore.Mvc;
+
+namespace API.Controllers;
+
+[ApiController]
+[Route("api/run/{runId:guid}/shop")]
+public sealed class ShopController : BaseApiController
+{
+    private readonly IRunManager _runManager;
+
+    public ShopController(IRunManager runManager, ILogger<ShopController> logger)
+        : base(logger)
+    {
+        _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
+    }
+
+    [HttpPost("open")]
+    public IActionResult Open(Guid runId, [FromBody] OpenShopRequest? request = null)
+    {
+        try
+        {
+            var result = _runManager.CreateShop(runId, request?.ShopId ?? "basic_shop");
+            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapShop(result.Value));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "open shop", runId.ToString());
+        }
+    }
+
+    [HttpPost("{shopInstanceId:guid}/buy/{itemId}")]
+    public IActionResult Buy(Guid runId, Guid shopInstanceId, string itemId)
+    {
+        try
+        {
+            var result = _runManager.BuyShopItem(runId, shopInstanceId, itemId);
+            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(result.Value);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "buy shop item", runId.ToString());
+        }
+    }
+
+    private static object MapShop(ShopState shop)
+    {
+        return new
+        {
+            shop.ShopInstanceId,
+            shop.RunId,
+            shop.ShopId,
+            shop.Items
+        };
+    }
+}
+
+public sealed record OpenShopRequest(string? ShopId);

@@ -14,4 +14,6 @@ public interface IRunManager
     Result ShuffleDiscardIntoDrawPile(Guid runId);
     Result<CardSelectionState> CreateCardSelection(Guid runId, string selectionId);
     Result<CardSelectionState> PickCards(Guid runId, Guid selectionInstanceId, IReadOnlyList<string> cardIds);
+    Result<ShopState> CreateShop(Guid runId, string shopId);
+    Result<ShopItemState> BuyShopItem(Guid runId, Guid shopInstanceId, string itemId);
 }

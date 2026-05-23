@@ -72,6 +72,22 @@ public sealed class RunManagerTests
         Assert.Contains("zap", run.Deck.DiscardPile);
     }
 
+    [Fact]
+    public void BuyShopItem_SpendsGoldAndAddsCardToDiscardPile()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var shop = manager.CreateShop(run.RunId, "basic_shop");
+        var item = manager.BuyShopItem(run.RunId, shop.Value.ShopInstanceId, "buy_zap");
+
+        Assert.True(shop.IsSuccess, shop.IsFailure ? shop.Error : null);
+        Assert.True(item.IsSuccess, item.IsFailure ? item.Error : null);
+        Assert.True(item.Value.Purchased);
+        Assert.Equal(15, run.Gold);
+        Assert.Contains("zap", run.Deck.DiscardPile);
+    }
+
     private RunManager CreateManager()
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
@@ -86,6 +102,12 @@ public sealed class RunManagerTests
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["basic_reward"] = JsonDocument.Parse(CardSelectionJson).RootElement.GetProperty("basic_reward").Clone()
+            });
+        _resourceLoader
+            .Setup(m => m.LoadResource("shops/basic_shop.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["basic_shop"] = JsonDocument.Parse(ShopJson).RootElement.GetProperty("basic_shop").Clone()
             });
 
         return new RunManager(_configManager.Object, _resourceLoader.Object);
@@ -112,6 +134,17 @@ public sealed class RunManagerTests
         "selectionId": "basic_reward",
         "pickCount": 1,
         "cardPool": ["strike", "defend", "zap"]
+      }
+    }
+    """;
+
+    private const string ShopJson = """
+    {
+      "basic_shop": {
+        "shopId": "basic_shop",
+        "items": [
+          { "itemId": "buy_zap", "cardId": "zap", "goldCost": 10, "powerPointCost": 0 }
+        ]
       }
     }
     """;

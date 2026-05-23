@@ -1,0 +1,12 @@
+{
+  "basic_shop": {
+    "shopId": "basic_shop",
+    "items": [
+      { "itemId": "buy_fireball", "cardId": "fireball", "goldCost": 25, "powerPointCost": 0 },
+      { "itemId": "buy_heal", "cardId": "heal", "goldCost": 20, "powerPointCost": 0 }
+    ],
+    "metadata": {
+      "description": "Loja basica para validar compras data-driven no loop inicial de run."
+    }
+  }
+}
