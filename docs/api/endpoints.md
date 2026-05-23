@@ -325,27 +325,47 @@ Move descarte para draw pile.
 
 ### POST `/api/run/{runId}/card-selection/start`
 
-Cria selecao de cartas a partir de `card-selections/{selectionId}.json`.
+Cria selecao de cartas a partir de `card-selections/{selectionId}.json`. Quando `cardPoolId` e informado, as ofertas sao geradas via `card-pools/{poolId}.json` + `cards/card_catalog.json`, com raridade, tags, PP de decomposicao e metadados.
 
 ### POST `/api/run/{runId}/card-selection/{selectionInstanceId}/pick`
 
-Valida escolha e adiciona cartas escolhidas ao descarte da run.
+Valida escolha contra as ofertas ativas e adiciona cartas escolhidas ao descarte da run. Cartas decompostas nao podem ser escolhidas.
+
+### POST `/api/run/{runId}/card-selection/{selectionInstanceId}/reroll`
+
+Regenera ofertas preservando cartas travadas opcionalmente. O custo e data-driven por `reroll.freeRerolls`, `baseGoldCost` e `goldCostPerReroll`.
+
+```json
+{
+  "lockedCardIds": ["fireball"]
+}
+```
+
+### POST `/api/run/{runId}/card-selection/{selectionInstanceId}/decompose/{cardId}`
+
+Marca uma oferta como decomposta e adiciona PP conforme `decomposePowerPoints` do catalogo de cartas.
 
 ### POST `/api/run/{runId}/shop/open`
 
-Cria loja a partir de `shops/{shopId}.json`.
+Cria loja a partir de `shops/{shopId}.json`. A loja pode usar `cardPoolId` para gerar itens a partir do catalogo de cartas, aplicar multiplicadores de raridade/tags e expor `pricingBreakdown` por item.
 
 ### POST `/api/run/{runId}/shop/{shopInstanceId}/buy/{itemId}`
 
 Valida custo, gasta recursos e aplica recompensa do item comprado.
 
+### POST `/api/run/{runId}/shop/{shopInstanceId}/reroll`
+
+Regenera itens da loja e cobra ouro conforme `reroll.baseGoldCost` e `goldCostPerReroll` definidos no JSON da loja.
+
 ### POST `/api/run/{runId}/preparation/start`
 
-Cria preparacao a partir de `preparations/{preparationId}.json`.
+Cria preparacao a partir de `preparations/{preparationId}.json`. Opcoes podem declarar `applyModifiers` para conceder modificadores de script a owners como `run`, `player` ou um owner literal.
 
 ### POST `/api/run/{runId}/preparation/{preparationInstanceId}/apply/{optionId}`
 
-Valida custo e aplica a opcao de preparacao ao estado da run.
+Valida custo e aplica a opcao de preparacao ao estado da run. Quando `applyModifiers` existe, o backend chama `ScriptModifierManager.ApplyModifier`; owner `run` vira `run:{runId}`. A resposta inclui `appliedModifierInstanceIds`.
+
+Modificadores concedidos para `run:{runId}` entram no combate por `CombatRunCoordinator`: antes de executar a carta, o coordinator chama `GetPipelineModifiers("run:{runId}", actionTags)` e envia os valores no `CombatActionCommand.RunModifiers`. A primeira fatia aplica `added_damage` e `increased_damage_total` em acoes com efeito de dano.
 
 ---
 

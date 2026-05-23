@@ -117,7 +117,7 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** continuar **Fase 3 — Loop de Run**, refinando reroll/raridades/pricing dinamico, inject real de modificadores e regras avançadas de ativacao. Turnos/ativação por entidade, draw/discard automatico por JSON e eventos/polling/SSE ja têm primeira fatia implementada. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
+**Próximo passo:** continuar **Fase 3 — Loop de Run**, refinando regras avancadas de ativacao, conteúdo inicial e consistencia transacional. Reroll/raridades/pricing dinamico, inject real de modificadores, ativacao por entidade, draw/discard automatico por JSON e eventos/polling/SSE ja têm primeira fatia implementada. Ownership/autorizacao por ator fica como TODO futuro antes de multiplayer/API multi-cliente.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
@@ -142,14 +142,14 @@ http://localhost:5260/api
   - Resources: 23 testes
   - Config: incluído no total
   - Outros: incluído no total
-- **APIs implementadas:** Events com polling/SSE, Combat/Activation, Run, CardSelection, Shop, Preparation, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
-- **Sistemas Core:** EventBus, CombatSystem actor-agnostic, ActivationState/CombatActivationCoordinator, RunManager, DeckState, CardSelection, Shop, Preparation, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects
+- **APIs implementadas:** Events com polling/SSE, Combat/Activation, Run, CardSelection com reroll/decompose, Shop com reroll/pricing, Preparation com modifiers, Damage, Resource, Config, Action, Entity, StatusEffect e outras APIs de suporte
+- **Sistemas Core:** EventBus, CombatSystem actor-agnostic, ActivationState/CombatActivationCoordinator, RunManager, DeckState, CardContentCatalog/CardPoolResolver, CardSelection, Shop, Preparation, Script Modifiers aplicados a cartas de run, TurnPhase System, TurnOrder System, DamagePipeline, MathEngine, ResourceManager, ConfigManager, Entity System, StatusEffects
 - **Documentação:** 9 documentos técnicos completos
 
 ### Estimativa para MVP Jogável
 - **Fases restantes críticas:** 3 e 4
 - **Tempo estimado:** 13-20 dias de desenvolvimento para Run loop + conteúdo MVP inicial, sem persistência
-- **Sistemas críticos restantes:** Content System, raridades/reroll/pricing dinâmico, inject real de modificadores, refinamentos de ativacao, persistência posterior
-- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, CardSelection, Shop, Preparation, execução de combate por ator arbitrário, consumo real de cartas da mão em combate, ativacao por entidade e eventos/polling/SSE
+- **Sistemas críticos restantes:** Content System ampliado, refinamentos de ativacao, transacoes/rollback para operacoes compostas de run, persistência posterior
+- **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, catalogo/pools de cartas, CardSelection com raridade/reroll/decompose, Shop com pricing/reroll, Preparation com grants de modifiers, execução de combate por ator arbitrário, consumo real de cartas da mão em combate, aplicacao de modifiers de run em cartas, ativacao por entidade e eventos/polling/SSE
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

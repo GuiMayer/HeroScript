@@ -255,6 +255,7 @@ Response: {
 | Endpoint End Turn | MEDIUM | 2 | ✅ Implementado |
 | Polling/WebSocket | MEDIUM | 3 | ✅ Polling incremental + base SSE implementados |
 | Turno de IA Automático | MEDIUM | 2-3 | ✅ Implementado |
+| Run refinements | MEDIUM | 3 | ✅ Reroll/raridades/pricing/modifiers primeira fatia implementada |
 | Ownership/autorizacao por ator | LOW agora / HIGH antes de multiplayer | Futuro | ❌ Não para single player |
 
 ---
@@ -271,8 +272,9 @@ Response: {
 
 1. **Usar turnos/ativacao por entidade implementados** via `/api/combat/{combatId}/activation/*`.
 2. **Usar polling incremental** via `/api/events?afterSequence=...` ou `/api/combat/{combatId}/events`; SSE já existe como base em `/events/stream`.
-3. **Refinar Run/CardSelection/Shop/Preparation** com reroll, raridades, pricing dinâmico e inject real de modificadores.
-4. **TODO futuro:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
+3. **Usar refinamentos de Run implementados**: catalogo de cartas, pools por raridade/tags, reroll/decompose, shop pricing/reroll e preparation modifiers.
+4. **Próximo refinamento:** transacoes/rollback para operacoes compostas, conteúdo MVP ampliado e regras avançadas de ativacao.
+5. **TODO futuro:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
 
 ### Para Fase 4 (Conteúdo MVP)
 
@@ -292,6 +294,7 @@ Todas as soluções propostas devem:
 - **Seguir convenções** da API REST existente
 - **Usar contratos** data-driven (JSON configs)
 - **Sincronizar UI por eventos**: preferir polling incremental por `afterSequence`; SSE pode ser usado quando o cliente suportar stream persistente.
+- **Consumir metadados backend** de `card-selection`, `shop` e `preparation`; o frontend nao calcula raridade, preco, custo de reroll, PP de decompose ou efeito de modifier.
 
 ### TODO Futuro: Ownership/Autorizacao
 
@@ -309,6 +312,8 @@ Responsabilidades esperadas:
 - Tamanho de mão, regras de draw, limite de deck devem ser data-driven
 - Não hardcodar valores como "5 cartas na mão" ou "30 cartas no deck"
 - Ativacao por entidade usa `combat-turn-rules/{rulesId}.json` para `drawCount`, `discardPolicy`, `retainTags`, escopo de ator e comportamento de IA
+- Recompensas e lojas usam `cards/card_catalog.json` e `card-pools/{poolId}.json` para raridade, tags, preco base e PP de decompose
+- Preparacao usa `preparations/{preparationId}.json` para conceder modifiers, e `CombatRunCoordinator` aplica modifiers de `run:{runId}` em cartas por tags
 
 ### Testes
 

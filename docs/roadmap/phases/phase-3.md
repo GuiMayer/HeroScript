@@ -18,6 +18,8 @@ A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs,
 - Corrigir a lacuna de integração visual com endpoints explícitos para mão/deck e processamento de turno/IA.
 - Combate já usa ator arbitrário via `CombatActionCommand`; player, IA, scripts e futuro multiplayer devem passar pelo mesmo contrato com `actorId`.
 - Integração combate↔mão já passa por `CombatRunCoordinator`: `runId`/`cardId` validam carta na mão, executam combate e consomem para discard/exhaust/retain conforme tags JSON da `ActionDefinition`.
+- Recompensas, lojas e preparacao agora usam catalogo/pools data-driven: `cards/card_catalog.json`, `card-pools/{poolId}.json`, `card-selections/{selectionId}.json`, `shops/{shopId}.json` e `preparations/{preparationId}.json`.
+- Modificadores concedidos em preparacao podem pertencer a `run:{runId}` e sao aplicados no combate via `CombatRunCoordinator` + `ScriptModifierManager.GetPipelineModifiers` antes da carta ser executada.
 - Ownership/autorização de controle por ator fica como TODO futuro, antes de multiplayer ou API multi-cliente.
 
 ## APIs Planejadas
@@ -69,14 +71,11 @@ Estado de cartas da run e do combate atual.
 
 Sistema de aprender/decompilar poderes após combate.
 
-**Endpoints implementados na primeira fatia:**
+**Endpoints implementados:**
 - `POST /api/run/{runId}/card-selection/start` - Cria ofertas a partir de JSON
 - `POST /api/run/{runId}/card-selection/{selectionInstanceId}/pick` - Escolhe cartas e aplica ao deck da run
-
-**Endpoints futuros:**
-- Reroll de ofertas
-- Decompose por PP
-- Pools por raridade/tags/desbloqueios
+- `POST /api/run/{runId}/card-selection/{selectionInstanceId}/reroll` - Regenera ofertas com custo progressivo/free rerolls
+- `POST /api/run/{runId}/card-selection/{selectionInstanceId}/decompose/{cardId}` - Decompila oferta em PP conforme catalogo
 
 **Mecânicas:**
 - 3 slots de ofertas
@@ -95,13 +94,12 @@ Sistema de aprender/decompilar poderes após combate.
 
 Sistema de loja com poderes, companions, e upgrades.
 
-**Endpoints implementados na primeira fatia:**
+**Endpoints implementados:**
 - `POST /api/run/{runId}/shop/open` - Abre loja a partir de JSON
 - `POST /api/run/{runId}/shop/{shopInstanceId}/buy/{itemId}` - Compra item validando custo no backend
+- `POST /api/run/{runId}/shop/{shopInstanceId}/reroll` - Regenera itens e cobra custo progressivo
 
 **Endpoints futuros:**
-- Reroll loja
-- Precos dinamicos/descontos
 - Venda de item
 
 **Tipos de Item:**
@@ -121,12 +119,11 @@ Sistema de loja com poderes, companions, e upgrades.
 
 Sistema de injeção de modificadores antes do combate.
 
-**Endpoints implementados na primeira fatia:**
+**Endpoints implementados:**
 - `POST /api/run/{runId}/preparation/start` - Cria preparacao a partir de JSON
-- `POST /api/run/{runId}/preparation/{preparationInstanceId}/apply/{optionId}` - Aplica opcao validada no backend
+- `POST /api/run/{runId}/preparation/{preparationInstanceId}/apply/{optionId}` - Aplica opcao validada no backend, incluindo grants de modificadores
 
 **Endpoints futuros:**
-- Injecao de modificadores em poderes
 - Configuracao de gambits de companions
 - Preview/remocao de modificadores
 
@@ -218,7 +215,9 @@ Preparação permite customização:
 - ✅ Integração combate↔deck/hand implementada para consumo real de cartas da mão durante ações com `runId`
 - ✅ Turnos/ativação por entidade implementados com `ActivationState`, regras JSON, draw/discard automatico e eventos de ativacao
 - ✅ Polling incremental e base SSE implementados para eventos de combate/run
-- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e refinamentos de turnos por entidade
+- ✅ Catalogo de cartas, pools por raridade/tags, reroll/decompose de recompensas, pricing/reroll de loja e grants reais de modifiers em preparacao
+- ✅ Modificadores de run aplicados em acoes de carta via `CombatRunCoordinator` e `CombatActionCommand.RunModifiers`
+- ⏳ Refinamentos de turnos por entidade, transacoes/rollback e conteúdo MVP ampliado
 - 🧭 TODO futuro: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente
 
 ### Ordem de Implementação
@@ -254,9 +253,9 @@ Preparação permite customização:
    - Manter `CombatSystem` actor-agnostic; autorizacao deve ficar na camada de controle/API
 
 5. **CardSelection Core** (src/Core/Run/CardSelection/)
-   - CardOffer, CardPool
+   - Catalogo de cartas, CardPool por tags/raridade
    - OfferGenerator, DeckManager
-   - Reroll logic
+   - Reroll e decompose por PP
 
 6. **CardSelection API** (src/API/Controllers/CardSelectionController.cs)
    - Generate offers
@@ -275,7 +274,7 @@ Preparação permite customização:
 
 9. **Preparation Core** (src/Core/Run/Preparation/)
    - PreparationState
-   - ModifierInjector
+   - Modifier grants aplicados via `ScriptModifierManager`
    - GambitConfigurator
 
 10. **Preparation API** (src/API/Controllers/PreparationController.cs)
@@ -348,9 +347,9 @@ Content-Type: application/json
 ## Próximos Passos
 
 Próximo foco dentro da Fase 3:
-- **Turnos/ativação por entidade** - substituir o end-turn global por regras data-driven de início/fim de ativação, compra/descarte automática e janelas de IA/player.
-- **Eventos/polling/SSE** - expor mudanças de estado para o frontend animar ações já resolvidas no backend.
-- **Refinamentos de Run** - reroll, raridades, pricing dinamico e inject real de modificadores.
+- **Refinamentos de ativacao** - regras mais ricas para janelas de player/IA, status por inicio/fim de ativacao e integração com intents.
+- **Consistencia transacional** - evitar mutacao parcial quando operacoes compostas de run falham depois de gastar recursos/aplicar cartas/modifiers.
+- **Conteúdo MVP ampliado** - mais pools, cartas, lojas, preparacoes e modificadores usando os contratos JSON existentes.
 
 Após completar a Fase 3, a Fase 4 adicionará conteúdo MVP:
 - **Race API** - Raças jogáveis
