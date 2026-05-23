@@ -10,4 +10,6 @@ public sealed record CombatActionCommand
     public string? PowerId { get; init; }
     public string? TargetId { get; init; }
     public string? CostOptionId { get; init; }
+    public Guid? RunId { get; init; }
+    public string? CardId { get; init; }
 }
