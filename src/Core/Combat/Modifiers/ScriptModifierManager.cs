@@ -10,33 +10,36 @@ namespace Core.Combat.Modifiers;
 public sealed class ScriptModifierManager : IScriptModifierManager
 {
     private readonly IConfigManager _configManager;
+    private readonly IResourceLoader _resourceLoader;
     private readonly ConcurrentDictionary<string, ScriptModifierDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, List<ScriptModifierInstance>> _activeModifiers = new(StringComparer.OrdinalIgnoreCase);
+    private string? _loadedConfigName;
 
-    public ScriptModifierManager(IConfigManager configManager)
+    public ScriptModifierManager(IConfigManager configManager, IResourceLoader resourceLoader)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
     }
 
     public Result LoadDefinitions(string configName)
     {
         try
         {
-            var configPath = _configManager.GetConfigPath(configName);
-            var modifierPath = Path.Combine(configPath, "Modifiers", "script_modifiers.json");
-            if (!File.Exists(modifierPath))
-                return Result.Failure($"Script modifiers file not found: {modifierPath}");
+            var definitionsResult = LoadDefinitionJson(configName);
+            if (definitionsResult.IsFailure)
+                return Result.Failure(definitionsResult.Error);
 
-            var json = File.ReadAllText(modifierPath);
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             options.Converters.Add(new JsonStringEnumConverter());
-            var definitions = JsonSerializer.Deserialize<Dictionary<string, ScriptModifierDefinition>>(json, options);
-            if (definitions == null)
-                return Result.Failure("Failed to deserialize script modifiers");
 
             _definitions.Clear();
-            foreach (var (key, definition) in definitions)
+            _loadedConfigName = configName;
+            foreach (var (key, element) in definitionsResult.Value)
             {
+                var definition = JsonSerializer.Deserialize<ScriptModifierDefinition>(element.GetRawText(), options);
+                if (definition == null)
+                    return Result.Failure($"Failed to deserialize script modifier: {key}");
+
                 var modifierId = string.IsNullOrWhiteSpace(definition.ModifierId) ? key : definition.ModifierId;
                 _definitions[modifierId] = definition with { ModifierId = modifierId };
             }
@@ -54,9 +57,17 @@ public sealed class ScriptModifierManager : IScriptModifierManager
         if (string.IsNullOrWhiteSpace(modifierId))
             return Result<ScriptModifierDefinition>.Failure("ModifierId cannot be empty");
 
-        return _definitions.TryGetValue(modifierId, out var definition)
-            ? Result<ScriptModifierDefinition>.Success(definition)
-            : Result<ScriptModifierDefinition>.Failure($"Script modifier definition not found: {modifierId}");
+        if (_definitions.TryGetValue(modifierId, out var definition))
+            return Result<ScriptModifierDefinition>.Success(definition);
+
+        if (!string.IsNullOrWhiteSpace(_loadedConfigName))
+        {
+            var lazyResult = LoadSingleDefinition(modifierId, _loadedConfigName);
+            if (lazyResult.IsSuccess)
+                return lazyResult;
+        }
+
+        return Result<ScriptModifierDefinition>.Failure($"Script modifier definition not found: {modifierId}");
     }
 
     public IReadOnlyList<ScriptModifierDefinition> GetAllDefinitions()
@@ -169,6 +180,39 @@ public sealed class ScriptModifierManager : IScriptModifierManager
     private List<ScriptModifierInstance> GetOwnerList(string ownerId)
     {
         return _activeModifiers.GetOrAdd(ownerId, _ => new List<ScriptModifierInstance>());
+    }
+
+    private Result<Dictionary<string, JsonElement>> LoadDefinitionJson(string configName)
+    {
+        var chain = _configManager.ResolveInheritanceChain(configName);
+        var data = _resourceLoader.LoadResource("Modifiers/script_modifiers.json", chain, strictMode: false);
+        return data.Count == 0
+            ? Result<Dictionary<string, JsonElement>>.Failure("Script modifiers not found: Modifiers/script_modifiers.json")
+            : Result<Dictionary<string, JsonElement>>.Success(data);
+    }
+
+    private Result<ScriptModifierDefinition> LoadSingleDefinition(string modifierId, string configName)
+    {
+        var definitionsResult = LoadDefinitionJson(configName);
+        if (definitionsResult.IsFailure)
+            return Result<ScriptModifierDefinition>.Failure(definitionsResult.Error);
+
+        var element = definitionsResult.Value.TryGetValue(modifierId, out var exact)
+            ? exact
+            : default;
+        if (element.ValueKind == JsonValueKind.Undefined)
+            return Result<ScriptModifierDefinition>.Failure($"Script modifier definition not found: {modifierId}");
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        options.Converters.Add(new JsonStringEnumConverter());
+        var definition = JsonSerializer.Deserialize<ScriptModifierDefinition>(element.GetRawText(), options);
+        if (definition == null)
+            return Result<ScriptModifierDefinition>.Failure($"Failed to deserialize script modifier: {modifierId}");
+
+        var resolvedId = string.IsNullOrWhiteSpace(definition.ModifierId) ? modifierId : definition.ModifierId;
+        var resolvedDefinition = definition with { ModifierId = resolvedId };
+        _definitions[resolvedId] = resolvedDefinition;
+        return Result<ScriptModifierDefinition>.Success(resolvedDefinition);
     }
 
     private static void ReplaceInstance(List<ScriptModifierInstance> list, ScriptModifierInstance updated)

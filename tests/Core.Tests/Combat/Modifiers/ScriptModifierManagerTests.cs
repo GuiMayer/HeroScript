@@ -1,26 +1,25 @@
 using Core.Combat.Modifiers;
 using Core.Config;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat.Modifiers;
 
 public sealed class ScriptModifierManagerTests : IDisposable
 {
-    private readonly string _tempRoot;
     private readonly ScriptModifierManager _manager;
 
     public ScriptModifierManagerTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"heroscript-modifier-tests-{Guid.NewGuid():N}");
-        var modifierDirectory = Path.Combine(_tempRoot, "Modifiers");
-        Directory.CreateDirectory(modifierDirectory);
-        File.WriteAllText(Path.Combine(modifierDirectory, "script_modifiers.json"), TestDefinitionsJson);
-
         var configManager = new Mock<IConfigManager>();
-        configManager.Setup(m => m.GetConfigPath("test")).Returns(_tempRoot);
+        var resourceLoader = new Mock<IResourceLoader>();
+        configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
+        resourceLoader
+            .Setup(m => m.LoadResource("Modifiers/script_modifiers.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(TestDefinitionsJson));
 
-        _manager = new ScriptModifierManager(configManager.Object);
+        _manager = new ScriptModifierManager(configManager.Object, resourceLoader.Object);
         var load = _manager.LoadDefinitions("test");
         Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);
     }
@@ -76,8 +75,13 @@ public sealed class ScriptModifierManagerTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempRoot))
-            Directory.Delete(_tempRoot, recursive: true);
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
     }
 
     private const string TestDefinitionsJson = """
