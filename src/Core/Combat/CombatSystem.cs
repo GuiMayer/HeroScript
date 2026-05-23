@@ -197,7 +197,7 @@ public class CombatSystem : ICombatSystem
         }
     }
     
-    public Result<CombatState> ExecuteAction(Guid combatId, ActionType actionType, string? powerId = null, string? targetId = null, string? costOptionId = null)
+    public Result<CombatState> ExecuteAction(Guid combatId, CombatActionCommand command)
     {
         try
         {
@@ -207,20 +207,27 @@ public class CombatSystem : ICombatSystem
             
             if (!currentState.IsActive)
                 return Result<CombatState>.Failure($"Combat {combatId} is not active (status: {currentState.Status})");
+
+            var actor = currentState.GetEntity(command.ActorId);
+            if (actor == null)
+                return Result<CombatState>.Failure($"Actor {command.ActorId} not found");
+
+            if (!actor.IsAlive)
+                return Result<CombatState>.Failure($"Actor {command.ActorId} is already dead");
             
             // Validar ação
-            var validationResult = ValidateAction(currentState, actionType, powerId, targetId, costOptionId);
+            var validationResult = ValidateAction(currentState, actor, command);
             if (validationResult.IsFailure)
                 return Result<CombatState>.Failure(validationResult.Error);
             
             // Executar ação e criar novo estado
-            var newState = actionType switch
+            var newState = command.ActionType switch
             {
-                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, ActionType.BASIC_ATTACK, BasicAttackActionId, targetId!, costOptionId),
-                ActionType.POWER => ExecuteConfiguredAction(currentState, ActionType.POWER, powerId!, targetId!, costOptionId),
-                ActionType.PASS => ExecutePass(currentState),
-                ActionType.END_TURN => ExecuteEndTurn(currentState),
-                _ => throw new InvalidOperationException($"Unknown action type: {actionType}")
+                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, actor, ActionType.BASIC_ATTACK, BasicAttackActionId, command.TargetId!, command.CostOptionId),
+                ActionType.POWER => ExecuteConfiguredAction(currentState, actor, ActionType.POWER, command.PowerId!, command.TargetId!, command.CostOptionId),
+                ActionType.PASS => ExecutePass(currentState, actor),
+                ActionType.END_TURN => ExecuteEndTurn(currentState, actor),
+                _ => throw new InvalidOperationException($"Unknown action type: {command.ActionType}")
             };
             
             // Verificar condições de vitória/derrota
@@ -255,14 +262,14 @@ public class CombatSystem : ICombatSystem
         }
     }
     
-    private Result<bool> ValidateAction(CombatState state, ActionType actionType, string? powerId, string? targetId, string? costOptionId)
+    private Result<bool> ValidateAction(CombatState state, CombatEntity actor, CombatActionCommand command)
     {
-        // Verificar se o herói está sob controle (STUN, FREEZE, etc.)
-        if (actionType != ActionType.PASS && actionType != ActionType.END_TURN)
+        // Verificar se o ator está sob controle (STUN, FREEZE, etc.)
+        if (command.ActionType != ActionType.PASS && command.ActionType != ActionType.END_TURN)
         {
-            if (_statusEffectManager != null && Guid.TryParse(state.Hero.EntityId, out var heroGuid))
+            if (_statusEffectManager != null && Guid.TryParse(actor.EntityId, out var actorGuid))
             {
-                var activeStatusResult = _statusEffectManager.GetActiveStatus(heroGuid);
+                var activeStatusResult = _statusEffectManager.GetActiveStatus(actorGuid);
                 if (activeStatusResult.IsSuccess)
                 {
                     var hasControlEffect = activeStatusResult.Value.Any(s => 
@@ -270,49 +277,49 @@ public class CombatSystem : ICombatSystem
                     
                     if (hasControlEffect)
                     {
-                        return Result<bool>.Failure("Cannot perform action: hero is under control effect (stunned, frozen, etc.)");
+                        return Result<bool>.Failure($"Cannot perform action: actor {actor.EntityId} is under control effect (stunned, frozen, etc.)");
                     }
                 }
             }
         }
         
-        switch (actionType)
+        switch (command.ActionType)
         {
             case ActionType.BASIC_ATTACK:
-                if (string.IsNullOrWhiteSpace(targetId))
+                if (string.IsNullOrWhiteSpace(command.TargetId))
                     return Result<bool>.Failure("Target is required for basic attack");
-                if (state.GetEntity(targetId) == null)
-                    return Result<bool>.Failure($"Target {targetId} not found");
-                if (!state.GetEntity(targetId)!.IsAlive)
-                    return Result<bool>.Failure($"Target {targetId} is already dead");
+                if (state.GetEntity(command.TargetId) == null)
+                    return Result<bool>.Failure($"Target {command.TargetId} not found");
+                if (!state.GetEntity(command.TargetId)!.IsAlive)
+                    return Result<bool>.Failure($"Target {command.TargetId} is already dead");
 
                 var basicActionDefinition = GetConfiguredAction(BasicAttackActionId);
                 if (basicActionDefinition == null)
                     return Result<bool>.Failure($"Action definition not found: {BasicAttackActionId}");
 
-                var basicAffordabilityError = ValidateActionCosts(state.Hero, basicActionDefinition.Costs, costOptionId);
+                var basicAffordabilityError = ValidateActionCosts(actor, basicActionDefinition.Costs, command.CostOptionId);
                 if (basicAffordabilityError != null)
                     return Result<bool>.Failure(basicAffordabilityError);
                 break;
                 
             case ActionType.POWER:
-                if (string.IsNullOrWhiteSpace(powerId))
+                if (string.IsNullOrWhiteSpace(command.PowerId))
                     return Result<bool>.Failure("Power ID is required");
-                if (string.IsNullOrWhiteSpace(targetId))
+                if (string.IsNullOrWhiteSpace(command.TargetId))
                     return Result<bool>.Failure("Target is required for power");
 
-                var actionDefinition = GetConfiguredAction(powerId);
+                var actionDefinition = GetConfiguredAction(command.PowerId);
                 if (actionDefinition == null)
-                    return Result<bool>.Failure($"Action definition not found: {powerId}");
+                    return Result<bool>.Failure($"Action definition not found: {command.PowerId}");
 
-                var affordabilityError = ValidateActionCosts(state.Hero, actionDefinition.Costs, costOptionId);
+                var affordabilityError = ValidateActionCosts(actor, actionDefinition.Costs, command.CostOptionId);
                 if (affordabilityError != null)
                     return Result<bool>.Failure(affordabilityError);
                 
-                if (state.GetEntity(targetId) == null)
-                    return Result<bool>.Failure($"Target {targetId} not found");
-                if (!state.GetEntity(targetId)!.IsAlive)
-                    return Result<bool>.Failure($"Target {targetId} is already dead");
+                if (state.GetEntity(command.TargetId) == null)
+                    return Result<bool>.Failure($"Target {command.TargetId} not found");
+                if (!state.GetEntity(command.TargetId)!.IsAlive)
+                    return Result<bool>.Failure($"Target {command.TargetId} is already dead");
                 break;
                 
             case ActionType.PASS:
@@ -321,7 +328,7 @@ public class CombatSystem : ICombatSystem
                 break;
                 
             default:
-                return Result<bool>.Failure($"Unknown action type: {actionType}");
+                return Result<bool>.Failure($"Unknown action type: {command.ActionType}");
         }
         
         return Result<bool>.Success(true);
@@ -400,6 +407,7 @@ public class CombatSystem : ICombatSystem
     
     private CombatState ExecuteConfiguredAction(
         CombatState state,
+        CombatEntity actor,
         ActionType actionType,
         string actionId,
         string targetId,
@@ -409,22 +417,22 @@ public class CombatSystem : ICombatSystem
         var actionDefinition = GetConfiguredAction(actionId)
             ?? throw new InvalidOperationException($"Action definition not found: {actionId}");
 
-        var damageDealt = CalculateActionDamage(actionDefinition, state.Hero, target);
+        var damageDealt = CalculateActionDamage(actionDefinition, actor, target);
 
         // Processar status effects ON_DAMAGE_TAKEN por comportamento configurado.
-        var (modifiedDamage, updatedHero) = ProcessOnDamageTakenEffects(target, state.Hero, damageDealt, state.CurrentTurn);
+        var (modifiedDamage, updatedActor) = ProcessOnDamageTakenEffects(target, actor, damageDealt, state.CurrentTurn);
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
 
-        updatedHero = ApplyCosts(updatedHero, actionDefinition.Costs, costOptionId);
-        updatedHero = ApplyActionResourceEffects(updatedHero, newTarget, actionDefinition.Effects);
+        updatedActor = ApplyCosts(updatedActor, actionDefinition.Costs, costOptionId);
+        updatedActor = ApplyActionResourceEffects(updatedActor, newTarget, actionDefinition.Effects);
 
-        var previousEnergy = state.Hero.GetResource("energy")?.Current ?? 0;
-        var currentEnergy = updatedHero.GetResource("energy")?.Current ?? previousEnergy;
+        var previousEnergy = actor.GetResource("energy")?.Current ?? 0;
+        var currentEnergy = updatedActor.GetResource("energy")?.Current ?? previousEnergy;
         var energyChange = (int)(currentEnergy - previousEnergy);
         var action = new CombatAction
         {
             Turn = state.CurrentTurn,
-            ActorId = state.Hero.EntityId,
+            ActorId = actor.EntityId,
             ActionType = actionType,
             PowerId = actionType == ActionType.POWER ? actionId : null,
             TargetId = targetId,
@@ -432,17 +440,21 @@ public class CombatSystem : ICombatSystem
             EnergyChange = energyChange
         };
 
-        var newEnemies = state.Enemies.Select(e => e.EntityId == targetId ? newTarget : e).ToList();
         var newHistory = state.ActionHistory.Append(action).ToList();
 
-        PublishEnergyChange(state, previousEnergy, currentEnergy, energyChange, $"Action: {actionId}");
+        PublishEnergyChange(state, actor.EntityId, previousEnergy, currentEnergy, energyChange, $"Action: {actionId}");
 
-        return state with
+        var updatedState = state;
+        if (updatedActor.EntityId == newTarget.EntityId)
         {
-            Hero = updatedHero,
-            Enemies = newEnemies,
-            ActionHistory = newHistory
-        };
+            updatedState = updatedState.ReplaceEntity(updatedActor);
+        }
+        else
+        {
+            updatedState = updatedState.ReplaceEntity(updatedActor).ReplaceEntity(newTarget);
+        }
+
+        return updatedState with { ActionHistory = newHistory };
     }
 
     private float CalculateActionDamage(ActionDefinition actionDefinition, CombatEntity actor, CombatEntity target)
@@ -553,7 +565,7 @@ public class CombatSystem : ICombatSystem
         return value >= 0 ? pool.Gain(value) : pool.Spend(-value);
     }
 
-    private void PublishEnergyChange(CombatState state, float oldEnergy, float newEnergy, int energyChange, string reason)
+    private void PublishEnergyChange(CombatState state, string actorId, float oldEnergy, float newEnergy, int energyChange, string reason)
     {
         if (energyChange == 0)
             return;
@@ -566,16 +578,16 @@ public class CombatSystem : ICombatSystem
             Delta = energyChange,
             Reason = reason,
             Turn = state.CurrentTurn,
-            Target = state.Hero.EntityId
+            Target = actorId
         });
     }
     
-    private CombatState ExecutePass(CombatState state)
+    private CombatState ExecutePass(CombatState state, CombatEntity actor)
     {
         var action = new CombatAction
         {
             Turn = state.CurrentTurn,
-            ActorId = state.Hero.EntityId,
+            ActorId = actor.EntityId,
             ActionType = ActionType.PASS
         };
         
@@ -584,12 +596,12 @@ public class CombatSystem : ICombatSystem
         return state with { ActionHistory = newHistory };
     }
     
-    private CombatState ExecuteEndTurn(CombatState state)
+    private CombatState ExecuteEndTurn(CombatState state, CombatEntity actor)
     {
         var action = new CombatAction
         {
             Turn = state.CurrentTurn,
-            ActorId = state.Hero.EntityId,
+            ActorId = actor.EntityId,
             ActionType = ActionType.END_TURN
         };
         
@@ -851,12 +863,12 @@ public class CombatSystem : ICombatSystem
     }
     
     /// <summary>
-    /// Aplica custos de uma ação ao herói.
+    /// Aplica custos de uma ação ao ator.
     /// Se costOptionId for fornecido, aplica custos da opção alternativa.
     /// Caso contrário, aplica custos normais.
     /// </summary>
     private CombatEntity ApplyCosts(
-        CombatEntity hero, 
+        CombatEntity actor, 
         ActionCosts costs, 
         string? costOptionId = null)
     {
@@ -872,7 +884,7 @@ public class CombatSystem : ICombatSystem
             // Aplicar custos da opção
             foreach (var cost in option.Costs)
             {
-                var pool = hero.GetResource(cost.ResourceId);
+                var pool = actor.GetResource(cost.ResourceId);
                 if (pool == null)
                     throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
                 
@@ -885,7 +897,7 @@ public class CombatSystem : ICombatSystem
             // Aplicar custos normais
             foreach (var cost in costs.Costs)
             {
-                var pool = hero.GetResource(cost.ResourceId);
+                var pool = actor.GetResource(cost.ResourceId);
                 if (pool == null)
                     throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
                 
@@ -894,7 +906,7 @@ public class CombatSystem : ICombatSystem
             }
         }
         
-        return hero.UpdateResources(updates);
+        return actor.UpdateResources(updates);
     }
 
     private ActionDefinition? GetConfiguredAction(string actionId)
@@ -906,9 +918,9 @@ public class CombatSystem : ICombatSystem
         return result.IsSuccess ? result.Value : null;
     }
 
-    private static string? ValidateActionCosts(CombatEntity hero, ActionCosts costs, string? costOptionId)
+    private static string? ValidateActionCosts(CombatEntity actor, ActionCosts costs, string? costOptionId)
     {
-        var resources = new Dictionary<string, ResourcePool>(hero.ResourceState.Resources);
+        var resources = new Dictionary<string, ResourcePool>(actor.ResourceState.Resources);
 
         if (costs.AlternativeCosts.Count > 0)
         {

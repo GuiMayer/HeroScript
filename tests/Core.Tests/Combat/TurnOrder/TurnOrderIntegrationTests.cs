@@ -88,10 +88,7 @@ public class TurnOrderIntegrationTests
         var initialOrder = startResult.Value.TurnOrder.ToList();
         
         // End turn to trigger recalculation
-        var endTurnResult = combatSystem.ExecuteAction(
-            startResult.Value.CombatId,
-            ActionType.END_TURN
-        );
+        var endTurnResult = combatSystem.ExecuteAction(startResult.Value.CombatId, EndTurn("hero1"));
         
         // Initiative order should remain the same
         Assert.True(endTurnResult.IsSuccess);
@@ -118,10 +115,7 @@ public class TurnOrderIntegrationTests
         Assert.NotNull(startResult.Value.TurnOrder);
         
         // After ending turn, gauges should fill
-        var endTurnResult = combatSystem.ExecuteAction(
-            startResult.Value.CombatId,
-            ActionType.END_TURN
-        );
+        var endTurnResult = combatSystem.ExecuteAction(startResult.Value.CombatId, EndTurn("hero1"));
         
         Assert.True(endTurnResult.IsSuccess);
         Assert.NotNull(endTurnResult.Value.TurnOrder);
@@ -223,15 +217,21 @@ public class TurnOrderIntegrationTests
         var initialOrder = startResult.Value.TurnOrder;
         
         // End turn
-        var endTurnResult = combatSystem.ExecuteAction(
-            startResult.Value.CombatId,
-            ActionType.END_TURN
-        );
+        var endTurnResult = combatSystem.ExecuteAction(startResult.Value.CombatId, EndTurn("hero1"));
         
         // Assert
         Assert.True(endTurnResult.IsSuccess);
         Assert.NotNull(endTurnResult.Value.TurnOrder);
         // Order should be recalculated (may be same or different depending on speed changes)
         Assert.NotNull(initialOrder);
+    }
+
+    private static CombatActionCommand EndTurn(string actorId)
+    {
+        return new CombatActionCommand
+        {
+            ActorId = actorId,
+            ActionType = ActionType.END_TURN
+        };
     }
 }

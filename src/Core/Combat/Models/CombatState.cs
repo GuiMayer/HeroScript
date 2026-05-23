@@ -42,6 +42,30 @@ public record CombatState
         if (Hero.EntityId == entityId) return Hero;
         return Enemies.FirstOrDefault(e => e.EntityId == entityId);
     }
+
+    /// <summary>
+    /// Obtém todas as entidades participantes do combate.
+    /// </summary>
+    public IEnumerable<CombatEntity> GetAllEntities()
+    {
+        yield return Hero;
+        foreach (var enemy in Enemies)
+            yield return enemy;
+    }
+
+    /// <summary>
+    /// Retorna novo estado substituindo a entidade pelo ID.
+    /// </summary>
+    public CombatState ReplaceEntity(CombatEntity entity)
+    {
+        if (Hero.EntityId == entity.EntityId)
+            return this with { Hero = entity };
+
+        return this with
+        {
+            Enemies = Enemies.Select(e => e.EntityId == entity.EntityId ? entity : e).ToList()
+        };
+    }
     
     /// <summary>
     /// Obtém recurso do herói.

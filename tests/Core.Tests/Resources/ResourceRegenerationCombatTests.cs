@@ -115,7 +115,7 @@ public class ResourceRegenerationCombatTests
         Assert.Equal(1, initialEnergy.Current);
 
         // Act - Terminar turno (deve regenerar energia)
-        var endTurnResult = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+        var endTurnResult = _combatSystem.ExecuteAction(combatId, EndTurn("hero1"));
 
         // Assert
         Assert.True(endTurnResult.IsSuccess);
@@ -141,7 +141,7 @@ public class ResourceRegenerationCombatTests
         var initialHealth = initialState.GetHeroResource("health");
 
         // Act
-        var endTurnResult = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+        var endTurnResult = _combatSystem.ExecuteAction(combatId, EndTurn("hero1"));
 
         // Assert
         Assert.True(endTurnResult.IsSuccess);
@@ -170,7 +170,7 @@ public class ResourceRegenerationCombatTests
         var initialEnemyHealth = initialState.GetEnemyResource("enemy1", "health");
 
         // Act - Terminar turno
-        var endTurnResult = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+        var endTurnResult = _combatSystem.ExecuteAction(combatId, EndTurn("hero1"));
 
         // Assert
         Assert.True(endTurnResult.IsSuccess);
@@ -273,7 +273,7 @@ public class ResourceRegenerationCombatTests
         var combatId = startResult.Value.CombatId;
 
         // Act
-        var endTurnResult = combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+        var endTurnResult = combatSystem.ExecuteAction(combatId, EndTurn("hero1"));
 
         // Assert
         Assert.True(endTurnResult.IsSuccess);
@@ -303,7 +303,7 @@ public class ResourceRegenerationCombatTests
         var initialEnergy = initialState.GetHeroResource("energy");
 
         // Act
-        var endTurnResult = combatSystemWithoutRegen.ExecuteAction(combatId, ActionType.END_TURN);
+        var endTurnResult = combatSystemWithoutRegen.ExecuteAction(combatId, EndTurn("hero1"));
 
         // Assert - Deve funcionar sem erros, mas energia não deve regenerar
         Assert.True(endTurnResult.IsSuccess);
@@ -329,7 +329,7 @@ public class ResourceRegenerationCombatTests
         // Act - Terminar turno 3 vezes
         for (int i = 0; i < 3; i++)
         {
-            var endTurnResult = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+            var endTurnResult = _combatSystem.ExecuteAction(combatId, EndTurn("hero1"));
             Assert.True(endTurnResult.IsSuccess);
             
             var energy = endTurnResult.Value.GetHeroResource("energy");
@@ -364,7 +364,7 @@ public class ResourceRegenerationCombatTests
         CombatState? finalState = null;
         for (int i = 0; i < 10; i++)
         {
-            var endTurnResult = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+            var endTurnResult = _combatSystem.ExecuteAction(combatId, EndTurn("hero1"));
             Assert.True(endTurnResult.IsSuccess);
             finalState = endTurnResult.Value;
         }
@@ -377,5 +377,14 @@ public class ResourceRegenerationCombatTests
         // Energia não deve exceder máximo
         Assert.True(finalEnergy.Current <= maxEnergy, 
             $"Energy should not exceed maximum. Current: {finalEnergy.Current}, Max: {maxEnergy}");
+    }
+
+    private static CombatActionCommand EndTurn(string actorId)
+    {
+        return new CombatActionCommand
+        {
+            ActorId = actorId,
+            ActionType = ActionType.END_TURN
+        };
     }
 }

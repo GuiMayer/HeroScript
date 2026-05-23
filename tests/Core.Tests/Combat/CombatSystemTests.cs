@@ -144,7 +144,7 @@ public class CombatSystemTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Act
-        var result = _combatSystem.ExecuteAction(combatId, ActionType.BASIC_ATTACK, targetId: targetId);
+        var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.BASIC_ATTACK, targetId: targetId));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -162,11 +162,7 @@ public class CombatSystemTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Act
-        var result = _combatSystem.ExecuteAction(
-            combatId,
-            ActionType.POWER,
-            powerId: "FIREBALL",
-            targetId: targetId);
+        var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "FIREBALL", targetId: targetId));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -184,11 +180,7 @@ public class CombatSystemTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Act
-        var result = _combatSystem.ExecuteAction(
-            combatId,
-            ActionType.POWER,
-            powerId: "FIREBALL",
-            targetId: targetId);
+        var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "FIREBALL", targetId: targetId));
 
         // Assert
         Assert.True(result.IsFailure);
@@ -211,7 +203,7 @@ public class CombatSystemTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Act
-        var result = combatSystem.ExecuteAction(combatId, ActionType.POWER, powerId: "ice_bolt", targetId: targetId);
+        var result = combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "ice_bolt", targetId: targetId));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -255,7 +247,7 @@ public class CombatSystemTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Act
-        var result = combatSystem.ExecuteAction(combatId, ActionType.POWER, powerId: "blood_cast", targetId: targetId);
+        var result = combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "blood_cast", targetId: targetId));
 
         // Assert
         Assert.True(result.IsFailure);
@@ -271,9 +263,9 @@ public class CombatSystemTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Act - Kill enemy (50 HP: 1 power = 30 dmg, 2 basic = 20 dmg)
-        _combatSystem.ExecuteAction(combatId, ActionType.POWER, "FIREBALL", targetId); // 50 - 30 = 20 HP
-        _combatSystem.ExecuteAction(combatId, ActionType.BASIC_ATTACK, targetId: targetId); // 20 - 10 = 10 HP, +1 energy
-        var result = _combatSystem.ExecuteAction(combatId, ActionType.BASIC_ATTACK, targetId: targetId); // 10 - 10 = 0 HP (dead)
+        _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "FIREBALL", targetId: targetId)); // 50 - 30 = 20 HP
+        _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.BASIC_ATTACK, targetId: targetId)); // 20 - 10 = 10 HP, +1 energy
+        var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.BASIC_ATTACK, targetId: targetId)); // 10 - 10 = 0 HP (dead)
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -291,7 +283,7 @@ public class CombatSystemTests
         var initialEnemyHp = startResult.Value.Enemies[0].CurrentHp;
 
         // Act
-        var result = _combatSystem.ExecuteAction(combatId, ActionType.PASS);
+        var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.PASS));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -308,12 +300,44 @@ public class CombatSystemTests
         var combatId = startResult.Value.CombatId;
 
         // Act
-        var result = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+        var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.END_TURN));
 
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(2, result.Value.CurrentTurn);
         Assert.Single(result.Value.ActionHistory);
+    }
+
+    [Fact]
+    public void ExecuteAction_EnemyBasicAttack_ShouldDamageHeroAndRecordEnemyActor()
+    {
+        // Arrange
+        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var combatId = startResult.Value.CombatId;
+
+        // Act
+        var result = _combatSystem.ExecuteAction(combatId, Command("enemy-1", ActionType.BASIC_ATTACK, targetId: "hero-1"));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(90, result.Value.Hero.CurrentHp);
+        Assert.Equal("enemy-1", result.Value.ActionHistory.Single().ActorId);
+        Assert.Equal("hero-1", result.Value.ActionHistory.Single().TargetId);
+    }
+
+    [Fact]
+    public void ExecuteAction_EnemyPass_ShouldRecordEnemyActor()
+    {
+        // Arrange
+        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var combatId = startResult.Value.CombatId;
+
+        // Act
+        var result = _combatSystem.ExecuteAction(combatId, Command("enemy-1", ActionType.PASS));
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal("enemy-1", result.Value.ActionHistory.Single().ActorId);
     }
 
     [Fact]
@@ -371,6 +395,23 @@ public class CombatSystemTests
 
         actionManager.Setup(m => m.GetDefinition(It.Is<string>(id => definitions.All(d => d.ActionId != id))))
             .Returns((string id) => Core.Common.Result<ActionDefinition>.Failure($"Action definition not found: {id}"));
+    }
+
+    private static CombatActionCommand Command(
+        string actorId,
+        ActionType actionType,
+        string? powerId = null,
+        string? targetId = null,
+        string? costOptionId = null)
+    {
+        return new CombatActionCommand
+        {
+            ActorId = actorId,
+            ActionType = actionType,
+            PowerId = powerId,
+            TargetId = targetId,
+            CostOptionId = costOptionId
+        };
     }
 
     private static ActionDefinition CreateBasicAttack()

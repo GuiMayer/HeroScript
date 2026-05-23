@@ -79,8 +79,8 @@ public class CombatIntegrationTests
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
-        combatSystem.ExecuteAction(combatId, ActionType.BASIC_ATTACK, targetId: targetId);
-        combatSystem.ExecuteAction(combatId, ActionType.POWER, "FIREBALL", targetId);
+        combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.BASIC_ATTACK, targetId: targetId));
+        combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "FIREBALL", targetId: targetId));
         combatSystem.EndCombat(combatId);
 
         // Assert
@@ -104,9 +104,9 @@ public class CombatIntegrationTests
         var targetId = startResult.Value.Enemies[0].EntityId;
 
         // Kill enemy (50 HP)
-        combatSystem.ExecuteAction(combatId, ActionType.POWER, "FIREBALL", targetId); // -30 HP
-        combatSystem.ExecuteAction(combatId, ActionType.BASIC_ATTACK, targetId: targetId); // -10 HP
-        combatSystem.ExecuteAction(combatId, ActionType.BASIC_ATTACK, targetId: targetId); // -10 HP (dead)
+        combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "FIREBALL", targetId: targetId)); // -30 HP
+        combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.BASIC_ATTACK, targetId: targetId)); // -10 HP
+        combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.BASIC_ATTACK, targetId: targetId)); // -10 HP (dead)
 
         var finalState = combatSystem.GetCombatState(combatId).Value;
 
@@ -128,6 +128,23 @@ public class CombatIntegrationTests
                 new() { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET },
                 new() { Type = EffectType.MODIFY_RESOURCE, FlatValue = 1, TargetResource = "energy", Target = EffectTarget.SELF }
             }
+        };
+    }
+
+    private static CombatActionCommand Command(
+        string actorId,
+        ActionType actionType,
+        string? powerId = null,
+        string? targetId = null,
+        string? costOptionId = null)
+    {
+        return new CombatActionCommand
+        {
+            ActorId = actorId,
+            ActionType = actionType,
+            PowerId = powerId,
+            TargetId = targetId,
+            CostOptionId = costOptionId
         };
     }
 
