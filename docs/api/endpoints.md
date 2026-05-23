@@ -18,6 +18,7 @@ Swagger UI fica disponivel na raiz da aplicacao em ambiente de desenvolvimento.
 - Execucao generica de acontecimentos: use `/api/effect/apply`.
 - Dano isolado: `/api/damage/calculate` e `/api/damage/simulate` sao diagnosticos, nao caminho canonico de execucao.
 - Status: rota canonica `/api/status`; rotas antigas `/api/StatusEffect` e aliases de combate continuam para compatibilidade.
+- Modifiers e Gambits: rotas canonicas `/api/modifiers` e `/api/gambits`.
 
 ---
 
@@ -335,6 +336,89 @@ Tambem existem aliases como:
 - `POST /api/combat/{combatId}/entities/{targetId}/status/{instanceId}/add-stacks`
 - `POST /api/combat/{combatId}/entities/{targetId}/status/{instanceId}/refresh`
 - `DELETE /api/combat/{combatId}/entities/{targetId}/status`
+
+---
+
+## Script Modifiers
+
+Controla definicoes e instancias de modificadores data-driven.
+
+### GET `/api/modifiers`
+
+Lista modificadores disponiveis.
+
+### GET `/api/modifiers/{modifierId}`
+
+Retorna uma definicao especifica.
+
+### POST `/api/modifiers/reload?configName=default`
+
+Recarrega definicoes quando reload estiver habilitado.
+
+### POST `/api/modifiers/apply`
+
+Aplica um modificador a um owner/action.
+
+Request exemplo:
+
+```json
+{
+  "ownerId": "hero-1",
+  "modifierId": "GO_AGAIN",
+  "sourceId": "preparation",
+  "actionId": "fireball"
+}
+```
+
+### GET `/api/modifiers/active/{ownerId}`
+
+Lista instancias ativas de um owner.
+
+### GET `/api/modifiers/active/{ownerId}/pipeline?tags=offensive&tags=fire`
+
+Retorna modificadores aplicaveis ao pipeline filtrado por tags.
+
+### POST `/api/modifiers/active/{ownerId}/tick`
+
+Processa duracao/tick das instancias ativas.
+
+### DELETE `/api/modifiers/active/{ownerId}/{instanceId}`
+
+Remove uma instancia ativa.
+
+---
+
+## Gambits
+
+Controla regras data-driven para companions/IA. O endpoint atual decide a proxima acao; execucao automatica do turno de IA ainda pertence a Fase 3.
+
+### GET `/api/gambits`
+
+Lista definicoes de gambit.
+
+### GET `/api/gambits/{gambitId}`
+
+Retorna uma definicao especifica.
+
+### POST `/api/gambits/reload?configName=default`
+
+Recarrega regras quando reload estiver habilitado.
+
+### POST `/api/gambits/decide`
+
+Escolhe a melhor acao para uma entidade em combate com base na ordem/prioridade dos `gambitIds`.
+
+Request exemplo:
+
+```json
+{
+  "combatId": "00000000-0000-0000-0000-000000000001",
+  "entityId": "companion-1",
+  "gambitIds": ["heal_low_hp", "attack_weakest"]
+}
+```
+
+Observacao: este endpoint decide a acao; ele nao executa automaticamente todos os turnos de IA. A automacao deve entrar com endpoint futuro como `POST /api/combat/{combatId}/process-ai-turns`.
 
 ---
 

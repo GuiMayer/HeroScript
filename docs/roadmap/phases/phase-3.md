@@ -1,6 +1,6 @@
 # Fase 3 - Loop de Run
 
-**Status:** 📋 Planejado  
+**Status:** 📋 Próximo foco técnico
 **Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers, Gambits)
 
 ---
@@ -8,6 +8,14 @@
 ## Visão Geral
 
 A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs, seleção de cartas após combate, sistema de loja, e preparação antes do próximo combate. Esta fase conecta todos os sistemas anteriores em um fluxo de jogo coeso.
+
+## Decisões de Implementação
+
+- Começar por `RunState` e `DeckState`; eles são a fonte de verdade para ouro, PP, deck, mão, descarte, exhaust, recompensas e nó atual.
+- Regras de mão/deck devem ser data-driven: tamanho inicial da mão, deck inicial, draw/discard/shuffle/exhaust, pools de recompensa, preços e mapa.
+- Conectar os efeitos de deck/economia já existentes no `EffectResolver` a estado real antes de expor fluxos de UI.
+- Manter o frontend como camada de apresentação: sem regra de compra, descarte, loja, recompensa ou IA duplicada no cliente.
+- Corrigir a lacuna de integração visual com endpoints explícitos para mão/deck e processamento de turno/IA.
 
 ## APIs Planejadas
 
@@ -38,7 +46,19 @@ Gerenciamento do estado e progressão de runs.
 - Estrutura data-driven (RunDefinitionResource)
 - Segmentos e biomas
 - Pathfinding entre nós
-- Estado persistente da run
+- Estado em memória da run
+- Deck/hand/discard/exhaust como parte do estado da run
+
+### 1.1. Hand/Deck API
+
+Estado de cartas da run e do combate atual.
+
+**Endpoints planejados:**
+- `GET /api/run/{runId}/deck` - Obtém deck, descarte, exhaust e pilha de compra
+- `GET /api/run/{runId}/hand` - Obtém mão atual
+- `POST /api/run/{runId}/draw` - Compra cartas conforme regras data-driven
+- `POST /api/run/{runId}/discard` - Descarta cartas da mão
+- `POST /api/run/{runId}/shuffle` - Embaralha descarte quando necessário
 
 ### 2. CardSelection API
 
@@ -186,42 +206,49 @@ Preparação permite customização:
 
 ### Ordem de Implementação
 
-1. **Run Core** (src/Core/Run/)
-   - RunState, RunDefinition, NodeConfig
-   - RunManager, NodeResolver
-   - Pathfinding e progressão
+1. **Run/Deck Core** (`src/Core/Run/`)
+   - `RunState`, `DeckState`, `RunDefinition`, `NodeConfig`
+   - `RunManager`, `NodeResolver`, `DeckManager`
+   - Pathfinding, progressão, mão, draw, discard, exhaust e shuffle
+   - Integração dos effects `DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`, `GAIN_GOLD` e `GAIN_PP` com estado real
 
 2. **Run API** (src/API/Controllers/RunController.cs)
    - Start/end run
    - Advance node
    - Query state/map
+   - Query hand/deck state
 
-3. **CardSelection Core** (src/Core/Run/CardSelection/)
+3. **Integração Visual de Combate**
+   - `POST /api/combat/{combatId}/end-turn`
+   - `POST /api/combat/{combatId}/process-ai-turns`
+   - Eventos/polling/SSE para mudanças de estado
+
+4. **CardSelection Core** (src/Core/Run/CardSelection/)
    - CardOffer, CardPool
    - OfferGenerator, DeckManager
    - Reroll logic
 
-4. **CardSelection API** (src/API/Controllers/CardSelectionController.cs)
+5. **CardSelection API** (src/API/Controllers/CardSelectionController.cs)
    - Generate offers
    - Learn/decompose
    - Reroll
 
-5. **Shop Core** (src/Core/Run/Shop/)
+6. **Shop Core** (src/Core/Run/Shop/)
    - ShopInventory, ShopItem
    - PricingEngine, RerollCostCalculator
    - Purchase validation
 
-6. **Shop API** (src/API/Controllers/ShopController.cs)
+7. **Shop API** (src/API/Controllers/ShopController.cs)
    - Generate shop
    - Buy/sell items
    - Reroll
 
-7. **Preparation Core** (src/Core/Run/Preparation/)
+8. **Preparation Core** (src/Core/Run/Preparation/)
    - PreparationState
    - ModifierInjector
    - GambitConfigurator
 
-8. **Preparation API** (src/API/Controllers/PreparationController.cs)
+9. **Preparation API** (src/API/Controllers/PreparationController.cs)
    - Inject modifiers
    - Configure gambits
    - Preview changes
@@ -296,4 +323,4 @@ Após completar a Fase 3, a Fase 4 adicionará conteúdo MVP:
 - **Companion API** - Companions disponíveis
 - **Enemy API** - Inimigos e intents
 
-Ver: [PHASE_4.md](PHASE_4.md)
+Ver: [phase-4.md](phase-4.md)

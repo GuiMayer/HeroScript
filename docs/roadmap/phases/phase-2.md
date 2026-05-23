@@ -9,13 +9,13 @@
 
 A Fase 2 adiciona camadas de complexidade ao sistema de combate: status effects (buffs/debuffs), modificadores de script (Go Again, Multi-Hit, etc.), e o sistema de Gambits para companions. A estabilização foi concluída em 2026-05-17 com Status schemas unificados, Script Modifiers, Gambit Engine data-driven e Effect Engine consolidado cobrindo 20+ tipos de efeito.
 
-## Estado Atual Verificado (2026-05-17)
+## Estado Atual Verificado (2026-05-23)
 
 ### Implementado e estabilizado
 - `src/Core/StatusEffects/` com manager, processor, definitions, instances, timings, behaviors e types
 - `StatusEffectManager.DeserializeStatusDefinitions` aceita schema legado (array) e canonical (dictionary)
-- `src/Core/Modifiers/ScriptModifierManager.cs` com pipeline filtrado por tags, stacking e tick
-- `src/Core/AI/GambitEngine.cs` carrega regras JSON com condicoes/prioridade/acoes
+- `src/Core/Combat/Modifiers/ScriptModifierManager.cs` com pipeline filtrado por tags, stacking e tick
+- `src/Core/Combat/Gambits/GambitEngine.cs` carrega regras JSON com condicoes/prioridade/acoes
 - `src/Core/Effects/EffectResolver.cs` consolidado: economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb)
 - `src/API/Controllers/StatusEffectController.cs`
 - `src/API/Controllers/ModifierController.cs` com apply/active/pipeline/tick
@@ -46,7 +46,7 @@ A Fase 2 incluiu uma trilha obrigatória de compliance data-driven:
 - Runner de `API.Tests` instável em suite completa
 - Deck/Run/Shop state não existe (effects de deck/economia retornam metadata; precisa de `RunState`/`DeckState` na Fase 3)
 
-## APIs Planejadas
+## APIs Implementadas
 
 ### 1. Status API
 
@@ -81,9 +81,13 @@ Modificadores que alteram comportamento de poderes.
 
 **Endpoints:**
 - `GET /api/modifiers` - Lista modificadores disponíveis
-- `GET /api/modifiers/{name}` - Obtém detalhes de modificador
-- `POST /api/modifiers/validate` - Valida compatibilidade entre modificadores
-- `GET /api/modifiers/categories` - Agrupa modificadores por categoria
+- `GET /api/modifiers/{modifierId}` - Obtém detalhes de modificador
+- `POST /api/modifiers/reload?configName=default` - Recarrega definições
+- `POST /api/modifiers/apply` - Aplica modificador a um owner/action
+- `GET /api/modifiers/active/{ownerId}` - Lista instâncias ativas
+- `GET /api/modifiers/active/{ownerId}/pipeline?tags=offensive` - Retorna pipeline filtrado por tags
+- `POST /api/modifiers/active/{ownerId}/tick` - Processa duração de instâncias
+- `DELETE /api/modifiers/active/{ownerId}/{instanceId}` - Remove instância ativa
 
 **Modificadores Principais:**
 - **Go Again** - Permite usar outro poder após este
@@ -105,11 +109,10 @@ Modificadores que alteram comportamento de poderes.
 Sistema de companions com regras condicionais (IF/THEN).
 
 **Endpoints:**
-- `POST /api/gambits/configure` - Configura gambit para companion
-- `POST /api/gambits/evaluate` - Avalia se condição de gambit é satisfeita
-- `GET /api/gambits/triggers` - Lista triggers disponíveis
-- `GET /api/gambits/actions` - Lista ações disponíveis
-- `POST /api/gambits/{gambitId}/execute` - Executa ação de gambit
+- `GET /api/gambits` - Lista definições de gambit
+- `GET /api/gambits/{gambitId}` - Obtém definição específica
+- `POST /api/gambits/reload?configName=default` - Recarrega regras
+- `POST /api/gambits/decide` - Decide a próxima ação com base em `combatId`, `entityId` e `gambitIds`
 
 **Triggers (Condições):**
 - `HERO_HP_BELOW` - HP do herói abaixo de X%
@@ -165,54 +168,49 @@ Gambits reagem a eventos de combate:
 - ✅ EventBus (Fase 1)
 - ✅ CombatSystem (Fase 1)
 - ✅ BucketPipeline (Fase 1)
-- ⚠️ StatusSystem (parcial; estabilizar)
-- ⏳ ScriptModifierSystem (implementar)
-- ⏳ GambitEngine (implementar)
+- ✅ StatusSystem
+- ✅ ScriptModifierSystem
+- ✅ GambitEngine
 
 ### Ordem de Implementação
 
-1. **Status Core** (`src/Core/StatusEffects/`) - estabilizar
+1. **Status Core** (`src/Core/StatusEffects/`) - concluído
    - Aplicação real de DoT/HoT
-   - Fórmulas via MathEngine/ExpressionEvaluator
    - Testes de ciclo de vida, stacks, expiração e modificadores de pipeline
 
-2. **EffectResolver** (`src/Core/Effects/`) - estabilizar
+2. **EffectResolver** (`src/Core/Effects/`) - concluído para Fase 2
    - Dano via DamageCalculator
    - Cura/recurso via ResourceManager
    - Apply/remove status via StatusEffectManager
-   - Condições e fórmulas data-driven
+   - Condições e effects data-driven
 
-3. **CombatSystem + ActionManager** - integrado na primeira rodada
+3. **CombatSystem + ActionManager** - integrado
     - ✅ Validar `costOptionId`
     - ✅ Substituir custos hardcoded por `ApplyCosts`
-    - ⚠️ Processar todas as ações via Effect Application Engine quando implementado
+    - ✅ Processar ações JSON por `ActionDefinition` e `EffectDefinition`
 
 3.1. **Data-driven Compliance** - primeira rodada concluida
    - ✅ Carregar ações JSON descobertas
    - ✅ Mapear `BASIC_ATTACK`/`POWER` legados para `ActionDefinition`
    - ✅ Usar entidades JSON no início de combate quando disponíveis
    - ✅ Aplicar status por comportamento genérico
-   - ⚠️ Consolidar `EffectResolver`/executor de estado
+   - ✅ Consolidar `EffectResolver`/executor de estado para combate/status/modifiers
 
-4. **ScriptModifier Core** (src/Core/Combat/Modifiers/)
-   - ScriptModifier, ModifierDefinition
-   - ModifierValidator (compatibilidade)
-   - Integration com CombatSystem
+4. **ScriptModifier Core** (`src/Core/Combat/Modifiers/`) - concluído
+   - Definitions, instances, stacking, tick e pipeline filtrado
+   - Integração com `EffectResolver` e API
 
-5. **ScriptModifier API** (src/API/Controllers/ModifierController.cs)
-   - List modifiers
-   - Validate compatibility
-   - Query by category
+5. **ScriptModifier API** (`src/API/Controllers/ModifierController.cs`) - concluída
+   - List/get/reload
+   - Apply/active/pipeline/tick/remove
 
-6. **Gambit Core** (src/Core/Combat/Gambits/)
-   - Gambit, GambitCondition, GambitAction
-   - GambitEngine (evaluation)
-   - Sincronia com EventBus
+6. **Gambit Core** (`src/Core/Combat/Gambits/`) - concluído
+   - Definitions, conditions, priority and action decision
+   - Fallback seguro para PASS
 
-7. **Gambit API** (src/API/Controllers/GambitController.cs)
-   - Configure gambits
-   - Evaluate conditions
-   - Execute actions
+7. **Gambit API** (`src/API/Controllers/GambitController.cs`) - concluída
+   - List/get/reload
+   - Decide next action
 
 ---
 
@@ -232,37 +230,30 @@ Content-Type: application/json
 }
 ```
 
-### Validar Modificadores
+### Aplicar Modificador
 
 ```http
-POST /api/modifiers/validate
+POST /api/modifiers/apply
 Content-Type: application/json
 
 {
-  "powerId": "FIREBALL",
-  "modifiers": ["GO_AGAIN", "MULTI_HIT", "EXPLOSIVO"]
+  "ownerId": "hero-1",
+  "modifierId": "GO_AGAIN",
+  "sourceId": "preparation",
+  "actionId": "FIREBALL"
 }
 ```
 
-### Configurar Gambit
+### Decidir Gambit
 
 ```http
-POST /api/gambits/configure
+POST /api/gambits/decide
 Content-Type: application/json
 
 {
-  "companionId": "companion-1",
-  "priority": 1,
-  "condition": {
-    "type": "HERO_HP_BELOW",
-    "threshold": 0.5
-  },
-  "action": {
-    "type": "USE_POWER",
-    "powerId": "HEAL",
-    "target": "HERO"
-  },
-  "cooldown": 3
+  "combatId": "00000000-0000-0000-0000-000000000001",
+  "entityId": "companion-1",
+  "gambitIds": ["heal_low_hp", "attack_weakest"]
 }
 ```
 
@@ -270,7 +261,7 @@ Content-Type: application/json
 
 ## Próximos Passos
 
-Após estabilizar a Fase 2, a Fase 3 implementará o loop completo de run:
+Com a Fase 2 estabilizada, a Fase 3 implementará o loop completo de run:
 - **Run API** - Gerenciamento de runs
 - **CardSelection API** - Aprender/decompilar poderes
 - **Shop API** - Sistema de loja
