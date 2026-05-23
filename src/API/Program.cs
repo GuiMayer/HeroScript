@@ -104,9 +104,10 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
 builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var resourceManager = sp.GetRequiredService<IResourceManager>();
     var mathEngine = sp.GetRequiredService<IMathEngine>();
-    return new StatusEffectManager(configManager, resourceManager, mathEngine);
+    return new StatusEffectManager(configManager, resourceLoader, resourceManager, mathEngine);
 });
 
 // Register ActionManager

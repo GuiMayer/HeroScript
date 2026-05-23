@@ -3,29 +3,18 @@ using Core.Math;
 using Core.Resources;
 using Core.StatusEffects;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.StatusEffects;
 
 public sealed class StatusEffectManagerTests : IDisposable
 {
-    private readonly string _tempRoot;
     private readonly StatusEffectManager _manager;
 
     public StatusEffectManagerTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"heroscript-status-tests-{Guid.NewGuid():N}");
-        var statusDirectory = Path.Combine(_tempRoot, "StatusEffects");
-        Directory.CreateDirectory(statusDirectory);
-        File.WriteAllText(Path.Combine(statusDirectory, "status_effects.json"), TestStatusDefinitionsJson);
-
-        var configManager = new Mock<IConfigManager>();
-        configManager.Setup(m => m.GetConfigPath("test")).Returns(_tempRoot);
-
-        var resourceManager = new Mock<IResourceManager>();
-        var mathEngine = new Mock<IMathEngine>();
-
-        _manager = new StatusEffectManager(configManager.Object, resourceManager.Object, mathEngine.Object);
+        _manager = CreateManagerWithJson(TestStatusDefinitionsJson, "test");
         var loadResult = _manager.LoadStatusDefinitions("test");
 
         Assert.True(loadResult.IsSuccess, loadResult.IsFailure ? loadResult.Error : null);
@@ -133,36 +122,33 @@ public sealed class StatusEffectManagerTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_tempRoot))
-            Directory.Delete(_tempRoot, recursive: true);
     }
 
-    private static StatusEffectManager CreateManagerWithJson(string json)
+    private static StatusEffectManager CreateManagerWithJson(string json, string configName = "legacy")
     {
-        var tempRoot = Path.Combine(Path.GetTempPath(), $"heroscript-status-legacy-tests-{Guid.NewGuid():N}");
-        var statusDirectory = Path.Combine(tempRoot, "StatusEffects");
-        Directory.CreateDirectory(statusDirectory);
-        File.WriteAllText(Path.Combine(statusDirectory, "status_effects.json"), json);
+        var configManager = new Mock<IConfigManager>();
+        var resourceLoader = new Mock<IResourceLoader>();
+        configManager.Setup(m => m.ResolveInheritanceChain(configName)).Returns(new[] { configName });
+        resourceLoader
+            .Setup(m => m.LoadResource("StatusEffects/status_effects.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(json));
 
-        try
-        {
-            var configManager = new Mock<IConfigManager>();
-            configManager.Setup(m => m.GetConfigPath("legacy")).Returns(tempRoot);
+        var manager = new StatusEffectManager(
+            configManager.Object,
+            resourceLoader.Object,
+            new Mock<IResourceManager>().Object,
+            new Mock<IMathEngine>().Object);
 
-            var manager = new StatusEffectManager(
-                configManager.Object,
-                new Mock<IResourceManager>().Object,
-                new Mock<IMathEngine>().Object);
+        var load = manager.LoadStatusDefinitions(configName);
+        Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);
+        return manager;
+    }
 
-            var load = manager.LoadStatusDefinitions("legacy");
-            Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);
-            return manager;
-        }
-        finally
-        {
-            if (Directory.Exists(tempRoot))
-                Directory.Delete(tempRoot, recursive: true);
-        }
+    private static Dictionary<string, JsonElement> ParseResource(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
     }
 
     private const string TestStatusDefinitionsJson = """

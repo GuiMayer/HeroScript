@@ -16,6 +16,7 @@ namespace Core.StatusEffects;
 public class StatusEffectManager : IStatusEffectManager
 {
     private readonly IConfigManager _configManager;
+    private readonly IResourceLoader _resourceLoader;
     private readonly IResourceManager _resourceManager;
     private readonly IMathEngine _mathEngine;
     
@@ -30,10 +31,12 @@ public class StatusEffectManager : IStatusEffectManager
     
     public StatusEffectManager(
         IConfigManager configManager,
+        IResourceLoader resourceLoader,
         IResourceManager resourceManager,
         IMathEngine mathEngine)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
         
@@ -368,19 +371,17 @@ public class StatusEffectManager : IStatusEffectManager
     {
         try
         {
-            var configPath = _configManager.GetConfigPath(configName);
-            var statusPath = Path.Combine(configPath, "StatusEffects", "status_effects.json");
-            
-            if (!File.Exists(statusPath))
-                return Result.Failure($"Status effects file not found: {statusPath}");
-            
-            var json = File.ReadAllText(statusPath);
+            var chain = _configManager.ResolveInheritanceChain(configName);
+            var data = _resourceLoader.LoadResource("StatusEffects/status_effects.json", chain, strictMode: false);
+            if (data.Count == 0)
+                return Result.Failure("Status effects not found: StatusEffects/status_effects.json");
+
             var options = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             };
             options.Converters.Add(new JsonStringEnumConverter());
-            var definitions = DeserializeStatusDefinitions(json, options);
+            var definitions = DeserializeStatusDefinitions(data, options);
             
             if (definitions == null)
                 return Result.Failure("Failed to deserialize status effects");
@@ -412,17 +413,26 @@ public class StatusEffectManager : IStatusEffectManager
         return _definitions.Values.ToList();
     }
 
-    private static Dictionary<string, StatusEffectDefinition>? DeserializeStatusDefinitions(string json, JsonSerializerOptions options)
+    private static Dictionary<string, StatusEffectDefinition>? DeserializeStatusDefinitions(Dictionary<string, JsonElement> data, JsonSerializerOptions options)
     {
-        using var document = JsonDocument.Parse(json);
-
-        if (document.RootElement.TryGetProperty("statusEffects", out var legacyStatusEffects) &&
+        if (data.TryGetValue("statusEffects", out var legacyStatusEffects) &&
             legacyStatusEffects.ValueKind == JsonValueKind.Array)
         {
             return DeserializeLegacyStatusDefinitions(legacyStatusEffects);
         }
 
-        return JsonSerializer.Deserialize<Dictionary<string, StatusEffectDefinition>>(json, options);
+        var definitions = new Dictionary<string, StatusEffectDefinition>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, element) in data)
+        {
+            var definition = JsonSerializer.Deserialize<StatusEffectDefinition>(element.GetRawText(), options);
+            if (definition == null)
+                return null;
+
+            var statusId = string.IsNullOrWhiteSpace(definition.StatusId) ? key : definition.StatusId;
+            definitions[statusId] = definition with { StatusId = statusId };
+        }
+
+        return definitions;
     }
 
     private static Dictionary<string, StatusEffectDefinition> DeserializeLegacyStatusDefinitions(JsonElement statusEffects)
