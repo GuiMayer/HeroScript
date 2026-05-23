@@ -16,6 +16,7 @@ namespace Core.Tests.Damage;
 public class PipelineManagerTests
 {
     private readonly Mock<IResourceLoader> _mockResourceLoader;
+    private readonly Mock<IConfigManager> _mockConfigManager;
     private readonly Mock<IMathEngine> _mockMathEngine;
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<ILogger> _mockLogger;
@@ -25,6 +26,9 @@ public class PipelineManagerTests
     public PipelineManagerTests()
     {
         _mockResourceLoader = new Mock<IResourceLoader>();
+        _mockConfigManager = new Mock<IConfigManager>();
+        _mockConfigManager.SetupGet(c => c.DefaultConfig).Returns("test_config");
+        _mockConfigManager.Setup(c => c.ResolveInheritanceChain("test_config")).Returns(new[] { "test_config" });
         _mockMathEngine = new Mock<IMathEngine>();
         _mockEventBus = new Mock<IEventBus>();
         _mockLogger = new Mock<ILogger>();
@@ -35,7 +39,7 @@ public class PipelineManagerTests
     private PipelineManager CreateManager()
     {
         var loader = new PipelineConfigLoader(_mockResourceLoader.Object, _mockLoaderLogger.Object);
-        return new PipelineManager(loader, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object, _mockRandomProvider.Object);
+        return new PipelineManager(loader, _mockConfigManager.Object, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object, _mockRandomProvider.Object);
     }
 
     private void SetupResourceLoaderWithConfig(PipelineConfiguration config)
@@ -64,7 +68,16 @@ public class PipelineManagerTests
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new PipelineManager(null!, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object));
+            new PipelineManager(null!, _mockConfigManager.Object, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object));
+    }
+
+    [Fact]
+    public void Constructor_WithNullConfigManager_ThrowsArgumentNullException()
+    {
+        var loader = new PipelineConfigLoader(_mockResourceLoader.Object, _mockLoaderLogger.Object);
+
+        Assert.Throws<ArgumentNullException>(() =>
+            new PipelineManager(loader, null!, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object));
     }
 
     [Fact]
@@ -75,7 +88,7 @@ public class PipelineManagerTests
         
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new PipelineManager(loader, null!, _mockEventBus.Object, _mockLogger.Object));
+            new PipelineManager(loader, _mockConfigManager.Object, null!, _mockEventBus.Object, _mockLogger.Object));
     }
 
     [Fact]
@@ -86,7 +99,7 @@ public class PipelineManagerTests
         
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new PipelineManager(loader, _mockMathEngine.Object, null!, _mockLogger.Object));
+            new PipelineManager(loader, _mockConfigManager.Object, _mockMathEngine.Object, null!, _mockLogger.Object));
     }
 
     [Fact]
@@ -97,7 +110,7 @@ public class PipelineManagerTests
         
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
-            new PipelineManager(loader, _mockMathEngine.Object, _mockEventBus.Object, null!));
+            new PipelineManager(loader, _mockConfigManager.Object, _mockMathEngine.Object, _mockEventBus.Object, null!));
     }
 
     [Fact]
@@ -109,6 +122,7 @@ public class PipelineManagerTests
         // Act - não deve lançar exceção
         var manager = new PipelineManager(
             loader, 
+            _mockConfigManager.Object,
             _mockMathEngine.Object, 
             _mockEventBus.Object, 
             _mockLogger.Object, 
@@ -249,7 +263,7 @@ public class PipelineManagerTests
     }
 
     [Fact]
-    public void ReloadConfiguration_WithLoaderException_EmitsFailureEventAndUsesFallback()
+    public void ReloadConfiguration_WithLoaderException_EmitsFailureEventAndThrows()
     {
         // Arrange
         _mockResourceLoader.Setup(r => r.LoadResource(
@@ -260,21 +274,18 @@ public class PipelineManagerTests
 
         var manager = CreateManager();
 
-        // Act - não lança exceção, usa fallback
-        manager.ReloadConfiguration(new[] { "bad_config" });
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => manager.ReloadConfiguration(new[] { "bad_config" }));
 
-        // Assert - verifica que usou fallback (configuração base)
-        var config = manager.GetCurrentConfiguration();
-        Assert.NotNull(config);
-        Assert.NotEmpty(config.Buckets);
-        
-        // Verifica que logou o erro
-        _mockLoaderLogger.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Failed to load pipeline"))), Times.Once);
-        _mockLoaderLogger.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Falling back"))), Times.Once);
+        _mockEventBus.Verify(e => e.Publish(It.Is<PipelineReloadedEvent>(evt =>
+            evt.Success == false &&
+            evt.ErrorMessage == "Config load failed"
+        )), Times.Once);
+        _mockLogger.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Pipeline reload failed"))), Times.Once);
     }
 
     [Fact]
-    public void ReloadConfiguration_WithLoaderException_LogsErrorAndUsesFallback()
+    public void ReloadConfiguration_WithLoaderException_DoesNotCacheConfiguration()
     {
         // Arrange
         _mockResourceLoader.Setup(r => r.LoadResource(
@@ -285,17 +296,19 @@ public class PipelineManagerTests
 
         var manager = CreateManager();
 
-        // Act - não lança exceção, usa fallback
-        manager.ReloadConfiguration(new[] { "bad_config" });
+        // Act & Assert
+        Assert.Throws<InvalidOperationException>(() => manager.ReloadConfiguration(new[] { "bad_config" }));
 
-        // Assert
-        _mockLoaderLogger.Verify(l => l.LogError(It.Is<string>(s => s.Contains("Failed to load pipeline"))), Times.Once);
-        _mockLoaderLogger.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Falling back"))), Times.Once);
-        
-        // Verifica que a configuração fallback foi carregada
+        SetupResourceLoaderWithConfig(new PipelineConfiguration
+        {
+            Buckets = new List<BucketDefinition>
+            {
+                new BucketDefinition { BucketId = "recovered", Order = 1, Operations = new List<BucketOperation>() }
+            }
+        });
+
         var config = manager.GetCurrentConfiguration();
-        Assert.NotNull(config);
-        Assert.NotEmpty(config.Buckets);
+        Assert.Equal("recovered", config.Buckets.Single().BucketId);
     }
 
     // ==================== GET CURRENT CONFIGURATION ====================

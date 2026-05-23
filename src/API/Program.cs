@@ -139,6 +139,26 @@ builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<IRunManager, RunManager>();
 
+// Register damage pipeline
+builder.Services.AddSingleton<PipelineConfigLoader>(sp =>
+{
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PipelineConfigLoader"));
+    return new PipelineConfigLoader(resourceLoader, logger);
+});
+
+builder.Services.AddSingleton<IPipelineManager, PipelineManager>(sp =>
+{
+    var loader = sp.GetRequiredService<PipelineConfigLoader>();
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var mathEngine = sp.GetRequiredService<IMathEngine>();
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PipelineManager"));
+    return new PipelineManager(loader, configManager, mathEngine, eventBus, logger);
+});
+
 // Register DamageCalculator
 builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
 {

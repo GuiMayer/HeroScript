@@ -138,7 +138,7 @@ public class PipelineConfigLoaderTests
     }
 
     [Fact]
-    public void LoadPipeline_WithMissingBucketsKey_ReturnsFallbackConfiguration()
+    public void LoadPipeline_WithMissingBucketsKey_ThrowsInvalidOperationException()
     {
         // Arrange
         var configChain = new List<string> { "default" };
@@ -151,18 +151,11 @@ public class PipelineConfigLoaderTests
             .Setup(r => r.LoadResource("Pipelines/DamagePipeline.json", configChain, false))
             .Returns(rawData);
 
-        // Act
-        var result = _loader.LoadPipeline(configChain);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("fallback", result.ConfigName);
-        Assert.Single(result.Buckets);
-        Assert.Equal("base", result.Buckets[0].BucketId);
+        Assert.Throws<InvalidOperationException>(() => _loader.LoadPipeline(configChain));
     }
 
     [Fact]
-    public void LoadPipeline_WithInvalidJson_ReturnsFallbackConfiguration()
+    public void LoadPipeline_WithInvalidJson_ThrowsJsonException()
     {
         // Arrange
         var configChain = new List<string> { "default" };
@@ -171,17 +164,11 @@ public class PipelineConfigLoaderTests
             .Setup(r => r.LoadResource("Pipelines/DamagePipeline.json", configChain, false))
             .Throws(new JsonException("Invalid JSON"));
 
-        // Act
-        var result = _loader.LoadPipeline(configChain);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("fallback", result.ConfigName);
-        Assert.Single(result.Buckets);
+        Assert.Throws<JsonException>(() => _loader.LoadPipeline(configChain));
     }
 
     [Fact]
-    public void LoadPipeline_WithResourceLoaderException_ReturnsFallbackConfiguration()
+    public void LoadPipeline_WithResourceLoaderException_ThrowsInvalidOperationException()
     {
         // Arrange
         var configChain = new List<string> { "default" };
@@ -190,19 +177,11 @@ public class PipelineConfigLoaderTests
             .Setup(r => r.LoadResource("Pipelines/DamagePipeline.json", configChain, false))
             .Throws(new InvalidOperationException("Resource not found"));
 
-        // Act
-        var result = _loader.LoadPipeline(configChain);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("fallback", result.ConfigName);
-        _mockLogger.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Failed to load pipeline"))),
-            Times.Once);
+        Assert.Throws<InvalidOperationException>(() => _loader.LoadPipeline(configChain));
     }
 
     [Fact]
-    public void LoadPipeline_WithDuplicateBucketIds_ReturnsFallbackConfiguration()
+    public void LoadPipeline_WithDuplicateBucketIds_ThrowsInvalidOperationException()
     {
         // Arrange
         var configChain = new List<string> { "default" };
@@ -235,15 +214,7 @@ public class PipelineConfigLoaderTests
             .Setup(r => r.LoadResource("Pipelines/DamagePipeline.json", configChain, false))
             .Returns(rawData);
 
-        // Act
-        var result = _loader.LoadPipeline(configChain);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal("fallback", result.ConfigName);
-        _mockLogger.Verify(
-            l => l.LogError(It.Is<string>(s => s.Contains("Invalid pipeline config"))),
-            Times.Once);
+        Assert.Throws<InvalidOperationException>(() => _loader.LoadPipeline(configChain));
     }
 
     [Fact]
@@ -285,7 +256,7 @@ public class PipelineConfigLoaderTests
     }
 
     [Fact]
-    public void LoadPipeline_WithEmptyBucketsArray_ReturnsFallbackConfiguration()
+    public void LoadPipeline_WithEmptyBucketsArray_ThrowsInvalidOperationException()
     {
         // Arrange
         var configChain = new List<string> { "default" };
@@ -300,13 +271,7 @@ public class PipelineConfigLoaderTests
             .Setup(r => r.LoadResource("Pipelines/DamagePipeline.json", configChain, false))
             .Returns(rawData);
 
-        // Act
-        var result = _loader.LoadPipeline(configChain);
-
-        // Assert - Empty buckets fail validation, so fallback is returned
-        Assert.NotNull(result);
-        Assert.Equal("fallback", result.ConfigName);
-        Assert.Single(result.Buckets);
+        Assert.Throws<InvalidOperationException>(() => _loader.LoadPipeline(configChain));
     }
 
     [Fact]

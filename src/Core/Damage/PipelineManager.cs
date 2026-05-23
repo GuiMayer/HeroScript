@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Core.Config;
 using Core.Events;
 using Core.Logging;
 using Core.Math;
@@ -13,6 +14,7 @@ namespace Core.Damage;
 public class PipelineManager : IPipelineManager
 {
     private readonly PipelineConfigLoader? _loader;
+    private readonly IConfigManager? _configManager;
     private readonly IMathEngine _mathEngine;
     private readonly IEventBus _eventBus;
     private readonly ILogger _logger;
@@ -25,12 +27,14 @@ public class PipelineManager : IPipelineManager
 
     public PipelineManager(
         PipelineConfigLoader loader,
+        IConfigManager configManager,
         IMathEngine mathEngine,
         IEventBus eventBus,
         ILogger logger,
         IRandomProvider? randomProvider = null)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
+        _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -47,6 +51,7 @@ public class PipelineManager : IPipelineManager
         bool isFactoryCall)
     {
         _loader = null;
+        _configManager = null;
         _mathEngine = mathEngine;
         _eventBus = eventBus;
         _logger = logger;
@@ -110,6 +115,9 @@ public class PipelineManager : IPipelineManager
             
             try
             {
+                if (_loader == null)
+                    throw new InvalidOperationException("Pipeline manager was created with a fixed configuration and cannot reload from configs.");
+
                 _cachedConfig = _loader.LoadPipeline(configChain);
                 _cachedProcessors = InstantiateProcessors(_cachedConfig);
                 
@@ -151,7 +159,7 @@ public class PipelineManager : IPipelineManager
         {
             if (_cachedConfig == null)
             {
-                ReloadConfiguration(GetDefaultConfigChain());
+                ReloadConfiguration(GetConfiguredChain());
             }
             return _cachedConfig!;
         }
@@ -164,7 +172,7 @@ public class PipelineManager : IPipelineManager
             if (_cachedProcessors == null)
             {
                 // Lazy load na primeira execução
-                ReloadConfiguration(GetDefaultConfigChain());
+                ReloadConfiguration(GetConfiguredChain());
             }
             return _cachedProcessors!;
         }
@@ -179,10 +187,11 @@ public class PipelineManager : IPipelineManager
             .ToList();
     }
 
-    private IEnumerable<string> GetDefaultConfigChain()
+    private IEnumerable<string> GetConfiguredChain()
     {
-        // TODO: Obter de ConfigManager quando integrado
-        // Por enquanto, usa apenas "default"
-        return new[] { "default" };
+        if (_configManager == null)
+            throw new InvalidOperationException("Pipeline manager was created with a fixed configuration and cannot lazy-load from configs.");
+
+        return _configManager.ResolveInheritanceChain(_configManager.DefaultConfig);
     }
 }

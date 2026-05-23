@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Config;
 using Core.Logging;
 
@@ -26,47 +27,24 @@ public class PipelineConfigLoader
     /// </summary>
     public PipelineConfiguration LoadPipeline(IEnumerable<string> configChain)
     {
-        try
+        _logger.LogInformation("Loading damage pipeline configuration");
+
+        var rawData = _resourceLoader.LoadResource(
+            "Pipelines/DamagePipeline.json",
+            configChain,
+            strictMode: false
+        );
+
+        var config = DeserializePipeline(rawData);
+        config.Validate();
+
+        config = config with
         {
-            _logger.LogInformation("Loading damage pipeline configuration");
+            Buckets = config.Buckets.OrderBy(b => b.Order).ToList()
+        };
 
-            // 1. Carregar JSON via ResourceLoader
-            var rawData = _resourceLoader.LoadResource(
-                "Pipelines/DamagePipeline.json",
-                configChain,
-                strictMode: false
-            );
-
-            // 2. Deserializar
-            var config = DeserializePipeline(rawData);
-
-            // 3. Validar
-            try
-            {
-                config.Validate();
-            }
-            catch (InvalidOperationException ex)
-            {
-                _logger.LogError($"Invalid pipeline config: {ex.Message}");
-                _logger.LogWarning("Falling back to hardcoded configuration");
-                return GetFallbackConfiguration();
-            }
-
-            // 4. Ordenar buckets por Order
-            config = config with 
-            { 
-                Buckets = config.Buckets.OrderBy(b => b.Order).ToList() 
-            };
-
-            _logger.LogInformation($"Loaded pipeline '{config.ConfigName}' with {config.Buckets.Count} buckets");
-            return config;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Failed to load pipeline: {ex.Message}");
-            _logger.LogWarning("Falling back to hardcoded configuration");
-            return GetFallbackConfiguration();
-        }
+        _logger.LogInformation($"Loaded pipeline '{config.ConfigName}' with {config.Buckets.Count} buckets");
+        return config;
     }
 
     private PipelineConfiguration DeserializePipeline(Dictionary<string, JsonElement> rawData)
@@ -79,7 +57,7 @@ public class PipelineConfigLoader
 
         var buckets = JsonSerializer.Deserialize<List<BucketDefinition>>(
             bucketsElement.GetRawText(),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            CreateJsonOptions()
         );
 
         return new PipelineConfiguration
@@ -89,35 +67,11 @@ public class PipelineConfigLoader
         };
     }
 
-    /// <summary>
-    /// Retorna configuração hardcoded mínima (fallback)
-    /// </summary>
-    private PipelineConfiguration GetFallbackConfiguration()
+    private static JsonSerializerOptions CreateJsonOptions()
     {
-        _logger.LogInformation("Using fallback pipeline configuration (base bucket only)");
-
-        return new PipelineConfiguration
-        {
-            ConfigName = "fallback",
-            Buckets = new List<BucketDefinition>
-            {
-                new BucketDefinition
-                {
-                    BucketId = "base",
-                    Order = 1,
-                    FilterConditions = new List<FilterCondition>(),
-                    Operations = new List<BucketOperation>
-                    {
-                        new BucketOperation
-                        {
-                            Type = OperationType.ADD_FLAT,
-                            Source = "modifier:base_damage",
-                            Parameters = new Dictionary<string, object>()
-                        }
-                    },
-                    EmitEvents = true
-                }
-            }
-        };
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
+
 }
