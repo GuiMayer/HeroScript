@@ -1,6 +1,7 @@
 using API.Controllers;
 using Core.Common;
 using Core.Run;
+using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -22,7 +23,13 @@ public sealed class CardSelectionControllerTests
     public void Start_ReturnsSelectionOptions()
     {
         var runId = Guid.NewGuid();
-        var selection = new CardSelectionState { RunId = runId, SelectionId = "basic_reward", PickCount = 1, Options = new List<string> { "a" } };
+        var selection = new CardSelectionState
+        {
+            RunId = runId,
+            SelectionId = "basic_reward",
+            PickCount = 1,
+            Options = new List<CardSelectionOptionState> { new() { CardId = "a", Rarity = CardRarity.Common } }
+        };
         _runManager.Setup(m => m.CreateCardSelection(runId, "basic_reward")).Returns(Result<CardSelectionState>.Success(selection));
 
         var result = _controller.Start(runId, new StartCardSelectionRequest("basic_reward"));
@@ -40,6 +47,34 @@ public sealed class CardSelectionControllerTests
             .Returns(Result<CardSelectionState>.Failure("invalid"));
 
         var result = _controller.Pick(runId, selectionId, new PickCardsRequest(new[] { "x" }));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public void Reroll_DelegatesToRunManager()
+    {
+        var runId = Guid.NewGuid();
+        var selectionId = Guid.NewGuid();
+        var selection = new CardSelectionState { RunId = runId, SelectionId = "basic_reward", PickCount = 1 };
+        _runManager.Setup(m => m.RerollCardSelection(runId, selectionId, It.IsAny<IReadOnlyList<string>? >()))
+            .Returns(Result<CardSelectionState>.Success(selection));
+
+        var result = _controller.Reroll(runId, selectionId, new RerollCardSelectionRequest(new[] { "heal" }));
+
+        Assert.IsType<OkObjectResult>(result);
+        _runManager.Verify(m => m.RerollCardSelection(runId, selectionId, It.Is<IReadOnlyList<string>?>(ids => ids != null && ids.Contains("heal"))), Times.Once);
+    }
+
+    [Fact]
+    public void Decompose_ReturnsBadRequestOnFailure()
+    {
+        var runId = Guid.NewGuid();
+        var selectionId = Guid.NewGuid();
+        _runManager.Setup(m => m.DecomposeCardSelectionOption(runId, selectionId, "fireball"))
+            .Returns(Result<CardSelectionState>.Failure("invalid"));
+
+        var result = _controller.Decompose(runId, selectionId, "fireball");
 
         Assert.IsType<BadRequestObjectResult>(result);
     }

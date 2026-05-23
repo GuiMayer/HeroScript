@@ -43,6 +43,34 @@ public sealed class CardSelectionController : BaseApiController
         }
     }
 
+    [HttpPost("{selectionInstanceId:guid}/reroll")]
+    public IActionResult Reroll(Guid runId, Guid selectionInstanceId, [FromBody] RerollCardSelectionRequest? request = null)
+    {
+        try
+        {
+            var result = _runManager.RerollCardSelection(runId, selectionInstanceId, request?.LockedCardIds);
+            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapSelection(result.Value));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "reroll card selection", runId.ToString());
+        }
+    }
+
+    [HttpPost("{selectionInstanceId:guid}/decompose/{cardId}")]
+    public IActionResult Decompose(Guid runId, Guid selectionInstanceId, string cardId)
+    {
+        try
+        {
+            var result = _runManager.DecomposeCardSelectionOption(runId, selectionInstanceId, cardId);
+            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapSelection(result.Value));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "decompose card selection option", runId.ToString());
+        }
+    }
+
     private static object MapSelection(CardSelectionState selection)
     {
         return new
@@ -51,12 +79,19 @@ public sealed class CardSelectionController : BaseApiController
             selection.RunId,
             selection.SelectionId,
             selection.PickCount,
+            selection.OfferCount,
+            selection.CardPoolId,
             selection.Options,
+            selection.RerollsUsed,
+            selection.FreeRerollsRemaining,
+            selection.RerollCostGold,
             selection.Completed,
-            selection.PickedCardIds
+            selection.PickedCardIds,
+            selection.DecomposedCardIds
         };
     }
 }
 
 public sealed record StartCardSelectionRequest(string? SelectionId);
 public sealed record PickCardsRequest(IReadOnlyList<string> CardIds);
+public sealed record RerollCardSelectionRequest(IReadOnlyList<string>? LockedCardIds);

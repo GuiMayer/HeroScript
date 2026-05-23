@@ -12,6 +12,7 @@ using Core.Resources;
 using Core.Damage;
 using Core.Effects;
 using Core.Run;
+using Core.Run.Content;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
 
@@ -129,7 +130,9 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
     return new GambitEngine(configManager, resourceLoader);
 });
 
-// Register RunManager
+// Register Run content and manager
+builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
+builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<IRunManager, RunManager>();
 
 // Register DamageCalculator
