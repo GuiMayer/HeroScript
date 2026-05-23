@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Events;
+using System.Text.Json;
 
 namespace API.Controllers;
 
@@ -27,11 +28,19 @@ public class EventsController : ControllerBase
     /// <param name="category">Filtrar por categoria (COMBAT, PIPELINE, META, CONFIG, REALITY_BEND)</param>
     /// <param name="severity">Filtrar por severidade (DEBUG, INFO, WARN, ANOMALY)</param>
     /// <param name="limit">Número máximo de eventos a retornar (padrão: 100)</param>
+    /// <param name="afterSequence">Retornar apenas GameEvents com sequência maior que esta</param>
+    /// <param name="combatId">Filtrar por combatId no payload</param>
+    /// <param name="runId">Filtrar por runId no payload</param>
+    /// <param name="eventType">Filtrar por tipo de evento</param>
     [HttpGet]
     public IActionResult GetEvents(
         [FromQuery] string? category = null,
         [FromQuery] string? severity = null,
-        [FromQuery] int limit = 100)
+        [FromQuery] int limit = 100,
+        [FromQuery] int? afterSequence = null,
+        [FromQuery] Guid? combatId = null,
+        [FromQuery] Guid? runId = null,
+        [FromQuery] string? eventType = null)
     {
         try
         {
@@ -50,12 +59,18 @@ public class EventsController : ControllerBase
                 events = _eventBus.GetEventHistory();
             }
 
-            var limitedEvents = events.TakeLast(limit).ToList();
+            var filteredEvents = ApplyEventFilters(events, afterSequence, combatId, runId, eventType).ToList();
+            var limitedEvents = afterSequence.HasValue
+                ? filteredEvents.Take(limit).ToList()
+                : filteredEvents.TakeLast(limit).ToList();
+            var lastSequence = limitedEvents.OfType<GameEvent>().Select(e => e.Sequence).DefaultIfEmpty(afterSequence ?? -1).Max();
 
             return Ok(new
             {
-                total = events.Count,
+                total = filteredEvents.Count,
                 returned = limitedEvents.Count,
+                afterSequence,
+                lastSequence,
                 events = limitedEvents
             });
         }
@@ -64,6 +79,63 @@ public class EventsController : ControllerBase
             _logger.LogError(ex, "Error retrieving events");
             return StatusCode(500, new { error = "Failed to retrieve events", details = ex.Message });
         }
+    }
+
+    [HttpGet("~/api/combat/{combatId:guid}/events")]
+    public IActionResult GetCombatEvents(
+        Guid combatId,
+        [FromQuery] int? afterSequence = null,
+        [FromQuery] Guid? runId = null,
+        [FromQuery] string? eventType = null,
+        [FromQuery] int limit = 100)
+    {
+        return GetEvents(limit: limit, afterSequence: afterSequence, combatId: combatId, runId: runId, eventType: eventType);
+    }
+
+    [HttpGet("stream")]
+    public async Task StreamEvents(
+        [FromQuery] int afterSequence = -1,
+        [FromQuery] Guid? combatId = null,
+        [FromQuery] Guid? runId = null,
+        [FromQuery] string? eventType = null,
+        [FromQuery] int delayMs = 1000)
+    {
+        Response.Headers.Append("Cache-Control", "no-cache");
+        Response.Headers.Append("Connection", "keep-alive");
+        Response.ContentType = "text/event-stream";
+
+        var currentSequence = afterSequence;
+        var delay = TimeSpan.FromMilliseconds(Math.Clamp(delayMs, 250, 5000));
+
+        while (!HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            var events = ApplyEventFilters(_eventBus.GetEventHistory(), currentSequence, combatId, runId, eventType)
+                .OfType<GameEvent>()
+                .OrderBy(e => e.Sequence)
+                .ToList();
+
+            foreach (var gameEvent in events)
+            {
+                await Response.WriteAsync($"id: {gameEvent.Sequence}\n", HttpContext.RequestAborted);
+                await Response.WriteAsync($"event: {gameEvent.EventType}\n", HttpContext.RequestAborted);
+                await Response.WriteAsync($"data: {JsonSerializer.Serialize(gameEvent)}\n\n", HttpContext.RequestAborted);
+                currentSequence = gameEvent.Sequence;
+            }
+
+            await Response.Body.FlushAsync(HttpContext.RequestAborted);
+            await Task.Delay(delay, HttpContext.RequestAborted);
+        }
+    }
+
+    [HttpGet("~/api/combat/{combatId:guid}/events/stream")]
+    public Task StreamCombatEvents(
+        Guid combatId,
+        [FromQuery] int afterSequence = -1,
+        [FromQuery] Guid? runId = null,
+        [FromQuery] string? eventType = null,
+        [FromQuery] int delayMs = 1000)
+    {
+        return StreamEvents(afterSequence, combatId, runId, eventType, delayMs);
     }
 
     /// <summary>
@@ -132,5 +204,44 @@ public class EventsController : ControllerBase
             _logger.LogError(ex, "Error clearing event history");
             return StatusCode(500, new { error = "Failed to clear history", details = ex.Message });
         }
+    }
+
+    private static IEnumerable<IEvent> ApplyEventFilters(
+        IReadOnlyList<IEvent> events,
+        int? afterSequence,
+        Guid? combatId,
+        Guid? runId,
+        string? eventType)
+    {
+        return events.Where(e =>
+            MatchesSequence(e, afterSequence) &&
+            MatchesEventType(e, eventType) &&
+            MatchesPayloadGuid(e, "combatId", combatId) &&
+            MatchesPayloadGuid(e, "runId", runId));
+    }
+
+    private static bool MatchesSequence(IEvent @event, int? afterSequence)
+    {
+        return !afterSequence.HasValue || @event is GameEvent gameEvent && gameEvent.Sequence > afterSequence.Value;
+    }
+
+    private static bool MatchesEventType(IEvent @event, string? eventType)
+    {
+        return string.IsNullOrWhiteSpace(eventType) || string.Equals(@event.EventType, eventType, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool MatchesPayloadGuid(IEvent @event, string key, Guid? expected)
+    {
+        if (!expected.HasValue)
+            return true;
+        if (@event is not GameEvent gameEvent || !gameEvent.Payload.TryGetValue(key, out var value))
+            return false;
+
+        return value switch
+        {
+            Guid guid => guid == expected.Value,
+            string text => Guid.TryParse(text, out var parsed) && parsed == expected.Value,
+            _ => string.Equals(value?.ToString(), expected.Value.ToString(), StringComparison.OrdinalIgnoreCase)
+        };
     }
 }
