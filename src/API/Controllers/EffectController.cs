@@ -2,6 +2,7 @@ using API.Models.Actions;
 using API.Models.Effects;
 using Core.Combat;
 using Core.Effects;
+using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -15,15 +16,18 @@ public class EffectController : BaseApiController
 {
     private readonly IEffectResolver _effectResolver;
     private readonly ICombatSystem _combatSystem;
+    private readonly IRunManager _runManager;
 
     public EffectController(
         IEffectResolver effectResolver,
         ICombatSystem combatSystem,
+        IRunManager runManager,
         ILogger<EffectController> logger)
         : base(logger)
     {
         _effectResolver = effectResolver ?? throw new ArgumentNullException(nameof(effectResolver));
         _combatSystem = combatSystem ?? throw new ArgumentNullException(nameof(combatSystem));
+        _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
     [HttpGet("types")]
@@ -100,9 +104,17 @@ public class EffectController : BaseApiController
 
         if (scope == EffectScope.RUN)
         {
+            if (!Guid.TryParse(request.RunId, out var runId))
+                return ContextBuildResult.Failure(BadRequest(new { error = "RunId is required for run effects" }));
+
+            var runResult = _runManager.GetRun(runId);
+            if (runResult.IsFailure)
+                return ContextBuildResult.Failure(NotFound(new { error = runResult.Error }));
+
             return ContextBuildResult.Success(new RunEffectContext
             {
                 RunId = request.RunId ?? string.Empty,
+                RunState = runResult.Value,
                 SourceEntityId = request.SourceEntityId,
                 TargetEntityId = request.TargetEntityId,
                 SourceActionId = request.SourceActionId,
