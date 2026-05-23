@@ -138,6 +138,38 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public void CreateShop_WithPool_GeneratesPricedItems()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var shop = manager.CreateShop(run.RunId, "dynamic_shop");
+
+        Assert.True(shop.IsSuccess, shop.IsFailure ? shop.Error : null);
+        Assert.Equal("basic_rewards", shop.Value.CardPoolId);
+        Assert.Equal(2, shop.Value.Items.Count);
+        Assert.Contains(shop.Value.Items, item => item.CardId == "heal" && item.GoldCost == 18);
+        Assert.Contains(shop.Value.Items, item => item.CardId == "fireball" && item.GoldCost == 35);
+        Assert.All(shop.Value.Items, item => Assert.True(item.PricingBreakdown.ContainsKey("final")));
+    }
+
+    [Fact]
+    public void RerollShop_ChargesGoldAndRegeneratesItems()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
+
+        var reroll = manager.RerollShop(run.RunId, shop.ShopInstanceId);
+
+        Assert.True(reroll.IsSuccess, reroll.IsFailure ? reroll.Error : null);
+        Assert.Equal(15, run.Gold);
+        Assert.Equal(1, reroll.Value.RerollsUsed);
+        Assert.Equal(15, reroll.Value.RerollCostGold);
+        Assert.All(reroll.Value.Items, item => Assert.False(item.Purchased));
+    }
+
+    [Fact]
     public void ApplyPreparationOption_SpendsResourcesAndAddsConfiguredCards()
     {
         var manager = CreateManager();
@@ -286,6 +318,12 @@ public sealed class RunManagerTests
         _resourceLoader
             .Setup(m => m.LoadResource("card-pools/basic_rewards.json", It.IsAny<IEnumerable<string>>(), false))
             .Returns(ParseResource(CardPoolsJson));
+        _resourceLoader
+            .Setup(m => m.LoadResource("shops/dynamic_shop.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>
+            {
+                ["dynamic_shop"] = JsonDocument.Parse(DynamicShopJson).RootElement.GetProperty("dynamic_shop").Clone()
+            });
 
         var catalog = new CardContentCatalog(_configManager.Object, _resourceLoader.Object);
         var resolver = new CardPoolResolver(_configManager.Object, _resourceLoader.Object, catalog);
@@ -391,6 +429,33 @@ public sealed class RunManagerTests
         "shopId": "basic_shop",
         "items": [
           { "itemId": "buy_zap", "cardId": "zap", "goldCost": 10, "powerPointCost": 0 }
+        ]
+      }
+    }
+    """;
+
+    private const string DynamicShopJson = """
+    {
+      "dynamic_shop": {
+        "shopId": "dynamic_shop",
+        "cardPoolId": "basic_rewards",
+        "offerCount": 2,
+        "pricing": {
+          "baseMultiplier": 1.0,
+          "rarityMultipliers": {
+            "Common": 1.0,
+            "Uncommon": 1.25
+          },
+          "tagMultipliers": {
+            "fire": 1.1
+          }
+        },
+        "reroll": {
+          "baseGoldCost": 10,
+          "goldCostPerReroll": 5
+        },
+        "items": [
+          { "itemId": "buy_fireball", "cardId": "fireball", "goldCost": 25, "powerPointCost": 0 }
         ]
       }
     }

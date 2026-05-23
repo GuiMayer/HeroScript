@@ -20,6 +20,7 @@ public interface IRunManager
     Result<CardSelectionState> DecomposeCardSelectionOption(Guid runId, Guid selectionInstanceId, string cardId);
     Result<ShopState> CreateShop(Guid runId, string shopId);
     Result<ShopItemState> BuyShopItem(Guid runId, Guid shopInstanceId, string itemId);
+    Result<ShopState> RerollShop(Guid runId, Guid shopInstanceId);
     Result<PreparationState> CreatePreparation(Guid runId, string preparationId);
     Result<PreparationOptionState> ApplyPreparationOption(Guid runId, Guid preparationInstanceId, string optionId);
 }

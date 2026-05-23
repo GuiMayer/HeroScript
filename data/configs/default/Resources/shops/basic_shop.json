@@ -1,6 +1,25 @@
 {
   "basic_shop": {
     "shopId": "basic_shop",
+    "cardPoolId": "basic_rewards",
+    "offerCount": 3,
+    "pricing": {
+      "baseMultiplier": 1.0,
+      "rarityMultipliers": {
+        "Common": 1.0,
+        "Uncommon": 1.25,
+        "Rare": 1.6,
+        "Legendary": 2.5
+      },
+      "tagMultipliers": {
+        "starter": 0.75,
+        "fire": 1.1
+      }
+    },
+    "reroll": {
+      "baseGoldCost": 10,
+      "goldCostPerReroll": 5
+    },
     "items": [
       { "itemId": "buy_fireball", "cardId": "fireball", "goldCost": 25, "powerPointCost": 0 },
       { "itemId": "buy_heal", "cardId": "heal", "goldCost": 20, "powerPointCost": 0 }

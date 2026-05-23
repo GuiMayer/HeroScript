@@ -361,13 +361,12 @@ public sealed class RunManager : IRunManager
             {
                 RunId = runId,
                 ShopId = definition.ShopId,
-                Items = definition.Items.Select(item => new ShopItemState
-                {
-                    ItemId = item.ItemId,
-                    CardId = item.CardId,
-                    GoldCost = item.GoldCost,
-                    PowerPointCost = item.PowerPointCost
-                }).ToList()
+                CardPoolId = definition.CardPoolId,
+                OfferCount = definition.OfferCount,
+                Pricing = definition.Pricing,
+                Reroll = definition.Reroll,
+                RerollCostGold = CalculateShopRerollCost(definition.Reroll, 0),
+                Items = GenerateShopItems(state, definition)
             };
 
             state.Shops.Add(shop);
@@ -404,6 +403,33 @@ public sealed class RunManager : IRunManager
 
             item.Purchased = true;
             return Result<ShopItemState>.Success(item);
+        }
+    }
+
+    public Result<ShopState> RerollShop(Guid runId, Guid shopInstanceId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<ShopState>.Failure($"Run not found: {runId}");
+
+            var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
+            if (shop == null)
+                return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
+
+            var definitionResult = LoadShopDefinition(state.ConfigName, shop.ShopId);
+            if (definitionResult.IsFailure)
+                return Result<ShopState>.Failure(definitionResult.Error);
+
+            if (state.Gold < shop.RerollCostGold)
+                return Result<ShopState>.Failure($"Insufficient gold for shop reroll: {shop.ShopId}");
+
+            state.Gold -= shop.RerollCostGold;
+            shop.RerollsUsed++;
+            shop.RerollCostGold = CalculateShopRerollCost(shop.Reroll, shop.RerollsUsed);
+            shop.Items.Clear();
+            shop.Items.AddRange(GenerateShopItems(state, definitionResult.Value, shop.RerollsUsed));
+            return Result<ShopState>.Success(shop);
         }
     }
 
@@ -538,6 +564,85 @@ public sealed class RunManager : IRunManager
             CardRarity.Legendary => 3,
             _ => 99
         };
+    }
+
+    private List<ShopItemState> GenerateShopItems(RunState state, ShopDefinition definition, int offset = 0)
+    {
+        if (!string.IsNullOrWhiteSpace(definition.CardPoolId) && _cardPoolResolver != null)
+        {
+            var poolResult = _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
+            if (poolResult.IsSuccess)
+            {
+                return poolResult.Value.Cards
+                    .OrderBy(card => RarityRank(card.Rarity))
+                    .ThenBy(card => card.CardId, StringComparer.OrdinalIgnoreCase)
+                    .Skip(offset)
+                    .Take(System.Math.Max(1, definition.OfferCount))
+                    .Select((card, index) => ToShopItem(card, definition.Pricing, index))
+                    .ToList();
+            }
+        }
+
+        return definition.Items.Select((item, index) => ToShopItem(state.ConfigName, item, definition.Pricing, index)).ToList();
+    }
+
+    private ShopItemState ToShopItem(string configName, ShopItemDefinition item, ShopPricingRules pricing, int index)
+    {
+        if (!string.IsNullOrWhiteSpace(item.CardId) && _cardContentCatalog != null)
+        {
+            var cardResult = _cardContentCatalog.GetCard(item.CardId, configName);
+            if (cardResult.IsSuccess)
+                return ToShopItem(cardResult.Value, pricing, index, item.ItemId, item.PowerPointCost, item.GoldCost);
+        }
+
+        return new ShopItemState
+        {
+            ItemId = string.IsNullOrWhiteSpace(item.ItemId) ? $"item_{index + 1}" : item.ItemId,
+            CardId = item.CardId,
+            BaseGoldPrice = item.GoldCost,
+            GoldCost = item.GoldCost,
+            PowerPointCost = item.PowerPointCost
+        };
+    }
+
+    private static ShopItemState ToShopItem(CardContentDefinition card, ShopPricingRules pricing, int index, string? itemId = null, int powerPointCost = 0, int? explicitGoldCost = null)
+    {
+        var breakdown = CalculateShopPrice(card, pricing, explicitGoldCost);
+        return new ShopItemState
+        {
+            ItemId = string.IsNullOrWhiteSpace(itemId) ? $"buy_{card.CardId}_{index + 1}" : itemId,
+            CardId = card.CardId,
+            Rarity = card.Rarity,
+            Tags = card.Tags.ToList(),
+            BaseGoldPrice = card.BaseGoldPrice,
+            GoldCost = (int)System.Math.Ceiling(breakdown["final"]),
+            PowerPointCost = powerPointCost,
+            PricingBreakdown = breakdown
+        };
+    }
+
+    private static Dictionary<string, double> CalculateShopPrice(CardContentDefinition card, ShopPricingRules pricing, int? explicitGoldCost)
+    {
+        var basePrice = explicitGoldCost.GetValueOrDefault(card.BaseGoldPrice);
+        var rarityMultiplier = pricing.RarityMultipliers.TryGetValue(card.Rarity, out var rarityValue) ? rarityValue : 1.0;
+        var tagMultiplier = card.Tags
+            .Select(tag => pricing.TagMultipliers.TryGetValue(tag, out var value) ? value : 1.0)
+            .Aggregate(1.0, (current, value) => current * value);
+        var final = basePrice * pricing.BaseMultiplier * rarityMultiplier * tagMultiplier;
+
+        return new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["base"] = basePrice,
+            ["baseMultiplier"] = pricing.BaseMultiplier,
+            ["rarityMultiplier"] = rarityMultiplier,
+            ["tagMultiplier"] = tagMultiplier,
+            ["final"] = final
+        };
+    }
+
+    private static int CalculateShopRerollCost(ShopRerollRules rules, int rerollsUsed)
+    {
+        return rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll;
     }
 
     private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)
