@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Combat;
+using Core.Combat.Gambits;
 using Core.Combat.Models;
 using Core.Effects;
 using API.Models.Combat;
+using API.Models.Gambits;
 
 namespace API.Controllers;
 
@@ -16,17 +18,20 @@ public class CombatController : BaseApiController
     private readonly ICombatSystem _combatSystem;
     private readonly IActionManager _actionManager;
     private readonly IActionAffordabilityService _affordabilityService;
+    private readonly IGambitEngine _gambitEngine;
 
     public CombatController(
         ICombatSystem combatSystem, 
         IActionManager actionManager,
         IActionAffordabilityService affordabilityService,
+        IGambitEngine gambitEngine,
         ILogger<CombatController> logger)
         : base(logger)
     {
         _combatSystem = combatSystem ?? throw new ArgumentNullException(nameof(combatSystem));
         _actionManager = actionManager ?? throw new ArgumentNullException(nameof(actionManager));
         _affordabilityService = affordabilityService ?? throw new ArgumentNullException(nameof(affordabilityService));
+        _gambitEngine = gambitEngine ?? throw new ArgumentNullException(nameof(gambitEngine));
     }
 
     /// <summary>
@@ -82,6 +87,59 @@ public class CombatController : BaseApiController
         catch (Exception ex)
         {
             return HandleException(ex, "execute action", combatId.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Encerra o turno atual usando a ação data-driven END_TURN.
+    /// </summary>
+    [HttpPost("{combatId}/end-turn")]
+    public IActionResult EndTurn(Guid combatId)
+    {
+        try
+        {
+            var result = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error });
+
+            return Ok(MapToStateResponse(result.Value));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "end turn", combatId.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Processa decisões de IA via Gambits para inimigos vivos.
+    /// </summary>
+    [HttpPost("{combatId}/process-ai-turns")]
+    public IActionResult ProcessAiTurns(Guid combatId, [FromBody] ProcessAiTurnsRequest? request = null)
+    {
+        try
+        {
+            var stateResult = _combatSystem.GetCombatState(combatId);
+            if (stateResult.IsFailure)
+                return NotFound(new { error = stateResult.Error });
+
+            var state = stateResult.Value;
+            var enemies = state.Enemies.Where(e => e.IsAlive).ToList();
+            var decisions = enemies.Select(enemy => DecideAiAction(enemy, state, request?.GambitIds)).ToList();
+
+            return Ok(new
+            {
+                combatId,
+                processedEnemies = decisions.Count,
+                executed = false,
+                executionReason = "CombatSystem ainda nao executa acoes por ator arbitrario; este endpoint centraliza a decisao de IA no backend.",
+                decisions,
+                state = MapToStateResponse(state)
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "process AI turns", combatId.ToString());
         }
     }
 
@@ -377,6 +435,33 @@ public class CombatController : BaseApiController
         };
     }
 
+    private object DecideAiAction(CombatEntity enemy, CombatState state, IEnumerable<string>? gambitIds)
+    {
+        var entity = new Core.Entity.Entity
+        {
+            EntityId = enemy.EntityId,
+            DisplayName = enemy.Name
+        };
+
+        var decisionResult = _gambitEngine.DecideAction(entity, state, gambitIds);
+        if (decisionResult.IsFailure)
+        {
+            return new
+            {
+                entityId = enemy.EntityId,
+                executed = false,
+                error = decisionResult.Error
+            };
+        }
+
+        return new
+        {
+            entityId = enemy.EntityId,
+            executed = false,
+            decision = GambitDecisionResponse.FromAction(enemy.EntityId, decisionResult.Value)
+        };
+    }
+
     private ActionDto MapToActionDto(CombatAction action)
     {
         return new ActionDto
@@ -393,3 +478,5 @@ public class CombatController : BaseApiController
         };
     }
 }
+
+public sealed record ProcessAiTurnsRequest(IReadOnlyList<string>? GambitIds);
