@@ -6,8 +6,10 @@ using Core.Events.Domain;
 using Core.Logging;
 using Core.Math;
 using Core.Resources;
+using Core.Run;
 using Core.StatusEffects;
 using System.Globalization;
+using System.Text.Json;
 
 namespace Core.Effects;
 
@@ -22,6 +24,7 @@ public class EffectResolver : IEffectResolver
     private readonly ILogger _logger;
     private readonly IRandomProvider _randomProvider;
     private readonly IStatusEffectManager? _statusEffectManager;
+    private readonly IRunManager? _runManager;
     
     // Cache de modificadores ativos por entidade
     private readonly Dictionary<string, List<EffectModifier>> _activeModifiers = new();
@@ -33,7 +36,8 @@ public class EffectResolver : IEffectResolver
         IEventBus eventBus,
         ILogger logger,
         IRandomProvider? randomProvider = null,
-        IStatusEffectManager? statusEffectManager = null)
+        IStatusEffectManager? statusEffectManager = null,
+        IRunManager? runManager = null)
     {
         _damageCalculator = damageCalculator;
         _resourceManager = resourceManager;
@@ -41,6 +45,7 @@ public class EffectResolver : IEffectResolver
         _logger = logger;
         _randomProvider = randomProvider ?? new DefaultRandomProvider();
         _statusEffectManager = statusEffectManager;
+        _runManager = runManager;
     }
 
     // ===== EXECUÇÃO =====
@@ -228,8 +233,8 @@ public class EffectResolver : IEffectResolver
                 // Economy
                 EffectType.GAIN_GOLD => ExecuteGainGoldEffect(effect, targetId, context),
                 EffectType.LOSE_GOLD => ExecuteLoseGoldEffect(effect, targetId, context),
-                EffectType.GAIN_PP => ExecuteEconomyEffect(effect, targetId, "pp", 1f),
-                EffectType.LOSE_PP => ExecuteEconomyEffect(effect, targetId, "pp", -1f),
+                EffectType.GAIN_PP => ExecuteEconomyEffect(effect, targetId, "pp", 1f, context),
+                EffectType.LOSE_PP => ExecuteEconomyEffect(effect, targetId, "pp", -1f, context),
 
                 // Status
                 EffectType.APPLY_STATUS => ExecuteApplyStatusEffect(effect, targetId, context),
@@ -237,10 +242,10 @@ public class EffectResolver : IEffectResolver
                 EffectType.DISPEL_STATUS => ExecuteDispelStatusEffect(effect, targetId, context),
 
                 // Deck
-                EffectType.DRAW_CARD => ExecuteDeckEffect(effect, targetId, "DRAW_CARD"),
-                EffectType.DISCARD_CARD => ExecuteDeckEffect(effect, targetId, "DISCARD_CARD"),
-                EffectType.EXHAUST_CARD => ExecuteDeckEffect(effect, targetId, "EXHAUST_CARD"),
-                EffectType.ADD_CARD_TO_HAND => ExecuteDeckEffect(effect, targetId, "ADD_CARD_TO_HAND"),
+                EffectType.DRAW_CARD => ExecuteDeckEffect(effect, targetId, "DRAW_CARD", context),
+                EffectType.DISCARD_CARD => ExecuteDeckEffect(effect, targetId, "DISCARD_CARD", context),
+                EffectType.EXHAUST_CARD => ExecuteDeckEffect(effect, targetId, "EXHAUST_CARD", context),
+                EffectType.ADD_CARD_TO_HAND => ExecuteDeckEffect(effect, targetId, "ADD_CARD_TO_HAND", context),
 
                 // Modifiers (metadata-only, applied by caller/pipeline)
                 EffectType.MODIFY_DAMAGE_DEALT => ExecuteModifierEffect(effect, targetId, "damage_dealt"),
@@ -330,10 +335,15 @@ public class EffectResolver : IEffectResolver
         var value = CalculateEffectValue(effect, targetId, context);
         
         _logger.LogDebug($"Executing GAIN_GOLD effect: {value} gold to {targetId}");
+
+        var runApply = ApplyRunEconomy(context, "gold", (int)System.MathF.Round(value));
+        if (runApply.IsFailure)
+            return EffectResult.CreateFailure(runApply.Error);
         
         return EffectResult.CreateSuccess(value, "gold") with
         {
-            AffectedEntityIds = new List<string> { targetId }
+            AffectedEntityIds = new List<string> { targetId },
+            Metadata = RunStateMetadata(runApply.Value)
         };
     }
 
@@ -342,10 +352,15 @@ public class EffectResolver : IEffectResolver
         var value = CalculateEffectValue(effect, targetId, context);
         
         _logger.LogDebug($"Executing LOSE_GOLD effect: {value} gold from {targetId}");
+
+        var runApply = ApplyRunEconomy(context, "gold", -(int)System.MathF.Round(value));
+        if (runApply.IsFailure)
+            return EffectResult.CreateFailure(runApply.Error);
         
         return EffectResult.CreateSuccess(-value, "gold") with
         {
-            AffectedEntityIds = new List<string> { targetId }
+            AffectedEntityIds = new List<string> { targetId },
+            Metadata = RunStateMetadata(runApply.Value)
         };
     }
 
@@ -475,43 +490,148 @@ public class EffectResolver : IEffectResolver
         };
     }
 
-    private EffectResult ExecuteEconomyEffect(EffectInstance effect, string targetId, string resource, float sign)
+    private EffectResult ExecuteEconomyEffect(EffectInstance effect, string targetId, string resource, float sign, IEffectContext context)
     {
         var value = (effect.Definition.FlatValue ?? 0f) * System.Math.Abs(sign);
         var signed = sign < 0 ? -value : value;
 
         _logger.LogDebug($"Executing economy effect: {resource} {signed:+0;-#} for {targetId}");
 
+        var runApply = ApplyRunEconomy(context, resource, (int)System.MathF.Round(signed));
+        if (runApply.IsFailure)
+            return EffectResult.CreateFailure(runApply.Error);
+
         return EffectResult.CreateSuccess() with
         {
             ValueApplied = signed,
             ResourceAffected = resource,
             AffectedEntityIds = new List<string> { targetId },
-            Metadata = new Dictionary<string, object>
-            {
-                ["economyResource"] = resource,
-                ["stateApplied"] = false
-            }
+            Metadata = RunStateMetadata(runApply.Value, new Dictionary<string, object> { ["economyResource"] = resource })
         };
     }
 
-    private EffectResult ExecuteDeckEffect(EffectInstance effect, string targetId, string operation)
+    private EffectResult ExecuteDeckEffect(EffectInstance effect, string targetId, string operation, IEffectContext context)
     {
         var count = (int)(effect.Definition.FlatValue ?? 1f);
 
         _logger.LogDebug($"Executing deck effect: {operation} x{count} for {targetId}");
 
+        var deckApply = ApplyRunDeckOperation(context, effect, operation, count);
+        if (deckApply.IsFailure)
+            return EffectResult.CreateFailure(deckApply.Error);
+
         return EffectResult.CreateSuccess() with
         {
             ValueApplied = count,
             AffectedEntityIds = new List<string> { targetId },
-            Metadata = new Dictionary<string, object>
+            Metadata = RunStateMetadata(deckApply.Value.RunState, new Dictionary<string, object>
             {
                 ["deckOperation"] = operation,
                 ["count"] = count,
-                ["stateApplied"] = false
-            }
+                ["cards"] = deckApply.Value.Cards
+            })
         };
+    }
+
+    private Result<RunState?> ApplyRunEconomy(IEffectContext context, string resource, int amount)
+    {
+        var runContext = context as RunEffectContext;
+        if (runContext?.RunState == null)
+            return Result<RunState?>.Success(null);
+
+        if (_runManager == null)
+            return Result<RunState?>.Failure("Run economy effects require IRunManager");
+
+        return _runManager.ApplyEconomy(runContext.RunState.RunId, resource, amount)
+            .Map<RunState?>(state => state);
+    }
+
+    private Result<(RunState? RunState, IReadOnlyList<string> Cards)> ApplyRunDeckOperation(
+        IEffectContext context,
+        EffectInstance effect,
+        string operation,
+        int count)
+    {
+        var runContext = context as RunEffectContext;
+        if (runContext?.RunState == null)
+            return Result<(RunState? RunState, IReadOnlyList<string> Cards)>.Success((null, Array.Empty<string>()));
+
+        if (_runManager == null)
+            return Result<(RunState? RunState, IReadOnlyList<string> Cards)>.Failure("Run deck effects require IRunManager");
+
+        Result<IReadOnlyList<string>> operationResult = operation switch
+        {
+            "DRAW_CARD" => _runManager.DrawCards(runContext.RunState.RunId, count),
+            "DISCARD_CARD" => _runManager.DiscardCards(runContext.RunState.RunId, SelectCards(effect, runContext.RunState.Deck.Hand, count)),
+            "EXHAUST_CARD" => _runManager.ExhaustCards(runContext.RunState.RunId, SelectCards(effect, runContext.RunState.Deck.Hand, count)),
+            "ADD_CARD_TO_HAND" => _runManager.AddCardsToHand(runContext.RunState.RunId, ResolveCardIds(effect, count)),
+            _ => Result<IReadOnlyList<string>>.Failure($"Unsupported deck operation: {operation}")
+        };
+
+        if (operationResult.IsFailure)
+            return Result<(RunState? RunState, IReadOnlyList<string> Cards)>.Failure(operationResult.Error);
+
+        var updatedRun = _runManager.GetRun(runContext.RunState.RunId);
+        if (updatedRun.IsFailure)
+            return Result<(RunState? RunState, IReadOnlyList<string> Cards)>.Failure(updatedRun.Error);
+
+        return Result<(RunState? RunState, IReadOnlyList<string> Cards)>.Success((updatedRun.Value, operationResult.Value));
+    }
+
+    private static IReadOnlyList<string> SelectCards(EffectInstance effect, IReadOnlyList<string> source, int count)
+    {
+        var explicitCards = ResolveCardIds(effect, count);
+        return explicitCards.Count > 0 ? explicitCards : source.Take(count).ToList();
+    }
+
+    private static IReadOnlyList<string> ResolveCardIds(EffectInstance effect, int count)
+    {
+        if (effect.Definition.Metadata.TryGetValue("cardIds", out var cardIds))
+        {
+            if (cardIds is JsonElement element && element.ValueKind == JsonValueKind.Array)
+            {
+                return element.EnumerateArray()
+                    .Select(item => item.GetString())
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .Select(id => id!)
+                    .ToList();
+            }
+
+            if (cardIds is IEnumerable<string> strings)
+                return strings.ToList();
+        }
+
+        if (effect.Definition.Metadata.TryGetValue("cardId", out var cardId))
+        {
+            if (cardId is JsonElement element && element.ValueKind == JsonValueKind.String)
+                return Enumerable.Repeat(element.GetString()!, count).ToList();
+
+            if (cardId is string value && !string.IsNullOrWhiteSpace(value))
+                return Enumerable.Repeat(value, count).ToList();
+        }
+
+        return Array.Empty<string>();
+    }
+
+    private static Dictionary<string, object> RunStateMetadata(RunState? state, Dictionary<string, object>? metadata = null)
+    {
+        var result = metadata != null
+            ? new Dictionary<string, object>(metadata)
+            : new Dictionary<string, object>();
+
+        result["stateApplied"] = state != null;
+        if (state != null)
+        {
+            result["runId"] = state.RunId;
+            result["gold"] = state.Gold;
+            result["powerPoints"] = state.PowerPoints;
+            result["handCount"] = state.Deck.Hand.Count;
+            result["drawPileCount"] = state.Deck.DrawPile.Count;
+            result["discardPileCount"] = state.Deck.DiscardPile.Count;
+            result["exhaustPileCount"] = state.Deck.ExhaustPile.Count;
+        }
+
+        return result;
     }
 
     private EffectResult ExecuteModifierEffect(EffectInstance effect, string targetId, string modifierKey)

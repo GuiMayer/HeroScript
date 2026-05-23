@@ -10,6 +10,7 @@ using Core.Combat.Gambits;
 using Core.Resources;
 using Core.Damage;
 using Core.Effects;
+using Core.Run;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
 
@@ -127,6 +128,9 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
     return new GambitEngine(configManager, resourceLoader);
 });
 
+// Register RunManager
+builder.Services.AddSingleton<IRunManager, RunManager>();
+
 // Register DamageCalculator
 builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
 {
@@ -147,7 +151,8 @@ builder.Services.AddSingleton<IEffectResolver, EffectResolver>(sp =>
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EffectResolver"));
     var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
-    return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, randomProvider: null, statusEffectManager: statusEffectManager);
+    var runManager = sp.GetRequiredService<IRunManager>();
+    return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, randomProvider: null, statusEffectManager: statusEffectManager, runManager: runManager);
 });
 
 // Register CombatSystem

@@ -1,0 +1,45 @@
+{
+  "default_run": {
+    "runId": "default_run",
+    "startingGold": 50,
+    "startingPowerPoints": 0,
+    "startingHandSize": 5,
+    "startingDeck": [
+      "basic_attack",
+      "basic_attack",
+      "basic_attack",
+      "basic_attack",
+      "basic_attack",
+      "defend",
+      "defend",
+      "defend",
+      "fireball",
+      "heal"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "start",
+        "nodeType": "combat",
+        "nextNodeIds": ["reward_1"]
+      },
+      {
+        "nodeId": "reward_1",
+        "nodeType": "card_selection",
+        "nextNodeIds": ["shop_1"]
+      },
+      {
+        "nodeId": "shop_1",
+        "nodeType": "shop",
+        "nextNodeIds": ["boss_1"]
+      },
+      {
+        "nodeId": "boss_1",
+        "nodeType": "combat",
+        "nextNodeIds": []
+      }
+    ],
+    "metadata": {
+      "description": "Default data-driven run definition for MVP loop"
+    }
+  }
+}

@@ -5,6 +5,7 @@ using Core.Effects;
 using Core.Events;
 using Core.Logging;
 using Core.Resources;
+using Core.Run;
 using Core.StatusEffects;
 using Moq;
 using Xunit;
@@ -18,6 +19,7 @@ public class EffectResolverTests
     private readonly Mock<IEventBus> _eventBus = new();
     private readonly Mock<ILogger> _logger = new();
     private readonly Mock<IStatusEffectManager> _statusEffectManager = new();
+    private readonly Mock<IRunManager> _runManager = new();
 
     [Fact]
     public void ResolveEffect_DamageWithFormula_UsesCalculatedValue()
@@ -242,6 +244,94 @@ public class EffectResolverTests
     }
 
     [Fact]
+    public void ApplyEffect_RunGoldEffect_WithRunState_AppliesEconomyState()
+    {
+        var runState = new RunState { Gold = 10 };
+        _runManager
+            .Setup(m => m.ApplyEconomy(runState.RunId, "gold", 25))
+            .Returns(Result<RunState>.Success(runState with { Gold = 35 }));
+
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = "reward-node",
+            TargetEntityId = "player",
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.GAIN_GOLD,
+                FlatValue = 25
+            }
+        };
+        var context = new RunEffectContext
+        {
+            RunId = runState.RunId.ToString(),
+            RunState = runState,
+            SourceEntityId = "reward-node",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True((bool)result.Value!.EffectResult.Metadata["stateApplied"]);
+        Assert.Equal(35, result.Value.EffectResult.Metadata["gold"]);
+        _runManager.Verify(m => m.ApplyEconomy(runState.RunId, "gold", 25), Times.Once);
+    }
+
+    [Fact]
+    public void ApplyEffect_DrawCard_WithRunState_AppliesDeckState()
+    {
+        var runState = new RunState
+        {
+            Deck = new DeckState
+            {
+                DrawPile = new List<string> { "a", "b", "c" }
+            }
+        };
+        var updatedState = runState with
+        {
+            Deck = new DeckState
+            {
+                DrawPile = new List<string> { "c" },
+                Hand = new List<string> { "a", "b" }
+            }
+        };
+        _runManager.Setup(m => m.DrawCards(runState.RunId, 2)).Returns(Result<IReadOnlyList<string>>.Success(new[] { "a", "b" }));
+        _runManager.Setup(m => m.GetRun(runState.RunId)).Returns(Result<RunState>.Success(updatedState));
+
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            InstanceId = Guid.NewGuid().ToString(),
+            Definition = new EffectDefinition
+            {
+                EffectId = "draw1",
+                Type = EffectType.DRAW_CARD,
+                Target = EffectTarget.SELF,
+                FlatValue = 2
+            },
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var context = new RunEffectContext
+        {
+            RunId = runState.RunId.ToString(),
+            RunState = runState,
+            SourceEntityId = "player",
+            TargetEntityId = "player"
+        };
+
+        var result = resolver.ApplyEffect(effect, context);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True((bool)result.Value!.EffectResult.Metadata["stateApplied"]);
+        Assert.Equal(2, result.Value.EffectResult.Metadata["handCount"]);
+        Assert.Equal(new[] { "a", "b" }, (IReadOnlyList<string>)result.Value.EffectResult.Metadata["cards"]);
+        _runManager.Verify(m => m.DrawCards(runState.RunId, 2), Times.Once);
+    }
+
+    [Fact]
     public void ApplyEffect_DispelStatus_RemovesAllStatus()
     {
         var targetGuid = Guid.NewGuid();
@@ -343,7 +433,8 @@ public class EffectResolverTests
             _resourceManager.Object,
             _eventBus.Object,
             _logger.Object,
-            statusEffectManager: _statusEffectManager.Object);
+            statusEffectManager: _statusEffectManager.Object,
+            runManager: _runManager.Object);
     }
 
     private static CombatState CreateCombatState(string sourceId, string targetId, float targetHealth = 100)
