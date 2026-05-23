@@ -137,6 +137,56 @@ public sealed class RunManager : IRunManager
         }
     }
 
+    public Result<bool> HasCardInHand(Guid runId, string cardId)
+    {
+        if (string.IsNullOrWhiteSpace(cardId))
+            return Result<bool>.Failure("Card id is required");
+
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<bool>.Failure($"Run not found: {runId}");
+
+            return Result<bool>.Success(state.Deck.Hand.Contains(cardId));
+        }
+    }
+
+    public Result<IReadOnlyList<string>> ConsumeCardsFromHand(Guid runId, IReadOnlyList<string> cardIds, CardConsumeDestination destination)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
+
+            var cards = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
+            if (cards.Count == 0)
+                return Result<IReadOnlyList<string>>.Failure("At least one card id is required");
+
+            var handSnapshot = state.Deck.Hand.ToList();
+            foreach (var cardId in cards)
+            {
+                if (!handSnapshot.Remove(cardId))
+                    return Result<IReadOnlyList<string>>.Failure($"Card not found in hand: {cardId}");
+            }
+
+            if (destination == CardConsumeDestination.None)
+                return Result<IReadOnlyList<string>>.Success(cards);
+
+            foreach (var cardId in cards)
+            {
+                state.Deck.Hand.Remove(cardId);
+                if (destination == CardConsumeDestination.Discard)
+                    state.Deck.DiscardPile.Add(cardId);
+                else if (destination == CardConsumeDestination.Exhaust)
+                    state.Deck.ExhaustPile.Add(cardId);
+                else
+                    return Result<IReadOnlyList<string>>.Failure($"Unsupported card consume destination: {destination}");
+            }
+
+            return Result<IReadOnlyList<string>>.Success(cards);
+        }
+    }
+
     public Result ShuffleDiscardIntoDrawPile(Guid runId)
     {
         lock (_lock)

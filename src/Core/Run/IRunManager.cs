@@ -11,6 +11,8 @@ public interface IRunManager
     Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds);
     Result<IReadOnlyList<string>> ExhaustCards(Guid runId, IReadOnlyList<string> cardIds);
     Result<IReadOnlyList<string>> AddCardsToHand(Guid runId, IReadOnlyList<string> cardIds);
+    Result<bool> HasCardInHand(Guid runId, string cardId);
+    Result<IReadOnlyList<string>> ConsumeCardsFromHand(Guid runId, IReadOnlyList<string> cardIds, CardConsumeDestination destination);
     Result ShuffleDiscardIntoDrawPile(Guid runId);
     Result<CardSelectionState> CreateCardSelection(Guid runId, string selectionId);
     Result<CardSelectionState> PickCards(Guid runId, Guid selectionInstanceId, IReadOnlyList<string> cardIds);

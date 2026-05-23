@@ -104,6 +104,87 @@ public sealed class RunManagerTests
         Assert.Contains("heal", run.Deck.DiscardPile);
     }
 
+    [Fact]
+    public void ConsumeCardsFromHand_Discard_RemovesFromHandAndAddsToDiscard()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "strike" }, CardConsumeDestination.Discard);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.DoesNotContain("strike", run.Deck.Hand);
+        Assert.Contains("strike", run.Deck.DiscardPile);
+    }
+
+    [Fact]
+    public void ConsumeCardsFromHand_Exhaust_RemovesFromHandAndAddsToExhaust()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "defend" }, CardConsumeDestination.Exhaust);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.DoesNotContain("defend", run.Deck.Hand);
+        Assert.Contains("defend", run.Deck.ExhaustPile);
+    }
+
+    [Fact]
+    public void ConsumeCardsFromHand_None_KeepsCardInHand()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "strike" }, CardConsumeDestination.None);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Contains("strike", run.Deck.Hand);
+        Assert.DoesNotContain("strike", run.Deck.DiscardPile);
+        Assert.DoesNotContain("strike", run.Deck.ExhaustPile);
+    }
+
+    [Fact]
+    public void ConsumeCardsFromHand_MissingCard_Fails()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "missing" }, CardConsumeDestination.Discard);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Card not found in hand", result.Error);
+    }
+
+    [Fact]
+    public void ConsumeCardsFromHand_DuplicateCards_RemovesSingleOccurrence()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        run.Deck.Hand.Add("strike");
+
+        var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "strike" }, CardConsumeDestination.Discard);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Single(run.Deck.Hand, card => card == "strike");
+        Assert.Single(run.Deck.DiscardPile, card => card == "strike");
+    }
+
+    [Fact]
+    public void HasCardInHand_ReturnsWhetherCardExists()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var present = manager.HasCardInHand(run.RunId, "strike");
+        var missing = manager.HasCardInHand(run.RunId, "missing");
+
+        Assert.True(present.IsSuccess, present.IsFailure ? present.Error : null);
+        Assert.True(missing.IsSuccess, missing.IsFailure ? missing.Error : null);
+        Assert.True(present.Value);
+        Assert.False(missing.Value);
+    }
+
     private RunManager CreateManager()
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
