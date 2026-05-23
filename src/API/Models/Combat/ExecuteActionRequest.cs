@@ -13,4 +13,6 @@ public class ExecuteActionRequest
     public string? PowerId { get; set; }
     public string? TargetId { get; set; }
     public string? CostOptionId { get; set; }  // ID da opção de custo alternativo (opcional)
+    public Guid? RunId { get; set; }
+    public string? CardId { get; set; }
 }

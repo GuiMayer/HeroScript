@@ -1,10 +1,12 @@
 using API.Controllers;
+using API.Models.Combat;
 using Core.Combat;
 using Core.Combat.Gambits;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Entity.Controllers;
 using Core.Resources;
+using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -18,6 +20,7 @@ public sealed class CombatControllerTurnTests
     private readonly Mock<IActionManager> _actionManager = new();
     private readonly Mock<IActionAffordabilityService> _affordabilityService = new();
     private readonly Mock<IGambitEngine> _gambitEngine = new();
+    private readonly Mock<ICombatRunCoordinator> _combatRunCoordinator = new();
     private readonly CombatController _controller;
 
     public CombatControllerTurnTests()
@@ -27,6 +30,7 @@ public sealed class CombatControllerTurnTests
             _actionManager.Object,
             _affordabilityService.Object,
             _gambitEngine.Object,
+            _combatRunCoordinator.Object,
             Mock.Of<ILogger<CombatController>>());
     }
 
@@ -100,6 +104,57 @@ public sealed class CombatControllerTurnTests
             c.ActorId == "enemy_1" &&
             c.ActionType == ActionType.BASIC_ATTACK &&
             c.TargetId == "hero")), Times.Once);
+    }
+
+    [Fact]
+    public void ExecuteAction_WithRunId_UsesCombatRunCoordinator()
+    {
+        var state = CreateCombatState();
+        var runId = Guid.NewGuid();
+        var run = new RunState
+        {
+            RunId = runId,
+            Deck = new DeckState
+            {
+                Hand = new List<string>(),
+                DiscardPile = new List<string> { "fireball" }
+            }
+        };
+
+        _actionManager.Setup(m => m.GetDefinition("fireball"))
+            .Returns(Result<ActionDefinition>.Success(new ActionDefinition
+            {
+                ActionId = "fireball",
+                ActionType = ActionType.POWER
+            }));
+        _combatRunCoordinator
+            .Setup(c => c.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(command =>
+                command.ActorId == "hero" &&
+                command.RunId == runId &&
+                command.CardId == "fireball" &&
+                command.PowerId == "fireball" &&
+                command.TargetId == "enemy_1")))
+            .Returns(Result<CombatRunActionResult>.Success(new CombatRunActionResult
+            {
+                CombatState = state,
+                RunState = run,
+                ConsumedCardId = "fireball",
+                Destination = CardConsumeDestination.Discard
+            }));
+
+        var result = _controller.ExecuteAction(state.CombatId, new ExecuteActionRequest
+        {
+            ActorId = "hero",
+            ActionId = "fireball",
+            TargetId = "enemy_1",
+            RunId = runId,
+            CardId = "fireball"
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+        _combatRunCoordinator.Verify(c => c.ExecuteAction(state.CombatId, It.IsAny<CombatActionCommand>()), Times.Once);
+        _combatSystem.Verify(s => s.ExecuteAction(It.IsAny<Guid>(), It.IsAny<CombatActionCommand>()), Times.Never);
     }
 
     private static CombatState CreateCombatState()

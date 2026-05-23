@@ -19,12 +19,14 @@ public class CombatController : BaseApiController
     private readonly IActionManager _actionManager;
     private readonly IActionAffordabilityService _affordabilityService;
     private readonly IGambitEngine _gambitEngine;
+    private readonly ICombatRunCoordinator _combatRunCoordinator;
 
     public CombatController(
         ICombatSystem combatSystem, 
         IActionManager actionManager,
         IActionAffordabilityService affordabilityService,
         IGambitEngine gambitEngine,
+        ICombatRunCoordinator combatRunCoordinator,
         ILogger<CombatController> logger)
         : base(logger)
     {
@@ -32,6 +34,7 @@ public class CombatController : BaseApiController
         _actionManager = actionManager ?? throw new ArgumentNullException(nameof(actionManager));
         _affordabilityService = affordabilityService ?? throw new ArgumentNullException(nameof(affordabilityService));
         _gambitEngine = gambitEngine ?? throw new ArgumentNullException(nameof(gambitEngine));
+        _combatRunCoordinator = combatRunCoordinator ?? throw new ArgumentNullException(nameof(combatRunCoordinator));
     }
 
     /// <summary>
@@ -74,14 +77,27 @@ public class CombatController : BaseApiController
             if (string.IsNullOrWhiteSpace(request.ActorId))
                 return BadRequest(new { error = "ActorId is required" });
 
-            var result = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+            var command = new CombatActionCommand
             {
                 ActorId = request.ActorId,
                 ActionType = actionType,
                 PowerId = powerId,
                 TargetId = request.TargetId,
-                CostOptionId = request.CostOptionId
-            });
+                CostOptionId = request.CostOptionId,
+                RunId = request.RunId,
+                CardId = request.CardId
+            };
+
+            if (request.RunId.HasValue)
+            {
+                var coordinatedResult = _combatRunCoordinator.ExecuteAction(combatId, command);
+                if (coordinatedResult.IsFailure)
+                    return BadRequest(new { error = coordinatedResult.Error });
+
+                return Ok(MapCombatRunActionResponse(coordinatedResult.Value));
+            }
+
+            var result = _combatSystem.ExecuteAction(combatId, command);
 
             if (result.IsFailure)
                 return BadRequest(new { error = result.Error });
@@ -455,6 +471,41 @@ public class CombatController : BaseApiController
                 Maximum = state.Energy.Maximum
             },
             TotalActions = state.ActionHistory.Count
+        };
+    }
+
+    private object MapCombatRunActionResponse(CombatRunActionResult result)
+    {
+        return new
+        {
+            combat = MapToStateResponse(result.CombatState),
+            run = new
+            {
+                result.RunState.RunId,
+                result.RunState.Gold,
+                result.RunState.PowerPoints,
+                deck = MapDeck(result.RunState.Deck)
+            },
+            consumedCardId = result.ConsumedCardId,
+            destination = result.Destination.ToString()
+        };
+    }
+
+    private static object MapDeck(Core.Run.DeckState deck)
+    {
+        return new
+        {
+            deck.DrawPile,
+            deck.Hand,
+            deck.DiscardPile,
+            deck.ExhaustPile,
+            counts = new
+            {
+                drawPile = deck.DrawPile.Count,
+                hand = deck.Hand.Count,
+                discardPile = deck.DiscardPile.Count,
+                exhaustPile = deck.ExhaustPile.Count
+            }
         };
     }
 

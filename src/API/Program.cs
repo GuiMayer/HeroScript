@@ -170,6 +170,9 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver);
 });
 
+// Register CombatRunCoordinator
+builder.Services.AddSingleton<ICombatRunCoordinator, CombatRunCoordinator>();
+
 // Register EntityFactory
 builder.Services.AddSingleton<IEntityFactory, Core.Combat.EntityFactory>();
 
