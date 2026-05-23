@@ -35,20 +35,41 @@ public sealed class CombatControllerTurnTests
     {
         var state = CreateCombatState();
         _combatSystem
-            .Setup(s => s.ExecuteAction(state.CombatId, ActionType.END_TURN, null, null, null))
+            .Setup(s => s.GetCombatState(state.CombatId))
+            .Returns(Result<CombatState>.Success(state));
+        _combatSystem
+            .Setup(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
+                c.ActorId == "hero" &&
+                c.ActionType == ActionType.END_TURN)))
             .Returns(Result<CombatState>.Success(state with { CurrentTurn = 2 }));
 
         var result = _controller.EndTurn(state.CombatId);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
-        _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, ActionType.END_TURN, null, null, null), Times.Once);
+        _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
+            c.ActorId == "hero" &&
+            c.ActionType == ActionType.END_TURN)), Times.Once);
     }
 
     [Fact]
-    public void ProcessAiTurns_ReturnsGambitDecisionsForAliveEnemies()
+    public void ProcessAiTurns_ExecutesGambitDecisionsForAliveEnemies()
     {
         var state = CreateCombatState();
+        var updatedState = state with
+        {
+            Hero = state.Hero.TakeDamage(10),
+            ActionHistory = new[]
+            {
+                new CombatAction
+                {
+                    ActorId = "enemy_1",
+                    ActionType = ActionType.BASIC_ATTACK,
+                    TargetId = "hero",
+                    DamageDealt = 10
+                }
+            }
+        };
         _combatSystem.Setup(s => s.GetCombatState(state.CombatId)).Returns(Result<CombatState>.Success(state));
         _gambitEngine
             .Setup(g => g.DecideAction(
@@ -60,6 +81,12 @@ public sealed class CombatControllerTurnTests
                 ActionType = ActionType.BASIC_ATTACK,
                 TargetId = "hero"
             }));
+        _combatSystem
+            .Setup(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
+                c.ActorId == "enemy_1" &&
+                c.ActionType == ActionType.BASIC_ATTACK &&
+                c.TargetId == "hero")))
+            .Returns(Result<CombatState>.Success(updatedState));
 
         var result = _controller.ProcessAiTurns(state.CombatId);
 
@@ -69,6 +96,10 @@ public sealed class CombatControllerTurnTests
             It.Is<Core.Entity.Entity>(e => e.EntityId == "enemy_1"),
             state,
             It.IsAny<IEnumerable<string>>()), Times.Once);
+        _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
+            c.ActorId == "enemy_1" &&
+            c.ActionType == ActionType.BASIC_ATTACK &&
+            c.TargetId == "hero")), Times.Once);
     }
 
     private static CombatState CreateCombatState()

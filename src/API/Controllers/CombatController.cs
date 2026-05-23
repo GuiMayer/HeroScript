@@ -71,12 +71,17 @@ public class CombatController : BaseApiController
             if (resolveResult != null)
                 return resolveResult;
 
-            var result = _combatSystem.ExecuteAction(
-                combatId,
-                actionType,
-                powerId,
-                request.TargetId,
-                request.CostOptionId);
+            if (string.IsNullOrWhiteSpace(request.ActorId))
+                return BadRequest(new { error = "ActorId is required" });
+
+            var result = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+            {
+                ActorId = request.ActorId,
+                ActionType = actionType,
+                PowerId = powerId,
+                TargetId = request.TargetId,
+                CostOptionId = request.CostOptionId
+            });
 
             if (result.IsFailure)
                 return BadRequest(new { error = result.Error });
@@ -98,7 +103,15 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var result = _combatSystem.ExecuteAction(combatId, ActionType.END_TURN);
+            var stateResult = _combatSystem.GetCombatState(combatId);
+            if (stateResult.IsFailure)
+                return NotFound(new { error = stateResult.Error });
+
+            var result = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+            {
+                ActorId = stateResult.Value.Hero.EntityId,
+                ActionType = ActionType.END_TURN
+            });
 
             if (result.IsFailure)
                 return BadRequest(new { error = result.Error });
@@ -124,15 +137,25 @@ public class CombatController : BaseApiController
                 return NotFound(new { error = stateResult.Error });
 
             var state = stateResult.Value;
-            var enemies = state.Enemies.Where(e => e.IsAlive).ToList();
-            var decisions = enemies.Select(enemy => DecideAiAction(enemy, state, request?.GambitIds)).ToList();
+            var decisions = new List<object>();
+
+            foreach (var enemyId in state.Enemies.Where(e => e.IsAlive).Select(e => e.EntityId).ToList())
+            {
+                var currentEnemy = state.GetEntity(enemyId);
+                if (currentEnemy == null || !currentEnemy.IsAlive || !state.IsActive)
+                    continue;
+
+                var decision = ExecuteAiAction(combatId, currentEnemy, state, request?.GambitIds, out var updatedState);
+                decisions.Add(decision);
+                if (updatedState != null)
+                    state = updatedState;
+            }
 
             return Ok(new
             {
                 combatId,
                 processedEnemies = decisions.Count,
-                executed = false,
-                executionReason = "CombatSystem ainda nao executa acoes por ator arbitrario; este endpoint centraliza a decisao de IA no backend.",
+                executed = decisions.Count > 0,
                 decisions,
                 state = MapToStateResponse(state)
             });
@@ -435,8 +458,9 @@ public class CombatController : BaseApiController
         };
     }
 
-    private object DecideAiAction(CombatEntity enemy, CombatState state, IEnumerable<string>? gambitIds)
+    private object ExecuteAiAction(Guid combatId, CombatEntity enemy, CombatState state, IEnumerable<string>? gambitIds, out CombatState? updatedState)
     {
+        updatedState = null;
         var entity = new Core.Entity.Entity
         {
             EntityId = enemy.EntityId,
@@ -454,11 +478,34 @@ public class CombatController : BaseApiController
             };
         }
 
+        var action = decisionResult.Value;
+        var executionResult = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+        {
+            ActorId = enemy.EntityId,
+            ActionType = action.ActionType,
+            PowerId = action.PowerId,
+            TargetId = action.TargetId,
+            CostOptionId = action.CostOptionId?.ToString()
+        });
+
+        if (executionResult.IsFailure)
+        {
+            return new
+            {
+                entityId = enemy.EntityId,
+                executed = false,
+                decision = GambitDecisionResponse.FromAction(enemy.EntityId, action),
+                error = executionResult.Error
+            };
+        }
+
+        updatedState = executionResult.Value;
+
         return new
         {
             entityId = enemy.EntityId,
-            executed = false,
-            decision = GambitDecisionResponse.FromAction(enemy.EntityId, decisionResult.Value)
+            executed = true,
+            decision = GambitDecisionResponse.FromAction(enemy.EntityId, action)
         };
     }
 

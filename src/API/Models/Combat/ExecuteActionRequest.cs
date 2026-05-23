@@ -2,6 +2,8 @@ namespace API.Models.Combat;
 
 public class ExecuteActionRequest
 {
+    public string ActorId { get; set; } = string.Empty;
+
     /// <summary>
     /// ID da acao data-driven. Quando informado, tem prioridade sobre ActionType/PowerId.
     /// </summary>
