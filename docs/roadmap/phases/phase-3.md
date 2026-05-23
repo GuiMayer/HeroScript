@@ -209,7 +209,8 @@ Preparação permite customização:
 - ✅ CardSelection primeira fatia implementada
 - ✅ Shop primeira fatia implementada
 - ✅ Preparation primeira fatia implementada
-- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e ator arbitrario no CombatSystem
+- ✅ CombatSystem executa acoes por ator arbitrario via `CombatActionCommand`
+- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores, ownership multiplayer e turnos por entidade
 
 ### Ordem de Implementação
 
@@ -226,9 +227,10 @@ Preparação permite customização:
    - Query hand/deck state
 
 3. **Integração Visual de Combate**
-   - `POST /api/combat/{combatId}/end-turn`
-   - `POST /api/combat/{combatId}/process-ai-turns`
-   - Eventos/polling/SSE para mudanças de estado
+    - `POST /api/combat/{combatId}/end-turn`
+   - `POST /api/combat/{combatId}/process-ai-turns` executa decisoes de IA no backend
+   - `POST /api/combat/{combatId}/action` exige `actorId` para player, IA, script e futuro multiplayer
+    - Eventos/polling/SSE para mudanças de estado
 
 4. **CardSelection Core** (src/Core/Run/CardSelection/)
    - CardOffer, CardPool

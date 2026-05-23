@@ -18,7 +18,7 @@ Este documento identifica lacunas na API REST atual que impedem a criação de u
 
 ### 1. Sistema de Mão de Cartas (Hand)
 
-**Status:** ❌ Ausente  
+**Status:** ✅ Implementado
 **Prioridade:** HIGH  
 **Fase:** 3
 
@@ -200,7 +200,8 @@ Messages:
 
 **Estado atual:**
 - `POST /api/combat/{combatId}/process-ai-turns` existe e centraliza decisoes de IA via `GambitEngine`.
-- A primeira fatia retorna `executed=false`; falta refatorar `CombatSystem` para executar acoes por ator arbitrario.
+- O endpoint agora executa as acoes dos inimigos vivos usando `CombatActionCommand` com `actorId` do inimigo.
+- `POST /api/combat/{combatId}/action` exige `actorId`, entao player, IA, script e futuro multiplayer usam o mesmo contrato.
 
 **Impacto:**
 - Frontend precisa implementar lógica de "esperar turno do inimigo"
@@ -237,8 +238,7 @@ Response: {
 - Sistema de turno (já existe)
 
 **Workaround Temporário:**
-- Frontend pode usar `process-ai-turns` para obter decisoes backend-authoritative e animar intencoes.
-- A mutacao real da acao inimiga ainda depende da proxima fatia de `CombatSystem`.
+- Frontend pode usar `process-ai-turns` para obter decisoes backend-authoritative e animar acoes ja aplicadas no estado final.
 
 ---
 
@@ -266,7 +266,7 @@ Response: {
 
 1. **Implementar `RunState` e `DeckState`** como fonte de verdade para deck, mão, descarte e exhaust.
 2. **Criar endpoints Hand/Deck** em `/api/run/{runId}/hand` e `/api/run/{runId}/deck` antes de CardSelection/Shop.
-3. **Refatorar `CombatSystem` para executar acoes por ator arbitrario**, completando `process-ai-turns` com mutacao real.
+3. **Ator arbitrario implementado no `CombatSystem`**; proxima evolucao e modelar ownership/autorizacao para multiplayer e turnos por entidade.
 4. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
 
 ### Para Fase 4 (Conteúdo MVP)

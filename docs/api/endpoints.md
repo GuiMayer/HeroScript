@@ -165,25 +165,27 @@ Quando IDs existem no loader de entidades, o Core cria combatentes a partir das 
 
 ### POST `/api/combat/{combatId}/action`
 
-Executa uma acao. O contrato preferido e `actionId`; `actionType`/`powerId` continuam como compatibilidade.
+Executa uma acao para um ator explicito. `actorId` e obrigatorio: player, IA, script e futuro multiplayer devem enviar o mesmo contrato actor-agnostic.
 
 Request recomendado:
 
 ```json
 {
+  "actorId": "player_warrior",
   "actionId": "fireball",
   "targetId": "enemy-1",
   "costOptionId": null
 }
 ```
 
-Request legado ainda aceito:
+Request por tipo/poder:
 
 ```json
 {
+  "actorId": "enemy_orc_warrior",
   "actionType": "POWER",
   "powerId": "fireball",
-  "targetId": "enemy-1"
+  "targetId": "player_warrior"
 }
 ```
 
@@ -209,11 +211,11 @@ Valida se uma acao pode ser paga com os recursos atuais.
 
 ### POST `/api/combat/{combatId}/end-turn`
 
-Executa `END_TURN` pelo `CombatSystem` e retorna `CombatStateResponse` atualizado.
+Executa `END_TURN` pelo `CombatSystem` e retorna `CombatStateResponse` atualizado. Esta rota usa o ator heroi atual como conveniencia; para qualquer outro ator, use `POST /api/combat/{combatId}/action` com `actorId` e `actionType: "END_TURN"`.
 
 ### POST `/api/combat/{combatId}/process-ai-turns`
 
-Centraliza a decisao de IA no backend usando `GambitEngine` para inimigos vivos. A resposta inclui `decisions` e o estado atual. Nesta primeira fatia, `executed=false` porque `CombatSystem` ainda nao executa acoes por ator arbitrario.
+Centraliza e executa decisoes de IA no backend usando `GambitEngine` para inimigos vivos. Cada decisao e convertida em um `CombatActionCommand` com `actorId` do inimigo e aplicada pelo `CombatSystem`; a resposta inclui `decisions` e o estado final.
 
 ### POST `/api/combat/{combatId}/end`
 
