@@ -12,7 +12,7 @@ public sealed class CardPoolResolver : ICardPoolResolver
     private readonly ICardContentCatalog _catalog;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly object _lock = new();
-    private readonly Dictionary<string, Dictionary<string, CardPoolDefinition>> _poolsByConfig = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CardPoolDefinition> _poolsByConfigAndId = new(StringComparer.OrdinalIgnoreCase);
 
     public CardPoolResolver(IConfigManager configManager, IResourceLoader resourceLoader, ICardContentCatalog catalog)
     {
@@ -28,13 +28,7 @@ public sealed class CardPoolResolver : ICardPoolResolver
         if (string.IsNullOrWhiteSpace(poolId))
             return Result<CardPoolDefinition>.Failure("PoolId cannot be empty");
 
-        var poolsResult = GetPools(configName);
-        if (poolsResult.IsFailure)
-            return Result<CardPoolDefinition>.Failure(poolsResult.Error);
-
-        return poolsResult.Value.TryGetValue(poolId, out var pool)
-            ? Result<CardPoolDefinition>.Success(pool)
-            : Result<CardPoolDefinition>.Failure($"Card pool definition not found: {poolId}");
+        return LoadPool(poolId, configName);
     }
 
     public Result<CardPoolResult> ResolvePool(string poolId, string configName = "default")
@@ -71,42 +65,47 @@ public sealed class CardPoolResolver : ICardPoolResolver
     {
         lock (_lock)
         {
-            _poolsByConfig.Clear();
+            _poolsByConfigAndId.Clear();
         }
     }
 
-    private Result<Dictionary<string, CardPoolDefinition>> GetPools(string configName)
+    private Result<CardPoolDefinition> LoadPool(string poolId, string configName)
     {
         lock (_lock)
         {
-            if (_poolsByConfig.TryGetValue(configName, out var cached))
-                return Result<Dictionary<string, CardPoolDefinition>>.Success(cached);
+            var cacheKey = CacheKey(configName, poolId);
+            if (_poolsByConfigAndId.TryGetValue(cacheKey, out var cached))
+                return Result<CardPoolDefinition>.Success(cached);
 
             try
             {
                 var chain = _configManager.ResolveInheritanceChain(configName);
-                var resources = _resourceLoader.LoadResource("card-pools/basic_rewards.json", chain, strictMode: false);
+                var relativePath = $"card-pools/{poolId}.json";
+                var resources = _resourceLoader.LoadResource(relativePath, chain, strictMode: false);
                 if (resources.Count == 0)
-                    return Result<Dictionary<string, CardPoolDefinition>>.Failure("Card pools not found: card-pools/basic_rewards.json");
+                    return Result<CardPoolDefinition>.Failure($"Card pool definition not found: {poolId}");
 
-                var pools = new Dictionary<string, CardPoolDefinition>(StringComparer.OrdinalIgnoreCase);
-                foreach (var (key, element) in resources)
-                {
-                    var definition = JsonSerializer.Deserialize<CardPoolDefinition>(element.GetRawText(), _jsonOptions);
-                    if (definition == null)
-                        return Result<Dictionary<string, CardPoolDefinition>>.Failure($"Failed to deserialize card pool definition: {key}");
+                var element = resources.TryGetValue(poolId, out var exact)
+                    ? exact
+                    : resources.Values.First();
+                var definition = JsonSerializer.Deserialize<CardPoolDefinition>(element.GetRawText(), _jsonOptions);
+                if (definition == null)
+                    return Result<CardPoolDefinition>.Failure($"Failed to deserialize card pool definition: {poolId}");
 
-                    var poolId = string.IsNullOrWhiteSpace(definition.PoolId) ? key : definition.PoolId;
-                    pools[poolId] = definition with { PoolId = poolId };
-                }
-
-                _poolsByConfig[configName] = pools;
-                return Result<Dictionary<string, CardPoolDefinition>>.Success(pools);
+                var resolvedPoolId = string.IsNullOrWhiteSpace(definition.PoolId) ? poolId : definition.PoolId;
+                var pool = definition with { PoolId = resolvedPoolId };
+                _poolsByConfigAndId[cacheKey] = pool;
+                return Result<CardPoolDefinition>.Success(pool);
             }
             catch (Exception ex)
             {
-                return Result<Dictionary<string, CardPoolDefinition>>.Failure($"Failed to load card pools: {ex.Message}");
+                return Result<CardPoolDefinition>.Failure($"Failed to load card pool '{poolId}': {ex.Message}");
             }
         }
+    }
+
+    private static string CacheKey(string configName, string poolId)
+    {
+        return $"{configName.Trim().ToLowerInvariant()}::{poolId.Trim().ToLowerInvariant()}";
     }
 }

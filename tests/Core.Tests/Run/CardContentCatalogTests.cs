@@ -59,6 +59,9 @@ public sealed class CardContentCatalogTests
     {
         var catalog = CreateCatalog();
         var resolver = CreateResolver(catalog);
+        _resourceLoader
+            .Setup(m => m.LoadResource("card-pools/missing.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>());
 
         var result = resolver.ResolvePool("missing", "test");
 
