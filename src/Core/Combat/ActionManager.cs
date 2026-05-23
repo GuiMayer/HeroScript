@@ -17,6 +17,7 @@ public class ActionManager : IActionManager
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
     private readonly Dictionary<string, ActionDefinition> _definitions = new();
+    private string? _loadedConfigName;
     
     public ActionManager(
         IConfigManager configManager,
@@ -34,6 +35,7 @@ public class ActionManager : IActionManager
     public void LoadActionDefinitions(string configName)
     {
         _definitions.Clear();
+        _loadedConfigName = configName;
         
         try
         {
@@ -100,6 +102,13 @@ public class ActionManager : IActionManager
         
         if (_definitions.TryGetValue(actionId, out var definition))
             return Result<ActionDefinition>.Success(definition);
+
+        if (!string.IsNullOrWhiteSpace(_loadedConfigName))
+        {
+            var lazyResult = LoadSingleDefinition(actionId, _loadedConfigName);
+            if (lazyResult.IsSuccess)
+                return lazyResult;
+        }
         
         return Result<ActionDefinition>.Failure($"Action not found: {actionId}");
     }
@@ -167,5 +176,36 @@ public class ActionManager : IActionManager
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
+    }
+
+    private Result<ActionDefinition> LoadSingleDefinition(string actionId, string configName)
+    {
+        try
+        {
+            var configChain = _configManager.ResolveInheritanceChain(configName);
+            var actionData = _resourceLoader.LoadResource($"actions/{actionId}.json", configChain, strictMode: false);
+            if (actionData.Count == 0)
+                return Result<ActionDefinition>.Failure($"Action not found: {actionId}");
+
+            var element = actionData.TryGetValue(actionId, out var exact)
+                ? exact
+                : actionData.Values.First();
+
+            var definition = JsonSerializer.Deserialize<ActionDefinition>(element.GetRawText(), CreateJsonOptions());
+            if (definition == null)
+                return Result<ActionDefinition>.Failure($"Failed to deserialize action definition: {actionId}");
+
+            var validation = ValidateActionDefinition(definition);
+            if (validation.IsFailure)
+                return Result<ActionDefinition>.Failure(validation.Error);
+
+            _definitions[definition.ActionId] = definition;
+            _logger.LogDebug($"Lazy loaded action: {definition.ActionId}");
+            return Result<ActionDefinition>.Success(definition);
+        }
+        catch (Exception ex)
+        {
+            return Result<ActionDefinition>.Failure($"Could not load action '{actionId}': {ex.Message}", ex);
+        }
     }
 }

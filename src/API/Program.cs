@@ -120,7 +120,12 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 builder.Services.AddSingleton<IScriptModifierManager, ScriptModifierManager>();
 
 // Register GambitEngine
-builder.Services.AddSingleton<IGambitEngine, GambitEngine>();
+builder.Services.AddSingleton<IGambitEngine>(sp =>
+{
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    return new GambitEngine(configManager, resourceLoader);
+});
 
 // Register DamageCalculator
 builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>

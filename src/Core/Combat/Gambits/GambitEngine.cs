@@ -10,30 +10,28 @@ namespace Core.Combat.Gambits;
 public sealed class GambitEngine : IGambitEngine
 {
     private readonly IConfigManager _configManager;
+    private readonly IResourceLoader? _resourceLoader;
     private readonly Dictionary<string, GambitDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
+    private string? _loadedConfigName;
 
-    public GambitEngine(IConfigManager configManager)
+    public GambitEngine(IConfigManager configManager, IResourceLoader? resourceLoader = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _resourceLoader = resourceLoader;
     }
 
     public Result LoadDefinitions(string configName)
     {
         try
         {
-            var configPath = _configManager.GetConfigPath(configName);
-            var gambitPath = Path.Combine(configPath, "Gambits", "gambits.json");
-            if (!File.Exists(gambitPath))
-                return Result.Failure($"Gambits file not found: {gambitPath}");
-
-            var json = File.ReadAllText(gambitPath);
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             options.Converters.Add(new JsonStringEnumConverter());
-            var definitions = JsonSerializer.Deserialize<Dictionary<string, GambitDefinition>>(json, options);
+            var definitions = LoadDefinitionJson(configName, options);
             if (definitions == null)
                 return Result.Failure("Failed to deserialize gambits");
 
             _definitions.Clear();
+            _loadedConfigName = configName;
             foreach (var (key, definition) in definitions)
             {
                 var gambitId = string.IsNullOrWhiteSpace(definition.GambitId) ? key : definition.GambitId;
@@ -50,9 +48,17 @@ public sealed class GambitEngine : IGambitEngine
 
     public Result<GambitDefinition> GetDefinition(string gambitId)
     {
-        return _definitions.TryGetValue(gambitId, out var definition)
-            ? Result<GambitDefinition>.Success(definition)
-            : Result<GambitDefinition>.Failure($"Gambit definition not found: {gambitId}");
+        if (_definitions.TryGetValue(gambitId, out var definition))
+            return Result<GambitDefinition>.Success(definition);
+
+        if (!string.IsNullOrWhiteSpace(_loadedConfigName))
+        {
+            var reload = LoadDefinitions(_loadedConfigName);
+            if (reload.IsSuccess && _definitions.TryGetValue(gambitId, out definition))
+                return Result<GambitDefinition>.Success(definition);
+        }
+
+        return Result<GambitDefinition>.Failure($"Gambit definition not found: {gambitId}");
     }
 
     public IReadOnlyList<GambitDefinition> GetAllDefinitions()
@@ -140,5 +146,29 @@ public sealed class GambitEngine : IGambitEngine
             return false;
 
         return !condition.GreaterThanOrEqual.HasValue || value >= condition.GreaterThanOrEqual.Value;
+    }
+
+    private Dictionary<string, GambitDefinition>? LoadDefinitionJson(string configName, JsonSerializerOptions options)
+    {
+        if (_resourceLoader != null)
+        {
+            var chain = _configManager.ResolveInheritanceChain(configName);
+            var data = _resourceLoader.LoadResource("Gambits/gambits.json", chain, strictMode: false);
+            if (data.Count == 0)
+                return null;
+
+            return data.ToDictionary(
+                kvp => kvp.Key,
+                kvp => JsonSerializer.Deserialize<GambitDefinition>(kvp.Value.GetRawText(), options)!,
+                StringComparer.OrdinalIgnoreCase);
+        }
+
+        var configPath = _configManager.GetConfigPath(configName);
+        var gambitPath = Path.Combine(configPath, "Gambits", "gambits.json");
+        if (!File.Exists(gambitPath))
+            return null;
+
+        var json = File.ReadAllText(gambitPath);
+        return JsonSerializer.Deserialize<Dictionary<string, GambitDefinition>>(json, options);
     }
 }
