@@ -57,6 +57,19 @@ public sealed class GambitEngineTests : IDisposable
     }
 
     [Fact]
+    public void DecideAction_ActorConditionAndOpponentTarget_WorkForEnemyActors()
+    {
+        var state = CreateState(heroHealth: 80, enemyHealth: 20);
+        var entity = new Core.Entity.Entity { EntityId = "enemy-1" };
+
+        var action = _engine.DecideAction(entity, state, new[] { "enemy_actor_attack" });
+
+        Assert.True(action.IsSuccess, action.IsFailure ? action.Error : null);
+        Assert.Equal(ActionType.BASIC_ATTACK, action.Value.ActionType);
+        Assert.Equal("hero", action.Value.TargetId);
+    }
+
+    [Fact]
     public async Task GambitController_DelegatesDecisionToEngine()
     {
         var state = CreateState(heroHealth: 80, enemyHealth: 50);
@@ -144,6 +157,22 @@ public sealed class GambitEngineTests : IDisposable
         "action": {
           "actionType": "BASIC_ATTACK",
           "target": "FIRST_ALIVE_ENEMY"
+        }
+      },
+      "enemy_actor_attack": {
+        "gambitId": "enemy_actor_attack",
+        "displayName": "Enemy Actor Attack",
+        "priority": 20,
+        "conditions": [
+          {
+            "type": "ACTOR_RESOURCE_PERCENT",
+            "resourceId": "health",
+            "greaterThanOrEqual": 0.10
+          }
+        ],
+        "action": {
+          "actionType": "BASIC_ATTACK",
+          "target": "FIRST_ALIVE_OPPONENT"
         }
       }
     }

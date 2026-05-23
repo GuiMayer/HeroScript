@@ -99,6 +99,7 @@ public sealed class GambitEngine : IGambitEngine
             GambitConditionType.ANY_ENEMY_ALIVE => state.Enemies.Any(e => e.IsAlive),
             GambitConditionType.TURN_GREATER_THAN_OR_EQUAL => Compare(state.CurrentTurn, condition),
             GambitConditionType.SELF_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetEntity(controlledEntity.EntityId), condition.ResourceId), condition),
+            GambitConditionType.ACTOR_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetEntity(controlledEntity.EntityId), condition.ResourceId), condition),
             GambitConditionType.HERO_RESOURCE_PERCENT => Compare(ResourcePercent(state.Hero, condition.ResourceId), condition),
             GambitConditionType.TARGET_RESOURCE_PERCENT => Compare(ResourcePercent(ResolveTarget(action.Target, controlledEntity, state), condition.ResourceId), condition),
             _ => false
@@ -121,11 +122,24 @@ public sealed class GambitEngine : IGambitEngine
         return target?.ToUpperInvariant() switch
         {
             "SELF" => state.GetEntity(controlledEntity.EntityId),
+            "ACTOR" => state.GetEntity(controlledEntity.EntityId),
             "HERO" => state.Hero,
             "FIRST_ALIVE_ENEMY" or "TARGET" => state.Enemies.FirstOrDefault(e => e.IsAlive),
+            "FIRST_ALIVE_OPPONENT" => FirstAliveOpponent(controlledEntity, state),
             _ when !string.IsNullOrWhiteSpace(target) => state.GetEntity(target),
             _ => null
         };
+    }
+
+    private static Models.CombatEntity? FirstAliveOpponent(Entity.Entity controlledEntity, Models.CombatState state)
+    {
+        var actor = state.GetEntity(controlledEntity.EntityId);
+        if (actor == null)
+            return null;
+
+        return actor.IsHero
+            ? state.Enemies.FirstOrDefault(e => e.IsAlive)
+            : state.Hero.IsAlive ? state.Hero : null;
     }
 
     private static float ResourcePercent(Models.CombatEntity? entity, string? resourceId)
