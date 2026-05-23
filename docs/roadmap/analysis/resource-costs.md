@@ -715,7 +715,7 @@ O sistema atual do HeroScript é **surpreendentemente flexível** e já suporta:
 
 ## Referências
 
-- [PHASE_1.md](PHASE_1.md) - Combat API e EventBus
-- [PHASE_2.md](PHASE_2.md) - Status, Modifiers, Gambits
-- [COMBAT_SYSTEM.md](../COMBAT_SYSTEM.md) - Documentação do sistema de combate
-- [CONFIG_SYSTEM.md](../CONFIG_SYSTEM.md) - Sistema de configuração
+- [phase-1.md](../phases/phase-1.md) - Combat API e EventBus
+- [phase-2.md](../phases/phase-2.md) - Status, Modifiers, Gambits
+- [combat-system.md](../../systems/combat/combat-system.md) - Documentação do sistema de combate
+- [config-system.md](../../systems/config/config-system.md) - Sistema de configuração

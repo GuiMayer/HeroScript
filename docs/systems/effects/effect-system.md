@@ -561,5 +561,5 @@ Com o Effect System implementado, os próximos sistemas são:
 
 - `src/Core/Effects/` - Código fonte do sistema
 - `data/configs/default/Actions/` - Exemplos de cartas
-- `docs/DAMAGE_PIPELINE.md` - Pipeline de dano (integrado com Effects)
-- `docs/roadmap/PHASE_2.md` - Roadmap de implementação
+- [`damage-pipeline.md`](../damage/damage-pipeline.md) - Pipeline de dano (integrado com Effects)
+- [`phase-2.md`](../../roadmap/phases/phase-2.md) - Roadmap de implementação

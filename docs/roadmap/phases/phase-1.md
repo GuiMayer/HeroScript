@@ -49,7 +49,7 @@ Sistema de eventos pub/sub para comunicação desacoplada entre sistemas.
 - ✅ 18 testes (13 unitários + 5 integração)
 
 **Documentação:**
-- [EVENTBUS_SYSTEM.md](../EVENTBUS_SYSTEM.md) - Documentação completa do sistema
+- [eventbus-system.md](../../systems/events/eventbus-system.md) - Documentação completa do sistema
 
 ### 2. Combat API ✅
 
@@ -77,7 +77,7 @@ Sistema de combate básico com gerenciamento de estado.
 - ✅ 53 testes (12 CombatSystem + 6 CombatEntity + 2 Integration + 7 EnergyPool + 26 Alternative Costs)
 
 **Documentação:**
-- [COMBAT_SYSTEM.md](../COMBAT_SYSTEM.md) - Documentação completa do sistema
+- [combat-system.md](../../systems/combat/combat-system.md) - Documentação completa do sistema
 
 ### 2.1. Alternative Costs System ✅
 
@@ -165,15 +165,14 @@ Pipeline de cálculo de dano JSON-driven configurável.
 - 8 testes Integração (PoE, Genshin, Card Game, RPG styles)
 
 **Documentação:**
-- [DAMAGE_PIPELINE.md](../DAMAGE_PIPELINE.md) - Documentação completa do sistema
-- [DAMAGE_PIPELINE_EXAMPLES.md](../DAMAGE_PIPELINE_EXAMPLES.md) - Exemplos práticos
-- [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) - Plano de implementação
+- [damage-pipeline.md](../../systems/damage/damage-pipeline.md) - Documentação completa do sistema
+- [damage-examples.md](../../systems/damage/damage-examples.md) - Exemplos práticos
 
 ---
 
 ## Integração com EventBus
 
-Ver: [EVENT_INTEGRATION.md](EVENT_INTEGRATION.md) para detalhes sobre as duas abordagens de integração.
+Ver: [event-integration.md](../analysis/event-integration.md) para detalhes sobre as duas abordagens de integração.
 
 **Resumo:**
 - **Polling (GET):** Cliente consulta `/api/events` periodicamente
@@ -280,8 +279,8 @@ GET /api/events?category=COMBAT&limit=50
 
 ## Documentação Relacionada
 
-- [EVENTBUS_IMPLEMENTATION_PLAN.md](../EVENTBUS_IMPLEMENTATION_PLAN.md) - Plano detalhado do EventBus
-- [EVENT_INTEGRATION.md](EVENT_INTEGRATION.md) - Integração de eventos na API
+- [eventbus-implementation.md](../../systems/events/eventbus-implementation.md) - Plano detalhado do EventBus
+- [event-integration.md](../analysis/event-integration.md) - Integração de eventos na API
 
 ---
 
@@ -332,4 +331,4 @@ Após completar a Fase 1, a Fase 2 adicionará:
 - **ScriptModifier API** - Go Again, Multi-Hit, Explosivo
 - **Gambit API** - Sistema de companions com regras condicionais
 
-Ver: [PHASE_2.md](PHASE_2.md)
+Ver: [phase-2.md](phase-2.md)

@@ -475,7 +475,7 @@ var result = processor.Process(context);
 
 ## Referências
 
-- Documentação completa: `docs/DAMAGE_PIPELINE.md`
+- Documentação completa: [`damage-pipeline.md`](damage-pipeline.md)
 - Configuração: `config/DamagePipeline.json`
 - Fórmulas: `config/MathFormulas.json`
 - Código fonte: `src/Core/Damage/`

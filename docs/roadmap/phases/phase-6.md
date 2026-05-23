@@ -288,5 +288,5 @@ Com a conclusão da Fase 6, o roadmap da API está completo. As próximas expans
 - **Fase 8** - Features avançadas (modding, multiplayer, etc.)
 
 Para detalhes sobre convenções e padrões da API, consulte:
-- [API_CONVENTIONS.md](API_CONVENTIONS.md)
-- [EVENT_INTEGRATION.md](EVENT_INTEGRATION.md)
+- [api-conventions.md](../analysis/api-conventions.md)
+- [event-integration.md](../analysis/event-integration.md)

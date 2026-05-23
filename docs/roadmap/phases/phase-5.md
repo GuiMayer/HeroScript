@@ -311,4 +311,4 @@ Após completar a Fase 5, a Fase 6 implementará modos especiais:
 - **Seed API** - Runs com seed fixa
 - **Mode API** - Daily challenge, custom runs
 
-Ver: [PHASE_6.md](PHASE_6.md)
+Ver: [phase-6.md](phase-6.md)

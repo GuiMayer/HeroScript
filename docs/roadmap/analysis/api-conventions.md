@@ -472,6 +472,6 @@ curl -X POST http://localhost:5260/api/run/start \
 
 ## Referências
 
-- [PHASE_0.md](PHASE_0.md) - Endpoints implementados
-- [EVENT_INTEGRATION.md](EVENT_INTEGRATION.md) - Integração com EventBus
-- [API-ENDPOINTS.md](../API-ENDPOINTS.md) - Documentação detalhada
+- [phase-0.md](../phases/phase-0.md) - Endpoints implementados
+- [event-integration.md](event-integration.md) - Integração com EventBus
+- [endpoints.md](../../api/endpoints.md) - Documentação detalhada

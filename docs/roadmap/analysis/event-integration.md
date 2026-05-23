@@ -432,6 +432,6 @@ client.connect();
 
 ## Referências
 
-- [PHASE_1.md](PHASE_1.md) - EventBus e Combat API
-- [EVENTBUS_IMPLEMENTATION_PLAN.md](../EVENTBUS_IMPLEMENTATION_PLAN.md) - Plano detalhado do EventBus
-- [API_CONVENTIONS.md](API_CONVENTIONS.md) - Convenções gerais da API
+- [phase-1.md](../phases/phase-1.md) - EventBus e Combat API
+- [eventbus-implementation.md](../../systems/events/eventbus-implementation.md) - Plano detalhado do EventBus
+- [api-conventions.md](api-conventions.md) - Convenções gerais da API

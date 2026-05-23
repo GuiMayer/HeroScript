@@ -122,10 +122,10 @@ export ALLOW_CONFIG_RELOAD=true
 
 ## Documentação Relacionada
 
-- [API-ENDPOINTS.md](../API-ENDPOINTS.md) - Documentação detalhada dos endpoints
-- [CONFIG_SYSTEM.md](../CONFIG_SYSTEM.md) - Sistema de configuração
-- [CORE_MATH_SYSTEM.md](../CORE_MATH_SYSTEM.md) - Sistema matemático
-- [API_MATH_EXPRESSION_MODES.md](../API_MATH_EXPRESSION_MODES.md) - Modos de expressão
+- [endpoints.md](../../api/endpoints.md) - Documentação detalhada dos endpoints
+- [config-system.md](../../systems/config/config-system.md) - Sistema de configuração
+- [math-system.md](../../systems/math/math-system.md) - Sistema matemático
+- [expression-modes.md](../../systems/math/expression-modes.md) - Modos de expressão
 
 ---
 
@@ -136,4 +136,4 @@ Com a fundação estabelecida, a próxima fase implementará:
 - **Combat API** - Sistema de combate básico
 - **Damage API** - Pipeline de cálculo de dano
 
-Ver: [PHASE_1.md](PHASE_1.md)
+Ver: [phase-1.md](phase-1.md)

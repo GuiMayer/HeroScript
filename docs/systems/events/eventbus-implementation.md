@@ -182,7 +182,7 @@ Segundo o documento `arquitetura-engine.md` (seções 2.3, 4.3, 7):
 - Endpoint: `DELETE /api/events` - Limpa histórico (apenas dev mode)
 - Injetar `IEventBus` via DI
 
-**7.2** Atualizar `docs/API-ENDPOINTS.md`
+**7.2** Atualizar [`endpoints.md`](../../api/endpoints.md)
 - Documentar novos endpoints de eventos
 - Incluir exemplos de resposta JSON
 
@@ -303,7 +303,7 @@ Antes de prosseguir com a implementação, confirmar:
 
 - `docs/arquitetura-engine.md` - Arquitetura completa do sistema
 - `README.md` - Roadmap do projeto
-- `docs/CONFIG_SYSTEM.md` - Sistema de configuração com herança delta
+- [`config-system.md`](../config/config-system.md) - Sistema de configuração com herança delta
 - `src/Core/Math/MathEngine.cs` - Engine de fórmulas matemáticas
 - `src/Core/Config/ConfigManager.cs` - Gerenciador de configurações
 

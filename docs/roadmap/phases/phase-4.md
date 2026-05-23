@@ -371,4 +371,4 @@ Após completar a Fase 4, a Fase 5 implementará persistência:
 - **Save API** - Salvar/carregar runs
 - **MetaProgression API** - Estatísticas e desbloqueios
 
-Ver: [PHASE_5.md](PHASE_5.md)
+Ver: [phase-5.md](phase-5.md)
