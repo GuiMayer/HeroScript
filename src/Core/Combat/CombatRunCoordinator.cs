@@ -1,4 +1,5 @@
 using Core.Combat.Models;
+using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Run;
 
@@ -11,15 +12,18 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     private readonly ICombatSystem _combatSystem;
     private readonly IRunManager _runManager;
     private readonly IActionManager _actionManager;
+    private readonly IScriptModifierManager? _scriptModifierManager;
 
     public CombatRunCoordinator(
         ICombatSystem combatSystem,
         IRunManager runManager,
-        IActionManager actionManager)
+        IActionManager actionManager,
+        IScriptModifierManager? scriptModifierManager = null)
     {
         _combatSystem = combatSystem;
         _runManager = runManager;
         _actionManager = actionManager;
+        _scriptModifierManager = scriptModifierManager;
     }
 
     public Result<CombatRunActionResult> ExecuteAction(Guid combatId, CombatActionCommand command)
@@ -46,8 +50,16 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (actionResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(actionResult.Error);
 
-        var destination = ResolveDestination(actionResult.Value);
-        var combatResult = _combatSystem.ExecuteAction(combatId, command);
+        var actionDefinition = actionResult.Value;
+        var destination = ResolveDestination(actionDefinition);
+        var commandWithModifiers = command with
+        {
+            RunModifiers = ResolveRunModifiers(runId, actionDefinition.Tags)
+        };
+        var combatResult = _combatSystem.ExecuteAction(combatId, commandWithModifiers);
+        if (combatResult == null)
+            return Result<CombatRunActionResult>.Failure("Combat action was not executed");
+
         if (combatResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(combatResult.Error);
 
@@ -115,5 +127,11 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return CardConsumeDestination.Exhaust;
 
         return CardConsumeDestination.Discard;
+    }
+
+    private IReadOnlyDictionary<string, float> ResolveRunModifiers(Guid runId, IEnumerable<string> tags)
+    {
+        return _scriptModifierManager?.GetPipelineModifiers($"run:{runId}", tags)
+            ?? new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
     }
 }

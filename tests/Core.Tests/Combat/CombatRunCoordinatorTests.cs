@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Resources;
 using Core.Run;
@@ -13,6 +14,7 @@ public class CombatRunCoordinatorTests
     private readonly Mock<ICombatSystem> _combatSystem = new();
     private readonly Mock<IRunManager> _runManager = new();
     private readonly Mock<IActionManager> _actionManager = new();
+    private readonly Mock<IScriptModifierManager> _scriptModifierManager = new();
 
     [Fact]
     public void ExecuteAction_WithCardInHand_ExecutesCombatThenDiscardsCard()
@@ -27,7 +29,7 @@ public class CombatRunCoordinatorTests
             .Returns(Result<bool>.Success(true));
         _actionManager.Setup(m => m.GetDefinition("fireball"))
             .Returns(Result<ActionDefinition>.Success(new ActionDefinition { ActionId = "fireball" }));
-        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, command))
+        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, It.Is<CombatActionCommand>(cmd => MatchesCommand(command, cmd))))
             .Returns(Result<CombatState>.Success(combatState));
         _runManager.Setup(m => m.ConsumeCardsFromHand(runId, It.Is<IReadOnlyList<string>>(cards => cards.Single() == "fireball"), CardConsumeDestination.Discard))
             .Returns(Result<IReadOnlyList<string>>.Success(new[] { "fireball" }));
@@ -39,7 +41,7 @@ public class CombatRunCoordinatorTests
         Assert.True(result.IsSuccess);
         Assert.Equal("fireball", result.Value.ConsumedCardId);
         Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
-        _combatSystem.Verify(m => m.ExecuteAction(Guid.Empty, command), Times.Once);
+        _combatSystem.Verify(m => m.ExecuteAction(Guid.Empty, It.Is<CombatActionCommand>(cmd => MatchesCommand(command, cmd))), Times.Once);
         _runManager.Verify(m => m.ConsumeCardsFromHand(runId, It.IsAny<IReadOnlyList<string>>(), CardConsumeDestination.Discard), Times.Once);
     }
 
@@ -58,7 +60,7 @@ public class CombatRunCoordinatorTests
                 ActionId = "fireball",
                 Tags = new List<string> { "spell", "exhaust" }
             }));
-        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, command))
+        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, It.Is<CombatActionCommand>(cmd => MatchesCommand(command, cmd))))
             .Returns(Result<CombatState>.Success(CreateCombatState()));
         _runManager.Setup(m => m.ConsumeCardsFromHand(runId, It.IsAny<IReadOnlyList<string>>(), CardConsumeDestination.Exhaust))
             .Returns(Result<IReadOnlyList<string>>.Success(new[] { "fireball" }));
@@ -87,7 +89,7 @@ public class CombatRunCoordinatorTests
                 ActionId = "shield_wall",
                 Tags = new List<string> { "retain" }
             }));
-        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, command))
+        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, It.Is<CombatActionCommand>(cmd => MatchesCommand(command, cmd))))
             .Returns(Result<CombatState>.Success(CreateCombatState()));
         _runManager.Setup(m => m.GetRun(runId))
             .Returns(Result<RunState>.Success(CreateRunState(runId, hand: new[] { "shield_wall" })));
@@ -128,7 +130,7 @@ public class CombatRunCoordinatorTests
             .Returns(Result<bool>.Success(true));
         _actionManager.Setup(m => m.GetDefinition("fireball"))
             .Returns(Result<ActionDefinition>.Success(new ActionDefinition { ActionId = "fireball" }));
-        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, command))
+        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, It.Is<CombatActionCommand>(cmd => MatchesCommand(command, cmd))))
             .Returns(Result<CombatState>.Failure("invalid target"));
 
         var result = coordinator.ExecuteAction(Guid.Empty, command);
@@ -161,7 +163,50 @@ public class CombatRunCoordinatorTests
         _runManager.Verify(m => m.HasCardInHand(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
     }
 
-    private CombatRunCoordinator CreateCoordinator() => new(_combatSystem.Object, _runManager.Object, _actionManager.Object);
+    [Fact]
+    public void ExecuteAction_WithRunModifiers_ForwardsModifiersToCombatCommand()
+    {
+        var runId = Guid.NewGuid();
+        var command = Command(runId, "fireball");
+        var forwarded = default(CombatActionCommand);
+        var coordinator = CreateCoordinator();
+        var actionDefinition = new ActionDefinition
+        {
+            ActionId = "fireball",
+            Tags = new List<string> { "attack", "fire" }
+        };
+
+        _runManager.Setup(m => m.HasCardInHand(runId, "fireball"))
+            .Returns(Result<bool>.Success(true));
+        _actionManager.Setup(m => m.GetDefinition("fireball"))
+            .Returns(Result<ActionDefinition>.Success(actionDefinition));
+        _scriptModifierManager.Setup(m => m.GetPipelineModifiers($"run:{runId}", actionDefinition.Tags))
+            .Returns(new Dictionary<string, float> { ["added_damage"] = 3 });
+        _combatSystem.Setup(m => m.ExecuteAction(Guid.Empty, It.IsAny<CombatActionCommand>()))
+            .Callback<Guid, CombatActionCommand>((_, cmd) => forwarded = cmd)
+            .Returns(Result<CombatState>.Success(CreateCombatState()));
+        _runManager.Setup(m => m.ConsumeCardsFromHand(runId, It.IsAny<IReadOnlyList<string>>(), CardConsumeDestination.Discard))
+            .Returns(Result<IReadOnlyList<string>>.Success(new[] { "fireball" }));
+        _runManager.Setup(m => m.GetRun(runId))
+            .Returns(Result<RunState>.Success(CreateRunState(runId, hand: Array.Empty<string>(), discard: new[] { "fireball" })));
+
+        var result = coordinator.ExecuteAction(Guid.Empty, command);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.NotNull(forwarded);
+        Assert.Equal(3, forwarded!.RunModifiers["added_damage"]);
+    }
+
+    private CombatRunCoordinator CreateCoordinator() => new(_combatSystem.Object, _runManager.Object, _actionManager.Object, _scriptModifierManager.Object);
+
+    private static bool MatchesCommand(CombatActionCommand expected, CombatActionCommand actual) =>
+        expected.RunId == actual.RunId &&
+        expected.CardId == actual.CardId &&
+        expected.ActorId == actual.ActorId &&
+        expected.ActionType == actual.ActionType &&
+        expected.PowerId == actual.PowerId &&
+        expected.TargetId == actual.TargetId &&
+        expected.CostOptionId == actual.CostOptionId;
 
     private static CombatActionCommand Command(Guid runId, string actionId) => new()
     {

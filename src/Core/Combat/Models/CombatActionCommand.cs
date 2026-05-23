@@ -12,4 +12,5 @@ public sealed record CombatActionCommand
     public string? CostOptionId { get; init; }
     public Guid? RunId { get; init; }
     public string? CardId { get; init; }
+    public IReadOnlyDictionary<string, float> RunModifiers { get; init; } = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
 }

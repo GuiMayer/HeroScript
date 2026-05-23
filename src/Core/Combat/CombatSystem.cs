@@ -223,8 +223,8 @@ public class CombatSystem : ICombatSystem
             // Executar ação e criar novo estado
             var newState = command.ActionType switch
             {
-                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, actor, ActionType.BASIC_ATTACK, BasicAttackActionId, command.TargetId!, command.CostOptionId),
-                ActionType.POWER => ExecuteConfiguredAction(currentState, actor, ActionType.POWER, command.PowerId!, command.TargetId!, command.CostOptionId),
+                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, actor, ActionType.BASIC_ATTACK, BasicAttackActionId, command.TargetId!, command.CostOptionId, command.RunModifiers),
+                ActionType.POWER => ExecuteConfiguredAction(currentState, actor, ActionType.POWER, command.PowerId!, command.TargetId!, command.CostOptionId, command.RunModifiers),
                 ActionType.PASS => ExecutePass(currentState, actor),
                 ActionType.END_TURN => ExecuteEndTurn(currentState, actor),
                 _ => throw new InvalidOperationException($"Unknown action type: {command.ActionType}")
@@ -411,13 +411,14 @@ public class CombatSystem : ICombatSystem
         ActionType actionType,
         string actionId,
         string targetId,
-        string? costOptionId)
+        string? costOptionId,
+        IReadOnlyDictionary<string, float>? runModifiers)
     {
         var target = state.GetEntity(targetId)!;
         var actionDefinition = GetConfiguredAction(actionId)
             ?? throw new InvalidOperationException($"Action definition not found: {actionId}");
 
-        var damageDealt = CalculateActionDamage(actionDefinition, actor, target);
+        var damageDealt = ApplyRunModifiers(CalculateActionDamage(actionDefinition, actor, target), actionDefinition, runModifiers);
 
         // Processar status effects ON_DAMAGE_TAKEN por comportamento configurado.
         var (modifiedDamage, updatedActor) = ProcessOnDamageTakenEffects(target, actor, damageDealt, state.CurrentTurn);
@@ -476,6 +477,21 @@ public class CombatSystem : ICombatSystem
         }
 
         return damageEffects.Sum(e => e.FlatValue ?? 0);
+    }
+
+    private static float ApplyRunModifiers(float baseValue, ActionDefinition actionDefinition, IReadOnlyDictionary<string, float>? modifiers)
+    {
+        if (modifiers == null || modifiers.Count == 0 || baseValue == 0)
+            return baseValue;
+
+        var value = baseValue;
+        if (modifiers.TryGetValue("added_damage", out var addedDamage))
+            value += addedDamage;
+
+        if (modifiers.TryGetValue("increased_damage_total", out var increasedDamage))
+            value *= 1 + increasedDamage;
+
+        return actionDefinition.Effects.Any(effect => effect.Type == EffectType.DAMAGE) ? value : baseValue;
     }
 
     private float ResolveActionEffectValue(EffectDefinition effect, string actionId, CombatEntity actor, CombatEntity target)

@@ -175,7 +175,11 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 });
 
 // Register CombatRunCoordinator
-builder.Services.AddSingleton<ICombatRunCoordinator, CombatRunCoordinator>();
+builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
+    sp.GetRequiredService<ICombatSystem>(),
+    sp.GetRequiredService<IRunManager>(),
+    sp.GetRequiredService<IActionManager>(),
+    sp.GetRequiredService<IScriptModifierManager>()));
 
 // Register CombatActivation services
 builder.Services.AddSingleton<ICombatActivationRulesLoader, CombatActivationRulesLoader>();
