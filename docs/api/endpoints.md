@@ -207,9 +207,75 @@ Lista opcoes de custo normal/alternativo para a acao.
 
 Valida se uma acao pode ser paga com os recursos atuais.
 
+### POST `/api/combat/{combatId}/end-turn`
+
+Executa `END_TURN` pelo `CombatSystem` e retorna `CombatStateResponse` atualizado.
+
+### POST `/api/combat/{combatId}/process-ai-turns`
+
+Centraliza a decisao de IA no backend usando `GambitEngine` para inimigos vivos. A resposta inclui `decisions` e o estado atual. Nesta primeira fatia, `executed=false` porque `CombatSystem` ainda nao executa acoes por ator arbitrario.
+
 ### POST `/api/combat/{combatId}/end`
 
 Encerra uma instancia de combate.
+
+---
+
+## Run
+
+Estado de run, deck, mao, selecao de cartas, loja e preparacao. Todas as definicoes sao carregadas de JSON via `ResourceLoader`.
+
+### POST `/api/run/start`
+
+Inicia uma run a partir de `runs/{runDefinitionId}.json`.
+
+### GET `/api/run/{runId}/state`
+
+Retorna `RunState` com economia, deck, selecoes, lojas e preparacoes.
+
+### GET `/api/run/{runId}/deck`
+
+Retorna draw pile, hand, discard e exhaust.
+
+### GET `/api/run/{runId}/hand`
+
+Retorna a mao atual.
+
+### POST `/api/run/{runId}/draw`
+
+Compra cartas para a mao.
+
+### POST `/api/run/{runId}/discard`
+
+Move cartas da mao para o descarte.
+
+### POST `/api/run/{runId}/shuffle`
+
+Move descarte para draw pile.
+
+### POST `/api/run/{runId}/card-selection/start`
+
+Cria selecao de cartas a partir de `card-selections/{selectionId}.json`.
+
+### POST `/api/run/{runId}/card-selection/{selectionInstanceId}/pick`
+
+Valida escolha e adiciona cartas escolhidas ao descarte da run.
+
+### POST `/api/run/{runId}/shop/open`
+
+Cria loja a partir de `shops/{shopId}.json`.
+
+### POST `/api/run/{runId}/shop/{shopInstanceId}/buy/{itemId}`
+
+Valida custo, gasta recursos e aplica recompensa do item comprado.
+
+### POST `/api/run/{runId}/preparation/start`
+
+Cria preparacao a partir de `preparations/{preparationId}.json`.
+
+### POST `/api/run/{runId}/preparation/{preparationInstanceId}/apply/{optionId}`
+
+Valida custo e aplica a opcao de preparacao ao estado da run.
 
 ---
 
@@ -231,7 +297,7 @@ Lista scopes suportados, como `COMBAT` e `RUN`.
 
 ### POST `/api/effect/apply`
 
-Aplica um efeito em um contexto. Hoje suporta `COMBAT` e `RUN`; outros dominios devem entrar conforme `Run/Deck/Shop` forem implementados.
+Aplica um efeito em um contexto. Suporta `COMBAT` e `RUN`; efeitos de economia/deck em `RUN` usam o `RunState` real quando `runId` aponta para uma run existente.
 
 Request de combate:
 
@@ -418,7 +484,7 @@ Request exemplo:
 }
 ```
 
-Observacao: este endpoint decide a acao; ele nao executa automaticamente todos os turnos de IA. A automacao deve entrar com endpoint futuro como `POST /api/combat/{combatId}/process-ai-turns`.
+Observacao: este endpoint decide uma acao isolada. Para processar decisoes de todos os inimigos vivos no contexto de combate, use `POST /api/combat/{combatId}/process-ai-turns`.
 
 ---
 

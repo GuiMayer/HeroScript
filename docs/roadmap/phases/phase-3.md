@@ -64,12 +64,14 @@ Estado de cartas da run e do combate atual.
 
 Sistema de aprender/decompilar poderes após combate.
 
-**Endpoints:**
-- `GET /api/cardselection/{runId}/offers` - Gera ofertas de cartas (3 slots)
-- `POST /api/cardselection/{runId}/learn` - Aprende carta (gratuito)
-- `POST /api/cardselection/{runId}/decompose` - Decompila carta por PP
-- `POST /api/cardselection/{runId}/reroll` - Reroll ofertas (1× grátis/slot)
-- `GET /api/cardselection/{runId}/deck` - Obtém deck atual
+**Endpoints implementados na primeira fatia:**
+- `POST /api/run/{runId}/card-selection/start` - Cria ofertas a partir de JSON
+- `POST /api/run/{runId}/card-selection/{selectionInstanceId}/pick` - Escolhe cartas e aplica ao deck da run
+
+**Endpoints futuros:**
+- Reroll de ofertas
+- Decompose por PP
+- Pools por raridade/tags/desbloqueios
 
 **Mecânicas:**
 - 3 slots de ofertas
@@ -88,12 +90,14 @@ Sistema de aprender/decompilar poderes após combate.
 
 Sistema de loja com poderes, companions, e upgrades.
 
-**Endpoints:**
-- `GET /api/shop/{runId}` - Gera loja baseada em nó
-- `POST /api/shop/{runId}/buy` - Compra item
-- `POST /api/shop/{runId}/reroll` - Reroll loja (custo logarítmico)
-- `GET /api/shop/{runId}/prices` - Obtém preços com descontos
-- `POST /api/shop/{runId}/sell` - Vende item (futuro)
+**Endpoints implementados na primeira fatia:**
+- `POST /api/run/{runId}/shop/open` - Abre loja a partir de JSON
+- `POST /api/run/{runId}/shop/{shopInstanceId}/buy/{itemId}` - Compra item validando custo no backend
+
+**Endpoints futuros:**
+- Reroll loja
+- Precos dinamicos/descontos
+- Venda de item
 
 **Tipos de Item:**
 - Poderes (root/derived)
@@ -112,12 +116,14 @@ Sistema de loja com poderes, companions, e upgrades.
 
 Sistema de injeção de modificadores antes do combate.
 
-**Endpoints:**
-- `POST /api/preparation/{runId}/inject` - Injeta modificador em poder
-- `POST /api/preparation/{runId}/gambits` - Configura gambits de companions
-- `GET /api/preparation/{runId}/state` - Obtém estado de preparação
-- `GET /api/preparation/{runId}/available-modifiers` - Lista modificadores disponíveis
-- `POST /api/preparation/{runId}/remove` - Remove modificador
+**Endpoints implementados na primeira fatia:**
+- `POST /api/run/{runId}/preparation/start` - Cria preparacao a partir de JSON
+- `POST /api/run/{runId}/preparation/{preparationInstanceId}/apply/{optionId}` - Aplica opcao validada no backend
+
+**Endpoints futuros:**
+- Injecao de modificadores em poderes
+- Configuracao de gambits de companions
+- Preview/remocao de modificadores
 
 **Recursos:**
 - Gasto de PP (Power Points)
@@ -199,10 +205,11 @@ Preparação permite customização:
 - ✅ StatusSystem (Fase 2)
 - ✅ ScriptModifierSystem (Fase 2)
 - ✅ GambitEngine (Fase 2)
-- ⏳ RunManager (implementar)
-- ⏳ CardSelectionSystem (implementar)
-- ⏳ ShopSystem (implementar)
-- ⏳ PreparationSystem (implementar)
+- ✅ RunManager/DeckState primeira fatia implementada
+- ✅ CardSelection primeira fatia implementada
+- ✅ Shop primeira fatia implementada
+- ✅ Preparation primeira fatia implementada
+- ⏳ Reroll, raridades, pricing dinamico, inject de modificadores e ator arbitrario no CombatSystem
 
 ### Ordem de Implementação
 

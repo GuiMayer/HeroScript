@@ -111,14 +111,13 @@ Request: { actionId: string, count: number }
 
 ### 3. Endpoint de End Turn
 
-**Status:** ⚠️ Parcial  
+**Status:** ✅ Implementado
 **Prioridade:** MEDIUM  
 **Fase:** 2 (melhorar contrato)
 
-**Problema:**
-- Não há endpoint dedicado `POST /api/combat/{id}/end-turn`
-- End turn é feito via `ExecuteAction` com `actionType: "END_TURN"`
-- Contrato não é claro para frontend
+**Estado atual:**
+- `POST /api/combat/{combatId}/end-turn` existe e executa `END_TURN` pelo backend.
+- `ExecuteAction` continua aceitando `actionType: "END_TURN"` por compatibilidade.
 
 **Impacto:**
 - Frontend precisa conhecer detalhes de implementação do backend
@@ -138,14 +137,13 @@ Response: CombatStateResponse
 - Nenhuma (pode ser implementado imediatamente)
 
 **Workaround Temporário:**
-- Frontend usa `ExecuteAction` com `actionType: "END_TURN"`
-- Funciona, mas não é ideal
+- Não necessário para end-turn; frontend deve preferir o endpoint dedicado.
 
 ---
 
 ### 4. Sistema de Polling/WebSocket
 
-**Status:** ❌ Ausente  
+**Status:** ⚠️ Parcial
 **Prioridade:** MEDIUM  
 **Fase:** 3
 
@@ -200,10 +198,9 @@ Messages:
 **Prioridade:** MEDIUM  
 **Fase:** 2-3
 
-**Problema:**
-- Não há execução automática do turno do inimigo
-- Frontend precisa detectar quando é turno do inimigo
-- Frontend precisa aguardar manualmente (polling) até turno do jogador
+**Estado atual:**
+- `POST /api/combat/{combatId}/process-ai-turns` existe e centraliza decisoes de IA via `GambitEngine`.
+- A primeira fatia retorna `executed=false`; falta refatorar `CombatSystem` para executar acoes por ator arbitrario.
 
 **Impacto:**
 - Frontend precisa implementar lógica de "esperar turno do inimigo"
@@ -240,8 +237,8 @@ Response: {
 - Sistema de turno (já existe)
 
 **Workaround Temporário:**
-- Frontend faz polling de `/state` até `currentTurn` mudar
-- Não mostra ações do inimigo, apenas resultado final
+- Frontend pode usar `process-ai-turns` para obter decisoes backend-authoritative e animar intencoes.
+- A mutacao real da acao inimiga ainda depende da proxima fatia de `CombatSystem`.
 
 ---
 
@@ -269,7 +266,7 @@ Response: {
 
 1. **Implementar `RunState` e `DeckState`** como fonte de verdade para deck, mão, descarte e exhaust.
 2. **Criar endpoints Hand/Deck** em `/api/run/{runId}/hand` e `/api/run/{runId}/deck` antes de CardSelection/Shop.
-3. **Adicionar endpoint explícito de end turn** e `process-ai-turns` para manter a lógica no backend.
+3. **Refatorar `CombatSystem` para executar acoes por ator arbitrario**, completando `process-ai-turns` com mutacao real.
 4. **Adicionar WebSocket/SSE ou contrato formal de polling** para notificações em tempo real.
 
 ### Para Fase 4 (Conteúdo MVP)
