@@ -5,26 +5,25 @@ using Core.Entity;
 using Core.Entity.Controllers;
 using Core.Resources;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat.Gambits;
 
-public sealed class GambitEngineTests : IDisposable
+public sealed class GambitEngineTests
 {
-    private readonly string _tempRoot;
     private readonly GambitEngine _engine;
 
     public GambitEngineTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), $"heroscript-gambit-tests-{Guid.NewGuid():N}");
-        var gambitDirectory = Path.Combine(_tempRoot, "Gambits");
-        Directory.CreateDirectory(gambitDirectory);
-        File.WriteAllText(Path.Combine(gambitDirectory, "gambits.json"), TestDefinitionsJson);
-
         var configManager = new Mock<IConfigManager>();
-        configManager.Setup(m => m.GetConfigPath("test")).Returns(_tempRoot);
+        var resourceLoader = new Mock<IResourceLoader>();
+        configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
+        resourceLoader
+            .Setup(m => m.LoadResource("Gambits/gambits.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(TestDefinitionsJson));
 
-        _engine = new GambitEngine(configManager.Object);
+        _engine = new GambitEngine(configManager.Object, resourceLoader.Object);
         var load = _engine.LoadDefinitions("test");
         Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);
     }
@@ -82,12 +81,6 @@ public sealed class GambitEngineTests : IDisposable
         Assert.Equal(ActionType.BASIC_ATTACK, action.Value.ActionType);
     }
 
-    public void Dispose()
-    {
-        if (Directory.Exists(_tempRoot))
-            Directory.Delete(_tempRoot, recursive: true);
-    }
-
     private static CombatState CreateState(float heroHealth, float enemyHealth)
     {
         return new CombatState
@@ -126,6 +119,13 @@ public sealed class GambitEngineTests : IDisposable
                 }
             }
         };
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
     }
 
     private const string TestDefinitionsJson = """

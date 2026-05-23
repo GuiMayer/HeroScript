@@ -10,14 +10,14 @@ namespace Core.Combat.Gambits;
 public sealed class GambitEngine : IGambitEngine
 {
     private readonly IConfigManager _configManager;
-    private readonly IResourceLoader? _resourceLoader;
+    private readonly IResourceLoader _resourceLoader;
     private readonly Dictionary<string, GambitDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
 
-    public GambitEngine(IConfigManager configManager, IResourceLoader? resourceLoader = null)
+    public GambitEngine(IConfigManager configManager, IResourceLoader resourceLoader)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
-        _resourceLoader = resourceLoader;
+        _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
     }
 
     public Result LoadDefinitions(string configName)
@@ -164,25 +164,14 @@ public sealed class GambitEngine : IGambitEngine
 
     private Dictionary<string, GambitDefinition>? LoadDefinitionJson(string configName, JsonSerializerOptions options)
     {
-        if (_resourceLoader != null)
-        {
-            var chain = _configManager.ResolveInheritanceChain(configName);
-            var data = _resourceLoader.LoadResource("Gambits/gambits.json", chain, strictMode: false);
-            if (data.Count == 0)
-                return null;
-
-            return data.ToDictionary(
-                kvp => kvp.Key,
-                kvp => JsonSerializer.Deserialize<GambitDefinition>(kvp.Value.GetRawText(), options)!,
-                StringComparer.OrdinalIgnoreCase);
-        }
-
-        var configPath = _configManager.GetConfigPath(configName);
-        var gambitPath = Path.Combine(configPath, "Gambits", "gambits.json");
-        if (!File.Exists(gambitPath))
+        var chain = _configManager.ResolveInheritanceChain(configName);
+        var data = _resourceLoader.LoadResource("Gambits/gambits.json", chain, strictMode: false);
+        if (data.Count == 0)
             return null;
 
-        var json = File.ReadAllText(gambitPath);
-        return JsonSerializer.Deserialize<Dictionary<string, GambitDefinition>>(json, options);
+        return data.ToDictionary(
+            kvp => kvp.Key,
+            kvp => JsonSerializer.Deserialize<GambitDefinition>(kvp.Value.GetRawText(), options)!,
+            StringComparer.OrdinalIgnoreCase);
     }
 }
