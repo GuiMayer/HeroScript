@@ -1,0 +1,34 @@
+{
+  "basic_attack": {
+    "cardId": "basic_attack",
+    "actionId": "basic_attack",
+    "rarity": "Common",
+    "baseGoldPrice": 10,
+    "decomposePowerPoints": 1,
+    "tags": ["attack", "common", "starter"]
+  },
+  "defend": {
+    "cardId": "defend",
+    "actionId": "defend",
+    "rarity": "Common",
+    "baseGoldPrice": 10,
+    "decomposePowerPoints": 1,
+    "tags": ["defense", "common", "starter"]
+  },
+  "fireball": {
+    "cardId": "fireball",
+    "actionId": "fireball",
+    "rarity": "Uncommon",
+    "baseGoldPrice": 25,
+    "decomposePowerPoints": 2,
+    "tags": ["attack", "fire", "magic", "uncommon"]
+  },
+  "heal": {
+    "cardId": "heal",
+    "actionId": "heal",
+    "rarity": "Common",
+    "baseGoldPrice": 18,
+    "decomposePowerPoints": 1,
+    "tags": ["heal", "utility", "common"]
+  }
+}
