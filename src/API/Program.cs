@@ -5,6 +5,7 @@ using Core.Config;
 using Core.Math;
 using Core.Events;
 using Core.Combat;
+using Core.Combat.Activation;
 using Core.Combat.Modifiers;
 using Core.Combat.Gambits;
 using Core.Resources;
@@ -172,6 +173,10 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 
 // Register CombatRunCoordinator
 builder.Services.AddSingleton<ICombatRunCoordinator, CombatRunCoordinator>();
+
+// Register CombatActivation services
+builder.Services.AddSingleton<ICombatActivationRulesLoader, CombatActivationRulesLoader>();
+builder.Services.AddSingleton<ICombatActivationCoordinator, CombatActivationCoordinator>();
 
 // Register EntityFactory
 builder.Services.AddSingleton<IEntityFactory, Core.Combat.EntityFactory>();
