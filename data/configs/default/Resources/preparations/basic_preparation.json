@@ -3,7 +3,15 @@
     "preparationId": "basic_preparation",
     "options": [
       { "optionId": "pack_supplies", "goldCost": 10, "powerPointCost": 0, "addCardsToDiscard": ["heal"] },
-      { "optionId": "train_spell", "goldCost": 0, "powerPointCost": 1, "addCardsToDiscard": ["fireball"] }
+      {
+        "optionId": "train_spell",
+        "goldCost": 0,
+        "powerPointCost": 1,
+        "addCardsToDiscard": ["fireball"],
+        "applyModifiers": [
+          { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
+        ]
+      }
     ],
     "metadata": {
       "description": "Preparacao inicial para validar opcoes pre-combate data-driven."

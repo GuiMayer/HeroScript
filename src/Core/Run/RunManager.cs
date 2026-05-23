@@ -1,4 +1,5 @@
 using Core.Common;
+using Core.Combat.Modifiers;
 using Core.Config;
 using Core.Run.Content;
 using System.Text.Json;
@@ -12,6 +13,7 @@ public sealed class RunManager : IRunManager
     private readonly IResourceLoader _resourceLoader;
     private readonly ICardPoolResolver? _cardPoolResolver;
     private readonly ICardContentCatalog? _cardContentCatalog;
+    private readonly IScriptModifierManager? _scriptModifierManager;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
@@ -20,12 +22,14 @@ public sealed class RunManager : IRunManager
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ICardPoolResolver? cardPoolResolver = null,
-        ICardContentCatalog? cardContentCatalog = null)
+        ICardContentCatalog? cardContentCatalog = null,
+        IScriptModifierManager? scriptModifierManager = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _cardPoolResolver = cardPoolResolver;
         _cardContentCatalog = cardContentCatalog;
+        _scriptModifierManager = scriptModifierManager;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -454,7 +458,15 @@ public sealed class RunManager : IRunManager
                     OptionId = option.OptionId,
                     GoldCost = option.GoldCost,
                     PowerPointCost = option.PowerPointCost,
-                    AddCardsToDiscard = option.AddCardsToDiscard.ToList()
+                    AddCardsToDiscard = option.AddCardsToDiscard.ToList(),
+                    ApplyModifiers = option.ApplyModifiers.Select(modifier => new PreparationModifierGrantState
+                    {
+                        OwnerId = modifier.OwnerId,
+                        ModifierId = modifier.ModifierId,
+                        Stacks = modifier.Stacks,
+                        Duration = modifier.Duration,
+                        SourceId = modifier.SourceId
+                    }).ToList()
                 }).ToList()
             };
 
@@ -487,6 +499,21 @@ public sealed class RunManager : IRunManager
             state.Gold -= option.GoldCost;
             state.PowerPoints -= option.PowerPointCost;
             state.Deck.DiscardPile.AddRange(option.AddCardsToDiscard);
+
+            foreach (var modifier in option.ApplyModifiers)
+            {
+                if (_scriptModifierManager == null)
+                    return Result<PreparationOptionState>.Failure("Script modifier manager is not available for preparation modifier grants");
+
+                var ownerId = ResolvePreparationModifierOwner(state, modifier.OwnerId);
+                var sourceId = string.IsNullOrWhiteSpace(modifier.SourceId) ? option.OptionId : modifier.SourceId;
+                var apply = _scriptModifierManager.ApplyModifier(ownerId, modifier.ModifierId, modifier.Stacks, modifier.Duration, sourceId);
+                if (apply.IsFailure)
+                    return Result<PreparationOptionState>.Failure(apply.Error);
+
+                option.AppliedModifierInstanceIds.Add(apply.Value.InstanceId);
+            }
+
             option.Applied = true;
             preparation.AppliedOptionIds.Add(option.OptionId);
 
@@ -564,6 +591,17 @@ public sealed class RunManager : IRunManager
             CardRarity.Legendary => 3,
             _ => 99
         };
+    }
+
+    private static string ResolvePreparationModifierOwner(RunState state, string ownerId)
+    {
+        if (string.IsNullOrWhiteSpace(ownerId) || ownerId.Equals("run", StringComparison.OrdinalIgnoreCase))
+            return $"run:{state.RunId}";
+
+        if (ownerId.Equals("player", StringComparison.OrdinalIgnoreCase))
+            return state.PlayerEntityId;
+
+        return ownerId;
     }
 
     private List<ShopItemState> GenerateShopItems(RunState state, ShopDefinition definition, int offset = 0)

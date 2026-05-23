@@ -1,4 +1,6 @@
 using Core.Config;
+using Core.Combat.Modifiers;
+using Core.Common;
 using Core.Run;
 using Core.Run.Content;
 using Moq;
@@ -186,6 +188,35 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public void ApplyPreparationOption_AppliesConfiguredScriptModifiers()
+    {
+        var modifierManager = new Mock<IScriptModifierManager>();
+        var manager = CreateManager(scriptModifierManager: modifierManager.Object);
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        run.PowerPoints = 2;
+        var instanceId = Guid.NewGuid();
+        modifierManager
+            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
+            .Returns(Result<ScriptModifierInstance>.Success(new ScriptModifierInstance
+            {
+                InstanceId = instanceId,
+                ModifierId = "flat_power_bonus",
+                OwnerId = $"run:{run.RunId}",
+                SourceId = "train_spell"
+            }));
+
+        var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
+        var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
+
+        Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
+        Assert.True(option.Value.Applied);
+        Assert.Equal(1, run.PowerPoints);
+        Assert.Contains("fireball", run.Deck.DiscardPile);
+        Assert.Contains(instanceId, option.Value.AppliedModifierInstanceIds);
+        modifierManager.Verify(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"), Times.Once);
+    }
+
+    [Fact]
     public void ConsumeCardsFromHand_Discard_RemovesFromHandAndAddsToDiscard()
     {
         var manager = CreateManager();
@@ -266,7 +297,7 @@ public sealed class RunManagerTests
         Assert.False(missing.Value);
     }
 
-    private RunManager CreateManager()
+    private RunManager CreateManager(IScriptModifierManager? scriptModifierManager = null)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
@@ -294,7 +325,7 @@ public sealed class RunManagerTests
                 ["basic_preparation"] = JsonDocument.Parse(PreparationJson).RootElement.GetProperty("basic_preparation").Clone()
             });
 
-        return new RunManager(_configManager.Object, _resourceLoader.Object);
+        return new RunManager(_configManager.Object, _resourceLoader.Object, scriptModifierManager: scriptModifierManager);
     }
 
     private RunManager CreateManagerWithContent()
@@ -466,7 +497,16 @@ public sealed class RunManagerTests
       "basic_preparation": {
         "preparationId": "basic_preparation",
         "options": [
-          { "optionId": "pack_supplies", "goldCost": 5, "powerPointCost": 0, "addCardsToDiscard": ["heal"] }
+          { "optionId": "pack_supplies", "goldCost": 5, "powerPointCost": 0, "addCardsToDiscard": ["heal"] },
+          {
+            "optionId": "train_spell",
+            "goldCost": 0,
+            "powerPointCost": 1,
+            "addCardsToDiscard": ["fireball"],
+            "applyModifiers": [
+              { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
+            ]
+          }
         ]
       }
     }
