@@ -17,6 +17,18 @@ HeroScript/
     └── Core.Tests/        # Testes do Core
 ```
 
+## Estado Atual
+
+**Última atualização:** 2026-05-23
+**Fase atual:** Fase 2 estabilizada. O próximo foco técnico é a **Fase 3 - Loop de Run**.
+
+- **Core.Tests:** 553 testes passando.
+- **Fase 0:** Config, Math e Resources implementados.
+- **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados.
+- **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados.
+- **Fase 3:** ainda não implementada; faltam RunState, DeckState, RunManager, CardSelection, Shop e Preparation.
+- **API.Tests:** o projeto compila, mas o runner local ainda apresenta timeout/congelamento em partes da suite. Use testes filtrados/menores até a investigação ser concluída.
+
 ## Componentes
 
 ### Core (Biblioteca)
@@ -26,6 +38,11 @@ O Core é o coração da engine - uma biblioteca .NET que pode ser embarcada em 
 - **MathEngine**: Sistema de fórmulas matemáticas serializadas (JSON)
 - **ConfigManager**: Sistema de configuração com herança delta
 - **ResourceLoader**: Carregamento de recursos data-driven
+- **CombatSystem**: Execução de combate baseada em ações e efeitos data-driven
+- **EffectResolver**: Aplicação central de efeitos para contextos de combate/run
+- **StatusEffectManager**: Buffs, debuffs, DoT/HoT e modificadores de pipeline
+- **ScriptModifierManager**: Modificadores de comportamento carregados de JSON
+- **GambitEngine**: Decisões de IA/companions por regras JSON
 
 **Output**: `Core.dll` - biblioteca embarcável
 
@@ -34,7 +51,7 @@ O Core é o coração da engine - uma biblioteca .NET que pode ser embarcada em 
 Camada de exposição HTTP do Core, permitindo consumo via REST API.
 
 - Swagger UI disponível em desenvolvimento
-- Endpoints para fórmulas matemáticas e expressões
+- Endpoints para ações, combate, efeitos, status, modifiers, gambits, recursos, entidades, eventos, config e matemática
 - CORS configurado para desenvolvimento
 
 **Output**: `API.dll` - aplicação web ASP.NET Core
@@ -111,11 +128,11 @@ dotnet test tests/Core.Tests/Core.Tests.csproj
 
 ## Arquitetura
 
-O projeto segue a arquitetura descrita em `docs/01_Future/arquitetura-engine.md`:
+O projeto segue a arquitetura descrita em [`docs/architecture/overview.md`](docs/architecture/overview.md):
 
 - **Headless**: Core é completamente independente de UI
 - **Data-driven**: Regras e fórmulas são dados (JSON), não código
-- **Event Sourcing**: Sistema de log built-in (futuro)
+- **Event Sourcing**: EventBus com histórico/replay para auditoria e integração
 - **Modular**: Configurações podem ser trocadas em runtime
 
 ## Documentação
@@ -125,48 +142,54 @@ O projeto segue a arquitetura descrita em `docs/01_Future/arquitetura-engine.md`
 A API REST expõe funcionalidades do Core através de endpoints HTTP com documentação Swagger interativa.
 
 **Documentação Completa:**
-- [API-ENDPOINTS.md](docs/API_ENDPOINTS.md) - Documentação detalhada com exemplos em C#, JavaScript e Python
-- Swagger UI disponível em `http://localhost:5000/` (modo desenvolvimento)
+- [API Endpoints](docs/api/endpoints.md) - Referência dos endpoints atuais
+- Swagger UI disponível em `http://localhost:5260/swagger` em desenvolvimento
 
 **APIs Disponíveis:**
 - **Action Management** (`/api/action`) - Gerenciamento de definições de ações de combate
 - **Resource Management** (`/api/game-resources`) - Gerenciamento de recursos de gameplay (HP, MP, etc)
 - **Combat System** (`/api/combat`) - Sistema de combate integrado com ações e recursos
 - **Configuration** (`/api/config`) - Gerenciamento de configurações e herança delta
-- **Math Engine** (`/api/math`) - Execução de fórmulas matemáticas
+- **Math Engine** (`/api/formula`, `/api/math/expression`, `/api/operation`) - Execução de fórmulas e expressões
+- **Effect Engine** (`/api/effect`) - Aplicação central de efeitos data-driven
+- **Status Effects** (`/api/status`) - Status ativos, stacks, ticks e modifiers de pipeline
+- **Script Modifiers** (`/api/modifiers`) - Modificadores data-driven aplicáveis por owner
+- **Gambits** (`/api/gambits`) - Decisão de ações por regras JSON
+- **Entities** (`/api/entity`) - Definições e criação de entidades
+- **Events** (`/api/events`) - Histórico e consulta de eventos
 
 **Roadmap:**
 - [API Roadmap](docs/roadmap/README.md) - Roadmap completo da API (6 fases)
-- [API Conventions](docs/roadmap/API_CONVENTIONS.md) - Convenções e padrões da API
-- [Event Integration](docs/roadmap/EVENT_INTEGRATION.md) - Integração com EventBus (Polling vs WebSocket)
+- [API Conventions](docs/roadmap/analysis/api-conventions.md) - Convenções e padrões da API
+- [Event Integration](docs/roadmap/analysis/event-integration.md) - Integração com EventBus
+- [Frontend Integration Gaps](docs/roadmap/analysis/frontend-integration-gaps.md) - Lacunas para protótipo visual
 
 ### Sistemas Core
 
-- [CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md) - Sistema de configuração com herança delta
-- [CORE_MATH_SYSTEM.md](docs/CORE_MATH_SYSTEM.md) - Sistema matemático
-- [EVENTBUS_IMPLEMENTATION_PLAN.md](docs/EVENTBUS_IMPLEMENTATION_PLAN.md) - Plano de implementação do EventBus
+- [Config System](docs/systems/config/config-system.md) - Sistema de configuração com herança delta
+- [Math System](docs/systems/math/math-system.md) - Sistema matemático
+- [EventBus System](docs/systems/events/eventbus-system.md) - Sistema pub/sub e histórico de eventos
+- [Effect System](docs/systems/effects/effect-system.md) - Sistema de efeitos
+- [Damage Pipeline](docs/systems/damage/damage-pipeline.md) - Pipeline de dano configurável
 
 ## Roadmap
 
-Estamos atualmente na **Fase 1 — O Kernel**:
+Estamos atualmente após a **Fase 2 — Camadas de Combate**:
 
 - ✅ MathEngine serializado (fórmulas JSON)
 - ✅ ConfigManager com herança delta
-- ✅ API REST básica implementada
-- ✅ ActionManager API completa (14 endpoints)
-- ✅ ResourceManager API completa (8 endpoints)
+- ✅ API REST data-driven implementada para sistemas Core atuais
+- ✅ ActionManager com discovery JSON e efeitos como contrato principal
+- ✅ ResourceManager API
 - ✅ Combat System integrado com Actions e Resources
-- ✅ Documentação Swagger/OpenAPI
-- ⏳ EventBus (próximo)
-- ⏳ GameState imutável (próximo)
-- ⏳ BucketPipeline (próximo)
+- ✅ EventBus e Damage Pipeline
+- ✅ Status Effects, Script Modifiers, Gambit Engine e Effect Engine
+- ⏳ Fase 3: Run Management, Deck/Hand, CardSelection, Shop e Preparation
 
-**Novidades Recentes (2026-05-09):**
-- 14 novos endpoints REST para Actions e Resources
-- Integração completa entre Combat, Actions e Resources
-- Documentação interativa via Swagger
-- Exemplos de código em múltiplas linguagens (C#, JS, Python)
-- Suporte para modding e extensibilidade
+**Próximos passos recomendados:**
+- Sincronizar `RunState` e `DeckState` como núcleo da Fase 3.
+- Expor contratos mínimos para frontend: hand/deck, end-turn dedicado e processamento de IA.
+- Implementar Run API, CardSelection, Shop e Preparation em fatias verticais.
 
 ## Licença
 

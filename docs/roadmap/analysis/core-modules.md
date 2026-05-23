@@ -1,7 +1,7 @@
 # Análise de Módulos Core - HeroScript Engine
 
-**Data:** 2026-05-16  
-**Status:** Análise Atualizada  
+**Data:** 2026-05-23
+**Status:** Sincronizado com Fase 2 estabilizada
 **Objetivo:** Avaliar quais submódulos do HeroScript.Core estão implementados e quais faltam para criar um jogo completo
 
 ---
@@ -9,11 +9,11 @@
 ## Resumo Executivo
 
 ### Estado Atual
-- **Core.Tests:** 536 testes passando após Data-driven Compliance DC-4
-- **API.Tests:** compila e o host sobe; ainda há falhas legadas de contrato em Config/Resource/Action e timeout nos testes filtrados de StatusEffect
-- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 parcialmente implementada
-- **Próxima fase:** implementar Effect Application Engine antes de iniciar Run/Shop/CardSelection/Content
-- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 7.8/10
+- **Core.Tests:** 553 testes passando após estabilização da Fase 2
+- **API.Tests:** projeto compila, mas o runner local ainda pode congelar/atingir timeout; não usar a suite completa como gate único até investigação dedicada
+- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 estabilizada
+- **Próxima fase:** iniciar Fase 3 pelo núcleo `RunState`/`DeckState`, depois Run API, Hand/Deck, CardSelection, Shop e Preparation
+- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 9.0/10
 
 ### Capacidade Atual
 Com os módulos implementados, é possível criar:
@@ -24,12 +24,14 @@ Com os módulos implementados, é possível criar:
 - ✅ Sistema de eventos (pub/sub)
 - ✅ Configuração data-driven com herança
 - ✅ Ações e execução básica de combate migradas para `ActionDefinition`/JSON na primeira rodada de compliance
+- ✅ Status Effects carregados de JSON com schema legado/canonical
+- ✅ Script Modifiers data-driven com pipeline/tags/tick
+- ✅ Gambit Engine data-driven com regras de decisão JSON
+- ✅ Effect Engine consolidado com efeitos de combate, economia, deck, modifiers e controle
 
 ### O Que Falta Para Um Jogo Completo
 - ❌ Loop de run (progressão, mapa, recompensas)
-- ⚠️ Sistema de status effects parcial (Core/API/config existem; semântica ainda incompleta)
-- ❌ Sistema de modificadores (Go Again, Multi-Hit, etc.)
-- ❌ Sistema de companions com gambits
+- ❌ Estado real de deck/mão/discard/exhaust para aplicar efeitos de cartas
 - ❌ Conteúdo jogável (raças, poderes, inimigos)
 - ❌ Sistema de loja e economia
 - ❌ Persistência (save/load)
@@ -48,7 +50,7 @@ Com os módulos implementados, é possível criar:
 - Validação de configurações
 - Cache de configs
 
-**Testes:** Incluídos nos 423 testes totais
+**Testes:** incluídos nos 553 testes Core atuais
 
 **Uso em um jogo:**
 - Definir diferentes dificuldades (easy, normal, hard)
@@ -226,7 +228,7 @@ Com os módulos implementados, é possível criar:
 
 ## Módulos Core Faltando (Críticos para um Jogo)
 
-### 1. Status Effects System ⚠️ Parcial (Fase 2)
+### 1. Status Effects System ✅ Estabilizado (Fase 2)
 **Prioridade:** ALTA  
 **Localização:** `src/Core/StatusEffects/`, `src/API/Controllers/StatusEffectController.cs`, `UserData/Configs/default/StatusEffects/status_effects.json`
 
@@ -237,11 +239,9 @@ Com os módulos implementados, é possível criar:
 - Integração com `CombatSystem` por comportamento para controle, DoT/HoT, shield/reactive/damage cap/death prevention
 - `DamageCalculator` recebe `IStatusEffectManager` via DI e pode aplicar modificadores de pipeline
 
-**O que falta estabilizar:**
-- Consolidar o contrato entre `StatusEffectProcessor`, `CombatSystem` e o futuro Effect Application Engine
-- Fórmulas e modificadores ainda usam parsing manual em alguns pontos; integrar com `MathEngine`/`ExpressionEvaluator`
-- Ciclo de expiração/tick precisa de testes mais fortes e contrato claro entre `ProcessStatusEffects` e `TickDurations`
-- Testes API de StatusEffect precisam ser destravados no runner de integração
+**Lacunas restantes:**
+- Fórmulas e modificadores ainda usam parsing manual em alguns pontos; integrar com `MathEngine`/`ExpressionEvaluator` canônico.
+- Testes API de StatusEffect dependem da estabilização do runner de integração.
 
 **Impacto:**
 Sem status effects, não há:
@@ -250,41 +250,43 @@ Sem status effects, não há:
 - Stun, silence, root
 - Regeneração
 
-**Estimativa:** 2-4 dias de estabilização
+**Estimativa restante:** 1-2 dias de limpeza técnica, não bloqueante para iniciar Fase 3.
 
 ---
 
-### 1.1. Effect System ⚠️ Parcial (Fase 2)
+### 1.1. Effect System ✅ Estabilizado para Fase 2
 **Prioridade:** ALTA  
 **Localização:** `src/Core/Effects/`
 
 **Implementado:**
 - `EffectResolver`, `EffectDefinition`, `EffectInstance`, `EffectResult`, `EffectType`
-- Esqueleto para dano, cura, recursos, status, gold e draw/discard/exhaust
+- Dano, cura, recursos, status, economia, deck, modifiers e controle como primitivas data-driven
 
 **O que falta:**
-- `DAMAGE` precisa usar o `DamageCalculator` de forma completa e alterar estado real
-- `HEAL` e `MODIFY_RESOURCE` precisam aplicar mudanças no `ResourceManager`
-- `APPLY_STATUS`/`REMOVE_STATUS` precisam fechar o contrato com `StatusEffectManager`
-- Fórmulas, condições e filtros devem usar `MathEngine`/`ExpressionEvaluator`
-- Efeitos de cartas (`DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`) aguardam Hand/Deck System
+- Fórmulas, condições e filtros devem convergir para `MathEngine`/`ExpressionEvaluator`.
+- Efeitos de cartas/economia (`DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`, `GAIN_GOLD`, etc.) aguardam `RunState`/`DeckState` para alterar estado real em vez de retornar apenas metadata.
 
 **Impacto:**
 Sem isso, ações continuam parcialmente hardcoded e o jogo não fica plenamente data-driven.
 
-**Estimativa:** 2-3 dias de estabilização
+**Estimativa restante:** depende da primeira fatia da Fase 3 (`RunState`/`DeckState`).
 
 ---
 
-### 2. Script Modifiers System ❌ (Fase 2)
+### 2. Script Modifiers System ✅ Estabilizado (Fase 2)
 **Prioridade:** ALTA  
-**Localização planejada:** `src/Core/Combat/Modifiers/`
+**Localização:** `src/Core/Combat/Modifiers/`, `src/API/Controllers/ModifierController.cs`, `UserData/Configs/default/Modifiers/script_modifiers.json`
 
-**O que falta:**
-- ScriptModifier - Modificadores de comportamento
-- ModifierValidator - Validação de compatibilidade
-- Integração com CombatSystem
-- Modificadores: Go Again, Multi-Hit, Explosivo, etc.
+**Implementado:**
+- `ScriptModifierManager`, definitions e instances.
+- Loader data-driven via JSON.
+- Aplicação por owner, stacking, duração/tick e remoção.
+- Modificadores de pipeline filtrados por tags.
+- API `/api/modifiers` com definitions, reload, apply, active, pipeline e tick.
+
+**Lacunas restantes:**
+- Avaliação de fórmulas ainda usa avaliador simples local.
+- Validação avançada de compatibilidade pode evoluir na Preparation API.
 
 **Impacto:**
 Sem modificadores, não há:
@@ -292,19 +294,22 @@ Sem modificadores, não há:
 - Builds variadas
 - Profundidade estratégica
 
-**Estimativa:** 2-3 dias de implementação
+**Estimativa restante:** 1-2 dias quando Preparation exigir compatibilidade mais rígida.
 
 ---
 
-### 3. Gambit System ❌ (Fase 2)
+### 3. Gambit System ✅ Estabilizado (Fase 2)
 **Prioridade:** MÉDIA  
-**Localização planejada:** `src/Core/Combat/Gambits/`
+**Localização:** `src/Core/Combat/Gambits/`, `src/API/Controllers/GambitController.cs`, `UserData/Configs/default/Gambits/gambits.json`
 
-**O que falta:**
-- Gambit - Regras condicionais (IF/THEN)
-- GambitEngine - Avaliação de condições
-- GambitAction - Ações executáveis
-- Integração com EventBus
+**Implementado:**
+- `GambitEngine` com carregamento JSON, prioridade, condições e decisão de ação.
+- API `/api/gambits` com definitions, reload e decide.
+- Fallback para `PASS` quando nenhuma regra casa.
+
+**Lacunas restantes:**
+- Execução automática completa do turno de IA ainda não existe no Combat API.
+- Integração com eventos pode crescer conforme companions e Preparation forem implementados.
 
 **Impacto:**
 Sem gambits, não há:
@@ -312,7 +317,7 @@ Sem gambits, não há:
 - Automação de ações
 - Reação a eventos
 
-**Estimativa:** 2-3 dias de implementação
+**Estimativa restante:** 1-2 dias para o endpoint de processamento automático de IA.
 
 ---
 
@@ -479,9 +484,9 @@ Sem seed/mode, não há:
 - Combat System
 - Damage System
 
-### Fase 2 📋 (Próxima - 6-9 dias)
-- Status Effects System (parcial; estabilizar)
-- Effect System / EffectResolver (parcial; estabilizar)
+### Fase 2 ✅ (Estabilizada)
+- Status Effects System
+- Effect System / EffectResolver
 - Script Modifiers System
 - Gambit System
 
@@ -506,32 +511,32 @@ Sem seed/mode, não há:
 ## Estimativa Total para MVP Jogável
 
 ### Mínimo Viável (sem persistence)
-**Fases 2 + 3 + 4:** 19-29 dias de desenvolvimento
+**Fases 3 + 4:** 13-20 dias de desenvolvimento
 
 ### MVP Completo (com persistence)
-**Fases 2 + 3 + 4 + 5:** 22-33 dias de desenvolvimento
+**Fases 3 + 4 + 5:** 16-24 dias de desenvolvimento
 
 ### MVP + Features Extras
-**Fases 2 + 3 + 4 + 5 + 6:** 24-36 dias de desenvolvimento
+**Fases 3 + 4 + 5 + 6:** 18-27 dias de desenvolvimento
 
 ---
 
 ## Priorização Recomendada
 
 ### Crítico (Sem isso não há jogo)
-1. **Estabilização Fase 2** - Status lifecycle, EffectResolver e integração ActionManager/CombatSystem
-2. **Run Management System** - Loop de jogo
+1. **Run Management System** - Loop de jogo
+2. **Deck/Hand State** - draw/discard/exhaust/shuffle e mão real
 3. **Content System** - Conteúdo jogável
-4. **Status Effects System** - Profundidade de combate
+4. **Card Selection System** - Progressão de deck
 
 ### Importante (Jogo funciona mas limitado)
-5. **Script Modifiers System** - Customização
-6. **Card Selection System** - Progressão de deck
-7. **Shop System** - Economia
+5. **Shop System** - Economia
+6. **Preparation System** - Customização pré-combate
+7. **Automatic AI Turn** - uso real do Gambit Engine no loop de combate
 
 ### Desejável (Adiciona profundidade)
-8. **Gambit System** - Companions inteligentes
-9. **Preparation System** - Customização pré-combate
+8. **Formula evaluator unificado** - reduzir duplicação técnica
+9. **SSE/WebSocket ou polling formal** - integração frontend em tempo real
 
 ### Opcional (Pode vir depois do MVP)
 10. **Persistence System** - Save/load
@@ -542,25 +547,26 @@ Sem seed/mode, não há:
 ## Conclusão
 
 ### Estado Atual
-O HeroScript.Core tem uma **fundação sólida** (Fases 0 e 1) com:
-- 524 testes Core passando
+O HeroScript.Core tem uma **fundação sólida** (Fases 0, 1 e 2) com:
+- 553 testes Core passando
 - Sistemas core bem arquitetados
 - Padrões consistentes (Result<T>, EventBus, data-driven)
+- Status Effects, EffectResolver, Script Modifiers e Gambit Engine estabilizados
 
 ### O Que Falta
 Para criar um jogo jogável, faltam **4 frentes críticas**:
-1. Estabilização Fase 2 (Status lifecycle, EffectResolver, ActionManager/CombatSystem)
-2. Run Management (loop de jogo)
+1. Run Management (loop de jogo)
+2. Deck/Hand State (mão, deck, descarte, exhaust e shuffle)
 3. Content System (raças, poderes, inimigos)
-4. Card Selection (progressão)
+4. Card Selection/Shop (progressão e economia)
 
 ### Próximos Passos
-**Recomendação:** concluir a estabilização da Fase 2 antes de partir para Fase 3 (Run loop), pois os sistemas de combate precisam estar completos antes de construir o loop de jogo em cima deles.
+**Recomendação:** iniciar a Fase 3 por `RunState` e `DeckState`, pois os efeitos de deck/economia já existem no `EffectResolver`, mas ainda não têm estado real para persistir mão, descarte, exhaust, ouro, PP e recompensas.
 
 **Ordem sugerida:**
-1. Fase 2 (6-9 dias) - Completar sistemas de combate
-2. Fase 4 (5-7 dias) - Adicionar conteúdo jogável (pode ser feito em paralelo com Fase 3)
-3. Fase 3 (8-13 dias) - Implementar loop de run
-4. Fase 5 (opcional) - Adicionar persistence
+1. Fase 3 (8-13 dias) - Implementar loop de run, deck/hand e APIs de estado
+2. Fase 4 (5-7 dias) - Adicionar conteúdo jogável mínimo
+3. Fase 5 (opcional) - Adicionar persistence
+4. Fase 6 (opcional) - Seeds, modos e desafios
 
-**Tempo total estimado para MVP:** 19-29 dias de desenvolvimento focado.
+**Tempo total estimado para MVP sem persistence:** 13-20 dias de desenvolvimento focado.

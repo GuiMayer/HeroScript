@@ -1,6 +1,6 @@
 # API Roadmap
 
-**Última atualização:** 2026-05-17  
+**Última atualização:** 2026-05-23
 **Status:** Fase 2 estabilizada — Modifiers, Gambits, Effect Engine e API data-driven concluidos
 
 ---
@@ -12,6 +12,8 @@ Este roadmap documenta a evolução da API REST do HeroScript, mapeando todos os
 **Análise Completa:** Para uma análise detalhada dos módulos Core implementados vs. necessários para criar um jogo completo, consulte [analysis/core-modules.md](analysis/core-modules.md).
 
 **Diagnóstico Data-driven:** Para controlar a aderência à filosofia principal de regras/conteúdo em JSON, consulte [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md).
+
+**Lacunas de Integração Frontend:** Para lacunas identificadas durante planejamento de protótipo visual, consulte [analysis/frontend-integration-gaps.md](analysis/frontend-integration-gaps.md).
 
 ## Filosofia da API
 
@@ -73,6 +75,8 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-05-23 | Docs | Índices e análises sincronizados com o estado real: Fase 2 estabilizada, Fase 3 como próximo foco, links antigos corrigidos |
+| 2026-05-17 | Análise | Lacunas de integração frontend documentadas: sistema de mão de cartas, deck, end turn, polling/websocket, turno de IA automático |
 | 2026-05-17 | Estab-4 | `EffectResolver` consolidado: cobre economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb); 553 testes Core |
 | 2026-05-17 | Estab-3 | `GambitEngine` data-driven implementado; `GambitController` delegando ao engine; API `/api/gambits` com decide/definitions/reload |
 | 2026-05-17 | Estab-2 | `ScriptModifierManager` implementado com pipeline/tags/tick; API `/api/modifiers` com apply/active/pipeline/tick |
@@ -127,7 +131,7 @@ http://localhost:5260/api
 - **Data-driven Compliance:** 9.0/10; todas as areas criticas migradas; lacunas restantes sao formula evaluator duplicado e fallbacks de compatibilidade conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
-### Fase 0 + Fase 1 (Implementadas)
+### Fase 0 + Fase 1 + Fase 2 (Implementadas/Estabilizadas)
 - **Total de testes Core:** 553 testes passando
   - Combat: 53 testes
   - Events: 18 testes  
@@ -141,9 +145,9 @@ http://localhost:5260/api
 - **Documentação:** 9 documentos técnicos completos
 
 ### Estimativa para MVP Jogável
-- **Fases restantes:** 2, 3, 4 (críticas)
-- **Tempo estimado:** 19-29 dias de desenvolvimento
-- **Sistemas críticos faltando:** Run Management, Content System, Card Selection, Shop, Preparation
+- **Fases restantes críticas:** 3 e 4
+- **Tempo estimado:** 13-20 dias de desenvolvimento para Run loop + conteúdo MVP inicial, sem persistência
+- **Sistemas críticos faltando:** Run Management, Deck/Hand State, Card Selection, Shop, Preparation e Content System
 - **Sistemas implementados na Fase 2:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados
 
 Para detalhes completos sobre módulos implementados e faltantes, consulte [analysis/core-modules.md](analysis/core-modules.md).

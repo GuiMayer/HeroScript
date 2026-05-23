@@ -1,6 +1,6 @@
 # HeroScript Documentation
 
-**Última atualização:** 2026-05-11  
+**Última atualização:** 2026-05-23
 **Versão:** 1.0.0
 
 ---
@@ -18,7 +18,7 @@
 ### Combat & Gameplay
 
 - **[Combat System](systems/combat/combat-system.md)** - Sistema de combate principal com estado imutável e Event Sourcing
-- **[Turn Phase System](systems/combat/turn-phase-system.md)** ⭐ NEW - Sistema modular de fases para TCGs (Magic, Yu-Gi-Oh!, Hearthstone)
+- **[Turn Phase System](systems/combat/turn-phase-system.md)** - Sistema modular de fases para TCGs (Magic, Yu-Gi-Oh!, Hearthstone)
 - **[Damage Pipeline](systems/damage/damage-pipeline.md)** - Pipeline configurável de processamento de dano
 - **[Damage Examples](systems/damage/damage-examples.md)** - Exemplos práticos do pipeline de dano
 - **[Alternative Costs](systems/combat/alternative-costs.md)** - Sistema de custos alternativos para ações
@@ -36,13 +36,6 @@
 - **[EventBus System](systems/events/eventbus-system.md)** - Sistema pub/sub e Event Sourcing
 - **[EventBus Implementation](systems/events/eventbus-implementation.md)** - Detalhes de implementação
 - **[Effect System](systems/effects/effect-system.md)** - Sistema de efeitos e modificadores
-
-### Infrastructure
-
-- **[Entity System](systems/entity/entity-system.md)** ⭐ NEW - Sistema de entidades e componentes *(em desenvolvimento)*
-- **[Validation System](systems/validation/validation-system.md)** ⭐ NEW - Sistema de validação *(em desenvolvimento)*
-
----
 
 ## Architecture
 
@@ -79,6 +72,8 @@
 ### Analysis
 
 - **[Core Modules Analysis](roadmap/analysis/core-modules.md)** - Análise de módulos implementados vs necessários
+- **[Data-driven Compliance](roadmap/analysis/data-driven-compliance.md)** - Aderência à filosofia data-driven
+- **[Frontend Integration Gaps](roadmap/analysis/frontend-integration-gaps.md)** - Lacunas para protótipo visual
 - **[Resource Cost Analysis](roadmap/analysis/resource-costs.md)** - Análise do sistema de custos
 - **[Event Integration](roadmap/analysis/event-integration.md)** - Integração com EventBus
 
@@ -94,8 +89,8 @@
 
 ### Prerequisites
 
-- .NET 8.0 SDK
-- C# 12
+- .NET 10 SDK
+- C# com nullable/implicit usings habilitados nos projetos atuais
 
 ### Building the Project
 
@@ -124,9 +119,14 @@ Swagger documentation: `http://localhost:5260/swagger`
 
 ## Project Statistics
 
-### Phase 0 + Phase 1 (Implemented)
+### Estado Verificado
 
-- **Total Tests:** 423+ tests (all passing)
+- **Core.Tests:** 553 tests passing
+- **API.Tests:** project compiles; full/filtered runner can still timeout locally, so API test stability remains a documented follow-up
+
+### Phase 0 + Phase 1 + Phase 2
+
+- **Implemented phases:** Phase 0, Phase 1, Phase 2 stabilized
   - Combat: 53 tests
   - Events: 18 tests
   - Damage: 126 tests
@@ -150,7 +150,7 @@ Swagger documentation: `http://localhost:5260/swagger`
   - Validation: 1 file
   - Common: 1 file
 
-- **APIs Implemented:** 3/3 (Events, Combat, Damage)
+- **APIs Implemented:** Actions, Combat, Effects, Status, Modifiers, Gambits, Resources, Config, Entity, Events, Damage diagnostics, Formula/Math/Operations
 
 - **Systems Core:**
   - ✅ EventBus
@@ -160,6 +160,11 @@ Swagger documentation: `http://localhost:5260/swagger`
   - ✅ MathEngine
   - ✅ ResourceManager
   - ✅ ConfigManager
+  - ✅ StatusEffectManager
+  - ✅ ScriptModifierManager
+  - ✅ GambitEngine
+  - ✅ EffectResolver
+  - ⏳ RunState/DeckState/RunManager/CardSelection/Shop/Preparation
 
 ---
 

@@ -1,8 +1,10 @@
 # HeroScript - Roadmap Estratégico
 
-**Última atualização:** 2026-05-16  
-**Status:** Em estabilização da Fase 2  
+**Última atualização:** 2026-05-23
+**Status:** Fase 2 estabilizada; Fase 3 é o próximo foco técnico
 **Escopo:** Engine versátil para Card Games (Slay the Spire, Balatro, TCGs)
+
+> Nota de manutenção: este documento preserva decisões estratégicas e histórico de escopo. Para status operacional atualizado, contratos de API e ordem de execução, use `README.md`, `docs/README.md`, `docs/roadmap/README.md` e os documentos por fase.
 
 ---
 
@@ -11,9 +13,9 @@
 Este documento consolida a visão estratégica do HeroScript, integrando o roadmap técnico de implementação com os pilares arquiteturais fundamentais que justificam a complexidade do sistema: **Timeline (Undo/Redo)**, **Baralhos Modulares (Deltas Universais)**, e **Sistema de Mão/Deck** para suportar múltiplos gêneros de card games.
 
 **Documentos relacionados:**
-- [roadmap/README.md](roadmap/README.md) - Roadmap técnico detalhado por fase
+- [README.md](README.md) - Roadmap técnico detalhado por fase
 - [session.md](session.md) - Visão arquitetural original (Timeline + Baralhos)
-- [roadmap/CORE_MODULES_ANALYSIS.md](roadmap/CORE_MODULES_ANALYSIS.md) - Análise de módulos implementados vs necessários
+- [analysis/core-modules.md](analysis/core-modules.md) - Análise de módulos implementados vs necessários
 
 ---
 
@@ -256,9 +258,9 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 - 85+ arquivos Core
 
 **Documentação:**
-- [PHASE_1.md](roadmap/PHASE_1.md)
-- [EVENTBUS_SYSTEM.md](EVENTBUS_SYSTEM.md)
-- [DAMAGE_PIPELINE.md](DAMAGE_PIPELINE.md)
+- [phase-1.md](phases/phase-1.md)
+- [eventbus-system.md](../systems/events/eventbus-system.md)
+- [damage-pipeline.md](../systems/damage/damage-pipeline.md)
 
 ---
 
@@ -350,7 +352,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 - 2 APIs REST expandidas (Combat, Cards)
 
 **Documentação:**
-- [PHASE_2.md](roadmap/PHASE_2.md) (atualizar)
+- [phase-2.md](phases/phase-2.md)
 - `STATUS_EFFECTS_SYSTEM.md` (criar)
 - `HAND_DECK_SYSTEM.md` (criar)
 
@@ -398,7 +400,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 ---
 
 **Documentação:**
-- [PHASE_3.md](roadmap/PHASE_3.md) (atualizar)
+- [phase-3.md](phases/phase-3.md)
 - `SCRIPT_MODIFIERS.md` (criar)
 - `GAMBIT_SYSTEM.md` (criar)
 
@@ -464,7 +466,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 ---
 
 **Documentação:**
-- [PHASE_4.md](roadmap/PHASE_4.md) (atualizar)
+- [phase-4.md](phases/phase-4.md)
 - `RUN_SYSTEM.md` (criar)
 - `CARD_SELECTION.md` (criar)
 
@@ -520,7 +522,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 ---
 
 **Documentação:**
-- [PHASE_5.md](roadmap/PHASE_5.md) (atualizar)
+- [phase-5.md](phases/phase-5.md)
 - `DECK_SYSTEM.md` (criar)
 - `CONTENT_CREATION_GUIDE.md` (criar)
 
@@ -555,7 +557,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 ---
 
 **Documentação:**
-- [PHASE_6.md](roadmap/PHASE_6.md) (atualizar)
+- [phase-6.md](phases/phase-6.md)
 - `SAVE_SYSTEM.md` (criar)
 
 ---
@@ -713,7 +715,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 ---
 
 **Documentação:**
-- [PHASE_9.md](roadmap/PHASE_9.md) (criar)
+- `phase-9.md` (criar se o roadmap voltar a separar modos avançados)
 - `CUSTOM_MODES.md` (criar)
 
 ---
@@ -1001,24 +1003,19 @@ _damageCalculator.SetPipeline(deckPipeline);
 
 ## Estatísticas Atuais
 
-### Fase 0 + Fase 1 (Implementadas)
-- **Total de testes:** 423 testes (todos passando)
-  - Combat: 53 testes
-  - Events: 18 testes  
-  - Damage: 126 testes
-  - Math: 97 testes
-  - Resources: 23 testes
-- **APIs implementadas:** 3/3 (Events, Combat, Damage)
-- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline, MathEngine, ResourceManager, ConfigManager
-- **Documentação:** 9 documentos técnicos completos
+### Fase 0 + Fase 1 + Fase 2 (Implementadas/Estabilizadas)
+- **Core.Tests:** 553 testes passando
+- **API.Tests:** compilam, mas a suite/runner ainda pode travar em execução completa
+- **APIs implementadas:** Actions, Combat, Effects, Status, Damage, Resources, Config, Entities, Events, Modifiers e Gambits
+- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline, MathEngine, ResourceManager, ConfigManager, StatusEffectManager, EffectResolver, ScriptModifierManager e GambitEngine
+- **Documentação operacional:** centralizada em `docs/roadmap/README.md`, `docs/api/endpoints.md` e documentos por fase
 
 ### Estimativa para MVP Jogável (Slay the Spire-like)
-- **Fases necessárias:** Fase 2 (completa), Fase 3 (parcial), Fase 4 (parcial)
-- **Tempo estimado:** 6-8 semanas
+- **Fases necessárias:** Fase 3 (Run/Deck/Hand/CardSelection/Shop/Preparation) e Fase 4 parcial (conteúdo mínimo)
+- **Tempo estimado:** 13-20 dias de desenvolvimento focado para MVP sem persistence
 - **Sistemas críticos faltando:** 
-  - **Fase 2:** Status Effects, Turn Management, Hand & Deck System, Enemy AI, Effect-Action Integration, Action Result Feedback
-  - **Fase 3:** ScriptModifier System (opcional), Gambit System (opcional)
-  - **Fase 4:** Run Management, Card Selection, Shop System, Relic System
+  - **Fase 3:** `RunState`, `DeckState`, Hand/Deck API, Card Selection, Shop, Preparation, end-turn/processamento de IA
+  - **Fase 4:** conteúdo jogável mínimo: raças, poderes, inimigos e recompensas
 
 ### Estimativa para Engine Versátil (Suporte a TCGs)
 - **Fases necessárias:** Fase 2-8
@@ -1091,28 +1088,28 @@ Antes de prosseguir, é necessário decidir qual estratégia seguir:
 
 ---
 
-### Implementação Imediata (Fase 2 - Prioridade CRÍTICA)
+### Implementação Imediata (Fase 3 - Prioridade CRÍTICA)
 
-**Atualização 2026-05-16:** executar primeiro a estabilização abaixo; só depois iniciar sistemas novos.
+**Atualização 2026-05-23:** a Fase 2 foi estabilizada. O próximo passo é criar estado real de run/deck para conectar os efeitos já existentes a gameplay jogável.
 
-**Estabilização imediata:**
-1. Fechar ciclo de vida de Status Effects: aplicação real de DoT/HoT, expiração, stacks e fórmulas via MathEngine/ExpressionEvaluator
-2. Completar `EffectResolver`: dano via DamageCalculator, cura/recurso via ResourceManager, status via StatusEffectManager
-3. Integrar `ActionManager` com `CombatSystem`: `costOptionId`, custos preparados e remoção de hardcodes de custo/dano
-4. Quebrar gradualmente responsabilidades do `CombatSystem` sem alterar comportamento público
-5. Atualizar/recuperar API.Tests legados de Config/Resource/Action e destravar testes de StatusEffect
+**Execução imediata:**
+1. Implementar `RunState` e `DeckState` como fonte de verdade de ouro, PP, deck, mão, descarte, exhaust, recompensas e nó atual
+2. Conectar effects de deck/economia do `EffectResolver` a esse estado real
+3. Expor Run API e Hand/Deck API antes de CardSelection/Shop
+4. Criar endpoints explícitos de integração visual para fim de turno e processamento de IA
+5. Manter o frontend sem regras duplicadas de deck, loja, recompensa ou IA
 
 **Semana 1-2:**
-1. Status Effect System (3-4 dias)
-2. Turn Management System (2-3 dias)
-3. Hand & Deck System (4-5 dias)
+1. Run/Deck Core (4-6 dias)
+2. Run/Hand/Deck API (2-3 dias)
+3. Integração visual de combate: end-turn/process-ai-turns/eventos (1-2 dias)
 
 **Semana 3:**
-4. Enemy AI System (2-3 dias)
-5. Effect-Action Integration (2 dias)
-6. Action Result Feedback (1-2 dias)
+4. CardSelection System (2-3 dias)
+5. Shop System (2-3 dias)
+6. Preparation System (1-2 dias)
 
-**Entregável:** Gameplay funcional com cartas, turnos, status effects e inimigos que reagem.
+**Entregável:** run jogável com cartas reais em mão/deck, recompensas, loja/preparação básica e IA processada pelo backend.
 
 ---
 
@@ -1120,6 +1117,7 @@ Antes de prosseguir, é necessário decidir qual estratégia seguir:
 
 | Data | Mudança |
 |------|---------|
+| 2026-05-23 | **Sincronização operacional** - Fase 2 marcada como estabilizada; Fase 3 passa a começar por `RunState`/`DeckState`, Hand/Deck API e integração visual backend-first |
 | 2026-05-16 | **Auditoria de estabilização** - Fase 2 classificada como parcial; StatusEffects existem mas precisam fechamento semântico; EffectResolver e CombatSystem/ActionManager são os próximos high priority |
 | 2026-05-16 | **Correções aplicadas** - Core.Tests estabilizados, Resource reload corrigido, rotas StatusEffect alinhadas, DamageCalculator integrado ao StatusEffectManager, guard de ambiente em EventsController |
 | 2026-05-09 | **Roadmap Estratégico criado** - Integração de session.md com roadmap técnico |
@@ -1137,18 +1135,18 @@ Antes de prosseguir, é necessário decidir qual estratégia seguir:
 ## Documentação Relacionada
 
 ### Roadmap Técnico
-- [roadmap/README.md](roadmap/README.md) - Visão geral do roadmap
-- [roadmap/PHASE_0.md](roadmap/PHASE_0.md) - Fundação (Config, Math, Resources)
-- [roadmap/PHASE_1.md](roadmap/PHASE_1.md) - EventBus e Combate Básico
-- [roadmap/PHASE_2.md](roadmap/PHASE_2.md) - Camadas de Combate
-- [roadmap/PHASE_3.md](roadmap/PHASE_3.md) - Loop de Run
-- [roadmap/CORE_MODULES_ANALYSIS.md](roadmap/CORE_MODULES_ANALYSIS.md) - Análise de módulos
+- [README.md](README.md) - Visão geral do roadmap
+- [phases/phase-0.md](phases/phase-0.md) - Fundação (Config, Math, Resources)
+- [phases/phase-1.md](phases/phase-1.md) - EventBus e Combate Básico
+- [phases/phase-2.md](phases/phase-2.md) - Camadas de Combate
+- [phases/phase-3.md](phases/phase-3.md) - Loop de Run
+- [analysis/core-modules.md](analysis/core-modules.md) - Análise de módulos
 
 ### Sistemas Implementados
-- [EVENTBUS_SYSTEM.md](EVENTBUS_SYSTEM.md) - Sistema de eventos
-- [DAMAGE_PIPELINE.md](DAMAGE_PIPELINE.md) - Pipeline de dano
-- [COMBAT_SYSTEM.md](COMBAT_SYSTEM.md) - Sistema de combate
-- [CONFIG_SYSTEM.md](CONFIG_SYSTEM.md) - Sistema de configuração
+- [../systems/events/eventbus-system.md](../systems/events/eventbus-system.md) - Sistema de eventos
+- [../systems/combat/damage-pipeline.md](../systems/combat/damage-pipeline.md) - Pipeline de dano
+- [../systems/combat/combat-system.md](../systems/combat/combat-system.md) - Sistema de combate
+- [../systems/config/config-system.md](../systems/config/config-system.md) - Sistema de configuração
 
 ### Visão Arquitetural
 - [session.md](session.md) - Visão original (Timeline + Baralhos Modulares)

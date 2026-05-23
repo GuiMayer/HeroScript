@@ -1,6 +1,6 @@
 # Diagnostico Data-driven - HeroScript
 
-**Data:** 2026-05-17  
+**Data:** 2026-05-23
 **Status:** Fase 2 estabilizada — Modifiers, Gambits e Effect Engine consolidados  
 **Objetivo:** medir e controlar a aderencia do projeto a filosofia principal: conteudo e regras de sistema devem morar em JSON; o codigo deve interpretar dados e aplicar primitivas de engine.
 
@@ -108,3 +108,13 @@ A primeira rodada de compliance removeu os principais bloqueios data-driven de c
 ## Proximo Passo Natural
 
 Fase 2 esta estabilizada. O proximo passo e iniciar a **Fase 3 — Loop de Run** (Run Management, Card Selection, Shop) usando `/api/effect/apply` como contrato base para acontecimentos unicos. A Fase 3 trara `RunState` e `DeckState` que permitirao efeitos de economia/deck aplicarem estado real.
+
+## Decisao de Execucao para Fase 3
+
+Para evitar retorno de hardcodes, a Fase 3 deve começar pelo estado e pelas regras data-driven antes de controllers mais ricos:
+
+1. Criar `RunState` e `DeckState` como fonte real para economia, deck, mão, discard e exhaust.
+2. Tornar tamanho de mão, deck inicial, regras de draw/discard/shuffle, pools de cartas, recompensas, preços e mapa configuráveis via JSON.
+3. Conectar efeitos já existentes de deck/economia no `EffectResolver` ao estado real da run.
+4. Só então expor `RunController`, Hand/Deck API, CardSelection, Shop e Preparation.
+5. Manter frontend como camada de apresentação: nenhuma regra de deck, loja, IA ou recompensa deve morar no cliente.
