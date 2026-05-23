@@ -4,6 +4,7 @@
     "startingGold": 50,
     "startingPowerPoints": 0,
     "startingHandSize": 5,
+    "combatActivationRulesId": "default_activation",
     "startingDeck": [
       "basic_attack",
       "basic_attack",
