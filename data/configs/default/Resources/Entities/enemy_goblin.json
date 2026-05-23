@@ -1,0 +1,32 @@
+{
+  "enemy_goblin": {
+    "definitionId": "enemy_goblin",
+    "type": "ENEMY",
+    "displayName": "Goblin",
+    "description": "A weak but aggressive enemy",
+    "resources": {
+      "resources": {
+        "health": {
+          "current": 50,
+          "max": 50
+        }
+      }
+    },
+    "stats": {
+      "strength": 8,
+      "dexterity": 14,
+      "intelligence": 6,
+      "constitution": 10,
+      "wisdom": 8,
+      "charisma": 6
+    },
+    "ai": {
+      "behaviorTree": "aggressive",
+      "actions": ["basic_attack"],
+      "lowHealthThreshold": 0.3,
+      "fleeHealthThreshold": 0.2
+    },
+    "iconPath": "icons/goblin.png",
+    "spritePath": "sprites/goblin.png"
+  }
+}

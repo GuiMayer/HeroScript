@@ -1,5 +1,8 @@
 using Core.Entity.Definitions;
+using Core.Config;
 using Core.Logging;
+using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Entity.Definitions;
@@ -21,7 +24,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldLoadValidDefinition()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadDefinition("player_warrior");
@@ -38,7 +41,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldLoadResources()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadDefinition("player_warrior");
@@ -55,7 +58,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldLoadStats()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadDefinition("player_warrior");
@@ -72,7 +75,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldLoadAI()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadDefinition("enemy_goblin");
@@ -89,7 +92,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldSupportDeltaInheritance()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadDefinition("enemy_orc_warrior");
@@ -116,7 +119,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldFail_WhenFileNotFound()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadDefinition("nonexistent");
@@ -130,7 +133,7 @@ public class EntityDefinitionLoaderTests
     public void LoadDefinition_ShouldCacheDefinitions()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result1 = loader.LoadDefinition("player_warrior");
@@ -146,7 +149,7 @@ public class EntityDefinitionLoaderTests
     public void GetDefinition_ShouldReturnCachedDefinition()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         loader.LoadDefinition("player_warrior");
         
         // Act
@@ -161,7 +164,7 @@ public class EntityDefinitionLoaderTests
     public void GetDefinition_ShouldReturnNull_WhenNotCached()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var definition = loader.GetDefinition("player_warrior");
@@ -174,7 +177,7 @@ public class EntityDefinitionLoaderTests
     public void ClearCache_ShouldClearAllDefinitions()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         loader.LoadDefinition("player_warrior");
         
         // Act
@@ -189,7 +192,7 @@ public class EntityDefinitionLoaderTests
     public void ReloadDefinition_ShouldReloadFromFile()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         loader.LoadDefinition("player_warrior");
         
         // Act
@@ -204,7 +207,7 @@ public class EntityDefinitionLoaderTests
     public void LoadAllDefinitions_ShouldLoadAllJsonFiles()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         
         // Act
         var result = loader.LoadAllDefinitions();
@@ -214,5 +217,41 @@ public class EntityDefinitionLoaderTests
         Assert.NotEmpty(result.Value!);
         Assert.True(result.Value.ContainsKey("player_warrior"));
         Assert.True(result.Value.ContainsKey("enemy_goblin"));
+    }
+
+    private EntityDefinitionLoader CreateLoader()
+    {
+        var configManager = new Mock<IConfigManager>();
+        var resourceLoader = new Mock<IResourceLoader>();
+        configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
+
+        foreach (var definitionId in new[] { "player_warrior", "enemy_goblin", "enemy_orc_warrior" })
+        {
+            var json = File.ReadAllText(Path.Combine(_testDataPath, $"{definitionId}.json"));
+            resourceLoader
+                .Setup(m => m.LoadResource($"Entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), false))
+                .Returns(ParseResource(definitionId, json));
+        }
+
+        resourceLoader
+            .Setup(m => m.LoadResource("Entities/nonexistent.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>());
+        resourceLoader
+            .Setup(m => m.DiscoverResources("Entities", It.IsAny<IEnumerable<string>>(), "*.json"))
+            .Returns(new[] { "player_warrior", "enemy_goblin", "enemy_orc_warrior" });
+
+        return new EntityDefinitionLoader(configManager.Object, resourceLoader.Object, new ConsoleLogger("Test"), "test");
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string definitionId, string json)
+    {
+        using var document = JsonDocument.Parse($$"""
+        {
+          "{{definitionId}}": {{json}}
+        }
+        """);
+
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
     }
 }

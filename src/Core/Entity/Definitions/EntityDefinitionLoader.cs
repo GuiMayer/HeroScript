@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Core.Common;
+using Core.Config;
 using Core.Entity.Components;
 using Core.Entity.Controllers;
 using Core.Logging;
@@ -14,14 +15,22 @@ namespace Core.Entity.Definitions;
 public class EntityDefinitionLoader
 {
     private readonly Dictionary<string, EntityDefinition> _definitions = new();
-    private readonly string _basePath;
+    private readonly IConfigManager _configManager;
+    private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly string _configName;
     
-    public EntityDefinitionLoader(string basePath, ILogger? logger = null)
+    public EntityDefinitionLoader(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        ILogger? logger = null,
+        string configName = "default")
     {
-        _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
+        _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? new ConsoleLogger("EntityDefinitionLoader");
+        _configName = string.IsNullOrWhiteSpace(configName) ? "default" : configName;
         
         _jsonOptions = new JsonSerializerOptions
         {
@@ -45,22 +54,14 @@ public class EntityDefinitionLoader
                 return Result<EntityDefinition>.Success(cached);
             }
             
-            // Construir caminho do arquivo
-            var filePath = Path.Combine(_basePath, $"{definitionId}.json");
+            var chain = _configManager.ResolveInheritanceChain(_configName);
+            var data = _resourceLoader.LoadResource($"Entities/{definitionId}.json", chain, strictMode: false);
+            if (data.Count == 0)
+                return Result<EntityDefinition>.Failure($"Definition not found: {definitionId}");
+
+            var root = data.TryGetValue(definitionId, out var exact) ? exact : data.Values.First();
             
-            if (!File.Exists(filePath))
-            {
-                return Result<EntityDefinition>.Failure($"Definition file not found: {filePath}");
-            }
-            
-            // Carregar JSON
-            var json = File.ReadAllText(filePath);
-            
-            // Parse como JsonDocument para detectar campos presentes
-            using var jsonDoc = JsonDocument.Parse(json);
-            var root = jsonDoc.RootElement;
-            
-            var definition = JsonSerializer.Deserialize<EntityDefinition>(json, _jsonOptions);
+            var definition = JsonSerializer.Deserialize<EntityDefinition>(root.GetRawText(), _jsonOptions);
             
             if (definition == null)
             {
@@ -109,17 +110,11 @@ public class EntityDefinitionLoader
         {
             var definitions = new Dictionary<string, EntityDefinition>();
             
-            if (!Directory.Exists(_basePath))
+            var chain = _configManager.ResolveInheritanceChain(_configName);
+            var definitionIds = _resourceLoader.DiscoverResources("Entities", chain, "*.json");
+
+            foreach (var definitionId in definitionIds)
             {
-                _logger.LogWarning($"Entity definitions directory not found: {_basePath}");
-                return Result<Dictionary<string, EntityDefinition>>.Success(definitions);
-            }
-            
-            var files = Directory.GetFiles(_basePath, "*.json", SearchOption.AllDirectories);
-            
-            foreach (var file in files)
-            {
-                var definitionId = Path.GetFileNameWithoutExtension(file);
                 var result = LoadDefinition(definitionId);
                 
                 if (result.IsSuccess)

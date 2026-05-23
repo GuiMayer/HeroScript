@@ -1,11 +1,13 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Config;
 using Core.Entity.Definitions;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;
 using Core.Resources;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat;
@@ -84,7 +86,18 @@ public class CombatSystemTests
         var workspaceRoot = Path.GetFullPath(
             Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", ".."));
         var entityPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Entities");
-        var loader = new EntityDefinitionLoader(entityPath, _mockLogger.Object);
+        var configManager = new Mock<IConfigManager>();
+        var resourceLoader = new Mock<IResourceLoader>();
+        configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
+        foreach (var definitionId in new[] { "player_warrior", "enemy_goblin", "enemy_orc_warrior" })
+        {
+            var json = File.ReadAllText(Path.Combine(entityPath, $"{definitionId}.json"));
+            resourceLoader
+                .Setup(m => m.LoadResource($"Entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), false))
+                .Returns(ParseEntityResource(definitionId, json));
+        }
+
+        var loader = new EntityDefinitionLoader(configManager.Object, resourceLoader.Object, _mockLogger.Object, "test");
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
@@ -103,6 +116,18 @@ public class CombatSystemTests
         Assert.Equal("Orc Warrior", result.Value.Enemies[0].Name);
         Assert.Equal(100, result.Value.Enemies[0].GetResource("health")?.Current);
         Assert.Equal(100, result.Value.Enemies[0].GetResource("health")?.Maximum);
+    }
+
+    private static Dictionary<string, JsonElement> ParseEntityResource(string definitionId, string json)
+    {
+        using var document = JsonDocument.Parse($$"""
+        {
+          "{{definitionId}}": {{json}}
+        }
+        """);
+
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]

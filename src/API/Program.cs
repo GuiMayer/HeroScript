@@ -94,10 +94,11 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
 // Register EntityDefinitionLoader
 builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
 {
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EntityDefinitionLoader"));
-    var basePath = Path.Combine(Directory.GetCurrentDirectory(), "data", "configs", "default", "Entities");
-    return new EntityDefinitionLoader(basePath, logger);
+    return new EntityDefinitionLoader(configManager, resourceLoader, logger);
 });
 
 // Register StatusEffectManager

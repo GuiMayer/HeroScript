@@ -1,9 +1,11 @@
 using Core.Entity.Definitions;
+using Core.Config;
 using Core.Entity.Components;
 using Core.Entity.Controllers;
 using Core.Logging;
 using Core.Resources;
 using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Entity.Definitions;
@@ -59,7 +61,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldCreateEntityFromDefinition()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -77,7 +79,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldAddResourceComponent()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -97,7 +99,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldAddStatsComponent()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -118,7 +120,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldAddStatusEffectComponent()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -134,7 +136,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldAddInventoryComponent()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -153,7 +155,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldCreatePlayerController_ForPlayerType()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -171,7 +173,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldCreateAIController_ForEnemyType()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -189,7 +191,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldConfigureAIController_FromDefinition()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -206,7 +208,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldGenerateUniqueId_WhenNotProvided()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -223,7 +225,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldUseProvidedId()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -238,7 +240,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldFail_WhenDefinitionNotFound()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -253,7 +255,7 @@ public class EntityFactoryTests
     public void CreateEntity_ShouldSupportDeltaInheritance()
     {
         // Arrange
-        var loader = new EntityDefinitionLoader(_testDataPath, new ConsoleLogger("Test"));
+        var loader = CreateLoader();
         var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
         
         // Act
@@ -271,5 +273,38 @@ public class EntityFactoryTests
         // Deve ter AI configurado
         Assert.NotNull(entity.Controller);
         Assert.IsType<AIController>(entity.Controller);
+    }
+
+    private EntityDefinitionLoader CreateLoader()
+    {
+        var configManager = new Mock<IConfigManager>();
+        var resourceLoader = new Mock<IResourceLoader>();
+        configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
+
+        foreach (var definitionId in new[] { "player_warrior", "enemy_goblin", "enemy_orc_warrior" })
+        {
+            var json = File.ReadAllText(Path.Combine(_testDataPath, $"{definitionId}.json"));
+            resourceLoader
+                .Setup(m => m.LoadResource($"Entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), false))
+                .Returns(ParseResource(definitionId, json));
+        }
+
+        resourceLoader
+            .Setup(m => m.LoadResource("Entities/nonexistent.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(new Dictionary<string, JsonElement>());
+
+        return new EntityDefinitionLoader(configManager.Object, resourceLoader.Object, new ConsoleLogger("Test"), "test");
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string definitionId, string json)
+    {
+        using var document = JsonDocument.Parse($$"""
+        {
+          "{{definitionId}}": {{json}}
+        }
+        """);
+
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
     }
 }
