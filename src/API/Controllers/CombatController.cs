@@ -5,6 +5,7 @@ using Core.Combat.Models;
 using Core.Effects;
 using API.Models.Combat;
 using API.Models.Gambits;
+using Core.Run;
 
 namespace API.Controllers;
 
@@ -20,6 +21,7 @@ public class CombatController : BaseApiController
     private readonly IActionAffordabilityService _affordabilityService;
     private readonly IGambitEngine _gambitEngine;
     private readonly ICombatRunCoordinator _combatRunCoordinator;
+    private readonly IRunManager _runManager;
 
     public CombatController(
         ICombatSystem combatSystem, 
@@ -27,6 +29,7 @@ public class CombatController : BaseApiController
         IActionAffordabilityService affordabilityService,
         IGambitEngine gambitEngine,
         ICombatRunCoordinator combatRunCoordinator,
+        IRunManager runManager,
         ILogger<CombatController> logger)
         : base(logger)
     {
@@ -35,6 +38,7 @@ public class CombatController : BaseApiController
         _affordabilityService = affordabilityService ?? throw new ArgumentNullException(nameof(affordabilityService));
         _gambitEngine = gambitEngine ?? throw new ArgumentNullException(nameof(gambitEngine));
         _combatRunCoordinator = combatRunCoordinator ?? throw new ArgumentNullException(nameof(combatRunCoordinator));
+        _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
     /// <summary>
@@ -282,10 +286,10 @@ public class CombatController : BaseApiController
     }
 
     /// <summary>
-    /// Lista ações disponíveis para o herói no combate atual
+    /// Lista ações disponíveis para um ator no combate atual.
     /// </summary>
     [HttpGet("{combatId}/available-actions")]
-    public IActionResult GetAvailableActions(Guid combatId)
+    public IActionResult GetAvailableActions(Guid combatId, [FromQuery] string? actorId = null, [FromQuery] Guid? runId = null)
     {
         try
         {
@@ -293,15 +297,25 @@ public class CombatController : BaseApiController
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
+            var state = stateResult.Value;
+            var actor = ResolveActor(state, actorId);
+            if (actor == null)
+                return NotFound(new { error = $"Actor {actorId} not found" });
+
             var allActions = _actionManager.GetAllDefinitions();
-            var heroResources = stateResult.Value.Hero.ResourceState.Resources;
+            var hand = GetRunHand(runId, out var runError);
+            if (runError != null)
+                return runError;
+            var handCounts = hand?.GroupBy(cardId => cardId).ToDictionary(g => g.Key, g => g.Count()) ?? new Dictionary<string, int>();
             
             var availableActions = allActions.Select(action =>
             {
-                var affordabilityResult = _affordabilityService.CanAfford(action, heroResources);
+                var affordabilityResult = _affordabilityService.CanAfford(action, actor.ResourceState.Resources);
                 var affordability = affordabilityResult.IsSuccess 
                     ? affordabilityResult.Value 
                     : new AffordabilityResult { ActionId = action.ActionId, CanAfford = false };
+                var cardCountInHand = handCounts.GetValueOrDefault(action.ActionId);
+                var inHand = hand == null || cardCountInHand > 0;
                 
                 return new
                 {
@@ -327,13 +341,18 @@ public class CombatController : BaseApiController
                     }).ToList(),
                     tags = action.Tags,
                     canAfford = affordability.CanAfford,
-                    affordableOptions = affordability.AffordableOptionIds
+                    affordableOptions = affordability.AffordableOptionIds,
+                    inHand,
+                    cardCountInHand,
+                    willConsumeTo = ResolveConsumeDestination(action).ToString()
                 };
-            }).ToList();
+            }).Where(action => hand == null || action.inHand).ToList();
 
             return Ok(new
             {
                 combatId = combatId,
+                actorId = actor.EntityId,
+                runId,
                 totalActions = availableActions.Count,
                 affordableActions = availableActions.Count(a => a.canAfford || a.affordableOptions.Any()),
                 actions = availableActions
@@ -346,10 +365,10 @@ public class CombatController : BaseApiController
     }
 
     /// <summary>
-    /// Verifica se o herói pode pagar por uma ação específica
+    /// Verifica se um ator pode pagar por uma ação específica.
     /// </summary>
     [HttpPost("{combatId}/actions/{actionId}/can-afford")]
-    public IActionResult CanAffordAction(Guid combatId, string actionId)
+    public IActionResult CanAffordAction(Guid combatId, string actionId, [FromQuery] string? actorId = null, [FromQuery] Guid? runId = null)
     {
         try
         {
@@ -361,10 +380,18 @@ public class CombatController : BaseApiController
             if (actionDefResult.IsFailure)
                 return NotFound(new { error = $"Action {actionId} not found" });
 
+            var state = stateResult.Value;
+            var actor = ResolveActor(state, actorId);
+            if (actor == null)
+                return NotFound(new { error = $"Actor {actorId} not found" });
+
             var actionDef = actionDefResult.Value;
-            var heroResources = stateResult.Value.Hero.ResourceState.Resources;
+            var hand = GetRunHand(runId, out var runError);
+            if (runError != null)
+                return runError;
+            var cardCountInHand = hand?.Count(cardId => cardId == actionId) ?? 0;
             
-            var affordabilityResult = _affordabilityService.CanAfford(actionDef, heroResources);
+            var affordabilityResult = _affordabilityService.CanAfford(actionDef, actor.ResourceState.Resources);
             
             if (affordabilityResult.IsFailure)
                 return BadRequest(new { error = affordabilityResult.Error });
@@ -374,8 +401,13 @@ public class CombatController : BaseApiController
             return Ok(new
             {
                 actionId = affordability.ActionId,
+                actorId = actor.EntityId,
+                runId,
                 canAfford = affordability.CanAfford,
                 affordableOptionIds = affordability.AffordableOptionIds,
+                inHand = hand == null || cardCountInHand > 0,
+                cardCountInHand,
+                willConsumeTo = ResolveConsumeDestination(actionDef).ToString(),
                 error = affordability.Error
             });
         }
@@ -507,6 +539,40 @@ public class CombatController : BaseApiController
                 exhaustPile = deck.ExhaustPile.Count
             }
         };
+    }
+
+    private CombatEntity? ResolveActor(CombatState state, string? actorId)
+    {
+        return string.IsNullOrWhiteSpace(actorId)
+            ? state.Hero
+            : state.GetEntity(actorId);
+    }
+
+    private IReadOnlyList<string>? GetRunHand(Guid? runId, out IActionResult? error)
+    {
+        error = null;
+        if (!runId.HasValue)
+            return null;
+
+        var runResult = _runManager.GetRun(runId.Value);
+        if (runResult.IsFailure)
+        {
+            error = NotFound(new { error = runResult.Error });
+            return null;
+        }
+
+        return runResult.Value.Deck.Hand;
+    }
+
+    private static CardConsumeDestination ResolveConsumeDestination(ActionDefinition actionDefinition)
+    {
+        if (actionDefinition.Tags.Any(tag => string.Equals(tag, "retain", StringComparison.OrdinalIgnoreCase)))
+            return CardConsumeDestination.None;
+
+        if (actionDefinition.Tags.Any(tag => string.Equals(tag, "exhaust", StringComparison.OrdinalIgnoreCase)))
+            return CardConsumeDestination.Exhaust;
+
+        return CardConsumeDestination.Discard;
     }
 
     private object ExecuteAiAction(Guid combatId, CombatEntity enemy, CombatState state, IEnumerable<string>? gambitIds, out CombatState? updatedState)
