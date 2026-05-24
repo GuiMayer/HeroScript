@@ -1,6 +1,7 @@
 using Xunit;
 using Moq;
 using Core.Damage;
+using Core.Damage.Events;
 using Core.Events;
 using Core.Logging;
 using Core.Math;
@@ -649,6 +650,75 @@ public class GenericBucketProcessorTests
         // Assert
         // (100 + 50) * 1.5 * 1.2 = 150 * 1.5 * 1.2 = 270
         Assert.Equal(270f, result.CurrentDamage);
+    }
+
+    [Fact]
+    public void Process_WithEmitEvents_PublishesBucketProcessedEvent()
+    {
+        // Arrange
+        BucketProcessedEvent? publishedEvent = null;
+        _mockEventBus
+            .Setup(e => e.Publish(It.IsAny<BucketProcessedEvent>()))
+            .Callback<IEvent>(evt => publishedEvent = Assert.IsType<BucketProcessedEvent>(evt));
+
+        var bucket = new BucketDefinition
+        {
+            BucketId = "event_bucket",
+            Order = 1,
+            EmitEvents = true,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "constant:25"
+                }
+            }
+        };
+
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(125f, result.CurrentDamage);
+        Assert.NotNull(publishedEvent);
+        Assert.Equal("event_bucket", publishedEvent.BucketId);
+        Assert.Equal(100f, publishedEvent.DamageBefore);
+        Assert.Equal(125f, publishedEvent.DamageAfter);
+        Assert.Equal(25f, publishedEvent.DamageDelta);
+    }
+
+    [Fact]
+    public void Process_WithEmitEventsFalse_DoesNotPublishBucketProcessedEvent()
+    {
+        // Arrange
+        var bucket = new BucketDefinition
+        {
+            BucketId = "silent_bucket",
+            Order = 1,
+            EmitEvents = false,
+            Operations = new List<BucketOperation>
+            {
+                new BucketOperation
+                {
+                    Type = OperationType.ADD_FLAT,
+                    Source = "constant:25"
+                }
+            }
+        };
+
+        var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var result = processor.Process(context);
+
+        // Assert
+        Assert.Equal(125f, result.CurrentDamage);
+        _mockEventBus.Verify(e => e.Publish(It.IsAny<BucketProcessedEvent>()), Times.Never);
     }
 
     [Fact]

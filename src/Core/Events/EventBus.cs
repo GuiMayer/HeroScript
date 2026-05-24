@@ -23,6 +23,7 @@ public class EventBus : IEventBus
         if (@event == null) throw new ArgumentNullException(nameof(@event));
 
         List<Delegate>? handlersToInvoke = null;
+        var eventForHandlers = @event;
 
         lock (_lock)
         {
@@ -31,6 +32,7 @@ public class EventBus : IEventBus
             {
                 var updatedEvent = gameEvent with { Sequence = _sequenceCounter++ };
                 _eventHistory.Add(updatedEvent);
+                eventForHandlers = (TEvent)(IEvent)updatedEvent;
             }
             else
             {
@@ -52,7 +54,7 @@ public class EventBus : IEventBus
             {
                 try
                 {
-                    ((Action<TEvent>)handler)(@event);
+                    ((Action<TEvent>)handler)(eventForHandlers);
                 }
                 catch (Exception ex)
                 {
@@ -61,7 +63,7 @@ public class EventBus : IEventBus
             }
         }
 
-        _logger.LogDebug($"Published event: {typeof(TEvent).Name} (ID: {@event.EventId})");
+        _logger.LogDebug($"Published event: {typeof(TEvent).Name} (ID: {eventForHandlers.EventId})");
     }
 
     public IDisposable Subscribe<TEvent>(Action<TEvent> handler) where TEvent : IEvent

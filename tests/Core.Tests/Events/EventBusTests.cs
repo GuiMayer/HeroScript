@@ -167,6 +167,33 @@ public class EventBusTests
     }
 
     [Fact]
+    public void Publish_SubscribersReceiveSequencedHistoryEvent()
+    {
+        ConfigLoadedEvent? receivedEvent = null;
+        using var subscription = _eventBus.Subscribe<ConfigLoadedEvent>(e => receivedEvent = e);
+
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+
+        var historyEvent = Assert.IsType<ConfigLoadedEvent>(Assert.Single(_eventBus.GetEventHistory()));
+        Assert.NotNull(receivedEvent);
+        Assert.Equal(historyEvent.Sequence, receivedEvent.Sequence);
+        Assert.Equal(historyEvent.EventId, receivedEvent.EventId);
+    }
+
+    [Fact]
+    public void Publish_FirstHandlerException_DoesNotStopOtherHandlersOrHistory()
+    {
+        var secondHandlerCalled = false;
+        using var failing = _eventBus.Subscribe<ConfigLoadedEvent>(_ => throw new InvalidOperationException("handler failed"));
+        using var succeeding = _eventBus.Subscribe<ConfigLoadedEvent>(_ => secondHandlerCalled = true);
+
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+
+        Assert.True(secondHandlerCalled);
+        Assert.Single(_eventBus.GetEventHistory());
+    }
+
+    [Fact]
     public void Publish_SetsTimestamp()
     {
         // Arrange
