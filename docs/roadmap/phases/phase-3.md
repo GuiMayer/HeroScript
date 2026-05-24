@@ -20,6 +20,7 @@ A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs,
 - Integração combate↔mão já passa por `CombatRunCoordinator`: `runId`/`cardId` validam carta na mão, executam combate e consomem para discard/exhaust/retain conforme tags JSON da `ActionDefinition`.
 - Recompensas, lojas e preparacao agora usam catalogo/pools data-driven: `cards/card_catalog.json`, `card-pools/{poolId}.json`, `card-selections/{selectionId}.json`, `shops/{shopId}.json` e `preparations/{preparationId}.json`.
 - Modificadores concedidos em preparacao podem pertencer a `run:{runId}` e sao aplicados no combate via `CombatRunCoordinator` + `ScriptModifierManager.GetPipelineModifiers` antes da carta ser executada.
+- Operacoes compostas de run agora passam por fronteira transacional no `RunManager`: compra, reroll, pick, decompose e preparacao restauram o estado em falha; modifiers externos aplicados durante preparacao sao removidos se uma etapa posterior falhar.
 - Ownership/autorização de controle por ator fica como TODO futuro, antes de multiplayer ou API multi-cliente.
 
 ## APIs Planejadas
@@ -217,7 +218,8 @@ Preparação permite customização:
 - ✅ Polling incremental e base SSE implementados para eventos de combate/run
 - ✅ Catalogo de cartas, pools por raridade/tags, reroll/decompose de recompensas, pricing/reroll de loja e grants reais de modifiers em preparacao
 - ✅ Modificadores de run aplicados em acoes de carta via `CombatRunCoordinator` e `CombatActionCommand.RunModifiers`
-- ⏳ Refinamentos de turnos por entidade, transacoes/rollback e conteúdo MVP ampliado
+- ✅ Primeira fatia de transacoes/rollback para operacoes compostas de run implementada no `RunManager`
+- ⏳ Refinamentos de turnos por entidade, refinamentos transacionais futuros e conteúdo MVP ampliado
 - 🧭 TODO futuro: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente
 
 ### Ordem de Implementação
@@ -347,9 +349,9 @@ Content-Type: application/json
 ## Próximos Passos
 
 Próximo foco dentro da Fase 3:
-- **Consistencia transacional** - evitar mutacao parcial quando operacoes compostas de run falham depois de gastar recursos/aplicar cartas/modifiers.
 - **Refinamentos de ativacao** - regras mais ricas para janelas de player/IA, status por inicio/fim de ativacao e integração com intents.
 - **Conteúdo MVP ampliado** - mais pools, cartas, lojas, preparacoes e modificadores usando os contratos JSON existentes.
+- **Refinamentos transacionais futuros** - integrar a fronteira transacional com persistencia/versionamento quando Fase 5 comecar.
 - **Compliance de loaders** - manter novos conteudos em `Resources/`; loaders de gameplay devem usar `ResourceLoader`, enquanto acesso fisico direto fica limitado a infraestrutura de config/providers/hot reload.
 
 Após completar a Fase 3, a Fase 4 adicionará conteúdo MVP:

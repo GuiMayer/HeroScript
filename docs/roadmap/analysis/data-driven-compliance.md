@@ -10,7 +10,7 @@
 
 O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre loaders de conteudo e regras via `ResourceLoader`, cache por cadeia de configs/mods e recursos JSON em runtime. As lacunas restantes sao principalmente avaliadores duplicados, garantias transacionais e alguns pontos de infraestrutura que precisam tocar o filesystem por desenho.
 
-**Score atual:** 9.4/10
+**Score atual:** 9.5/10
 
 ### O que ja esta alinhado
 
@@ -46,7 +46,7 @@ O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre load
 | ✅ Resolvido | Damage pipeline | Loader tinha fallback hardcoded de bucket quando JSON falhava | Pipeline agora exige JSON valido e propaga erro de configuracao |
 | MEDIUM | Formulas | Existem avaliadores simples duplicados em status/effects | Usar um avaliador canonico |
 | MEDIUM | Test runner API | `API.Tests` compila, mas o runner local congela ao filtrar `ResourceControllerTests` | Investigar ambiente/fixture antes de usar a suite API como gate obrigatorio |
-| MEDIUM | Transacoes de Run | Operacoes compostas podem gastar recurso antes de falhar em etapa posterior | Introduzir rollback/transaction boundary para `RunManager` |
+| ✅ Resolvido parcial | Transacoes de Run | Operacoes compostas podiam gastar recurso antes de falhar em etapa posterior | `RunManager` agora usa snapshot/rollback para operacoes compostas e compensa modifiers externos de preparacao; refinamentos futuros ficam para persistencia/versionamento |
 | LOW | Infraestrutura filesystem | `ConfigManager`, providers fisicos e hot reload precisam observar arquivos reais | Aceitavel; estes pontos sao infraestrutura, nao regra/conteudo de gameplay |
 
 ---
@@ -94,6 +94,7 @@ O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre load
 | Loader-5 | ✅ Implementado | Gambits sem fallback de arquivo fisico | `GambitEngine` exige `IResourceLoader` |
 | Loader-6 | ✅ Implementado | Damage pipeline sem fallback hardcoded | JSON invalido agora falha em vez de criar pipeline em C# |
 | Loader-7 | ✅ Implementado | TurnPhase via `ResourceLoader` | Presets migrados para `Resources/phase-sequences/{id}.json` |
+| RunTx-1 | ✅ Implementado | Fronteira transacional de Run | `RunManager` faz rollback de pick, decompose, shop buy/reroll, card-selection reroll e preparation; modifiers aplicados em preparacao sao compensados em falha |
 
 ---
 
@@ -114,7 +115,7 @@ A primeira rodada de compliance removeu os principais bloqueios data-driven de c
 | Prioridade | Lacuna | Motivo |
 |---|---|---|
 | MEDIUM | Formula evaluators duplicados | Status, Effects e Modifiers ainda possuem avaliadores simples locais; a fonte canonica deveria ser `MathEngine`/`ExpressionEvaluator` |
-| MEDIUM | Transacoes de Run | Algumas operacoes compostas ainda podem deixar estado parcial se a etapa final falhar |
+| LOW | Transacoes de Run | Primeira fatia em memoria esta coberta; persistencia futura ainda precisara de versionamento/concorrencia otimista |
 | MEDIUM | Runner de `API.Tests` instavel | Testes compilam e subsets passam, mas runner completo congela no ambiente atual |
 | LOW | Hot reload de recursos usa `FileSystemWatcher` | Essencial para detectar alteracoes reais em JSON durante desenvolvimento; deve ficar isolado em infraestrutura |
 
