@@ -204,6 +204,90 @@ public class PipelineManagerTests
         _mockLogger.Verify(l => l.LogDebug(It.Is<string>(s => s.Contains("Pipeline end"))), Times.Once);
     }
 
+    [Fact]
+    public void ExecutePipeline_WhenBucketThrows_DoesNotContinueToLaterBuckets()
+    {
+        // Arrange
+        var config = new PipelineConfiguration
+        {
+            Buckets = new List<BucketDefinition>
+            {
+                new BucketDefinition
+                {
+                    BucketId = "failing_bucket",
+                    Order = 1,
+                    Operations = new List<BucketOperation>
+                    {
+                        new BucketOperation { Type = (OperationType)999, Source = "invalid" }
+                    }
+                },
+                new BucketDefinition
+                {
+                    BucketId = "later_bucket",
+                    Order = 2,
+                    Operations = new List<BucketOperation>
+                    {
+                        new BucketOperation { Type = OperationType.ADD_FLAT, Source = "constant:999" }
+                    }
+                }
+            }
+        };
+
+        SetupResourceLoaderWithConfig(config);
+        var manager = CreateManager();
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        var exception = Assert.Throws<InvalidOperationException>(() => manager.ExecutePipeline(context));
+
+        // Assert
+        Assert.Contains("failing_bucket", exception.Message);
+        _mockEventBus.Verify(e => e.Publish(It.Is<BucketProcessedEvent>(evt => evt.BucketId == "later_bucket")), Times.Never);
+        _mockLogger.Verify(l => l.LogError(It.Is<string>(s => s.Contains("failing_bucket")), It.IsAny<Exception>()), Times.Once);
+    }
+
+    [Fact]
+    public void ExecutePipeline_WhenBucketThrows_DoesNotMutateOriginalContext()
+    {
+        // Arrange
+        var config = new PipelineConfiguration
+        {
+            Buckets = new List<BucketDefinition>
+            {
+                new BucketDefinition
+                {
+                    BucketId = "first_bucket",
+                    Order = 1,
+                    Operations = new List<BucketOperation>
+                    {
+                        new BucketOperation { Type = OperationType.ADD_FLAT, Source = "constant:25" }
+                    }
+                },
+                new BucketDefinition
+                {
+                    BucketId = "failing_bucket",
+                    Order = 2,
+                    Operations = new List<BucketOperation>
+                    {
+                        new BucketOperation { Type = (OperationType)999, Source = "invalid" }
+                    }
+                }
+            }
+        };
+
+        SetupResourceLoaderWithConfig(config);
+        var manager = CreateManager();
+        var context = DamageTestHelpers.CreateBasicContext(baseDamage: 100f);
+
+        // Act
+        Assert.Throws<InvalidOperationException>(() => manager.ExecutePipeline(context));
+
+        // Assert
+        Assert.Equal(100f, context.CurrentDamage);
+        Assert.Empty(context.Metadata);
+        Assert.Empty(context.Tags);
+    }
+
     // ==================== RELOAD CONFIGURATION ====================
 
     [Fact]
