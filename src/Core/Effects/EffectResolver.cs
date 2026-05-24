@@ -8,7 +8,6 @@ using Core.Math;
 using Core.Resources;
 using Core.Run;
 using Core.StatusEffects;
-using System.Globalization;
 using System.Text.Json;
 
 namespace Core.Effects;
@@ -25,6 +24,7 @@ public class EffectResolver : IEffectResolver
     private readonly IRandomProvider _randomProvider;
     private readonly IStatusEffectManager? _statusEffectManager;
     private readonly IRunManager? _runManager;
+    private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     
     // Cache de modificadores ativos por entidade
     private readonly Dictionary<string, List<EffectModifier>> _activeModifiers = new();
@@ -35,6 +35,7 @@ public class EffectResolver : IEffectResolver
         IResourceManager resourceManager,
         IEventBus eventBus,
         ILogger logger,
+        IRuntimeFormulaEvaluator formulaEvaluator,
         IRandomProvider? randomProvider = null,
         IStatusEffectManager? statusEffectManager = null,
         IRunManager? runManager = null)
@@ -43,6 +44,7 @@ public class EffectResolver : IEffectResolver
         _resourceManager = resourceManager;
         _eventBus = eventBus;
         _logger = logger;
+        _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
         _randomProvider = randomProvider ?? new DefaultRandomProvider();
         _statusEffectManager = statusEffectManager;
         _runManager = runManager;
@@ -683,10 +685,11 @@ public class EffectResolver : IEffectResolver
         if (!string.IsNullOrEmpty(effect.Definition.FormulaValue))
         {
             var variables = BuildFormulaVariables(effect, targetId, context);
-            if (TryEvaluateFormula(effect.Definition.FormulaValue, variables, out var formulaValue))
-                return formulaValue;
+            var formulaValue = _formulaEvaluator.Evaluate(effect.Definition.FormulaValue, variables);
+            if (formulaValue.IsSuccess)
+                return formulaValue.Value;
 
-            _logger.LogWarning($"Failed to evaluate formula for effect {effect.InstanceId}. Using flat value.");
+            _logger.LogWarning($"Failed to evaluate formula for effect {effect.InstanceId}: {formulaValue.Error}. Using flat value.");
         }
         
         return effect.Definition.FlatValue ?? 0f;
@@ -713,50 +716,20 @@ public class EffectResolver : IEffectResolver
         return variables;
     }
 
-    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
-    {
-        result = 0;
-        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (tokens.Length == 0 || tokens.Length % 2 == 0)
-            return false;
-
-        if (!TryReadValue(tokens[0], variables, out result))
-            return false;
-
-        for (var i = 1; i < tokens.Length; i += 2)
-        {
-            if (!TryReadValue(tokens[i + 1], variables, out var right))
-                return false;
-
-            result = tokens[i] switch
-            {
-                "+" => result + right,
-                "-" => result - right,
-                "*" => result * right,
-                "/" when right != 0 => result / right,
-                _ => float.NaN
-            };
-
-            if (float.IsNaN(result))
-                return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
-    {
-        if (variables.TryGetValue(token, out value))
-            return true;
-
-        return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
-    }
-
     private bool EvaluateCondition(string condition, EffectInstance effect, IEffectContext context)
     {
-        // TODO: Implementar avaliação de condições via MathEngine ou ExpressionEvaluator
-        _logger.LogWarning($"Condition evaluation not yet implemented for effect {effect.InstanceId}. Assuming true.");
-        return true;
+        var targetId = string.IsNullOrWhiteSpace(effect.TargetEntityId)
+            ? effect.SourceEntityId
+            : effect.TargetEntityId;
+        var variables = BuildFormulaVariables(effect, targetId, context);
+        var result = _formulaEvaluator.Evaluate(condition, variables);
+        if (result.IsFailure)
+        {
+            _logger.LogWarning($"Failed to evaluate condition for effect {effect.InstanceId}: {result.Error}");
+            return false;
+        }
+
+        return result.Value > 0f;
     }
 
     private List<string> ResolveTargets(EffectTarget targetType, string sourceId, string primaryTargetId, IEffectContext context)

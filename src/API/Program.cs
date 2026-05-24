@@ -69,6 +69,14 @@ builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
     var eventBus = sp.GetRequiredService<IEventBus>();
     return new MathEngine(configManager, formulaLoader, logger, eventBus);
 });
+builder.Services.AddSingleton<IRuntimeFormulaEvaluator, RuntimeFormulaEvaluator>(sp =>
+{
+    var mathEngine = sp.GetRequiredService<IMathEngine>();
+    var expressionEvaluator = sp.GetRequiredService<IExpressionEvaluator>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("RuntimeFormulaEvaluator"));
+    return new RuntimeFormulaEvaluator(mathEngine, expressionEvaluator, logger);
+});
 
 // Register ResourceRegenerationProcessor
 builder.Services.AddSingleton<IResourceRegenerationProcessor, ResourceRegenerationProcessor>(sp =>
@@ -178,9 +186,10 @@ builder.Services.AddSingleton<IEffectResolver, EffectResolver>(sp =>
     var eventBus = sp.GetRequiredService<IEventBus>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EffectResolver"));
+    var formulaEvaluator = sp.GetRequiredService<IRuntimeFormulaEvaluator>();
     var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
     var runManager = sp.GetRequiredService<IRunManager>();
-    return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, randomProvider: null, statusEffectManager: statusEffectManager, runManager: runManager);
+    return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, formulaEvaluator, randomProvider: null, statusEffectManager: statusEffectManager, runManager: runManager);
 });
 
 // Register CombatSystem

@@ -4,6 +4,7 @@ using Core.Damage;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;
+using Core.Math;
 using Core.Resources;
 using Core.Run;
 using Core.StatusEffects;
@@ -18,6 +19,7 @@ public class EffectResolverTests
     private readonly Mock<IResourceManager> _resourceManager = new();
     private readonly Mock<IEventBus> _eventBus = new();
     private readonly Mock<ILogger> _logger = new();
+    private readonly Mock<IRuntimeFormulaEvaluator> _formulaEvaluator = new();
     private readonly Mock<IStatusEffectManager> _statusEffectManager = new();
     private readonly Mock<IRunManager> _runManager = new();
 
@@ -33,6 +35,9 @@ public class EffectResolverTests
             {
                 FinalDamage = action.Effects.Single().FlatValue!.Value
             });
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("target_max_hp - target_hp", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(60f));
         var resolver = CreateResolver();
         var effect = new EffectInstance
         {
@@ -56,6 +61,110 @@ public class EffectResolverTests
             It.Is<ActionDefinition>(a => a.Effects.Single().FlatValue == 60f),
             state.Hero,
             state.Enemies[0]), Times.Once);
+        _formulaEvaluator.Verify(m => m.Evaluate(
+            "target_max_hp - target_hp",
+            It.Is<Dictionary<string, float>>(vars => vars["target_hp"] == 40f && vars["target_max_hp"] == 100f),
+            0f), Times.Once);
+    }
+
+    [Fact]
+    public void ResolveEffect_DamageFormulaFailure_FallsBackToFlatValue()
+    {
+        var sourceId = Guid.NewGuid().ToString();
+        var targetId = Guid.NewGuid().ToString();
+        var state = CreateCombatState(sourceId, targetId, targetHealth: 40);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("bad_formula", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Failure("bad formula"));
+        _damageCalculator
+            .Setup(m => m.CalculateDamage(It.IsAny<ActionDefinition>(), state.Hero, state.Enemies[0]))
+            .Returns<ActionDefinition, CombatEntity, CombatEntity>((action, _, _) => new DamageResult
+            {
+                FinalDamage = action.Effects.Single().FlatValue!.Value
+            });
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = sourceId,
+            TargetEntityId = targetId,
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.DAMAGE,
+                FormulaValue = "bad_formula",
+                FlatValue = 7,
+                TargetResource = "health"
+            }
+        };
+
+        var result = resolver.ResolveEffect(effect, state);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(7f, result.Value!.ValueApplied);
+        _damageCalculator.Verify(m => m.CalculateDamage(
+            It.Is<ActionDefinition>(a => a.Effects.Single().FlatValue == 7f),
+            state.Hero,
+            state.Enemies[0]), Times.Once);
+    }
+
+    [Fact]
+    public void ApplyEffect_WithFalseCondition_DoesNotExecuteEffect()
+    {
+        var sourceId = Guid.NewGuid().ToString();
+        var targetId = Guid.NewGuid().ToString();
+        var state = CreateCombatState(sourceId, targetId, targetHealth: 40);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("target_hp - 50", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(-10f));
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = sourceId,
+            TargetEntityId = targetId,
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.HEAL,
+                Condition = "target_hp - 50",
+                FlatValue = 10,
+                TargetResource = "health"
+            }
+        };
+
+        var result = resolver.ApplyEffect(effect, CombatEffectContext.FromEffect(effect, state));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(result.Value!.EffectResult.Success);
+        Assert.Equal("Condition not met", result.Value.EffectResult.ErrorMessage);
+    }
+
+    [Fact]
+    public void ApplyEffect_WithTrueCondition_ExecutesEffect()
+    {
+        var sourceId = Guid.NewGuid().ToString();
+        var targetId = Guid.NewGuid().ToString();
+        var state = CreateCombatState(sourceId, targetId, targetHealth: 40);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("50 - target_hp", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(10f));
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = sourceId,
+            TargetEntityId = targetId,
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.HEAL,
+                Condition = "50 - target_hp",
+                FlatValue = 10,
+                TargetResource = "health"
+            }
+        };
+
+        var result = resolver.ApplyEffect(effect, CombatEffectContext.FromEffect(effect, state));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True(result.Value!.EffectResult.Success);
+        Assert.Equal(10f, result.Value.EffectResult.ValueApplied);
+        Assert.Equal(new[] { targetId }, result.Value.EffectResult.AffectedEntityIds);
     }
 
     [Fact]
@@ -433,6 +542,7 @@ public class EffectResolverTests
             _resourceManager.Object,
             _eventBus.Object,
             _logger.Object,
+            _formulaEvaluator.Object,
             statusEffectManager: _statusEffectManager.Object,
             runManager: _runManager.Object);
     }
