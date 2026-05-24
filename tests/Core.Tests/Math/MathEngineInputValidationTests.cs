@@ -3,6 +3,7 @@ using Core.Config;
 using Core.Logging;
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using Xunit;
 using Moq;
 
@@ -296,6 +297,156 @@ namespace Core.Tests.Math
             
             Assert.False(float.IsNaN(result));
             Assert.False(float.IsInfinity(result));
+        }
+
+        [Fact]
+        public void BuildFromFormula_OperationWithValueAndOperands_ThrowsInvalidOperationException()
+        {
+            var engine = CreateEngineWithFormulas("""
+            {
+              "BAD_MIXED_MODE": {
+                "description": "Invalid formula using both implicit and explicit modes.",
+                "params": { "BONUS": 2 },
+                "operations": [
+                  { "op": "ADD", "value": "params.BONUS", "operands": ["$current", "params.BONUS"] }
+                ]
+              }
+            }
+            """);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => engine.BuildFromFormula("BAD_MIXED_MODE", 10f));
+            Assert.Contains("cannot have both 'value' and 'operands'", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void BuildFromFormula_AddWithoutValue_ThrowsInvalidOperationException()
+        {
+            var engine = CreateEngineWithFormulas("""
+            {
+              "ADD_WITHOUT_VALUE": {
+                "description": "Invalid formula missing required ADD value.",
+                "params": {},
+                "operations": [
+                  { "op": "ADD" }
+                ]
+              }
+            }
+            """);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => engine.BuildFromFormula("ADD_WITHOUT_VALUE", 10f));
+            Assert.Contains("requires a 'value' field", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void BuildFromFormula_ClampWithoutMax_ThrowsInvalidOperationException()
+        {
+            var engine = CreateEngineWithFormulas("""
+            {
+              "CLAMP_WITHOUT_MAX": {
+                "description": "Invalid formula missing clamp max.",
+                "params": { "MINIMUM": 0 },
+                "operations": [
+                  { "op": "CLAMP", "min": "params.MINIMUM" }
+                ]
+              }
+            }
+            """);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => engine.BuildFromFormula("CLAMP_WITHOUT_MAX", 10f));
+            Assert.Contains("requires a 'max' field", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void BuildFromFormula_ReferencesUndefinedParameter_ThrowsInvalidOperationException()
+        {
+            var engine = CreateEngineWithFormulas("""
+            {
+              "MISSING_PARAM": {
+                "description": "Invalid formula referencing an undefined parameter.",
+                "params": { "KNOWN": 1 },
+                "operations": [
+                  { "op": "MULTIPLY", "value": "params.UNKNOWN" }
+                ]
+              }
+            }
+            """);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => engine.BuildFromFormula("MISSING_PARAM", 10f));
+            Assert.Contains("undefined parameter 'UNKNOWN'", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Theory]
+        [InlineData("SYSTEM")]
+        [InlineData("EVAL")]
+        [InlineData("Process.Start")]
+        public void BuildFromFormula_UnsupportedOperation_ThrowsInvalidOperationException(string operation)
+        {
+            var engine = CreateEngineWithFormulas($$"""
+            {
+              "UNSUPPORTED_OPERATION": {
+                "description": "Invalid formula using unsupported operation.",
+                "params": {},
+                "operations": [
+                  { "op": "{{operation}}", "value": "1" }
+                ]
+              }
+            }
+            """);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => engine.BuildFromFormula("UNSUPPORTED_OPERATION", 10f));
+            Assert.Contains("Unknown operation", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void BuildFromFormula_DivideParameterZero_ThrowsInvalidOperationException()
+        {
+            var engine = CreateEngineWithFormulas("""
+            {
+              "DIVIDE_BY_PARAM": {
+                "description": "Invalid formula dividing by a zero parameter.",
+                "params": { "DIVISOR": 0 },
+                "operations": [
+                  { "op": "DIVIDE", "value": "params.DIVISOR" }
+                ]
+              }
+            }
+            """);
+
+            var ex = Assert.Throws<InvalidOperationException>(() => engine.BuildFromFormula("DIVIDE_BY_PARAM", 10f));
+            Assert.Contains("would cause division by zero", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static M.MathEngine CreateEngineWithFormulas(string formulasJson)
+        {
+            var configManager = new Mock<IConfigManager>();
+            configManager.Setup(m => m.CurrentConfig).Returns("test");
+            configManager.Setup(m => m.ResolveInheritanceChain(It.IsAny<string>()))
+                .Returns(new List<string> { "test" });
+
+            var resourceLoader = new Mock<IResourceLoader>();
+            resourceLoader.Setup(m => m.LoadResource(
+                    "Pipelines/MathFormulas.json",
+                    It.IsAny<IEnumerable<string>>(),
+                    It.IsAny<bool>()))
+                .Returns(ParseResource(formulasJson));
+
+            var formulaLoader = new M.FormulaLoader(resourceLoader.Object);
+            var logger = new Mock<ILogger>();
+
+            return new M.MathEngine(configManager.Object, formulaLoader, logger.Object);
+        }
+
+        private static Dictionary<string, JsonElement> ParseResource(string json)
+        {
+            using var document = JsonDocument.Parse(json);
+            var result = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                result[property.Name] = property.Value.Clone();
+            }
+
+            return result;
         }
     }
 }
