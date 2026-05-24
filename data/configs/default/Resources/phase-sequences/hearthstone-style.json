@@ -1,0 +1,35 @@
+{
+  "hearthstone-style": {
+    "name": "Hearthstone Style",
+    "description": "Sistema de fases simplificado com compra, ação e fim de turno.",
+    "version": "1.0.0",
+    "allowPhaseSkipping": false,
+    "phases": ["DRAW", "MAIN_1", "END"],
+    "phaseDetails": {
+      "DRAW": {
+        "name": "Draw",
+        "description": "Compra de cartas e início de ativação.",
+        "allowedActions": [],
+        "validNextPhases": ["MAIN_1"],
+        "autoTransition": true,
+        "allowPriority": false
+      },
+      "MAIN_1": {
+        "name": "Action",
+        "description": "Jogador ativo executa ações.",
+        "allowedActions": ["BASIC_ATTACK", "POWER", "PASS", "END_TURN"],
+        "validNextPhases": ["END"],
+        "autoTransition": false,
+        "allowPriority": false
+      },
+      "END": {
+        "name": "End Step",
+        "description": "Encerramento de ativação e limpeza.",
+        "allowedActions": ["PASS", "END_TURN"],
+        "validNextPhases": ["DRAW"],
+        "autoTransition": true,
+        "allowPriority": false
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "yugioh-style": {
+    "name": "Yu-Gi-Oh! Style",
+    "description": "Sequência de fases inspirada em Yu-Gi-Oh!.",
+    "version": "1.0.0",
+    "allowPhaseSkipping": false,
+    "phases": ["DRAW", "STANDBY", "MAIN_1", "BATTLE_START", "MAIN_2", "END"],
+    "phaseDetails": {
+      "DRAW": { "name": "Draw", "description": "Compra inicial.", "allowedActions": [], "validNextPhases": ["STANDBY"], "autoTransition": true, "allowPriority": false },
+      "STANDBY": { "name": "Standby", "description": "Gatilhos de standby.", "allowedActions": ["PASS"], "validNextPhases": ["MAIN_1"], "autoTransition": false, "allowPriority": true },
+      "MAIN_1": { "name": "Main Phase 1", "description": "Ações principais.", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS"], "validNextPhases": ["BATTLE_START", "MAIN_2", "END"], "autoTransition": false, "allowPriority": true },
+      "BATTLE_START": { "name": "Battle", "description": "Combate.", "allowedActions": ["BASIC_ATTACK", "PASS"], "validNextPhases": ["MAIN_2", "END"], "autoTransition": false, "allowPriority": true },
+      "MAIN_2": { "name": "Main Phase 2", "description": "Ações após combate.", "allowedActions": ["POWER", "PASS"], "validNextPhases": ["END"], "autoTransition": false, "allowPriority": true },
+      "END": { "name": "End Step", "description": "Fim do turno.", "allowedActions": ["PASS", "END_TURN"], "validNextPhases": ["DRAW"], "autoTransition": false, "allowPriority": false }
+    }
+  }
+}

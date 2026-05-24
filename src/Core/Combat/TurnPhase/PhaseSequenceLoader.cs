@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Config;
 using Core.Logging;
 
 namespace Core.Combat.TurnPhase;
@@ -12,53 +13,61 @@ namespace Core.Combat.TurnPhase;
 public class PhaseSequenceLoader
 {
     private readonly ILogger _logger;
+    private readonly IConfigManager _configManager;
+    private readonly IResourceLoader _resourceLoader;
     private readonly Dictionary<string, PhaseSequenceDefinition> _cache;
     
-    public PhaseSequenceLoader(ILogger logger)
+    public PhaseSequenceLoader(ILogger logger, IConfigManager configManager, IResourceLoader resourceLoader)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _cache = new Dictionary<string, PhaseSequenceDefinition>();
     }
     
     /// <summary>
-    /// Carrega uma sequência de fases a partir de um arquivo JSON.
+    /// Carrega uma sequência de fases a partir dos recursos JSON configurados.
     /// </summary>
-    /// <param name="filePath">Caminho para o arquivo JSON</param>
+    /// <param name="sequenceId">Identificador da sequência em phase-sequences/{sequenceId}.json</param>
+    /// <param name="configName">Configuração/mod chain usada para resolver o recurso</param>
     /// <param name="useCache">Se true, usa cache se disponível</param>
     /// <returns>Definição da sequência de fases</returns>
-    public Result<PhaseSequenceDefinition> LoadFromFile(string filePath, bool useCache = true)
+    public Result<PhaseSequenceDefinition> LoadFromResource(string sequenceId, string configName = "default", bool useCache = true)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
+        if (string.IsNullOrWhiteSpace(sequenceId))
         {
-            return Result<PhaseSequenceDefinition>.Failure("File path cannot be empty");
+            return Result<PhaseSequenceDefinition>.Failure("Sequence id cannot be empty");
         }
-        
-        // Verificar cache
-        if (useCache && _cache.TryGetValue(filePath, out var cached))
+
+        if (string.IsNullOrWhiteSpace(configName))
         {
-            _logger.LogDebug($"Loaded phase sequence from cache: {filePath}");
+            return Result<PhaseSequenceDefinition>.Failure("Config name cannot be empty");
+        }
+
+        var cacheKey = $"{configName.ToLowerInvariant()}::{sequenceId.ToLowerInvariant()}";
+        
+        if (useCache && _cache.TryGetValue(cacheKey, out var cached))
+        {
+            _logger.LogDebug($"Loaded phase sequence from cache: {sequenceId}");
             return Result<PhaseSequenceDefinition>.Success(cached);
-        }
-        
-        // Verificar se arquivo existe
-        if (!File.Exists(filePath))
-        {
-            return Result<PhaseSequenceDefinition>.Failure($"File not found: {filePath}");
         }
         
         try
         {
-            // Ler arquivo JSON
-            var json = File.ReadAllText(filePath);
-            
-            // Deserializar
-            var dto = JsonSerializer.Deserialize<PhaseSequenceDto>(json, new JsonSerializerOptions
+            var configChain = _configManager.ResolveInheritanceChain(configName);
+            var relativePath = $"phase-sequences/{sequenceId}.json";
+            var resources = _resourceLoader.LoadResource(relativePath, configChain, strictMode: false);
+
+            if (resources.Count == 0)
             {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            });
-            
+                return Result<PhaseSequenceDefinition>.Failure($"Phase sequence not found: {relativePath}");
+            }
+
+            var element = resources.TryGetValue(sequenceId, out var exact)
+                ? exact
+                : resources.Values.First();
+
+            var dto = DeserializeDto(element.GetRawText());
             if (dto == null)
             {
                 return Result<PhaseSequenceDefinition>.Failure("Failed to deserialize JSON");
@@ -79,9 +88,9 @@ public class PhaseSequenceLoader
             }
             
             // Adicionar ao cache
-            _cache[filePath] = result.Value;
+            _cache[cacheKey] = result.Value;
             
-            _logger.LogInformation($"Loaded phase sequence: {result.Value.Name} from {filePath}");
+            _logger.LogInformation($"Loaded phase sequence: {result.Value.Name} from {relativePath}");
             
             return result;
         }
@@ -91,7 +100,7 @@ public class PhaseSequenceLoader
         }
         catch (Exception ex)
         {
-            return Result<PhaseSequenceDefinition>.Failure($"Error loading file: {ex.Message}");
+            return Result<PhaseSequenceDefinition>.Failure($"Error loading phase sequence: {ex.Message}");
         }
     }
     
@@ -109,13 +118,7 @@ public class PhaseSequenceLoader
         
         try
         {
-            // Deserializar
-            var dto = JsonSerializer.Deserialize<PhaseSequenceDto>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                ReadCommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            });
+            var dto = DeserializeDto(json);
             
             if (dto == null)
             {
@@ -157,6 +160,16 @@ public class PhaseSequenceLoader
     {
         _cache.Clear();
         _logger.LogDebug("Phase sequence cache cleared");
+    }
+
+    private static PhaseSequenceDto? DeserializeDto(string json)
+    {
+        return JsonSerializer.Deserialize<PhaseSequenceDto>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        });
     }
     
     private Result<PhaseSequenceDefinition> ConvertDtoToDefinition(PhaseSequenceDto dto)

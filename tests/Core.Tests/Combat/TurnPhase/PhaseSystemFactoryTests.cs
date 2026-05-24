@@ -1,5 +1,8 @@
 using Core.Combat.TurnPhase;
+using Core.Config;
 using Core.Logging;
+using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat.TurnPhase;
@@ -8,11 +11,21 @@ public class PhaseSystemFactoryTests
 {
     private readonly ILogger _logger;
     private readonly PhaseSystemFactory _factory;
+    private readonly Mock<IConfigManager> _configManager;
+    private readonly Mock<IResourceLoader> _resourceLoader;
     
     public PhaseSystemFactoryTests()
     {
         _logger = new ConsoleLogger(nameof(PhaseSystemFactoryTests));
-        _factory = new PhaseSystemFactory(_logger);
+        _configManager = new Mock<IConfigManager>();
+        _resourceLoader = new Mock<IResourceLoader>();
+        _configManager.Setup(x => x.ResolveInheritanceChain("test"))
+            .Returns(new[] { "test" });
+        SetupPreset("magic-style", "Magic: The Gathering Style");
+        SetupPreset("yugioh-style", "Yu-Gi-Oh! Style");
+        SetupPreset("hearthstone-style", "Hearthstone Style");
+        SetupPreset("classic-style", "Classic Simple Style");
+        _factory = new PhaseSystemFactory(_logger, _configManager.Object, _resourceLoader.Object, configName: "test");
     }
     
     [Fact]
@@ -115,5 +128,39 @@ public class PhaseSystemFactoryTests
         
         // Assert
         Assert.NotNull(result);
+    }
+
+    private void SetupPreset(string sequenceId, string name)
+    {
+        var json = $$"""
+        {
+          "{{sequenceId}}": {
+            "name": "{{name}}",
+            "description": "Test preset",
+            "version": "1.0.0",
+            "phases": ["MAIN_1"],
+            "phaseDetails": {
+              "MAIN_1": {
+                "name": "Action",
+                "description": "Action phase",
+                "allowedActions": ["POWER"],
+                "validNextPhases": ["MAIN_1"],
+                "autoTransition": false,
+                "allowPriority": true
+              }
+            }
+          }
+        }
+        """;
+
+        _resourceLoader.Setup(x => x.LoadResource($"phase-sequences/{sequenceId}.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(json));
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone());
     }
 }

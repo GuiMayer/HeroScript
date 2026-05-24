@@ -1,0 +1,19 @@
+{
+  "classic-style": {
+    "name": "Classic Simple Style",
+    "description": "Sistema de fases simplificado para jogos de RPG clássicos sem prioridade interativa",
+    "version": "1.0.0",
+    "allowPhaseSkipping": false,
+    "phases": ["MAIN_1"],
+    "phaseDetails": {
+      "MAIN_1": {
+        "name": "Action Phase",
+        "description": "Fase única onde o jogador executa todas as suas ações.",
+        "allowedActions": ["BASIC_ATTACK", "POWER", "PASS", "END_TURN"],
+        "validNextPhases": ["MAIN_1"],
+        "autoTransition": false,
+        "allowPriority": false
+      }
+    }
+  }
+}

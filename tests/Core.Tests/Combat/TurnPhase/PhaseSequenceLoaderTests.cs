@@ -1,5 +1,8 @@
 using Core.Combat.TurnPhase;
+using Core.Config;
 using Core.Logging;
+using Moq;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat.TurnPhase;
@@ -8,11 +11,17 @@ public class PhaseSequenceLoaderTests
 {
     private readonly ILogger _logger;
     private readonly PhaseSequenceLoader _loader;
+    private readonly Mock<IConfigManager> _configManager;
+    private readonly Mock<IResourceLoader> _resourceLoader;
     
     public PhaseSequenceLoaderTests()
     {
         _logger = new ConsoleLogger(nameof(PhaseSequenceLoaderTests));
-        _loader = new PhaseSequenceLoader(_logger);
+        _configManager = new Mock<IConfigManager>();
+        _resourceLoader = new Mock<IResourceLoader>();
+        _configManager.Setup(x => x.ResolveInheritanceChain("test"))
+            .Returns(new[] { "test" });
+        _loader = new PhaseSequenceLoader(_logger, _configManager.Object, _resourceLoader.Object);
     }
     
     [Fact]
@@ -190,5 +199,44 @@ public class PhaseSequenceLoaderTests
         Assert.True(result2.IsSuccess);
         // Note: JSON loading doesn't use cache (only file loading does)
         // This test documents current behavior
+    }
+
+    [Fact]
+    public void LoadFromResource_ValidResource_ShouldSucceedAndCache()
+    {
+        // Arrange
+        var json = @"{
+            ""classic-style"": {
+                ""name"": ""Classic Resource"",
+                ""phases"": [""MAIN_1""],
+                ""phaseDetails"": {
+                    ""MAIN_1"": {
+                        ""name"": ""Action"",
+                        ""allowedActions"": [""POWER""],
+                        ""validNextPhases"": [""MAIN_1""]
+                    }
+                }
+            }
+        }";
+
+        _resourceLoader.Setup(x => x.LoadResource("phase-sequences/classic-style.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(ParseResource(json));
+
+        // Act
+        var result1 = _loader.LoadFromResource("classic-style", "test");
+        var result2 = _loader.LoadFromResource("classic-style", "test");
+
+        // Assert
+        Assert.True(result1.IsSuccess);
+        Assert.True(result2.IsSuccess);
+        Assert.Equal("Classic Resource", result1.Value.Name);
+        _resourceLoader.Verify(x => x.LoadResource("phase-sequences/classic-style.json", It.IsAny<IEnumerable<string>>(), false), Times.Once);
+    }
+
+    private static Dictionary<string, JsonElement> ParseResource(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone());
     }
 }

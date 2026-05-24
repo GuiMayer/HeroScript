@@ -1,5 +1,6 @@
 using Core.Combat.Models;
 using Core.Common;
+using Core.Config;
 using Core.Events;
 using Core.Logging;
 
@@ -14,23 +15,24 @@ public class PhaseSystemFactory
     private readonly ILogger _logger;
     private readonly IEventBus? _eventBus;
     private readonly PhaseSequenceLoader _loader;
+    private readonly string _configName;
     
-    public PhaseSystemFactory(ILogger logger, IEventBus? eventBus = null)
+    public PhaseSystemFactory(ILogger logger, IConfigManager configManager, IResourceLoader resourceLoader, IEventBus? eventBus = null, string configName = "default")
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _eventBus = eventBus;
-        _loader = new PhaseSequenceLoader(logger);
+        _loader = new PhaseSequenceLoader(logger, configManager, resourceLoader);
+        _configName = string.IsNullOrWhiteSpace(configName) ? "default" : configName;
     }
     
     /// <summary>
-    /// Cria um sistema de fases completo a partir de um arquivo de configuração.
+    /// Cria um sistema de fases completo a partir de uma sequência configurada em JSON.
     /// </summary>
-    /// <param name="configPath">Caminho para o arquivo JSON de configuração</param>
+    /// <param name="sequenceId">Identificador da sequência em phase-sequences/{sequenceId}.json</param>
     /// <returns>Sistema de fases configurado</returns>
-    public Result<PhaseSystem> CreateFromFile(string configPath)
+    public Result<PhaseSystem> CreateFromResource(string sequenceId)
     {
-        // Carregar sequência
-        var loadResult = _loader.LoadFromFile(configPath);
+        var loadResult = _loader.LoadFromResource(sequenceId, _configName);
         if (loadResult.IsFailure)
         {
             return Result<PhaseSystem>.Failure($"Failed to load configuration: {loadResult.Error}");
@@ -62,7 +64,7 @@ public class PhaseSystemFactory
     /// <returns>Sistema de fases estilo Magic</returns>
     public Result<PhaseSystem> CreateMagicStyle()
     {
-        return CreateFromPreset("magic-style.json");
+        return CreateFromPreset("magic-style");
     }
     
     /// <summary>
@@ -71,7 +73,7 @@ public class PhaseSystemFactory
     /// <returns>Sistema de fases estilo Yu-Gi-Oh!</returns>
     public Result<PhaseSystem> CreateYuGiOhStyle()
     {
-        return CreateFromPreset("yugioh-style.json");
+        return CreateFromPreset("yugioh-style");
     }
     
     /// <summary>
@@ -80,7 +82,7 @@ public class PhaseSystemFactory
     /// <returns>Sistema de fases estilo Hearthstone</returns>
     public Result<PhaseSystem> CreateHearthstoneStyle()
     {
-        return CreateFromPreset("hearthstone-style.json");
+        return CreateFromPreset("hearthstone-style");
     }
     
     /// <summary>
@@ -89,7 +91,7 @@ public class PhaseSystemFactory
     /// <returns>Sistema de fases estilo clássico</returns>
     public Result<PhaseSystem> CreateClassicStyle()
     {
-        return CreateFromPreset("classic-style.json");
+        return CreateFromPreset("classic-style");
     }
     
     /// <summary>
@@ -128,22 +130,7 @@ public class PhaseSystemFactory
     
     private Result<PhaseSystem> CreateFromPreset(string presetFileName)
     {
-        // Construir caminho para o preset
-        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-        var presetPath = Path.Combine(baseDir, "Core", "Combat", "TurnPhase", "Configurations", presetFileName);
-        
-        // Se não encontrar no baseDir, tentar caminho relativo
-        if (!File.Exists(presetPath))
-        {
-            presetPath = Path.Combine("src", "Core", "Combat", "TurnPhase", "Configurations", presetFileName);
-        }
-        
-        if (!File.Exists(presetPath))
-        {
-            return Result<PhaseSystem>.Failure($"Preset configuration not found: {presetFileName}");
-        }
-        
-        return CreateFromFile(presetPath);
+        return CreateFromResource(presetFileName);
     }
     
     private Result<PhaseSystem> CreateSystem(PhaseSequenceDefinition sequence)
