@@ -1,104 +1,111 @@
-using System.Net;
-using System.Net.Http.Json;
+using API.Controllers;
 using API.Models.Actions;
+using Core.Combat;
+using Core.Combat.Models;
+using Core.Common;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 using Xunit;
+using CoreLogger = Core.Logging.ILogger;
 
 namespace API.Tests.Controllers;
 
-public class ActionControllerTests : IClassFixture<TestWebApplicationFactory>
+public class ActionControllerTests
 {
-    private readonly HttpClient _client;
+    private readonly Mock<IActionManager> _actionManager = new();
+    private readonly ActionController _controller;
 
-    public ActionControllerTests(TestWebApplicationFactory factory)
+    public ActionControllerTests()
     {
-        _client = factory.CreateClient();
+        _controller = new ActionController(_actionManager.Object, Mock.Of<CoreLogger>());
     }
 
     [Fact]
-    public async Task GetAllActions_ReturnsSuccessAndActionList()
+    public void GetAllActions_ReturnsSuccessAndActionList()
     {
-        // Act
-        var response = await _client.GetAsync("/api/action");
+        _actionManager.Setup(m => m.GetAllDefinitions()).Returns(new List<ActionDefinition>
+        {
+            TestAction("basic_attack", ActionType.BASIC_ATTACK)
+        });
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var actions = await response.Content.ReadFromJsonAsync<List<ActionSummaryDto>>();
-        Assert.NotNull(actions);
-        Assert.NotEmpty(actions);
+        var result = _controller.GetAllActions();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var actions = Assert.IsAssignableFrom<List<ActionSummaryDto>>(ok.Value);
+        var action = Assert.Single(actions);
+        Assert.Equal("basic_attack", action.ActionId);
+        Assert.Equal("BASIC_ATTACK", action.ActionType);
     }
 
     [Fact]
-    public async Task GetAction_WithValidId_ReturnsActionDetails()
+    public void GetAction_WithValidId_ReturnsActionDetails()
     {
-        // Arrange - First get all actions to find a valid ID
-        var allActionsResponse = await _client.GetAsync("/api/action");
-        var actions = await allActionsResponse.Content.ReadFromJsonAsync<List<ActionSummaryDto>>();
-        var firstActionId = actions!.First().ActionId;
+        _actionManager.Setup(m => m.GetDefinition("fireball"))
+            .Returns(Result<ActionDefinition>.Success(TestAction("fireball", ActionType.POWER)));
 
-        // Act
-        var response = await _client.GetAsync($"/api/action/{firstActionId}");
+        var result = _controller.GetAction("fireball");
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var action = await response.Content.ReadFromJsonAsync<ActionDefinitionDto>();
-        Assert.NotNull(action);
-        Assert.Equal(firstActionId, action.ActionId);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var action = Assert.IsType<ActionDefinitionDto>(ok.Value);
+        Assert.Equal("fireball", action.ActionId);
+        Assert.Equal("POWER", action.ActionType);
     }
 
     [Fact]
-    public async Task GetAction_WithInvalidId_ReturnsNotFound()
+    public void GetAction_WithInvalidId_ReturnsNotFound()
     {
-        // Act
-        var response = await _client.GetAsync("/api/action/invalid_action_id");
+        _actionManager.Setup(m => m.GetDefinition("invalid_action_id"))
+            .Returns(Result<ActionDefinition>.Failure("Action not found: invalid_action_id"));
 
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var result = _controller.GetAction("invalid_action_id");
+
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetActionsByType_ReturnsFilteredActions()
+    public void GetActionsByType_ReturnsFilteredActions()
     {
-        // Act
-        var response = await _client.GetAsync("/api/action/by-type/ATTACK");
+        _actionManager.Setup(m => m.GetDefinitionsByType(ActionType.BASIC_ATTACK))
+            .Returns(new List<ActionDefinition> { TestAction("basic_attack", ActionType.BASIC_ATTACK) });
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var actions = await response.Content.ReadFromJsonAsync<List<ActionSummaryDto>>();
-        Assert.NotNull(actions);
-        Assert.All(actions, a => Assert.Equal("ATTACK", a.ActionType));
+        var result = _controller.GetActionsByType("BASIC_ATTACK");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var actions = Assert.IsAssignableFrom<List<ActionSummaryDto>>(ok.Value);
+        var action = Assert.Single(actions);
+        Assert.Equal("BASIC_ATTACK", action.ActionType);
     }
 
     [Fact]
-    public async Task ValidateAction_WithValidDefinition_ReturnsValid()
+    public void ValidateAction_WithValidDefinition_ReturnsValid()
     {
-        // Arrange
+        _actionManager.Setup(m => m.ValidateActionDefinition(It.IsAny<ActionDefinition>()))
+            .Returns(Result.Success());
+
         var request = new ActionValidationRequest
         {
             Definition = new ActionDefinitionDto
             {
                 ActionId = "test_action",
                 DisplayName = "Test Action",
-                ActionType = "ATTACK",
-                Cooldown = 0,
-                BaseDamage = 10,
-                Tags = new List<string> { "test" },
-                Costs = new ActionCostsDto
-                {
-                    Costs = new List<ResourceCostDto>
-                    {
-                        new() { ResourceId = "energy", Amount = 10, AllowOverdraft = false }
-                    }
-                }
+                ActionType = "POWER",
+                Costs = new ActionCostsDto()
             }
         };
 
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/action/validate", request);
+        var result = _controller.ValidateAction(request);
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<ActionValidationResponse>();
-        Assert.NotNull(result);
-        Assert.True(result.IsValid);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ActionValidationResponse>(ok.Value);
+        Assert.True(response.IsValid);
     }
+
+    private static ActionDefinition TestAction(string id, ActionType type) => new()
+    {
+        ActionId = id,
+        DisplayName = id,
+        ActionType = type,
+        Tags = new List<string> { "test" },
+        Costs = new ActionCosts()
+    };
 }

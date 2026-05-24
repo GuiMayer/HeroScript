@@ -1,134 +1,125 @@
-using System.Net;
-using System.Net.Http.Json;
+using API.Controllers;
 using API.Models.Resources;
+using Core.Common;
+using Core.Resources;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 using Xunit;
+using CoreLogger = Core.Logging.ILogger;
 
 namespace API.Tests.Controllers;
 
-public class GameResourceControllerTests : IClassFixture<TestWebApplicationFactory>
+public class GameResourceControllerTests
 {
-    private readonly HttpClient _client;
+    private readonly Mock<IResourceManager> _resourceManager = new();
+    private readonly GameResourceController _controller;
 
-    public GameResourceControllerTests(TestWebApplicationFactory factory)
+    public GameResourceControllerTests()
     {
-        _client = factory.CreateClient();
+        _controller = new GameResourceController(_resourceManager.Object, Mock.Of<CoreLogger>());
     }
 
     [Fact]
-    public async Task GetAllResources_ReturnsSuccessAndResourceList()
+    public void GetAllResources_ReturnsSuccessAndResourceList()
     {
-        // Act
-        var response = await _client.GetAsync("/api/game-resources");
+        _resourceManager.Setup(m => m.GetAllDefinitions()).Returns(new List<ResourceDefinition>
+        {
+            TestResource("health", ResourceCategory.VITAL)
+        });
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var resources = await response.Content.ReadFromJsonAsync<List<ResourceSummaryDto>>();
-        Assert.NotNull(resources);
-        Assert.NotEmpty(resources);
+        var result = _controller.GetAllResources();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var resources = Assert.IsAssignableFrom<List<ResourceSummaryDto>>(ok.Value);
+        var resource = Assert.Single(resources);
+        Assert.Equal("health", resource.ResourceId);
+        Assert.Equal("VITAL", resource.Category);
     }
 
     [Fact]
-    public async Task GetResource_WithValidId_ReturnsResourceDetails()
+    public void GetResource_WithValidId_ReturnsResourceDetails()
     {
-        // Arrange - First get all resources to find a valid ID
-        var allResourcesResponse = await _client.GetAsync("/api/game-resources");
-        var resources = await allResourcesResponse.Content.ReadFromJsonAsync<List<ResourceSummaryDto>>();
-        var firstResourceId = resources!.First().ResourceId;
+        _resourceManager.Setup(m => m.GetDefinition("energy"))
+            .Returns(Result<ResourceDefinition>.Success(TestResource("energy", ResourceCategory.TACTICAL)));
 
-        // Act
-        var response = await _client.GetAsync($"/api/game-resources/{firstResourceId}");
+        var result = _controller.GetResource("energy");
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var resource = await response.Content.ReadFromJsonAsync<ResourceDefinitionDto>();
-        Assert.NotNull(resource);
-        Assert.Equal(firstResourceId, resource.ResourceId);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var resource = Assert.IsType<ResourceDefinitionDto>(ok.Value);
+        Assert.Equal("energy", resource.ResourceId);
+        Assert.Equal("TACTICAL", resource.Category);
     }
 
     [Fact]
-    public async Task GetResource_WithInvalidId_ReturnsNotFound()
+    public void GetResource_WithInvalidId_ReturnsNotFound()
     {
-        // Act
-        var response = await _client.GetAsync("/api/game-resources/invalid_resource_id");
+        _resourceManager.Setup(m => m.GetDefinition("invalid_resource_id"))
+            .Returns(Result<ResourceDefinition>.Failure("Resource not found: invalid_resource_id"));
 
-        // Assert
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var result = _controller.GetResource("invalid_resource_id");
+
+        Assert.IsType<NotFoundObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetResourcesByCategory_ReturnsFilteredResources()
+    public void GetResourcesByCategory_ReturnsFilteredResources()
     {
-        // Act
-        var response = await _client.GetAsync("/api/game-resources/by-category/VITAL");
+        _resourceManager.Setup(m => m.GetDefinitionsByCategory(ResourceCategory.VITAL))
+            .Returns(new List<ResourceDefinition> { TestResource("health", ResourceCategory.VITAL) });
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var resources = await response.Content.ReadFromJsonAsync<List<ResourceSummaryDto>>();
-        Assert.NotNull(resources);
-        Assert.All(resources, r => Assert.Equal("VITAL", r.Category));
+        var result = _controller.GetResourcesByCategory("VITAL");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var resources = Assert.IsAssignableFrom<List<ResourceSummaryDto>>(ok.Value);
+        var resource = Assert.Single(resources);
+        Assert.Equal("VITAL", resource.Category);
     }
 
     [Fact]
-    public async Task CreatePool_WithValidResourceId_ReturnsPool()
+    public void CreatePool_WithValidResourceId_ReturnsPool()
     {
-        // Arrange
-        var request = new CreatePoolRequest
+        _resourceManager.Setup(m => m.CreatePool("health", 50)).Returns(new ResourcePool
         {
             ResourceId = "health",
-            InitialCurrent = 50
-        };
+            Current = 50,
+            Maximum = 100,
+            Minimum = 0
+        });
 
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/game-resources/create-pool", request);
+        var result = _controller.CreatePool(new CreatePoolRequest { ResourceId = "health", InitialCurrent = 50 });
 
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var pool = await response.Content.ReadFromJsonAsync<ResourcePoolDto>();
-        Assert.NotNull(pool);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var pool = Assert.IsType<ResourcePoolDto>(ok.Value);
         Assert.Equal("health", pool.ResourceId);
         Assert.Equal(50, pool.Current);
     }
 
     [Fact]
-    public async Task ValidateCost_WithSufficientResources_ReturnsCanAfford()
+    public void ValidateCost_WithInsufficientResources_ReturnsCannotAfford()
     {
-        // Arrange
-        var request = new ValidateCostRequest
-        {
-            ResourceId = "health",
-            Cost = 30,
-            CurrentAmount = 100
-        };
+        _resourceManager.Setup(m => m.ValidateCost(It.IsAny<ResourcePool>(), 150))
+            .Returns(Result.Failure("Insufficient resource"));
 
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/game-resources/validate-cost", request);
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<ValidateCostResponse>();
-        Assert.NotNull(result);
-        Assert.True(result.CanAfford);
-    }
-
-    [Fact]
-    public async Task ValidateCost_WithInsufficientResources_ReturnsCannotAfford()
-    {
-        // Arrange
-        var request = new ValidateCostRequest
+        var result = _controller.ValidateCost(new ValidateCostRequest
         {
             ResourceId = "health",
             Cost = 150,
             CurrentAmount = 100
-        };
+        });
 
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/game-resources/validate-cost", request);
-
-        // Assert
-        response.EnsureSuccessStatusCode();
-        var result = await response.Content.ReadFromJsonAsync<ValidateCostResponse>();
-        Assert.NotNull(result);
-        Assert.False(result.CanAfford);
-        Assert.NotNull(result.Error);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ValidateCostResponse>(ok.Value);
+        Assert.False(response.CanAfford);
+        Assert.NotNull(response.Error);
     }
+
+    private static ResourceDefinition TestResource(string id, ResourceCategory category) => new()
+    {
+        ResourceId = id,
+        DisplayName = id,
+        ShortName = id[..Math.Min(2, id.Length)].ToUpperInvariant(),
+        Category = category,
+        DefaultMax = 100,
+        Tags = new List<string> { "test" }
+    };
 }

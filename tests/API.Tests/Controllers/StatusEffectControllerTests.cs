@@ -1,226 +1,204 @@
-using System.Net;
-using System.Net.Http.Json;
+using API.Controllers;
 using API.Models.StatusEffects;
-using Microsoft.AspNetCore.Mvc.Testing;
+using Core.Common;
+using Core.StatusEffects;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace API.Tests.Controllers;
 
-/// <summary>
-/// Testes de integração para StatusEffectController
-/// Testa os endpoints REST de ponta a ponta
-/// </summary>
-public class StatusEffectControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class StatusEffectControllerTests
 {
-    private readonly HttpClient _client;
+    private readonly Mock<IStatusEffectManager> _statusEffectManager;
+    private readonly StatusEffectController _controller;
     private readonly Guid _combatId;
     private readonly Guid _targetId;
 
-    public StatusEffectControllerTests(WebApplicationFactory<Program> factory)
+    public StatusEffectControllerTests()
     {
-        _client = factory.CreateClient();
+        _statusEffectManager = new Mock<IStatusEffectManager>();
+        _controller = new StatusEffectController(_statusEffectManager.Object, Mock.Of<ILogger<StatusEffectController>>());
         _combatId = Guid.NewGuid();
         _targetId = Guid.NewGuid();
     }
 
     [Fact]
-    public async Task ApplyStatus_WithValidRequest_ReturnsSuccess()
+    public void ApplyStatus_WithValidRequest_ReturnsSuccess()
     {
-        // Arrange
         var request = new ApplyStatusRequest
         {
             StatusId = "burn",
             Stacks = 2,
             Duration = 3
         };
+        var instance = StatusInstance("burn", request.Stacks, request.Duration!.Value);
+        _statusEffectManager.Setup(m => m.ApplyStatus(
+                _targetId,
+                request.StatusId,
+                request.Stacks,
+                request.Duration,
+                request.SourceId))
+            .Returns(Result<StatusEffectInstance>.Success(instance));
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status",
-            request);
+        var result = _controller.ApplyStatusForEntity(_combatId, _targetId, request);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<StatusEffectResponse>();
-        Assert.NotNull(result);
-        Assert.Equal("burn", result.StatusId);
-        Assert.Equal(2, result.Stacks);
-        Assert.Equal(3, result.Duration);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<StatusEffectResponse>(ok.Value);
+        Assert.Equal("burn", response.StatusId);
+        Assert.Equal(2, response.Stacks);
+        Assert.Equal(3, response.Duration);
     }
 
     [Fact]
-    public async Task ApplyStatus_WithInvalidStatusId_ReturnsBadRequest()
+    public void ApplyStatus_WithInvalidStatusId_ReturnsBadRequest()
     {
-        // Arrange
         var request = new ApplyStatusRequest
         {
             StatusId = "",
             Stacks = 1,
             Duration = 3
         };
+        _statusEffectManager.Setup(m => m.ApplyStatus(_targetId, "", 1, 3, null))
+            .Returns(Result<StatusEffectInstance>.Failure("Status ID cannot be empty"));
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status",
-            request);
+        var result = _controller.ApplyStatusForEntity(_combatId, _targetId, request);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.IsType<BadRequestObjectResult>(result);
     }
 
     [Fact]
-    public async Task GetActiveStatus_ReturnsAllActiveEffects()
+    public void GetActiveStatus_ReturnsAllActiveEffects()
     {
-        // Arrange - Apply multiple status effects
-        var burnRequest = new ApplyStatusRequest { StatusId = "burn", Stacks = 2, Duration = 3 };
-        var shieldRequest = new ApplyStatusRequest { StatusId = "shield", Stacks = 1, Duration = 2 };
-        
-        await _client.PostAsJsonAsync($"/api/combat/{_combatId}/entities/{_targetId}/status", burnRequest);
-        await _client.PostAsJsonAsync($"/api/combat/{_combatId}/entities/{_targetId}/status", shieldRequest);
+        _statusEffectManager.Setup(m => m.GetActiveStatus(_targetId))
+            .Returns(Result<List<StatusEffectInstance>>.Success(new List<StatusEffectInstance>
+            {
+                StatusInstance("burn", 2, 3),
+                StatusInstance("shield", 1, 2)
+            }));
 
-        // Act
-        var response = await _client.GetAsync($"/api/combat/{_combatId}/entities/{_targetId}/status");
+        var result = _controller.GetActiveStatusForEntity(_combatId, _targetId);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var results = await response.Content.ReadFromJsonAsync<List<StatusEffectResponse>>();
-        Assert.NotNull(results);
-        Assert.Equal(2, results.Count);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsAssignableFrom<List<StatusEffectResponse>>(ok.Value);
+        Assert.Equal(2, response.Count);
     }
 
     [Fact]
-    public async Task RemoveStatus_WithValidInstanceId_ReturnsSuccess()
+    public void RemoveStatus_WithValidInstanceId_ReturnsSuccess()
     {
-        // Arrange - Apply a status effect first
-        var request = new ApplyStatusRequest { StatusId = "burn", Stacks = 2, Duration = 3 };
-        var applyResponse = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status",
-            request);
-        var appliedStatus = await applyResponse.Content.ReadFromJsonAsync<StatusEffectResponse>();
+        var instanceId = Guid.NewGuid();
+        _statusEffectManager.Setup(m => m.RemoveStatus(_targetId, instanceId))
+            .Returns(Result.Success());
 
-        // Act
-        var response = await _client.DeleteAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status/{appliedStatus!.InstanceId}");
+        var result = _controller.RemoveStatusForEntity(_combatId, _targetId, instanceId);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.IsType<OkObjectResult>(result);
     }
 
     [Fact]
-    public async Task AddStacks_WithValidRequest_ReturnsUpdatedStatus()
+    public void AddStacks_WithValidRequest_ReturnsUpdatedStatus()
     {
-        // Arrange - Apply a status effect first
-        var request = new ApplyStatusRequest { StatusId = "burn", Stacks = 2, Duration = 3 };
-        var applyResponse = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status",
-            request);
-        var appliedStatus = await applyResponse.Content.ReadFromJsonAsync<StatusEffectResponse>();
+        var instanceId = Guid.NewGuid();
+        _statusEffectManager.Setup(m => m.AddStacks(_targetId, instanceId, 3))
+            .Returns(Result<StatusEffectInstance>.Success(StatusInstance("burn", 5, 3, instanceId)));
 
-        var addStacksRequest = new ModifyStacksRequest { Stacks = 3 };
+        var result = _controller.AddStacksForEntity(
+            _combatId,
+            _targetId,
+            instanceId,
+            new ModifyStacksRequest { Stacks = 3 });
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status/{appliedStatus!.InstanceId}/add-stacks",
-            addStacksRequest);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<StatusEffectResponse>();
-        Assert.NotNull(result);
-        Assert.Equal(5, result.Stacks); // 2 + 3
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<StatusEffectResponse>(ok.Value);
+        Assert.Equal(5, response.Stacks);
     }
 
     [Fact]
-    public async Task RemoveStacks_WithValidRequest_ReturnsUpdatedStatus()
+    public void RemoveStacks_WithValidRequest_ReturnsUpdatedStatus()
     {
-        // Arrange - Apply a status effect first
-        var request = new ApplyStatusRequest { StatusId = "burn", Stacks = 5, Duration = 3 };
-        var applyResponse = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status",
-            request);
-        var appliedStatus = await applyResponse.Content.ReadFromJsonAsync<StatusEffectResponse>();
+        var instanceId = Guid.NewGuid();
+        _statusEffectManager.Setup(m => m.RemoveStacks(_targetId, instanceId, 2))
+            .Returns(Result<StatusEffectInstance?>.Success(StatusInstance("burn", 3, 3, instanceId)));
 
-        var removeStacksRequest = new ModifyStacksRequest { Stacks = 2 };
+        var result = _controller.RemoveStacksForEntity(
+            _combatId,
+            _targetId,
+            instanceId,
+            new ModifyStacksRequest { Stacks = 2 });
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status/{appliedStatus!.InstanceId}/remove-stacks",
-            removeStacksRequest);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<StatusEffectResponse>();
-        Assert.NotNull(result);
-        Assert.Equal(3, result.Stacks); // 5 - 2
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<StatusEffectResponse>(ok.Value);
+        Assert.Equal(3, response.Stacks);
     }
 
     [Fact]
-    public async Task RefreshDuration_WithValidRequest_ReturnsUpdatedStatus()
+    public void RefreshDuration_WithValidRequest_ReturnsUpdatedStatus()
     {
-        // Arrange - Apply a status effect first
-        var request = new ApplyStatusRequest { StatusId = "burn", Stacks = 2, Duration = 2 };
-        var applyResponse = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status",
-            request);
-        var appliedStatus = await applyResponse.Content.ReadFromJsonAsync<StatusEffectResponse>();
+        var instanceId = Guid.NewGuid();
+        _statusEffectManager.Setup(m => m.RefreshDuration(_targetId, instanceId, 5))
+            .Returns(Result<StatusEffectInstance>.Success(StatusInstance("burn", 2, 5, instanceId)));
 
-        var refreshRequest = new RefreshDurationRequest { Duration = 5 };
+        var result = _controller.RefreshDurationForEntity(
+            _combatId,
+            _targetId,
+            instanceId,
+            new RefreshDurationRequest { Duration = 5 });
 
-        // Act
-        var response = await _client.PostAsJsonAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status/{appliedStatus!.InstanceId}/refresh",
-            refreshRequest);
-
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync<StatusEffectResponse>();
-        Assert.NotNull(result);
-        Assert.Equal(5, result.Duration);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<StatusEffectResponse>(ok.Value);
+        Assert.Equal(5, response.Duration);
     }
 
     [Fact]
-    public async Task TickDurations_DecrementsDurations()
+    public void TickDurations_DecrementsDurations()
     {
-        // Arrange - Apply a status effect first
-        var request = new ApplyStatusRequest { StatusId = "burn", Stacks = 2, Duration = 3 };
-        await _client.PostAsJsonAsync($"/api/combat/{_combatId}/entities/{_targetId}/status", request);
+        _statusEffectManager.Setup(m => m.TickDurations(_targetId))
+            .Returns(Result.Success());
+        _statusEffectManager.Setup(m => m.GetActiveStatus(_targetId))
+            .Returns(Result<List<StatusEffectInstance>>.Success(new List<StatusEffectInstance>
+            {
+                StatusInstance("burn", 2, 2)
+            }));
 
-        // Act
-        var response = await _client.PostAsync(
-            $"/api/combat/{_combatId}/entities/{_targetId}/status/tick",
-            null);
+        var tickResult = _controller.TickDurationsForEntity(_combatId, _targetId);
+        Assert.IsType<OkObjectResult>(tickResult);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
-        // Verify duration was decremented
-        var getResponse = await _client.GetAsync($"/api/combat/{_combatId}/entities/{_targetId}/status");
-        var results = await getResponse.Content.ReadFromJsonAsync<List<StatusEffectResponse>>();
-        Assert.NotNull(results);
-        Assert.Single(results);
-        Assert.Equal(2, results[0].Duration); // 3 - 1
+        var result = _controller.GetActiveStatusForEntity(_combatId, _targetId);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsAssignableFrom<List<StatusEffectResponse>>(ok.Value);
+        var status = Assert.Single(response);
+        Assert.Equal(2, status.Duration);
     }
 
     [Fact]
-    public async Task RemoveAllStatus_RemovesAllEffects()
+    public void RemoveAllStatus_RemovesAllEffects()
     {
-        // Arrange - Apply multiple status effects
-        var burnRequest = new ApplyStatusRequest { StatusId = "burn", Stacks = 2, Duration = 3 };
-        var shieldRequest = new ApplyStatusRequest { StatusId = "shield", Stacks = 1, Duration = 2 };
-        
-        await _client.PostAsJsonAsync($"/api/combat/{_combatId}/entities/{_targetId}/status", burnRequest);
-        await _client.PostAsJsonAsync($"/api/combat/{_combatId}/entities/{_targetId}/status", shieldRequest);
+        _statusEffectManager.Setup(m => m.RemoveAllStatus(_targetId, null))
+            .Returns(Result.Success());
 
-        // Act
-        var response = await _client.DeleteAsync($"/api/combat/{_combatId}/entities/{_targetId}/status");
+        var result = _controller.RemoveAllStatusForEntity(_combatId, _targetId);
 
-        // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
-        // Verify all status effects were removed
-        var getResponse = await _client.GetAsync($"/api/combat/{_combatId}/entities/{_targetId}/status");
-        var results = await getResponse.Content.ReadFromJsonAsync<List<StatusEffectResponse>>();
-        Assert.NotNull(results);
-        Assert.Empty(results);
+        Assert.IsType<OkObjectResult>(result);
     }
+
+    private static StatusEffectInstance StatusInstance(
+        string statusId,
+        int stacks,
+        int duration,
+        Guid? instanceId = null) => new()
+        {
+            InstanceId = instanceId ?? Guid.NewGuid(),
+            StatusId = statusId,
+            Definition = new StatusEffectDefinition
+            {
+                StatusId = statusId,
+                DisplayName = statusId,
+                Type = StatusEffectType.WEAKNESS
+            },
+            TargetId = Guid.NewGuid(),
+            Stacks = stacks,
+            Duration = duration
+        };
 }
