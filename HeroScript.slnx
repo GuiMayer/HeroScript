@@ -60,19 +60,31 @@
   <Folder Name="/docs/">
     <File Path="docs/README.md" />
     <File Path="docs/MOVED.md" />
+  </Folder>
+  <Folder Name="/docs/api/">
     <File Path="docs/api/endpoints.md" />
+  </Folder>
+  <Folder Name="/docs/architecture/">
     <File Path="docs/architecture/overview.md" />
     <File Path="docs/architecture/service-patterns.md" />
     <File Path="docs/architecture/timeline-system.md" />
+  </Folder>
+  <Folder Name="/docs/examples/">
     <File Path="docs/examples/alternative-costs.json" />
+  </Folder>
+  <Folder Name="/docs/roadmap/">
     <File Path="docs/roadmap/README.md" />
     <File Path="docs/roadmap/strategic.md" />
+  </Folder>
+  <Folder Name="/docs/roadmap/analysis/">
     <File Path="docs/roadmap/analysis/api-conventions.md" />
     <File Path="docs/roadmap/analysis/core-modules.md" />
     <File Path="docs/roadmap/analysis/data-driven-compliance.md" />
     <File Path="docs/roadmap/analysis/event-integration.md" />
     <File Path="docs/roadmap/analysis/frontend-integration-gaps.md" />
     <File Path="docs/roadmap/analysis/resource-costs.md" />
+  </Folder>
+  <Folder Name="/docs/roadmap/phases/">
     <File Path="docs/roadmap/phases/phase-0.md" />
     <File Path="docs/roadmap/phases/phase-1.md" />
     <File Path="docs/roadmap/phases/phase-2.md" />
@@ -80,18 +92,32 @@
     <File Path="docs/roadmap/phases/phase-4.md" />
     <File Path="docs/roadmap/phases/phase-5.md" />
     <File Path="docs/roadmap/phases/phase-6.md" />
+  </Folder>
+  <Folder Name="/docs/systems/combat/">
     <File Path="docs/systems/combat/alternative-costs.md" />
     <File Path="docs/systems/combat/combat-system.md" />
     <File Path="docs/systems/combat/turn-phase-system.md" />
+  </Folder>
+  <Folder Name="/docs/systems/config/">
     <File Path="docs/systems/config/config-system.md" />
     <File Path="docs/systems/config/delta-reference.md" />
+  </Folder>
+  <Folder Name="/docs/systems/damage/">
     <File Path="docs/systems/damage/damage-examples.md" />
     <File Path="docs/systems/damage/damage-pipeline.md" />
+  </Folder>
+  <Folder Name="/docs/systems/effects/">
     <File Path="docs/systems/effects/effect-system.md" />
+  </Folder>
+  <Folder Name="/docs/systems/events/">
     <File Path="docs/systems/events/eventbus-implementation.md" />
     <File Path="docs/systems/events/eventbus-system.md" />
+  </Folder>
+  <Folder Name="/docs/systems/math/">
     <File Path="docs/systems/math/expression-modes.md" />
     <File Path="docs/systems/math/math-system.md" />
+  </Folder>
+  <Folder Name="/docs/systems/resources/">
     <File Path="docs/systems/resources/resource-system.md" />
   </Folder>
 </Solution>
