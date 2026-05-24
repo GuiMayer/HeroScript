@@ -347,9 +347,10 @@ Content-Type: application/json
 ## Próximos Passos
 
 Próximo foco dentro da Fase 3:
-- **Refinamentos de ativacao** - regras mais ricas para janelas de player/IA, status por inicio/fim de ativacao e integração com intents.
 - **Consistencia transacional** - evitar mutacao parcial quando operacoes compostas de run falham depois de gastar recursos/aplicar cartas/modifiers.
+- **Refinamentos de ativacao** - regras mais ricas para janelas de player/IA, status por inicio/fim de ativacao e integração com intents.
 - **Conteúdo MVP ampliado** - mais pools, cartas, lojas, preparacoes e modificadores usando os contratos JSON existentes.
+- **Compliance de loaders** - manter novos conteudos em `Resources/`; loaders de gameplay devem usar `ResourceLoader`, enquanto acesso fisico direto fica limitado a infraestrutura de config/providers/hot reload.
 
 Após completar a Fase 3, a Fase 4 adicionará conteúdo MVP:
 - **Race API** - Raças jogáveis

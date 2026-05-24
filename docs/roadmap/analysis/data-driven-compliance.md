@@ -1,33 +1,34 @@
 # Diagnostico Data-driven - HeroScript
 
 **Data:** 2026-05-23
-**Status:** Fase 2 estabilizada — Modifiers, Gambits e Effect Engine consolidados  
+**Status:** Fase 3 em refinamento — loaders principais migrados para `ResourceLoader`
 **Objetivo:** medir e controlar a aderencia do projeto a filosofia principal: conteudo e regras de sistema devem morar em JSON; o codigo deve interpretar dados e aplicar primitivas de engine.
 
 ---
 
 ## Veredito
 
-O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha regras de gameplay em C# que deveriam estar em JSON.
+O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre loaders de conteudo e regras via `ResourceLoader`, cache por cadeia de configs/mods e recursos JSON em runtime. As lacunas restantes sao principalmente avaliadores duplicados, garantias transacionais e alguns pontos de infraestrutura que precisam tocar o filesystem por desenho.
 
-**Score atual:** 9.0/10
+**Score atual:** 9.4/10
 
 ### O que ja esta alinhado
 
 - `ConfigManager`, `ResourceLoader` e heranca delta existem.
-- `ResourceManager` carrega definicoes de recursos em JSON.
-- `DamagePipeline` usa buckets, filtros e operacoes configuraveis por JSON.
-- `StatusEffectManager` carrega definicoes de status em JSON.
+- `ResourceManager` carrega definicoes de recursos em JSON via `ResourceLoader`.
+- `DamagePipeline` usa buckets, filtros e operacoes configuraveis por JSON; fallback hardcoded foi removido.
+- `StatusEffectManager` carrega definicoes de status via `ResourceLoader`.
 - `ActionManager` existe e interpreta `ActionDefinition`.
-- `ScriptModifierManager` carrega modificadores de JSON, filtra por tags e calcula pipeline modifiers.
-- `GambitEngine` carrega regras de decisao de AI em JSON (condicoes, prioridade, acoes).
+- `ScriptModifierManager` carrega modificadores via `ResourceLoader`, filtra por tags e calcula pipeline modifiers.
+- `GambitEngine` carrega regras de decisao de AI via `ResourceLoader` (condicoes, prioridade, acoes).
 - API de acoes expoe `effects[]` como contrato principal; `baseDamage` e apenas derivado/compatibilidade.
 - API de combate aceita `actionId` como forma preferida de executar acoes data-driven.
 - API central `/api/effect/apply` aplica efeitos por contexto `COMBAT`/`RUN`.
 - API `/api/modifiers` expoe Script Modifiers para aplicar/consultar/tick modificadores data-driven.
 - API `/api/gambits` expoe decisoes de AI data-driven e definicoes de gambit.
-- Entidades possuem definicoes JSON em `data/configs/default/Entities/`.
-- TurnPhase possui configuracoes JSON para estilos de TCG.
+- Entidades possuem definicoes JSON em `data/configs/default/Resources/Entities/`.
+- TurnPhase possui configuracoes JSON em `data/configs/default/Resources/phase-sequences/`.
+- Card pools, card catalog, run definitions, card selections, shops, preparations e combat activation rules usam recursos JSON.
 
 ### O que ainda viola a filosofia
 
@@ -41,9 +42,12 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | ✅ Resolvido | AI/Gambit | `AIController`/gambit placeholder decidia por enum/thresholds em codigo | `GambitEngine` carrega regras JSON; `GambitController` delega decisoes ao engine data-driven |
 | ✅ Resolvido | Effects | `EffectResolver` so cobria 7 tipos de efeito | Agora cobre economia (PP), deck (draw/discard/exhaust/add), modifiers (damage/crit/cooldown) e controle (prevent/force/skip/reflect/absorb) |
 | ✅ Resolvido | Modifiers | Nao existia sistema de script modifiers | `ScriptModifierManager` carrega/aplica/tick modificadores JSON com pipeline filtrado por tags |
+| ✅ Resolvido | Loaders diretos | Status, modifiers, gambits, entidades e phase sequences ainda liam arquivos por caminho fisico | Todos foram migrados para `ResourceLoader` e recursos em `Resources/` |
+| ✅ Resolvido | Damage pipeline | Loader tinha fallback hardcoded de bucket quando JSON falhava | Pipeline agora exige JSON valido e propaga erro de configuracao |
 | MEDIUM | Formulas | Existem avaliadores simples duplicados em status/effects | Usar um avaliador canonico |
 | MEDIUM | Test runner API | `API.Tests` compila, mas o runner local congela ao filtrar `ResourceControllerTests` | Investigar ambiente/fixture antes de usar a suite API como gate obrigatorio |
-| LOW | Fallback legado | `StartCombat` e `GambitController` ainda possuem fallback para compatibilidade sem JSON | Producao deve tratar definicao ausente como erro |
+| MEDIUM | Transacoes de Run | Operacoes compostas podem gastar recurso antes de falhar em etapa posterior | Introduzir rollback/transaction boundary para `RunManager` |
+| LOW | Infraestrutura filesystem | `ConfigManager`, providers fisicos e hot reload precisam observar arquivos reais | Aceitavel; estes pontos sao infraestrutura, nao regra/conteudo de gameplay |
 
 ---
 
@@ -55,6 +59,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 - Contratos de pipeline, validacao estrutural, cache, event bus e DI.
 - Operacoes matematicas genericas.
 - IDs convencionais quando documentados como contrato da engine.
+- Acesso fisico a disco dentro de infraestrutura de config/providers/hot reload, pois essa camada descobre e observa arquivos JSON reais para desenvolvimento e mods.
 
 ### Deve morar em JSON
 
@@ -63,6 +68,7 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 - HP/energia inicial, recursos de entidades, nomes e stats.
 - Regras de IA/gambit.
 - Sequencias de turno, pipelines, formulas e modificadores.
+- Catalogos, pools, recompensas, lojas, preparacoes, entidades, status, gambits e phase sequences.
 
 ---
 
@@ -81,6 +87,13 @@ O projeto esta **parcialmente data-driven**. A base tecnica existe, mas ainda ha
 | Estab-2 | ✅ Implementado | Script Modifiers Core + API | `ScriptModifierManager` com pipeline/tags/tick; API `/api/modifiers` |
 | Estab-3 | ✅ Implementado | Gambit Engine Core + API data-driven | `GambitEngine` carrega regras JSON; `GambitController` delega; API `/api/gambits` |
 | Estab-4 | ✅ Implementado | Effect Engine consolidado com 20+ tipos | Economia, deck, modifiers e controle resolvidos por `EffectResolver`; 553 testes Core passando |
+| Loader-1 | ✅ Implementado | Card pools carregados por ID | `CardPoolResolver` carrega `card-pools/{poolId}.json` |
+| Loader-2 | ✅ Implementado | Script modifiers via `ResourceLoader` | Sem leitura direta de `Modifiers/script_modifiers.json` |
+| Loader-3 | ✅ Implementado | Status effects via `ResourceLoader` | Sem leitura direta de `StatusEffects/status_effects.json` |
+| Loader-4 | ✅ Implementado | Entidades via `ResourceLoader` | `EntityDefinitionLoader` usa `Resources/Entities/{id}.json` |
+| Loader-5 | ✅ Implementado | Gambits sem fallback de arquivo fisico | `GambitEngine` exige `IResourceLoader` |
+| Loader-6 | ✅ Implementado | Damage pipeline sem fallback hardcoded | JSON invalido agora falha em vez de criar pipeline em C# |
+| Loader-7 | ✅ Implementado | TurnPhase via `ResourceLoader` | Presets migrados para `Resources/phase-sequences/{id}.json` |
 
 ---
 
@@ -101,9 +114,9 @@ A primeira rodada de compliance removeu os principais bloqueios data-driven de c
 | Prioridade | Lacuna | Motivo |
 |---|---|---|
 | MEDIUM | Formula evaluators duplicados | Status, Effects e Modifiers ainda possuem avaliadores simples locais; a fonte canonica deveria ser `MathEngine`/`ExpressionEvaluator` |
-| MEDIUM | Fallback legado de entidades | `StartCombat` ainda cria entidades padrao se JSON nao existir; aceitavel por compatibilidade, mas producao deve tratar definicao ausente como erro |
+| MEDIUM | Transacoes de Run | Algumas operacoes compostas ainda podem deixar estado parcial se a etapa final falhar |
 | MEDIUM | Runner de `API.Tests` instavel | Testes compilam e subsets passam, mas runner completo congela no ambiente atual |
-| LOW | Deck/Run/Shop state nao existe | Effects de deck/economia retornam metadata sem aplicar estado real; precisa de `RunState`/`DeckState` na Fase 3 |
+| LOW | Hot reload de recursos usa `FileSystemWatcher` | Essencial para detectar alteracoes reais em JSON durante desenvolvimento; deve ficar isolado em infraestrutura |
 
 ## Proximo Passo Natural
 
