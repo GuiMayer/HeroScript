@@ -170,6 +170,101 @@ public class ExpressionEvaluatorTests
     }
 
     [Fact]
+    public void Evaluate_WithNullRequest_ReturnsFailure()
+    {
+        // Act
+        var result = _evaluator.Evaluate(null!);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("Request cannot be null", result.Error);
+    }
+
+    [Fact]
+    public void Evaluate_WithEmptySteps_ReturnsFailure()
+    {
+        // Arrange
+        var request = new ExpressionEvaluationRequest
+        {
+            InitialValue = 10f,
+            Steps = new List<ExpressionStep>()
+        };
+
+        // Act
+        var result = _evaluator.Evaluate(request);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("At least one step is required", result.Error);
+    }
+
+    [Fact]
+    public void Evaluate_DivideByZeroValues_ReturnsFailure()
+    {
+        // Arrange
+        var request = new ExpressionEvaluationRequest
+        {
+            InitialValue = 10f,
+            Steps = new List<ExpressionStep>
+            {
+                new ExpressionStep { Operation = "DIVIDE", Values = new[] { 0f } }
+            }
+        };
+
+        // Act
+        var result = _evaluator.Evaluate(request);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("Division by zero", result.Error);
+    }
+
+    [Fact]
+    public void Evaluate_DivideByZeroOperands_ReturnsFailure()
+    {
+        // Arrange
+        var request = new ExpressionEvaluationRequest
+        {
+            InitialValue = 10f,
+            Steps = new List<ExpressionStep>
+            {
+                new ExpressionStep { Operation = "DIVIDE", Operands = new List<string> { "10", "0" } }
+            }
+        };
+
+        // Act
+        var result = _evaluator.Evaluate(request);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("Division by zero", result.Error);
+    }
+
+    [Theory]
+    [InlineData("EVAL")]
+    [InlineData("SYSTEM")]
+    [InlineData("Process.Start")]
+    public void Evaluate_WithUnsupportedOperation_ReturnsFailure(string operation)
+    {
+        // Arrange
+        var request = new ExpressionEvaluationRequest
+        {
+            InitialValue = 10f,
+            Steps = new List<ExpressionStep>
+            {
+                new ExpressionStep { Operation = operation, Values = new[] { 1f } }
+            }
+        };
+
+        // Act
+        var result = _evaluator.Evaluate(request);
+
+        // Assert
+        Assert.True(result.IsFailure);
+        Assert.Contains("Invalid operation", result.Error);
+    }
+
+    [Fact]
     public void Evaluate_ComplexExpression_ReturnsCorrectResult()
     {
         // Arrange

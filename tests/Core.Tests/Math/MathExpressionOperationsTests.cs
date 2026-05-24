@@ -86,4 +86,66 @@ public class MathExpressionOperationsTests
             new M.MathExpression(10).AddRawStep("MIN", Array.Empty<float>()).Build()
         );
     }
+
+    [Fact]
+    public void Divide_WithZero_ShouldThrowDivideByZeroException()
+    {
+        Assert.Throws<DivideByZeroException>(() =>
+            new M.MathExpression(10).Divide(0).Build()
+        );
+    }
+
+    [Fact]
+    public void Multiply_WithOverflow_ShouldThrowInvalidOperationException()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            new M.MathExpression(float.MaxValue).Multiply(2).Build()
+        );
+
+        Assert.Contains("Infinity", ex.Message);
+    }
+
+    [Fact]
+    public void Pow_WithOverflow_ShouldThrowInvalidOperationException()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            new M.MathExpression(float.MaxValue).Pow(2).Build()
+        );
+
+        Assert.Contains("Infinity", ex.Message);
+    }
+
+    [Fact]
+    public void Abs_WithNegativeValue_ReturnsPositiveValue()
+    {
+        var result = new M.MathExpression(-15).Abs().Build();
+
+        Assert.Equal(15, result, precision: 4);
+    }
+
+    [Fact]
+    public void Negate_WithPositiveValue_ReturnsNegativeValue()
+    {
+        var result = new M.MathExpression(15).Negate().Build();
+
+        Assert.Equal(-15, result, precision: 4);
+    }
+
+    [Fact]
+    public void Max_WithNegativeValues_ReturnsLargestValue()
+    {
+        var result = new M.MathExpression(-20).Max(-10, -30).Build();
+
+        Assert.Equal(-10, result, precision: 4);
+    }
+
+    [Fact]
+    public void RoundAndCeil_ReturnExpectedValues()
+    {
+        var rounded = new M.MathExpression(10.456f).Round(2).Build();
+        var ceiled = new M.MathExpression(10.1f).Ceil().Build();
+
+        Assert.Equal(10.46f, rounded, precision: 2);
+        Assert.Equal(11f, ceiled, precision: 4);
+    }
 }
