@@ -1,5 +1,7 @@
+using Core.Common;
 using Core.Combat.Modifiers;
 using Core.Config;
+using Core.Math;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -9,6 +11,7 @@ namespace Core.Tests.Combat.Modifiers;
 public sealed class ScriptModifierManagerTests : IDisposable
 {
     private readonly ScriptModifierManager _manager;
+    private readonly Mock<IRuntimeFormulaEvaluator> _formulaEvaluator = new();
 
     public ScriptModifierManagerTests()
     {
@@ -19,7 +22,7 @@ public sealed class ScriptModifierManagerTests : IDisposable
             .Setup(m => m.LoadResource("Modifiers/script_modifiers.json", It.IsAny<IEnumerable<string>>(), false))
             .Returns(ParseResource(TestDefinitionsJson));
 
-        _manager = new ScriptModifierManager(configManager.Object, resourceLoader.Object);
+        _manager = new ScriptModifierManager(configManager.Object, resourceLoader.Object, _formulaEvaluator.Object);
         var load = _manager.LoadDefinitions("test");
         Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);
     }
@@ -52,6 +55,10 @@ public sealed class ScriptModifierManagerTests : IDisposable
     {
         _manager.ApplyModifier("run-1", "glass_cannon", stacks: 2);
         _manager.ApplyModifier("run-1", "flat_bonus", stacks: 1);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("stacks * 0.25", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns<string, Dictionary<string, float>?, float>((_, variables, _) =>
+                Result<float>.Success(variables!["stacks"] * 0.25f));
 
         var attackModifiers = _manager.GetPipelineModifiers("run-1", new[] { "attack" });
         var skillModifiers = _manager.GetPipelineModifiers("run-1", new[] { "skill" });
@@ -60,6 +67,23 @@ public sealed class ScriptModifierManagerTests : IDisposable
         Assert.Equal(3f, attackModifiers["added_damage"]);
         Assert.False(skillModifiers.ContainsKey("increased_damage_total"));
         Assert.Equal(3f, skillModifiers["added_damage"]);
+        _formulaEvaluator.Verify(m => m.Evaluate(
+            "stacks * 0.25",
+            It.Is<Dictionary<string, float>>(vars => vars["stacks"] == 2 && vars.ContainsKey("duration")),
+            0f), Times.Once);
+    }
+
+    [Fact]
+    public void GetPipelineModifiers_WhenFormulaFails_FallsBackToBaseValueTimesStacks()
+    {
+        _manager.ApplyModifier("run-1", "glass_cannon", stacks: 2);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("stacks * 0.25", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Failure("bad formula"));
+
+        var modifiers = _manager.GetPipelineModifiers("run-1", new[] { "attack" });
+
+        Assert.Equal(0.5f, modifiers["increased_damage_total"]);
     }
 
     [Fact]

@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
+using Core.Math;
 
 namespace Core.Combat.Modifiers;
 
@@ -11,14 +11,19 @@ public sealed class ScriptModifierManager : IScriptModifierManager
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
+    private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     private readonly ConcurrentDictionary<string, ScriptModifierDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, List<ScriptModifierInstance>> _activeModifiers = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
 
-    public ScriptModifierManager(IConfigManager configManager, IResourceLoader resourceLoader)
+    public ScriptModifierManager(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        IRuntimeFormulaEvaluator formulaEvaluator)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+        _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
     }
 
     public Result LoadDefinitions(string configName)
@@ -230,7 +235,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager
         return definition.ExcludedTags.Count == 0 || !definition.ExcludedTags.Any(tags.Contains);
     }
 
-    private static float CalculateValue(ScriptModifierInstance instance)
+    private float CalculateValue(ScriptModifierInstance instance)
     {
         if (!string.IsNullOrWhiteSpace(instance.Definition.FormulaValue))
         {
@@ -240,41 +245,11 @@ public sealed class ScriptModifierManager : IScriptModifierManager
                 ["duration"] = instance.Duration
             };
 
-            if (TryEvaluateFormula(instance.Definition.FormulaValue, variables, out var value))
-                return value;
+            var value = _formulaEvaluator.Evaluate(instance.Definition.FormulaValue, variables);
+            if (value.IsSuccess)
+                return value.Value;
         }
 
         return instance.Definition.BaseValue * instance.Stacks;
-    }
-
-    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
-    {
-        result = 0f;
-        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (tokens.Length == 0 || tokens.Length % 2 == 0 || !TryReadValue(tokens[0], variables, out result))
-            return false;
-
-        for (var i = 1; i < tokens.Length; i += 2)
-        {
-            if (!TryReadValue(tokens[i + 1], variables, out var right))
-                return false;
-
-            result = tokens[i] switch
-            {
-                "+" => result + right,
-                "-" => result - right,
-                "*" => result * right,
-                "/" when right != 0f => result / right,
-                _ => result
-            };
-        }
-
-        return true;
-    }
-
-    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
-    {
-        return variables.TryGetValue(token, out value) ||
-            float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 }

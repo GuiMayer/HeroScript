@@ -132,7 +132,8 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 // Register ScriptModifierManager
 builder.Services.AddSingleton<IScriptModifierManager>(sp => new ScriptModifierManager(
     sp.GetRequiredService<IConfigManager>(),
-    sp.GetRequiredService<IResourceLoader>()));
+    sp.GetRequiredService<IResourceLoader>(),
+    sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 
 // Register GambitEngine
 builder.Services.AddSingleton<IGambitEngine>(sp =>
