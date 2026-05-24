@@ -159,4 +159,29 @@ public class EventIntegrationTests
         Assert.Equal(1, gameEvents[1].Sequence);
         Assert.Equal(2, gameEvents[2].Sequence);
     }
+
+    [Fact]
+    public async Task EventBus_ConcurrentPublishing_AssignsUniqueContiguousSequences()
+    {
+        var eventBus = new EventBus(NullLogger.Instance);
+
+        var tasks = Enumerable.Range(0, 8)
+            .Select(worker => Task.Run(() =>
+            {
+                for (var index = 0; index < 25; index++)
+                    eventBus.Publish(new ConfigLoadedEvent { ConfigName = $"config-{worker}-{index}" });
+            }))
+            .ToArray();
+
+        await Task.WhenAll(tasks);
+
+        var sequences = eventBus.GetEventHistory()
+            .Cast<GameEvent>()
+            .Select(e => e.Sequence)
+            .OrderBy(sequence => sequence)
+            .ToList();
+
+        Assert.Equal(200, sequences.Count);
+        Assert.Equal(Enumerable.Range(0, 200), sequences);
+    }
 }

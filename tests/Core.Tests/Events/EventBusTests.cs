@@ -194,6 +194,32 @@ public class EventBusTests
     }
 
     [Fact]
+    public void Publish_FirstHandlerPayloadMutation_IsVisibleToLaterHandlersAndHistory()
+    {
+        object? secondHandlerValue = null;
+        using var mutating = _eventBus.Subscribe<ConfigLoadedEvent>(e => e.Payload["mutated"] = true);
+        using var observing = _eventBus.Subscribe<ConfigLoadedEvent>(e => secondHandlerValue = e.Payload["mutated"]);
+
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+
+        var historyEvent = Assert.IsType<ConfigLoadedEvent>(Assert.Single(_eventBus.GetEventHistory()));
+        Assert.Equal(true, secondHandlerValue);
+        Assert.Equal(true, historyEvent.Payload["mutated"]);
+    }
+
+    [Fact]
+    public void GetEventHistory_MutatingReturnedList_DoesNotAffectStoredHistory()
+    {
+        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+
+        var returnedHistory = _eventBus.GetEventHistory();
+        var mutableCopy = Assert.IsType<List<IEvent>>(returnedHistory);
+        mutableCopy.Clear();
+
+        Assert.Single(_eventBus.GetEventHistory());
+    }
+
+    [Fact]
     public void Publish_SetsTimestamp()
     {
         // Arrange
