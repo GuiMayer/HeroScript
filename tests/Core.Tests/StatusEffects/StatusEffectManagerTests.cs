@@ -1,3 +1,4 @@
+using Core.Common;
 using Core.Config;
 using Core.Math;
 using Core.Resources;
@@ -11,10 +12,11 @@ namespace Core.Tests.StatusEffects;
 public sealed class StatusEffectManagerTests : IDisposable
 {
     private readonly StatusEffectManager _manager;
+    private readonly Mock<IRuntimeFormulaEvaluator> _formulaEvaluator = new();
 
     public StatusEffectManagerTests()
     {
-        _manager = CreateManagerWithJson(TestStatusDefinitionsJson, "test");
+        _manager = CreateManagerWithJson(TestStatusDefinitionsJson, "test", _formulaEvaluator.Object);
         var loadResult = _manager.LoadStatusDefinitions("test");
 
         Assert.True(loadResult.IsSuccess, loadResult.IsFailure ? loadResult.Error : null);
@@ -76,6 +78,9 @@ public sealed class StatusEffectManagerTests : IDisposable
     {
         var targetId = Guid.NewGuid();
         var apply = _manager.ApplyStatus(targetId, "burning", stacks: 2);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("stacks * 3", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(6f));
 
         var result = _manager.ProcessStatusEffects(targetId, StatusEffectTiming.END_OF_TURN, currentTurn: 1);
 
@@ -113,18 +118,45 @@ public sealed class StatusEffectManagerTests : IDisposable
         var targetId = Guid.NewGuid();
         _manager.ApplyStatus(targetId, "strength", stacks: 2);
         _manager.ApplyStatus(targetId, "rage", stacks: 1);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("stacks * 0.25", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns<string, Dictionary<string, float>?, float>((_, variables, _) =>
+                Result<float>.Success(variables!["stacks"] * 0.25f));
 
         var modifiers = _manager.GetPipelineModifiers(targetId);
 
         Assert.True(modifiers.TryGetValue("increased_damage_total", out var value));
         Assert.Equal(0.75f, value);
+        _formulaEvaluator.Verify(m => m.Evaluate(
+            "stacks * 0.25",
+            It.Is<Dictionary<string, float>>(vars => vars.ContainsKey("stacks") && vars.ContainsKey("duration")),
+            0f), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void ProcessStatusEffects_WhenFormulaFails_FallsBackToBaseValue()
+    {
+        var targetId = Guid.NewGuid();
+        _manager.ApplyStatus(targetId, "burning", stacks: 2);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("stacks * 3", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Failure("bad formula"));
+
+        var result = _manager.ProcessStatusEffects(targetId, StatusEffectTiming.END_OF_TURN, currentTurn: 1);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var tick = Assert.Single(result.Value!.TickResults);
+        Assert.Equal(6f, tick.Value);
     }
 
     public void Dispose()
     {
     }
 
-    private static StatusEffectManager CreateManagerWithJson(string json, string configName = "legacy")
+    private static StatusEffectManager CreateManagerWithJson(
+        string json,
+        string configName = "legacy",
+        IRuntimeFormulaEvaluator? formulaEvaluator = null)
     {
         var configManager = new Mock<IConfigManager>();
         var resourceLoader = new Mock<IResourceLoader>();
@@ -137,7 +169,7 @@ public sealed class StatusEffectManagerTests : IDisposable
             configManager.Object,
             resourceLoader.Object,
             new Mock<IResourceManager>().Object,
-            new Mock<IMathEngine>().Object);
+            formulaEvaluator ?? new Mock<IRuntimeFormulaEvaluator>().Object);
 
         var load = manager.LoadStatusDefinitions(configName);
         Assert.True(load.IsSuccess, load.IsFailure ? load.Error : null);

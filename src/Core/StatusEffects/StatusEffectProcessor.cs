@@ -1,6 +1,5 @@
 using Core.Common;
 using Core.Math;
-using System.Globalization;
 
 namespace Core.StatusEffects;
 
@@ -11,12 +10,12 @@ namespace Core.StatusEffects;
 public class StatusEffectProcessor
 {
     private readonly IStatusEffectManager _manager;
-    private readonly IMathEngine _mathEngine;
+    private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     
-    public StatusEffectProcessor(IStatusEffectManager manager, IMathEngine mathEngine)
+    public StatusEffectProcessor(IStatusEffectManager manager, IRuntimeFormulaEvaluator formulaEvaluator)
     {
         _manager = manager ?? throw new ArgumentNullException(nameof(manager));
-        _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
+        _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
     }
     
     /// <summary>
@@ -277,49 +276,11 @@ public class StatusEffectProcessor
                 ["duration"] = instance.Duration
             };
 
-            if (TryEvaluateFormula(instance.Definition.FormulaValue, variables, out var formulaValue))
-                return formulaValue;
+            var formulaValue = _formulaEvaluator.Evaluate(instance.Definition.FormulaValue, variables);
+            if (formulaValue.IsSuccess)
+                return formulaValue.Value;
         }
         
         return instance.Definition.BaseValue * (instance.Definition.ScalesWithStacks ? instance.Stacks : 1);
-    }
-
-    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
-    {
-        result = 0;
-        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (tokens.Length == 0 || tokens.Length % 2 == 0)
-            return false;
-
-        if (!TryReadValue(tokens[0], variables, out result))
-            return false;
-
-        for (var i = 1; i < tokens.Length; i += 2)
-        {
-            if (!TryReadValue(tokens[i + 1], variables, out var right))
-                return false;
-
-            result = tokens[i] switch
-            {
-                "+" => result + right,
-                "-" => result - right,
-                "*" => result * right,
-                "/" when right != 0 => result / right,
-                _ => float.NaN
-            };
-
-            if (float.IsNaN(result))
-                return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
-    {
-        if (variables.TryGetValue(token, out value))
-            return true;
-
-        return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 }

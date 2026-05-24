@@ -3,7 +3,6 @@ using Core.Common;
 using Core.Config;
 using Core.Math;
 using Core.Resources;
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -18,7 +17,7 @@ public class StatusEffectManager : IStatusEffectManager
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly IResourceManager _resourceManager;
-    private readonly IMathEngine _mathEngine;
+    private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     
     // Status effects ativos por entidade (thread-safe)
     private readonly ConcurrentDictionary<Guid, List<StatusEffectInstance>> _activeStatus = new();
@@ -33,14 +32,14 @@ public class StatusEffectManager : IStatusEffectManager
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         IResourceManager resourceManager,
-        IMathEngine mathEngine)
+        IRuntimeFormulaEvaluator formulaEvaluator)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
-        _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
+        _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
         
-        _processor = new StatusEffectProcessor(this, mathEngine);
+        _processor = new StatusEffectProcessor(this, formulaEvaluator);
     }
     
     // ===== APLICAR/REMOVER =====
@@ -598,49 +597,11 @@ public class StatusEffectManager : IStatusEffectManager
                 ["duration"] = status.Duration
             };
 
-            if (TryEvaluateFormula(status.Definition.ModifierFormula, variables, out var formulaValue))
-                return formulaValue;
+            var formulaValue = _formulaEvaluator.Evaluate(status.Definition.ModifierFormula, variables);
+            if (formulaValue.IsSuccess)
+                return formulaValue.Value;
         }
         
         return status.Definition.BaseValue * (status.Definition.ScalesWithStacks ? status.Stacks : 1);
-    }
-
-    private static bool TryEvaluateFormula(string formula, Dictionary<string, float> variables, out float result)
-    {
-        result = 0;
-        var tokens = formula.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (tokens.Length == 0 || tokens.Length % 2 == 0)
-            return false;
-
-        if (!TryReadValue(tokens[0], variables, out result))
-            return false;
-
-        for (var i = 1; i < tokens.Length; i += 2)
-        {
-            if (!TryReadValue(tokens[i + 1], variables, out var right))
-                return false;
-
-            result = tokens[i] switch
-            {
-                "+" => result + right,
-                "-" => result - right,
-                "*" => result * right,
-                "/" when right != 0 => result / right,
-                _ => float.NaN
-            };
-
-            if (float.IsNaN(result))
-                return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadValue(string token, Dictionary<string, float> variables, out float value)
-    {
-        if (variables.TryGetValue(token, out value))
-            return true;
-
-        return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
     }
 }
