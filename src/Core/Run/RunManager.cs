@@ -521,6 +521,166 @@ public sealed class RunManager : IRunManager
         }
     }
 
+    private Result<T> ExecuteRunTransaction<T>(Guid runId, Func<RunState, Result<T>> operation)
+    {
+        if (!_runs.TryGetValue(runId, out var state))
+            return Result<T>.Failure($"Run not found: {runId}");
+
+        var snapshot = CloneRunState(state);
+        try
+        {
+            var result = operation(state);
+            if (result.IsFailure)
+                _runs[runId] = snapshot;
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _runs[runId] = snapshot;
+            return Result<T>.Failure($"Run transaction failed: {ex.Message}");
+        }
+    }
+
+    private static RunState CloneRunState(RunState source)
+    {
+        return new RunState
+        {
+            RunId = source.RunId,
+            ConfigName = source.ConfigName,
+            PlayerEntityId = source.PlayerEntityId,
+            Gold = source.Gold,
+            PowerPoints = source.PowerPoints,
+            CurrentNodeId = source.CurrentNodeId,
+            Deck = CloneDeckState(source.Deck),
+            CardSelections = source.CardSelections.Select(CloneCardSelection).ToList(),
+            Shops = source.Shops.Select(CloneShop).ToList(),
+            Preparations = source.Preparations.Select(ClonePreparation).ToList(),
+            Metadata = CloneMetadata(source.Metadata)
+        };
+    }
+
+    private static DeckState CloneDeckState(DeckState source)
+    {
+        return new DeckState
+        {
+            DrawPile = source.DrawPile.ToList(),
+            Hand = source.Hand.ToList(),
+            DiscardPile = source.DiscardPile.ToList(),
+            ExhaustPile = source.ExhaustPile.ToList()
+        };
+    }
+
+    private static CardSelectionState CloneCardSelection(CardSelectionState source)
+    {
+        return new CardSelectionState
+        {
+            SelectionInstanceId = source.SelectionInstanceId,
+            RunId = source.RunId,
+            SelectionId = source.SelectionId,
+            PickCount = source.PickCount,
+            OfferCount = source.OfferCount,
+            CardPoolId = source.CardPoolId,
+            Options = source.Options.Select(CloneCardSelectionOption).ToList(),
+            RerollsUsed = source.RerollsUsed,
+            FreeRerollsRemaining = source.FreeRerollsRemaining,
+            RerollCostGold = source.RerollCostGold,
+            Completed = source.Completed,
+            PickedCardIds = source.PickedCardIds.ToList(),
+            DecomposedCardIds = source.DecomposedCardIds.ToList(),
+            Reroll = source.Reroll,
+            Decompose = source.Decompose
+        };
+    }
+
+    private static CardSelectionOptionState CloneCardSelectionOption(CardSelectionOptionState source)
+    {
+        return new CardSelectionOptionState
+        {
+            CardId = source.CardId,
+            Rarity = source.Rarity,
+            Tags = source.Tags.ToList(),
+            DecomposePowerPoints = source.DecomposePowerPoints,
+            Decomposed = source.Decomposed
+        };
+    }
+
+    private static ShopState CloneShop(ShopState source)
+    {
+        return new ShopState
+        {
+            ShopInstanceId = source.ShopInstanceId,
+            RunId = source.RunId,
+            ShopId = source.ShopId,
+            CardPoolId = source.CardPoolId,
+            OfferCount = source.OfferCount,
+            RerollsUsed = source.RerollsUsed,
+            RerollCostGold = source.RerollCostGold,
+            Pricing = source.Pricing,
+            Reroll = source.Reroll,
+            Items = source.Items.Select(CloneShopItem).ToList()
+        };
+    }
+
+    private static ShopItemState CloneShopItem(ShopItemState source)
+    {
+        return new ShopItemState
+        {
+            ItemId = source.ItemId,
+            CardId = source.CardId,
+            Rarity = source.Rarity,
+            Tags = source.Tags.ToList(),
+            BaseGoldPrice = source.BaseGoldPrice,
+            GoldCost = source.GoldCost,
+            PowerPointCost = source.PowerPointCost,
+            PricingBreakdown = new Dictionary<string, double>(source.PricingBreakdown, StringComparer.OrdinalIgnoreCase),
+            Purchased = source.Purchased
+        };
+    }
+
+    private static PreparationState ClonePreparation(PreparationState source)
+    {
+        return new PreparationState
+        {
+            PreparationInstanceId = source.PreparationInstanceId,
+            RunId = source.RunId,
+            PreparationId = source.PreparationId,
+            Options = source.Options.Select(ClonePreparationOption).ToList(),
+            AppliedOptionIds = source.AppliedOptionIds.ToList()
+        };
+    }
+
+    private static PreparationOptionState ClonePreparationOption(PreparationOptionState source)
+    {
+        return new PreparationOptionState
+        {
+            OptionId = source.OptionId,
+            GoldCost = source.GoldCost,
+            PowerPointCost = source.PowerPointCost,
+            AddCardsToDiscard = source.AddCardsToDiscard.ToList(),
+            ApplyModifiers = source.ApplyModifiers.Select(ClonePreparationModifierGrant).ToList(),
+            AppliedModifierInstanceIds = source.AppliedModifierInstanceIds.ToList(),
+            Applied = source.Applied
+        };
+    }
+
+    private static PreparationModifierGrantState ClonePreparationModifierGrant(PreparationModifierGrantState source)
+    {
+        return new PreparationModifierGrantState
+        {
+            OwnerId = source.OwnerId,
+            ModifierId = source.ModifierId,
+            Stacks = source.Stacks,
+            Duration = source.Duration,
+            SourceId = source.SourceId
+        };
+    }
+
+    private static Dictionary<string, object> CloneMetadata(Dictionary<string, object> source)
+    {
+        return source.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
     private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
     {
         var lockedOptions = lockedCardIds
