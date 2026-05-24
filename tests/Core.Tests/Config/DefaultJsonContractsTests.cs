@@ -1,0 +1,192 @@
+using System.Text.Json;
+using Xunit;
+
+namespace Core.Tests.Config;
+
+public class DefaultJsonContractsTests
+{
+    private static readonly string ResourcesRoot = Path.Combine(
+        FindProjectRoot(),
+        "data",
+        "configs",
+        "default",
+        "Resources");
+
+    [Fact]
+    public void DefaultResources_AllJsonFiles_ParseAsObjects()
+    {
+        var files = Directory.GetFiles(ResourcesRoot, "*.json", SearchOption.AllDirectories);
+
+        Assert.NotEmpty(files);
+        foreach (var file in files)
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(file));
+            Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
+        }
+    }
+
+    [Fact]
+    public void CardCatalog_AllCardsReferenceExistingActions()
+    {
+        var cards = LoadResource("cards", "card_catalog.json");
+        var actionIds = Directory.GetFiles(Path.Combine(ResourcesRoot, "actions"), "*.json")
+            .SelectMany(file => LoadResource("actions", Path.GetFileName(file)).Keys)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        Assert.NotEmpty(cards);
+        Assert.NotEmpty(actionIds);
+
+        foreach (var (cardId, card) in cards)
+        {
+            var actionId = RequiredString(card, "actionId", cardId);
+            Assert.Contains(actionId, actionIds);
+        }
+    }
+
+    [Fact]
+    public void CardPools_ExplicitCardsReferenceCatalogCards()
+    {
+        var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var pools = LoadResource("card-pools", "basic_rewards.json");
+
+        Assert.NotEmpty(pools);
+        foreach (var (poolId, pool) in pools)
+        {
+            if (!pool.TryGetProperty("explicitCardIds", out var explicitCardIds))
+                continue;
+
+            foreach (var cardId in explicitCardIds.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
+                Assert.Contains(cardId!, cards);
+        }
+    }
+
+    [Fact]
+    public void RunDefinition_ReferencesExistingDeckCardsAndActivationRules()
+    {
+        var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var rules = LoadResource("combat-turn-rules", "default_activation.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var runs = LoadResource("runs", "default_run.json");
+
+        Assert.NotEmpty(runs);
+        foreach (var (runId, run) in runs)
+        {
+            foreach (var cardId in run.GetProperty("startingDeck").EnumerateArray().Select(x => x.GetString()))
+                Assert.Contains(cardId!, cards);
+
+            var rulesId = RequiredString(run, "combatActivationRulesId", runId);
+            Assert.Contains(rulesId, rules);
+        }
+    }
+
+    [Fact]
+    public void RewardShopPreparation_ReferenceExistingPoolsCardsAndModifiers()
+    {
+        var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var pools = LoadResource("card-pools", "basic_rewards.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var modifiers = LoadResource("Modifiers", "script_modifiers.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var selections = LoadResource("card-selections", "basic_reward.json");
+        foreach (var (selectionId, selection) in selections)
+        {
+            Assert.Contains(RequiredString(selection, "cardPoolId", selectionId), pools);
+            Assert.True(selection.GetProperty("offerCount").GetInt32() > 0);
+        }
+
+        var shops = LoadResource("shops", "basic_shop.json");
+        foreach (var (shopId, shop) in shops)
+        {
+            Assert.Contains(RequiredString(shop, "cardPoolId", shopId), pools);
+            foreach (var item in shop.GetProperty("items").EnumerateArray())
+                Assert.Contains(RequiredString(item, "cardId", shopId), cards);
+        }
+
+        var preparations = LoadResource("preparations", "basic_preparation.json");
+        foreach (var (preparationId, preparation) in preparations)
+        {
+            foreach (var option in preparation.GetProperty("options").EnumerateArray())
+            {
+                if (option.TryGetProperty("addCardsToDiscard", out var addCards))
+                {
+                    foreach (var cardId in addCards.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
+                        Assert.Contains(cardId!, cards);
+                }
+
+                if (option.TryGetProperty("applyModifiers", out var applyModifiers))
+                {
+                    foreach (var modifier in applyModifiers.EnumerateArray())
+                        Assert.Contains(RequiredString(modifier, "modifierId", preparationId), modifiers);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void Entities_ReferenceExistingActionsAndResources()
+    {
+        var actions = Directory.GetFiles(Path.Combine(ResourcesRoot, "actions"), "*.json")
+            .SelectMany(file => LoadResource("actions", Path.GetFileName(file)).Keys)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var resources = Directory.GetFiles(Path.Combine(ResourcesRoot, "resources"), "*.json")
+            .Select(file => LoadSingleResourceId("resources", Path.GetFileName(file), "resourceId"))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var entityFiles = Directory.GetFiles(Path.Combine(ResourcesRoot, "Entities"), "*.json");
+        Assert.NotEmpty(entityFiles);
+
+        foreach (var file in entityFiles)
+        {
+            foreach (var (_, entity) in LoadResource("Entities", Path.GetFileName(file)))
+            {
+                var resourceContainer = entity.GetProperty("resources");
+                if (resourceContainer.TryGetProperty("resources", out var nestedResources))
+                    resourceContainer = nestedResources;
+
+                foreach (var resource in resourceContainer.EnumerateObject())
+                    Assert.Contains(resource.Name, resources);
+
+                if (entity.TryGetProperty("actions", out var entityActions))
+                {
+                    foreach (var actionId in entityActions.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
+                        Assert.Contains(actionId!, actions);
+                }
+            }
+        }
+    }
+
+    private static Dictionary<string, JsonElement> LoadResource(string directory, string fileName)
+    {
+        var path = Path.Combine(ResourcesRoot, directory, fileName);
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return document.RootElement.EnumerateObject()
+            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string LoadSingleResourceId(string directory, string fileName, string idPropertyName)
+    {
+        var path = Path.Combine(ResourcesRoot, directory, fileName);
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        return RequiredString(document.RootElement, idPropertyName, fileName);
+    }
+
+    private static string RequiredString(JsonElement element, string propertyName, string ownerId)
+    {
+        Assert.True(element.TryGetProperty(propertyName, out var property), $"{ownerId} must define {propertyName}");
+        var value = property.GetString();
+        Assert.False(string.IsNullOrWhiteSpace(value), $"{ownerId}.{propertyName} cannot be empty");
+        return value!;
+    }
+
+    private static string FindProjectRoot()
+    {
+        var current = Directory.GetCurrentDirectory();
+        while (current != null)
+        {
+            if (Directory.Exists(Path.Combine(current, "data", "configs", "default", "Resources")))
+                return current;
+
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        throw new DirectoryNotFoundException("Could not find HeroScript project root.");
+    }
+}

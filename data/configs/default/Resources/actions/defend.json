@@ -1,0 +1,31 @@
+{
+  "defend": {
+    "actionId": "defend",
+    "displayName": "Defend",
+    "description": "Gain block",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "timing": "IMMEDIATE",
+        "flatValue": 5,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": ["defense", "block"]
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["defense", "common", "starter"]
+  }
+}

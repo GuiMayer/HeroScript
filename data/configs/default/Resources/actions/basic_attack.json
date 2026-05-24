@@ -1,0 +1,30 @@
+{
+  "basic_attack": {
+    "actionId": "basic_attack",
+    "displayName": "Strike",
+    "description": "Deal 6 damage",
+    "actionType": "BASIC_ATTACK",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "timing": "IMMEDIATE",
+        "flatValue": 6,
+        "targetResource": "health",
+        "tags": ["physical", "attack"]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["attack", "common", "starter"]
+  }
+}

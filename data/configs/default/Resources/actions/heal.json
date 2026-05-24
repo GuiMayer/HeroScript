@@ -1,0 +1,30 @@
+{
+  "heal": {
+    "actionId": "heal",
+    "displayName": "Heal",
+    "description": "Restore 8 HP",
+    "actionType": "POWER",
+    "costs": {
+      "costs": [
+        {
+          "resourceId": "energy",
+          "amount": 1
+        }
+      ]
+    },
+    "effects": [
+      {
+        "type": "HEAL",
+        "target": "SELF",
+        "timing": "IMMEDIATE",
+        "flatValue": 8,
+        "targetResource": "health",
+        "tags": ["heal", "utility"]
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["heal", "utility", "common"]
+  }
+}
