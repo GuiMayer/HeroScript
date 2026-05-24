@@ -124,6 +124,39 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public void PickCards_WhenInvalidPick_DoesNotCompleteSelectionOrAddCards()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var selection = manager.CreateCardSelection(run.RunId, "basic_reward").Value;
+        var originalDiscard = run.Deck.DiscardPile.ToArray();
+
+        var pick = manager.PickCards(run.RunId, selection.SelectionInstanceId, new[] { "missing_card" });
+
+        Assert.True(pick.IsFailure);
+        Assert.False(selection.Completed);
+        Assert.Empty(selection.PickedCardIds);
+        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+    }
+
+    [Fact]
+    public void DecomposeCardSelectionOption_WhenAlreadyDecomposed_DoesNotAddPowerPointsAgain()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
+        var first = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
+        var powerPointsAfterFirst = run.PowerPoints;
+
+        var second = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.True(second.IsFailure);
+        Assert.Equal(powerPointsAfterFirst, run.PowerPoints);
+        Assert.Single(selection.DecomposedCardIds, id => id == "fireball");
+    }
+
+    [Fact]
     public void BuyShopItem_SpendsGoldAndAddsCardToDiscardPile()
     {
         var manager = CreateManager();
@@ -137,6 +170,23 @@ public sealed class RunManagerTests
         Assert.True(item.Value.Purchased);
         Assert.Equal(15, run.Gold);
         Assert.Contains("zap", run.Deck.DiscardPile);
+    }
+
+    [Fact]
+    public void BuyShopItem_WithInsufficientResources_DoesNotMutateRunOrItem()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        run.Gold = 0;
+        var shop = manager.CreateShop(run.RunId, "basic_shop").Value;
+        var originalDiscard = run.Deck.DiscardPile.ToArray();
+
+        var item = manager.BuyShopItem(run.RunId, shop.ShopInstanceId, "buy_zap");
+
+        Assert.True(item.IsFailure);
+        Assert.Equal(0, run.Gold);
+        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.False(shop.Items.Single(i => i.ItemId == "buy_zap").Purchased);
     }
 
     [Fact]
@@ -169,6 +219,50 @@ public sealed class RunManagerTests
         Assert.Equal(1, reroll.Value.RerollsUsed);
         Assert.Equal(15, reroll.Value.RerollCostGold);
         Assert.All(reroll.Value.Items, item => Assert.False(item.Purchased));
+    }
+
+    [Fact]
+    public void RerollShop_WithInsufficientGold_DoesNotMutateShop()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
+        run.Gold = 0;
+        var originalItems = shop.Items.Select(i => i.ItemId).ToArray();
+        var originalRerolls = shop.RerollsUsed;
+        var originalCost = shop.RerollCostGold;
+
+        var reroll = manager.RerollShop(run.RunId, shop.ShopInstanceId);
+
+        Assert.True(reroll.IsFailure);
+        Assert.Equal(0, run.Gold);
+        Assert.Equal(originalRerolls, shop.RerollsUsed);
+        Assert.Equal(originalCost, shop.RerollCostGold);
+        Assert.Equal(originalItems, shop.Items.Select(i => i.ItemId));
+    }
+
+    [Fact]
+    public void RerollCardSelection_WithInsufficientGold_DoesNotMutateSelection()
+    {
+        var manager = CreateManagerWithContent();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
+        var free = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
+        Assert.True(free.IsSuccess, free.IsFailure ? free.Error : null);
+        run.Gold = 0;
+        var originalOptions = selection.Options.Select(o => o.CardId).ToArray();
+        var originalRerolls = selection.RerollsUsed;
+        var originalFree = selection.FreeRerollsRemaining;
+        var originalCost = selection.RerollCostGold;
+
+        var paid = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
+
+        Assert.True(paid.IsFailure);
+        Assert.Equal(0, run.Gold);
+        Assert.Equal(originalRerolls, selection.RerollsUsed);
+        Assert.Equal(originalFree, selection.FreeRerollsRemaining);
+        Assert.Equal(originalCost, selection.RerollCostGold);
+        Assert.Equal(originalOptions, selection.Options.Select(o => o.CardId));
     }
 
     [Fact]

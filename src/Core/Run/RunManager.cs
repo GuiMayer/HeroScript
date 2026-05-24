@@ -247,36 +247,36 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
-
-            var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
-            if (selection == null)
-                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
-
-            if (selection.Completed)
-                return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
-
-            var picks = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
-            if (picks.Count == 0 || picks.Count > selection.PickCount)
-                return Result<CardSelectionState>.Failure($"Pick between 1 and {selection.PickCount} cards");
-
-            var availableOptions = selection.Options
-                .Where(option => !option.Decomposed)
-                .Select(option => option.CardId)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var invalid = picks.Where(id => !availableOptions.Contains(id)).ToList();
-            if (invalid.Count > 0)
-                return Result<CardSelectionState>.Failure($"Invalid card options: {string.Join(", ", invalid)}");
-
-            foreach (var cardId in picks)
+            return ExecuteRunTransaction(runId, state =>
             {
-                state.Deck.DiscardPile.Add(cardId);
-                selection.PickedCardIds.Add(cardId);
-            }
+                var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
+                if (selection == null)
+                    return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
 
-            selection.Completed = true;
-            return Result<CardSelectionState>.Success(selection);
+                if (selection.Completed)
+                    return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+
+                var picks = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+                if (picks.Count == 0 || picks.Count > selection.PickCount)
+                    return Result<CardSelectionState>.Failure($"Pick between 1 and {selection.PickCount} cards");
+
+                var availableOptions = selection.Options
+                    .Where(option => !option.Decomposed)
+                    .Select(option => option.CardId)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var invalid = picks.Where(id => !availableOptions.Contains(id)).ToList();
+                if (invalid.Count > 0)
+                    return Result<CardSelectionState>.Failure($"Invalid card options: {string.Join(", ", invalid)}");
+
+                foreach (var cardId in picks)
+                {
+                    state.Deck.DiscardPile.Add(cardId);
+                    selection.PickedCardIds.Add(cardId);
+                }
+
+                selection.Completed = true;
+                return Result<CardSelectionState>.Success(selection);
+            });
         }
     }
 
@@ -284,37 +284,37 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
+            return ExecuteRunTransaction(runId, state =>
+            {
+                var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
+                if (selection == null)
+                    return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
 
-            var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
-            if (selection == null)
-                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+                if (selection.Completed)
+                    return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
 
-            if (selection.Completed)
-                return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+                var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selection.SelectionId);
+                if (definitionResult.IsFailure)
+                    return Result<CardSelectionState>.Failure(definitionResult.Error);
 
-            var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selection.SelectionId);
-            if (definitionResult.IsFailure)
-                return Result<CardSelectionState>.Failure(definitionResult.Error);
+                var cost = selection.FreeRerollsRemaining > 0 ? 0 : selection.RerollCostGold;
+                if (state.Gold < cost)
+                    return Result<CardSelectionState>.Failure($"Insufficient gold for reroll: {selection.SelectionId}");
 
-            var cost = selection.FreeRerollsRemaining > 0 ? 0 : selection.RerollCostGold;
-            if (state.Gold < cost)
-                return Result<CardSelectionState>.Failure($"Insufficient gold for reroll: {selection.SelectionId}");
+                state.Gold -= cost;
+                selection.RerollsUsed++;
+                selection.FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1);
+                selection.RerollCostGold = CalculateRerollCost(selection.Reroll, selection.RerollsUsed);
 
-            state.Gold -= cost;
-            selection.RerollsUsed++;
-            selection.FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1);
-            selection.RerollCostGold = CalculateRerollCost(selection.Reroll, selection.RerollsUsed);
+                var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+                foreach (var option in selection.Options.Where(option => locked.Contains(option.CardId)))
+                    option.Decomposed = false;
 
-            var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-            foreach (var option in selection.Options.Where(option => locked.Contains(option.CardId)))
-                option.Decomposed = false;
-
-            var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
-            selection.Options.Clear();
-            selection.Options.AddRange(generated);
-            return Result<CardSelectionState>.Success(selection);
+                var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
+                selection.Options.Clear();
+                selection.Options.AddRange(generated);
+                return Result<CardSelectionState>.Success(selection);
+            });
         }
     }
 
@@ -322,30 +322,30 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
+            return ExecuteRunTransaction(runId, state =>
+            {
+                var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
+                if (selection == null)
+                    return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
 
-            var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
-            if (selection == null)
-                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+                if (selection.Completed)
+                    return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
 
-            if (selection.Completed)
-                return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+                if (!selection.Decompose.Enabled)
+                    return Result<CardSelectionState>.Failure($"Decompose is disabled for card selection: {selection.SelectionId}");
 
-            if (!selection.Decompose.Enabled)
-                return Result<CardSelectionState>.Failure($"Decompose is disabled for card selection: {selection.SelectionId}");
+                var option = selection.Options.FirstOrDefault(o => o.CardId.Equals(cardId, StringComparison.OrdinalIgnoreCase));
+                if (option == null)
+                    return Result<CardSelectionState>.Failure($"Card option not found: {cardId}");
 
-            var option = selection.Options.FirstOrDefault(o => o.CardId.Equals(cardId, StringComparison.OrdinalIgnoreCase));
-            if (option == null)
-                return Result<CardSelectionState>.Failure($"Card option not found: {cardId}");
+                if (option.Decomposed)
+                    return Result<CardSelectionState>.Failure($"Card option already decomposed: {cardId}");
 
-            if (option.Decomposed)
-                return Result<CardSelectionState>.Failure($"Card option already decomposed: {cardId}");
-
-            option.Decomposed = true;
-            selection.DecomposedCardIds.Add(option.CardId);
-            state.PowerPoints += option.DecomposePowerPoints;
-            return Result<CardSelectionState>.Success(selection);
+                option.Decomposed = true;
+                selection.DecomposedCardIds.Add(option.CardId);
+                state.PowerPoints += option.DecomposePowerPoints;
+                return Result<CardSelectionState>.Success(selection);
+            });
         }
     }
 
@@ -382,31 +382,31 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<ShopItemState>.Failure($"Run not found: {runId}");
+            return ExecuteRunTransaction(runId, state =>
+            {
+                var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
+                if (shop == null)
+                    return Result<ShopItemState>.Failure($"Shop not found: {shopInstanceId}");
 
-            var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
-            if (shop == null)
-                return Result<ShopItemState>.Failure($"Shop not found: {shopInstanceId}");
+                var item = shop.Items.FirstOrDefault(i => i.ItemId == itemId);
+                if (item == null)
+                    return Result<ShopItemState>.Failure($"Shop item not found: {itemId}");
 
-            var item = shop.Items.FirstOrDefault(i => i.ItemId == itemId);
-            if (item == null)
-                return Result<ShopItemState>.Failure($"Shop item not found: {itemId}");
+                if (item.Purchased)
+                    return Result<ShopItemState>.Failure($"Shop item already purchased: {itemId}");
 
-            if (item.Purchased)
-                return Result<ShopItemState>.Failure($"Shop item already purchased: {itemId}");
+                if (state.Gold < item.GoldCost || state.PowerPoints < item.PowerPointCost)
+                    return Result<ShopItemState>.Failure($"Insufficient resources for shop item: {itemId}");
 
-            if (state.Gold < item.GoldCost || state.PowerPoints < item.PowerPointCost)
-                return Result<ShopItemState>.Failure($"Insufficient resources for shop item: {itemId}");
+                state.Gold -= item.GoldCost;
+                state.PowerPoints -= item.PowerPointCost;
 
-            state.Gold -= item.GoldCost;
-            state.PowerPoints -= item.PowerPointCost;
+                if (!string.IsNullOrWhiteSpace(item.CardId))
+                    state.Deck.DiscardPile.Add(item.CardId);
 
-            if (!string.IsNullOrWhiteSpace(item.CardId))
-                state.Deck.DiscardPile.Add(item.CardId);
-
-            item.Purchased = true;
-            return Result<ShopItemState>.Success(item);
+                item.Purchased = true;
+                return Result<ShopItemState>.Success(item);
+            });
         }
     }
 
@@ -414,26 +414,26 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<ShopState>.Failure($"Run not found: {runId}");
+            return ExecuteRunTransaction(runId, state =>
+            {
+                var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
+                if (shop == null)
+                    return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
 
-            var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
-            if (shop == null)
-                return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
+                var definitionResult = LoadShopDefinition(state.ConfigName, shop.ShopId);
+                if (definitionResult.IsFailure)
+                    return Result<ShopState>.Failure(definitionResult.Error);
 
-            var definitionResult = LoadShopDefinition(state.ConfigName, shop.ShopId);
-            if (definitionResult.IsFailure)
-                return Result<ShopState>.Failure(definitionResult.Error);
+                if (state.Gold < shop.RerollCostGold)
+                    return Result<ShopState>.Failure($"Insufficient gold for shop reroll: {shop.ShopId}");
 
-            if (state.Gold < shop.RerollCostGold)
-                return Result<ShopState>.Failure($"Insufficient gold for shop reroll: {shop.ShopId}");
-
-            state.Gold -= shop.RerollCostGold;
-            shop.RerollsUsed++;
-            shop.RerollCostGold = CalculateShopRerollCost(shop.Reroll, shop.RerollsUsed);
-            shop.Items.Clear();
-            shop.Items.AddRange(GenerateShopItems(state, definitionResult.Value, shop.RerollsUsed));
-            return Result<ShopState>.Success(shop);
+                state.Gold -= shop.RerollCostGold;
+                shop.RerollsUsed++;
+                shop.RerollCostGold = CalculateShopRerollCost(shop.Reroll, shop.RerollsUsed);
+                shop.Items.Clear();
+                shop.Items.AddRange(GenerateShopItems(state, definitionResult.Value, shop.RerollsUsed));
+                return Result<ShopState>.Success(shop);
+            });
         }
     }
 
