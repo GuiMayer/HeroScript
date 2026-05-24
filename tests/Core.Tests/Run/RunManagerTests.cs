@@ -217,6 +217,94 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public void ApplyPreparationOption_WhenModifierManagerMissing_RollsBackResourcesAndCards()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        run.PowerPoints = 2;
+        var originalGold = run.Gold;
+        var originalPowerPoints = run.PowerPoints;
+        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
+
+        var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
+
+        Assert.True(option.IsFailure);
+        Assert.Equal(originalGold, run.Gold);
+        Assert.Equal(originalPowerPoints, run.PowerPoints);
+        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Empty(preparation.AppliedOptionIds);
+        Assert.False(preparation.Options.Single(o => o.OptionId == "train_spell").Applied);
+    }
+
+    [Fact]
+    public void ApplyPreparationOption_WhenModifierApplyFails_RollsBackResourcesCardsAndAppliedState()
+    {
+        var modifierManager = new Mock<IScriptModifierManager>();
+        var manager = CreateManager(scriptModifierManager: modifierManager.Object);
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        run.PowerPoints = 2;
+        var originalGold = run.Gold;
+        var originalPowerPoints = run.PowerPoints;
+        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        modifierManager
+            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
+            .Returns(Result<ScriptModifierInstance>.Failure("modifier rejected"));
+        var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
+
+        var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
+
+        Assert.True(option.IsFailure);
+        Assert.Equal("modifier rejected", option.Error);
+        Assert.Equal(originalGold, run.Gold);
+        Assert.Equal(originalPowerPoints, run.PowerPoints);
+        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Empty(preparation.AppliedOptionIds);
+        Assert.False(preparation.Options.Single(o => o.OptionId == "train_spell").Applied);
+        Assert.Empty(preparation.Options.Single(o => o.OptionId == "train_spell").AppliedModifierInstanceIds);
+    }
+
+    [Fact]
+    public void ApplyPreparationOption_WhenSecondModifierFails_RemovesFirstModifierAndRollsBackRunState()
+    {
+        var modifierManager = new Mock<IScriptModifierManager>();
+        var manager = CreateManager(scriptModifierManager: modifierManager.Object);
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+        run.PowerPoints = 3;
+        var firstInstanceId = Guid.NewGuid();
+        var originalGold = run.Gold;
+        var originalPowerPoints = run.PowerPoints;
+        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        modifierManager
+            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "double_train"))
+            .Returns(Result<ScriptModifierInstance>.Success(new ScriptModifierInstance
+            {
+                InstanceId = firstInstanceId,
+                ModifierId = "flat_power_bonus",
+                OwnerId = $"run:{run.RunId}",
+                SourceId = "double_train"
+            }));
+        modifierManager
+            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "missing_modifier", 1, -1, "double_train"))
+            .Returns(Result<ScriptModifierInstance>.Failure("modifier missing"));
+        modifierManager
+            .Setup(m => m.RemoveModifier($"run:{run.RunId}", firstInstanceId))
+            .Returns(Result.Success());
+        var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
+
+        var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "double_train");
+
+        Assert.True(option.IsFailure);
+        Assert.Equal("modifier missing", option.Error);
+        Assert.Equal(originalGold, run.Gold);
+        Assert.Equal(originalPowerPoints, run.PowerPoints);
+        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Empty(preparation.AppliedOptionIds);
+        Assert.False(preparation.Options.Single(o => o.OptionId == "double_train").Applied);
+        modifierManager.Verify(m => m.RemoveModifier($"run:{run.RunId}", firstInstanceId), Times.Once);
+    }
+
+    [Fact]
     public void ConsumeCardsFromHand_Discard_RemovesFromHandAndAddsToDiscard()
     {
         var manager = CreateManager();
@@ -505,6 +593,16 @@ public sealed class RunManagerTests
             "addCardsToDiscard": ["fireball"],
             "applyModifiers": [
               { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
+            ]
+          },
+          {
+            "optionId": "double_train",
+            "goldCost": 0,
+            "powerPointCost": 2,
+            "addCardsToDiscard": ["fireball"],
+            "applyModifiers": [
+              { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "double_train" },
+              { "ownerId": "run", "modifierId": "missing_modifier", "stacks": 1, "duration": -1, "sourceId": "double_train" }
             ]
           }
         ]

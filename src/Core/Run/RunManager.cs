@@ -479,46 +479,70 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<PreparationOptionState>.Failure($"Run not found: {runId}");
-
-            var preparation = state.Preparations.FirstOrDefault(p => p.PreparationInstanceId == preparationInstanceId);
-            if (preparation == null)
-                return Result<PreparationOptionState>.Failure($"Preparation not found: {preparationInstanceId}");
-
-            var option = preparation.Options.FirstOrDefault(o => o.OptionId == optionId);
-            if (option == null)
-                return Result<PreparationOptionState>.Failure($"Preparation option not found: {optionId}");
-
-            if (option.Applied)
-                return Result<PreparationOptionState>.Failure($"Preparation option already applied: {optionId}");
-
-            if (state.Gold < option.GoldCost || state.PowerPoints < option.PowerPointCost)
-                return Result<PreparationOptionState>.Failure($"Insufficient resources for preparation option: {optionId}");
-
-            state.Gold -= option.GoldCost;
-            state.PowerPoints -= option.PowerPointCost;
-            state.Deck.DiscardPile.AddRange(option.AddCardsToDiscard);
-
-            foreach (var modifier in option.ApplyModifiers)
+            return ExecuteRunTransaction(runId, state =>
             {
-                if (_scriptModifierManager == null)
+                var preparation = state.Preparations.FirstOrDefault(p => p.PreparationInstanceId == preparationInstanceId);
+                if (preparation == null)
+                    return Result<PreparationOptionState>.Failure($"Preparation not found: {preparationInstanceId}");
+
+                var option = preparation.Options.FirstOrDefault(o => o.OptionId == optionId);
+                if (option == null)
+                    return Result<PreparationOptionState>.Failure($"Preparation option not found: {optionId}");
+
+                if (option.Applied)
+                    return Result<PreparationOptionState>.Failure($"Preparation option already applied: {optionId}");
+
+                if (state.Gold < option.GoldCost || state.PowerPoints < option.PowerPointCost)
+                    return Result<PreparationOptionState>.Failure($"Insufficient resources for preparation option: {optionId}");
+
+                if (option.ApplyModifiers.Count > 0 && _scriptModifierManager == null)
                     return Result<PreparationOptionState>.Failure("Script modifier manager is not available for preparation modifier grants");
 
-                var ownerId = ResolvePreparationModifierOwner(state, modifier.OwnerId);
-                var sourceId = string.IsNullOrWhiteSpace(modifier.SourceId) ? option.OptionId : modifier.SourceId;
-                var apply = _scriptModifierManager.ApplyModifier(ownerId, modifier.ModifierId, modifier.Stacks, modifier.Duration, sourceId);
-                if (apply.IsFailure)
-                    return Result<PreparationOptionState>.Failure(apply.Error);
+                state.Gold -= option.GoldCost;
+                state.PowerPoints -= option.PowerPointCost;
+                state.Deck.DiscardPile.AddRange(option.AddCardsToDiscard);
 
-                option.AppliedModifierInstanceIds.Add(apply.Value.InstanceId);
-            }
+                var appliedModifiers = new List<(string OwnerId, Guid InstanceId)>();
+                foreach (var modifier in option.ApplyModifiers)
+                {
+                    var ownerId = ResolvePreparationModifierOwner(state, modifier.OwnerId);
+                    var sourceId = string.IsNullOrWhiteSpace(modifier.SourceId) ? option.OptionId : modifier.SourceId;
+                    var apply = _scriptModifierManager!.ApplyModifier(ownerId, modifier.ModifierId, modifier.Stacks, modifier.Duration, sourceId);
+                    if (apply.IsFailure)
+                    {
+                        var rollback = RollbackAppliedModifiers(appliedModifiers);
+                        return rollback.IsFailure
+                            ? Result<PreparationOptionState>.Failure($"{apply.Error}; modifier rollback failed: {rollback.Error}")
+                            : Result<PreparationOptionState>.Failure(apply.Error);
+                    }
 
-            option.Applied = true;
-            preparation.AppliedOptionIds.Add(option.OptionId);
+                    appliedModifiers.Add((ownerId, apply.Value.InstanceId));
+                    option.AppliedModifierInstanceIds.Add(apply.Value.InstanceId);
+                }
 
-            return Result<PreparationOptionState>.Success(option);
+                option.Applied = true;
+                preparation.AppliedOptionIds.Add(option.OptionId);
+
+                return Result<PreparationOptionState>.Success(option);
+            });
         }
+    }
+
+    private Result RollbackAppliedModifiers(IReadOnlyList<(string OwnerId, Guid InstanceId)> appliedModifiers)
+    {
+        if (_scriptModifierManager == null)
+            return appliedModifiers.Count == 0
+                ? Result.Success()
+                : Result.Failure("Script modifier manager is not available for modifier rollback");
+
+        foreach (var applied in appliedModifiers.AsEnumerable().Reverse())
+        {
+            var remove = _scriptModifierManager.RemoveModifier(applied.OwnerId, applied.InstanceId);
+            if (remove.IsFailure)
+                return Result.Failure(remove.Error);
+        }
+
+        return Result.Success();
     }
 
     private Result<T> ExecuteRunTransaction<T>(Guid runId, Func<RunState, Result<T>> operation)
@@ -531,15 +555,49 @@ public sealed class RunManager : IRunManager
         {
             var result = operation(state);
             if (result.IsFailure)
-                _runs[runId] = snapshot;
+                RestoreRunState(state, snapshot);
 
             return result;
         }
         catch (Exception ex)
         {
-            _runs[runId] = snapshot;
+            RestoreRunState(state, snapshot);
             return Result<T>.Failure($"Run transaction failed: {ex.Message}");
         }
+    }
+
+    private static void RestoreRunState(RunState target, RunState snapshot)
+    {
+        target.Gold = snapshot.Gold;
+        target.PowerPoints = snapshot.PowerPoints;
+        target.CurrentNodeId = snapshot.CurrentNodeId;
+
+        RestoreDeckState(target.Deck, snapshot.Deck);
+
+        target.CardSelections.Clear();
+        target.CardSelections.AddRange(snapshot.CardSelections.Select(CloneCardSelection));
+
+        target.Shops.Clear();
+        target.Shops.AddRange(snapshot.Shops.Select(CloneShop));
+
+        target.Preparations.Clear();
+        target.Preparations.AddRange(snapshot.Preparations.Select(ClonePreparation));
+
+        target.Metadata.Clear();
+        foreach (var entry in snapshot.Metadata)
+            target.Metadata[entry.Key] = entry.Value;
+    }
+
+    private static void RestoreDeckState(DeckState target, DeckState snapshot)
+    {
+        target.DrawPile.Clear();
+        target.DrawPile.AddRange(snapshot.DrawPile);
+        target.Hand.Clear();
+        target.Hand.AddRange(snapshot.Hand);
+        target.DiscardPile.Clear();
+        target.DiscardPile.AddRange(snapshot.DiscardPile);
+        target.ExhaustPile.Clear();
+        target.ExhaustPile.AddRange(snapshot.ExhaustPile);
     }
 
     private static RunState CloneRunState(RunState source)
