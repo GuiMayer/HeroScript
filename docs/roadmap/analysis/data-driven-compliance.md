@@ -1,16 +1,16 @@
 # Diagnostico Data-driven - HeroScript
 
 **Data:** 2026-05-23
-**Status:** Fase 3 em refinamento — loaders principais migrados para `ResourceLoader`
+**Status:** Fase 3 em refinamento — loaders principais e avaliador de formulas runtime alinhados
 **Objetivo:** medir e controlar a aderencia do projeto a filosofia principal: conteudo e regras de sistema devem morar em JSON; o codigo deve interpretar dados e aplicar primitivas de engine.
 
 ---
 
 ## Veredito
 
-O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre loaders de conteudo e regras via `ResourceLoader`, cache por cadeia de configs/mods e recursos JSON em runtime. As lacunas restantes sao principalmente avaliadores duplicados, garantias transacionais e alguns pontos de infraestrutura que precisam tocar o filesystem por desenho.
+O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre loaders de conteudo e regras via `ResourceLoader`, cache por cadeia de configs/mods, recursos JSON em runtime e avaliacao de formulas por um avaliador runtime compartilhado. As lacunas restantes sao principalmente refinamentos de ativacao/conteudo, transacoes persistentes futuras e alguns pontos de infraestrutura que precisam tocar o filesystem por desenho.
 
-**Score atual:** 9.5/10
+**Score atual:** 9.7/10
 
 ### O que ja esta alinhado
 
@@ -29,6 +29,7 @@ O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre load
 - Entidades possuem definicoes JSON em `data/configs/default/Resources/Entities/`.
 - TurnPhase possui configuracoes JSON em `data/configs/default/Resources/phase-sequences/`.
 - Card pools, card catalog, run definitions, card selections, shops, preparations e combat activation rules usam recursos JSON.
+- Status, effects, modifiers e custos de acoes usam `IRuntimeFormulaEvaluator` como avaliador runtime compartilhado.
 
 ### O que ainda viola a filosofia
 
@@ -44,7 +45,7 @@ O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre load
 | ✅ Resolvido | Modifiers | Nao existia sistema de script modifiers | `ScriptModifierManager` carrega/aplica/tick modificadores JSON com pipeline filtrado por tags |
 | ✅ Resolvido | Loaders diretos | Status, modifiers, gambits, entidades e phase sequences ainda liam arquivos por caminho fisico | Todos foram migrados para `ResourceLoader` e recursos em `Resources/` |
 | ✅ Resolvido | Damage pipeline | Loader tinha fallback hardcoded de bucket quando JSON falhava | Pipeline agora exige JSON valido e propaga erro de configuracao |
-| MEDIUM | Formulas | Existem avaliadores simples duplicados em status/effects | Usar um avaliador canonico |
+| ✅ Resolvido | Formulas | Existiam avaliadores simples duplicados em status/effects/modifiers/custos | `IRuntimeFormulaEvaluator` centraliza avaliacao runtime em status, effects, modifiers e custos de acoes |
 | MEDIUM | Test runner API | `API.Tests` compila, mas o runner local congela ao filtrar `ResourceControllerTests` | Investigar ambiente/fixture antes de usar a suite API como gate obrigatorio |
 | ✅ Resolvido parcial | Transacoes de Run | Operacoes compostas podiam gastar recurso antes de falhar em etapa posterior | `RunManager` agora usa snapshot/rollback para operacoes compostas e compensa modifiers externos de preparacao; refinamentos futuros ficam para persistencia/versionamento |
 | LOW | Infraestrutura filesystem | `ConfigManager`, providers fisicos e hot reload precisam observar arquivos reais | Aceitavel; estes pontos sao infraestrutura, nao regra/conteudo de gameplay |
@@ -95,6 +96,7 @@ O projeto esta **majoritariamente data-driven**. A base tecnica agora cobre load
 | Loader-6 | ✅ Implementado | Damage pipeline sem fallback hardcoded | JSON invalido agora falha em vez de criar pipeline em C# |
 | Loader-7 | ✅ Implementado | TurnPhase via `ResourceLoader` | Presets migrados para `Resources/phase-sequences/{id}.json` |
 | RunTx-1 | ✅ Implementado | Fronteira transacional de Run | `RunManager` faz rollback de pick, decompose, shop buy/reroll, card-selection reroll e preparation; modifiers aplicados em preparacao sao compensados em falha |
+| Formula-1 | ✅ Implementado | Avaliador runtime compartilhado | Status, Effects, Modifiers e custos de acoes dependem de `IRuntimeFormulaEvaluator` |
 
 ---
 
@@ -114,21 +116,21 @@ A primeira rodada de compliance removeu os principais bloqueios data-driven de c
 
 | Prioridade | Lacuna | Motivo |
 |---|---|---|
-| MEDIUM | Formula evaluators duplicados | Status, Effects e Modifiers ainda possuem avaliadores simples locais; a fonte canonica deveria ser `MathEngine`/`ExpressionEvaluator` |
+| LOW | Formula runtime | Avaliador compartilhado existe; proximas lacunas sao cobrir novos usos futuros e manter formulas novas fora de parsers locais |
 | LOW | Transacoes de Run | Primeira fatia em memoria esta coberta; persistencia futura ainda precisara de versionamento/concorrencia otimista |
 | MEDIUM | Runner de `API.Tests` instavel | Testes compilam e subsets passam, mas runner completo congela no ambiente atual |
 | LOW | Hot reload de recursos usa `FileSystemWatcher` | Essencial para detectar alteracoes reais em JSON durante desenvolvimento; deve ficar isolado em infraestrutura |
 
 ## Proximo Passo Natural
 
-Fase 2 esta estabilizada. O proximo passo e iniciar a **Fase 3 — Loop de Run** (Run Management, Card Selection, Shop) usando `/api/effect/apply` como contrato base para acontecimentos unicos. A Fase 3 trara `RunState` e `DeckState` que permitirao efeitos de economia/deck aplicarem estado real.
+Fase 2 esta estabilizada e a primeira fatia da **Fase 3 — Loop de Run** ja esta implementada: `RunState`, `DeckState`, Run API, Hand/Deck, CardSelection, Shop, Preparation, consumo real de cartas em combate, modifiers de run e rollback em operacoes compostas. O proximo passo natural e continuar a Fase 3 com regras avancadas de ativacao, intents e conteudo MVP ampliado.
 
 ## Decisao de Execucao para Fase 3
 
-Para evitar retorno de hardcodes, a Fase 3 deve começar pelo estado e pelas regras data-driven antes de controllers mais ricos:
+Para evitar retorno de hardcodes, a Fase 3 deve continuar seguindo a mesma fronteira data-driven:
 
-1. Criar `RunState` e `DeckState` como fonte real para economia, deck, mão, discard e exhaust.
-2. Tornar tamanho de mão, deck inicial, regras de draw/discard/shuffle, pools de cartas, recompensas, preços e mapa configuráveis via JSON.
-3. Conectar efeitos já existentes de deck/economia no `EffectResolver` ao estado real da run.
-4. Só então expor `RunController`, Hand/Deck API, CardSelection, Shop e Preparation.
-5. Manter frontend como camada de apresentação: nenhuma regra de deck, loja, IA ou recompensa deve morar no cliente.
+1. Manter tamanho de mão, deck inicial, regras de draw/discard/shuffle, pools de cartas, recompensas, preços, preparacoes e regras de ativacao em JSON.
+2. Expandir conteudo MVP via `Resources/` sem regras novas hardcoded em C#.
+3. Refinar janelas de player/IA, status por inicio/fim de ativacao e intents via contratos configuraveis.
+4. Evoluir rollback em memoria para persistencia/versionamento apenas quando a Fase 5 começar.
+5. Manter frontend como camada de apresentação: nenhuma regra de deck, loja, IA, ativacao ou recompensa deve morar no cliente.

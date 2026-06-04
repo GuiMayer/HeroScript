@@ -1,7 +1,7 @@
 # Análise de Módulos Core - HeroScript Engine
 
 **Data:** 2026-05-23
-**Status:** Sincronizado com Fase 2 estabilizada
+**Status:** Sincronizado com Fase 3 em implementação
 **Objetivo:** Avaliar quais submódulos do HeroScript.Core estão implementados e quais faltam para criar um jogo completo
 
 ---
@@ -11,9 +11,9 @@
 ### Estado Atual
 - **Core.Tests:** 553 testes passando após estabilização da Fase 2
 - **API.Tests:** projeto compila, mas o runner local ainda pode congelar/atingir timeout; não usar a suite completa como gate único até investigação dedicada
-- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 estabilizada
-- **Próxima fase:** iniciar Fase 3 pelo núcleo `RunState`/`DeckState`, depois Run API, Hand/Deck, CardSelection, Shop e Preparation
-- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 9.0/10
+- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 estabilizada; primeiras fatias da Fase 3 implementadas
+- **Foco atual:** continuar Fase 3 com refinamentos de ativacao e conteudo MVP ampliado
+- **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 9.7/10
 
 ### Capacidade Atual
 Com os módulos implementados, é possível criar:
@@ -28,12 +28,16 @@ Com os módulos implementados, é possível criar:
 - ✅ Script Modifiers data-driven com pipeline/tags/tick
 - ✅ Gambit Engine data-driven com regras de decisão JSON
 - ✅ Effect Engine consolidado com efeitos de combate, economia, deck, modifiers e controle
+- ✅ Run/Deck state com mão, draw pile, discard, exhaust, ouro, PP e recompensas
+- ✅ CardSelection, Shop e Preparation com contratos JSON e rollback em operações compostas
+- ✅ Integração combate↔run: ações validam carta real na mão e consomem para discard/exhaust/retain
+- ✅ Ativação por entidade, turno de IA backend-authoritative, polling incremental e base SSE
 
 ### O Que Falta Para Um Jogo Completo
-- ❌ Loop de run (progressão, mapa, recompensas)
-- ❌ Estado real de deck/mão/discard/exhaust para aplicar efeitos de cartas
-- ❌ Conteúdo jogável (raças, poderes, inimigos)
-- ❌ Sistema de loja e economia
+- ⚠️ Loop de run ampliado (mapa/progressão/end run ainda precisam refinamento)
+- ⚠️ Regras avançadas de ativação, intents e status por início/fim de ativação
+- ❌ Conteúdo jogável ampliado (raças, poderes, inimigos, companions)
+- ⚠️ Conteúdo MVP inicial para cartas, pools, lojas, preparações e modificadores
 - ❌ Persistência (save/load)
 
 ---
@@ -240,8 +244,8 @@ Com os módulos implementados, é possível criar:
 - `DamageCalculator` recebe `IStatusEffectManager` via DI e pode aplicar modificadores de pipeline
 
 **Lacunas restantes:**
-- Fórmulas e modificadores ainda usam parsing manual em alguns pontos; integrar com `MathEngine`/`ExpressionEvaluator` canônico.
 - Testes API de StatusEffect dependem da estabilização do runner de integração.
+- Regras mais ricas de status por início/fim de ativação pertencem aos refinamentos atuais da Fase 3.
 
 **Impacto:**
 Sem status effects, não há:
@@ -250,7 +254,7 @@ Sem status effects, não há:
 - Stun, silence, root
 - Regeneração
 
-**Estimativa restante:** 1-2 dias de limpeza técnica, não bloqueante para iniciar Fase 3.
+**Estimativa restante:** limpeza técnica pontual, não bloqueante para continuar Fase 3.
 
 ---
 
@@ -263,13 +267,13 @@ Sem status effects, não há:
 - Dano, cura, recursos, status, economia, deck, modifiers e controle como primitivas data-driven
 
 **O que falta:**
-- Fórmulas, condições e filtros devem convergir para `MathEngine`/`ExpressionEvaluator`.
-- Efeitos de cartas/economia (`DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`, `GAIN_GOLD`, etc.) aguardam `RunState`/`DeckState` para alterar estado real em vez de retornar apenas metadata.
+- Expandir regras de ativação/intents que consomem esses efeitos no loop de combate.
+- Refinar transações futuras quando persistência/versionamento entrarem na Fase 5.
 
 **Impacto:**
 Sem isso, ações continuam parcialmente hardcoded e o jogo não fica plenamente data-driven.
 
-**Estimativa restante:** depende da primeira fatia da Fase 3 (`RunState`/`DeckState`).
+**Estimativa restante:** depende dos refinamentos atuais da Fase 3 e da futura persistência.
 
 ---
 
@@ -285,8 +289,8 @@ Sem isso, ações continuam parcialmente hardcoded e o jogo não fica plenamente
 - API `/api/modifiers` com definitions, reload, apply, active, pipeline e tick.
 
 **Lacunas restantes:**
-- Avaliação de fórmulas ainda usa avaliador simples local.
 - Validação avançada de compatibilidade pode evoluir na Preparation API.
+- Conteúdo MVP deve adicionar mais modificadores em JSON usando os contratos atuais.
 
 **Impacto:**
 Sem modificadores, não há:
@@ -308,8 +312,8 @@ Sem modificadores, não há:
 - Fallback para `PASS` quando nenhuma regra casa.
 
 **Lacunas restantes:**
-- Execução automática completa do turno de IA ainda não existe no Combat API.
-- Integração com eventos pode crescer conforme companions e Preparation forem implementados.
+- Regras de decisão e intents podem ficar mais ricas conforme companions e conteúdo MVP forem implementados.
+- Integração com eventos pode crescer conforme companions e Preparation evoluírem.
 
 **Impacto:**
 Sem gambits, não há:
@@ -317,20 +321,25 @@ Sem gambits, não há:
 - Automação de ações
 - Reação a eventos
 
-**Estimativa restante:** 1-2 dias para o endpoint de processamento automático de IA.
+**Estimativa restante:** 1-2 dias para refinamentos de intents/ativação, não para o endpoint base.
 
 ---
 
-### 4. Run Management System ❌ (Fase 3)
+### 4. Run Management System 🚧 (Fase 3)
 **Prioridade:** CRÍTICA  
-**Localização planejada:** `src/Core/Run/`
+**Localização:** `src/Core/Run/`
+
+**Implementado na primeira fatia:**
+- `RunManager` e `RunState` como fonte de verdade da run.
+- `DeckState` com mão, draw pile, discard e exhaust.
+- Ouro, PP, recompensas e nó atual no estado da run.
+- Endpoints de start/state/deck/hand/draw/discard/shuffle.
+- Operações compostas com snapshot/rollback para recompensas, loja, card selection, decompose, reroll e preparation.
 
 **O que falta:**
-- RunManager - Gerenciamento de runs
-- RunState - Estado da run
-- NodeResolver - Resolução de nós
-- MapGenerator - Geração de mapas
-- Progressão entre combates
+- `advance`, `map`, `current-node` e `end` como fluxo completo de progressão.
+- Mapas/nós mais ricos para conectar combate, loja, descanso, eventos e boss.
+- Persistência/versionamento futuro para transações fora de memória.
 
 **Impacto:**
 Sem run management, não há:
@@ -339,20 +348,24 @@ Sem run management, não há:
 - Mapa de nós
 - Estrutura de roguelike
 
-**Estimativa:** 4-5 dias de implementação
+**Estimativa restante:** 2-4 dias para fluxo de mapa/progressão sem persistência.
 
 ---
 
-### 5. Card Selection System ❌ (Fase 3)
+### 5. Card Selection System ✅ Primeira fatia (Fase 3)
 **Prioridade:** ALTA  
-**Localização planejada:** `src/Core/Run/CardSelection/`
+**Localização:** `src/Core/Run/CardSelection/`
+
+**Implementado:**
+- Catálogo de cartas e pools por raridade/tags carregados por `ResourceLoader`.
+- Geração de ofertas a partir de `card-selections/{selectionId}.json`.
+- Pick adicionando carta ao deck real da run.
+- Reroll com custo/free rerolls e rollback em falha.
+- Decompose de oferta em PP conforme catálogo.
 
 **O que falta:**
-- CardOffer - Ofertas de cartas
-- CardPool - Pool de poderes disponíveis
-- OfferGenerator - Geração de ofertas
-- DeckManager - Gerenciamento de deck
-- Reroll logic
+- Mais pools e cartas de conteúdo MVP.
+- Regras de combo/desbloqueio mais ricas conforme Fase 4.
 
 **Impacto:**
 Sem card selection, não há:
@@ -361,20 +374,24 @@ Sem card selection, não há:
 - Reroll de ofertas
 - Progressão de deck
 
-**Estimativa:** 2-3 dias de implementação
+**Estimativa restante:** conteúdo e refinamentos, não infraestrutura base.
 
 ---
 
-### 6. Shop System ❌ (Fase 3)
+### 6. Shop System ✅ Primeira fatia (Fase 3)
 **Prioridade:** MÉDIA  
-**Localização planejada:** `src/Core/Run/Shop/`
+**Localização:** `src/Core/Run/Shop/`
+
+**Implementado:**
+- Loja aberta a partir de `shops/{shopId}.json`.
+- Itens e preços baseados em catálogo/pools JSON.
+- Compra validada no backend com gasto de ouro e alteração do estado da run.
+- Reroll com custo progressivo e rollback em falha.
 
 **O que falta:**
-- ShopInventory - Inventário da loja
-- ShopItem - Itens vendáveis
-- PricingEngine - Cálculo de preços
-- RerollCostCalculator - Custo de reroll
-- Purchase validation
+- Venda de itens.
+- Mais tipos de item e conteúdo MVP.
+- Descontos/regras especiais conforme raças/progresso forem adicionados.
 
 **Impacto:**
 Sem shop, não há:
@@ -382,19 +399,25 @@ Sem shop, não há:
 - Economia de ouro
 - Escolhas estratégicas de compra
 
-**Estimativa:** 2-3 dias de implementação
+**Estimativa restante:** 1-3 dias conforme escopo de conteúdo/itens.
 
 ---
 
-### 7. Preparation System ❌ (Fase 3)
+### 7. Preparation System ✅ Primeira fatia (Fase 3)
 **Prioridade:** MÉDIA  
-**Localização planejada:** `src/Core/Run/Preparation/`
+**Localização:** `src/Core/Run/Preparation/`
+
+**Implementado:**
+- Preparação criada por `preparations/{preparationId}.json`.
+- Aplicação de opções validadas no backend.
+- Grants de modifiers para `run:{runId}` via `ScriptModifierManager`.
+- Modifiers de run aplicados em cartas pelo `CombatRunCoordinator` conforme tags.
+- Compensação de modifiers externos se uma etapa posterior falhar.
 
 **O que falta:**
-- PreparationState - Estado de preparação
-- ModifierInjector - Injeção de modificadores
-- GambitConfigurator - Configuração de gambits
-- Preview de mudanças
+- Configuração de gambits de companions.
+- Preview/remoção de modificadores.
+- Validação avançada de compatibilidade.
 
 **Impacto:**
 Sem preparation, não há:
@@ -402,7 +425,7 @@ Sem preparation, não há:
 - Configuração de gambits
 - Gasto de PP
 
-**Estimativa:** 2 dias de implementação
+**Estimativa restante:** 1-3 dias conforme preview/gambits/compatibilidade.
 
 ---
 
@@ -490,11 +513,11 @@ Sem seed/mode, não há:
 - Script Modifiers System
 - Gambit System
 
-### Fase 3 📋 (8-13 dias)
-- Run Management System
-- Card Selection System
-- Shop System
-- Preparation System
+### Fase 3 🚧 (em implementação)
+- Run/Deck Core e APIs base implementados
+- CardSelection, Shop e Preparation implementados em primeira fatia
+- Integração combate↔run, consumo real de cartas e modifiers de run implementados
+- Próximo foco: refinamentos de ativação, intents e conteúdo MVP ampliado
 
 ### Fase 4 📋 (5-7 dias)
 - Content System (Races, Powers, Companions, Enemies)
@@ -511,32 +534,32 @@ Sem seed/mode, não há:
 ## Estimativa Total para MVP Jogável
 
 ### Mínimo Viável (sem persistence)
-**Fases 3 + 4:** 13-20 dias de desenvolvimento
+**Fase 3 restante + Fase 4:** 8-15 dias de desenvolvimento
 
 ### MVP Completo (com persistence)
-**Fases 3 + 4 + 5:** 16-24 dias de desenvolvimento
+**Fase 3 restante + Fase 4 + Fase 5:** 11-19 dias de desenvolvimento
 
 ### MVP + Features Extras
-**Fases 3 + 4 + 5 + 6:** 18-27 dias de desenvolvimento
+**Fase 3 restante + Fase 4 + Fase 5 + Fase 6:** 13-22 dias de desenvolvimento
 
 ---
 
 ## Priorização Recomendada
 
 ### Crítico (Sem isso não há jogo)
-1. **Run Management System** - Loop de jogo
-2. **Deck/Hand State** - draw/discard/exhaust/shuffle e mão real
-3. **Content System** - Conteúdo jogável
-4. **Card Selection System** - Progressão de deck
+1. **Refinamentos de ativação** - janelas de player/IA, status por início/fim de ativação e intents
+2. **Content System** - Conteúdo jogável ampliado
+3. **Run progression/map** - advance/map/current-node/end para fechar loop completo
+4. **Conteúdo de CardSelection/Shop/Preparation** - pools, cartas, lojas, modificadores e preparações MVP
 
 ### Importante (Jogo funciona mas limitado)
-5. **Shop System** - Economia
-6. **Preparation System** - Customização pré-combate
-7. **Automatic AI Turn** - uso real do Gambit Engine no loop de combate
+5. **Shop refinements** - venda, tipos adicionais e regras de desconto
+6. **Preparation refinements** - preview, remoção e configuração de gambits
+7. **Ownership/autorizacao por ator** - obrigatório antes de multiplayer/API multi-cliente
 
 ### Desejável (Adiciona profundidade)
-8. **Formula evaluator unificado** - reduzir duplicação técnica
-9. **SSE/WebSocket ou polling formal** - integração frontend em tempo real
+8. **SSE/WebSocket avançado** - além da base SSE/polling incremental atual
+9. **Transações persistentes/versionadas** - quando Fase 5 começar
 
 ### Opcional (Pode vir depois do MVP)
 10. **Persistence System** - Save/load
@@ -552,21 +575,22 @@ O HeroScript.Core tem uma **fundação sólida** (Fases 0, 1 e 2) com:
 - Sistemas core bem arquitetados
 - Padrões consistentes (Result<T>, EventBus, data-driven)
 - Status Effects, EffectResolver, Script Modifiers e Gambit Engine estabilizados
+- Run/Deck, CardSelection, Shop, Preparation, ativação por entidade, consumo real de cartas e eventos incrementais em primeira fatia
 
 ### O Que Falta
 Para criar um jogo jogável, faltam **4 frentes críticas**:
-1. Run Management (loop de jogo)
-2. Deck/Hand State (mão, deck, descarte, exhaust e shuffle)
-3. Content System (raças, poderes, inimigos)
-4. Card Selection/Shop (progressão e economia)
+1. Refinamentos de ativação/intents para o loop de combate ficar jogável e previsível
+2. Conteúdo MVP ampliado (cartas, pools, modificadores, preparações, inimigos)
+3. Run progression/map/end para fechar o loop entre nós
+4. Content System formal da Fase 4 (raças, poderes, inimigos, companions)
 
 ### Próximos Passos
-**Recomendação:** iniciar a Fase 3 por `RunState` e `DeckState`, pois os efeitos de deck/economia já existem no `EffectResolver`, mas ainda não têm estado real para persistir mão, descarte, exhaust, ouro, PP e recompensas.
+**Recomendação:** continuar a Fase 3 pelos refinamentos de ativacao e conteúdo MVP ampliado. `RunState`, `DeckState`, CardSelection, Shop, Preparation, consumo real de cartas e rollback de operações compostas já existem em primeira fatia.
 
 **Ordem sugerida:**
-1. Fase 3 (8-13 dias) - Implementar loop de run, deck/hand e APIs de estado
-2. Fase 4 (5-7 dias) - Adicionar conteúdo jogável mínimo
-3. Fase 5 (opcional) - Adicionar persistence
+1. Fase 3 restante - Refinar ativação/intents, completar progressão de mapa e ampliar conteúdo MVP inicial
+2. Fase 4 (5-7 dias) - Formalizar conteúdo jogável mínimo
+3. Fase 5 (opcional) - Adicionar persistence, versionamento e transações persistentes
 4. Fase 6 (opcional) - Seeds, modos e desafios
 
-**Tempo total estimado para MVP sem persistence:** 13-20 dias de desenvolvimento focado.
+**Tempo total estimado para MVP sem persistence:** 8-15 dias de desenvolvimento focado, considerando as primeiras fatias da Fase 3 já implementadas.

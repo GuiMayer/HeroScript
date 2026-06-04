@@ -1,7 +1,7 @@
 # API Roadmap
 
 **Última atualização:** 2026-05-23
-**Status:** Fase 3 em implementação — Run/Deck, CardSelection, Shop, Preparation, ator arbitrário e consumo real de cartas iniciados
+**Status:** Fase 3 em implementação — Run/Deck, CardSelection, Shop, Preparation, ator arbitrário, consumo real de cartas, ativação por entidade e rollback iniciados
 
 ---
 
@@ -75,6 +75,7 @@ http://localhost:5260/api
 
 | Data | Fase | Mudança |
 |------|------|---------|
+| 2026-06-04 | Docs | Roadmap sincronizado com estado atual: primeira fatia da Fase 3 implementada, avaliador runtime de formulas consolidado e proximos passos focados em ativacao/conteudo MVP |
 | 2026-05-23 | Fase 3 | Consistencia transacional adicionada ao `RunManager`: operacoes compostas de recompensa, loja, decompose, reroll e preparacao fazem rollback de estado; modifiers externos aplicados em preparacao sao compensados em falha |
 | 2026-05-23 | Data-driven Loaders | Loaders principais migrados para `ResourceLoader`: modifiers, status, gambits, entidades, damage pipeline e TurnPhase sem fallback hardcoded de gameplay |
 | 2026-05-23 | Fase 3 | Integração combate↔deck/hand implementada: `POST /api/combat/{combatId}/action` aceita `runId`/`cardId`, valida mão real, executa combate e consome carta para discard/exhaust/retain por tags JSON |
@@ -119,7 +120,7 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** continuar **Fase 3 — Loop de Run**, refinando regras avancadas de ativacao e conteúdo MVP inicial. A primeira fatia de consistencia transacional das operacoes compostas de run ja foi implementada; os loaders principais de conteudo/regra ja passam por `ResourceLoader`, e o que ainda toca disco diretamente fica restrito a infraestrutura de config/providers/hot reload.
+**Próximo passo:** continuar **Fase 3 — Loop de Run**, refinando regras avancadas de ativacao, intents e conteúdo MVP inicial. A primeira fatia de consistencia transacional das operacoes compostas de run ja foi implementada; os loaders principais de conteudo/regra ja passam por `ResourceLoader`, formulas runtime usam avaliador compartilhado, e o que ainda toca disco diretamente fica restrito a infraestrutura de config/providers/hot reload.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
@@ -132,7 +133,7 @@ http://localhost:5260/api
 - **Script Modifiers:** Core (`ScriptModifierManager`) e API (`/api/modifiers`) implementados; definicoes JSON, pipeline filtrado por tags, stacking e tick
 - **Gambit Engine:** Core (`GambitEngine`) e API (`/api/gambits`) implementados; decisoes por regras JSON com condicoes/prioridade/acoes
 - **Effect Engine:** `EffectResolver` cobre 20+ tipos de efeito incluindo economia, deck, modifiers e controle; contextos `COMBAT` e `RUN`
-- **Data-driven Compliance:** 9.5/10; loaders principais migrados para `ResourceLoader`; primeira fatia de transacoes de Run implementada; lacunas restantes sao formula evaluator duplicado, refinamentos transacionais futuros e infraestrutura filesystem essencial conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
+- **Data-driven Compliance:** 9.7/10; loaders principais migrados para `ResourceLoader`; primeira fatia de transacoes de Run implementada; formulas runtime centralizadas em `IRuntimeFormulaEvaluator`; lacunas restantes sao refinamentos de ativacao/conteudo, transacoes persistentes futuras e infraestrutura filesystem essencial conforme [analysis/data-driven-compliance.md](analysis/data-driven-compliance.md)
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 + Fase 2 (Implementadas/Estabilizadas)
@@ -150,7 +151,7 @@ http://localhost:5260/api
 
 ### Estimativa para MVP Jogável
 - **Fases restantes críticas:** 3 e 4
-- **Tempo estimado:** 13-20 dias de desenvolvimento para Run loop + conteúdo MVP inicial, sem persistência
+- **Tempo estimado:** 8-15 dias de desenvolvimento para Fase 3 restante + conteúdo MVP inicial, sem persistência
 - **Sistemas críticos restantes:** Content System ampliado, refinamentos de ativacao, refinamentos transacionais futuros para persistencia, persistência posterior
 - **Sistemas implementados na Fase 2/Fase 3 inicial:** Script Modifiers, Gambit Engine, Effect Engine consolidado, Status schemas unificados, RunManager/DeckState, catalogo/pools de cartas, CardSelection com raridade/reroll/decompose, Shop com pricing/reroll, Preparation com grants de modifiers, execução de combate por ator arbitrário, consumo real de cartas da mão em combate, aplicacao de modifiers de run em cartas, ativacao por entidade e eventos/polling/SSE
 

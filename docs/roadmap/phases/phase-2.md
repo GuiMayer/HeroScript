@@ -38,13 +38,13 @@ A Fase 2 incluiu uma trilha obrigatória de compliance data-driven:
 - ✅ Script Modifiers implementados com pipeline data-driven.
 - ✅ Gambit Engine implementado com regras JSON.
 - ✅ Effect Engine consolidado cobrindo 20+ tipos de efeito.
-- **Score:** 9.0/10 conforme [../analysis/data-driven-compliance.md](../analysis/data-driven-compliance.md).
+- **Score:** 9.7/10 conforme [../analysis/data-driven-compliance.md](../analysis/data-driven-compliance.md).
 
 ### Lacunas restantes (baixa prioridade)
-- Formula evaluators duplicados em status/effects/modifiers (usar avaliador canônico)
 - Fallback legado de entidades (produção deve tratar definição ausente como erro)
 - Runner de `API.Tests` instável em suite completa
-- Deck/Run/Shop state não existe (effects de deck/economia retornam metadata; precisa de `RunState`/`DeckState` na Fase 3)
+- Refinamentos atuais da Fase 3: regras avançadas de ativação, intents e conteúdo MVP ampliado
+- Persistência futura deve versionar transações de run; a primeira fatia em memória já faz rollback
 
 ## APIs Implementadas
 

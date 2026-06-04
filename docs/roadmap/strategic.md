@@ -1003,19 +1003,19 @@ _damageCalculator.SetPipeline(deckPipeline);
 
 ## Estatísticas Atuais
 
-### Fase 0 + Fase 1 + Fase 2 (Implementadas/Estabilizadas)
+### Fase 0 + Fase 1 + Fase 2 + Fase 3 inicial (Implementadas/Estabilizadas)
 - **Core.Tests:** 553 testes passando
 - **API.Tests:** compilam, mas a suite/runner ainda pode travar em execução completa
-- **APIs implementadas:** Actions, Combat, Effects, Status, Damage, Resources, Config, Entities, Events, Modifiers e Gambits
-- **Sistemas Core:** EventBus, CombatSystem, DamagePipeline, MathEngine, ResourceManager, ConfigManager, StatusEffectManager, EffectResolver, ScriptModifierManager e GambitEngine
+- **APIs implementadas:** Actions, Combat/Activation, Effects, Status, Damage, Resources, Config, Entities, Events, Modifiers, Gambits, Run, CardSelection, Shop e Preparation
+- **Sistemas Core:** EventBus, CombatSystem actor-agnostic, ActivationState/CombatActivationCoordinator, RunManager/DeckState, CardContentCatalog/CardPoolResolver, CardSelection, Shop, Preparation, DamagePipeline, MathEngine, ResourceManager, ConfigManager, StatusEffectManager, EffectResolver, ScriptModifierManager e GambitEngine
 - **Documentação operacional:** centralizada em `docs/roadmap/README.md`, `docs/api/endpoints.md` e documentos por fase
 
 ### Estimativa para MVP Jogável (Slay the Spire-like)
-- **Fases necessárias:** Fase 3 (Run/Deck/Hand/CardSelection/Shop/Preparation) e Fase 4 parcial (conteúdo mínimo)
-- **Tempo estimado:** 13-20 dias de desenvolvimento focado para MVP sem persistence
+- **Fases necessárias:** Fase 3 restante (ativacao/intents, progressao/mapa e conteudo MVP inicial) e Fase 4 parcial (conteúdo mínimo formal)
+- **Tempo estimado:** 8-15 dias de desenvolvimento focado para MVP sem persistence
 - **Sistemas críticos faltando:** 
-  - **Fase 3:** `RunState`, `DeckState`, Hand/Deck API, Card Selection, Shop, Preparation, end-turn/processamento de IA
-  - **Fase 4:** conteúdo jogável mínimo: raças, poderes, inimigos e recompensas
+  - **Fase 3 restante:** refinamentos de ativacao/intents, `advance`/`map`/`current-node`/`end`, mais cartas, pools, lojas, preparacoes e modifiers
+  - **Fase 4:** conteúdo jogável mínimo formal: raças, poderes, inimigos, companions e recompensas
 
 ### Estimativa para Engine Versátil (Suporte a TCGs)
 - **Fases necessárias:** Fase 2-8
