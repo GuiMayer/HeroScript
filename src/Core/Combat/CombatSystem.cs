@@ -31,6 +31,7 @@ public class CombatSystem : ICombatSystem
     private readonly ITurnOrderCalculator? _turnOrderCalculator;
     private readonly IActionManager? _actionManager;
     private readonly IEffectResolver? _effectResolver;
+    private readonly IActionCostEvaluator? _actionCostEvaluator;
     private readonly EntityDefinitionLoader? _entityDefinitionLoader;
     private readonly EntityCombatAdapter _entityAdapter;
     
@@ -46,7 +47,8 @@ public class CombatSystem : ICombatSystem
         ITurnOrderCalculator? turnOrderCalculator = null,
         IActionManager? actionManager = null,
         EntityDefinitionLoader? entityDefinitionLoader = null,
-        IEffectResolver? effectResolver = null)
+        IEffectResolver? effectResolver = null,
+        IActionCostEvaluator? actionCostEvaluator = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
@@ -57,6 +59,7 @@ public class CombatSystem : ICombatSystem
         _turnOrderCalculator = turnOrderCalculator;
         _actionManager = actionManager;
         _effectResolver = effectResolver;
+        _actionCostEvaluator = actionCostEvaluator;
         _entityDefinitionLoader = entityDefinitionLoader;
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
@@ -904,7 +907,7 @@ public class CombatSystem : ICombatSystem
                 if (pool == null)
                     throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
                 
-                var newPool = pool.Spend(cost.Amount);
+                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources);
                 updates[cost.ResourceId] = newPool;
             }
         }
@@ -917,7 +920,7 @@ public class CombatSystem : ICombatSystem
                 if (pool == null)
                     throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
                 
-                var newPool = pool.Spend(cost.Amount);
+                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources);
                 updates[cost.ResourceId] = newPool;
             }
         }
@@ -934,7 +937,19 @@ public class CombatSystem : ICombatSystem
         return result.IsSuccess ? result.Value : null;
     }
 
-    private static string? ValidateActionCosts(CombatEntity actor, ActionCosts costs, string? costOptionId)
+    private ResourcePool SpendCost(ResourceCost cost, ResourcePool pool, IReadOnlyDictionary<string, ResourcePool> resources)
+    {
+        if (_actionCostEvaluator == null)
+            return pool.Spend(cost.Amount);
+
+        var spend = _actionCostEvaluator.Spend(cost, pool, resources);
+        if (spend.IsFailure)
+            throw new InvalidOperationException(spend.Error);
+
+        return spend.Value;
+    }
+
+    private string? ValidateActionCosts(CombatEntity actor, ActionCosts costs, string? costOptionId)
     {
         var resources = new Dictionary<string, ResourcePool>(actor.ResourceState.Resources);
 
@@ -947,10 +962,35 @@ public class CombatSystem : ICombatSystem
             if (option == null)
                 return $"Cost option not found: {costOptionId}";
 
-            return option.GetAffordabilityError(resources);
+            return GetCostError(option.Costs, resources);
         }
 
-        return costs.GetAffordabilityError(resources);
+        return GetCostError(costs.Costs, resources);
+    }
+
+    private string? GetCostError(IReadOnlyList<ResourceCost> costs, IReadOnlyDictionary<string, ResourcePool> resources)
+    {
+        foreach (var cost in costs)
+        {
+            if (!resources.TryGetValue(cost.ResourceId, out var pool))
+                return $"Resource not found: {cost.ResourceId}";
+
+            if (_actionCostEvaluator == null)
+            {
+                if (!cost.AllowOverdraft && !pool.CanAfford(cost.Amount))
+                    return $"Insufficient {pool.Definition?.DisplayName ?? cost.ResourceId}: has {pool.Current}, needs {cost.Amount}";
+                continue;
+            }
+
+            var amount = _actionCostEvaluator.CalculateCost(cost, resources);
+            if (amount.IsFailure)
+                return amount.Error;
+
+            if (!cost.AllowOverdraft && !pool.CanAfford(amount.Value))
+                return $"Insufficient {pool.Definition?.DisplayName ?? cost.ResourceId}: has {pool.Current}, needs {amount.Value}";
+        }
+
+        return null;
     }
     
     private CombatState CheckCombatEnd(CombatState state)

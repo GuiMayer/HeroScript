@@ -12,10 +12,12 @@ namespace Core.Combat;
 public class ActionAffordabilityService : IActionAffordabilityService
 {
     private readonly ILogger _logger;
+    private readonly IActionCostEvaluator _costEvaluator;
 
-    public ActionAffordabilityService(ILogger logger)
+    public ActionAffordabilityService(ILogger logger, IActionCostEvaluator costEvaluator)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _costEvaluator = costEvaluator ?? throw new ArgumentNullException(nameof(costEvaluator));
     }
 
     /// <summary>
@@ -37,8 +39,8 @@ public class ActionAffordabilityService : IActionAffordabilityService
 
             var resourcesDict = ConvertToDictionary(resources);
             var affordableActions = actions.Where(action =>
-                action.Costs.CanAfford(resourcesDict) ||
-                action.Costs.GetAffordableOptions(resourcesDict).Any()).ToList();
+                CanAffordCosts(action.Costs.Costs, resourcesDict) ||
+                GetAffordableOptions(action.Costs.AlternativeCosts, resourcesDict).Any()).ToList();
 
             _logger.LogDebug($"Found {affordableActions.Count} affordable actions");
 
@@ -69,7 +71,7 @@ public class ActionAffordabilityService : IActionAffordabilityService
             _logger.LogDebug($"Getting cost options for action {action.ActionId}");
 
             var resourcesDict = ConvertToDictionary(resources);
-            var affordableOptions = action.Costs.GetAffordableOptions(resourcesDict);
+            var affordableOptions = GetAffordableOptions(action.Costs.AlternativeCosts, resourcesDict);
 
             var costOptions = new ActionCostOptions
             {
@@ -77,7 +79,7 @@ public class ActionAffordabilityService : IActionAffordabilityService
                 NormalCosts = action.Costs.Costs.Select(c => new ResourceCostInfo
                 {
                     ResourceId = c.ResourceId,
-                    Amount = c.Amount,
+                    Amount = CalculateCostOrFallback(c, resourcesDict),
                     AllowOverdraft = c.AllowOverdraft
                 }).ToList(),
                 AlternativeOptions = action.Costs.AlternativeCosts.Select(opt => new AlternativeCostOptionInfo
@@ -87,10 +89,10 @@ public class ActionAffordabilityService : IActionAffordabilityService
                     Costs = opt.Costs.Select(c => new ResourceCostInfo
                     {
                         ResourceId = c.ResourceId,
-                        Amount = c.Amount,
+                        Amount = CalculateCostOrFallback(c, resourcesDict),
                         AllowOverdraft = c.AllowOverdraft
                     }).ToList(),
-                    Affordable = opt.CanAfford(resourcesDict)
+                    Affordable = CanAffordCosts(opt.Costs, resourcesDict)
                 }).ToList(),
                 AffordableOptionIds = affordableOptions.Select(o => o.OptionId).ToList()
             };
@@ -124,9 +126,9 @@ public class ActionAffordabilityService : IActionAffordabilityService
             _logger.LogDebug($"Checking if action {action.ActionId} is affordable");
 
             var resourcesDict = ConvertToDictionary(resources);
-            var canAfford = action.Costs.CanAfford(resourcesDict);
-            var affordableOptions = action.Costs.GetAffordableOptions(resourcesDict);
-            var affordabilityError = action.Costs.GetAffordabilityError(resourcesDict);
+            var canAfford = CanAffordCosts(action.Costs.Costs, resourcesDict);
+            var affordableOptions = GetAffordableOptions(action.Costs.AlternativeCosts, resourcesDict);
+            var affordabilityError = GetAffordabilityError(action.Costs.Costs, action.Costs.AlternativeCosts, resourcesDict);
 
             var result = new AffordabilityResult
             {
@@ -153,5 +155,60 @@ public class ActionAffordabilityService : IActionAffordabilityService
     private Dictionary<string, ResourcePool> ConvertToDictionary(IReadOnlyDictionary<string, ResourcePool> resources)
     {
         return resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    private bool CanAffordCosts(IEnumerable<ResourceCost> costs, IReadOnlyDictionary<string, ResourcePool> resources)
+    {
+        foreach (var cost in costs)
+        {
+            var canAfford = _costEvaluator.CanAfford(cost, resources);
+            if (canAfford.IsFailure || !canAfford.Value)
+                return false;
+        }
+
+        return true;
+    }
+
+    private List<AlternativeCostOption> GetAffordableOptions(
+        IEnumerable<AlternativeCostOption> options,
+        IReadOnlyDictionary<string, ResourcePool> resources)
+    {
+        return options.Where(option => CanAffordCosts(option.Costs, resources)).ToList();
+    }
+
+    private string? GetAffordabilityError(
+        IReadOnlyList<ResourceCost> normalCosts,
+        IReadOnlyList<AlternativeCostOption> alternativeCosts,
+        IReadOnlyDictionary<string, ResourcePool> resources)
+    {
+        foreach (var cost in normalCosts)
+        {
+            var amount = _costEvaluator.CalculateCost(cost, resources);
+            if (amount.IsFailure)
+                return amount.Error;
+
+            if (!resources.TryGetValue(cost.ResourceId, out var pool))
+                return $"Resource not found: {cost.ResourceId}";
+
+            if (!cost.AllowOverdraft && !pool.CanAfford(amount.Value))
+            {
+                var resourceName = pool.Definition?.DisplayName ?? cost.ResourceId;
+                return $"Insufficient {resourceName}: has {pool.Current}, needs {amount.Value}";
+            }
+        }
+
+        if (alternativeCosts.Count > 0 && GetAffordableOptions(alternativeCosts, resources).Count == 0)
+        {
+            var optionDescriptions = string.Join(" OR ", alternativeCosts.Select(o => o.Description));
+            return $"Cannot afford any alternative: {optionDescriptions}";
+        }
+
+        return null;
+    }
+
+    private float CalculateCostOrFallback(ResourceCost cost, IReadOnlyDictionary<string, ResourcePool> resources)
+    {
+        var result = _costEvaluator.CalculateCost(cost, resources);
+        return result.IsSuccess ? result.Value : cost.Amount;
     }
 }

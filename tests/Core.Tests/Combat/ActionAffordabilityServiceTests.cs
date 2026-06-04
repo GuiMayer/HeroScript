@@ -1,7 +1,10 @@
+using Core.Common;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Logging;
+using Core.Math;
 using Core.Resources;
+using Moq;
 using Xunit;
 
 namespace Core.Tests.Combat;
@@ -10,11 +13,12 @@ public class ActionAffordabilityServiceTests
 {
     private readonly ActionAffordabilityService _service;
     private readonly ILogger _logger;
+    private readonly Mock<IRuntimeFormulaEvaluator> _formulaEvaluator = new();
 
     public ActionAffordabilityServiceTests()
     {
         _logger = NullLogger.Instance;
-        _service = new ActionAffordabilityService(_logger);
+        _service = new ActionAffordabilityService(_logger, new ActionCostEvaluator(_formulaEvaluator.Object));
     }
 
     private IReadOnlyDictionary<string, ResourcePool> CreateMockResources(float energy = 100f, float mana = 50f)
@@ -199,6 +203,60 @@ public class ActionAffordabilityServiceTests
         var affordability = result.Value;
         Assert.Equal("expensive_action", affordability.ActionId);
         Assert.False(affordability.CanAfford);
+    }
+
+    [Fact]
+    public void CanAfford_WithFormulaCost_UsesRuntimeFormulaEvaluator()
+    {
+        var resources = CreateMockResources(energy: 20f, mana: 5f);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("mana_current * 2", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(10f));
+        var action = new ActionDefinition
+        {
+            ActionId = "dynamic_cost",
+            Costs = new ActionCosts
+            {
+                Costs = new List<ResourceCost>
+                {
+                    new() { ResourceId = "energy", Amount = 99f, Formula = "mana_current * 2" }
+                }
+            }
+        };
+
+        var result = _service.CanAfford(action, resources);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.CanAfford);
+        _formulaEvaluator.Verify(m => m.Evaluate(
+            "mana_current * 2",
+            It.Is<Dictionary<string, float>>(vars => vars["mana_current"] == 5f && vars["energy_current"] == 20f),
+            0f), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public void GetCostOptions_WithFormulaCost_ReturnsResolvedAmount()
+    {
+        var resources = CreateMockResources(energy: 20f, mana: 5f);
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("mana_current * 2", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(10f));
+        var action = new ActionDefinition
+        {
+            ActionId = "dynamic_cost",
+            Costs = new ActionCosts
+            {
+                Costs = new List<ResourceCost>
+                {
+                    new() { ResourceId = "energy", Amount = 99f, Formula = "mana_current * 2" }
+                }
+            }
+        };
+
+        var result = _service.GetCostOptions(action, resources);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(10f, result.Value.NormalCosts.Single().Amount);
     }
 
     [Fact]

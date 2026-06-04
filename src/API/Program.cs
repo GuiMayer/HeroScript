@@ -205,7 +205,8 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     var actionManager = sp.GetRequiredService<IActionManager>();
     var entityDefinitionLoader = sp.GetRequiredService<EntityDefinitionLoader>();
     var effectResolver = sp.GetRequiredService<IEffectResolver>();
-    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver);
+    var actionCostEvaluator = sp.GetRequiredService<IActionCostEvaluator>();
+    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver, actionCostEvaluator: actionCostEvaluator);
 });
 
 // Register CombatRunCoordinator
@@ -223,6 +224,7 @@ builder.Services.AddSingleton<ICombatActivationCoordinator, CombatActivationCoor
 builder.Services.AddSingleton<IEntityFactory, Core.Combat.EntityFactory>();
 
 // Register ActionAffordabilityService
+builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 
 // Register ExpressionEvaluator

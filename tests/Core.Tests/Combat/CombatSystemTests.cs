@@ -1,10 +1,12 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Common;
 using Core.Config;
 using Core.Entity.Definitions;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;
+using Core.Math;
 using Core.Resources;
 using Moq;
 using System.Text.Json;
@@ -18,6 +20,7 @@ public class CombatSystemTests
     private readonly Mock<IEventBus> _mockEventBus;
     private readonly Mock<IResourceManager> _mockResourceManager;
     private readonly Mock<IActionManager> _mockActionManager;
+    private readonly Mock<IRuntimeFormulaEvaluator> _formulaEvaluator = new();
     private readonly CombatSystem _combatSystem;
 
     public CombatSystemTests()
@@ -57,7 +60,8 @@ public class CombatSystemTests
             _mockLogger.Object,
             _mockResourceManager.Object,
             _mockEventBus.Object,
-            actionManager: _mockActionManager.Object);
+            actionManager: _mockActionManager.Object,
+            actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
     }
 
     [Fact]
@@ -235,6 +239,49 @@ public class CombatSystemTests
         Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? -1);
         Assert.Equal(38, result.Value.Enemies[0].CurrentHp);
         Assert.Equal(-2, result.Value.ActionHistory.Single().EnergyChange);
+    }
+
+    [Fact]
+    public void ExecuteAction_PowerWithFormulaCost_ShouldSpendCalculatedAmount()
+    {
+        var actionManager = new Mock<IActionManager>();
+        SetupActionDefinitions(actionManager, new ActionDefinition
+        {
+            ActionId = "dynamic_blast",
+            ActionType = ActionType.POWER,
+            Costs = new ActionCosts
+            {
+                Costs = new List<ResourceCost>
+                {
+                    new() { ResourceId = "energy", Amount = 99, Formula = "energy_current - 1" }
+                }
+            },
+            Effects = new List<EffectDefinition>
+            {
+                new() { Type = EffectType.DAMAGE, FlatValue = 12, Target = EffectTarget.TARGET }
+            }
+        });
+        _formulaEvaluator
+            .Setup(m => m.Evaluate("energy_current - 1", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Returns(Result<float>.Success(2f));
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            _mockEventBus.Object,
+            actionManager: actionManager.Object,
+            actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
+        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var combatId = startResult.Value.CombatId;
+        var targetId = startResult.Value.Enemies[0].EntityId;
+
+        var result = combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.POWER, powerId: "dynamic_blast", targetId: targetId));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? -1);
+        _formulaEvaluator.Verify(m => m.Evaluate(
+            "energy_current - 1",
+            It.Is<Dictionary<string, float>>(vars => vars["energy_current"] == 3f),
+            0f), Times.AtLeastOnce);
     }
 
     [Fact]
