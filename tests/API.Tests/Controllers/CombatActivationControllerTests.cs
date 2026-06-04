@@ -64,6 +64,21 @@ public sealed class CombatActivationControllerTests
         _coordinator.Verify(c => c.ProcessCurrentAiActivation(combatId, runId, gambits), Times.Once);
     }
 
+    [Fact]
+    public void GetIntents_ReturnsCurrentActivationIntents()
+    {
+        var combatId = Guid.NewGuid();
+        var runId = Guid.NewGuid();
+        _coordinator.Setup(c => c.GetActivationState(combatId))
+            .Returns(Result<CombatActivationResult>.Success(CreateResult(combatId, runId, "enemy")));
+
+        var result = _controller.GetIntents(combatId);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+        _coordinator.Verify(c => c.GetActivationState(combatId), Times.Once);
+    }
+
     private static CombatActivationResult CreateResult(Guid combatId, Guid runId, string actorId, IReadOnlyList<string>? drawn = null) => new()
     {
         CombatState = new CombatState { CombatId = combatId, Hero = new CombatEntity { EntityId = "hero", IsHero = true } },

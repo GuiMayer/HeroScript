@@ -51,6 +51,28 @@ public sealed class CombatActivationController : BaseApiController
         }
     }
 
+    [HttpGet("intents")]
+    public IActionResult GetIntents(Guid combatId)
+    {
+        try
+        {
+            var result = _activationCoordinator.GetActivationState(combatId);
+            if (result.IsFailure)
+                return NotFound(new { error = result.Error });
+
+            return Ok(new
+            {
+                combatId = result.Value.CombatState.CombatId,
+                runId = result.Value.RunState.RunId,
+                intents = result.Value.Intents
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get combat intents", combatId.ToString());
+        }
+    }
+
     [HttpPost("end")]
     public IActionResult End(Guid combatId, [FromBody] EndActivationRequest request)
     {
