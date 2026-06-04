@@ -1,4 +1,5 @@
 using Core.Combat.Models;
+using Core.Combat.Intents;
 using Core.Run;
 
 namespace Core.Combat.Activation;
@@ -10,4 +11,5 @@ public sealed record CombatActivationResult
     public ActivationState ActivationState { get; init; } = null!;
     public IReadOnlyList<string> DrawnCardIds { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> DiscardedCardIds { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<CombatIntent> Intents { get; init; } = Array.Empty<CombatIntent>();
 }

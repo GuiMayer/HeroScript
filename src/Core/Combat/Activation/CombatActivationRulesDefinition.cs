@@ -10,6 +10,7 @@ public sealed record CombatActivationRulesDefinition
     public ActivationStartRules StartActivation { get; init; } = new();
     public ActivationEndRules EndActivation { get; init; } = new();
     public ActivationAiRules Ai { get; init; } = new();
+    public ActivationIntentRules Intents { get; init; } = new();
     public ActivationEventRules Events { get; init; } = new();
 }
 
@@ -32,6 +33,14 @@ public sealed record ActivationAiRules
 {
     public bool AutoProcess { get; init; }
     public bool AutoEndAfterAction { get; init; } = true;
+}
+
+public sealed record ActivationIntentRules
+{
+    public bool Enabled { get; init; }
+    public bool Authoritative { get; init; }
+    public ActivationIntentActorScope ActorScope { get; init; } = ActivationIntentActorScope.EnemiesOnly;
+    public List<string> GambitIds { get; init; } = new();
 }
 
 public sealed record ActivationEventRules
@@ -60,5 +69,13 @@ public enum UnknownCardPolicy
 public enum ActivationActorScope
 {
     PlayerOnly,
+    AllActors
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ActivationIntentActorScope
+{
+    ActiveActor,
+    EnemiesOnly,
     AllActors
 }

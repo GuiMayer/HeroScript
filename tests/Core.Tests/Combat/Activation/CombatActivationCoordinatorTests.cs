@@ -1,6 +1,7 @@
 using Core.Combat.Activation;
 using Core.Combat;
 using Core.Combat.Gambits;
+using Core.Combat.Intents;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Events;
@@ -17,6 +18,7 @@ public sealed class CombatActivationCoordinatorTests
     private readonly Mock<IRunManager> _runManager = new();
     private readonly Mock<ICombatRunCoordinator> _combatRunCoordinator = new();
     private readonly Mock<IGambitEngine> _gambitEngine = new();
+    private readonly Mock<IIntentResolver> _intentResolver = new();
     private readonly Mock<IActionManager> _actionManager = new();
     private readonly Mock<ICombatActivationRulesLoader> _rulesLoader = new();
     private readonly RecordingEventBus _eventBus = new();
@@ -138,11 +140,102 @@ public sealed class CombatActivationCoordinatorTests
         Assert.Empty(result.Value.ActivationState.CompletedActorIds);
     }
 
+    [Fact]
+    public void StartActivationCycle_WhenIntentsEnabled_StoresConfiguredIntentSnapshot()
+    {
+        var combatId = Guid.NewGuid();
+        var runId = Guid.NewGuid();
+        var combat = CreateCombat(combatId);
+        var run = CreateRun(runId);
+        var rules = Rules(drawCount: 0) with
+        {
+            Intents = new ActivationIntentRules
+            {
+                Enabled = true,
+                Authoritative = true,
+                ActorScope = ActivationIntentActorScope.EnemiesOnly,
+                GambitIds = new List<string> { "enemy_default" }
+            }
+        };
+        var intent = new CombatIntent { ActorId = "enemy", PowerId = "enemy_strike", TelegraphType = "Attack" };
+        SetupContext(combatId, runId, combat, run, rules);
+        _intentResolver.Setup(m => m.ResolveEnemyIntents(combat, runId, It.Is<IReadOnlyList<string>>(ids => ids.Single() == "enemy_default")))
+            .Returns(Result<IReadOnlyList<CombatIntent>>.Success(new[] { intent }));
+        _combatSystem.Setup(m => m.UpdateCombatState(combatId, It.IsAny<Func<CombatState, CombatState>>()))
+            .Returns((Guid _, Func<CombatState, CombatState> update) => Result<CombatState>.Success(update(combat)));
+        _runManager.SetupSequence(m => m.GetRun(runId))
+            .Returns(Result<RunState>.Success(run))
+            .Returns(Result<RunState>.Success(run));
+
+        var coordinator = CreateCoordinator();
+        var result = coordinator.StartActivationCycle(combatId, runId);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Single(result.Value.ActivationState.Intents);
+        Assert.Equal("enemy_strike", result.Value.Intents.Single().PowerId);
+    }
+
+    [Fact]
+    public void ProcessCurrentAiActivation_WhenIntentsAuthoritative_ExecutesStoredIntent()
+    {
+        var combatId = Guid.NewGuid();
+        var runId = Guid.NewGuid();
+        var activation = new ActivationState
+        {
+            ActiveActorId = "enemy",
+            Round = 1,
+            ActivationIndex = 1,
+            ActivationNumber = 2,
+            ActivationOrder = new[] { "hero", "enemy" },
+            CompletedActorIds = new[] { "hero" },
+            RulesId = "default_activation",
+            RunId = runId,
+            Intents = new[]
+            {
+                new CombatIntent
+                {
+                    ActorId = "enemy",
+                    ActionType = ActionType.POWER,
+                    PowerId = "enemy_strike",
+                    TargetId = "hero",
+                    CostOptionId = "1"
+                }
+            }
+        };
+        var combat = CreateCombat(combatId) with { ActivationState = activation };
+        var run = CreateRun(runId);
+        var rules = Rules(drawCount: 0) with
+        {
+            Ai = new ActivationAiRules { AutoEndAfterAction = false },
+            Intents = new ActivationIntentRules { Enabled = true, Authoritative = true }
+        };
+        var combatAfterAction = combat with { ActivationState = activation };
+        SetupContext(combatId, runId, combat, run, rules);
+        _combatSystem.Setup(m => m.ExecuteAction(combatId, It.Is<CombatActionCommand>(command =>
+                command.ActorId == "enemy" &&
+                command.ActionType == ActionType.POWER &&
+                command.PowerId == "enemy_strike" &&
+                command.TargetId == "hero" &&
+                command.CostOptionId == "1" &&
+                command.RunId == runId)))
+            .Returns(Result<CombatState>.Success(combatAfterAction));
+        _runManager.SetupSequence(m => m.GetRun(runId))
+            .Returns(Result<RunState>.Success(run))
+            .Returns(Result<RunState>.Success(run));
+
+        var coordinator = CreateCoordinator();
+        var result = coordinator.ProcessCurrentAiActivation(combatId, runId);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        _gambitEngine.Verify(m => m.DecideAction(It.IsAny<Core.Entity.Entity>(), It.IsAny<CombatState>(), It.IsAny<IEnumerable<string>>()), Times.Never);
+    }
+
     private CombatActivationCoordinator CreateCoordinator() => new(
         _combatSystem.Object,
         _runManager.Object,
         _combatRunCoordinator.Object,
         _gambitEngine.Object,
+        _intentResolver.Object,
         _actionManager.Object,
         _rulesLoader.Object,
         _eventBus);

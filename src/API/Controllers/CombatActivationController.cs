@@ -117,6 +117,7 @@ public sealed class CombatActivationController : BaseApiController
                 activationOrder = result.ActivationState.ActivationOrder,
                 completedActorIds = result.ActivationState.CompletedActorIds,
                 waitingForInput = result.ActivationState.WaitingForInput,
+                intents = result.ActivationState.Intents,
                 rulesId = result.ActivationState.RulesId,
                 startedAtUtc = result.ActivationState.StartedAtUtc
             },

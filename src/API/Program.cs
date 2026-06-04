@@ -6,6 +6,7 @@ using Core.Math;
 using Core.Events;
 using Core.Combat;
 using Core.Combat.Activation;
+using Core.Combat.Intents;
 using Core.Combat.Modifiers;
 using Core.Combat.Gambits;
 using Core.Resources;
@@ -142,6 +143,7 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     return new GambitEngine(configManager, resourceLoader);
 });
+builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 
 // Register Run content and manager
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();

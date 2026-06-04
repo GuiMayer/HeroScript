@@ -16,6 +16,12 @@
       "autoProcess": false,
       "autoEndAfterAction": true
     },
+    "intents": {
+      "enabled": true,
+      "authoritative": true,
+      "actorScope": "EnemiesOnly",
+      "gambitIds": []
+    },
     "events": {
       "emitActivationEvents": true,
       "emitDeckEvents": true

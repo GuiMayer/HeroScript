@@ -1,4 +1,5 @@
 using Core.Combat.Gambits;
+using Core.Combat.Intents;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Entity.Controllers;
@@ -16,6 +17,7 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
     private readonly IRunManager _runManager;
     private readonly ICombatRunCoordinator _combatRunCoordinator;
     private readonly IGambitEngine _gambitEngine;
+    private readonly IIntentResolver _intentResolver;
     private readonly IActionManager _actionManager;
     private readonly ICombatActivationRulesLoader _rulesLoader;
     private readonly IEventBus _eventBus;
@@ -25,6 +27,7 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
         IRunManager runManager,
         ICombatRunCoordinator combatRunCoordinator,
         IGambitEngine gambitEngine,
+        IIntentResolver intentResolver,
         IActionManager actionManager,
         ICombatActivationRulesLoader rulesLoader,
         IEventBus eventBus)
@@ -33,6 +36,7 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
         _runManager = runManager;
         _combatRunCoordinator = combatRunCoordinator;
         _gambitEngine = gambitEngine;
+        _intentResolver = intentResolver;
         _actionManager = actionManager;
         _rulesLoader = rulesLoader;
         _eventBus = eventBus;
@@ -62,6 +66,11 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             RunId = runId,
             StartedAtUtc = DateTime.UtcNow
         };
+
+        var intentResult = ResolveIntentSnapshot(combat, runId, rules, activation);
+        if (intentResult.IsFailure)
+            return Result<CombatActivationResult>.Failure(intentResult.Error);
+        activation = activation with { Intents = intentResult.Value };
 
         var updateResult = _combatSystem.UpdateCombatState(combatId, state => state with { ActivationState = activation });
         if (updateResult.IsFailure)
@@ -137,17 +146,17 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
         if (activeActor.IsHero)
             return Result<CombatActivationResult>.Failure("Active actor is not AI-controlled");
 
-        var decision = _gambitEngine.DecideAction(new Entity.Entity { EntityId = activeActor.EntityId, DisplayName = activeActor.Name }, combat, gambitIds);
-        if (decision.IsFailure)
-            return Result<CombatActivationResult>.Failure(decision.Error);
+        var actionResult = ResolveAiAction(combat, activeActor.EntityId, rules, activation, gambitIds);
+        if (actionResult.IsFailure)
+            return Result<CombatActivationResult>.Failure(actionResult.Error);
 
         var command = new CombatActionCommand
         {
             ActorId = activeActor.EntityId,
-            ActionType = decision.Value.ActionType,
-            PowerId = decision.Value.PowerId,
-            TargetId = decision.Value.TargetId,
-            CostOptionId = decision.Value.CostOptionId?.ToString(),
+            ActionType = actionResult.Value.ActionType,
+            PowerId = actionResult.Value.PowerId,
+            TargetId = actionResult.Value.TargetId,
+            CostOptionId = actionResult.Value.CostOptionId?.ToString(),
             RunId = runId
         };
 
@@ -206,6 +215,11 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             StartedAtUtc = DateTime.UtcNow
         };
 
+        var intentResult = ResolveIntentSnapshot(combat, runId, rules, nextActivation);
+        if (intentResult.IsFailure)
+            return Result<CombatActivationResult>.Failure(intentResult.Error);
+        nextActivation = nextActivation with { Intents = intentResult.Value };
+
         var updateResult = _combatSystem.UpdateCombatState(combatId, state => state with { ActivationState = nextActivation });
         if (updateResult.IsFailure)
             return Result<CombatActivationResult>.Failure(updateResult.Error);
@@ -229,6 +243,68 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             return Result<IReadOnlyList<string>>.Success(Array.Empty<string>());
 
         return _runManager.DrawCards(runId, rules.StartActivation.DrawCount);
+    }
+
+    private Result<IReadOnlyList<CombatIntent>> ResolveIntentSnapshot(CombatState combat, Guid runId, CombatActivationRulesDefinition rules, ActivationState activation)
+    {
+        if (!rules.Intents.Enabled)
+            return Result<IReadOnlyList<CombatIntent>>.Success(Array.Empty<CombatIntent>());
+
+        IReadOnlyList<string>? gambitIds = rules.Intents.GambitIds.Count > 0 ? rules.Intents.GambitIds : null;
+        return rules.Intents.ActorScope switch
+        {
+            ActivationIntentActorScope.ActiveActor when !string.IsNullOrWhiteSpace(activation.ActiveActorId) =>
+                SingleIntent(combat, activation.ActiveActorId, runId, gambitIds),
+            ActivationIntentActorScope.ActiveActor => Result<IReadOnlyList<CombatIntent>>.Success(Array.Empty<CombatIntent>()),
+            ActivationIntentActorScope.AllActors => ResolveActorIntents(combat, combat.GetAllEntities().Where(entity => entity.IsAlive).Select(entity => entity.EntityId).ToList(), runId, gambitIds),
+            _ => _intentResolver.ResolveEnemyIntents(combat, runId, gambitIds)
+        };
+    }
+
+    private Result<IReadOnlyList<CombatIntent>> SingleIntent(CombatState combat, string actorId, Guid runId, IReadOnlyList<string>? gambitIds)
+    {
+        var intent = _intentResolver.ResolveIntent(combat, actorId, runId, gambitIds);
+        return intent.IsFailure
+            ? Result<IReadOnlyList<CombatIntent>>.Failure(intent.Error)
+            : Result<IReadOnlyList<CombatIntent>>.Success(new[] { intent.Value });
+    }
+
+    private Result<IReadOnlyList<CombatIntent>> ResolveActorIntents(CombatState combat, IReadOnlyList<string> actorIds, Guid runId, IReadOnlyList<string>? gambitIds)
+    {
+        var intents = new List<CombatIntent>();
+        foreach (var actorId in actorIds)
+        {
+            var intent = _intentResolver.ResolveIntent(combat, actorId, runId, gambitIds);
+            if (intent.IsFailure)
+                return Result<IReadOnlyList<CombatIntent>>.Failure(intent.Error);
+            intents.Add(intent.Value);
+        }
+
+        return Result<IReadOnlyList<CombatIntent>>.Success(intents);
+    }
+
+    private Result<EntityAction> ResolveAiAction(CombatState combat, string actorId, CombatActivationRulesDefinition rules, ActivationState activation, IReadOnlyList<string>? gambitIds)
+    {
+        if (rules.Intents.Enabled && rules.Intents.Authoritative)
+        {
+            var intent = activation.Intents.FirstOrDefault(item => string.Equals(item.ActorId, actorId, StringComparison.OrdinalIgnoreCase));
+            if (intent != null)
+            {
+                return Result<EntityAction>.Success(new EntityAction
+                {
+                    ActionType = intent.ActionType,
+                    PowerId = intent.PowerId,
+                    TargetId = intent.TargetId,
+                    CostOptionId = string.IsNullOrWhiteSpace(intent.CostOptionId) ? null : int.Parse(intent.CostOptionId)
+                });
+            }
+        }
+
+        var actor = combat.GetEntity(actorId);
+        if (actor == null)
+            return Result<EntityAction>.Failure($"Actor not found: {actorId}");
+
+        return _gambitEngine.DecideAction(new Entity.Entity { EntityId = actor.EntityId, DisplayName = actor.Name }, combat, gambitIds);
     }
 
     private Result<IReadOnlyList<string>> ApplyEndActivationRules(Guid runId, string actorId, CombatState combat, RunState run, CombatActivationRulesDefinition rules)
@@ -379,7 +455,8 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             RunState = run,
             ActivationState = activation,
             DrawnCardIds = drawn,
-            DiscardedCardIds = discarded
+            DiscardedCardIds = discarded,
+            Intents = activation.Intents
         });
     }
 
