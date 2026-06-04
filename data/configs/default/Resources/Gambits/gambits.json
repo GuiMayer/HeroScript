@@ -1,0 +1,25 @@
+{
+  "enemy_basic_attack": {
+    "gambitId": "enemy_basic_attack",
+    "displayName": "Enemy Basic Attack",
+    "description": "Default enemy attack against the hero.",
+    "priority": 100,
+    "conditions": [
+      {
+        "type": "ANY_ENEMY_ALIVE"
+      }
+    ],
+    "action": {
+      "actionType": "BASIC_ATTACK",
+      "powerId": "basic_attack",
+      "target": "HERO"
+    },
+    "intent": {
+      "displayName": "Preparing to strike",
+      "description": "This enemy intends to attack the hero.",
+      "telegraphType": "Attack",
+      "tags": ["attack", "physical"]
+    },
+    "tags": ["enemy", "default", "attack"]
+  }
+}
