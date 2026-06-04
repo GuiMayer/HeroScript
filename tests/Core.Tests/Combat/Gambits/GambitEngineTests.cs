@@ -69,6 +69,23 @@ public sealed class GambitEngineTests
     }
 
     [Fact]
+    public void DecideActionWithMetadata_ReturnsSelectedGambitIntentMetadata()
+    {
+        var state = CreateState(heroHealth: 80, enemyHealth: 50);
+        var entity = new Core.Entity.Entity { EntityId = "enemy-1" };
+
+        var decision = _engine.DecideActionWithMetadata(entity, state, new[] { "enemy_actor_attack" });
+
+        Assert.True(decision.IsSuccess, decision.IsFailure ? decision.Error : null);
+        Assert.Equal("enemy_actor_attack", decision.Value.GambitId);
+        Assert.Equal(20, decision.Value.Priority);
+        Assert.Equal(ActionType.BASIC_ATTACK, decision.Value.Action.ActionType);
+        Assert.Equal("Enemy prepares a strike", decision.Value.Intent.DisplayName);
+        Assert.Equal("Attack", decision.Value.Intent.TelegraphType);
+        Assert.Contains("attack", decision.Value.Intent.Tags);
+    }
+
+    [Fact]
     public async Task GambitController_DelegatesDecisionToEngine()
     {
         var state = CreateState(heroHealth: 80, enemyHealth: 50);
@@ -163,6 +180,12 @@ public sealed class GambitEngineTests
         "gambitId": "enemy_actor_attack",
         "displayName": "Enemy Actor Attack",
         "priority": 20,
+        "intent": {
+          "displayName": "Enemy prepares a strike",
+          "description": "The enemy is preparing to attack the hero.",
+          "telegraphType": "Attack",
+          "tags": ["attack", "physical"]
+        },
         "conditions": [
           {
             "type": "ACTOR_RESOURCE_PERCENT",

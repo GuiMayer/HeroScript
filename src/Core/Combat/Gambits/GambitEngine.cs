@@ -68,14 +68,33 @@ public sealed class GambitEngine : IGambitEngine
 
     public Result<EntityAction> DecideAction(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
     {
+        var decision = DecideActionWithMetadata(controlledEntity, combatState, gambitIds);
+        return decision.IsSuccess
+            ? Result<EntityAction>.Success(decision.Value.Action)
+            : Result<EntityAction>.Failure(decision.Error);
+    }
+
+    public Result<GambitDecision> DecideActionWithMetadata(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
+    {
         var candidates = ResolveCandidates(gambitIds);
         foreach (var gambit in candidates.OrderByDescending(g => g.Priority))
         {
             if (gambit.Conditions.All(condition => Matches(condition, controlledEntity, combatState, gambit.Action)))
-                return Result<EntityAction>.Success(MapAction(gambit.Action, controlledEntity, combatState));
+            {
+                return Result<GambitDecision>.Success(new GambitDecision
+                {
+                    Action = MapAction(gambit.Action, controlledEntity, combatState),
+                    GambitId = gambit.GambitId,
+                    Priority = gambit.Priority,
+                    Intent = gambit.Intent
+                });
+            }
         }
 
-        return Result<EntityAction>.Success(new EntityAction { ActionType = Models.ActionType.PASS });
+        return Result<GambitDecision>.Success(new GambitDecision
+        {
+            Action = new EntityAction { ActionType = Models.ActionType.PASS }
+        });
     }
 
     private IReadOnlyList<GambitDefinition> ResolveCandidates(IEnumerable<string>? gambitIds)

@@ -10,4 +10,5 @@ public interface IGambitEngine
     Result<GambitDefinition> GetDefinition(string gambitId);
     IReadOnlyList<GambitDefinition> GetAllDefinitions();
     Result<EntityAction> DecideAction(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null);
+    Result<GambitDecision> DecideActionWithMetadata(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null);
 }

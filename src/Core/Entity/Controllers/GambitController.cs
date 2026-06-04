@@ -68,5 +68,11 @@ public class GambitController : IEntityController
 
         public Result<EntityAction> DecideAction(Entity controlledEntity, CombatState combatState, IEnumerable<string>? gambitIds = null) =>
             Result<EntityAction>.Success(new EntityAction { ActionType = ActionType.PASS });
+
+        public Result<GambitDecision> DecideActionWithMetadata(Entity controlledEntity, CombatState combatState, IEnumerable<string>? gambitIds = null) =>
+            Result<GambitDecision>.Success(new GambitDecision
+            {
+                Action = new EntityAction { ActionType = ActionType.PASS }
+            });
     }
 }

@@ -10,6 +10,15 @@ public record GambitDefinition
     public int Priority { get; init; }
     public List<GambitCondition> Conditions { get; init; } = new();
     public GambitActionDefinition Action { get; init; } = new();
+    public GambitIntentDefinition Intent { get; init; } = new();
+    public List<string> Tags { get; init; } = new();
+}
+
+public record GambitIntentDefinition
+{
+    public string? DisplayName { get; init; }
+    public string? Description { get; init; }
+    public string? TelegraphType { get; init; }
     public List<string> Tags { get; init; } = new();
 }
 
