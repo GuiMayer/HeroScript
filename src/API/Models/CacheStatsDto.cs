@@ -1,27 +1,48 @@
 namespace API.Models;
 
 /// <summary>
-/// Cache statistics for resource loading
+/// Unified cache statistics for monitoring and diagnostics.
+/// Aggregates statistics from various cache implementations across Core.
 /// </summary>
 public class CacheStatsDto
 {
     /// <summary>
-    /// Number of cached resources
+    /// Name/identifier of the cache.
     /// </summary>
-    public int CachedResources { get; set; }
+    public string CacheName { get; set; } = "";
 
     /// <summary>
-    /// Total cache hits
+    /// Maximum capacity of the cache.
+    /// </summary>
+    public int Capacity { get; set; }
+
+    /// <summary>
+    /// Current number of items in cache.
+    /// </summary>
+    public int Count { get; set; }
+
+    /// <summary>
+    /// Total successful cache lookups.
     /// </summary>
     public long CacheHits { get; set; }
 
     /// <summary>
-    /// Total cache misses
+    /// Total failed cache lookups.
     /// </summary>
     public long CacheMisses { get; set; }
 
     /// <summary>
-    /// Last cache invalidation timestamp
+    /// Total items evicted due to capacity limits.
+    /// </summary>
+    public long Evictions { get; set; }
+
+    /// <summary>
+    /// Cache hit rate as percentage (0.0 to 1.0).
+    /// </summary>
+    public double HitRate { get; set; }
+
+    /// <summary>
+    /// Last cache invalidation/clear timestamp.
     /// </summary>
     public DateTime? LastInvalidation { get; set; }
 }
