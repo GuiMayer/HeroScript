@@ -21,6 +21,7 @@ public class LruCache<TKey, TValue> where TKey : notnull
     private long _hits;
     private long _misses;
     private long _evictions;
+    private DateTime? _lastInvalidation;
 
     /// <summary>
     /// Creates a new LRU cache with the specified capacity.
@@ -121,6 +122,26 @@ public class LruCache<TKey, TValue> where TKey : notnull
     }
 
     /// <summary>
+    /// Removes all entries whose key matches the predicate.
+    /// </summary>
+    public int RemoveWhere(Func<TKey, bool> predicate)
+    {
+        lock (_lock)
+        {
+            var keysToRemove = _cache.Keys.Where(predicate).ToList();
+            foreach (var key in keysToRemove)
+            {
+                if (_cache.TryGetValue(key, out var node))
+                {
+                    _lruList.Remove(node);
+                    _cache.Remove(key);
+                }
+            }
+            return keysToRemove.Count;
+        }
+    }
+
+    /// <summary>
     /// Clears all items from the cache.
     /// </summary>
     public void Clear()
@@ -129,6 +150,7 @@ public class LruCache<TKey, TValue> where TKey : notnull
         {
             _cache.Clear();
             _lruList.Clear();
+            _lastInvalidation = DateTime.UtcNow;
         }
     }
 
@@ -163,7 +185,8 @@ public class LruCache<TKey, TValue> where TKey : notnull
                 Hits = _hits,
                 Misses = _misses,
                 Evictions = _evictions,
-                HitRate = hitRate
+                HitRate = hitRate,
+                LastInvalidation = _lastInvalidation
             };
         }
     }
@@ -222,4 +245,5 @@ public class CacheStats
     public long Misses { get; set; }
     public long Evictions { get; set; }
     public double HitRate { get; set; }
+    public DateTime? LastInvalidation { get; set; }
 }
