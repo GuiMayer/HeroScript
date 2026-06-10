@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Core.Caching;
 using Core.Common;
 using Core.Config;
 using Core.Entity.Components;
@@ -11,26 +12,34 @@ namespace Core.Entity.Definitions;
 /// <summary>
 /// Carrega e gerencia definições de entidades de arquivos JSON.
 /// Suporta herança delta (baseDefinitionId).
+/// Thread-safe com cache LRU.
 /// </summary>
-public class EntityDefinitionLoader
+public class EntityDefinitionLoader : ICacheService
 {
-    private readonly Dictionary<string, EntityDefinition> _definitions = new();
+    private readonly LruCache<string, EntityDefinition> _cache;
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _configName;
+    private readonly string _cacheName;
     
+    public string CacheName => _cacheName;
+
     public EntityDefinitionLoader(
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ILogger? logger = null,
-        string configName = "default")
+        string configName = "default",
+        int cacheCapacity = 256)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? new ConsoleLogger("EntityDefinitionLoader");
         _configName = string.IsNullOrWhiteSpace(configName) ? "default" : configName;
+        _cacheName = $"EntityDefinitions_{configName}";
+        
+        _cache = new LruCache<string, EntityDefinition>(cacheCapacity);
         
         _jsonOptions = new JsonSerializerOptions
         {
@@ -42,14 +51,15 @@ public class EntityDefinitionLoader
     }
     
     /// <summary>
-    /// Carrega uma definição de entidade de um arquivo JSON
+    /// Carrega uma definição de entidade de um arquivo JSON.
+    /// Thread-safe com cache LRU.
     /// </summary>
     public Result<EntityDefinition> LoadDefinition(string definitionId)
     {
         try
         {
-            // Verificar cache
-            if (_definitions.TryGetValue(definitionId, out var cached))
+            // Verificar cache (thread-safe)
+            if (_cache.TryGetValue(definitionId, out var cached))
             {
                 return Result<EntityDefinition>.Success(cached);
             }
@@ -88,8 +98,8 @@ public class EntityDefinitionLoader
                 return Result<EntityDefinition>.Failure(validationResult.Error);
             }
             
-            // Cachear
-            _definitions[definitionId] = definition;
+            // Cachear (thread-safe)
+            _cache.Set(definitionId, definition);
             
             _logger.LogInformation($"Loaded entity definition: {definitionId}");
             return Result<EntityDefinition>.Success(definition);
@@ -139,29 +149,64 @@ public class EntityDefinitionLoader
     }
     
     /// <summary>
-    /// Obtém uma definição do cache
+    /// Obtém uma definição do cache.
+    /// Thread-safe.
     /// </summary>
     public EntityDefinition? GetDefinition(string definitionId)
     {
-        return _definitions.TryGetValue(definitionId, out var def) ? def : null;
+        return _cache.TryGetValue(definitionId, out var def) ? def : null;
     }
     
     /// <summary>
-    /// Limpa o cache de definições
+    /// Limpa o cache de definições.
     /// </summary>
     public void ClearCache()
     {
-        _definitions.Clear();
+        _cache.Clear();
         _logger.LogInformation("Entity definition cache cleared");
     }
     
     /// <summary>
-    /// Recarrega uma definição específica
+    /// Recarrega uma definição específica.
     /// </summary>
     public Result<EntityDefinition> ReloadDefinition(string definitionId)
     {
-        _definitions.Remove(definitionId);
+        _cache.Remove(definitionId);
         return LoadDefinition(definitionId);
+    }
+
+    /// <summary>
+    /// Implementa ICacheService.Invalidate().
+    /// </summary>
+    public void Invalidate(string? key = null)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            ClearCache();
+        }
+        else
+        {
+            ReloadDefinition(key);
+        }
+    }
+
+    /// <summary>
+    /// Implementa ICacheService.GetStats().
+    /// </summary>
+    public CacheServiceStats GetStats()
+    {
+        var stats = _cache.GetStats();
+        return new CacheServiceStats
+        {
+            CacheName = _cacheName,
+            Capacity = stats.Capacity,
+            Count = stats.Count,
+            Hits = stats.Hits,
+            Misses = stats.Misses,
+            Evictions = stats.Evictions,
+            HitRate = stats.HitRate,
+            LastInvalidation = stats.LastInvalidation
+        };
     }
     
     /// <summary>

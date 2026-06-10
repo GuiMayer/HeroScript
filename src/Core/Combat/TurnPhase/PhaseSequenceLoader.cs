@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Core.Caching;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
@@ -9,24 +10,30 @@ namespace Core.Combat.TurnPhase;
 /// <summary>
 /// Carregador de sequências de fases a partir de arquivos JSON.
 /// Permite configurar diferentes estilos de TCG (Magic, Yu-Gi-Oh!, Hearthstone, etc.)
+/// Thread-safe com cache LRU.
 /// </summary>
-public class PhaseSequenceLoader
+public class PhaseSequenceLoader : ICacheService
 {
     private readonly ILogger _logger;
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
-    private readonly Dictionary<string, PhaseSequenceDefinition> _cache;
+    private readonly LruCache<string, PhaseSequenceDefinition> _cache;
+    private readonly string _cacheName;
     
-    public PhaseSequenceLoader(ILogger logger, IConfigManager configManager, IResourceLoader resourceLoader)
+    public string CacheName => _cacheName;
+    
+    public PhaseSequenceLoader(ILogger logger, IConfigManager configManager, IResourceLoader resourceLoader, int cacheCapacity = 64)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
-        _cache = new Dictionary<string, PhaseSequenceDefinition>();
+        _cache = new LruCache<string, PhaseSequenceDefinition>(cacheCapacity);
+        _cacheName = "PhaseSequences";
     }
     
     /// <summary>
     /// Carrega uma sequência de fases a partir dos recursos JSON configurados.
+    /// Thread-safe com cache LRU.
     /// </summary>
     /// <param name="sequenceId">Identificador da sequência em phase-sequences/{sequenceId}.json</param>
     /// <param name="configName">Configuração/mod chain usada para resolver o recurso</param>
@@ -87,8 +94,8 @@ public class PhaseSequenceLoader
                 return Result<PhaseSequenceDefinition>.Failure($"Validation failed: {validationResult.Error}");
             }
             
-            // Adicionar ao cache
-            _cache[cacheKey] = result.Value;
+            // Adicionar ao cache (thread-safe)
+            _cache.Set(cacheKey, result.Value);
             
             _logger.LogInformation($"Loaded phase sequence: {result.Value.Name} from {relativePath}");
             
@@ -160,6 +167,40 @@ public class PhaseSequenceLoader
     {
         _cache.Clear();
         _logger.LogDebug("Phase sequence cache cleared");
+    }
+
+    /// <summary>
+    /// Implementa ICacheService.Invalidate().
+    /// </summary>
+    public void Invalidate(string? key = null)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            ClearCache();
+        }
+        else
+        {
+            _cache.Remove(key);
+        }
+    }
+
+    /// <summary>
+    /// Implementa ICacheService.GetStats().
+    /// </summary>
+    public CacheServiceStats GetStats()
+    {
+        var stats = _cache.GetStats();
+        return new CacheServiceStats
+        {
+            CacheName = _cacheName,
+            Capacity = stats.Capacity,
+            Count = stats.Count,
+            Hits = stats.Hits,
+            Misses = stats.Misses,
+            Evictions = stats.Evictions,
+            HitRate = stats.HitRate,
+            LastInvalidation = stats.LastInvalidation
+        };
     }
 
     private static PhaseSequenceDto? DeserializeDto(string json)
