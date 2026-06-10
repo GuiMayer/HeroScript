@@ -1,6 +1,7 @@
 using API.Models;
 using API.Logging;
 using Core;
+using Core.Caching;
 using Core.Config;
 using Core.Math;
 using Core.Events;
@@ -9,6 +10,7 @@ using Core.Combat.Activation;
 using Core.Combat.Intents;
 using Core.Combat.Modifiers;
 using Core.Combat.Gambits;
+using Core.Combat.TurnPhase;
 using Core.Resources;
 using Core.Damage;
 using Core.Effects;
@@ -100,6 +102,9 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
     return new ResourceManager(configManager, resourceLoader, logger, regenerationProcessor);
 });
 
+// Register CacheRegistry (singleton for centralized cache management)
+builder.Services.AddSingleton<CacheRegistry>();
+
 // Register EntityDefinitionLoader
 builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
 {
@@ -107,7 +112,29 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EntityDefinitionLoader"));
-    return new EntityDefinitionLoader(configManager, resourceLoader, logger);
+    var loader = new EntityDefinitionLoader(configManager, resourceLoader, logger);
+    
+    // Register with CacheRegistry
+    var registry = sp.GetRequiredService<CacheRegistry>();
+    registry.Register(loader);
+    
+    return loader;
+});
+
+// Register PhaseSequenceLoader
+builder.Services.AddSingleton<PhaseSequenceLoader>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PhaseSequenceLoader"));
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var loader = new PhaseSequenceLoader(logger, configManager, resourceLoader);
+    
+    // Register with CacheRegistry
+    var registry = sp.GetRequiredService<CacheRegistry>();
+    registry.Register(loader);
+    
+    return loader;
 });
 
 // Register StatusEffectManager
