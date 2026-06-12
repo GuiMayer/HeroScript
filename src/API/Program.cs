@@ -11,6 +11,7 @@ using Core.Combat.Intents;
 using Core.Combat.Modifiers;
 using Core.Combat.Gambits;
 using Core.Combat.TurnPhase;
+using Core.Combat.TurnOrder;
 using Core.Resources;
 using Core.Damage;
 using Core.Effects;
@@ -222,12 +223,31 @@ builder.Services.AddSingleton<IEffectResolver, EffectResolver>(sp =>
     return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, formulaEvaluator, randomProvider: null, statusEffectManager: statusEffectManager, runManager: runManager);
 });
 
+// Register TurnOrderCalculator
+builder.Services.AddSingleton<ITurnOrderCalculator>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("TurnOrderCalculator"));
+    var turnOrderStrategy = builder.Configuration["Combat:TurnOrderStrategy"] ?? "fixed";
+    
+    return turnOrderStrategy.ToLowerInvariant() switch
+    {
+        "speed_based" => new SpeedBasedTurnOrderCalculator(logger),
+        "initiative" => new InitiativeTurnOrderCalculator(logger),
+        "atb" => new ATBTurnOrderCalculator(atbFillRate: 10f, logger),
+        "conditional" => ConditionalTurnOrderCalculator.CreateHybridCalculator(logger),
+        "fixed" => new FixedTurnOrderCalculator(logger),
+        _ => new FixedTurnOrderCalculator(logger)
+    };
+});
+
 // Register CombatSystem
 builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("CombatSystem"));
     var resourceManager = sp.GetRequiredService<IResourceManager>();
+    var turnOrderCalculator = sp.GetRequiredService<ITurnOrderCalculator>();
     var eventBus = sp.GetRequiredService<IEventBus>();
     var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
     var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
@@ -235,7 +255,7 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
     var entityDefinitionLoader = sp.GetRequiredService<EntityDefinitionLoader>();
     var effectResolver = sp.GetRequiredService<IEffectResolver>();
     var actionCostEvaluator = sp.GetRequiredService<IActionCostEvaluator>();
-    return new CombatSystem(logger, resourceManager, eventBus, damageCalculator, statusEffectManager, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver, actionCostEvaluator: actionCostEvaluator);
+    return new CombatSystem(logger, resourceManager, turnOrderCalculator, eventBus, damageCalculator, statusEffectManager, regenerationProcessor: null, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver, actionCostEvaluator: actionCostEvaluator);
 });
 
 // Register CombatRunCoordinator
