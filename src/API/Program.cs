@@ -223,12 +223,16 @@ builder.Services.AddSingleton<IEffectResolver, EffectResolver>(sp =>
     return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, formulaEvaluator, randomProvider: null, statusEffectManager: statusEffectManager, runManager: runManager);
 });
 
+// Register CombatOptions
+builder.Services.Configure<CombatOptions>(builder.Configuration.GetSection("Combat"));
+
 // Register TurnOrderCalculator
 builder.Services.AddSingleton<ITurnOrderCalculator>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("TurnOrderCalculator"));
-    var turnOrderStrategy = builder.Configuration["Combat:TurnOrderStrategy"] ?? "fixed";
+    var combatOptions = sp.GetRequiredService<IOptions<CombatOptions>>();
+    var turnOrderStrategy = combatOptions.Value.TurnOrderStrategy;
     
     return turnOrderStrategy.ToLowerInvariant() switch
     {
