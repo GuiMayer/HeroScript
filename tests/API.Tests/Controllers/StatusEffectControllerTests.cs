@@ -13,14 +13,12 @@ public class StatusEffectControllerTests
 {
     private readonly Mock<IStatusEffectManager> _statusEffectManager;
     private readonly StatusEffectController _controller;
-    private readonly Guid _combatId;
     private readonly Guid _targetId;
 
     public StatusEffectControllerTests()
     {
         _statusEffectManager = new Mock<IStatusEffectManager>();
         _controller = new StatusEffectController(_statusEffectManager.Object, Mock.Of<ILogger<StatusEffectController>>());
-        _combatId = Guid.NewGuid();
         _targetId = Guid.NewGuid();
     }
 
@@ -30,6 +28,7 @@ public class StatusEffectControllerTests
         var request = new ApplyStatusRequest
         {
             StatusId = "burn",
+            TargetId = _targetId,
             Stacks = 2,
             Duration = 3
         };
@@ -42,7 +41,7 @@ public class StatusEffectControllerTests
                 request.SourceId))
             .Returns(Result<StatusEffectInstance>.Success(instance));
 
-        var result = _controller.ApplyStatusForEntity(_combatId, _targetId, request);
+        var result = _controller.ApplyStatus(request);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<StatusEffectResponse>(ok.Value);
@@ -57,13 +56,14 @@ public class StatusEffectControllerTests
         var request = new ApplyStatusRequest
         {
             StatusId = "",
+            TargetId = _targetId,
             Stacks = 1,
             Duration = 3
         };
         _statusEffectManager.Setup(m => m.ApplyStatus(_targetId, "", 1, 3, null))
             .Returns(Result<StatusEffectInstance>.Failure("Status ID cannot be empty"));
 
-        var result = _controller.ApplyStatusForEntity(_combatId, _targetId, request);
+        var result = _controller.ApplyStatus(request);
 
         Assert.IsType<BadRequestObjectResult>(result);
     }
@@ -78,7 +78,7 @@ public class StatusEffectControllerTests
                 StatusInstance("shield", 1, 2)
             }));
 
-        var result = _controller.GetActiveStatusForEntity(_combatId, _targetId);
+        var result = _controller.GetActiveStatus(_targetId);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<List<StatusEffectResponse>>(ok.Value);
@@ -92,7 +92,11 @@ public class StatusEffectControllerTests
         _statusEffectManager.Setup(m => m.RemoveStatus(_targetId, instanceId))
             .Returns(Result.Success());
 
-        var result = _controller.RemoveStatusForEntity(_combatId, _targetId, instanceId);
+        var result = _controller.RemoveStatus(new RemoveStatusRequest
+        {
+            TargetId = _targetId,
+            InstanceId = instanceId
+        });
 
         Assert.IsType<OkObjectResult>(result);
     }
@@ -104,11 +108,12 @@ public class StatusEffectControllerTests
         _statusEffectManager.Setup(m => m.AddStacks(_targetId, instanceId, 3))
             .Returns(Result<StatusEffectInstance>.Success(StatusInstance("burn", 5, 3, instanceId)));
 
-        var result = _controller.AddStacksForEntity(
-            _combatId,
-            _targetId,
-            instanceId,
-            new ModifyStacksRequest { Stacks = 3 });
+        var result = _controller.AddStacks(new ModifyStacksRequest
+        {
+            TargetId = _targetId,
+            InstanceId = instanceId,
+            Stacks = 3
+        });
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<StatusEffectResponse>(ok.Value);
@@ -122,11 +127,12 @@ public class StatusEffectControllerTests
         _statusEffectManager.Setup(m => m.RemoveStacks(_targetId, instanceId, 2))
             .Returns(Result<StatusEffectInstance?>.Success(StatusInstance("burn", 3, 3, instanceId)));
 
-        var result = _controller.RemoveStacksForEntity(
-            _combatId,
-            _targetId,
-            instanceId,
-            new ModifyStacksRequest { Stacks = 2 });
+        var result = _controller.RemoveStacks(new ModifyStacksRequest
+        {
+            TargetId = _targetId,
+            InstanceId = instanceId,
+            Stacks = 2
+        });
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<StatusEffectResponse>(ok.Value);
@@ -140,11 +146,7 @@ public class StatusEffectControllerTests
         _statusEffectManager.Setup(m => m.RefreshDuration(_targetId, instanceId, 5))
             .Returns(Result<StatusEffectInstance>.Success(StatusInstance("burn", 2, 5, instanceId)));
 
-        var result = _controller.RefreshDurationForEntity(
-            _combatId,
-            _targetId,
-            instanceId,
-            new RefreshDurationRequest { Duration = 5 });
+        var result = _controller.RefreshDuration(_targetId, instanceId, 5);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsType<StatusEffectResponse>(ok.Value);
@@ -162,10 +164,10 @@ public class StatusEffectControllerTests
                 StatusInstance("burn", 2, 2)
             }));
 
-        var tickResult = _controller.TickDurationsForEntity(_combatId, _targetId);
+        var tickResult = _controller.TickDurations(_targetId);
         Assert.IsType<OkObjectResult>(tickResult);
 
-        var result = _controller.GetActiveStatusForEntity(_combatId, _targetId);
+        var result = _controller.GetActiveStatus(_targetId);
         var ok = Assert.IsType<OkObjectResult>(result);
         var response = Assert.IsAssignableFrom<List<StatusEffectResponse>>(ok.Value);
         var status = Assert.Single(response);
@@ -178,7 +180,7 @@ public class StatusEffectControllerTests
         _statusEffectManager.Setup(m => m.RemoveAllStatus(_targetId, null))
             .Returns(Result.Success());
 
-        var result = _controller.RemoveAllStatusForEntity(_combatId, _targetId);
+        var result = _controller.RemoveAllStatus(_targetId);
 
         Assert.IsType<OkObjectResult>(result);
     }
