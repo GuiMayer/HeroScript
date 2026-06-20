@@ -1041,7 +1041,7 @@ public class CombatSystem : ICombatSystem
             TotalTurns = state.CurrentTurn,
             TotalActions = state.ActionHistory.Count,
             DamageDealt = state.ActionHistory.Sum(a => a.DamageDealt ?? 0),
-            DamageTaken = state.Hero.MaxHp - state.Hero.CurrentHp,
+            DamageTaken = (int)((state.Hero.GetResource("health")?.Maximum ?? 0f) - (state.Hero.GetResource("health")?.Current ?? 0f)),
             Duration = DateTime.UtcNow - state.StartedAt
         };
         

@@ -57,7 +57,7 @@ public class CombatEntityTests
         var newEntity = entity.TakeDamage(30);
 
         // Assert
-        Assert.Equal(70, newEntity.CurrentHp);
+        Assert.Equal(70, newEntity.GetResource("health")?.Current);
         Assert.True(newEntity.IsAlive);
     }
 
@@ -71,7 +71,7 @@ public class CombatEntityTests
         var newEntity = entity.TakeDamage(50);
 
         // Assert
-        Assert.Equal(0, newEntity.CurrentHp);
+        Assert.Equal(0, newEntity.GetResource("health")?.Current);
         Assert.False(newEntity.IsAlive);
     }
 
@@ -85,7 +85,7 @@ public class CombatEntityTests
         var newEntity = entity.Heal(30);
 
         // Assert
-        Assert.Equal(80, newEntity.CurrentHp);
+        Assert.Equal(80, newEntity.GetResource("health")?.Current);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class CombatEntityTests
         var newEntity = entity.Heal(50);
 
         // Assert
-        Assert.Equal(100, newEntity.CurrentHp);
+        Assert.Equal(100, newEntity.GetResource("health")?.Current);
     }
 
     [Fact]

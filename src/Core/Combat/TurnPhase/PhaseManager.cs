@@ -46,7 +46,7 @@ public class PhaseManager : IPhaseManager
             ActivePlayerId = playerOrder[0], // Primeiro jogador tem prioridade
             CanTransition = false,
             PlayerPassedPriority = priorityDict,
-            PhaseStartedAt = DateTime.UtcNow
+            PhaseStartTime = DateTime.UtcNow
         };
         
         _logger.LogDebug($"Started phase {phase} with active player {playerOrder[0]}");
@@ -85,7 +85,7 @@ public class PhaseManager : IPhaseManager
             CurrentPhase = nextPhase,
             PhaseIndex = nextIndex,
             CanTransition = false,
-            PhaseStartedAt = DateTime.UtcNow
+            PhaseStartTime = DateTime.UtcNow
         };
         
         // Resetar prioridade para a nova fase
@@ -127,7 +127,7 @@ public class PhaseManager : IPhaseManager
             CurrentPhase = targetPhase,
             PhaseIndex = targetIndex,
             CanTransition = false,
-            PhaseStartedAt = DateTime.UtcNow
+            PhaseStartTime = DateTime.UtcNow
         };
         
         // Resetar prioridade para a nova fase

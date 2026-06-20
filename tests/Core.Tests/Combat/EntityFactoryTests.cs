@@ -29,8 +29,8 @@ public class EntityFactoryTests
         Assert.Equal("test_entity", entity.EntityId);
         Assert.Equal("test_entity", entity.Name);
         Assert.False(entity.IsHero);
-        Assert.Equal(100f, entity.CurrentHp);
-        Assert.Equal(100f, entity.MaxHp);
+        Assert.Equal(100f, entity.GetResource("health")?.Current);
+        Assert.Equal(100f, entity.GetResource("health")?.Maximum);
     }
 
     [Fact]
@@ -44,8 +44,8 @@ public class EntityFactoryTests
         var entity = result.Value;
         Assert.NotNull(entity);
         Assert.Equal("test_entity", entity.EntityId);
-        Assert.Equal(250f, entity.CurrentHp);
-        Assert.Equal(250f, entity.MaxHp);
+        Assert.Equal(250f, entity.GetResource("health")?.Current);
+        Assert.Equal(250f, entity.GetResource("health")?.Maximum);
     }
 
     [Fact]

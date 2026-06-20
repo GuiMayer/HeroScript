@@ -86,10 +86,4 @@ public record CombatState
         return enemy?.GetResource(resourceId);
     }
     
-    // Propriedade de conveniência para compatibilidade (delega para recurso "energy" do herói)
-    public EnergyPool Energy => new EnergyPool
-    {
-        Current = (int)(GetHeroResource("energy")?.Current ?? 0),
-        Maximum = (int)(GetHeroResource("energy")?.Maximum ?? 10)
-    };
 }

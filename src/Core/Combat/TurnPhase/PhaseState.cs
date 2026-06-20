@@ -56,8 +56,4 @@ public record PhaseState
     /// </summary>
     public DateTime PhaseStartTime { get; init; } = DateTime.UtcNow;
     
-    /// <summary>
-    /// Timestamp de quando a fase atual começou (alias para compatibilidade)
-    /// </summary>
-    public DateTime PhaseStartedAt { get; init; } = DateTime.UtcNow;
 }

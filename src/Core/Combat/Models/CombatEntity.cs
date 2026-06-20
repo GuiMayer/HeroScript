@@ -116,7 +116,4 @@ public record CombatEntity
         return critMult?.Current ?? 2.0f;
     }
     
-    // Propriedades de conveniência para compatibilidade (delegam para recurso "health")
-    public int CurrentHp => (int)(GetResource("health")?.Current ?? 0);
-    public int MaxHp => (int)(GetResource("health")?.Maximum ?? 100);
 }

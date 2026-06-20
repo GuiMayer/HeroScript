@@ -703,14 +703,14 @@ public class EffectResolver : IEffectResolver
 
         if (source != null)
         {
-            variables["source_hp"] = source.CurrentHp;
-            variables["source_max_hp"] = source.MaxHp;
+            variables["source_hp"] = source.GetResource("health")?.Current ?? 0f;
+            variables["source_max_hp"] = source.GetResource("health")?.Maximum ?? 0f;
         }
 
         if (target != null)
         {
-            variables["target_hp"] = target.CurrentHp;
-            variables["target_max_hp"] = target.MaxHp;
+            variables["target_hp"] = target.GetResource("health")?.Current ?? 0f;
+            variables["target_max_hp"] = target.GetResource("health")?.Maximum ?? 0f;
         }
 
         return variables;
@@ -771,7 +771,7 @@ public class EffectResolver : IEffectResolver
         var aliveEnemies = state.Enemies.Where(e => e.IsAlive).ToList();
         if (aliveEnemies.Count == 0) return string.Empty;
         
-        return aliveEnemies.OrderBy(e => e.CurrentHp).First().EntityId;
+        return aliveEnemies.OrderBy(e => e.GetResource("health")?.Current ?? 0f).First().EntityId;
     }
 
     private string SelectHighestHpEnemy(CombatState state)
@@ -779,7 +779,7 @@ public class EffectResolver : IEffectResolver
         var aliveEnemies = state.Enemies.Where(e => e.IsAlive).ToList();
         if (aliveEnemies.Count == 0) return string.Empty;
         
-        return aliveEnemies.OrderByDescending(e => e.CurrentHp).First().EntityId;
+        return aliveEnemies.OrderByDescending(e => e.GetResource("health")?.Current ?? 0f).First().EntityId;
     }
 
     private EffectResult AggregateResults(List<EffectResult> results)

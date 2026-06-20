@@ -482,22 +482,22 @@ public class CombatController : BaseApiController
             {
                 EntityId = state.Hero.EntityId,
                 Name = state.Hero.Name,
-                CurrentHp = state.Hero.CurrentHp,
-                MaxHp = state.Hero.MaxHp,
+                CurrentHp = (int)(state.Hero.GetResource("health")?.Current ?? 0f),
+                MaxHp = (int)(state.Hero.GetResource("health")?.Maximum ?? 0f),
                 IsAlive = state.Hero.IsAlive
             },
             Enemies = state.Enemies.Select(e => new EnemyStateDto
             {
                 EntityId = e.EntityId,
                 Name = e.Name,
-                CurrentHp = e.CurrentHp,
-                MaxHp = e.MaxHp,
+                CurrentHp = (int)(e.GetResource("health")?.Current ?? 0f),
+                MaxHp = (int)(e.GetResource("health")?.Maximum ?? 0f),
                 IsAlive = e.IsAlive
             }).ToList(),
             Energy = new EnergyDto
             {
-                Current = state.Energy.Current,
-                Maximum = state.Energy.Maximum
+                Current = (int)(state.GetHeroResource("energy")?.Current ?? 0f),
+                Maximum = (int)(state.GetHeroResource("energy")?.Maximum ?? 0f)
             },
             TotalActions = state.ActionHistory.Count
         };

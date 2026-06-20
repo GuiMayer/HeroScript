@@ -181,7 +181,7 @@ public class CombatSystemTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? 0); // Gained 1 energy
-        Assert.Equal(40, result.Value.Enemies[0].CurrentHp); // 50 - 10 = 40
+        Assert.Equal(40, result.Value.Enemies[0].GetResource("health")?.Current); // 50 - 10 = 40
         Assert.Single(result.Value.ActionHistory);
     }
 
@@ -199,7 +199,7 @@ public class CombatSystemTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(0, result.Value.GetHeroResource("energy")?.Current ?? -1); // 3 - 3 = 0
-        Assert.Equal(20, result.Value.Enemies[0].CurrentHp); // 50 - 30 = 20
+        Assert.Equal(20, result.Value.Enemies[0].GetResource("health")?.Current); // 50 - 30 = 20
         Assert.Single(result.Value.ActionHistory);
     }
 
@@ -241,7 +241,7 @@ public class CombatSystemTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? -1);
-        Assert.Equal(38, result.Value.Enemies[0].CurrentHp);
+        Assert.Equal(38, result.Value.Enemies[0].GetResource("health")?.Current);
         Assert.Equal(-2, result.Value.ActionHistory.Single().EnergyChange);
     }
 
@@ -358,7 +358,7 @@ public class CombatSystemTests
         var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
         var combatId = startResult.Value.CombatId;
         var initialEnergy = startResult.Value.GetHeroResource("energy")?.Current ?? 0;
-        var initialEnemyHp = startResult.Value.Enemies[0].CurrentHp;
+        var initialEnemyHp = startResult.Value.Enemies[0].GetResource("health")?.Current;
 
         // Act
         var result = _combatSystem.ExecuteAction(combatId, Command("hero-1", ActionType.PASS));
@@ -366,7 +366,7 @@ public class CombatSystemTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.Equal(initialEnergy, result.Value.GetHeroResource("energy")?.Current ?? 0);
-        Assert.Equal(initialEnemyHp, result.Value.Enemies[0].CurrentHp);
+        Assert.Equal(initialEnemyHp, result.Value.Enemies[0].GetResource("health")?.Current);
         Assert.Single(result.Value.ActionHistory);
     }
 
@@ -398,7 +398,7 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(90, result.Value.Hero.CurrentHp);
+        Assert.Equal(90, result.Value.Hero.GetResource("health")?.Current);
         Assert.Equal("enemy-1", result.Value.ActionHistory.Single().ActorId);
         Assert.Equal("hero-1", result.Value.ActionHistory.Single().TargetId);
     }
