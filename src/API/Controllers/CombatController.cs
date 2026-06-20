@@ -322,9 +322,6 @@ public class CombatController : BaseApiController
                     actionId = action.ActionId,
                     displayName = action.DisplayName,
                     actionType = action.ActionType.ToString(),
-                    baseDamage = action.Effects
-                        .Where(e => e.Type == EffectType.DAMAGE)
-                        .Sum(e => e.FlatValue ?? 0f),
                     requiresTarget = action.RequiresTarget,
                     multiTarget = action.MultiTarget,
                     effectCount = action.Effects.Count,
