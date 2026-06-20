@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Config;
 using Core.Entity.Definitions;
@@ -59,6 +60,7 @@ public class CombatSystemTests
         _combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: _mockActionManager.Object,
             actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
@@ -105,6 +107,7 @@ public class CombatSystemTests
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: _mockActionManager.Object,
             entityDefinitionLoader: loader);
@@ -225,6 +228,7 @@ public class CombatSystemTests
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: actionManager.Object);
         var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
@@ -267,6 +271,7 @@ public class CombatSystemTests
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: actionManager.Object,
             actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
@@ -312,6 +317,7 @@ public class CombatSystemTests
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
             _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: actionManager.Object);
         var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);

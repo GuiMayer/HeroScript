@@ -145,23 +145,24 @@ public class TurnOrderIntegrationTests
         Assert.Equal("hero1", startResult.Value.TurnOrder[2]);
     }
     
-    [Fact]
-    public void CombatSystem_WithoutTurnOrderCalculator_ShouldWorkNormally()
-    {
-        // Arrange
-        var combatSystem = new CombatSystem(
-            _logger,
-            _resourceManager,
-            turnOrderCalculator: null
-        );
-        
-        // Act
-        var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" });
-        
-        // Assert
-        Assert.True(startResult.IsSuccess);
-        Assert.Null(startResult.Value.TurnOrder); // No turn order calculated
-    }
+     [Fact]
+     public void CombatSystem_WithoutTurnOrderCalculator_ShouldWorkNormally()
+     {
+         // Arrange
+         var combatSystem = new CombatSystem(
+             _logger,
+             _resourceManager,
+             new FixedTurnOrderCalculator(_logger)
+         );
+         
+         // Act
+         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" });
+         
+         // Assert
+         Assert.True(startResult.IsSuccess);
+         // Turn order should be calculated with FixedTurnOrderCalculator
+         Assert.NotNull(startResult.Value.TurnOrder);
+     }
     
     [Fact]
     public void TurnOrderCalculatorFactory_Integration_ShouldCreateWorkingCalculators()

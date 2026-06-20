@@ -19,6 +19,7 @@ using Core.Run;
 using Core.Run.Content;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -238,7 +239,7 @@ builder.Services.AddSingleton<ITurnOrderCalculator>(sp =>
     {
         "speed_based" => new SpeedBasedTurnOrderCalculator(logger),
         "initiative" => new InitiativeTurnOrderCalculator(logger),
-        "atb" => new ATBTurnOrderCalculator(atbFillRate: 10f, logger),
+        "atb" => new ATBTurnOrderCalculator(10f, logger),
         "conditional" => ConditionalTurnOrderCalculator.CreateHybridCalculator(logger),
         "fixed" => new FixedTurnOrderCalculator(logger),
         _ => new FixedTurnOrderCalculator(logger)

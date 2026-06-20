@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Config;
 using Core.Entity;
@@ -44,6 +45,7 @@ public class EntityCombatIntegrationTests
         _combatSystem = new CombatSystem(
             _mockLogger.Object,
             _resourceManager,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object
         );
     }

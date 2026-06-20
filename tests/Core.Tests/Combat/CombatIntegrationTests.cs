@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Effects;
 using Core.Events;
 using Core.Events.Domain;
@@ -66,7 +67,7 @@ public class CombatIntegrationTests
         var logger = NullLogger.Instance;
         var eventBus = new EventBus(logger);
         var resourceManager = CreateMockResourceManager();
-        var combatSystem = new CombatSystem(logger, resourceManager, eventBus, actionManager: CreateActionManager());
+        var combatSystem = new CombatSystem(logger, resourceManager, new FixedTurnOrderCalculator(logger), eventBus, actionManager: CreateActionManager());
 
         var eventsPublished = new List<string>();
         eventBus.Subscribe<CombatStartedEvent>(e => eventsPublished.Add("CombatStarted"));
@@ -96,7 +97,7 @@ public class CombatIntegrationTests
         // Arrange
         var logger = NullLogger.Instance;
         var resourceManager = CreateMockResourceManager();
-        var combatSystem = new CombatSystem(logger, resourceManager, actionManager: CreateActionManager());
+        var combatSystem = new CombatSystem(logger, resourceManager, new FixedTurnOrderCalculator(logger), actionManager: CreateActionManager());
 
         // Act
         var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);

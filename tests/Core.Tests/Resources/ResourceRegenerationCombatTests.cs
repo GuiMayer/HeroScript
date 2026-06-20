@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Config;
 using Core.Events;
@@ -97,7 +98,7 @@ public class ResourceRegenerationCombatTests
                 });
             });
         
-        _combatSystem = new CombatSystem(_logger, _resourceManager, _eventBus, regenerationProcessor: _regenerationProcessor);
+        _combatSystem = new CombatSystem(_logger, _resourceManager, new FixedTurnOrderCalculator(_logger), _eventBus, regenerationProcessor: _regenerationProcessor);
     }
 
     [Fact]
@@ -266,7 +267,7 @@ public class ResourceRegenerationCombatTests
                 });
             });
         
-        var combatSystem = new CombatSystem(mockLogger.Object, mockResourceManager.Object, realEventBus, regenerationProcessor: mockRegenerationProcessor.Object);
+        var combatSystem = new CombatSystem(mockLogger.Object, mockResourceManager.Object, new FixedTurnOrderCalculator(mockLogger.Object), realEventBus, regenerationProcessor: mockRegenerationProcessor.Object);
 
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 1);
         Assert.True(startResult.IsSuccess);
@@ -292,8 +293,8 @@ public class ResourceRegenerationCombatTests
     [Fact]
     public void EndTurn_WithoutRegenerationProcessor_ShouldStillWork()
     {
-        // Arrange - Criar CombatSystem sem regenerationProcessor
-        var combatSystemWithoutRegen = new CombatSystem(_logger, _resourceManager, _eventBus);
+         // Arrange - Criar CombatSystem sem regenerationProcessor
+         var combatSystemWithoutRegen = new CombatSystem(_logger, _resourceManager, new FixedTurnOrderCalculator(_logger), _eventBus);
         
         var startResult = combatSystemWithoutRegen.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 3);
         Assert.True(startResult.IsSuccess);

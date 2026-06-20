@@ -1,5 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Logging;
 using Core.Resources;
 
@@ -9,7 +10,7 @@ internal static class CombatSystemTestFactory
 {
     public static CombatSystem Create()
     {
-        return new CombatSystem(new NullLogger(), new StubResourceManager());
+        return new CombatSystem(new NullLogger(), new StubResourceManager(), new FixedTurnOrderCalculator(new NullLogger()));
     }
 
     private sealed class NullLogger : ILogger
