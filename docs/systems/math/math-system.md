@@ -15,7 +15,7 @@ O **Core.Math** é o sistema de fórmulas matemáticas do HeroScript, responsáv
 - ✅ **Data-driven** - Fórmulas são JSON, não código compilado
 - ✅ **Herança delta** - Mods podem sobrescrever apenas as fórmulas que precisam
 - ✅ **18 operações matemáticas** - De básicas (ADD, MULTIPLY) a avançadas (POW, LOG)
-- ✅ **3 modos de operação** - Implícito, explícito literal, explícito simbólico
+- ✅ **2 modos de operação** - Simples com acumulador implícito e explícito com operandos
 - ✅ **Parâmetros customizáveis** - Cada fórmula pode ter parâmetros com defaults
 - ✅ **Rastreamento de origem** - Sabe qual config forneceu cada fórmula
 - ✅ **Cache inteligente** - Lazy loading com invalidação automática
@@ -109,18 +109,24 @@ float result = expr.Build();
 
 ---
 
-## Três Modos de Operação
+## Dois Modos de Operação
 
-O sistema suporta **3 modos** para definir operações, cada um com casos de uso específicos.
+O sistema suporta **2 modos** para definir operações, cada um com casos de uso específicos.
 
-### Modo 1: Acumulador Implícito (Values)
+### Modo 1: Simples / Acumulador Implícito (`value` ou `values`)
 
-**Quando usar:** Expressões simples onde cada operação modifica o acumulador atual.
+**Quando usar:** expressões simples onde cada operação modifica o acumulador atual.
 
 **Características:**
-- Usa o campo `value` em cada operação
+- Usa `value` no formato de fórmulas ou `values` no endpoint `/api/math/expression/evaluate`
 - Acumulador implícito (`currentValue`) é modificado por cada operação
-- Retrocompatível com versão anterior
+- É a forma mais compacta para cálculos lineares e diretos
+- Não exige `operands`
+
+**Limitações:**
+- No endpoint de expressão, `values` aceita apenas números diretos
+- Não resolve `params.NAME`, `$current` ou `$initial` como tokens declarativos no campo `values`
+- É menos flexível para fórmulas dinâmicas e interpolações
 
 **Exemplo:**
 ```json
@@ -141,41 +147,15 @@ O sistema suporta **3 modos** para definir operações, cada um com casos de uso
 
 **Comportamento:** `currentValue = currentValue + BASE + BONUS`
 
-### Modo 2: Operandos Explícitos Literais
+### Modo 2: Explícito (`operands`)
 
-**Quando usar:** Operações explícitas com valores fixos conhecidos.
-
-**Características:**
-- Usa o campo `operands` com strings numéricas
-- Operações calculam resultado independente do acumulador
-- Útil quando valores são gerados dinamicamente como strings
-
-**Exemplo:**
-```json
-{
-  "EXPLICIT_SUBTRACT": {
-    "description": "Subtração explícita: TARGET - START",
-    "params": {
-      "TARGET": 100,
-      "START": 20
-    },
-    "operations": [
-      { "op": "SUBTRACT", "operands": ["params.TARGET", "params.START"] }
-    ]
-  }
-}
-```
-
-**Comportamento:** `currentValue = TARGET - START` (ignora currentValue anterior)
-
-### Modo 3: Operandos Explícitos Simbólicos
-
-**Quando usar:** Expressões dinâmicas que dependem de parâmetros ou do valor atual.
+**Quando usar:** operações que precisam declarar argumentos explicitamente, com literais numéricos ou referências dinâmicas.
 
 **Características:**
-- Usa o campo `operands` com referências simbólicas
-- Suporta: `$current`, `$initial`, `params.NAME`, literais numéricos
-- Máxima flexibilidade
+- Usa o campo `operands`
+- Aceita strings numéricas como literais
+- Aceita referências simbólicas: `$current`, `$initial`, `params.NAME`
+- É o modo mais flexível para expressões parametrizadas
 
 **Referências Especiais:**
 - `$current` - Valor atual do acumulador
@@ -183,7 +163,18 @@ O sistema suporta **3 modos** para definir operações, cada um com casos de uso
 - `params.NAME` - Parâmetro fornecido no dicionário
 - `"123.45"` - Literal numérico
 
-**Exemplo: LERP (Linear Interpolation)**
+**Exemplo com literais:**
+```json
+{
+  "initialValue": 10,
+  "steps": [
+    { "operation": "ADD", "operands": ["5", "3"] },
+    { "operation": "MULTIPLY", "operands": ["2"] }
+  ]
+}
+```
+
+**Exemplo com símbolos: LERP (Linear Interpolation)**
 ```json
 {
   "LERP": {
@@ -675,9 +666,9 @@ var stats = _mathEngine.GetCacheStats();
 
 ### Overhead de Execução
 
-- **Modo 1 (Values):** ~0.1ms por step
-- **Modo 2 (Operands Literal):** ~0.1ms por step
-- **Modo 3 (Operands Simbólico):** ~0.2ms por step
+- **Modo simples (`values`):** ~0.1ms por step
+- **Modo explícito com literais:** ~0.1ms por step
+- **Modo explícito com símbolos:** ~0.2ms por step
 
 Para expressões típicas (< 20 steps), diferença é imperceptível.
 

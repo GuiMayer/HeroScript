@@ -61,16 +61,15 @@ Gerencia carregamento e cache de recursos.
 
 ### 4. MathExpression API
 
-Avalia expressões matemáticas com três modos de operação.
+Avalia expressões matemáticas com dois modos de operação.
 
 **Endpoints:**
 - `POST /api/math/evaluate` - Avalia expressão matemática
 - `GET /api/math/modes` - Lista modos disponíveis
 
 **Modos:**
-- **Implícito (Accumulator):** Operações modificam acumulador
-- **Explícito Literal:** Operações com valores literais explícitos
-- **Explícito Simbólico:** Operações com referências a parâmetros
+- **Simples (Accumulator):** Operações modificam acumulador
+- **Explícito:** Operações com literais ou referências a parâmetros
 
 ### 5. Formula API
 

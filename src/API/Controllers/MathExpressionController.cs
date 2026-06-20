@@ -25,10 +25,9 @@ public class MathExpressionController : ControllerBase
 
     /// <summary>
     /// Evaluate a custom math expression
-    /// Supports three modes:
-    /// 1. Implicit mode (Values) - legacy accumulator-based operations
-    /// 2. Explicit literal mode (Operands with numeric strings) - explicit operations with fixed values
-    /// 3. Explicit symbolic mode (Operands with $current, $initial, params.X) - dynamic operations with parameters
+    /// Supports two definition modes:
+    /// 1. Simple mode (Values) - applies numeric values to the implicit accumulator
+    /// 2. Explicit mode (Operands) - accepts numeric literals or symbolic references ($current, $initial, params.X)
     /// </summary>
     /// <param name="request">Math expression request</param>
     /// <returns>Evaluation result</returns>

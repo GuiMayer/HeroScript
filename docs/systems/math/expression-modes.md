@@ -1,15 +1,31 @@
-# Math Expression API - Três Modos de Operação
+# Math Expression API - Dois Modos de Operacao
 
-O endpoint `/api/math/expression/evaluate` suporta **três modos** de operação para máxima flexibilidade:
+O endpoint `/api/math/expression/evaluate` suporta **dois modos** para definir operacoes:
 
-## Modo 1: Implícito (Values) - Acumulador Implícito
+1. **Modo simples (`values`)** - aplica valores numericos ao acumulador implicito.
+2. **Modo explicito (`operands`)** - declara operandos como literais numericos ou referencias simbolicas.
 
-**Quando usar:** Expressões simples onde cada operação modifica o acumulador atual.
+Cada step deve usar apenas um desses campos. Nao misture `values` e `operands` na mesma operacao.
 
-**Características:**
-- Usa o campo `values` em cada step
-- Acumulador implícito (`currentValue`) é modificado por cada operação
-- Retrocompatível com versão anterior da API
+---
+
+## Modo 1: Simples / Acumulador Implicito (`values`)
+
+**Quando usar:** expressoes simples onde cada operacao modifica o valor atual.
+
+**Caracteristicas:**
+
+- Usa o campo `values` em cada step.
+- O acumulador atual (`currentValue`) e usado implicitamente.
+- E a forma mais compacta para operacoes lineares e calculos diretos.
+- Nao requer `parameters`.
+
+**Limitacoes:**
+
+- Nao resolve `params.NAME`.
+- Nao aceita `$current` ou `$initial` como tokens declarativos.
+- Nao permite declarar operandos independentes do acumulador.
+- E menos flexivel para formulas dinamicas, interpolacoes e composicoes que precisam referenciar valores externos.
 
 **Exemplo:**
 
@@ -28,16 +44,25 @@ POST /api/math/expression/evaluate
 
 ---
 
-## Modo 2: Explícito Literal (Operands Numéricos)
+## Modo 2: Explicito (`operands`)
 
-**Quando usar:** Operações explícitas com valores fixos conhecidos.
+**Quando usar:** operacoes que precisam declarar os operandos explicitamente, seja com valores fixos ou referencias dinamicas.
 
-**Características:**
-- Usa o campo `operands` com strings numéricas
-- Operações ainda modificam o acumulador
-- Útil quando valores são gerados dinamicamente como strings
+**Caracteristicas:**
 
-**Exemplo:**
+- Usa o campo `operands` em cada step.
+- Aceita literais numericos como strings.
+- Aceita referencias simbolicas quando a expressao depende do contexto.
+- Suporta `parameters` quando usa `params.NAME`.
+
+**Referencias especiais:**
+
+- `$current` - valor atual do acumulador.
+- `$initial` - valor inicial da expressao.
+- `params.NAME` - parametro fornecido no dicionario `parameters`.
+- `"123.45"` - literal numerico.
+
+### Exemplo com literais numericos
 
 ```json
 POST /api/math/expression/evaluate
@@ -52,24 +77,7 @@ POST /api/math/expression/evaluate
 
 **Resultado:** `(0 + 10 + 20) * 2 = 60`
 
----
-
-## Modo 3: Explícito Simbólico (Operands Dinâmicos)
-
-**Quando usar:** Expressões dinâmicas que dependem de parâmetros ou do valor atual.
-
-**Características:**
-- Usa o campo `operands` com referências simbólicas
-- Requer campo `parameters` quando usa `params.X`
-- Suporta: `$current`, `$initial`, `params.NAME`, literais numéricos
-
-**Referências Especiais:**
-- `$current` - Valor atual do acumulador
-- `$initial` - Valor inicial da expressão
-- `params.NAME` - Parâmetro fornecido no dicionário `parameters`
-- `"123.45"` - Literal numérico
-
-### Exemplo 1: Usando Parâmetros
+### Exemplo com parametros
 
 ```json
 POST /api/math/expression/evaluate
@@ -88,7 +96,7 @@ POST /api/math/expression/evaluate
 
 **Resultado:** `(0 + 50) * 2 = 100`
 
-### Exemplo 2: LERP (Linear Interpolation)
+### Exemplo LERP (Linear Interpolation)
 
 ```json
 POST /api/math/expression/evaluate
@@ -108,10 +116,10 @@ POST /api/math/expression/evaluate
 }
 ```
 
-**Fórmula:** `START + (TARGET - START) * T`  
+**Formula:** `START + (TARGET - START) * T`  
 **Resultado:** `0 + (100 - 0) * 0.5 = 50`
 
-### Exemplo 3: Misturando Simbólico e Literal
+### Exemplo misturando simbolos e literais
 
 ```json
 POST /api/math/expression/evaluate
@@ -128,28 +136,29 @@ POST /api/math/expression/evaluate
 }
 ```
 
-**Resultado:** 
+**Resultado:**
+
 1. `10 + 20 = 30`
 2. `30 * 2 = 60`
 3. `60 + 60 + 5 = 125`
 
 ---
 
-## Validações
+## Validacoes
 
-### ❌ Erro: Misturar Values e Operands
+### Erro: misturar `values` e `operands`
 
 ```json
 {
   "operation": "ADD",
   "values": [10],
-  "operands": ["20"]  // ❌ ERRO: Não pode usar ambos
+  "operands": ["20"]
 }
 ```
 
 **Resposta:** `400 Bad Request - "Step 'ADD' cannot have both Values and Operands"`
 
-### ❌ Erro: Parâmetro Não Fornecido
+### Erro: parametro nao fornecido
 
 ```json
 {
@@ -157,13 +166,12 @@ POST /api/math/expression/evaluate
   "steps": [
     { "operation": "ADD", "operands": ["params.MISSING"] }
   ]
-  // ❌ ERRO: Falta campo "parameters"
 }
 ```
 
 **Resposta:** `400 Bad Request - "Operand 'params.MISSING' requires parameters dictionary"`
 
-### ❌ Erro: Operando Inválido
+### Erro: operando invalido
 
 ```json
 {
@@ -179,63 +187,65 @@ POST /api/math/expression/evaluate
 
 ---
 
-## Comparação dos Modos
+## Comparacao dos Modos
 
-| Aspecto | Modo 1 (Values) | Modo 2 (Operands Literal) | Modo 3 (Operands Simbólico) |
-|---------|-----------------|---------------------------|------------------------------|
-| **Campo usado** | `values` | `operands` | `operands` |
-| **Tipo de valores** | Array de floats | Array de strings numéricas | Array de strings (simbólicas ou literais) |
-| **Requer `parameters`** | Não | Não | Sim (se usar `params.X`) |
-| **Suporta `$current`** | Implícito | Não | Sim |
-| **Suporta `params.X`** | Não | Não | Sim |
-| **Complexidade** | Baixa | Baixa | Média |
-| **Flexibilidade** | Baixa | Média | Alta |
+| Aspecto | Modo simples (`values`) | Modo explicito (`operands`) |
+|---------|--------------------------|------------------------------|
+| **Campo usado** | `values` | `operands` |
+| **Tipo de valores** | Array de numeros | Array de strings |
+| **Acumulador** | Implicito | Pode ser implicito ou referenciado com `$current` |
+| **Requer `parameters`** | Nao | Somente se usar `params.NAME` |
+| **Suporta `$current`** | Nao como token | Sim |
+| **Suporta `$initial`** | Nao como token | Sim |
+| **Suporta `params.NAME`** | Nao | Sim |
+| **Complexidade** | Baixa | Media |
+| **Flexibilidade** | Baixa a media | Alta |
 
 ---
 
 ## Quando Usar Cada Modo
 
-### Use Modo 1 (Values) quando:
-- Expressão é simples e valores são conhecidos
-- Não precisa de parâmetros dinâmicos
-- Quer retrocompatibilidade com API antiga
+### Use `values` quando:
 
-### Use Modo 2 (Operands Literal) quando:
-- Valores são gerados como strings
-- Não precisa de parâmetros dinâmicos
-- Quer operações explícitas sem símbolos
+- A expressao e simples e linear.
+- Os valores sao numericos e conhecidos no request.
+- Voce nao precisa de parametros dinamicos.
+- A operacao deve apenas modificar o acumulador atual.
 
-### Use Modo 3 (Operands Simbólico) quando:
-- Precisa de parâmetros dinâmicos
-- Quer referenciar `$current` ou `$initial`
-- Expressão depende de valores calculados em runtime
-- Implementando fórmulas complexas (LERP, interpolação, etc.)
+### Use `operands` quando:
+
+- Voce precisa declarar argumentos explicitamente.
+- Os valores chegam como strings numericas.
+- A expressao usa `params.NAME`, `$current` ou `$initial`.
+- A formula depende de valores calculados em runtime.
+- Voce esta implementando formulas mais complexas, como LERP ou interpolacao.
 
 ---
 
-## Operações Suportadas
+## Operacoes Suportadas
 
-Todas as operações do `MathExpression` são suportadas nos três modos:
+Todas as operacoes do `MathExpression` sao suportadas pelos dois modos, respeitando os argumentos exigidos por cada operacao:
 
-- **Aritméticas:** `ADD`, `SUBTRACT`, `MULTIPLY`, `DIVIDE`
-- **Potência:** `POW`, `SQRT`
+- **Aritmeticas:** `ADD`, `SUBTRACT`, `MULTIPLY`, `DIVIDE`
+- **Potencia:** `POW`, `SQRT`
 - **Arredondamento:** `ROUND`, `FLOOR`, `CEIL`
-- **Comparação:** `MIN`, `MAX`, `CLAMP`
+- **Comparacao:** `MIN`, `MAX`, `CLAMP`
 - **Outras:** `ABS`, `NEGATE`, `SET`
 
 ---
 
 ## Performance
 
-- **Modo 1 e 2:** Overhead mínimo (~0.1ms por step)
-- **Modo 3:** Overhead de resolução de operandos (~0.2ms por step)
-- Para expressões típicas (< 20 steps), diferença é imperceptível
+- **Modo simples (`values`):** overhead minimo (~0.1ms por step).
+- **Modo explicito com literais:** overhead minimo (~0.1ms por step).
+- **Modo explicito com simbolos:** adiciona custo de resolucao de operandos (~0.2ms por step).
+- Para expressoes tipicas (< 20 steps), a diferenca e imperceptivel.
 
 ---
 
-## Exemplos Práticos
+## Exemplos Praticos
 
-### Cálculo de Dano com Bônus
+### Calculo de dano com bonus
 
 ```json
 {
@@ -254,7 +264,7 @@ Todas as operações do `MathExpression` são suportadas nos três modos:
 
 **Resultado:** `(50 + 10) * 2 = 120`
 
-### Cálculo de Experiência com Cap
+### Calculo de experiencia com cap
 
 ```json
 {
@@ -273,7 +283,7 @@ Todas as operações do `MathExpression` são suportadas nos três modos:
 
 **Resultado:** `min(100 + 50, 120) = 120`
 
-### Interpolação de Cor (LERP RGB)
+### Interpolacao de cor (LERP RGB)
 
 ```json
 {

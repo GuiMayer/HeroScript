@@ -11,7 +11,8 @@ public class MathStepDto
     public string Operation { get; set; } = string.Empty;
 
     /// <summary>
-    /// Values used in the operation (legacy mode - implicit accumulator)
+    /// Values used by simple mode. Each value is applied to the implicit accumulator.
+    /// Does not support params.X, $current, or $initial tokens; use Operands for dynamic references.
     /// </summary>
     public float[]? Values { get; set; }
 

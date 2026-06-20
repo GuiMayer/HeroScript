@@ -25,12 +25,12 @@ namespace Core.Math
     /// 
     /// SISTEMA HÍBRIDO: ACUMULADOR IMPLÍCITO + OPERANDOS EXPLÍCITOS
     /// 
-    /// MODO 1: Acumulador Implícito (padrão, retrocompatível)
+    /// MODO 1: Acumulador Implícito (simples)
     /// - Use 'value' para operações que modificam o acumulador (currentValue)
     /// - Exemplo: { "op": "ADD", "value": "params.BONUS" }
     /// - Comportamento: currentValue = currentValue + BONUS
     /// 
-    /// MODO 2: Operandos Explícitos (novo, para expressões complexas)
+    /// MODO 2: Operandos Explícitos (para expressões complexas)
     /// - Use 'operands' para especificar todos os operandos explicitamente
     /// - Exemplo: { "op": "SUBTRACT", "operands": ["params.TARGET", "params.START"] }
     /// - Comportamento: currentValue = TARGET - START (ignora currentValue anterior)
@@ -578,7 +578,7 @@ namespace Core.Math
         /// <summary>
         /// Aplica uma operação individual à MathExpression.
         /// Suporta dois modos:
-        /// - Modo implícito: usa 'value' e modifica o acumulador (retrocompatível)
+        /// - Modo simples: usa 'value' e modifica o acumulador
         /// - Modo explícito: usa 'operands' e calcula resultado independente
         /// </summary>
         private void ApplyOperation(
@@ -599,7 +599,7 @@ namespace Core.Math
                     "Use 'value' for implicit accumulator mode, or 'operands' for explicit operands mode.");
             }
 
-            // MODO 1: Operandos explícitos (novo)
+            // Modo explícito: operandos declarados diretamente
             if (operation.Operands != null && operation.Operands.Count > 0)
             {
                 // Resolver todos os operandos
@@ -613,7 +613,7 @@ namespace Core.Math
                 return;
             }
 
-            // MODO 2: Acumulador implícito (existente, 100% retrocompatível)
+            // Modo simples: acumulador implícito
             switch (op)
             {
                 case "ADD":

@@ -232,7 +232,7 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 
 **Sistemas:**
 - Config API (herança delta estruturada)
-- MathExpression API (3 modos de operação)
+- MathExpression API (2 modos de operação)
 - Resource API (carregamento e cache)
 - Formula API (fórmulas data-driven)
 

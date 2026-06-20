@@ -6,10 +6,9 @@ namespace Core.Math;
 
 /// <summary>
 /// Serviço para avaliação de expressões matemáticas customizadas
-/// Suporta três modos:
-/// 1. Implicit mode (Values) - operações baseadas em acumulador
-/// 2. Explicit literal mode (Operands com strings numéricas) - operações com valores fixos
-/// 3. Explicit symbolic mode (Operands com $current, $initial, params.X) - operações com parâmetros dinâmicos
+/// Suporta dois modos de definição:
+/// 1. Simple mode (Values) - aplica valores numéricos ao acumulador implícito
+/// 2. Explicit mode (Operands) - aceita literais numéricos ou referências simbólicas ($current, $initial, params.X)
 /// Segue padrões estabelecidos em docs/core-service-patterns.md
 /// </summary>
 public class ExpressionEvaluator : IExpressionEvaluator
@@ -115,13 +114,13 @@ public class ExpressionEvaluator : IExpressionEvaluator
             return ProcessUnaryOperation(step, ref currentValue, expression);
         }
 
-        // MODE 1: Implicit (Values) - modo acumulador legado
+        // MODE 1: Simple implicit accumulator (Values)
         if (hasValues)
         {
             return ProcessImplicitMode(step, ref currentValue, expression);
         }
 
-        // MODE 2 & 3: Explicit (Operands)
+        // MODE 2: Explicit operands (numeric literals or symbolic references)
         if (hasOperands)
         {
             return ProcessExplicitMode(step, request, ref currentValue, expression);
@@ -150,7 +149,7 @@ public class ExpressionEvaluator : IExpressionEvaluator
     }
 
     /// <summary>
-    /// Processa modo implícito com Values (MODE 1)
+    /// Processa modo simples com acumulador implícito (MODE 1)
     /// </summary>
     private Result<bool> ProcessImplicitMode(
         ExpressionStep step,
@@ -163,7 +162,7 @@ public class ExpressionEvaluator : IExpressionEvaluator
     }
 
     /// <summary>
-    /// Processa modo explícito com Operands (MODE 2 & 3)
+    /// Processa modo explícito com Operands (MODE 2)
     /// </summary>
     private Result<bool> ProcessExplicitMode(
         ExpressionStep step,
@@ -187,7 +186,7 @@ public class ExpressionEvaluator : IExpressionEvaluator
     }
 
     /// <summary>
-    /// Processa modo simbólico (MODE 3)
+    /// Processa a variação simbólica do modo explícito
     /// </summary>
     private Result<bool> ProcessSymbolicMode(
         ExpressionStep step,
@@ -231,7 +230,7 @@ public class ExpressionEvaluator : IExpressionEvaluator
     }
 
     /// <summary>
-    /// Processa modo literal (MODE 2)
+    /// Processa a variação literal do modo explícito
     /// </summary>
     private Result<bool> ProcessLiteralMode(
         ExpressionStep step,

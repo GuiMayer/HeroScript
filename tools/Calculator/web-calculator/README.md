@@ -1,17 +1,16 @@
 # HeroScript Web Calculator
 
-A modern React-based calculator that tests the HeroScript MathExpression API with all 15 mathematical operations and 3 API modes.
+A modern React-based calculator that tests the HeroScript MathExpression API with all 15 mathematical operations and 2 API modes.
 
 ## Features
 
 - **15 Mathematical Operations**: ADD, SUBTRACT, MULTIPLY, DIVIDE, POW, SQRT, ABS, NEGATE, MIN, MAX, CLAMP, ROUND, FLOOR, CEIL, SET
-- **3 API Modes**: 
-  - **Mode 1 (Implicit)**: Simple values with implicit accumulator
-  - **Mode 2 (Explicit Literal)**: Numeric operands as strings
-  - **Mode 3 (Symbolic)**: Dynamic operands with $current, $initial, params.X
+- **2 API Modes**: 
+  - **Mode 1 (Simple)**: Values with implicit accumulator
+  - **Mode 2 (Explicit)**: Numeric operands or dynamic references with $current, $initial, params.X
 - **Visual Timeline**: See your expression build step-by-step with a beautiful timeline visualization
 - **Real-time API Testing**: Direct integration with HeroScript Math API
-- **Parameter Management**: Define and use dynamic parameters in symbolic mode
+- **Parameter Management**: Define and use dynamic parameters in explicit mode
 - **Undo/Redo**: Manage your expression steps with undo functionality
 - **Multi-value Support**: Handle operations that require multiple values (MIN, MAX, CLAMP)
 - **Execution Metrics**: View execution time and operation count
@@ -68,21 +67,18 @@ VITE_API_URL=http://localhost:5260
 
 ## API Modes
 
-The calculator supports three different API modes for evaluating expressions:
+The calculator supports two definition modes for evaluating expressions:
 
-### Mode 1: Implicit (Values)
+### Mode 1: Simple (Values)
 The simplest mode - values modify an implicit accumulator.
 - **Use case**: Quick calculations, simple expressions
+- **Limitation**: Values do not resolve `params.NAME`, `$current`, or `$initial`; use Operands for dynamic references
 - **Example**: Initial: `10`, ADD `5`, MULTIPLY `2` → Result: `30`
 
-### Mode 2: Explicit Literal
-Operands are provided as numeric strings.
-- **Use case**: When you need explicit control over operand order
+### Mode 2: Explicit (Operands)
+Operands are provided as numeric strings or symbolic references.
+- **Use case**: When you need explicit control, parameters, or dynamic references
 - **Example**: Initial: `10`, ADD `"5"`, `"3"` → Result: `18`
-
-### Mode 3: Symbolic
-Dynamic operands with special symbols and parameters.
-- **Use case**: Complex formulas, parameterized calculations, LERP
 - **Symbols**:
   - `$current` - Current accumulated value
   - `$initial` - Initial value
@@ -97,7 +93,7 @@ Dynamic operands with special symbols and parameters.
 
 1. **Select API Mode** (Mode 1 is default)
 2. Enter an **Initial Value** (e.g., `10`)
-3. **(Mode 3 only)** Define parameters if needed
+3. **(Operands with symbols only)** Define parameters if needed
 4. Add operations by entering values/operands and clicking operation buttons:
    - **Add (+)**: Add values to the current result
    - **Subtract (−)**: Subtract values from the current result
@@ -128,7 +124,7 @@ Dynamic operands with special symbols and parameters.
 - Use **Undo Last Step** to remove the most recent operation
 - Click **Continue from Result** to start a new expression using the previous result
 - The timeline shows each step with its operation and values/operands
-- Mode badges (M1, M2, M3) indicate which mode was used for each step
+- Mode badges (M1, M2) indicate which mode was used for each step
 - Execution time is displayed in milliseconds
 - Switch modes to explore different ways of building expressions
 
@@ -136,7 +132,7 @@ Dynamic operands with special symbols and parameters.
 
 ### Mode 1: Calculate (10 + 5) × 2 − 3
 
-1. Select **Mode 1: Implicit**
+1. Select **Mode 1: Simple**
 2. Initial Value: `10`
 3. Add: `5` → Result: 15
 4. Multiply: `2` → Result: 30
@@ -144,26 +140,26 @@ Dynamic operands with special symbols and parameters.
 
 ### Mode 1: Find minimum of multiple values
 
-1. Select **Mode 1: Implicit**
+1. Select **Mode 1: Simple**
 2. Initial Value: `100`
 3. Min: `50, 75, 25, 90` → Result: 25
 
 ### Mode 1: Clamp a value between bounds
 
-1. Select **Mode 1: Implicit**
+1. Select **Mode 1: Simple**
 2. Initial Value: `150`
 3. Clamp: `0, 100` → Result: 100
 
 ### Mode 2: Explicit calculation
 
-1. Select **Mode 2: Explicit Literal**
+1. Select **Mode 2: Explicit**
 2. Initial Value: `0`
 3. Add: `"10", "20"` → Result: 30
 4. Multiply: `"2"` → Result: 60
 
-### Mode 3: LERP from 0 to 100 at 50%
+### Mode 2: LERP from 0 to 100 at 50%
 
-1. Select **Mode 3: Symbolic**
+1. Select **Mode 2: Explicit**
 2. Add Parameters:
    - `START = 0`
    - `TARGET = 100`
@@ -172,9 +168,9 @@ Dynamic operands with special symbols and parameters.
 4. SET: `params.START` → Result: 0
 5. ADD: `params.TARGET, params.T` (simulating LERP logic)
 
-### Mode 3: Dynamic damage calculation
+### Mode 2: Dynamic damage calculation
 
-1. Select **Mode 3: Symbolic**
+1. Select **Mode 2: Explicit**
 2. Add Parameters:
    - `BASE_DAMAGE = 50`
    - `MULTIPLIER = 1.5`
@@ -258,7 +254,7 @@ POST /api/math/expression/evaluate
 
 ### Request Body Examples
 
-**Mode 1: Implicit (Values)**
+**Mode 1: Simple (Values)**
 ```json
 {
   "initialValue": 10,
@@ -269,7 +265,7 @@ POST /api/math/expression/evaluate
 }
 ```
 
-**Mode 2: Explicit Literal (Operands)**
+**Mode 2: Explicit (Operands with literals)**
 ```json
 {
   "initialValue": 10,
@@ -280,7 +276,7 @@ POST /api/math/expression/evaluate
 }
 ```
 
-**Mode 3: Symbolic (Operands + Parameters)**
+**Mode 2: Explicit (Operands with parameters)**
 ```json
 {
   "initialValue": 0,
