@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Caching;
+using API.Models;
 using CoreLogger = Core.Logging.ILogger;
 
 namespace API.Controllers;
@@ -264,12 +265,4 @@ public class InvalidationResponse
 {
     public string Message { get; set; } = "";
     public DateTime Timestamp { get; set; }
-}
-
-/// <summary>
-/// Standard error response model.
-/// </summary>
-public class ErrorResponse
-{
-    public string Error { get; set; } = "";
 }
