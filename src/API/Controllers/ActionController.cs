@@ -156,10 +156,14 @@ public class ActionController : ControllerBase
     /// Recarrega definições de ações (dev mode)
     /// </summary>
     [HttpPost("reload")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(200)]
     [ProducesResponseType(500)]
     public IActionResult ReloadActions([FromQuery] string configName = "default")
     {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
         try
         {
             _actionManager.LoadActionDefinitions(configName);

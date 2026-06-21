@@ -105,7 +105,8 @@ public class EventsController : ControllerBase
         Response.ContentType = "text/event-stream";
 
         var currentSequence = afterSequence;
-        var delay = TimeSpan.FromMilliseconds(Math.Clamp(delayMs, 250, 5000));
+        // Limit to prevent abusive long polling tight-loops
+        var delay = TimeSpan.FromMilliseconds(Math.Max(delayMs, 1000));
 
         while (!HttpContext.RequestAborted.IsCancellationRequested)
         {
@@ -186,6 +187,7 @@ public class EventsController : ControllerBase
     /// Limpa histórico de eventos (apenas dev mode).
     /// </summary>
     [HttpDelete]
+    [API.Attributes.AdminEndpoint]
     public IActionResult ClearHistory()
     {
         try

@@ -321,8 +321,8 @@ builder.Services.AddCors(options =>
             }
             else
             {
-                // Fallback: No CORS if no origins configured
-                policy.AllowAnyOrigin()
+                // Fallback: Secure by default, no wildcard CORS in production
+                policy.WithOrigins("https://localhost")
                       .AllowAnyMethod()
                       .AllowAnyHeader();
             }
@@ -394,6 +394,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseCors();
+app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
 app.MapControllers();
 
 app.Run();

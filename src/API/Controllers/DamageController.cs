@@ -148,6 +148,7 @@ public class DamageController : ControllerBase
     /// </summary>
     /// <returns>Nova configuração</returns>
     [HttpPost("pipeline/reload")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(typeof(PipelineConfigResponse), 200)]
     [ProducesResponseType(400)]
     public IActionResult ReloadPipeline()

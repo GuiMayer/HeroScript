@@ -88,6 +88,7 @@ public class DiagnosticsController : ControllerBase
     /// Invalidates a specific cache service by name.
     /// </summary>
     [HttpPost("cache/invalidate/{cacheName}")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(typeof(InvalidationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -126,6 +127,7 @@ public class DiagnosticsController : ControllerBase
     /// Invalidates a specific key within a cache service.
     /// </summary>
     [HttpPost("cache/invalidate/{cacheName}/key")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(typeof(InvalidationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]

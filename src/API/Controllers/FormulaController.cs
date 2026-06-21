@@ -174,6 +174,7 @@ public class FormulaController : ControllerBase
     /// </summary>
     /// <returns>Success message</returns>
     [HttpPost("reload")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult Reload()
     {

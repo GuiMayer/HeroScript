@@ -244,6 +244,7 @@ public class ConfigController : ControllerBase
     /// <param name="request">Load configuration request</param>
     /// <returns>Loaded configuration information</returns>
     [HttpPost("{name}/load")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(typeof(ConfigChainDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -258,6 +259,15 @@ public class ConfigController : ControllerBase
             {
                 error = "Configuration reload is disabled",
                 details = "Set ALLOW_CONFIG_RELOAD=true in environment or appsettings.json to enable this operation"
+            });
+        }
+
+        // Validate input to prevent path traversal
+        if (!ValidationHelper.IsValidConfigName(name))
+        {
+            return BadRequest(new ErrorResponse 
+            { 
+                Error = "Invalid configuration name" 
             });
         }
 
