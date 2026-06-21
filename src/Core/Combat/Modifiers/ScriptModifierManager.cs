@@ -3,6 +3,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
+using Core.Events;
+using Core.Events.Domain;
 using Core.Math;
 
 namespace Core.Combat.Modifiers;
@@ -12,6 +14,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
+    private readonly IEventBus? _eventBus;
     private readonly ConcurrentDictionary<string, ScriptModifierDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, List<ScriptModifierInstance>> _activeModifiers = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
@@ -19,11 +22,13 @@ public sealed class ScriptModifierManager : IScriptModifierManager
     public ScriptModifierManager(
         IConfigManager configManager,
         IResourceLoader resourceLoader,
-        IRuntimeFormulaEvaluator formulaEvaluator)
+        IRuntimeFormulaEvaluator formulaEvaluator,
+        IEventBus? eventBus = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
+        _eventBus = eventBus;
     }
 
     public Result LoadDefinitions(string configName)
@@ -90,7 +95,10 @@ public sealed class ScriptModifierManager : IScriptModifierManager
 
         var definitionResult = GetDefinition(modifierId);
         if (!definitionResult.IsSuccess)
+        {
+            _eventBus?.Publish(new ModifierRejectedEvent(ownerId, modifierId, definitionResult.Error));
             return Result<ScriptModifierInstance>.Failure(definitionResult.Error);
+        }
 
         var definition = definitionResult.Value;
         var list = GetOwnerList(ownerId);
@@ -105,6 +113,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager
                     Duration = duration ?? existing.Duration
                 };
                 ReplaceInstance(list, updated);
+                _eventBus?.Publish(new ModifierAppliedEvent(ownerId, modifierId, updated.InstanceId, updated.Stacks, updated.Duration, sourceId));
                 return Result<ScriptModifierInstance>.Success(updated);
             }
 
@@ -118,6 +127,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager
                 Duration = duration ?? definition.DefaultDuration
             };
             list.Add(instance);
+            _eventBus?.Publish(new ModifierAppliedEvent(ownerId, modifierId, instance.InstanceId, instance.Stacks, instance.Duration, sourceId));
             return Result<ScriptModifierInstance>.Success(instance);
         }
     }
@@ -125,11 +135,17 @@ public sealed class ScriptModifierManager : IScriptModifierManager
     public Result RemoveModifier(string ownerId, Guid instanceId)
     {
         var list = GetOwnerList(ownerId);
+        string? modifierId = null;
         lock (list)
         {
+            var item = list.FirstOrDefault(m => m.InstanceId == instanceId);
+            modifierId = item?.ModifierId;
             var removed = list.RemoveAll(m => m.InstanceId == instanceId);
-            return removed > 0 ? Result.Success() : Result.Failure($"Modifier instance {instanceId} not found");
+            if (removed == 0)
+                return Result.Failure($"Modifier instance {instanceId} not found");
         }
+        _eventBus?.Publish(new ModifierRemovedEvent(ownerId, modifierId ?? string.Empty, instanceId));
+        return Result.Success();
     }
 
     public IReadOnlyList<ScriptModifierInstance> GetActiveModifiers(string ownerId)
@@ -163,6 +179,8 @@ public sealed class ScriptModifierManager : IScriptModifierManager
     public Result TickDurations(string ownerId)
     {
         var list = GetOwnerList(ownerId);
+        var expired = new List<ScriptModifierInstance>();
+        var ticked = new List<(ScriptModifierInstance modifier, int newDuration)>();
         lock (list)
         {
             for (var i = list.Count - 1; i >= 0; i--)
@@ -173,11 +191,22 @@ public sealed class ScriptModifierManager : IScriptModifierManager
 
                 var duration = modifier.Duration - 1;
                 if (duration <= 0)
+                {
+                    expired.Add(modifier);
                     list.RemoveAt(i);
+                }
                 else
+                {
                     list[i] = modifier with { Duration = duration };
+                    ticked.Add((modifier, duration));
+                }
             }
         }
+
+        foreach (var (modifier, newDuration) in ticked)
+            _eventBus?.Publish(new ModifierTickedEvent(ownerId, modifier.ModifierId, modifier.InstanceId, newDuration));
+        foreach (var modifier in expired)
+            _eventBus?.Publish(new ModifierExpiredEvent(ownerId, modifier.ModifierId, modifier.InstanceId));
 
         return Result.Success();
     }

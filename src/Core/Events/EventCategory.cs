@@ -28,5 +28,15 @@ public enum EventCategory
     /// <summary>
     /// Eventos especiais do jogo (Reality Bend)
     /// </summary>
-    REALITY_BEND
+    REALITY_BEND,
+
+    /// <summary>
+    /// Eventos de progressão de run (economia, baralho, loja)
+    /// </summary>
+    RUN,
+
+    /// <summary>
+    /// Eventos de estado de jogo genéricos (status effects, modificadores)
+    /// </summary>
+    GAME
 }

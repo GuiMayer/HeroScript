@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using Core.Common;
 using Core.Config;
+using Core.Events;
+using Core.Events.Domain;
 using Core.Math;
 using Core.Resources;
 using System.Text.Json;
@@ -18,6 +20,7 @@ public class StatusEffectManager : IStatusEffectManager
     private readonly IResourceLoader _resourceLoader;
     private readonly IResourceManager _resourceManager;
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
+    private readonly IEventBus? _eventBus;
     
     // Status effects ativos por entidade (thread-safe)
     private readonly ConcurrentDictionary<Guid, List<StatusEffectInstance>> _activeStatus = new();
@@ -32,12 +35,14 @@ public class StatusEffectManager : IStatusEffectManager
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         IResourceManager resourceManager,
-        IRuntimeFormulaEvaluator formulaEvaluator)
+        IRuntimeFormulaEvaluator formulaEvaluator,
+        IEventBus? eventBus = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
+        _eventBus = eventBus;
         
         _processor = new StatusEffectProcessor(this, formulaEvaluator);
     }
@@ -71,10 +76,12 @@ public class StatusEffectManager : IStatusEffectManager
         if (existingStatus != null)
         {
             // Adicionar stacks ao existente
+            var oldStacks = existingStatus.Stacks;
             var newStacks = System.Math.Min(existingStatus.Stacks + stacks, definition.MaxStacks);
             var updated = existingStatus with { Stacks = newStacks };
             
             UpdateStatusInstance(targetId, updated);
+            _eventBus?.Publish(new StatusStackChangedEvent(targetId, statusId, existingStatus.InstanceId, oldStacks, newStacks));
             return Result<StatusEffectInstance>.Success(updated);
         }
         
@@ -98,12 +105,14 @@ public class StatusEffectManager : IStatusEffectManager
             statusList.Add(instance);
         }
         
+        _eventBus?.Publish(new StatusAppliedEvent(targetId, statusId, instance.InstanceId, instance.Stacks, instance.Duration, sourceId));
         return Result<StatusEffectInstance>.Success(instance);
     }
     
     public Result RemoveStatus(Guid targetId, Guid instanceId)
     {
         var statusList = GetActiveStatusList(targetId);
+        string? statusId = null;
         
         lock (statusList)
         {
@@ -111,9 +120,11 @@ public class StatusEffectManager : IStatusEffectManager
             if (index == -1)
                 return Result.Failure($"Status instance {instanceId} not found");
             
+            statusId = statusList[index].StatusId;
             statusList.RemoveAt(index);
         }
         
+        _eventBus?.Publish(new StatusRemovedEvent(targetId, statusId!, instanceId));
         return Result.Success();
     }
     
@@ -298,11 +309,11 @@ public class StatusEffectManager : IStatusEffectManager
     public Result TickDurations(Guid targetId)
     {
         var statusList = GetActiveStatusList(targetId);
+        var toRemove = new List<StatusEffectInstance>();
+        var ticked = new List<(StatusEffectInstance status, int newDuration)>();
         
         lock (statusList)
         {
-            var toRemove = new List<StatusEffectInstance>();
-            
             for (int i = 0; i < statusList.Count; i++)
             {
                 var status = statusList[i];
@@ -322,6 +333,7 @@ public class StatusEffectManager : IStatusEffectManager
                 {
                     // Atualizar duração
                     statusList[i] = status with { Duration = newDuration };
+                    ticked.Add((status, newDuration));
                 }
             }
             
@@ -330,6 +342,16 @@ public class StatusEffectManager : IStatusEffectManager
             {
                 statusList.Remove(expired);
             }
+        }
+        
+        // Publicar eventos fora do lock
+        foreach (var (status, newDuration) in ticked)
+        {
+            _eventBus?.Publish(new StatusTickProcessedEvent(targetId, status.StatusId, status.InstanceId, newDuration));
+        }
+        foreach (var expired in toRemove)
+        {
+            _eventBus?.Publish(new StatusExpiredEvent(targetId, expired.StatusId, expired.InstanceId));
         }
         
         return Result.Success();

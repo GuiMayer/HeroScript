@@ -1,6 +1,8 @@
 using Core.Common;
 using Core.Combat.Modifiers;
 using Core.Config;
+using Core.Events;
+using Core.Events.Domain;
 using Core.Run.Content;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -14,6 +16,7 @@ public sealed class RunManager : IRunManager
     private readonly ICardPoolResolver? _cardPoolResolver;
     private readonly ICardContentCatalog? _cardContentCatalog;
     private readonly IScriptModifierManager? _scriptModifierManager;
+    private readonly IEventBus? _eventBus;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
@@ -23,13 +26,15 @@ public sealed class RunManager : IRunManager
         IResourceLoader resourceLoader,
         ICardPoolResolver? cardPoolResolver = null,
         ICardContentCatalog? cardContentCatalog = null,
-        IScriptModifierManager? scriptModifierManager = null)
+        IScriptModifierManager? scriptModifierManager = null,
+        IEventBus? eventBus = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _cardPoolResolver = cardPoolResolver;
         _cardContentCatalog = cardContentCatalog;
         _scriptModifierManager = scriptModifierManager;
+        _eventBus = eventBus;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -57,6 +62,8 @@ public sealed class RunManager : IRunManager
             _runs[state.RunId] = state;
         }
 
+        _eventBus?.Publish(new RunStartedEvent(state.RunId, configName, playerEntityId, definition.StartingGold, definition.StartingPowerPoints));
+
         var draw = DrawCards(state.RunId, definition.StartingHandSize);
         return draw.IsFailure ? Result<RunState>.Failure(draw.Error) : GetRun(state.RunId);
     }
@@ -73,6 +80,7 @@ public sealed class RunManager : IRunManager
 
     public Result<RunState> ApplyEconomy(Guid runId, string resource, int amount)
     {
+        int oldValue, newValue;
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
@@ -81,29 +89,35 @@ public sealed class RunManager : IRunManager
             switch (resource.ToLowerInvariant())
             {
                 case "gold":
+                    oldValue = state.Gold;
                     state.Gold = System.Math.Max(0, state.Gold + amount);
+                    newValue = state.Gold;
                     break;
                 case "pp":
                 case "powerpoints":
                 case "power_points":
+                    oldValue = state.PowerPoints;
                     state.PowerPoints = System.Math.Max(0, state.PowerPoints + amount);
+                    newValue = state.PowerPoints;
                     break;
                 default:
                     return Result<RunState>.Failure($"Unsupported run economy resource: {resource}");
             }
 
+            _eventBus?.Publish(new EconomyChangedEvent(runId, resource, oldValue, newValue));
             return Result<RunState>.Success(state);
         }
     }
 
     public Result<IReadOnlyList<string>> DrawCards(Guid runId, int count)
     {
+        List<string> drawn;
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
 
-            var drawn = new List<string>();
+            drawn = new List<string>();
             for (var i = 0; i < count; i++)
             {
                 if (state.Deck.DrawPile.Count == 0)
@@ -119,9 +133,12 @@ public sealed class RunManager : IRunManager
                 state.Deck.Hand.Add(cardId);
                 drawn.Add(cardId);
             }
-
-            return Result<IReadOnlyList<string>>.Success(drawn);
         }
+
+        if (drawn.Count > 0)
+            _eventBus?.Publish(new CardDrawnEvent(runId, drawn));
+
+        return Result<IReadOnlyList<string>>.Success(drawn);
     }
 
     public Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds)

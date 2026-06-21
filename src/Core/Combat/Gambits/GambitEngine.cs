@@ -4,6 +4,8 @@ using Core.Common;
 using Core.Config;
 using Core.Entity;
 using Core.Entity.Controllers;
+using Core.Events;
+using Core.Events.Domain;
 
 namespace Core.Combat.Gambits;
 
@@ -11,13 +13,15 @@ public sealed class GambitEngine : IGambitEngine
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
+    private readonly IEventBus? _eventBus;
     private readonly Dictionary<string, GambitDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
 
-    public GambitEngine(IConfigManager configManager, IResourceLoader resourceLoader)
+    public GambitEngine(IConfigManager configManager, IResourceLoader resourceLoader, IEventBus? eventBus = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+        _eventBus = eventBus;
     }
 
     public Result LoadDefinitions(string configName)
@@ -76,14 +80,19 @@ public sealed class GambitEngine : IGambitEngine
 
     public Result<GambitDecision> DecideActionWithMetadata(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
     {
+        var combatId = combatState.CombatId;
+        var actorId = controlledEntity.EntityId;
         var candidates = ResolveCandidates(gambitIds);
         foreach (var gambit in candidates.OrderByDescending(g => g.Priority))
         {
             if (gambit.Conditions.All(condition => Matches(condition, controlledEntity, combatState, gambit.Action)))
             {
+                _eventBus?.Publish(new GambitRuleMatchedEvent(combatId, actorId, gambit.GambitId, gambit.GambitId, gambit.Priority));
+                var action = MapAction(gambit.Action, controlledEntity, combatState);
+                _eventBus?.Publish(new GambitActionSelectedEvent(combatId, actorId, gambit.GambitId, action.PowerId ?? action.ActionType.ToString(), action.TargetId));
                 return Result<GambitDecision>.Success(new GambitDecision
                 {
-                    Action = MapAction(gambit.Action, controlledEntity, combatState),
+                    Action = action,
                     GambitId = gambit.GambitId,
                     Priority = gambit.Priority,
                     Intent = gambit.Intent
@@ -91,6 +100,8 @@ public sealed class GambitEngine : IGambitEngine
             }
         }
 
+        // No rule matched — fall through to PASS
+        _eventBus?.Publish(new GambitDecisionFailedEvent(combatId, actorId, gambitIds?.FirstOrDefault() ?? "default", "No gambit rule matched; defaulting to PASS"));
         return Result<GambitDecision>.Success(new GambitDecision
         {
             Action = new EntityAction { ActionType = Models.ActionType.PASS }

@@ -146,7 +146,8 @@ builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var resourceManager = sp.GetRequiredService<IResourceManager>();
     var formulaEvaluator = sp.GetRequiredService<IRuntimeFormulaEvaluator>();
-    return new StatusEffectManager(configManager, resourceLoader, resourceManager, formulaEvaluator);
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    return new StatusEffectManager(configManager, resourceLoader, resourceManager, formulaEvaluator, eventBus);
 });
 
 // Register ActionManager
@@ -163,21 +164,29 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 builder.Services.AddSingleton<IScriptModifierManager>(sp => new ScriptModifierManager(
     sp.GetRequiredService<IConfigManager>(),
     sp.GetRequiredService<IResourceLoader>(),
-    sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+    sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
+    sp.GetRequiredService<IEventBus>()));
 
 // Register GambitEngine
 builder.Services.AddSingleton<IGambitEngine>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
-    return new GambitEngine(configManager, resourceLoader);
+    var eventBus = sp.GetRequiredService<IEventBus>();
+    return new GambitEngine(configManager, resourceLoader, eventBus);
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 
 // Register Run content and manager
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
-builder.Services.AddSingleton<IRunManager, RunManager>();
+builder.Services.AddSingleton<IRunManager>(sp => new RunManager(
+    sp.GetRequiredService<IConfigManager>(),
+    sp.GetRequiredService<IResourceLoader>(),
+    sp.GetRequiredService<ICardPoolResolver>(),
+    sp.GetRequiredService<ICardContentCatalog>(),
+    sp.GetRequiredService<IScriptModifierManager>(),
+    sp.GetRequiredService<IEventBus>()));
 
 // Register damage pipeline
 builder.Services.AddSingleton<PipelineConfigLoader>(sp =>
