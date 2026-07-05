@@ -9,6 +9,120 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Hardening Phase (2026-06-04 to 2026-06-08)
+
+**Trilha 1 — Event Publishing (commit c15d05f)**
+- EventBus now publishes lifecycle events across all managers
+- New events: `CombatStartedEvent`, `CombatEndedEvent`, `TurnStartedEvent`, `TurnEndedEvent`
+- Status events: `StatusAppliedEvent`, `StatusTickedEvent`, `StatusRemovedEvent`
+- Modifier events: `ModifierAppliedEvent`, `ModifierRemovedEvent`
+- Gambit events: `GambitEvaluatedEvent`, `GambitActionDecidedEvent`
+- Resource events: `ResourceChangedEvent`, `ResourcePoolCreatedEvent`
+- Support for event replay and audit trails via EventBus history
+
+**Trilha 2 — API Security (commit b22655b)**
+- `AdminKeyMiddleware` protecting administrative endpoints
+- Configuration via `Admin:ApiKey` in appsettings or `HERESCRIPT_ADMIN_KEY` environment variable
+- Protected endpoints: `/api/action/reload`, `/api/game-resources/reload`, `/api/config/load`, `/api/modifiers/reload`, `/api/gambits/reload`, `/api/status/reload`
+- Returns `401 Unauthorized` for missing or invalid admin keys
+
+**Trilha 3 — Logging & Observability (commit c1ab29f)**
+- Eliminated all `Console.WriteLine` calls (32 occurrences removed from 5 Core files)
+  - `DeltaMerger.cs`, `ResourcePathResolver.cs`, `ConfigValidator.cs`, `FormulaLoader.cs`, `ResourceProviderFactory.cs`
+- `CorrelationIdMiddleware` adds `X-Correlation-ID` to all requests/responses
+- Structured logging with templates instead of string interpolation
+  - Example: `_logger.LogInformation("Effect {EffectId} resolved", effectId)`
+- All Core managers now use `ILogger` with proper severity levels (Debug, Information, Warning, Error)
+- Removed `ConsoleLogger` fallback in `EntityDefinitionLoader` - DI injection now mandatory
+- Updated `appsettings.Development.json` to enable Debug-level logging
+
+**Trilha 4 — Event Persistence (commit 38ecae9)**
+- `JsonFileEventStore` with append-only `.jsonl` format
+- Configurable via `Persistence:EventStorePath` (default: `data/events/`)
+- Event filtering by `eventType`, `runId`, and `afterSequence`
+- Dual-write in `EventBus`: in-memory history + optional persistent store
+- Failures in event store do not propagate to `Publish<T>()` - fire-and-forget persistence
+- Thread-safe append with file locking
+
+**Trilha 5 — Run State Persistence (commit 38ecae9)**
+- `JsonFileRunStateRepository` with atomic writes (temp file + rename)
+- Each run saved as `{runId}.json` in configurable directory
+- Configurable via `Persistence:RunStatePath` (default: `data/runs/`)
+- Auto-load on `RunManager.GetRun()` when run not in memory
+- Restart-safe: process restart preserves run state and event history
+- API methods: `SaveAsync`, `LoadAsync`, `ExistsAsync`, `DeleteAsync`
+
+**Trilha 6 — Test Stability & CI (commit 9162814)**
+- Fixed `TestWebApplicationFactory.FindProjectRoot()` with depth limit (12 levels)
+- Environment variable support: `HERESCRIPT_REPO_ROOT` for deterministic root finding
+- Test categorization: `[Trait("Category", "Unit")]` (125 tests) and `[Trait("Category", "Integration")]` (25 tests)
+- Test timeouts configured via `tests/heroscript.runsettings`
+  - 30 seconds per test
+  - 5 minutes per session
+- CI pipeline in `.github/workflows/ci.yml` with separate jobs:
+  - Build solution
+  - Core Tests (723 tests)
+  - API Unit Tests (125 tests, fast)
+  - API Integration Tests (25 tests, timeout 5min)
+- Resolved timeout/freeze issues in API.Tests
+- All tests now passing reliably
+
+**Infrastructure**
+- Created `Core.Abstractions` layer with:
+  - `IEventStore`, `IRunStateRepository`, `ISnapshotStore` interfaces
+  - Typed identifiers: `RunId`, `CombatId`, `EntityId`
+  - `ICorrelatedEvent` interface for event correlation
+- Created `Core.Infrastructure.Persistence` with JSON implementations
+- Registered persistence services in DI container
+
+**Phase 3 — First Slice (2026-06-04)**
+- `RunState` and `DeckState` as core of Phase 3
+- `RunManager` with automatic persistence
+- `RunController` (start, state, deck, hand, draw, discard, shuffle)
+- `CardSelectionController` (start, pick, reroll, decompose)
+- `ShopController` (start, buy, reroll, sell)
+- `PreparationController` (start, apply-modifier)
+- `CombatRunCoordinator` (combat ↔ deck/hand integration, real card consumption)
+- Transactional rollback for composite operations
+
+**Documentation**
+- Added `docs/security.md` - AdminKeyMiddleware configuration and usage
+- Added `docs/persistence.md` - JsonFileEventStore and JsonFileRunStateRepository details
+- Added `docs/observability.md` - CorrelationIdMiddleware and structured logging
+- Updated `README.md` with current project state and hardening phase
+
+### Changed
+
+**Test Suite**
+- Core.Tests count updated: 723 tests (was 553)
+- API.Tests count updated: 150 tests total (125 unit + 25 integration)
+- API.Tests now stable - timeout/freeze issues resolved
+- Test execution time reduced via categorization
+
+**Documentation**
+- Phase 3 status updated: first slice implemented (was "not implemented")
+- README.md synchronized with actual project state
+
+### Technical Details
+
+**Code Quality**
+- Zero `Console.WriteLine` in production code
+- All logging uses structured templates
+- Mandatory `ILogger` injection (no fallbacks)
+- Type-safe identifiers prevent ID confusion
+
+**Reliability**
+- Atomic writes prevent data corruption
+- Dual-write ensures event persistence doesn't block publish
+- Test stability improvements enable reliable CI/CD
+
+**Security**
+- Admin endpoints protected by middleware
+- Environment variable support for secrets
+- CORS configured appropriately per environment
+
+---
+
 #### Phase 1: ActionManager API (2026-05-09)
 - **ActionController** - Complete REST API for action management
   - `GET /api/action` - List all actions
