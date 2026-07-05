@@ -1,3 +1,4 @@
+using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Combat.Modifiers;
 using Core.Config;
@@ -17,6 +18,7 @@ public sealed class RunManager : IRunManager
     private readonly ICardContentCatalog? _cardContentCatalog;
     private readonly IScriptModifierManager? _scriptModifierManager;
     private readonly IEventBus? _eventBus;
+    private readonly IRunStateRepository? _repository;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
@@ -27,7 +29,8 @@ public sealed class RunManager : IRunManager
         ICardPoolResolver? cardPoolResolver = null,
         ICardContentCatalog? cardContentCatalog = null,
         IScriptModifierManager? scriptModifierManager = null,
-        IEventBus? eventBus = null)
+        IEventBus? eventBus = null,
+        IRunStateRepository? repository = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -35,6 +38,7 @@ public sealed class RunManager : IRunManager
         _cardContentCatalog = cardContentCatalog;
         _scriptModifierManager = scriptModifierManager;
         _eventBus = eventBus;
+        _repository = repository;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -64,6 +68,8 @@ public sealed class RunManager : IRunManager
 
         _eventBus?.Publish(new RunStartedEvent(state.RunId, configName, playerEntityId, definition.StartingGold, definition.StartingPowerPoints));
 
+        PersistAsync(state);
+
         var draw = DrawCards(state.RunId, definition.StartingHandSize);
         return draw.IsFailure ? Result<RunState>.Failure(draw.Error) : GetRun(state.RunId);
     }
@@ -72,10 +78,22 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return _runs.TryGetValue(runId, out var state)
-                ? Result<RunState>.Success(state)
-                : Result<RunState>.Failure($"Run not found: {runId}");
+            if (_runs.TryGetValue(runId, out var state))
+                return Result<RunState>.Success(state);
         }
+
+        // Cache miss — try loading from repository
+        if (_repository != null)
+        {
+            var loaded = _repository.LoadAsync(runId).GetAwaiter().GetResult();
+            if (loaded != null)
+            {
+                lock (_lock) { _runs[runId] = loaded; }
+                return Result<RunState>.Success(loaded);
+            }
+        }
+
+        return Result<RunState>.Failure($"Run not found: {runId}");
     }
 
     public Result<RunState> ApplyEconomy(Guid runId, string resource, int amount)
@@ -105,6 +123,7 @@ public sealed class RunManager : IRunManager
             }
 
             _eventBus?.Publish(new EconomyChangedEvent(runId, resource, oldValue, newValue));
+            PersistAsync(state);
             return Result<RunState>.Success(state);
         }
     }
@@ -137,6 +156,13 @@ public sealed class RunManager : IRunManager
 
         if (drawn.Count > 0)
             _eventBus?.Publish(new CardDrawnEvent(runId, drawn));
+
+        // Persist after draw mutates deck state
+        if (drawn.Count > 0)
+        {
+            var runResult = GetRun(runId);
+            if (runResult.IsSuccess) PersistAsync(runResult.Value);
+        }
 
         return Result<IReadOnlyList<string>>.Success(drawn);
     }
@@ -1035,5 +1061,18 @@ public sealed class RunManager : IRunManager
     {
         to.AddRange(from);
         from.Clear();
+    }
+
+    /// <summary>
+    /// Fire-and-forget persistence. Failures are swallowed to avoid disrupting game flow.
+    /// </summary>
+    private void PersistAsync(RunState state)
+    {
+        if (_repository == null) return;
+        _ = Task.Run(async () =>
+        {
+            try { await _repository.SaveAsync(state).ConfigureAwait(false); }
+            catch { /* best effort — repository implementations log internally */ }
+        });
     }
 }

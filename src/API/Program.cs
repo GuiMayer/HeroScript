@@ -1,8 +1,10 @@
 using API.Models;
 using API.Logging;
 using Core;
+using Core.Abstractions.Persistence;
 using Core.Caching;
 using Core.Config;
+using Core.Infrastructure.Persistence;
 using Core.Math;
 using Core.Events;
 using Core.Combat;
@@ -35,7 +37,8 @@ builder.Services.AddSingleton<IEventBus, EventBus>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EventBus"));
-    return new EventBus(logger);
+    // IEventStore is registered later but resolved lazily; use a factory lambda to avoid ordering issues
+    return new EventBus(logger, sp.GetService<IEventStore>());
 });
 
 // Register Core services with DI
@@ -185,6 +188,24 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 
+// Register persistence services
+var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
+var runStatePath = builder.Configuration.GetValue<string>("Persistence:RunStatePath") ?? "data/runs";
+
+builder.Services.AddSingleton<IEventStore>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("JsonFileEventStore"));
+    return new JsonFileEventStore(eventStorePath, logger);
+});
+
+builder.Services.AddSingleton<IRunStateRepository>(sp =>
+{
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("JsonFileRunStateRepository"));
+    return new JsonFileRunStateRepository(runStatePath, logger);
+});
+
 // Register Run content and manager
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
@@ -194,7 +215,8 @@ builder.Services.AddSingleton<IRunManager>(sp => new RunManager(
     sp.GetRequiredService<ICardPoolResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),
     sp.GetRequiredService<IScriptModifierManager>(),
-    sp.GetRequiredService<IEventBus>()));
+    sp.GetRequiredService<IEventBus>(),
+    sp.GetRequiredService<IRunStateRepository>()));
 
 // Register damage pipeline
 builder.Services.AddSingleton<PipelineConfigLoader>(sp =>
