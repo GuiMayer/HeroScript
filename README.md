@@ -6,28 +6,51 @@ HeroScript é uma engine headless para jogos de cartas roguelike, projetada para
 
 ```
 HeroScript/
-├── src/                    # Código de produção
-│   ├── Core/              # Biblioteca principal (DLL embarcável)
-│   ├── API/               # REST API para exposição do Core
-│   └── Mods/              # Sistema de mods (futuro)
-├── tools/                  # Ferramentas de desenvolvimento
-│   ├── Core.CLI/          # CLI de debug e testes
-│   └── Calculator/        # Calculadora de debug
-└── tests/                  # Testes unitários
-    └── Core.Tests/        # Testes do Core
+├── src/                      # Código de produção
+│   ├── Core/                 # Biblioteca principal (DLL embarcável)
+│   │   ├── Abstractions/     # Interfaces e contratos (IEventStore, IRunStateRepository, etc.)
+│   │   └── Infrastructure/   # Implementações (JsonFileEventStore, JsonFileRunStateRepository)
+│   ├── API/                  # REST API para exposição do Core
+│   │   └── Middleware/       # AdminKeyMiddleware, CorrelationIdMiddleware
+│   └── Mods/                 # Sistema de mods (futuro)
+├── tools/                    # Ferramentas de desenvolvimento (opcionais)
+│   ├── Core.CLI/             # CLI de debug e testes
+│   └── Calculator/           # Calculadora de debug
+├── tests/                    # Testes automatizados
+│   ├── Core.Tests/           # Testes do Core (723 testes)
+│   ├── API.Tests/            # Testes da API (150 testes: 125 unit + 25 integration)
+│   └── heroscript.runsettings # Configuração de timeout para testes
+├── .github/workflows/        # CI/CD pipeline
+│   └── ci.yml                # GitHub Actions
+└── docs/                     # Documentação técnica
 ```
 
 ## Estado Atual
 
-**Última atualização:** 2026-05-23
-**Fase atual:** Fase 2 estabilizada. O próximo foco técnico é a **Fase 3 - Loop de Run**.
+**Última atualização:** 2026-07-05  
+**Fase atual:** Fase 3 em implementação — primeira fatia concluída. Hardening de produção concluído (6 trilhas).
 
-- **Core.Tests:** 553 testes passando.
-- **Fase 0:** Config, Math e Resources implementados.
-- **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados.
-- **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados.
-- **Fase 3:** ainda não implementada; faltam RunState, DeckState, RunManager, CardSelection, Shop e Preparation.
-- **API.Tests:** o projeto compila, mas o runner local ainda apresenta timeout/congelamento em partes da suite. Use testes filtrados/menores até a investigação ser concluída.
+- **Core.Tests:** 723 testes passando
+- **API.Tests:** 150 testes passando (125 unit + 25 integration) com estabilidade
+- **Fase 0:** Config, Math e Resources implementados
+- **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados
+- **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados
+- **Fase 3:** Primeira fatia implementada
+  - ✅ RunState e DeckState como núcleo
+  - ✅ RunManager com persistência automática
+  - ✅ Run API (start, state, deck, hand, draw, discard, shuffle)
+  - ✅ CardSelection API (start, pick, reroll, decompose)
+  - ✅ Shop API (start, buy, reroll, sell)
+  - ✅ Preparation API (start, apply-modifier)
+  - ✅ CombatRunCoordinator (integração combate ↔ deck/hand)
+  - ⏳ Map navigation, event nodes, rest nodes (próximos passos)
+- **Hardening concluído (Jun/2026):**
+  - ✅ Event publishing (observabilidade de lifecycle)
+  - ✅ API Key middleware (segurança em endpoints admin)
+  - ✅ Logging estruturado + Correlation IDs
+  - ✅ Persistência de eventos (JsonFileEventStore)
+  - ✅ Persistência de run state (JsonFileRunStateRepository)
+  - ✅ Estabilidade de testes + CI pipeline
 
 ## Componentes
 
@@ -56,6 +79,28 @@ Camada de exposição HTTP do Core, permitindo consumo via REST API.
 
 **Output**: `API.dll` - aplicação web ASP.NET Core
 
+### Core.Abstractions (Contratos)
+
+Camada de abstração com interfaces e tipos compartilhados:
+
+- **IEventStore**: Contrato para persistência de eventos
+- **IRunStateRepository**: Contrato para snapshots de run
+- **ISnapshotStore**: Contrato para snapshots genéricos (futuro)
+- **Typed Identifiers**: `RunId`, `CombatId`, `EntityId` para type safety
+- **ICorrelatedEvent**: Interface para eventos com correlation tracking
+
+**Output**: `Core.Abstractions.dll` - biblioteca de contratos
+
+### Core.Infrastructure (Implementações)
+
+Implementações concretas de infraestrutura:
+
+- **JsonFileEventStore**: Persistência de eventos em `.jsonl`
+- **JsonFileRunStateRepository**: Persistência de run state em JSON
+- **LoggerAdapter**: Adapter de `ILogger` ASP.NET Core para `Core.Logging.ILogger`
+
+**Output**: `Core.Infrastructure.dll` - biblioteca de infraestrutura
+
 ### Core.CLI (Debug Tool)
 
 Ferramenta de linha de comando para debug e testes do Core.
@@ -72,13 +117,117 @@ Calculadora simples para testar expressões matemáticas.
 
 **Output**: `Calculator.exe` - executável de console
 
-### Core.Tests (Testes)
+### Core.Tests e API.Tests (Testes)
 
-Projeto de testes unitários usando xUnit.
+Projetos de testes automatizados usando xUnit.
 
+**Core.Tests (723 testes):**
 - Testes do MathEngine
 - Testes do ConfigManager
 - Testes do ResourceLoader
+- Testes de todos os sistemas Core
+
+**API.Tests (150 testes: 125 unit + 25 integration):**
+- Testes unitários de controllers (mocks)
+- Testes de integração com TestServer
+- Categorização via `[Trait("Category", "Unit|Integration")]`
+
+## Segurança
+
+### API Key Middleware
+
+Endpoints administrativos são protegidos por `AdminKeyMiddleware` que requer o header `X-Admin-Key`.
+
+**Configuração:**
+
+Via `appsettings.json`:
+```json
+{
+  "Admin": {
+    "ApiKey": "your-secret-key-here"
+  }
+}
+```
+
+Ou via variável de ambiente (recomendado para produção):
+```bash
+export HERESCRIPT_ADMIN_KEY="your-secret-key-here"
+```
+
+**Uso:**
+```bash
+curl -X POST http://localhost:5260/api/action/reload \
+  -H "X-Admin-Key: your-secret-key-here"
+```
+
+**Endpoints Protegidos:**
+- `POST /api/action/reload`
+- `POST /api/game-resources/reload`
+- `POST /api/config/load`
+- `POST /api/modifiers/reload`
+- `POST /api/gambits/reload`
+- `POST /api/status/reload`
+
+⚠️ **Produção:** Configure uma chave forte antes de deploy. Não commite chaves em `appsettings.json`.
+
+**Documentação completa:** [docs/security.md](docs/security.md)
+
+---
+
+## Persistência
+
+HeroScript suporta persistência em disco para restart-safety e auditoria.
+
+**Configuração:**
+
+```json
+{
+  "Persistence": {
+    "EventStorePath": "data/events/",
+    "RunStatePath": "data/runs/"
+  }
+}
+```
+
+**Componentes:**
+
+- **JsonFileEventStore**: Eventos em formato `.jsonl` (append-only, auditoria completa)
+- **JsonFileRunStateRepository**: Run state em `{runId}.json` (write atômico, auto-load)
+
+**Restart Safety:** Após reiniciar o processo, `GET /api/run/{runId}` retorna o estado anterior e `GET /api/events` inclui eventos de sessões anteriores.
+
+**Documentação completa:** [docs/persistence.md](docs/persistence.md)
+
+---
+
+## Observabilidade
+
+### Correlation IDs
+
+Todos os requests recebem um `X-Correlation-ID` único (gerado automaticamente ou fornecido pelo cliente). Este ID é incluído em todos os logs do request para facilitar troubleshooting.
+
+**Response Header:**
+```
+X-Correlation-ID: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+```
+
+### Logging Estruturado
+
+HeroScript usa `ILogger` com templates estruturados (indexáveis por log aggregators):
+
+```csharp
+// ✅ Estruturado
+_logger.LogInformation("Effect {EffectId} resolved for {EntityId}", effectId, entityId);
+
+// ❌ Não estruturado
+_logger.LogInformation($"Effect {effectId} resolved for {entityId}");
+```
+
+**Níveis:** `Debug` (path resolution), `Information` (lifecycle events), `Warning` (fallbacks), `Error` (exceptions)
+
+**Documentação completa:** [docs/observability.md](docs/observability.md)
+
+---
 
 ## Como Usar
 
@@ -110,21 +259,59 @@ dotnet run -- --test
 dotnet run -- --config alisyum
 ```
 
-## Build
+## Build e Testes
+
+### Build Local
 
 ```bash
+# Build solution completa
+dotnet build HeroScript.slnx
+
 # Build Core library
 dotnet build src/Core/Core.csproj
 
 # Build API
 dotnet build src/API/API.csproj
 
-# Build CLI
+# Build CLI (opcional)
 dotnet build tools/Core.CLI/Core.CLI.csproj
-
-# Run tests
-dotnet test tests/Core.Tests/Core.Tests.csproj
 ```
+
+### Testes
+
+```bash
+# Todos os testes
+dotnet test
+
+# Apenas Core (723 testes)
+dotnet test tests/Core.Tests/Core.Tests.csproj
+
+# Apenas API - testes unitários (125 testes, rápido)
+dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Unit"
+
+# Apenas API - testes de integração (25 testes, usa TestServer)
+dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Integration"
+```
+
+### CI/CD
+
+Pipeline GitHub Actions em `.github/workflows/ci.yml`:
+
+```yaml
+jobs:
+  test:
+    steps:
+      - Build solution
+      - Core Tests (723 testes)
+      - API Unit Tests (125 testes) - filtro Category=Unit
+      - API Integration Tests (25 testes) - filtro Category=Integration, timeout 5min
+```
+
+Pipeline executa em:
+- Push para `main`
+- Pull requests
+
+**Configuração de timeout:** `tests/heroscript.runsettings` define 30s por teste, 5min por sessão.
 
 ## Arquitetura
 
@@ -172,24 +359,72 @@ A API REST expõe funcionalidades do Core através de endpoints HTTP com documen
 - [Effect System](docs/systems/effects/effect-system.md) - Sistema de efeitos
 - [Damage Pipeline](docs/systems/damage/damage-pipeline.md) - Pipeline de dano configurável
 
+### Infraestrutura
+
+- [Security](docs/security.md) - Segurança da API (AdminKeyMiddleware)
+- [Persistence](docs/persistence.md) - Persistência de eventos e run state
+- [Observability](docs/observability.md) - Logging estruturado e Correlation IDs
+
 ## Roadmap
 
-Estamos atualmente após a **Fase 2 — Camadas de Combate**:
+### Estado das Fases
 
-- ✅ MathEngine serializado (fórmulas JSON)
-- ✅ ConfigManager com herança delta
-- ✅ API REST data-driven implementada para sistemas Core atuais
-- ✅ ActionManager com discovery JSON e efeitos como contrato principal
-- ✅ ResourceManager API
-- ✅ Combat System integrado com Actions e Resources
-- ✅ EventBus e Damage Pipeline
-- ✅ Status Effects, Script Modifiers, Gambit Engine e Effect Engine
-- ⏳ Fase 3: Run Management, Deck/Hand, CardSelection, Shop e Preparation
+| Fase | Status | Descrição |
+|------|--------|-----------|
+| **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) |
+| **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System |
+| **Fase 2** | ✅ Estabilizado | Camadas de Combate (Status, Modifiers, Gambits) |
+| **Fase 3** | 🚧 Em implementação | Loop de Run (primeira fatia concluída) |
+| **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) |
+| **Fase 5** | 📋 Planejado | Meta-progressão e Save/Load |
+| **Fase 6** | 📋 Planejado | Modos Especiais (Seed, Daily, Custom) |
+
+### Fase 3 - Detalhamento
+
+**Implementado:**
+- ✅ `RunState` e `DeckState` como núcleo
+- ✅ `RunManager` com persistência automática
+- ✅ `RunController` (start, state, deck, hand, draw, discard, shuffle)
+- ✅ `CardSelectionController` (start, pick, reroll, decompose)
+- ✅ `ShopController` (start, buy, reroll, sell)
+- ✅ `PreparationController` (start, apply-modifier)
+- ✅ `CombatRunCoordinator` (integração combate ↔ deck/hand, consumo real de cartas)
+- ✅ Operações compostas com rollback transacional
+
+**Próximos passos:**
+- ⏳ Map generation e navigation
+- ⏳ Node system (advance to next node)
+- ⏳ Event nodes
+- ⏳ Rest nodes (cura, remoção de cartas)
+
+### Hardening de Produção (Jun/2026)
+
+O projeto passou por 6 trilhas de hardening:
+
+1. **✅ Event Publishing**: EventBus publica eventos de lifecycle (`CombatStartedEvent`, `StatusAppliedEvent`, etc.)
+2. **✅ API Security**: `AdminKeyMiddleware` protege endpoints administrativos
+3. **✅ Logging & Observability**: `Console.WriteLine` eliminado, `CorrelationIdMiddleware`, templates estruturados
+4. **✅ Event Persistence**: `JsonFileEventStore` com append-only `.jsonl`
+5. **✅ Run State Persistence**: `JsonFileRunStateRepository` com write atômico
+6. **✅ Test Stability**: `FindProjectRoot()` corrigido, categorização de testes, CI pipeline
+
+**Commits:**
+```bash
+git log --oneline -6
+# 9162814 test(api): improve test stability and CI readiness
+# 38ecae9 feat(persistence): add JsonFile event store and run state repository
+# c1ab29f feat(logging): eliminate Console.WriteLine, add correlation id middleware
+# b22655b feat(api): secure admin endpoints with api key middleware
+# c15d05f feat(core): publish lifecycle events across managers
+# b1e7d6a feat(core): add Core.Abstractions layer with typed identifiers
+```
+
+Para o roadmap completo de hardening, consulte [docs/roadmap/trilhas.md](docs/roadmap/trilhas.md).
 
 **Próximos passos recomendados:**
-- Sincronizar `RunState` e `DeckState` como núcleo da Fase 3.
-- Expor contratos mínimos para frontend: hand/deck, end-turn dedicado e processamento de IA.
-- Implementar Run API, CardSelection, Shop e Preparation em fatias verticais.
+- Completar Fase 3: Map generation, node navigation, event/rest nodes
+- Conteúdo MVP (Fase 4): Definir races, powers iniciais, companions e enemies
+- Iteração visual: Frontend prototype consumindo a API REST
 
 ## Licença
 
