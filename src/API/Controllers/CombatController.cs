@@ -445,6 +445,143 @@ public class CombatController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Simula combate completo automaticamente até conclusão.
+    /// Processa turnos do herói (via gambits se disponível) e inimigos até o combate terminar.
+    /// </summary>
+    [HttpPost("{combatId}/auto-play")]
+    public IActionResult AutoPlayCombat(Guid combatId)
+    {
+        try
+        {
+            // Validar que combate existe e obter estado inicial
+            var stateResult = _combatSystem.GetCombatState(combatId);
+            if (stateResult.IsFailure)
+                return NotFound(new { error = stateResult.Error });
+
+            var state = stateResult.Value;
+            var turnsProcessed = 0;
+            var maxTurns = 100; // Limite de segurança para evitar loops infinitos
+            var actionsExecuted = 0;
+
+            // Loop principal: processar turnos até combate terminar
+            while (state.IsActive && turnsProcessed < maxTurns)
+            {
+                // Processar turno de inimigos (IA)
+                var aiResult = ProcessAiTurnsInternal(combatId, state);
+                if (aiResult.actionsExecuted > 0)
+                {
+                    actionsExecuted += aiResult.actionsExecuted;
+                    state = aiResult.state;
+                }
+
+                // Verificar se combate terminou após turno de inimigos
+                if (!state.IsActive)
+                    break;
+
+                // Processar turno do herói (via end-turn que processa efeitos e reinicia energia)
+                var endTurnResult = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+                {
+                    ActorId = state.Hero.EntityId,
+                    ActionType = ActionType.END_TURN
+                });
+
+                if (endTurnResult.IsSuccess)
+                {
+                    state = endTurnResult.Value;
+                    turnsProcessed++;
+                }
+
+                // Verificar se combate terminou
+                if (!state.IsActive)
+                    break;
+
+                // Break adicional para evitar stalemate (ninguém causa dano)
+                if (turnsProcessed > 50 && actionsExecuted == 0)
+                {
+                    _logger.LogWarning("Auto-play stalemate detected: no actions executed in last 50 turns");
+                    break;
+                }
+            }
+
+            // Finalizar combate se ainda estiver ativo
+            if (state.IsActive)
+            {
+                var endResult = _combatSystem.EndCombat(combatId);
+                if (endResult.IsSuccess)
+                {
+                    var combatResult = endResult.Value;
+                    return Ok(new
+                    {
+                        combatId = combatResult.CombatId,
+                        status = combatResult.Status.ToString(),
+                        totalTurns = combatResult.TotalTurns,
+                        totalActions = combatResult.TotalActions,
+                        turnsProcessed,
+                        actionsExecuted,
+                        reachedMaxTurns = turnsProcessed >= maxTurns,
+                        damageDealt = combatResult.DamageDealt,
+                        damageTaken = combatResult.DamageTaken,
+                        duration = combatResult.Duration.TotalSeconds
+                    });
+                }
+            }
+
+            // Retornar estado final
+            var finalStateResult = _combatSystem.GetCombatState(combatId);
+            if (finalStateResult.IsSuccess)
+            {
+                return Ok(new
+                {
+                    combatId,
+                    status = finalStateResult.Value.Status.ToString(),
+                    currentTurn = finalStateResult.Value.CurrentTurn,
+                    totalActions = finalStateResult.Value.ActionHistory.Count,
+                    turnsProcessed,
+                    actionsExecuted,
+                    reachedMaxTurns = turnsProcessed >= maxTurns,
+                    heroAlive = finalStateResult.Value.Hero.IsAlive,
+                    enemiesAlive = finalStateResult.Value.Enemies.Count(e => e.IsAlive),
+                    state = MapToStateResponse(finalStateResult.Value)
+                });
+            }
+
+            return Ok(new
+            {
+                combatId,
+                turnsProcessed,
+                actionsExecuted,
+                reachedMaxTurns = turnsProcessed >= maxTurns,
+                message = "Auto-play completed"
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "auto-play combat", combatId.ToString());
+        }
+    }
+
+    private (CombatState state, int actionsExecuted) ProcessAiTurnsInternal(Guid combatId, CombatState state)
+    {
+        var actionsExecuted = 0;
+
+        foreach (var enemyId in state.Enemies.Where(e => e.IsAlive).Select(e => e.EntityId).ToList())
+        {
+            var currentEnemy = state.GetEntity(enemyId);
+            if (currentEnemy == null || !currentEnemy.IsAlive || !state.IsActive)
+                continue;
+
+            var decision = ExecuteAiAction(combatId, currentEnemy, state, null, out var updatedState);
+            if (updatedState != null)
+            {
+                state = updatedState;
+                actionsExecuted++;
+            }
+        }
+
+        return (state, actionsExecuted);
+    }
+
     // Mappers
     private IActionResult? ResolveExecutionRequest(ExecuteActionRequest request, out ActionType actionType, out string? powerId)
     {
