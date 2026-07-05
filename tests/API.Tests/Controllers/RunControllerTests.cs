@@ -1,4 +1,5 @@
 using API.Controllers;
+using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +14,12 @@ namespace API.Tests.Controllers;
 public sealed class RunControllerTests
 {
     private readonly Mock<IRunManager> _runManager = new();
+    private readonly Mock<IRunStateRepository> _repository = new();
     private readonly RunController _controller;
 
     public RunControllerTests()
     {
-        _controller = new RunController(_runManager.Object, Mock.Of<ILogger<RunController>>());
+        _controller = new RunController(_runManager.Object, _repository.Object, Mock.Of<ILogger<RunController>>());
     }
 
     [Fact]

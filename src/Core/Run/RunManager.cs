@@ -1064,6 +1064,23 @@ public sealed class RunManager : IRunManager
     }
 
     /// <summary>
+    /// Restores a run state without incrementing sequence or triggering persistence.
+    /// Used for time-travel operations (undo).
+    /// </summary>
+    public Result<RunState> RestoreState(RunState state)
+    {
+        if (state == null)
+            return Result<RunState>.Failure("State cannot be null");
+
+        lock (_lock)
+        {
+            _runs[state.RunId] = state;
+        }
+
+        return Result<RunState>.Success(state);
+    }
+
+    /// <summary>
     /// Fire-and-forget persistence. Failures are swallowed to avoid disrupting game flow.
     /// Increments snapshot sequence before saving.
     /// </summary>

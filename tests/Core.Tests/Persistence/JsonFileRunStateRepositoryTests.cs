@@ -21,7 +21,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
         var state = new RunState { Gold = 100, PowerPoints = 5, CurrentNodeId = "node_1" };
 
         await _repo.SaveAsync(state);
-        var loaded = await _repo.LoadAsync(state.RunId);
+        var loaded = await _repo.LoadLatestAsync(state.RunId);
 
         Assert.NotNull(loaded);
         Assert.Equal(state.RunId, loaded.RunId);
@@ -33,7 +33,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Load_UnknownId_ReturnsNull()
     {
-        var result = await _repo.LoadAsync(Guid.NewGuid());
+        var result = await _repo.LoadLatestAsync(Guid.NewGuid());
         Assert.Null(result);
     }
 
@@ -46,7 +46,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
         state.Gold = 999;
         await _repo.SaveAsync(state);
 
-        var loaded = await _repo.LoadAsync(state.RunId);
+        var loaded = await _repo.LoadLatestAsync(state.RunId);
         Assert.NotNull(loaded);
         Assert.Equal(999, loaded.Gold);
     }
@@ -58,7 +58,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
         await _repo.SaveAsync(state);
 
         await _repo.DeleteAsync(state.RunId);
-        var loaded = await _repo.LoadAsync(state.RunId);
+        var loaded = await _repo.LoadLatestAsync(state.RunId);
         Assert.Null(loaded);
     }
 
@@ -93,7 +93,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
             .Select(i => { state.Gold = i; return _repo.SaveAsync(state); });
         await Task.WhenAll(tasks);
 
-        var loaded = await _repo.LoadAsync(state.RunId);
+        var loaded = await _repo.LoadLatestAsync(state.RunId);
         Assert.NotNull(loaded);
         // Gold is some value between 0-9; important: no exception or corruption
         Assert.InRange(loaded.Gold, 0, 9);

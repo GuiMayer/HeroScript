@@ -54,14 +54,14 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
             await File.WriteAllTextAsync(tmp, json, ct).ConfigureAwait(false);
             File.Move(tmp, path, overwrite: false); // Never overwrite existing snapshots
 
-            _logger.LogInformation("Snapshot {Sequence} saved for run {RunId}", state.Sequence, state.RunId);
+            _logger.LogInformation($"Snapshot {state.Sequence} saved for run {state.RunId}");
 
             // Cleanup old snapshots if exceeding max retention
             await CleanupOldSnapshotsAsync(state.RunId, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to save snapshot {Sequence} for run {RunId}: {Message}", state.Sequence, state.RunId, ex.Message, ex);
+            _logger.LogError($"Failed to save snapshot {state.Sequence} for run {state.RunId}: {ex.Message}", ex);
             // Clean up temp file if it exists
             if (File.Exists(tmp))
                 try { File.Delete(tmp); } catch { /* best effort */ }
@@ -97,13 +97,13 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
             var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<RunState>(json, _options);
             
-            _logger.LogInformation("Snapshot {Sequence} loaded for run {RunId}", sequence, runId);
+            _logger.LogInformation($"Snapshot {sequence} loaded for run {runId}");
             
             return state;
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to load snapshot {Sequence} for run {RunId}: {Message}", sequence, runId, ex.Message, ex);
+            _logger.LogError($"Failed to load snapshot {sequence} for run {runId}: {ex.Message}", ex);
             return null;
         }
         finally
@@ -146,12 +146,12 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
             if (Directory.Exists(runDir))
             {
                 Directory.Delete(runDir, recursive: true);
-                _logger.LogInformation("All snapshots deleted for run {RunId}", runId);
+                _logger.LogInformation($"All snapshots deleted for run {runId}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError("Failed to delete run {RunId}: {Message}", runId, ex.Message, ex);
+            _logger.LogError($"Failed to delete run {runId}: {ex.Message}", ex);
         }
         finally
         {
@@ -205,13 +205,12 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
                 if (File.Exists(path))
                 {
                     File.Delete(path);
-                    _logger.LogDebug("Deleted old snapshot {Sequence} for run {RunId}", sequence, runId);
+                    _logger.LogDebug($"Deleted old snapshot {sequence} for run {runId}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("Failed to delete old snapshot {Sequence} for run {RunId}: {Message}", 
-                    sequence, runId, ex.Message);
+                _logger.LogWarning($"Failed to delete old snapshot {sequence} for run {runId}: {ex.Message}");
             }
         }
     }

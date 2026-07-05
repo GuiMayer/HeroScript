@@ -116,7 +116,7 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
 });
 
 // Register CacheRegistry (singleton for centralized cache management)
-builder.Services.AddSingleton<CacheRegistry>();
+builder.Services.AddSingleton(CacheRegistry.Instance);
 
 // Register EntityDefinitionLoader
 builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>

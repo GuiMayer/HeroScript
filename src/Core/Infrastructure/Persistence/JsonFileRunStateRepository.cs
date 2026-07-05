@@ -61,7 +61,7 @@ public sealed class JsonFileRunStateRepository : IRunStateRepository, IDisposabl
     }
 
     /// <inheritdoc />
-    public async Task<RunState?> LoadAsync(Guid runId, CancellationToken ct = default)
+    public async Task<RunState?> LoadLatestAsync(Guid runId, CancellationToken ct = default)
     {
         var path = GetPath(runId);
         if (!File.Exists(path))
@@ -82,6 +82,26 @@ public sealed class JsonFileRunStateRepository : IRunStateRepository, IDisposabl
         {
             _semaphore.Release();
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<RunState?> LoadAsync(Guid runId, int sequence, CancellationToken ct = default)
+    {
+        // This simple implementation doesn't support versioned snapshots
+        // Always returns the latest (and only) snapshot, ignoring sequence parameter
+        return await LoadLatestAsync(runId, ct).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<int>> ListSnapshotsAsync(Guid runId, CancellationToken ct = default)
+    {
+        // This simple implementation doesn't support versioned snapshots
+        // Returns a single entry if the file exists
+        var state = await LoadLatestAsync(runId, ct).ConfigureAwait(false);
+        if (state == null)
+            return Array.Empty<int>();
+
+        return new[] { state.Sequence };
     }
 
     /// <inheritdoc />
