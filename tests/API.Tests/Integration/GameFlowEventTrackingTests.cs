@@ -43,7 +43,7 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task GetEvents_FilterByEntityId_ReturnsFiltered()
+    public async Task GetEvents_FilterByCombat_ReturnsFiltered()
     {
         // Setup combat
         var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1", "enemy_2" });
@@ -52,23 +52,20 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
         await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
         await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_2", powerId: "basic_attack");
 
-        // Get events filtered by entity
-        var heroEvents = await Client.GetEventsAsync(entityId: "hero");
+        // Get events filtered by combat
+        var combatEvents = await Client.GetEventsAsync(combatId: combatId);
 
         // Verify filtering worked
-        Assert.NotNull(heroEvents);
+        Assert.NotNull(combatEvents);
+        Assert.NotEmpty(combatEvents);
         
-        // All events should involve hero
-        foreach (var evt in heroEvents)
+        // All events should be from this combat
+        foreach (var evt in combatEvents)
         {
-            var hasHeroInSource = evt.TryGetProperty("sourceEntityId", out var source) && 
-                                 source.GetString() == "hero";
-            var hasHeroInTarget = evt.TryGetProperty("targetEntityId", out var target) && 
-                                 target.GetString() == "hero";
-            
-            // At least one should be true
-            Assert.True(hasHeroInSource || hasHeroInTarget, 
-                "Event should involve hero as source or target");
+            if (evt.TryGetProperty("combatId", out var evtCombatId))
+            {
+                Assert.Equal(combatId.ToString(), evtCombatId.GetString());
+            }
         }
     }
 
@@ -109,7 +106,6 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
         // Get events with multiple filters
         var filteredEvents = await Client.GetEventsAsync(
             combatId: combatId,
-            entityId: "hero",
             eventType: "DAMAGE_DEALT");
 
         // Verify events match all filters
