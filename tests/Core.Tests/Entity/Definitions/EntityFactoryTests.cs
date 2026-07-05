@@ -4,6 +4,7 @@ using Core.Entity.Components;
 using Core.Entity.Controllers;
 using Core.Logging;
 using Core.Resources;
+using Core.Common;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -40,7 +41,7 @@ public class EntityFactoryTests
         
         _mockResourceManager
             .Setup(m => m.GetDefinition("health"))
-            .Returns(Common.Result<ResourceDefinition>.Success(healthDef));
+            .Returns(Result<ResourceDefinition>.Success(healthDef));
         
         // Mock energy resource
         var energyDef = new ResourceDefinition
@@ -54,7 +55,7 @@ public class EntityFactoryTests
         
         _mockResourceManager
             .Setup(m => m.GetDefinition("energy"))
-            .Returns(Common.Result<ResourceDefinition>.Success(energyDef));
+            .Returns(Result<ResourceDefinition>.Success(energyDef));
     }
     
     [Fact]
