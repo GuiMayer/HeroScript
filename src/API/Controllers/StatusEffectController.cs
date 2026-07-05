@@ -216,6 +216,15 @@ public class StatusEffectController : BaseApiController
     }
 
     /// <summary>
+    /// Obtém todos os status effects ativos de uma entidade (alias curto)
+    /// </summary>
+    [HttpGet("{targetId}")]
+    public IActionResult GetStatusEffects(Guid targetId)
+    {
+        return GetActiveStatusInternal(targetId);
+    }
+
+    /// <summary>
     /// Obtém todos os status effects ativos de uma entidade
     /// </summary>
     [HttpGet("{targetId}/active")]
