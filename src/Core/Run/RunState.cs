@@ -3,6 +3,7 @@ namespace Core.Run;
 public sealed record RunState
 {
     public Guid RunId { get; init; } = Guid.NewGuid();
+    public int Sequence { get; set; }
     public string ConfigName { get; init; } = "default";
     public string PlayerEntityId { get; init; } = "player";
     public int Gold { get; set; }

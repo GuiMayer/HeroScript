@@ -85,7 +85,7 @@ public sealed class RunManager : IRunManager
         // Cache miss — try loading from repository
         if (_repository != null)
         {
-            var loaded = _repository.LoadAsync(runId).GetAwaiter().GetResult();
+            var loaded = _repository.LoadLatestAsync(runId).GetAwaiter().GetResult();
             if (loaded != null)
             {
                 lock (_lock) { _runs[runId] = loaded; }
@@ -1065,10 +1065,15 @@ public sealed class RunManager : IRunManager
 
     /// <summary>
     /// Fire-and-forget persistence. Failures are swallowed to avoid disrupting game flow.
+    /// Increments snapshot sequence before saving.
     /// </summary>
     private void PersistAsync(RunState state)
     {
         if (_repository == null) return;
+        
+        // Increment sequence for new snapshot
+        state.Sequence++;
+        
         _ = Task.Run(async () =>
         {
             try { await _repository.SaveAsync(state).ConfigureAwait(false); }

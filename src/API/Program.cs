@@ -191,6 +191,7 @@ builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 // Register persistence services
 var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
 var runStatePath = builder.Configuration.GetValue<string>("Persistence:RunStatePath") ?? "data/runs";
+var maxRetainedSnapshots = builder.Configuration.GetValue<int>("Persistence:Snapshots:MaxRetainedSnapshots", 100);
 
 builder.Services.AddSingleton<IEventStore>(sp =>
 {
@@ -202,8 +203,8 @@ builder.Services.AddSingleton<IEventStore>(sp =>
 builder.Services.AddSingleton<IRunStateRepository>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("JsonFileRunStateRepository"));
-    return new JsonFileRunStateRepository(runStatePath, logger);
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("VersionedRunStateRepository"));
+    return new VersionedRunStateRepository(runStatePath, logger, maxRetainedSnapshots);
 });
 
 // Register Run content and manager
