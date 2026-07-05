@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using Core.Config.Providers;
+using Core.Logging;
 
 namespace Core.Config
 {
@@ -11,6 +12,7 @@ namespace Core.Config
     public class ResourceProviderFactory
     {
         private readonly IConfigManager _configManager;
+        private readonly ILogger _logger = LoggerFactory.CreateLogger("ResourceProviderFactory");
 
         public ResourceProviderFactory(IConfigManager configManager)
         {
@@ -25,7 +27,7 @@ namespace Core.Config
             var resolver = new ResourcePathResolver();
             var mode = config.Mode == ResourceMode.Auto ? DetectMode() : config.Mode;
 
-            Console.WriteLine($"[ResourceProviderFactory] Initializing in {mode} mode");
+            _logger.LogDebug($"Initializing in {mode} mode");
 
             if (mode == ResourceMode.Development)
             {
@@ -77,7 +79,7 @@ namespace Core.Config
                 {
                     resolver.RegisterProvider(new PhysicalFileResourceProvider(
                         coreResourcesPath, "CoreResources (Dev)", priority: 50));
-                    Console.WriteLine($"[ResourceProviderFactory] Dev mode: Loading from {coreResourcesPath}");
+                    _logger.LogDebug($"Dev mode: Loading from {coreResourcesPath}");
                 }
             }
 

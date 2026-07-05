@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using Core.Logging;
 
 namespace Core.Math
 {
@@ -11,10 +12,12 @@ namespace Core.Math
     public class FormulaLoader
     {
         private readonly Config.IResourceLoader _resourceLoader;
+        private readonly ILogger? _logger;
 
-        public FormulaLoader(Config.IResourceLoader resourceLoader)
+        public FormulaLoader(Config.IResourceLoader resourceLoader, ILogger? logger = null)
         {
             _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+            _logger = logger;
         }
 
         /// <summary>
@@ -48,15 +51,15 @@ namespace Core.Math
 
             if (rawData == null)
             {
-                Console.WriteLine("[FormulaLoader] Warning: rawData is null, returning empty formula dictionary");
+                _logger?.LogWarning("rawData is null, returning empty formula dictionary");
                 return result;
             }
 
-            Console.WriteLine($"[FormulaLoader] Converting {rawData.Count} raw formulas to FormulaDefinition");
+            _logger?.LogDebug($"Converting {rawData.Count} raw formulas to FormulaDefinition");
             
             foreach (var kvp in rawData)
             {
-                Console.WriteLine($"[FormulaLoader] Processing formula: {kvp.Key}");
+                _logger?.LogDebug($"Processing formula: {kvp.Key}");
                 try
                 {
                     var formula = JsonSerializer.Deserialize<FormulaDefinition>(
@@ -70,20 +73,20 @@ namespace Core.Math
                     if (formula != null)
                     {
                         result[kvp.Key] = formula;
-                        Console.WriteLine($"[FormulaLoader] Successfully converted: {kvp.Key}");
+                        _logger?.LogDebug($"Successfully converted: {kvp.Key}");
                     }
                     else
                     {
-                        Console.WriteLine($"[FormulaLoader] Warning: Failed to deserialize formula '{kvp.Key}'");
+                        _logger?.LogWarning($"Failed to deserialize formula '{kvp.Key}'");
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[FormulaLoader] Error deserializing formula '{kvp.Key}': {ex.Message}");
+                    _logger?.LogError($"Error deserializing formula '{kvp.Key}': {ex.Message}", ex);
                 }
             }
             
-            Console.WriteLine($"[FormulaLoader] Converted {result.Count} formulas successfully");
+            _logger?.LogDebug($"Converted {result.Count} formulas successfully");
 
             return result;
         }

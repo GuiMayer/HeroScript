@@ -51,7 +51,7 @@ public class AIController : IEntityController
     {
         ControllerId = controllerId;
         _behaviorType = behaviorType;
-        _logger = logger ?? new ConsoleLogger("AIController");
+        _logger = logger ?? NullLogger.Instance;
         _lowHealthThreshold = lowHealthThreshold;
         _fleeHealthThreshold = fleeHealthThreshold;
     }

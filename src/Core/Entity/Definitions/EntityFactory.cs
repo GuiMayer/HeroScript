@@ -24,7 +24,7 @@ public class EntityFactory
     {
         _definitionLoader = definitionLoader ?? throw new ArgumentNullException(nameof(definitionLoader));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
-        _logger = logger ?? new ConsoleLogger("EntityFactory");
+        _logger = logger ?? NullLogger.Instance;
     }
     
     /// <summary>

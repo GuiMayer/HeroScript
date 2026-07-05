@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using Core.Logging;
 using Core.Validation;
 
 namespace Core.Config
@@ -14,10 +15,12 @@ namespace Core.Config
     public class ConfigValidator
     {
         private readonly IConfigManager _configManager;
+        private readonly ILogger? _logger;
 
-        public ConfigValidator(IConfigManager configManager)
+        public ConfigValidator(IConfigManager configManager, ILogger? logger = null)
         {
             _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+            _logger = logger;
         }
 
         /// <summary>
@@ -39,9 +42,9 @@ namespace Core.Config
             // Logar warnings se houver
             if (result.Warnings.Count > 0)
             {
-                Console.WriteLine($"[ConfigValidator] Warnings for '{configName}':");
+                _logger?.LogWarning($"Warnings for config '{configName}':");
                 foreach (var warning in result.Warnings)
-                    Console.WriteLine($"  - {warning}");
+                    _logger?.LogWarning($"  - {warning}");
             }
         }
 

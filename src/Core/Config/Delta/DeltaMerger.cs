@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using Core.Logging;
 
 namespace Core.Config.Delta
 {
@@ -11,6 +12,7 @@ namespace Core.Config.Delta
     /// </summary>
     public static class DeltaMerger
     {
+        private static ILogger Logger => LoggerFactory.CreateLogger("DeltaMerger");
         /// <summary>
         /// Aplica uma operação delta em um recurso base.
         /// </summary>
@@ -67,7 +69,7 @@ namespace Core.Config.Delta
                 if (strictMode)
                     throw new InvalidOperationException($"[{resourceId}] Delta merge failed: {ex.Message}", ex);
 
-                Console.WriteLine($"[DeltaMerger] Warning: Failed to apply {operation} to '{resourceId}': {ex.Message}");
+                Logger.LogWarning($"Failed to apply {operation} to '{resourceId}': {ex.Message}");
                 return baseValue; // Retorna valor original em caso de erro
             }
         }
@@ -97,7 +99,7 @@ namespace Core.Config.Delta
             if (!baseValue.HasValue)
             {
                 // Sem base, MERGE vira REPLACE
-                Console.WriteLine($"[DeltaMerger] No base value for '{resourceId}', treating MERGE_SHALLOW as REPLACE");
+                Logger.LogWarning($"No base value for '{resourceId}', treating MERGE_SHALLOW as REPLACE");
                 return ApplyReplace(delta);
             }
 
@@ -136,7 +138,7 @@ namespace Core.Config.Delta
             if (!baseValue.HasValue)
             {
                 // Sem base, MERGE vira REPLACE
-                Console.WriteLine($"[DeltaMerger] No base value for '{resourceId}', treating MERGE_DEEP as REPLACE");
+                Logger.LogWarning($"No base value for '{resourceId}', treating MERGE_DEEP as REPLACE");
                 return ApplyReplace(delta);
             }
 
@@ -215,7 +217,7 @@ namespace Core.Config.Delta
             }
             else
             {
-                Console.WriteLine($"[DeltaMerger] Warning: Base value for '{resourceId}' is not an array, treating as empty array");
+                Logger.LogWarning($"Base value for '{resourceId}' is not an array, treating as empty array");
                 baseArray = new List<JsonElement>();
             }
 
@@ -253,7 +255,7 @@ namespace Core.Config.Delta
             }
             else
             {
-                Console.WriteLine($"[DeltaMerger] Warning: Base value for '{resourceId}' is not an array, treating as empty array");
+                Logger.LogWarning($"Base value for '{resourceId}' is not an array, treating as empty array");
                 baseArray = new List<JsonElement>();
             }
 
@@ -289,7 +291,7 @@ namespace Core.Config.Delta
                 if (strictMode)
                     throw new IndexOutOfRangeException(msg);
                 
-                Console.WriteLine($"[DeltaMerger] Warning: {msg} for '{resourceId}', ignoring operation");
+                Logger.LogWarning($"Index {delta.Index.Value} out of range [0, {baseArray.Count - 1}] for '{resourceId}', ignoring operation");
                 return baseValue.Value;
             }
 
@@ -327,7 +329,7 @@ namespace Core.Config.Delta
                 if (strictMode)
                     throw new IndexOutOfRangeException(msg);
                 
-                Console.WriteLine($"[DeltaMerger] Warning: {msg} for '{resourceId}', ignoring operation");
+                Logger.LogWarning($"Index {delta.Index.Value} out of range [0, {baseArray.Count - 1}] for '{resourceId}', ignoring operation");
                 return baseValue.Value;
             }
 
@@ -374,7 +376,7 @@ namespace Core.Config.Delta
                     if (strictMode)
                         throw new KeyNotFoundException(msg);
                     
-                    Console.WriteLine($"[DeltaMerger] Warning: {msg} in '{resourceId}', ignoring operation");
+                    Logger.LogWarning($"Field '{delta.TargetPath}' not found in '{resourceId}', ignoring operation");
                     return baseValue.Value;
                 }
             }
@@ -392,7 +394,7 @@ namespace Core.Config.Delta
                         if (strictMode)
                             throw new KeyNotFoundException(msg);
                         
-                        Console.WriteLine($"[DeltaMerger] Warning: {msg} in '{resourceId}', ignoring operation");
+                        Logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
                         return baseValue.Value;
                     }
 
@@ -402,7 +404,7 @@ namespace Core.Config.Delta
                         if (strictMode)
                             throw new InvalidOperationException(msg);
                         
-                        Console.WriteLine($"[DeltaMerger] Warning: {msg} in '{resourceId}', ignoring operation");
+                        Logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
                         return baseValue.Value;
                     }
 
@@ -418,7 +420,7 @@ namespace Core.Config.Delta
                     if (strictMode)
                         throw new KeyNotFoundException(msg);
                     
-                    Console.WriteLine($"[DeltaMerger] Warning: {msg} in '{resourceId}', ignoring operation");
+                    Logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
                     return baseValue.Value;
                 }
             }

@@ -45,6 +45,8 @@ builder.Services.AddSingleton<Core.Logging.ILogger>(sp =>
     return new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
 });
 
+// ConfigValidator needs IConfigManager (injected by DI) and optionally ILogger.
+// The Core.Logging.ILogger singleton is used so ConfigValidator gets the adapter.
 builder.Services.AddSingleton<ConfigValidator>();
 builder.Services.AddSingleton<IConfigManager, ConfigManager>(sp =>
 {
@@ -64,7 +66,13 @@ builder.Services.AddSingleton<IResourceLoader, ResourceLoader>(sp =>
     return new ResourceLoader(logger, providerFactory);
 });
 
-builder.Services.AddSingleton<FormulaLoader>();
+builder.Services.AddSingleton<FormulaLoader>(sp =>
+{
+    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("FormulaLoader"));
+    return new FormulaLoader(resourceLoader, logger);
+});
 builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
@@ -394,6 +402,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseCors();
+app.UseMiddleware<API.Middleware.CorrelationIdMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
 app.MapControllers();
 

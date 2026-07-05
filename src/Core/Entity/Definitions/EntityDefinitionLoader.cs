@@ -35,7 +35,7 @@ public class EntityDefinitionLoader : ICacheService
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
-        _logger = logger ?? new ConsoleLogger("EntityDefinitionLoader");
+        _logger = logger ?? NullLogger.Instance;
         _configName = string.IsNullOrWhiteSpace(configName) ? "default" : configName;
         _cacheName = $"EntityDefinitions_{configName}";
         

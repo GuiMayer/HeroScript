@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Core.Config.Providers;
+using Core.Logging;
 
 namespace Core.Config
 {
@@ -14,6 +15,7 @@ namespace Core.Config
     {
         private readonly List<IResourceProvider> _providers = new();
         private readonly object _lock = new();
+        private readonly ILogger _logger = LoggerFactory.CreateLogger("ResourcePathResolver");
 
         /// <summary>
         /// Registra um provider de recursos
@@ -35,7 +37,7 @@ namespace Core.Config
         {
             var searchedLocations = new List<string>();
 
-            Console.WriteLine($"[ResourcePathResolver] Resolving: {relativePath}");
+            _logger.LogDebug($"Resolving: {relativePath}");
 
             foreach (var provider in _providers)
             {
@@ -44,7 +46,7 @@ namespace Core.Config
 
                 if (provider.Exists(relativePath))
                 {
-                    Console.WriteLine($"[ResourcePathResolver] ✓ Found in '{provider.Name}': {physicalPath}");
+                    _logger.LogDebug($"Found in '{provider.Name}': {physicalPath}");
                     return new ResourceResolutionResult
                     {
                         Found = true,
@@ -56,11 +58,11 @@ namespace Core.Config
                 }
                 else
                 {
-                    Console.WriteLine($"[ResourcePathResolver] ✗ Not found in '{provider.Name}': {physicalPath}");
+                    _logger.LogDebug($"Not found in '{provider.Name}': {physicalPath}");
                 }
             }
 
-            Console.WriteLine($"[ResourcePathResolver] Resource not found: {relativePath}");
+            _logger.LogWarning($"Resource not found: {relativePath}");
             return new ResourceResolutionResult
             {
                 Found = false,
