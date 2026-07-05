@@ -10,6 +10,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public sealed class CombatActivationControllerTests
 {
     private readonly Mock<ICombatActivationCoordinator> _coordinator = new();

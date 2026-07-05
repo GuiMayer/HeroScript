@@ -10,6 +10,8 @@ using CoreLogger = Core.Logging.ILogger;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public class ActionControllerTests
 {
     private readonly Mock<IActionManager> _actionManager = new();

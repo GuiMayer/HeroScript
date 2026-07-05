@@ -9,6 +9,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public class ConfigControllerTests
 {
     private readonly Mock<ILogger<ConfigController>> _mockLogger;

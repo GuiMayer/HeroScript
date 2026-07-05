@@ -14,6 +14,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public sealed class CombatControllerTurnTests
 {
     private readonly Mock<ICombatSystem> _combatSystem = new();

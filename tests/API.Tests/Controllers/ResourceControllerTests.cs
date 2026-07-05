@@ -8,6 +8,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public class ResourceControllerTests
 {
     private readonly Mock<ILogger<ResourceController>> _mockLogger;

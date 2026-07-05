@@ -9,6 +9,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public sealed class CardSelectionControllerTests
 {
     private readonly Mock<IRunManager> _runManager = new();

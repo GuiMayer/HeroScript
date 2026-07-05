@@ -4,6 +4,7 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Integration")]
 public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client;

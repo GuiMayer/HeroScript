@@ -8,6 +8,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public sealed class RunControllerTests
 {
     private readonly Mock<IRunManager> _runManager = new();

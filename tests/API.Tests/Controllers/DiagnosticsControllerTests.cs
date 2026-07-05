@@ -6,6 +6,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 /// <summary>
 /// Mock implementation of Core.Logging.ILogger for testing.
 /// </summary>

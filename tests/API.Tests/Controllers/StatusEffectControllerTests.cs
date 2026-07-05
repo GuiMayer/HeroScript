@@ -9,6 +9,8 @@ using Xunit;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 public class StatusEffectControllerTests
 {
     private readonly Mock<IStatusEffectManager> _statusEffectManager;

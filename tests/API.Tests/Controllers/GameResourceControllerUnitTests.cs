@@ -9,6 +9,8 @@ using CoreLogger = Core.Logging.ILogger;
 
 namespace API.Tests.Controllers;
 
+[Trait("Category", "Unit")]
+
 /// <summary>
 /// Unit tests for GameResourceController using mocked dependencies.
 /// These tests focus on controller logic, validation, and error handling.

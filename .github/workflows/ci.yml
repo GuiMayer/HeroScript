@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+      
+      - name: Build
+        run: dotnet build HeroScript.slnx --configuration Release
+      
+      - name: Core Tests
+        run: dotnet test tests/Core.Tests/Core.Tests.csproj --no-build -c Release
+      
+      - name: API Unit Tests
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Unit" --no-build -c Release
+      
+      - name: API Integration Tests
+        timeout-minutes: 5
+        env:
+          HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Integration" --no-build -c Release

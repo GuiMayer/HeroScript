@@ -51,18 +51,25 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
     private static string? FindProjectRoot()
     {
-        var directory = Directory.GetCurrentDirectory();
-        
-        // Procurar pela pasta src/API que contém os arquivos de configuração
-        while (directory != null)
+        // Allow CI/test environment to specify root explicitly
+        var envRoot = Environment.GetEnvironmentVariable("HERESCRIPT_REPO_ROOT");
+        if (!string.IsNullOrWhiteSpace(envRoot) && Directory.Exists(envRoot))
         {
-            var apiPath = Path.Combine(directory, "src", "API");
+            return envRoot;
+        }
+        
+        var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
+        
+        // Limit depth to prevent scanning to filesystem root
+        for (int depth = 0; depth < 12 && dir != null; depth++)
+        {
+            var apiPath = Path.Combine(dir.FullName, "src", "API");
             if (Directory.Exists(apiPath))
             {
-                return directory;
+                return dir.FullName;
             }
             
-            directory = Directory.GetParent(directory)?.FullName;
+            dir = dir.Parent;
         }
         
         return null;
