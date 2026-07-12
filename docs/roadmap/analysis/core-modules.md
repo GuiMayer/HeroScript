@@ -1,7 +1,7 @@
 # Análise de Módulos Core - HeroScript Engine
 
-**Data:** 2026-05-23
-**Status:** Sincronizado com Fase 3 em implementação
+**Data:** 2026-07-12
+**Status:** Sincronizado com análise de viabilidade de MVP
 **Objetivo:** Avaliar quais submódulos do HeroScript.Core estão implementados e quais faltam para criar um jogo completo
 
 ---
@@ -9,11 +9,21 @@
 ## Resumo Executivo
 
 ### Estado Atual
-- **Core.Tests:** 553 testes passando após estabilização da Fase 2
-- **API.Tests:** projeto compila, mas o runner local ainda pode congelar/atingir timeout; não usar a suite completa como gate único até investigação dedicada
-- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 estabilizada; primeiras fatias da Fase 3 implementadas
-- **Foco atual:** continuar Fase 3 com refinamentos de ativacao e conteudo MVP ampliado
+- **Core.Tests:** 1.248 testes passando (crescimento de 553 → 1.248 desde maio/2026)
+- **API.Tests:** 150 testes passando (125 unit + 25 integration) com estabilidade
+- **Build:** 0 erros, 31 warnings (nullability, style)
+- **Fases implementadas:** Fase 0 e Fase 1 completas; Fase 2 estabilizada; Fase 3 parcialmente implementada mas BLOQUEADA
+- **Foco crítico:** Implementar Map System e Event System (blockers absolutos para MVP jogável)
 - **Data-driven Compliance:** diagnóstico dedicado em [data-driven-compliance.md](data-driven-compliance.md); score atual 9.7/10
+
+### Viabilidade de MVP (Análise 2026-07-12)
+- **Engine Core:** 95% completo, production-ready
+- **Conteúdo:** 10% do necessário (7 vs 30+ cartas, 3 vs 10+ inimigos)
+- **Blockers Críticos:**
+  - ❌ Map Navigation System (0%) - BLOCKER ABSOLUTO
+  - ❌ Event System (0%) - BLOCKER ABSOLUTO
+  - ⚠️ Gap de conteúdo (23+ cartas, 7+ inimigos, 1 boss)
+- **Timeline:** 3-4 semanas para MVP jogável após resolução de blockers
 
 ### Capacidade Atual
 Com os módulos implementados, é possível criar:
@@ -34,11 +44,28 @@ Com os módulos implementados, é possível criar:
 - ✅ Ativação por entidade, turno de IA backend-authoritative, polling incremental e base SSE
 
 ### O Que Falta Para Um Jogo Completo
-- ⚠️ Loop de run ampliado (mapa/progressão/end run ainda precisam refinamento)
+
+**Blockers Críticos (Impedem MVP Jogável):**
+- ❌ **Map Navigation System (0%)** - BLOCKER ABSOLUTO
+  - Sem progressão entre nós (combate → loja → evento → boss)
+  - RunManager tem CurrentNodeId mas sem lógica de navegação
+  - Necessário: MapManager, geração de grafo, lógica de avanço
+  - Estimativa: 1 semana
+
+- ❌ **Event System (0%)** - BLOCKER ABSOLUTO
+  - Eventos narrativos/escolha não existem
+  - Runs sem variação, apenas combates repetitivos
+  - Necessário: EventManager, EventDefinition JSON, sistema de escolhas
+  - Estimativa: 3 dias
+
+**Gaps de Conteúdo (Crítico para Qualidade):**
+- ❌ **Conteúdo jogável ampliado:** 7 vs 30+ cartas, 3 vs 10+ inimigos, 0 bosses
+- ⚠️ **Status Effects adicionais:** 5 vs 15+ necessários
+- ⚠️ **Relics/Artifacts:** 0 vs 10+ desejável
+
+**Refinamentos (Pós-MVP):**
 - ⚠️ Regras avançadas de ativação, intents e status por início/fim de ativação
-- ❌ Conteúdo jogável ampliado (raças, poderes, inimigos, companions)
-- ⚠️ Conteúdo MVP inicial para cartas, pools, lojas, preparações e modificadores
-- ❌ Persistência (save/load)
+- ⚠️ Persistência (save/load) para meta-progressão
 
 ---
 
