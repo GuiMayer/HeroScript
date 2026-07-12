@@ -69,6 +69,15 @@ builder.Services.AddSingleton<IResourceLoader, ResourceLoader>(sp =>
     return new ResourceLoader(logger, providerFactory);
 });
 
+// Register DefinitionPersister for CRUD operations on resource definitions
+builder.Services.AddSingleton<IDefinitionPersister, DefinitionPersister>(sp =>
+{
+    var configManager = sp.GetRequiredService<IConfigManager>();
+    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("DefinitionPersister"));
+    return new DefinitionPersister(configManager, logger);
+});
+
 builder.Services.AddSingleton<FormulaLoader>(sp =>
 {
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
