@@ -40,4 +40,29 @@ public interface IActionManager
     /// Valida definição de ação.
     /// </summary>
     Result ValidateActionDefinition(ActionDefinition definition);
+    
+    /// <summary>
+    /// Salva uma nova definição de ação.
+    /// </summary>
+    /// <param name="definition">Definição da ação</param>
+    /// <param name="configName">Nome do config (padrão: "default")</param>
+    /// <returns>Result indicando sucesso ou falha</returns>
+    Result SaveDefinition(ActionDefinition definition, string configName = "default");
+    
+    /// <summary>
+    /// Atualiza uma definição de ação existente.
+    /// </summary>
+    /// <param name="actionId">ID da ação</param>
+    /// <param name="updatedDefinition">Definição atualizada</param>
+    /// <param name="configName">Nome do config (padrão: "default")</param>
+    /// <returns>Result indicando sucesso ou falha</returns>
+    Result UpdateDefinition(string actionId, ActionDefinition updatedDefinition, string configName = "default");
+    
+    /// <summary>
+    /// Deleta uma definição de ação.
+    /// </summary>
+    /// <param name="actionId">ID da ação</param>
+    /// <param name="configName">Nome do config (padrão: "default")</param>
+    /// <returns>Result indicando sucesso ou falha</returns>
+    Result DeleteDefinition(string actionId, string configName = "default");
 }

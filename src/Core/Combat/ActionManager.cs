@@ -2,6 +2,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
 using Core.Logging;
+using Core.Resources;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -16,17 +17,20 @@ public class ActionManager : IActionManager
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
+    private readonly IDefinitionPersister? _persister;
     private readonly Dictionary<string, ActionDefinition> _definitions = new();
     private string? _loadedConfigName;
     
     public ActionManager(
         IConfigManager configManager,
         IResourceLoader resourceLoader,
-        ILogger logger)
+        ILogger logger,
+        IDefinitionPersister? persister = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _persister = persister; // Optional for backward compatibility
     }
     
     /// <summary>
@@ -206,6 +210,113 @@ public class ActionManager : IActionManager
         catch (Exception ex)
         {
             return Result<ActionDefinition>.Failure($"Could not load action '{actionId}': {ex.Message}", ex);
+        }
+    }
+
+    public Result SaveDefinition(ActionDefinition definition, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (definition == null)
+            return Result.Failure("Definition cannot be null");
+
+        // Validate definition first
+        var validation = ValidateActionDefinition(definition);
+        if (validation.IsFailure)
+            return validation;
+
+        try
+        {
+            // Serialize to JSON
+            var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(definition, CreateJsonOptions()));
+            
+            // Save via persister
+            var result = _persister.SaveDefinition("actions", definition.ActionId, jsonDoc, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Add to cache
+            _definitions[definition.ActionId] = definition;
+            _logger.LogInformation($"Saved action definition: {definition.ActionId}");
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error saving action definition '{definition.ActionId}': {ex.Message}");
+            return Result.Failure($"Failed to save action definition: {ex.Message}");
+        }
+    }
+
+    public Result UpdateDefinition(string actionId, ActionDefinition updatedDefinition, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (string.IsNullOrWhiteSpace(actionId))
+            return Result.Failure("ActionId cannot be empty");
+
+        if (updatedDefinition == null)
+            return Result.Failure("Updated definition cannot be null");
+
+        // Ensure IDs match
+        if (updatedDefinition.ActionId != actionId)
+            return Result.Failure($"ActionId mismatch: URL has '{actionId}' but definition has '{updatedDefinition.ActionId}'");
+
+        // Validate updated definition
+        var validation = ValidateActionDefinition(updatedDefinition);
+        if (validation.IsFailure)
+            return validation;
+
+        try
+        {
+            // Serialize to JSON
+            var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(updatedDefinition, CreateJsonOptions()));
+            
+            // Update via persister
+            var result = _persister.UpdateDefinition("actions", actionId, jsonDoc, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Update cache
+            _definitions[actionId] = updatedDefinition;
+            _logger.LogInformation($"Updated action definition: {actionId}");
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error updating action definition '{actionId}': {ex.Message}");
+            return Result.Failure($"Failed to update action definition: {ex.Message}");
+        }
+    }
+
+    public Result DeleteDefinition(string actionId, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (string.IsNullOrWhiteSpace(actionId))
+            return Result.Failure("ActionId cannot be empty");
+
+        try
+        {
+            // Delete via persister
+            var result = _persister.DeleteDefinition("actions", actionId, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Remove from cache
+            _definitions.Remove(actionId);
+            _logger.LogInformation($"Deleted action definition: {actionId}");
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error deleting action definition '{actionId}': {ex.Message}");
+            return Result.Failure($"Failed to delete action definition: {ex.Message}");
         }
     }
 }

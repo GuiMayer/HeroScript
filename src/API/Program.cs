@@ -175,9 +175,10 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var persister = sp.GetRequiredService<IDefinitionPersister>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ActionManager"));
-    return new ActionManager(configManager, resourceLoader, logger);
+    return new ActionManager(configManager, resourceLoader, logger, persister);
 });
 
 // Register ScriptModifierManager
