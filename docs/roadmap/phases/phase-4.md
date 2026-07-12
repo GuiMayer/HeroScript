@@ -1,13 +1,42 @@
 # Fase 4 - Conteúdo MVP
 
-**Status:** 📋 Planejado  
-**Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers), Fase 3 (Run, Shop)
+**Status:** ⏳ Bloqueada pela Fase 3 — Aguardando Map System e Event System  
+**Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers), Fase 3 (Run, Shop, Map, Events)
+
+---
+
+## 📊 Inventário de Conteúdo Atual
+
+**Análise de Gap (2026-07-12):**
+
+| Categoria | Existente | Necessário MVP | Gap | Status |
+|-----------|-----------|----------------|-----|--------|
+| **Actions/Cartas** | 7 | 30+ | **-23** | 🔴 Crítico |
+| **Inimigos** | 3 | 10+ | **-7** | 🔴 Crítico |
+| **Boss** | 0 | 1+ | **-1** | 🔴 Blocker |
+| **Status Effects** | 5 | 15+ | **-10** | 🟡 Importante |
+| **Eventos** | 0 | 8+ | **-8** | 🔴 Blocker (Fase 3) |
+| **Hero Classes** | 1 | 1-2 | 0 | ✅ Mínimo OK |
+| **Relics** | 0 | 10+ | -10 | 🟡 Desejável |
+
+**Conteúdo Existente:**
+- **Actions (7):** basic_attack, fireball, heal, poison_strike, whirlwind, conditional_heal, draw_cards
+- **Entities (3):** player_warrior, enemy_goblin, enemy_orc_warrior
+- **Status Effects (5):** Buffs, debuffs, DoT básicos
+
+**Estimativa de Produção de Conteúdo:**
+- Sprint de cartas (20+): 5 dias
+- Sprint de inimigos (7+ + 1 boss): 4 dias
+- Sprint de status effects (10+): 2 dias
+- **Total:** 1-2 semanas após resolução dos blockers da Fase 3
 
 ---
 
 ## Visão Geral
 
 A Fase 4 adiciona o conteúdo jogável necessário para o MVP: raças, poderes, companions, e inimigos. Esta fase transforma os sistemas abstratos em experiências concretas de jogo, fornecendo os dados que alimentam todos os sistemas anteriores.
+
+**IMPORTANTE:** Esta fase não pode iniciar até que Map System e Event System da Fase 3 estejam implementados.
 
 ## APIs Planejadas
 
