@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Analysis
+
+#### MVP Viability Analysis (2026-07-12)
+
+**Comprehensive viability analysis for MVP roguelike completed:**
+- Engine status: 95% complete (1,248 Core tests + 150 API tests passing, 0 build errors)
+- Content status: 10% complete (7/30+ actions, 3/10+ enemies, 0 bosses)
+- Timeline: 3-4 weeks for playable MVP with focused effort
+
+**Critical Blockers Identified:**
+- ❌ Map Navigation System (0% implemented) - absolute blocker for run progression
+- ❌ Event System (0% implemented) - absolute blocker for narrative variety
+- ⚠️ Content gap: 23+ actions, 7+ enemies, 1 boss needed
+
+**Documentation Updated:**
+- README.md: Added MVP Status section highlighting engine vs content state
+- docs/roadmap/README.md: Added critical blockers alert and updated statistics
+- docs/roadmap/phases/phase-3.md: Marked as BLOCKED with detailed blocker analysis
+- docs/roadmap/phases/phase-4.md: Added content inventory table and gap analysis
+- docs/roadmap/analysis/core-modules.md: Updated test counts (553 → 1,248) and MVP viability section
+- docs/roadmap/strategic.md: Prioritized MVP roguelike, updated genre support percentages
+- All affected docs: Updated dates from 2026-05-23 to 2026-07-12
+
+**Key Findings:**
+- Core systems (Combat, Deck, Shop, Status, Gambits) are production-ready
+- Map System and Event System are absolute requirements with no workarounds
+- Content production is straightforward but requires dedicated sprint (1-2 weeks)
+- Estimated implementation: Sprint 1 (Map+Events, 1-2 weeks), Sprint 2 (Content, 1-2 weeks), Sprint 3 (Balance/QA, 3-5 days)
+
 ### Added
 
 #### Hardening Phase (2026-06-04 to 2026-06-08)
