@@ -381,4 +381,198 @@ public class StatusEffectController : BaseApiController
             return HandleException(ex, "get pipeline modifiers", targetId.ToString());
         }
     }
+
+    /// <summary>
+    /// Cria uma nova definição de status effect
+    /// </summary>
+    [HttpPost("definitions")]
+    [API.Attributes.AdminEndpoint]
+    [ProducesResponseType(typeof(StatusEffectDefinitionDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public IActionResult CreateDefinition([FromBody] StatusEffectDefinitionDto dto, [FromQuery] string configName = "default")
+    {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
+
+        if (dto == null)
+            return BadRequest(new { error = "Status effect definition cannot be null" });
+
+        if (string.IsNullOrWhiteSpace(dto.StatusId))
+            return BadRequest(new { error = "StatusId is required" });
+
+        try
+        {
+            var definition = MapFromDto(dto);
+            var result = _statusEffectManager.SaveDefinition(definition, configName);
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error });
+
+            _logger.LogInformation($"Created status effect definition: {dto.StatusId}");
+            return CreatedAtAction(nameof(GetDefinition), new { statusId = dto.StatusId }, dto);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "create status effect definition", dto.StatusId);
+        }
+    }
+
+    /// <summary>
+    /// Atualiza uma definição de status effect existente
+    /// </summary>
+    [HttpPut("definitions/{statusId}")]
+    [API.Attributes.AdminEndpoint]
+    [ProducesResponseType(typeof(StatusEffectDefinitionDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public IActionResult UpdateDefinition(string statusId, [FromBody] StatusEffectDefinitionDto dto, [FromQuery] string configName = "default")
+    {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
+
+        if (string.IsNullOrWhiteSpace(statusId))
+            return BadRequest(new { error = "StatusId cannot be empty" });
+
+        if (dto == null)
+            return BadRequest(new { error = "Status effect definition cannot be null" });
+
+        if (dto.StatusId != statusId)
+            return BadRequest(new { error = $"StatusId mismatch: URL has '{statusId}' but body has '{dto.StatusId}'" });
+
+        try
+        {
+            var definition = MapFromDto(dto);
+            var result = _statusEffectManager.UpdateDefinition(statusId, definition, configName);
+
+            if (result.IsFailure)
+            {
+                if (result.Error.Contains("not found"))
+                    return NotFound(new { error = result.Error });
+                return BadRequest(new { error = result.Error });
+            }
+
+            _logger.LogInformation($"Updated status effect definition: {statusId}");
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "update status effect definition", statusId);
+        }
+    }
+
+    /// <summary>
+    /// Deleta uma definição de status effect
+    /// </summary>
+    [HttpDelete("definitions/{statusId}")]
+    [API.Attributes.AdminEndpoint]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public IActionResult DeleteDefinition(string statusId, [FromQuery] string configName = "default")
+    {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
+
+        if (string.IsNullOrWhiteSpace(statusId))
+            return BadRequest(new { error = "StatusId cannot be empty" });
+
+        try
+        {
+            var result = _statusEffectManager.DeleteDefinition(statusId, configName);
+
+            if (result.IsFailure)
+            {
+                if (result.Error.Contains("not found"))
+                    return NotFound(new { error = result.Error });
+                return BadRequest(new { error = result.Error });
+            }
+
+            _logger.LogInformation($"Deleted status effect definition: {statusId}");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "delete status effect definition", statusId);
+        }
+    }
+
+    /// <summary>
+    /// Obtém uma definição de status effect específica
+    /// </summary>
+    [HttpGet("definitions/{statusId}")]
+    [ProducesResponseType(typeof(StatusEffectDefinitionDto), 200)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public IActionResult GetDefinition(string statusId)
+    {
+        try
+        {
+            var result = _statusEffectManager.GetDefinition(statusId);
+
+            if (result.IsFailure)
+                return NotFound(new { error = result.Error });
+
+            var dto = MapToDto(result.Value);
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get status effect definition", statusId);
+        }
+    }
+
+    // Métodos de mapeamento
+    private StatusEffectDefinition MapFromDto(StatusEffectDefinitionDto dto)
+    {
+        return new StatusEffectDefinition
+        {
+            StatusId = dto.StatusId,
+            DisplayName = dto.DisplayName,
+            Description = dto.Description,
+            Type = Enum.TryParse<StatusEffectType>(dto.Type, true, out var type) 
+                ? type 
+                : StatusEffectType.CUSTOM,
+            MaxStacks = dto.MaxStacks,
+            DefaultDuration = dto.DefaultDuration,
+            DefaultStacks = dto.DefaultStacks,
+            BaseValue = dto.BaseValue,
+            FormulaValue = dto.FormulaValue,
+            ScalesWithStacks = dto.ScalesWithStacks,
+            ModifierKey = dto.ModifierKey,
+            ModifierFormula = dto.ModifierFormula,
+            IconPath = dto.IconPath ?? string.Empty,
+            Color = dto.Color,
+            Tags = dto.Tags ?? new List<string>(),
+            CustomData = dto.CustomData ?? new Dictionary<string, object>()
+        };
+    }
+
+    private StatusEffectDefinitionDto MapToDto(StatusEffectDefinition definition)
+    {
+        return new StatusEffectDefinitionDto
+        {
+            StatusId = definition.StatusId,
+            DisplayName = definition.DisplayName,
+            Description = definition.Description,
+            Type = definition.Type.ToString(),
+            MaxStacks = definition.MaxStacks,
+            DefaultDuration = definition.DefaultDuration,
+            DefaultStacks = definition.DefaultStacks,
+            BaseValue = definition.BaseValue,
+            FormulaValue = definition.FormulaValue,
+            ScalesWithStacks = definition.ScalesWithStacks,
+            ModifierKey = definition.ModifierKey,
+            ModifierFormula = definition.ModifierFormula,
+            IconPath = definition.IconPath,
+            Color = definition.Color,
+            Tags = definition.Tags,
+            CustomData = definition.CustomData
+        };
+    }
 }
