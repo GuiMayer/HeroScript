@@ -2,6 +2,29 @@
 
 HeroScript é uma engine headless para jogos de cartas roguelike, projetada para ser embarcável em qualquer game engine (Unity, Godot, etc.) através de uma arquitetura modular e data-driven.
 
+## 🎯 Status do MVP
+
+**Última análise:** 2026-07-12
+
+### Engine (95% completo) ✅
+- **Core Systems:** Combat, Deck, Shop, Status Effects, Gambits - totalmente funcionais
+- **Testes:** 1.248 testes Core + 150 testes API passando
+- **Build:** 0 erros, 31 warnings (nullability/style)
+- **Arquitetura:** Production-ready, thread-safe, event-driven
+
+### Blockers Críticos para MVP Jogável ❌
+- **Map Navigation System (0%)** - Sistema de progressão entre nós ausente
+- **Event System (0%)** - Eventos de narrativa/escolha não implementados
+- **Conteúdo (10%)** - 7 cartas vs 30+ necessárias, 3 inimigos vs 10+ necessários
+
+### Timeline para MVP Jogável
+- **Sprint 1 (1-2 semanas):** Implementar Map System + Event System
+- **Sprint 2 (1-2 semanas):** Produção de conteúdo (20+ cartas, 7+ inimigos, 1 boss)
+- **Sprint 3 (3-5 dias):** Balanceamento e QA
+- **Total:** 3-4 semanas com esforço focado
+
+**Estado Atual:** Engine sólida, mas sem loop de progressão jogável. Ideal para embedding em outros projetos ou como simulador de combate.
+
 ## Estrutura do Projeto
 
 ```
@@ -17,7 +40,7 @@ HeroScript/
 │   ├── Core.CLI/             # CLI de debug e testes
 │   └── Calculator/           # Calculadora de debug
 ├── tests/                    # Testes automatizados
-│   ├── Core.Tests/           # Testes do Core (723 testes)
+│   ├── Core.Tests/           # Testes do Core (1.248 testes)
 │   ├── API.Tests/            # Testes da API (150 testes: 125 unit + 25 integration)
 │   └── heroscript.runsettings # Configuração de timeout para testes
 ├── .github/workflows/        # CI/CD pipeline
@@ -27,10 +50,10 @@ HeroScript/
 
 ## Estado Atual
 
-**Última atualização:** 2026-07-05  
-**Fase atual:** Fase 3 em implementação — primeira fatia concluída. Hardening de produção concluído (6 trilhas).
+**Última atualização:** 2026-07-12  
+**Fase atual:** Fase 3 BLOQUEADA — aguardando Map System e Event System (blockers críticos).
 
-- **Core.Tests:** 723 testes passando
+- **Core.Tests:** 1.248 testes passando
 - **API.Tests:** 150 testes passando (125 unit + 25 integration) com estabilidade
 - **Fase 0:** Config, Math e Resources implementados
 - **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados
@@ -43,7 +66,9 @@ HeroScript/
   - ✅ Shop API (start, buy, reroll, sell)
   - ✅ Preparation API (start, apply-modifier)
   - ✅ CombatRunCoordinator (integração combate ↔ deck/hand)
-  - ⏳ Map navigation, event nodes, rest nodes (próximos passos)
+  - ❌ **Map navigation (BLOCKER)** - Sistema não implementado, bloqueia progressão
+  - ❌ **Event nodes (BLOCKER)** - Eventos narrativos ausentes, bloqueia variação
+  - ⏳ Rest nodes, boss encounters (após blockers)
 - **Hardening concluído (Jun/2026):**
   - ✅ Event publishing (observabilidade de lifecycle)
   - ✅ API Key middleware (segurança em endpoints admin)
