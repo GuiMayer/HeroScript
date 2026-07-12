@@ -168,7 +168,8 @@ builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
     var resourceManager = sp.GetRequiredService<IResourceManager>();
     var formulaEvaluator = sp.GetRequiredService<IRuntimeFormulaEvaluator>();
     var eventBus = sp.GetRequiredService<IEventBus>();
-    return new StatusEffectManager(configManager, resourceLoader, resourceManager, formulaEvaluator, eventBus);
+    var persister = sp.GetRequiredService<IDefinitionPersister>();
+    return new StatusEffectManager(configManager, resourceLoader, resourceManager, formulaEvaluator, eventBus, persister);
 });
 
 // Register ActionManager

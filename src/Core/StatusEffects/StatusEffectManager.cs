@@ -20,6 +20,7 @@ public class StatusEffectManager : IStatusEffectManager
     private readonly IResourceLoader _resourceLoader;
     private readonly IResourceManager _resourceManager;
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
+    private readonly IDefinitionPersister? _persister;
     private readonly IEventBus? _eventBus;
     
     // Status effects ativos por entidade (thread-safe)
@@ -36,13 +37,15 @@ public class StatusEffectManager : IStatusEffectManager
         IResourceLoader resourceLoader,
         IResourceManager resourceManager,
         IRuntimeFormulaEvaluator formulaEvaluator,
-        IEventBus? eventBus = null)
+        IEventBus? eventBus = null,
+        IDefinitionPersister? persister = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
         _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
         _eventBus = eventBus;
+        _persister = persister; // Optional for backward compatibility
         
         _processor = new StatusEffectProcessor(this, formulaEvaluator);
     }
@@ -487,5 +490,129 @@ public class StatusEffectManager : IStatusEffectManager
         }
         
         return status.Definition.BaseValue * (status.Definition.ScalesWithStacks ? status.Stacks : 1);
+    }
+    
+    // ===== PERSISTÊNCIA =====
+    
+    public Result SaveDefinition(StatusEffectDefinition definition, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (definition == null)
+            return Result.Failure("Definition cannot be null");
+
+        // Basic validation
+        if (string.IsNullOrWhiteSpace(definition.StatusId))
+            return Result.Failure("StatusId is required");
+
+        if (string.IsNullOrWhiteSpace(definition.DisplayName))
+            return Result.Failure("DisplayName is required");
+
+        if (definition.MaxStacks < 1)
+            return Result.Failure("MaxStacks must be at least 1");
+
+        try
+        {
+            // Serialize to JSON
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            
+            var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(definition, options));
+            
+            // Save via persister
+            var result = _persister.SaveDefinition("StatusEffects", definition.StatusId, jsonDoc, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Add to cache
+            _definitions[definition.StatusId] = definition;
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to save status definition: {ex.Message}");
+        }
+    }
+
+    public Result UpdateDefinition(string statusId, StatusEffectDefinition updatedDefinition, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (string.IsNullOrWhiteSpace(statusId))
+            return Result.Failure("StatusId cannot be empty");
+
+        if (updatedDefinition == null)
+            return Result.Failure("Updated definition cannot be null");
+
+        // Ensure IDs match
+        if (updatedDefinition.StatusId != statusId)
+            return Result.Failure($"StatusId mismatch: URL has '{statusId}' but definition has '{updatedDefinition.StatusId}'");
+
+        // Basic validation
+        if (string.IsNullOrWhiteSpace(updatedDefinition.DisplayName))
+            return Result.Failure("DisplayName is required");
+
+        if (updatedDefinition.MaxStacks < 1)
+            return Result.Failure("MaxStacks must be at least 1");
+
+        try
+        {
+            // Serialize to JSON
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            
+            var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(updatedDefinition, options));
+            
+            // Update via persister
+            var result = _persister.UpdateDefinition("StatusEffects", statusId, jsonDoc, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Update cache
+            _definitions[statusId] = updatedDefinition;
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to update status definition: {ex.Message}");
+        }
+    }
+
+    public Result DeleteDefinition(string statusId, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (string.IsNullOrWhiteSpace(statusId))
+            return Result.Failure("StatusId cannot be empty");
+
+        try
+        {
+            // Delete via persister
+            var result = _persister.DeleteDefinition("StatusEffects", statusId, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Remove from cache
+            _definitions.TryRemove(statusId, out _);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to delete status definition: {ex.Message}");
+        }
     }
 }

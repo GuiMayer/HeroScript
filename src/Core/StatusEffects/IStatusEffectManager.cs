@@ -165,6 +165,31 @@ public interface IStatusEffectManager
     /// </summary>
     /// <returns>Lista de definições</returns>
     List<StatusEffectDefinition> GetAllDefinitions();
+    
+    /// <summary>
+    /// Salva uma nova definição de status effect.
+    /// </summary>
+    /// <param name="definition">Definição do status effect</param>
+    /// <param name="configName">Nome do config (padrão: "default")</param>
+    /// <returns>Result indicando sucesso ou falha</returns>
+    Result SaveDefinition(StatusEffectDefinition definition, string configName = "default");
+    
+    /// <summary>
+    /// Atualiza uma definição de status effect existente.
+    /// </summary>
+    /// <param name="statusId">ID do status effect</param>
+    /// <param name="updatedDefinition">Definição atualizada</param>
+    /// <param name="configName">Nome do config (padrão: "default")</param>
+    /// <returns>Result indicando sucesso ou falha</returns>
+    Result UpdateDefinition(string statusId, StatusEffectDefinition updatedDefinition, string configName = "default");
+    
+    /// <summary>
+    /// Deleta uma definição de status effect.
+    /// </summary>
+    /// <param name="statusId">ID do status effect</param>
+    /// <param name="configName">Nome do config (padrão: "default")</param>
+    /// <returns>Result indicando sucesso ou falha</returns>
+    Result DeleteDefinition(string statusId, string configName = "default");
 }
 
 /// <summary>
