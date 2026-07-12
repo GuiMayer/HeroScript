@@ -132,9 +132,10 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
+    var persister = sp.GetRequiredService<IDefinitionPersister>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EntityDefinitionLoader"));
-    var loader = new EntityDefinitionLoader(configManager, resourceLoader, logger);
+    var loader = new EntityDefinitionLoader(configManager, resourceLoader, logger, persister: persister);
     
     // Register with CacheRegistry
     var registry = sp.GetRequiredService<CacheRegistry>();
