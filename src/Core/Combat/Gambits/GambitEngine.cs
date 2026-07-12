@@ -6,6 +6,7 @@ using Core.Entity;
 using Core.Entity.Controllers;
 using Core.Events;
 using Core.Events.Domain;
+using Core.Resources;
 
 namespace Core.Combat.Gambits;
 
@@ -13,15 +14,17 @@ public sealed class GambitEngine : IGambitEngine
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
+    private readonly IDefinitionPersister? _persister;
     private readonly IEventBus? _eventBus;
     private readonly Dictionary<string, GambitDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
 
-    public GambitEngine(IConfigManager configManager, IResourceLoader resourceLoader, IEventBus? eventBus = null)
+    public GambitEngine(IConfigManager configManager, IResourceLoader resourceLoader, IEventBus? eventBus = null, IDefinitionPersister? persister = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _eventBus = eventBus;
+        _persister = persister; // Optional for backward compatibility
     }
 
     public Result LoadDefinitions(string configName)
@@ -203,5 +206,129 @@ public sealed class GambitEngine : IGambitEngine
             kvp => kvp.Key,
             kvp => JsonSerializer.Deserialize<GambitDefinition>(kvp.Value.GetRawText(), options)!,
             StringComparer.OrdinalIgnoreCase);
+    }
+    
+    // ===== PERSISTÊNCIA =====
+    
+    public Result SaveDefinition(GambitDefinition definition, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (definition == null)
+            return Result.Failure("Definition cannot be null");
+
+        // Basic validation
+        if (string.IsNullOrWhiteSpace(definition.GambitId))
+            return Result.Failure("GambitId is required");
+
+        if (definition.Conditions == null || definition.Conditions.Count == 0)
+            return Result.Failure("At least one condition is required");
+
+        if (definition.Action == null)
+            return Result.Failure("Action is required");
+
+        try
+        {
+            // Serialize to JSON
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            
+            var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(definition, options));
+            
+            // Save via persister
+            var result = _persister.SaveDefinition("Gambits", definition.GambitId, jsonDoc, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Add to cache
+            _definitions[definition.GambitId] = definition;
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to save gambit definition: {ex.Message}");
+        }
+    }
+
+    public Result UpdateDefinition(string gambitId, GambitDefinition updatedDefinition, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (string.IsNullOrWhiteSpace(gambitId))
+            return Result.Failure("GambitId cannot be empty");
+
+        if (updatedDefinition == null)
+            return Result.Failure("Updated definition cannot be null");
+
+        // Ensure IDs match
+        if (updatedDefinition.GambitId != gambitId)
+            return Result.Failure($"GambitId mismatch: URL has '{gambitId}' but definition has '{updatedDefinition.GambitId}'");
+
+        // Basic validation
+        if (updatedDefinition.Conditions == null || updatedDefinition.Conditions.Count == 0)
+            return Result.Failure("At least one condition is required");
+
+        if (updatedDefinition.Action == null)
+            return Result.Failure("Action is required");
+
+        try
+        {
+            // Serialize to JSON
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            options.Converters.Add(new JsonStringEnumConverter());
+            
+            var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(updatedDefinition, options));
+            
+            // Update via persister
+            var result = _persister.UpdateDefinition("Gambits", gambitId, jsonDoc, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Update cache
+            _definitions[gambitId] = updatedDefinition;
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to update gambit definition: {ex.Message}");
+        }
+    }
+
+    public Result DeleteDefinition(string gambitId, string configName = "default")
+    {
+        if (_persister == null)
+            return Result.Failure("DefinitionPersister not available");
+
+        if (string.IsNullOrWhiteSpace(gambitId))
+            return Result.Failure("GambitId cannot be empty");
+
+        try
+        {
+            // Delete via persister
+            var result = _persister.DeleteDefinition("Gambits", gambitId, configName);
+            if (result.IsFailure)
+                return result;
+
+            // Remove from cache
+            _definitions.Remove(gambitId);
+
+            return Result.Success();
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure($"Failed to delete gambit definition: {ex.Message}");
+        }
     }
 }

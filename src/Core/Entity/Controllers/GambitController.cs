@@ -74,5 +74,14 @@ public class GambitController : IEntityController
             {
                 Action = new EntityAction { ActionType = ActionType.PASS }
             });
+
+        public Result SaveDefinition(GambitDefinition definition, string configName = "default") =>
+            Result.Failure("GambitEngine not available");
+
+        public Result UpdateDefinition(string gambitId, GambitDefinition updatedDefinition, string configName = "default") =>
+            Result.Failure("GambitEngine not available");
+
+        public Result DeleteDefinition(string gambitId, string configName = "default") =>
+            Result.Failure("GambitEngine not available");
     }
 }

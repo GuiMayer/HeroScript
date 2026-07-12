@@ -196,7 +196,8 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var eventBus = sp.GetRequiredService<IEventBus>();
-    return new GambitEngine(configManager, resourceLoader, eventBus);
+    var persister = sp.GetRequiredService<IDefinitionPersister>();
+    return new GambitEngine(configManager, resourceLoader, eventBus, persister);
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 
