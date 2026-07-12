@@ -1,7 +1,25 @@
 # API Roadmap
 
-**Última atualização:** 2026-05-23
-**Status:** Fase 3 em implementação — Run/Deck, CardSelection, Shop, Preparation, ator arbitrário, consumo real de cartas, ativação por entidade e rollback iniciados
+**Última atualização:** 2026-07-12
+**Status:** Fase 3 BLOQUEADA — Map Navigation System (0%) e Event System (0%) são blockers absolutos para MVP jogável
+
+---
+
+## ⚠️ Blockers Críticos para MVP
+
+**ATENÇÃO:** A Fase 3 está bloqueada por dois sistemas ausentes que impedem qualquer progressão de run jogável:
+
+1. **Map Navigation System (0% implementado)**
+   - Sem progressão entre nós (combate → loja → evento → boss)
+   - RunManager tem `CurrentNodeId` mas sem lógica de navegação
+   - Estimativa: 1 semana de implementação
+
+2. **Event System (0% implementado)**
+   - Eventos narrativos/escolha não existem
+   - Sem eventos = runs sem variação
+   - Estimativa: 3 dias de implementação
+
+**Timeline MVP Jogável:** 3-4 semanas após resolução destes blockers (incluindo conteúdo e balanceamento)
 
 ---
 
@@ -34,7 +52,7 @@ O roadmap está organizado em 6 fases principais, alinhadas com o desenvolviment
 | **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) | [phases/phase-0.md](phases/phase-0.md) |
 | **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System | [phases/phase-1.md](phases/phase-1.md) |
 | **Fase 2** | ✅ Estabilizado | Camadas de Combate (Status, Modifiers, Gambits) | [phases/phase-2.md](phases/phase-2.md) |
-| **Fase 3** | 🚧 Em implementação | Loop de Run (Run, CardSelection, Shop, Preparation, ator arbitrário) | [phases/phase-3.md](phases/phase-3.md) |
+| **Fase 3** | 🔴 BLOQUEADA | Loop de Run - **BLOCKER:** Map System e Event System ausentes | [phases/phase-3.md](phases/phase-3.md) |
 | **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) | [phases/phase-4.md](phases/phase-4.md) |
 | **Fase 5** | 📋 Planejado | Persistência (Save/Load, MetaProgression) | [phases/phase-5.md](phases/phase-5.md) |
 | **Fase 6** | 📋 Planejado | Modos Especiais (Seed, Daily, Custom) | [phases/phase-6.md](phases/phase-6.md) |
@@ -120,14 +138,14 @@ http://localhost:5260/api
 
 ---
 
-**Próximo passo:** continuar **Fase 3 — Loop de Run**, refinando regras avancadas de ativacao, intents e conteúdo MVP inicial. A primeira fatia de consistencia transacional das operacoes compostas de run ja foi implementada; os loaders principais de conteudo/regra ja passam por `ResourceLoader`, formulas runtime usam avaliador compartilhado, e o que ainda toca disco diretamente fica restrito a infraestrutura de config/providers/hot reload.
+**Próximo passo CRÍTICO:** **Implementar Map Navigation System e Event System** — blockers absolutos para Fase 3. Sem estes sistemas, não há progressão de run jogável. Estimativa: 1-2 semanas de implementação focada.
 
 **Nota:** A documentação foi reorganizada em 2026-05-11. Veja [../MOVED.md](../MOVED.md) para mapeamento de caminhos antigos.
 
 ## Estatísticas Atuais
 
-### Estado Verificado em 2026-05-23
-- **Core.Tests:** suites focadas de Fase 3 e ator arbitrario passaram; historico da Fase 2 tinha 553 testes Core passando apos estabilizacao
+### Estado Verificado em 2026-07-12
+- **Core.Tests:** 1.248 testes passando (crescimento de 553 → 1.248 desde última verificação)
 - **API.Tests:** suites focadas de Run/CardSelection/Shop/Preparation/Combat turn/Activation/Events passaram; suite completa ainda deve ser tratada com cautela por historico de runner local instavel
 - **Status Effects:** Core, API e configuração existem; loader aceita schema legado e canonical; aplicação em combate usa comportamentos genéricos
 - **Script Modifiers:** Core (`ScriptModifierManager`) e API (`/api/modifiers`) implementados; definicoes JSON, pipeline filtrado por tags, stacking e tick
@@ -137,7 +155,7 @@ http://localhost:5260/api
 - **Correções aplicadas:** Resource reload/hot reload, ActionStack null guard, rotas REST compatíveis para Status Effects, StatusEffectManager no DamageCalculator, guard de ambiente em `EventsController.ClearHistory`, remoção de `Directory.SetCurrentDirectory` do factory de testes
 
 ### Fase 0 + Fase 1 + Fase 2 (Implementadas/Estabilizadas)
-- **Total de testes Core:** 553 testes passando
+- **Total de testes Core:** 1.248 testes passando
   - Combat: 53 testes
   - Events: 18 testes  
   - Damage: 126 testes
