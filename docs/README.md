@@ -7,6 +7,8 @@
 
 ## Quick Links
 
+- **[Client Integration Guide](CLIENT_INTEGRATION.md)** - Integrate with Unity, Godot, Web, Python
+- **[Production Deployment Guide](PRODUCTION.md)** - Deploy API to production servers
 - [Architecture Overview](architecture/overview.md)
 - [API Endpoints](api/endpoints.md)
 - [Development Roadmap](roadmap/README.md)
@@ -87,33 +89,48 @@
 
 ## Getting Started
 
-### Prerequisites
-
-- .NET 10 SDK
-- C# com nullable/implicit usings habilitados nos projetos atuais
-
-### Building the Project
+### Quick Start with Docker
 
 ```bash
-dotnet build
+# 1. Start API server
+docker-compose up -d
+
+# 2. Verify health
+curl http://localhost:5260/api/health
+
+# 3. Integrate with your game client
+# See CLIENT_INTEGRATION.md for Unity/Godot/Web examples
 ```
 
-### Running Tests
+### Local Development
 
 ```bash
-dotnet test
-```
-
-### Running the API
-
-```bash
+# Build and run API
 cd src/API
 dotnet run
+
+# API available at http://localhost:5260
+# Swagger docs at http://localhost:5260/swagger
 ```
 
-The API will be available at `http://localhost:5260`
+### Testing
 
-Swagger documentation: `http://localhost:5260/swagger`
+```bash
+# Run all tests
+dotnet test
+
+# Core tests only (1,248 tests)
+dotnet test tests/Core.Tests/Core.Tests.csproj
+
+# API tests only (150 tests)
+dotnet test tests/API.Tests/API.Tests.csproj
+```
+
+### Next Steps
+
+1. **[Integrate your game client](CLIENT_INTEGRATION.md)** - Unity, Godot, Web, Python examples
+2. **[Deploy to production](PRODUCTION.md)** - Docker, systemd, nginx configuration
+3. **[Explore API endpoints](api/endpoints.md)** - Complete REST API reference
 
 ---
 
