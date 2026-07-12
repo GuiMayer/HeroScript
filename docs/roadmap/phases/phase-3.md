@@ -1,7 +1,29 @@
 # Fase 3 - Loop de Run
 
-**Status:** 🚧 Em implementação — primeiras fatias concluídas
+**Status:** 🔴 BLOQUEADA — Map Navigation System e Event System ausentes (blockers absolutos)
 **Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers, Gambits)
+
+---
+
+## ⚠️ BLOCKERS CRÍTICOS
+
+**Esta fase está completamente bloqueada por dois sistemas não implementados:**
+
+### 1. Map Navigation System (0% implementado) - BLOCKER ABSOLUTO
+- **Problema:** Sem sistema de progressão entre nós (combate → loja → evento → boss)
+- **Impacto:** Impossível criar loop de run jogável
+- **Estado atual:** `RunManager` tem `CurrentNodeId` mas sem lógica de navegação/geração de mapa
+- **Necessário:** `MapManager`, geração de grafo de nós, lógica de avanço
+- **Estimativa:** 1 semana de implementação
+
+### 2. Event System (0% implementado) - BLOCKER ABSOLUTO
+- **Problema:** Eventos narrativos/escolha não existem
+- **Impacto:** Runs sem variação, apenas combates repetitivos
+- **Estado atual:** Nenhum código implementado
+- **Necessário:** `EventManager`, `EventDefinition` JSON, sistema de escolhas
+- **Estimativa:** 3 dias de implementação
+
+**Nenhum progresso adicional na Fase 3 é viável até que estes sistemas sejam implementados.**
 
 ---
 
