@@ -207,6 +207,126 @@ public class EntityController : BaseApiController
         }
     }
 
+    /// <summary>
+    /// Cria uma nova definição de entidade
+    /// </summary>
+    [HttpPost("definitions")]
+    [API.Attributes.AdminEndpoint]
+    [ProducesResponseType(typeof(EntityDefinitionDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(500)]
+    public IActionResult CreateDefinition([FromBody] EntityDefinitionDto dto, [FromQuery] string configName = "default")
+    {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
+
+        if (dto == null)
+            return BadRequest(new { error = "Entity definition cannot be null" });
+
+        if (string.IsNullOrWhiteSpace(dto.DefinitionId))
+            return BadRequest(new { error = "DefinitionId is required" });
+
+        try
+        {
+            var definition = MapFromDto(dto);
+            var result = _definitionLoader.SaveDefinition(definition, configName);
+
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error });
+
+            _logger.LogInformation($"Created entity definition: {dto.DefinitionId}");
+            return CreatedAtAction(nameof(GetDefinition), new { definitionId = dto.DefinitionId }, dto);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "create entity definition", dto.DefinitionId);
+        }
+    }
+
+    /// <summary>
+    /// Atualiza uma definição de entidade existente
+    /// </summary>
+    [HttpPut("definitions/{definitionId}")]
+    [API.Attributes.AdminEndpoint]
+    [ProducesResponseType(typeof(EntityDefinitionDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public IActionResult UpdateDefinition(string definitionId, [FromBody] EntityDefinitionDto dto, [FromQuery] string configName = "default")
+    {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
+
+        if (string.IsNullOrWhiteSpace(definitionId))
+            return BadRequest(new { error = "DefinitionId cannot be empty" });
+
+        if (dto == null)
+            return BadRequest(new { error = "Entity definition cannot be null" });
+
+        if (dto.DefinitionId != definitionId)
+            return BadRequest(new { error = $"DefinitionId mismatch: URL has '{definitionId}' but body has '{dto.DefinitionId}'" });
+
+        try
+        {
+            var definition = MapFromDto(dto);
+            var result = _definitionLoader.UpdateDefinition(definitionId, definition, configName);
+
+            if (result.IsFailure)
+            {
+                if (result.Error.Contains("not found"))
+                    return NotFound(new { error = result.Error });
+                return BadRequest(new { error = result.Error });
+            }
+
+            _logger.LogInformation($"Updated entity definition: {definitionId}");
+            return Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "update entity definition", definitionId);
+        }
+    }
+
+    /// <summary>
+    /// Deleta uma definição de entidade
+    /// </summary>
+    [HttpDelete("definitions/{definitionId}")]
+    [API.Attributes.AdminEndpoint]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    [ProducesResponseType(500)]
+    public IActionResult DeleteDefinition(string definitionId, [FromQuery] string configName = "default")
+    {
+        // Sanitize path traversal
+        if (!API.Helpers.ValidationHelper.IsValidConfigName(configName))
+            return BadRequest(new { error = "Invalid configuration name" });
+
+        if (string.IsNullOrWhiteSpace(definitionId))
+            return BadRequest(new { error = "DefinitionId cannot be empty" });
+
+        try
+        {
+            var result = _definitionLoader.DeleteDefinition(definitionId, configName);
+
+            if (result.IsFailure)
+            {
+                if (result.Error.Contains("not found"))
+                    return NotFound(new { error = result.Error });
+                return BadRequest(new { error = result.Error });
+            }
+
+            _logger.LogInformation($"Deleted entity definition: {definitionId}");
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "delete entity definition", definitionId);
+        }
+    }
+
     // Métodos de mapeamento
     private EntityDefinitionDto MapToDefinitionDto(EntityDefinition definition)
     {
@@ -255,5 +375,39 @@ public class EntityController : BaseApiController
         }
         
         return dto;
+    }
+
+    private EntityDefinition MapFromDto(EntityDefinitionDto dto)
+    {
+        var definition = new EntityDefinition
+        {
+            DefinitionId = dto.DefinitionId,
+            DisplayName = dto.DisplayName,
+            Description = dto.Description,
+            Type = Enum.TryParse<Core.Entity.EntityType>(dto.Type, true, out var entityType) 
+                ? entityType 
+                : Core.Entity.EntityType.NPC,
+            Resources = dto.Resources != null && dto.Resources.Any()
+                ? new ResourcesDefinition
+                {
+                    Resources = dto.Resources.ToDictionary(
+                        kvp => kvp.Key,
+                        kvp => new ResourcePoolDefinition
+                        {
+                            Current = kvp.Value.Current,
+                            Max = kvp.Value.Max
+                        }
+                    )
+                }
+                : null,
+            Stats = dto.Attributes != null && dto.Attributes.Any()
+                ? new StatsDefinition
+                {
+                    CustomStats = dto.Attributes
+                }
+                : null
+        };
+
+        return definition;
     }
 }
