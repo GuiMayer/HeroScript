@@ -1,8 +1,10 @@
 # HeroScript - Roadmap Estratégico
 
-**Última atualização:** 2026-05-23
-**Status:** Fase 2 estabilizada; Fase 3 é o próximo foco técnico
+**Última atualização:** 2026-07-12
+**Status:** Fase 3 BLOQUEADA — Map System e Event System são blockers críticos para MVP roguelike
 **Escopo:** Engine versátil para Card Games (Slay the Spire, Balatro, TCGs)
+
+> **⚠️ PRIORIDADE CRÍTICA:** Focar em MVP Roguelike Básico (Slay the Spire style) PRIMEIRO. Features TCG avançadas (permanentes, instants) são despriorizadas até MVP jogável estar completo.
 
 > Nota de manutenção: este documento preserva decisões estratégicas e histórico de escopo. Para status operacional atualizado, contratos de API e ordem de execução, use `README.md`, `docs/README.md`, `docs/roadmap/README.md` e os documentos por fase.
 
@@ -35,11 +37,13 @@ O HeroScript não é apenas um card battler roguelike. É uma **engine versátil
 
 | Gênero | Status | Tempo Estimado | Prioridade |
 |--------|--------|----------------|------------|
-| **Slay the Spire** | ⚠️ 80% pronto | +2-3 semanas | **ALTA** |
+| **Slay the Spire** | 🔴 60% pronto - BLOQUEADO | +3-4 semanas (Map+Events+Conteúdo) | **CRÍTICA - MVP** |
 | **Balatro** | ✅ Totalmente suportado | Imediato | ALTA |
 | **Vidaria (combate direto)** | ✅ Totalmente suportado | Imediato | ALTA |
-| **MTG/Hearthstone** | ❌ Requer permanentes | +4-6 semanas | MÉDIA |
-| **Inscryption** | ❌ Requer permanentes | +4-6 semanas | BAIXA |
+| **MTG/Hearthstone** | ❌ Requer permanentes | +4-6 semanas | BAIXA - Pós-MVP |
+| **Inscryption** | ❌ Requer permanentes | +4-6 semanas | BAIXA - Pós-MVP |
+
+**Nota crítica:** Slay the Spire style é o alvo MVP. Map System e Event System são blockers absolutos (0% implementados). TCG features despriorizadas até MVP jogável.
 
 ### **Gaps Críticos Identificados**
 
