@@ -1,6 +1,37 @@
 # HeroScript Engine
 
-HeroScript é uma engine headless para jogos de cartas roguelike, projetada para ser embarcável em qualquer game engine (Unity, Godot, etc.) através de uma arquitetura modular e data-driven.
+**Headless card roguelike engine with REST API architecture**
+
+HeroScript é uma engine headless para jogos de cartas roguelike exposta através de uma **REST API**. Game clients (Unity, Godot, Web) consomem a engine via HTTP, permitindo hot-reload, ferramentas web, e arquitetura modular data-driven.
+
+## 🚀 Quick Start
+
+### Start the API Server
+
+```bash
+# Option A: Docker (recommended)
+docker-compose up -d
+# API available at http://localhost:5260
+
+# Option B: Local development
+cd src/API
+dotnet run
+# API available at http://localhost:5260
+```
+
+### Verify API is Running
+
+```bash
+curl http://localhost:5260/api/health
+```
+
+### Integration Guides
+
+- **[Unity/Godot/Web Integration](docs/CLIENT_INTEGRATION.md)** - Consume API from game clients
+- **[Production Deployment](docs/PRODUCTION.md)** - Deploy API to production
+- **[API Reference](docs/api/endpoints.md)** - Complete endpoint documentation
+
+**Performance:** 5-8ms latency on localhost (imperceptible for turn-based games)
 
 ## 🎯 Status do MVP
 
@@ -254,35 +285,86 @@ _logger.LogInformation($"Effect {effectId} resolved for {entityId}");
 
 ---
 
-## Como Usar
+## Architecture
 
-### Como Biblioteca Embarcável
+HeroScript uses a **REST API architecture** where game clients consume the engine over HTTP:
 
+```
+Game Client (Unity/Godot/Web)
+    ↓ HTTP (5-8ms localhost)
+API Layer (ASP.NET Core)
+    ↓ In-process calls
+Core Engine (C# .NET)
+    ↓ File I/O
+Data (JSON configs, events, runs)
+```
+
+**Benefits:**
+- **Hot-reload**: Update game configs without restarting clients
+- **Multi-client**: Share engine across Unity + Godot + Web tools
+- **Web tools**: Build dashboards, editors, simulators
+- **Testing**: Run 10k+ simulations via Python scripts
+- **Future-proof**: Easy path to multiplayer/cloud
+
+**Performance:** 5-8ms latency on localhost (imperceptible for turn-based games)
+
+---
+
+## Client Integration
+
+See **[CLIENT_INTEGRATION.md](docs/CLIENT_INTEGRATION.md)** for complete integration guides:
+
+### Unity (C#)
 ```csharp
-using Core.Math;
-
-var engine = new MathEngine();
-var expr = engine.BuildFromFormula("HYPERBOLIC_CURVE", 100);
-var result = expr.Build();
-Console.WriteLine($"Result: {result}");
+// UnityWebRequest example
+StartCoroutine(client.StartCombat(
+    new CombatStartRequest { 
+        heroEntityId = "knight", 
+        enemyEntityIds = new[] { "goblin" } 
+    },
+    OnCombatStarted,
+    OnError
+));
 ```
 
-### Como API REST
-
-```bash
-cd src/API
-dotnet run
-# Acesse http://localhost:5260
+### Godot (GDScript)
+```gdscript
+# HTTPRequest example
+var combat = await client.start_combat("knight", ["goblin"])
+print("Combat started: ", combat["combatId"])
 ```
 
-### Como CLI de Debug
-
-```bash
-cd tools/Core.CLI
-dotnet run -- --help
-dotnet run -- --test
-dotnet run -- --config alisyum
+### Web (TypeScript)
+```typescript
+// Fetch API example
+const combat = await heroScriptClient.startCombat({
+  heroEntityId: 'knight',
+  enemyEntityIds: ['goblin']
+});
 ```
+
+### Python (Simulations)
+```python
+# Requests library for headless testing
+client = HeroScriptClient()
+combat = client.start_combat("knight", ["goblin"])
+```
+
+---
+
+## Hot-Reload Workflow
+
+For rapid iteration during development:
+
+1. **Edit config files** (e.g., `data/configs/default/Actions/fireball.json`)
+2. **Reload via API** (no restart needed):
+   ```bash
+   curl -X POST http://localhost:5260/api/actions/reload \
+     -H "X-Admin-Key: dev-admin-key"
+   ```
+3. **Test immediately** in running game client
+
+This works for all definition types: Actions, Entities, Status Effects, Gambits.
 
 ## Build e Testes
 
