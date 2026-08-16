@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Abstractions.Persistence;
+using Core.Determinism;
 using Core.Logging;
 using Core.Run;
 
@@ -12,7 +13,7 @@ namespace Core.Infrastructure.Persistence;
 /// Uses atomic write (temp file + rename) to prevent corruption on crash.
 /// Thread-safe via SemaphoreSlim.
 /// </summary>
-public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposable
+public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDisposable
 {
     private readonly string _storePath;
     private readonly ILogger _logger;
@@ -39,6 +40,23 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
     /// <inheritdoc />
     public async Task SaveAsync(RunState state, CancellationToken ct = default)
     {
+        var entry = new RunJournalEntry
+        {
+            RunId = state.RunId,
+            Sequence = state.Sequence,
+            Step = state.Determinism.Step,
+            CommandType = "legacy.snapshot",
+            Command = JsonSerializer.SerializeToElement(new { }),
+            StateHash = CanonicalJson.ComputeHash(state),
+            LogicalTimestamp = state.Determinism.LogicalTimestamp.UtcDateTime
+        };
+        await SaveCheckpointAsync(new RunCheckpoint(state, entry), ct).ConfigureAwait(false);
+    }
+
+    public async Task SaveCheckpointAsync(RunCheckpoint checkpoint, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+        var state = checkpoint.State;
         ArgumentNullException.ThrowIfNull(state);
         
         var snapshotDir = GetSnapshotDirectory(state.RunId);
@@ -50,7 +68,7 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var json = JsonSerializer.Serialize(state, _options);
+            var json = JsonSerializer.Serialize(checkpoint, _options);
             await File.WriteAllTextAsync(tmp, json, ct).ConfigureAwait(false);
             File.Move(tmp, path, overwrite: false); // Never overwrite existing snapshots
 
@@ -95,7 +113,7 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
         try
         {
             var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
-            var state = JsonSerializer.Deserialize<RunState>(json, _options);
+            var state = DeserializeCheckpoint(json)?.State;
             
             _logger.LogInformation($"Snapshot {sequence} loaded for run {runId}");
             
@@ -123,6 +141,35 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
         try
         {
             return ListSnapshotSequences(snapshotDir);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task<IReadOnlyList<RunCheckpoint>> LoadCheckpointsAsync(
+        Guid runId,
+        CancellationToken ct = default)
+    {
+        var snapshotDir = GetSnapshotDirectory(runId);
+        if (!Directory.Exists(snapshotDir))
+            return Array.Empty<RunCheckpoint>();
+
+        await _semaphore.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var checkpoints = new List<RunCheckpoint>();
+            foreach (var sequence in ListSnapshotSequences(snapshotDir))
+            {
+                var json = await File.ReadAllTextAsync(
+                    GetSnapshotPath(runId, sequence),
+                    ct).ConfigureAwait(false);
+                var checkpoint = DeserializeCheckpoint(json);
+                if (checkpoint != null)
+                    checkpoints.Add(checkpoint);
+            }
+            return checkpoints;
         }
         finally
         {
@@ -223,5 +270,29 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
             .Select(name => int.Parse(name!))
             .OrderBy(sequence => sequence)
             .ToList();
+    }
+
+    private RunCheckpoint? DeserializeCheckpoint(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.TryGetProperty("state", out _)
+            || document.RootElement.TryGetProperty("State", out _))
+        {
+            return JsonSerializer.Deserialize<RunCheckpoint>(json, _options);
+        }
+
+        var state = JsonSerializer.Deserialize<RunState>(json, _options);
+        if (state == null)
+            return null;
+        return new RunCheckpoint(state, new RunJournalEntry
+        {
+            RunId = state.RunId,
+            Sequence = state.Sequence,
+            Step = state.Determinism.Step,
+            CommandType = "legacy.snapshot",
+            Command = JsonSerializer.SerializeToElement(new { }),
+            StateHash = CanonicalJson.ComputeHash(state),
+            LogicalTimestamp = state.Determinism.LogicalTimestamp.UtcDateTime
+        });
     }
 }

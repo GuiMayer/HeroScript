@@ -25,7 +25,6 @@ public sealed class RunManager : IRunManager
     private readonly IRunStateRepository? _repository;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
-    private readonly object _persistenceLock = new();
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunManager(
@@ -106,8 +105,10 @@ public sealed class RunManager : IRunManager
             if (_runs.ContainsKey(state.RunId))
                 return Result<RunState>.Failure($"Run already exists for the deterministic inputs: {state.RunId}");
 
-            _runs[state.RunId] = state;
-            state = PersistAsync(state);
+            var persisted = Persist(state, "run.start", options);
+            if (persisted.IsFailure)
+                return Result<RunState>.Failure(persisted.Error);
+            state = persisted.Value;
         }
 
         _eventBus?.Publish(new RunStartedEvent(state.RunId, options.ConfigName, options.PlayerEntityId, definition.StartingGold, definition.StartingPowerPoints));
@@ -166,8 +167,13 @@ public sealed class RunManager : IRunManager
             }
 
             state = state with { Determinism = state.Determinism.AdvanceStep() };
-            _runs[runId] = state;
-            state = PersistAsync(state);
+            var persisted = Persist(
+                state,
+                "run.economy.apply",
+                new { resource, amount });
+            if (persisted.IsFailure)
+                return Result<RunState>.Failure(persisted.Error);
+            state = persisted.Value;
             _eventBus?.Publish(new EconomyChangedEvent(runId, resource, oldValue, newValue));
             return Result<RunState>.Success(state);
         }
@@ -193,8 +199,9 @@ public sealed class RunManager : IRunManager
                     Deck = transition.Value.State,
                     Determinism = transition.Value.Context.AdvanceStep()
                 };
-                _runs[runId] = state;
-                PersistAsync(state);
+                var persisted = Persist(state, "run.deck.draw", new { count });
+                if (persisted.IsFailure)
+                    return Result<IReadOnlyList<string>>.Failure(persisted.Error);
             }
         }
 
@@ -232,8 +239,12 @@ public sealed class RunManager : IRunManager
                     Deck = transition.Value.State,
                     Determinism = transition.Value.Context.AdvanceStep()
                 };
-                _runs[runId] = state;
-                PersistAsync(state);
+                var persisted = Persist(
+                    state,
+                    "run.deck.add-to-hand",
+                    new { cardIds });
+                if (persisted.IsFailure)
+                    return Result<IReadOnlyList<string>>.Failure(persisted.Error);
             }
 
             return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
@@ -272,8 +283,12 @@ public sealed class RunManager : IRunManager
                     Deck = transition.Value.State,
                     Determinism = transition.Value.Context.AdvanceStep()
                 };
-                _runs[runId] = state;
-                PersistAsync(state);
+                var persisted = Persist(
+                    state,
+                    "run.deck.consume",
+                    new { cardIds, destination = destination.ToString() });
+                if (persisted.IsFailure)
+                    return Result<IReadOnlyList<string>>.Failure(persisted.Error);
             }
 
             return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
@@ -295,8 +310,9 @@ public sealed class RunManager : IRunManager
                     Deck = transition.State,
                     Determinism = transition.Context.AdvanceStep()
                 };
-                _runs[runId] = state;
-                PersistAsync(state);
+                var persisted = Persist(state, "run.deck.shuffle-discard", new { });
+                if (persisted.IsFailure)
+                    return Result.Failure(persisted.Error);
             }
             return Result.Success();
         }
@@ -319,7 +335,10 @@ public sealed class RunManager : IRunManager
                 definition,
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase));
             var transition = CardSelectionTransitions.Create(state, definition, options);
-            return Result<CardSelectionState>.Success(CommitTransition(transition));
+            return CommitTransition(
+                transition,
+                "run.card-selection.create",
+                new { selectionId });
         }
     }
 
@@ -333,7 +352,10 @@ public sealed class RunManager : IRunManager
             var transition = CardSelectionTransitions.Pick(state, selectionInstanceId, cardIds);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
-                : Result<CardSelectionState>.Success(CommitTransition(transition.Value));
+                : CommitTransition(
+                    transition.Value,
+                    "run.card-selection.pick",
+                    new { selectionInstanceId, cardIds });
         }
     }
 
@@ -357,7 +379,10 @@ public sealed class RunManager : IRunManager
             var transition = CardSelectionTransitions.Reroll(state, selectionInstanceId, generated);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
-                : Result<CardSelectionState>.Success(CommitTransition(transition.Value));
+                : CommitTransition(
+                    transition.Value,
+                    "run.card-selection.reroll",
+                    new { selectionInstanceId, lockedCardIds });
         }
     }
 
@@ -371,7 +396,10 @@ public sealed class RunManager : IRunManager
             var transition = CardSelectionTransitions.Decompose(state, selectionInstanceId, cardId);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
-                : Result<CardSelectionState>.Success(CommitTransition(transition.Value));
+                : CommitTransition(
+                    transition.Value,
+                    "run.card-selection.decompose",
+                    new { selectionInstanceId, cardId });
         }
     }
 
@@ -388,7 +416,10 @@ public sealed class RunManager : IRunManager
 
             var definition = definitionResult.Value;
             var transition = ShopTransitions.Create(state, definition, GenerateShopItems(state, definition));
-            return Result<ShopState>.Success(CommitTransition(transition));
+            return CommitTransition(
+                transition,
+                "run.shop.create",
+                new { shopId });
         }
     }
 
@@ -402,7 +433,10 @@ public sealed class RunManager : IRunManager
             var transition = ShopTransitions.Buy(state, shopInstanceId, itemId);
             return transition.IsFailure
                 ? Result<ShopItemState>.Failure(transition.Error)
-                : Result<ShopItemState>.Success(CommitTransition(transition.Value));
+                : CommitTransition(
+                    transition.Value,
+                    "run.shop.buy",
+                    new { shopInstanceId, itemId });
         }
     }
 
@@ -425,7 +459,10 @@ public sealed class RunManager : IRunManager
             var transition = ShopTransitions.Reroll(state, shopInstanceId, items);
             return transition.IsFailure
                 ? Result<ShopState>.Failure(transition.Error)
-                : Result<ShopState>.Success(CommitTransition(transition.Value));
+                : CommitTransition(
+                    transition.Value,
+                    "run.shop.reroll",
+                    new { shopInstanceId });
         }
     }
 
@@ -441,7 +478,10 @@ public sealed class RunManager : IRunManager
                 return Result<PreparationState>.Failure(definitionResult.Error);
 
             var transition = PreparationTransitions.Create(state, definitionResult.Value);
-            return Result<PreparationState>.Success(CommitTransition(transition));
+            return CommitTransition(
+                transition,
+                "run.preparation.create",
+                new { preparationId });
         }
     }
 
@@ -492,7 +532,18 @@ public sealed class RunManager : IRunManager
                     : Result<PreparationOptionState>.Failure(transition.Error);
             }
 
-            return Result<PreparationOptionState>.Success(CommitTransition(transition.Value));
+            var committed = CommitTransition(
+                transition.Value,
+                "run.preparation.apply",
+                new { preparationInstanceId, optionId });
+            if (committed.IsSuccess)
+                return committed;
+
+            var persistenceRollback = RollbackAppliedModifiers(appliedModifiers);
+            return persistenceRollback.IsFailure
+                ? Result<PreparationOptionState>.Failure(
+                    $"{committed.Error}; modifier rollback failed: {persistenceRollback.Error}")
+                : committed;
         }
     }
 
@@ -513,11 +564,15 @@ public sealed class RunManager : IRunManager
         return Result.Success();
     }
 
-    private T CommitTransition<T>(RunStateTransition<T> transition)
+    private Result<T> CommitTransition<T>(
+        RunStateTransition<T> transition,
+        string commandType,
+        object command)
     {
-        _runs[transition.State.RunId] = transition.State;
-        PersistAsync(transition.State);
-        return transition.Value;
+        var persisted = Persist(transition.State, commandType, command);
+        return persisted.IsSuccess
+            ? Result<T>.Success(transition.Value)
+            : Result<T>.Failure(persisted.Error);
     }
 
     private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
@@ -764,8 +819,12 @@ public sealed class RunManager : IRunManager
                 Deck = transition.Value.State,
                 Determinism = transition.Value.Context.AdvanceStep()
             };
-            _runs[runId] = state;
-            PersistAsync(state);
+            var persisted = Persist(
+                state,
+                "run.deck.move",
+                new { cardIds, destination = destination.ToString() });
+            if (persisted.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(persisted.Error);
 
             return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
         }
@@ -780,39 +839,79 @@ public sealed class RunManager : IRunManager
         if (state == null)
             return Result<RunState>.Failure("State cannot be null");
 
-        RunState restored;
         lock (_lock)
         {
-            restored = state;
-            _runs[state.RunId] = restored;
+            var candidate = _runs.TryGetValue(state.RunId, out var current)
+                ? state with
+                {
+                    Sequence = current.Sequence,
+                    Determinism = current.Determinism.AdvanceStep()
+                }
+                : state with { Determinism = state.Determinism.AdvanceStep() };
+            var restored = Persist(
+                candidate,
+                "run.restore",
+                new { targetSequence = state.Sequence });
+            return restored.IsSuccess
+                ? restored
+                : Result<RunState>.Failure(restored.Error);
         }
-
-        return Result<RunState>.Success(restored);
     }
 
     /// <summary>
-    /// Fire-and-forget persistence. Failures are swallowed to avoid disrupting game flow.
-    /// Increments snapshot sequence before saving.
+    /// Cria e grava um checkpoint antes de publicar o novo snapshot em memória.
+    /// Falhas de durabilidade são devolvidas ao chamador e não alteram a run ativa.
     /// </summary>
-    private RunState PersistAsync(RunState state)
+    private Result<RunState> Persist(
+        RunState state,
+        string commandType,
+        object command)
     {
-        if (_repository == null) return state;
-
-        RunState snapshot;
-        lock (_persistenceLock)
+        _runs.TryGetValue(state.RunId, out var previous);
+        try
         {
-            state = state with { Sequence = checked(state.Sequence + 1) };
+            var nextSequence = checked((previous?.Sequence ?? 0) + 1);
+            state = state with { Sequence = nextSequence };
+            var snapshot = CreateSnapshot(state);
+            var stateHash = CanonicalJson.ComputeHash(snapshot);
+            var previousHash = previous == null
+                ? string.Empty
+                : CanonicalJson.ComputeHash(previous);
+            var entry = new RunJournalEntry
+            {
+                RunId = snapshot.RunId,
+                Sequence = snapshot.Sequence,
+                Step = snapshot.Determinism.Step,
+                CommandType = commandType,
+                Command = JsonSerializer.SerializeToElement(command, _jsonOptions).Clone(),
+                PreviousStateHash = previousHash,
+                StateHash = stateHash,
+                LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime
+            };
+
+            if (_repository is IRunCheckpointRepository checkpoints)
+            {
+                checkpoints.SaveCheckpointAsync(new RunCheckpoint(snapshot, entry))
+                    .GetAwaiter().GetResult();
+            }
+            else if (_repository != null)
+            {
+                _repository.SaveAsync(snapshot).GetAwaiter().GetResult();
+            }
+
             _runs[state.RunId] = state;
-            snapshot = CreateSnapshot(state);
+            return Result<RunState>.Success(state);
         }
-        
-        _ = Task.Run(async () =>
+        catch (Exception exception)
         {
-            try { await _repository.SaveAsync(snapshot).ConfigureAwait(false); }
-            catch { /* best effort — repository implementations log internally */ }
-        });
-
-        return state;
+            if (previous == null)
+                _runs.Remove(state.RunId);
+            else
+                _runs[state.RunId] = previous;
+            return Result<RunState>.Failure(
+                $"Failed to persist run transition '{commandType}': {exception.Message}",
+                exception);
+        }
     }
 
     private RunState CreateSnapshot(RunState state)

@@ -1,9 +1,13 @@
+using Core.Abstractions.Persistence;
 using Core.Config;
 using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Determinism;
+using Core.Infrastructure.Persistence;
+using Core.Logging;
 using Core.Run;
 using Core.Run.Content;
+using Core.Run.Replay;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -14,6 +18,70 @@ public sealed class RunManagerTests
 {
     private readonly Mock<IConfigManager> _configManager = new();
     private readonly Mock<IResourceLoader> _resourceLoader = new();
+
+    [Fact]
+    public void PersistenceFailure_DoesNotPublishCandidateState()
+    {
+        var repository = new Mock<IRunStateRepository>();
+        repository
+            .SetupSequence(item => item.SaveAsync(
+                It.IsAny<RunState>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask)
+            .ThrowsAsync(new IOException("disk unavailable"));
+        var manager = CreateManager(repository: repository.Object);
+        var started = manager.StartRun(new RunStartOptions(
+            "test", "default_run", "hero", Seed: 10UL, ContentRevision: "test"));
+        Assert.True(started.IsSuccess);
+
+        var changed = manager.ApplyEconomy(started.Value.RunId, "gold", 5);
+        var active = manager.GetRun(started.Value.RunId);
+
+        Assert.True(changed.IsFailure);
+        Assert.Contains("disk unavailable", changed.Error);
+        Assert.True(active.IsSuccess);
+        Assert.Equal(started.Value, active.Value);
+    }
+
+    [Fact]
+    public async Task CheckpointJournal_ReplaysAndDetectsTampering()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heroscript-replay-{Guid.NewGuid():N}");
+        try
+        {
+            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            var manager = CreateManager(repository: repository);
+            var started = manager.StartRun(new RunStartOptions(
+                "test", "default_run", "hero", Seed: 20UL, ContentRevision: "test"));
+            Assert.True(started.IsSuccess);
+            var changed = manager.ApplyEconomy(started.Value.RunId, "gold", 5);
+            Assert.True(changed.IsSuccess);
+
+            var checkpoints = await repository.LoadCheckpointsAsync(started.Value.RunId);
+            var replay = RunReplayVerifier.Verify(checkpoints);
+
+            Assert.True(replay.IsValid, string.Join("; ", replay.Errors));
+            Assert.NotNull(replay.FinalState);
+            Assert.Equal(
+                CanonicalJson.ComputeHash(changed.Value),
+                CanonicalJson.ComputeHash(replay.FinalState!));
+            Assert.Equal(
+                new[] { "run.start", "run.economy.apply" },
+                checkpoints.Select(item => item.JournalEntry.CommandType));
+
+            var tampered = checkpoints.ToArray();
+            tampered[^1] = tampered[^1] with
+            {
+                State = tampered[^1].State with { Gold = 999 }
+            };
+            Assert.False(RunReplayVerifier.Verify(tampered).IsValid);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+    }
 
     [Fact]
     public void StartRun_SameInputsProduceIdenticalStateAndHash()
@@ -516,7 +584,9 @@ public sealed class RunManagerTests
         Assert.False(missing.Value);
     }
 
-    private RunManager CreateManager(IScriptModifierManager? scriptModifierManager = null)
+    private RunManager CreateManager(
+        IScriptModifierManager? scriptModifierManager = null,
+        IRunStateRepository? repository = null)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
@@ -544,7 +614,11 @@ public sealed class RunManagerTests
                 ["basic_preparation"] = JsonDocument.Parse(PreparationJson).RootElement.GetProperty("basic_preparation").Clone()
             });
 
-        return new RunManager(_configManager.Object, _resourceLoader.Object, scriptModifierManager: scriptModifierManager);
+        return new RunManager(
+            _configManager.Object,
+            _resourceLoader.Object,
+            scriptModifierManager: scriptModifierManager,
+            repository: repository);
     }
 
     private RunManager CreateManagerWithContent()
