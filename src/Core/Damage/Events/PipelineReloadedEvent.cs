@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Events;
 
 namespace Core.Damage.Events;
@@ -5,17 +6,16 @@ namespace Core.Damage.Events;
 /// <summary>
 /// Evento emitido quando a configuração do pipeline é recarregada
 /// </summary>
-public class PipelineReloadedEvent : IEvent
+public sealed record PipelineReloadedEvent : GameEvent
 {
-    /// <summary>
-    /// Identificador único do evento
-    /// </summary>
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    
-    /// <summary>
-    /// Tipo do evento
-    /// </summary>
-    public string EventType { get; init; } = nameof(PipelineReloadedEvent);
+    private ImmutableList<string> _bucketIds = [];
+
+    public PipelineReloadedEvent()
+    {
+        EventType = nameof(PipelineReloadedEvent);
+        Category = EventCategory.PIPELINE;
+        Severity = EventSeverity.INFO;
+    }
     
     /// <summary>
     /// Número de buckets na nova configuração
@@ -25,7 +25,11 @@ public class PipelineReloadedEvent : IEvent
     /// <summary>
     /// IDs dos buckets na ordem de execução
     /// </summary>
-    public List<string> BucketIds { get; init; } = new();
+    public IReadOnlyList<string> BucketIds
+    {
+        get => _bucketIds;
+        init => _bucketIds = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Motivo do reload (manual, file change, error recovery, etc.)
@@ -42,8 +46,4 @@ public class PipelineReloadedEvent : IEvent
     /// </summary>
     public string? ErrorMessage { get; init; }
     
-    /// <summary>
-    /// Timestamp do evento
-    /// </summary>
-    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
 }

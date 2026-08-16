@@ -1,6 +1,7 @@
 namespace Core.Events;
 
 using Core.Abstractions.Persistence;
+using Core.Determinism;
 using Core.Logging;
 
 /// <summary>
@@ -34,7 +35,17 @@ public class EventBus : IEventBus
             // Atualizar sequence se for GameEvent antes de adicionar ao histórico
             if (@event is GameEvent gameEvent)
             {
-                var updatedEvent = gameEvent with { Sequence = _sequenceCounter++ };
+                var sequence = _sequenceCounter++;
+                var updatedEvent = gameEvent with
+                {
+                    Sequence = sequence,
+                    EventId = gameEvent.EventId == Guid.Empty
+                        ? DeterministicId.Create(0UL, checked((ulong)sequence), $"event:{gameEvent.EventType}")
+                        : gameEvent.EventId,
+                    Timestamp = gameEvent.Timestamp == DateTime.UnixEpoch
+                        ? DateTime.UnixEpoch.AddTicks(sequence)
+                        : gameEvent.Timestamp
+                };
                 _eventHistory.Add(updatedEvent);
                 eventForHandlers = (TEvent)(IEvent)updatedEvent;
             }

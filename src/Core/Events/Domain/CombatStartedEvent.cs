@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Events.Domain;
 
 /// <summary>
@@ -5,9 +7,15 @@ namespace Core.Events.Domain;
 /// </summary>
 public record CombatStartedEvent : GameEvent
 {
+    private ImmutableList<string> _enemyIds = [];
+
     public Guid CombatId { get; init; }
     public string HeroId { get; init; } = string.Empty;
-    public List<string> EnemyIds { get; init; } = new();
+    public IReadOnlyList<string> EnemyIds
+    {
+        get => _enemyIds;
+        init => _enemyIds = value?.ToImmutableList() ?? [];
+    }
     public int InitialEnergy { get; init; }
     
     public CombatStartedEvent()

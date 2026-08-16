@@ -194,17 +194,16 @@ public class EventBusTests
     }
 
     [Fact]
-    public void Publish_FirstHandlerPayloadMutation_IsVisibleToLaterHandlersAndHistory()
+    public void Publish_PayloadCannotBeMutatedByHandlers()
     {
-        object? secondHandlerValue = null;
-        using var mutating = _eventBus.Subscribe<ConfigLoadedEvent>(e => e.Payload["mutated"] = true);
-        using var observing = _eventBus.Subscribe<ConfigLoadedEvent>(e => secondHandlerValue = e.Payload["mutated"]);
+        var source = new Dictionary<string, object> { ["value"] = 1 };
+        var published = new ConfigLoadedEvent { ConfigName = "config1", Payload = source };
 
-        _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+        source["value"] = 2;
+        _eventBus.Publish(published);
 
         var historyEvent = Assert.IsType<ConfigLoadedEvent>(Assert.Single(_eventBus.GetEventHistory()));
-        Assert.Equal(true, secondHandlerValue);
-        Assert.Equal(true, historyEvent.Payload["mutated"]);
+        Assert.Equal(1, historyEvent.Payload["value"]);
     }
 
     [Fact]
@@ -223,19 +222,14 @@ public class EventBusTests
     public void Publish_SetsTimestamp()
     {
         // Arrange
-        var beforePublish = DateTime.UtcNow;
-        
         // Act
         _eventBus.Publish(new ConfigLoadedEvent { ConfigName = "test" });
-        
-        var afterPublish = DateTime.UtcNow;
         var history = _eventBus.GetEventHistory();
 
         // Assert
         Assert.Single(history);
         var @event = history[0];
-        Assert.True(@event.Timestamp >= beforePublish);
-        Assert.True(@event.Timestamp <= afterPublish);
+        Assert.Equal(DateTime.UnixEpoch, @event.Timestamp);
     }
 
     [Fact]
@@ -251,6 +245,24 @@ public class EventBusTests
         // Assert
         var eventIds = history.Select(e => e.EventId).ToList();
         Assert.Equal(3, eventIds.Distinct().Count());
+    }
+
+    [Fact]
+    public void Publish_SameEventStream_ReproducesIdentityAndLogicalTime()
+    {
+        var first = new EventBus(NullLogger.Instance);
+        var second = new EventBus(NullLogger.Instance);
+
+        first.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+        first.Publish(new ConfigLoadedEvent { ConfigName = "config2" });
+        second.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
+        second.Publish(new ConfigLoadedEvent { ConfigName = "config2" });
+
+        var firstHistory = first.GetEventHistory();
+        var secondHistory = second.GetEventHistory();
+        Assert.Equal(
+            firstHistory.Select(item => (item.EventId, item.Timestamp)),
+            secondHistory.Select(item => (item.EventId, item.Timestamp)));
     }
 
     [Fact]

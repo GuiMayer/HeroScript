@@ -50,14 +50,14 @@ public class GameEventTests
     // ==================== GAME EVENT BASE CLASS TESTS ====================
     
     [Fact]
-    public void GameEvent_DefaultConstruction_GeneratesGuid()
+    public void GameEvent_DefaultConstruction_UsesDeterministicSentinels()
     {
         // Arrange & Act
         var evt = new GameEvent();
         
         // Assert
-        Assert.NotEqual(Guid.Empty, evt.EventId);
-        Assert.True(evt.Timestamp <= DateTime.UtcNow);
+        Assert.Equal(Guid.Empty, evt.EventId);
+        Assert.Equal(DateTime.UnixEpoch, evt.Timestamp);
     }
     
     [Fact]
@@ -166,7 +166,7 @@ public class GameEventTests
         Assert.Equal(EventSeverity.INFO, evt.Severity);
         Assert.Equal("CombatSystem", evt.Subject);
         Assert.Equal("started", evt.Verb);
-        Assert.NotEqual(Guid.Empty, evt.EventId);
+        Assert.Equal(Guid.Empty, evt.EventId);
     }
     
     [Fact]

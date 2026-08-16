@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Events.Domain;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace Core.Events.Domain;
 /// </summary>
 public record EffectChainedEvent : GameEvent
 {
+    private ImmutableList<string> _chainedEffectIds = [];
+
     /// <summary>
     /// ID do efeito pai que disparou os efeitos encadeados
     /// </summary>
@@ -13,5 +17,9 @@ public record EffectChainedEvent : GameEvent
     /// <summary>
     /// IDs dos efeitos encadeados gerados
     /// </summary>
-    public List<string> ChainedEffectIds { get; init; } = new();
+    public IReadOnlyList<string> ChainedEffectIds
+    {
+        get => _chainedEffectIds;
+        init => _chainedEffectIds = value?.ToImmutableList() ?? [];
+    }
 }

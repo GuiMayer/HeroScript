@@ -120,8 +120,14 @@ public class EventIntegrationTests
             }
         };
 
-        testEvent.Payload.Add("customData", new { Name = "Test", Value = 123 });
-        testEvent.Payload.Add("list", new List<int> { 1, 2, 3 });
+        testEvent = testEvent with
+        {
+            Payload = new Dictionary<string, object>
+            {
+                ["customData"] = new { Name = "Test", Value = 123 },
+                ["list"] = new List<int> { 1, 2, 3 }
+            }
+        };
 
         // Act
         eventBus.Publish(testEvent);

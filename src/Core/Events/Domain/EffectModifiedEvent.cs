@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Events.Domain;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace Core.Events.Domain;
 /// </summary>
 public record EffectModifiedEvent : GameEvent
 {
+    private ImmutableList<string> _modifierIds = [];
+
     /// <summary>
     /// ID da instância do efeito
     /// </summary>
@@ -13,7 +17,11 @@ public record EffectModifiedEvent : GameEvent
     /// <summary>
     /// IDs dos modificadores aplicados
     /// </summary>
-    public List<string> ModifierIds { get; init; } = new();
+    public IReadOnlyList<string> ModifierIds
+    {
+        get => _modifierIds;
+        init => _modifierIds = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Definição original do efeito

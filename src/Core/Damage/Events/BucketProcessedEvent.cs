@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Events;
 
 namespace Core.Damage.Events;
@@ -5,17 +6,17 @@ namespace Core.Damage.Events;
 /// <summary>
 /// Evento emitido quando um bucket do pipeline é processado
 /// </summary>
-public class BucketProcessedEvent : IEvent
+public sealed record BucketProcessedEvent : GameEvent
 {
-    /// <summary>
-    /// Identificador único do evento
-    /// </summary>
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    
-    /// <summary>
-    /// Tipo do evento
-    /// </summary>
-    public string EventType { get; init; } = nameof(BucketProcessedEvent);
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
+    public BucketProcessedEvent()
+    {
+        EventType = nameof(BucketProcessedEvent);
+        Category = EventCategory.PIPELINE;
+        Severity = EventSeverity.DEBUG;
+    }
     
     /// <summary>
     /// ID do bucket processado
@@ -40,10 +41,10 @@ public class BucketProcessedEvent : IEvent
     /// <summary>
     /// Metadata do contexto no momento do processamento
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
-    
-    /// <summary>
-    /// Timestamp do evento
-    /// </summary>
-    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

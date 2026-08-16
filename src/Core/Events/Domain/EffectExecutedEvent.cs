@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Events.Domain;
 
 /// <summary>
@@ -5,6 +7,9 @@ namespace Core.Events.Domain;
 /// </summary>
 public record EffectExecutedEvent : GameEvent
 {
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
     /// <summary>
     /// ID da instância do efeito executado
     /// </summary>
@@ -38,5 +43,10 @@ public record EffectExecutedEvent : GameEvent
     /// <summary>
     /// Metadata adicional sobre a execução
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

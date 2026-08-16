@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Events;
 
 namespace Core.Damage.Events;
@@ -5,17 +6,19 @@ namespace Core.Damage.Events;
 /// <summary>
 /// Evento emitido quando o cálculo de dano é finalizado
 /// </summary>
-public class DamageCalculatedEvent : IEvent
+public sealed record DamageCalculatedEvent : GameEvent
 {
-    /// <summary>
-    /// Identificador único do evento
-    /// </summary>
-    public Guid EventId { get; init; } = Guid.NewGuid();
-    
-    /// <summary>
-    /// Tipo do evento
-    /// </summary>
-    public string EventType { get; init; } = nameof(DamageCalculatedEvent);
+    private ImmutableHashSet<string> _tags =
+        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
+    public DamageCalculatedEvent()
+    {
+        EventType = nameof(DamageCalculatedEvent);
+        Category = EventCategory.COMBAT;
+        Severity = EventSeverity.DEBUG;
+    }
     
     /// <summary>
     /// ID da ação que causou o dano
@@ -50,15 +53,20 @@ public class DamageCalculatedEvent : IEvent
     /// <summary>
     /// Tags da ação (physical, spell, fire, etc.)
     /// </summary>
-    public HashSet<string> Tags { get; init; } = new();
+    public IReadOnlySet<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableHashSet(StringComparer.Ordinal)
+            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
     
     /// <summary>
     /// Metadata adicional do cálculo
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
-    
-    /// <summary>
-    /// Timestamp do evento
-    /// </summary>
-    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

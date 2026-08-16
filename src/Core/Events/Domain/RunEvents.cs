@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Events.Domain;
 
 /// <summary>
@@ -101,8 +103,14 @@ public sealed record EconomyChangedEvent : GameEvent
 /// </summary>
 public sealed record CardDrawnEvent : GameEvent
 {
+    private ImmutableList<string> _cardIds = [];
+
     public Guid RunId { get; init; }
-    public IReadOnlyList<string> CardIds { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> CardIds
+    {
+        get => _cardIds;
+        init => _cardIds = value?.ToImmutableList() ?? [];
+    }
 
     public CardDrawnEvent(Guid runId, IReadOnlyList<string> cardIds)
     {
@@ -128,8 +136,14 @@ public sealed record CardDrawnEvent : GameEvent
 /// </summary>
 public sealed record CardDiscardedEvent : GameEvent
 {
+    private ImmutableList<string> _cardIds = [];
+
     public Guid RunId { get; init; }
-    public IReadOnlyList<string> CardIds { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> CardIds
+    {
+        get => _cardIds;
+        init => _cardIds = value?.ToImmutableList() ?? [];
+    }
 
     public CardDiscardedEvent(Guid runId, IReadOnlyList<string> cardIds)
     {
@@ -181,9 +195,15 @@ public sealed record CardAddedToDeckEvent : GameEvent
 /// </summary>
 public sealed record RewardGeneratedEvent : GameEvent
 {
+    private ImmutableList<string> _offeredCardIds = [];
+
     public Guid RunId { get; init; }
     public Guid SelectionId { get; init; }
-    public IReadOnlyList<string> OfferedCardIds { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> OfferedCardIds
+    {
+        get => _offeredCardIds;
+        init => _offeredCardIds = value?.ToImmutableList() ?? [];
+    }
 
     public RewardGeneratedEvent(Guid runId, Guid selectionId, IReadOnlyList<string> offeredCardIds)
     {
@@ -297,9 +317,15 @@ public sealed record CardDecomposedEvent : GameEvent
 /// </summary>
 public sealed record ShopOpenedEvent : GameEvent
 {
+    private ImmutableList<string> _itemIds = [];
+
     public Guid RunId { get; init; }
     public string ShopId { get; init; } = string.Empty;
-    public IReadOnlyList<string> ItemIds { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> ItemIds
+    {
+        get => _itemIds;
+        init => _itemIds = value?.ToImmutableList() ?? [];
+    }
 
     public ShopOpenedEvent(Guid runId, string shopId, IReadOnlyList<string> itemIds)
     {
