@@ -18,7 +18,19 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Save_ThenLoad_ReturnsEquivalentState()
     {
-        var state = new RunState { RunId = Guid.NewGuid(), Gold = 100, PowerPoints = 5, CurrentNodeId = "node_1" };
+        var map = RunMapTransitions.Create(
+        [
+            new RunMapNodeDefinition { NodeId = "node_1", NextNodeIds = ["node_2"] },
+            new RunMapNodeDefinition { NodeId = "node_2", NodeType = "shop" }
+        ]).Value;
+        var state = new RunState
+        {
+            RunId = Guid.NewGuid(),
+            Gold = 100,
+            PowerPoints = 5,
+            CurrentNodeId = "node_1",
+            Map = map
+        };
 
         await _repo.SaveAsync(state);
         var loaded = await _repo.LoadLatestAsync(state.RunId);
@@ -28,6 +40,9 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
         Assert.Equal(100, loaded.Gold);
         Assert.Equal(5, loaded.PowerPoints);
         Assert.Equal("node_1", loaded.CurrentNodeId);
+        Assert.Equal(new[] { "node_1" }, loaded.Map.VisitedNodeIds);
+        Assert.Equal(2, loaded.Map.Nodes.Count);
+        Assert.Equal(new[] { "node_2" }, loaded.Map.Nodes[0].NextNodeIds);
     }
 
     [Fact]

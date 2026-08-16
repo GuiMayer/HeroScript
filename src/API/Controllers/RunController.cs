@@ -55,6 +55,45 @@ public sealed class RunController : BaseApiController
         }
     }
 
+    [HttpGet("/api/v1/runs/{runId:guid}/map")]
+    public IActionResult GetMap(Guid runId)
+    {
+        try
+        {
+            var result = _runManager.GetRun(runId);
+            return result.IsFailure
+                ? ApiNotFound(result.Error)
+                : Ok(MapMap(result.Value));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get run map", runId.ToString());
+        }
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/available-commands")]
+    public IActionResult GetAvailableCommands(Guid runId)
+    {
+        try
+        {
+            var run = _runManager.GetRun(runId);
+            if (run.IsFailure)
+                return ApiNotFound(run.Error);
+
+            return Ok(new
+            {
+                runId,
+                run.Value.Sequence,
+                run.Value.Determinism.Step,
+                commands = RunMapTransitions.GetAvailableCommands(run.Value)
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get available run commands", runId.ToString());
+        }
+    }
+
     [HttpGet("/api/v1/runs")]
     public async Task<IActionResult> ListRuns(
         [FromQuery] string? playerEntityId = null,
@@ -231,10 +270,34 @@ public sealed class RunController : BaseApiController
             run.Determinism.Step,
             stateHash = CanonicalJson.ComputeHash(run),
             deck = MapDeck(run.Deck),
+            map = MapMap(run),
             run.CardSelections,
             run.Shops,
             run.Preparations,
             run.Metadata
+        };
+    }
+
+    private static object MapMap(RunState run)
+    {
+        var visited = run.Map.VisitedNodeIds.ToHashSet(StringComparer.Ordinal);
+        var resolved = run.Map.ResolvedNodeIds.ToHashSet(StringComparer.Ordinal);
+        return new
+        {
+            run.RunId,
+            run.CurrentNodeId,
+            visitedNodeIds = run.Map.VisitedNodeIds,
+            resolvedNodeIds = run.Map.ResolvedNodeIds,
+            legalNextNodeIds = RunMapTransitions.GetLegalNextNodeIds(run),
+            nodes = run.Map.Nodes.Select(node => new
+            {
+                node.NodeId,
+                node.NodeType,
+                node.NextNodeIds,
+                visited = visited.Contains(node.NodeId),
+                resolved = resolved.Contains(node.NodeId),
+                node.Metadata
+            }).ToList()
         };
     }
 

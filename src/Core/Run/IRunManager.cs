@@ -7,6 +7,9 @@ public interface IRunManager
     Result<RunState> StartRun(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player");
     Result<RunState> StartRun(RunStartOptions options);
     Result<RunState> GetRun(Guid runId);
+    Result<IReadOnlyList<RunAvailableCommand>> GetAvailableCommands(Guid runId);
+    Result<RunMapNodeState> ResolveCurrentNode(Guid runId, string currentNodeId);
+    Result<RunMapNodeState> AdvanceNode(Guid runId, string targetNodeId);
     Result<RunState> ApplyEconomy(Guid runId, string resource, int amount);
     Result<IReadOnlyList<string>> DrawCards(Guid runId, int count);
     Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds);

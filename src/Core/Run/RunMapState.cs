@@ -1,0 +1,75 @@
+using System.Collections.Immutable;
+using System.Text.Json;
+
+namespace Core.Run;
+
+/// <summary>
+/// Immutable copy of the map content pinned when a run starts.
+/// </summary>
+public sealed record RunMapState
+{
+    private ImmutableList<RunMapNodeState> _nodes = [];
+    private ImmutableList<string> _visitedNodeIds = [];
+    private ImmutableList<string> _resolvedNodeIds = [];
+
+    public IReadOnlyList<RunMapNodeState> Nodes
+    {
+        get => _nodes;
+        init => _nodes = value?.ToImmutableList() ?? [];
+    }
+
+    public IReadOnlyList<string> VisitedNodeIds
+    {
+        get => _visitedNodeIds;
+        init => _visitedNodeIds = value?.ToImmutableList() ?? [];
+    }
+
+    public IReadOnlyList<string> ResolvedNodeIds
+    {
+        get => _resolvedNodeIds;
+        init => _resolvedNodeIds = value?.ToImmutableList() ?? [];
+    }
+}
+
+public sealed record RunMapNodeState
+{
+    private ImmutableList<string> _nextNodeIds = [];
+    private ImmutableDictionary<string, JsonElement> _metadata =
+        ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+
+    public string NodeId { get; init; } = string.Empty;
+    public string NodeType { get; init; } = "combat";
+
+    public IReadOnlyList<string> NextNodeIds
+    {
+        get => _nextNodeIds;
+        init => _nextNodeIds = value?.ToImmutableList() ?? [];
+    }
+
+    public IReadOnlyDictionary<string, JsonElement> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    }
+}
+
+public sealed record RunAvailableCommand
+{
+    private ImmutableList<string> _targetNodeIds = [];
+
+    public string Type { get; init; } = string.Empty;
+    public string CurrentNodeId { get; init; } = string.Empty;
+
+    public IReadOnlyList<string> TargetNodeIds
+    {
+        get => _targetNodeIds;
+        init => _targetNodeIds = value?.ToImmutableList() ?? [];
+    }
+}
+
+public static class RunCommandTypes
+{
+    public const string ResolveNode = "RESOLVE_NODE";
+    public const string AdvanceNode = "ADVANCE_NODE";
+}

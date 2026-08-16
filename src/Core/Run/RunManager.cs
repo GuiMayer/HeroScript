@@ -72,6 +72,10 @@ public sealed class RunManager : IRunManager
             return Result<RunState>.Failure(definitionResult.Error);
 
         var definition = definitionResult.Value;
+        var mapResult = RunMapTransitions.Create(definition.MapNodes);
+        if (mapResult.IsFailure)
+            return Result<RunState>.Failure(mapResult.Error);
+
         var manifestResult = ResolveContentManifest(options, definition);
         if (manifestResult.IsFailure)
             return Result<RunState>.Failure(manifestResult.Error);
@@ -92,6 +96,7 @@ public sealed class RunManager : IRunManager
             Gold = definition.StartingGold,
             PowerPoints = definition.StartingPowerPoints,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
+            Map = mapResult.Value,
             Deck = new DeckState { DrawPile = [.. definition.StartingDeck] },
             Metadata = ToImmutableMetadata(definition.Metadata),
             ContentManifest = manifest,
@@ -184,6 +189,49 @@ public sealed class RunManager : IRunManager
         }
 
         return Result<RunState>.Failure($"Run not found: {runId}");
+    }
+
+    public Result<IReadOnlyList<RunAvailableCommand>> GetAvailableCommands(Guid runId)
+    {
+        var run = GetRun(runId);
+        return run.IsFailure
+            ? Result<IReadOnlyList<RunAvailableCommand>>.Failure(run.Error)
+            : Result<IReadOnlyList<RunAvailableCommand>>.Success(
+                RunMapTransitions.GetAvailableCommands(run.Value));
+    }
+
+    public Result<RunMapNodeState> ResolveCurrentNode(Guid runId, string currentNodeId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
+
+            var transition = RunMapTransitions.Resolve(state, currentNodeId);
+            return transition.IsFailure
+                ? Result<RunMapNodeState>.Failure(transition.Error)
+                : CommitTransition(
+                    transition.Value,
+                    RunCommandTypes.ResolveNode,
+                    new { currentNodeId });
+        }
+    }
+
+    public Result<RunMapNodeState> AdvanceNode(Guid runId, string targetNodeId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
+
+            var transition = RunMapTransitions.Advance(state, targetNodeId);
+            return transition.IsFailure
+                ? Result<RunMapNodeState>.Failure(transition.Error)
+                : CommitTransition(
+                    transition.Value,
+                    RunCommandTypes.AdvanceNode,
+                    new { targetNodeId });
+        }
     }
 
     private Result ValidateLoadedRunCompatibility(RunState state)

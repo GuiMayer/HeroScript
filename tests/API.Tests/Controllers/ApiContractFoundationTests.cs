@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using API.Contracts;
+using Core.Run;
 using Xunit;
 
 namespace API.Tests.Controllers;
@@ -92,6 +93,20 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.True(state.TryGetProperty("shops", out _));
         Assert.True(state.TryGetProperty("preparations", out _));
         Assert.True(state.TryGetProperty("contentManifest", out _));
+        Assert.Equal("start", state.GetProperty("map").GetProperty("currentNodeId").GetString());
+
+        using var mapResponse = await _client.GetAsync($"/api/v1/runs/{runId}/map");
+        var map = await mapResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, mapResponse.StatusCode);
+        Assert.NotEmpty(map.GetProperty("nodes").EnumerateArray());
+
+        using var commandsResponse = await _client.GetAsync(
+            $"/api/v1/runs/{runId}/available-commands");
+        var commands = await commandsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, commandsResponse.StatusCode);
+        Assert.Equal(
+            RunCommandTypes.ResolveNode,
+            commands.GetProperty("commands")[0].GetProperty("type").GetString());
 
         using var listResponse = await _client.GetAsync(
             "/api/v1/runs?playerEntityId=reconnect-test-player&limit=10");

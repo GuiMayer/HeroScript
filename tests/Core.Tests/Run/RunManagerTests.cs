@@ -200,6 +200,30 @@ public sealed class RunManagerTests
         Assert.Equal(new[] { "strike", "defend" }, result.Value.Deck.Hand);
         Assert.Equal(new[] { "zap" }, result.Value.Deck.DrawPile);
         Assert.Equal("start", result.Value.CurrentNodeId);
+        Assert.Equal(2, result.Value.Map.Nodes.Count);
+        Assert.Equal(new[] { "start" }, result.Value.Map.VisitedNodeIds);
+    }
+
+    [Fact]
+    public void MapCommands_PersistResolvedAndVisitedStateInOrder()
+    {
+        var manager = CreateManager();
+        var run = manager.StartRun("test", "default_run", "hero").Value;
+
+        var resolve = manager.ResolveCurrentNode(run.RunId, "start");
+        var available = manager.GetAvailableCommands(run.RunId);
+        var advance = manager.AdvanceNode(run.RunId, "reward");
+        var current = manager.GetRun(run.RunId).Value;
+
+        Assert.True(resolve.IsSuccess, resolve.IsFailure ? resolve.Error : null);
+        Assert.True(available.IsSuccess, available.IsFailure ? available.Error : null);
+        Assert.Equal(RunCommandTypes.AdvanceNode, Assert.Single(available.Value).Type);
+        Assert.True(advance.IsSuccess, advance.IsFailure ? advance.Error : null);
+        Assert.Equal("reward", current.CurrentNodeId);
+        Assert.Equal(new[] { "reward", "start" }, current.Map.VisitedNodeIds);
+        Assert.Equal(new[] { "start" }, current.Map.ResolvedNodeIds);
+        Assert.Equal(run.Sequence + 2, current.Sequence);
+        Assert.Equal(run.Determinism.Step + 2, current.Determinism.Step);
     }
 
     [Fact]
@@ -753,7 +777,8 @@ public sealed class RunManagerTests
         "startingHandSize": 2,
         "startingDeck": ["strike", "defend", "zap"],
         "mapNodes": [
-          { "nodeId": "start", "nodeType": "combat", "nextNodeIds": [] }
+          { "nodeId": "start", "nodeType": "combat", "nextNodeIds": ["reward"] },
+          { "nodeId": "reward", "nodeType": "card_selection", "nextNodeIds": [] }
         ]
       }
     }

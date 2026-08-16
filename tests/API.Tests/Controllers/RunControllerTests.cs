@@ -88,6 +88,36 @@ public sealed class RunControllerTests
     }
 
     [Fact]
+    public void MapReadEndpoints_ReturnPinnedMapAndLegalCommands()
+    {
+        var map = RunMapTransitions.Create(
+        [
+            new RunMapNodeDefinition { NodeId = "start", NextNodeIds = ["reward"] },
+            new RunMapNodeDefinition { NodeId = "reward", NodeType = "card_selection" }
+        ]).Value;
+        var state = CreateRun() with { CurrentNodeId = "start", Map = map };
+        _runManager.Setup(manager => manager.GetRun(state.RunId))
+            .Returns(Result<RunState>.Success(state));
+
+        var mapResult = Assert.IsType<OkObjectResult>(_controller.GetMap(state.RunId));
+        var commandsResult = Assert.IsType<OkObjectResult>(
+            _controller.GetAvailableCommands(state.RunId));
+        var mapJson = JsonSerializer.SerializeToElement(
+            mapResult.Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var commandsJson = JsonSerializer.SerializeToElement(
+            commandsResult.Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.Equal("start", mapJson.GetProperty("currentNodeId").GetString());
+        Assert.Equal(2, mapJson.GetProperty("nodes").GetArrayLength());
+        Assert.Empty(mapJson.GetProperty("legalNextNodeIds").EnumerateArray());
+        Assert.Equal(
+            RunCommandTypes.ResolveNode,
+            commandsJson.GetProperty("commands")[0].GetProperty("type").GetString());
+    }
+
+    [Fact]
     public async Task ListRuns_ReturnsPersistedRunsWithStablePagination()
     {
         var first = CreateRun() with

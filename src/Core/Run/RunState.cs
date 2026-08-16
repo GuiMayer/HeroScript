@@ -14,6 +14,7 @@ public sealed record RunState
     public int Gold { get; init; }
     public int PowerPoints { get; init; }
     public string? CurrentNodeId { get; init; }
+    public RunMapState Map { get; init; } = new();
     public DeckState Deck { get; init; } = new();
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
