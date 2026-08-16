@@ -5,7 +5,7 @@ namespace Core.Combat.Modifiers;
 /// </summary>
 public record ScriptModifierInstance
 {
-    public Guid InstanceId { get; init; } = Guid.NewGuid();
+    public Guid InstanceId { get; init; }
     public string ModifierId { get; init; } = string.Empty;
     public ScriptModifierDefinition Definition { get; init; } = new();
     public string OwnerId { get; init; } = string.Empty;

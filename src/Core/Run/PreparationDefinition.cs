@@ -1,20 +1,51 @@
+using System.Collections.Immutable;
+
 namespace Core.Run;
 
 public sealed record PreparationDefinition
 {
+    private ImmutableList<PreparationOptionDefinition> _options = [];
+    private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
+
     public string PreparationId { get; init; } = string.Empty;
-    public List<PreparationOptionDefinition> Options { get; init; } = new();
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyList<PreparationOptionDefinition> Options
+    {
+        get => _options;
+        init => _options = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, object>.Empty;
+    }
 }
 
 public sealed record PreparationOptionDefinition
 {
+    private ImmutableList<string> _addCardsToDiscard = [];
+    private ImmutableList<PreparationModifierGrantDefinition> _applyModifiers = [];
+    private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
+
     public string OptionId { get; init; } = string.Empty;
     public int GoldCost { get; init; }
     public int PowerPointCost { get; init; }
-    public List<string> AddCardsToDiscard { get; init; } = new();
-    public List<PreparationModifierGrantDefinition> ApplyModifiers { get; init; } = new();
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyList<string> AddCardsToDiscard
+    {
+        get => _addCardsToDiscard;
+        init => _addCardsToDiscard = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyList<PreparationModifierGrantDefinition> ApplyModifiers
+    {
+        get => _applyModifiers;
+        init => _applyModifiers = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, object>.Empty;
+    }
 }
 
 public sealed record PreparationModifierGrantDefinition
@@ -28,22 +59,49 @@ public sealed record PreparationModifierGrantDefinition
 
 public sealed record PreparationState
 {
-    public Guid PreparationInstanceId { get; init; } = Guid.NewGuid();
+    private ImmutableList<PreparationOptionState> _options = [];
+    private ImmutableList<string> _appliedOptionIds = [];
+
+    public Guid PreparationInstanceId { get; init; }
     public Guid RunId { get; init; }
     public string PreparationId { get; init; } = string.Empty;
-    public List<PreparationOptionState> Options { get; init; } = new();
-    public List<string> AppliedOptionIds { get; init; } = new();
+    public IReadOnlyList<PreparationOptionState> Options
+    {
+        get => _options;
+        init => _options = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyList<string> AppliedOptionIds
+    {
+        get => _appliedOptionIds;
+        init => _appliedOptionIds = value?.ToImmutableList() ?? [];
+    }
 }
 
 public sealed record PreparationOptionState
 {
+    private ImmutableList<string> _addCardsToDiscard = [];
+    private ImmutableList<PreparationModifierGrantState> _applyModifiers = [];
+    private ImmutableList<Guid> _appliedModifierInstanceIds = [];
+
     public string OptionId { get; init; } = string.Empty;
     public int GoldCost { get; init; }
     public int PowerPointCost { get; init; }
-    public List<string> AddCardsToDiscard { get; init; } = new();
-    public List<PreparationModifierGrantState> ApplyModifiers { get; init; } = new();
-    public List<Guid> AppliedModifierInstanceIds { get; init; } = new();
-    public bool Applied { get; set; }
+    public IReadOnlyList<string> AddCardsToDiscard
+    {
+        get => _addCardsToDiscard;
+        init => _addCardsToDiscard = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyList<PreparationModifierGrantState> ApplyModifiers
+    {
+        get => _applyModifiers;
+        init => _applyModifiers = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyList<Guid> AppliedModifierInstanceIds
+    {
+        get => _appliedModifierInstanceIds;
+        init => _appliedModifierInstanceIds = value?.ToImmutableList() ?? [];
+    }
+    public bool Applied { get; init; }
 }
 
 public sealed record PreparationModifierGrantState

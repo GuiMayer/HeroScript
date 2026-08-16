@@ -314,30 +314,12 @@ public sealed class RunManager : IRunManager
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
-            var instanceId = state.Determinism.AllocateId("card-selection");
-            var selection = new CardSelectionState
-            {
-                SelectionInstanceId = instanceId.Value,
-                RunId = runId,
-                SelectionId = definition.SelectionId,
-                PickCount = definition.PickCount,
-                OfferCount = definition.OfferCount,
-                CardPoolId = definition.CardPoolId,
-                Reroll = definition.Reroll,
-                Decompose = definition.Decompose,
-                FreeRerollsRemaining = definition.Reroll.FreeRerolls,
-                RerollCostGold = CalculateRerollCost(definition.Reroll, 0),
-                Options = GenerateCardSelectionOptions(state, definition, new HashSet<string>(StringComparer.OrdinalIgnoreCase))
-            };
-
-            state = state with
-            {
-                CardSelections = state.CardSelections.Add(selection),
-                Determinism = instanceId.Context.AdvanceStep()
-            };
-            _runs[runId] = state;
-            PersistAsync(state);
-            return Result<CardSelectionState>.Success(selection);
+            var options = GenerateCardSelectionOptions(
+                state,
+                definition,
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+            var transition = CardSelectionTransitions.Create(state, definition, options);
+            return Result<CardSelectionState>.Success(CommitTransition(transition));
         }
     }
 
@@ -345,39 +327,13 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, transaction =>
-            {
-                var state = transaction.State;
-                var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
-                if (selection == null)
-                    return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-                if (selection.Completed)
-                    return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
-
-                var picks = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
-                if (picks.Count == 0 || picks.Count > selection.PickCount)
-                    return Result<CardSelectionState>.Failure($"Pick between 1 and {selection.PickCount} cards");
-
-                var availableOptions = selection.Options
-                    .Where(option => !option.Decomposed)
-                    .Select(option => option.CardId)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var invalid = picks.Where(id => !availableOptions.Contains(id)).ToList();
-                if (invalid.Count > 0)
-                    return Result<CardSelectionState>.Failure($"Invalid card options: {string.Join(", ", invalid)}");
-
-                var deck = DeckTransitions.AddToDiscard(state.Deck, picks, state.Determinism);
-                if (deck.IsFailure)
-                    return Result<CardSelectionState>.Failure(deck.Error);
-
-                foreach (var cardId in picks)
-                    selection.PickedCardIds.Add(cardId);
-
-                selection.Completed = true;
-                transaction.State = state with { Deck = deck.Value.State };
-                return Result<CardSelectionState>.Success(selection);
-            });
+            var transition = CardSelectionTransitions.Pick(state, selectionInstanceId, cardIds);
+            return transition.IsFailure
+                ? Result<CardSelectionState>.Failure(transition.Error)
+                : Result<CardSelectionState>.Success(CommitTransition(transition.Value));
         }
     }
 
@@ -385,38 +341,23 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, transaction =>
-            {
-                var state = transaction.State;
-                var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
-                if (selection == null)
-                    return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-                if (selection.Completed)
-                    return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
+            var selection = state.CardSelections.FirstOrDefault(item => item.SelectionInstanceId == selectionInstanceId);
+            if (selection == null)
+                return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
 
-                var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selection.SelectionId);
-                if (definitionResult.IsFailure)
-                    return Result<CardSelectionState>.Failure(definitionResult.Error);
+            var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selection.SelectionId);
+            if (definitionResult.IsFailure)
+                return Result<CardSelectionState>.Failure(definitionResult.Error);
 
-                var cost = selection.FreeRerollsRemaining > 0 ? 0 : selection.RerollCostGold;
-                if (state.Gold < cost)
-                    return Result<CardSelectionState>.Failure($"Insufficient gold for reroll: {selection.SelectionId}");
-
-                transaction.State = state = state with { Gold = state.Gold - cost };
-                selection.RerollsUsed++;
-                selection.FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1);
-                selection.RerollCostGold = CalculateRerollCost(selection.Reroll, selection.RerollsUsed);
-
-                var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-                foreach (var option in selection.Options.Where(option => locked.Contains(option.CardId)))
-                    option.Decomposed = false;
-
-                var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
-                selection.Options.Clear();
-                selection.Options.AddRange(generated);
-                return Result<CardSelectionState>.Success(selection);
-            });
+            var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
+            var transition = CardSelectionTransitions.Reroll(state, selectionInstanceId, generated);
+            return transition.IsFailure
+                ? Result<CardSelectionState>.Failure(transition.Error)
+                : Result<CardSelectionState>.Success(CommitTransition(transition.Value));
         }
     }
 
@@ -424,31 +365,13 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, transaction =>
-            {
-                var state = transaction.State;
-                var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
-                if (selection == null)
-                    return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-                if (selection.Completed)
-                    return Result<CardSelectionState>.Failure($"Card selection already completed: {selectionInstanceId}");
-
-                if (!selection.Decompose.Enabled)
-                    return Result<CardSelectionState>.Failure($"Decompose is disabled for card selection: {selection.SelectionId}");
-
-                var option = selection.Options.FirstOrDefault(o => o.CardId.Equals(cardId, StringComparison.OrdinalIgnoreCase));
-                if (option == null)
-                    return Result<CardSelectionState>.Failure($"Card option not found: {cardId}");
-
-                if (option.Decomposed)
-                    return Result<CardSelectionState>.Failure($"Card option already decomposed: {cardId}");
-
-                option.Decomposed = true;
-                selection.DecomposedCardIds.Add(option.CardId);
-                transaction.State = state with { PowerPoints = checked(state.PowerPoints + option.DecomposePowerPoints) };
-                return Result<CardSelectionState>.Success(selection);
-            });
+            var transition = CardSelectionTransitions.Decompose(state, selectionInstanceId, cardId);
+            return transition.IsFailure
+                ? Result<CardSelectionState>.Failure(transition.Error)
+                : Result<CardSelectionState>.Success(CommitTransition(transition.Value));
         }
     }
 
@@ -464,28 +387,8 @@ public sealed class RunManager : IRunManager
                 return Result<ShopState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
-            var instanceId = state.Determinism.AllocateId("shop");
-            var shop = new ShopState
-            {
-                ShopInstanceId = instanceId.Value,
-                RunId = runId,
-                ShopId = definition.ShopId,
-                CardPoolId = definition.CardPoolId,
-                OfferCount = definition.OfferCount,
-                Pricing = definition.Pricing,
-                Reroll = definition.Reroll,
-                RerollCostGold = CalculateShopRerollCost(definition.Reroll, 0),
-                Items = GenerateShopItems(state, definition)
-            };
-
-            state = state with
-            {
-                Shops = state.Shops.Add(shop),
-                Determinism = instanceId.Context.AdvanceStep()
-            };
-            _runs[runId] = state;
-            PersistAsync(state);
-            return Result<ShopState>.Success(shop);
+            var transition = ShopTransitions.Create(state, definition, GenerateShopItems(state, definition));
+            return Result<ShopState>.Success(CommitTransition(transition));
         }
     }
 
@@ -493,41 +396,13 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, transaction =>
-            {
-                var state = transaction.State;
-                var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
-                if (shop == null)
-                    return Result<ShopItemState>.Failure($"Shop not found: {shopInstanceId}");
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<ShopItemState>.Failure($"Run not found: {runId}");
 
-                var item = shop.Items.FirstOrDefault(i => i.ItemId == itemId);
-                if (item == null)
-                    return Result<ShopItemState>.Failure($"Shop item not found: {itemId}");
-
-                if (item.Purchased)
-                    return Result<ShopItemState>.Failure($"Shop item already purchased: {itemId}");
-
-                if (state.Gold < item.GoldCost || state.PowerPoints < item.PowerPointCost)
-                    return Result<ShopItemState>.Failure($"Insufficient resources for shop item: {itemId}");
-
-                state = state with
-                {
-                    Gold = state.Gold - item.GoldCost,
-                    PowerPoints = state.PowerPoints - item.PowerPointCost
-                };
-
-                if (!string.IsNullOrWhiteSpace(item.CardId))
-                {
-                    var deck = DeckTransitions.AddToDiscard(state.Deck, new[] { item.CardId }, state.Determinism);
-                    if (deck.IsFailure)
-                        return Result<ShopItemState>.Failure(deck.Error);
-                    state = state with { Deck = deck.Value.State };
-                }
-
-                item.Purchased = true;
-                transaction.State = state;
-                return Result<ShopItemState>.Success(item);
-            });
+            var transition = ShopTransitions.Buy(state, shopInstanceId, itemId);
+            return transition.IsFailure
+                ? Result<ShopItemState>.Failure(transition.Error)
+                : Result<ShopItemState>.Success(CommitTransition(transition.Value));
         }
     }
 
@@ -535,27 +410,22 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, transaction =>
-            {
-                var state = transaction.State;
-                var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
-                if (shop == null)
-                    return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<ShopState>.Failure($"Run not found: {runId}");
 
-                var definitionResult = LoadShopDefinition(state.ConfigName, shop.ShopId);
-                if (definitionResult.IsFailure)
-                    return Result<ShopState>.Failure(definitionResult.Error);
+            var shop = state.Shops.FirstOrDefault(item => item.ShopInstanceId == shopInstanceId);
+            if (shop == null)
+                return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
 
-                if (state.Gold < shop.RerollCostGold)
-                    return Result<ShopState>.Failure($"Insufficient gold for shop reroll: {shop.ShopId}");
+            var definitionResult = LoadShopDefinition(state.ConfigName, shop.ShopId);
+            if (definitionResult.IsFailure)
+                return Result<ShopState>.Failure(definitionResult.Error);
 
-                transaction.State = state = state with { Gold = state.Gold - shop.RerollCostGold };
-                shop.RerollsUsed++;
-                shop.RerollCostGold = CalculateShopRerollCost(shop.Reroll, shop.RerollsUsed);
-                shop.Items.Clear();
-                shop.Items.AddRange(GenerateShopItems(state, definitionResult.Value, shop.RerollsUsed));
-                return Result<ShopState>.Success(shop);
-            });
+            var items = GenerateShopItems(state, definitionResult.Value, checked(shop.RerollsUsed + 1));
+            var transition = ShopTransitions.Reroll(state, shopInstanceId, items);
+            return transition.IsFailure
+                ? Result<ShopState>.Failure(transition.Error)
+                : Result<ShopState>.Success(CommitTransition(transition.Value));
         }
     }
 
@@ -570,38 +440,8 @@ public sealed class RunManager : IRunManager
             if (definitionResult.IsFailure)
                 return Result<PreparationState>.Failure(definitionResult.Error);
 
-            var definition = definitionResult.Value;
-            var instanceId = state.Determinism.AllocateId("preparation");
-            var preparation = new PreparationState
-            {
-                PreparationInstanceId = instanceId.Value,
-                RunId = runId,
-                PreparationId = definition.PreparationId,
-                Options = definition.Options.Select(option => new PreparationOptionState
-                {
-                    OptionId = option.OptionId,
-                    GoldCost = option.GoldCost,
-                    PowerPointCost = option.PowerPointCost,
-                    AddCardsToDiscard = option.AddCardsToDiscard.ToList(),
-                    ApplyModifiers = option.ApplyModifiers.Select(modifier => new PreparationModifierGrantState
-                    {
-                        OwnerId = modifier.OwnerId,
-                        ModifierId = modifier.ModifierId,
-                        Stacks = modifier.Stacks,
-                        Duration = modifier.Duration,
-                        SourceId = modifier.SourceId
-                    }).ToList()
-                }).ToList()
-            };
-
-            state = state with
-            {
-                Preparations = state.Preparations.Add(preparation),
-                Determinism = instanceId.Context.AdvanceStep()
-            };
-            _runs[runId] = state;
-            PersistAsync(state);
-            return Result<PreparationState>.Success(preparation);
+            var transition = PreparationTransitions.Create(state, definitionResult.Value);
+            return Result<PreparationState>.Success(CommitTransition(transition));
         }
     }
 
@@ -609,60 +449,50 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, transaction =>
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<PreparationOptionState>.Failure($"Run not found: {runId}");
+
+            var plan = PreparationTransitions.PlanApply(state, preparationInstanceId, optionId);
+            if (plan.IsFailure)
+                return Result<PreparationOptionState>.Failure(plan.Error);
+            if (!plan.Value.ModifierGrants.IsEmpty && _scriptModifierManager == null)
+                return Result<PreparationOptionState>.Failure(
+                    "Script modifier manager is not available for preparation modifier grants");
+
+            var appliedModifiers = new List<(string OwnerId, Guid InstanceId)>();
+            foreach (var grant in plan.Value.ModifierGrants)
             {
-                var state = transaction.State;
-                var preparation = state.Preparations.FirstOrDefault(p => p.PreparationInstanceId == preparationInstanceId);
-                if (preparation == null)
-                    return Result<PreparationOptionState>.Failure($"Preparation not found: {preparationInstanceId}");
-
-                var option = preparation.Options.FirstOrDefault(o => o.OptionId == optionId);
-                if (option == null)
-                    return Result<PreparationOptionState>.Failure($"Preparation option not found: {optionId}");
-
-                if (option.Applied)
-                    return Result<PreparationOptionState>.Failure($"Preparation option already applied: {optionId}");
-
-                if (state.Gold < option.GoldCost || state.PowerPoints < option.PowerPointCost)
-                    return Result<PreparationOptionState>.Failure($"Insufficient resources for preparation option: {optionId}");
-
-                if (option.ApplyModifiers.Count > 0 && _scriptModifierManager == null)
-                    return Result<PreparationOptionState>.Failure("Script modifier manager is not available for preparation modifier grants");
-
-                var deck = DeckTransitions.AddToDiscard(state.Deck, option.AddCardsToDiscard, state.Determinism);
-                if (deck.IsFailure)
-                    return Result<PreparationOptionState>.Failure(deck.Error);
-                state = state with
+                var apply = _scriptModifierManager!.ApplyModifier(
+                    grant.InstanceId,
+                    grant.OwnerId,
+                    grant.ModifierId,
+                    grant.Stacks,
+                    grant.Duration,
+                    grant.SourceId);
+                if (apply.IsFailure)
                 {
-                    Gold = state.Gold - option.GoldCost,
-                    PowerPoints = state.PowerPoints - option.PowerPointCost,
-                    Deck = deck.Value.State
-                };
-                transaction.State = state;
-
-                var appliedModifiers = new List<(string OwnerId, Guid InstanceId)>();
-                foreach (var modifier in option.ApplyModifiers)
-                {
-                    var ownerId = ResolvePreparationModifierOwner(state, modifier.OwnerId);
-                    var sourceId = string.IsNullOrWhiteSpace(modifier.SourceId) ? option.OptionId : modifier.SourceId;
-                    var apply = _scriptModifierManager!.ApplyModifier(ownerId, modifier.ModifierId, modifier.Stacks, modifier.Duration, sourceId);
-                    if (apply.IsFailure)
-                    {
-                        var rollback = RollbackAppliedModifiers(appliedModifiers);
-                        return rollback.IsFailure
-                            ? Result<PreparationOptionState>.Failure($"{apply.Error}; modifier rollback failed: {rollback.Error}")
-                            : Result<PreparationOptionState>.Failure(apply.Error);
-                    }
-
-                    appliedModifiers.Add((ownerId, apply.Value.InstanceId));
-                    option.AppliedModifierInstanceIds.Add(apply.Value.InstanceId);
+                    var rollback = RollbackAppliedModifiers(appliedModifiers);
+                    return rollback.IsFailure
+                        ? Result<PreparationOptionState>.Failure($"{apply.Error}; modifier rollback failed: {rollback.Error}")
+                        : Result<PreparationOptionState>.Failure(apply.Error);
                 }
 
-                option.Applied = true;
-                preparation.AppliedOptionIds.Add(option.OptionId);
+                appliedModifiers.Add((grant.OwnerId, apply.Value.InstanceId));
+            }
 
-                return Result<PreparationOptionState>.Success(option);
-            });
+            var transition = PreparationTransitions.CommitApply(
+                state,
+                plan.Value,
+                appliedModifiers.Select(item => item.InstanceId).ToArray());
+            if (transition.IsFailure)
+            {
+                var rollback = RollbackAppliedModifiers(appliedModifiers);
+                return rollback.IsFailure
+                    ? Result<PreparationOptionState>.Failure($"{transition.Error}; modifier rollback failed: {rollback.Error}")
+                    : Result<PreparationOptionState>.Failure(transition.Error);
+            }
+
+            return Result<PreparationOptionState>.Success(CommitTransition(transition.Value));
         }
     }
 
@@ -683,172 +513,11 @@ public sealed class RunManager : IRunManager
         return Result.Success();
     }
 
-    private Result<T> ExecuteRunTransaction<T>(Guid runId, Func<RunTransaction, Result<T>> operation)
+    private T CommitTransition<T>(RunStateTransition<T> transition)
     {
-        if (!_runs.TryGetValue(runId, out var state))
-            return Result<T>.Failure($"Run not found: {runId}");
-
-        var transaction = new RunTransaction(CloneRunState(state));
-        try
-        {
-            var result = operation(transaction);
-            if (result.IsFailure)
-                return result;
-
-            var committed = transaction.State with
-            {
-                Determinism = transaction.State.Determinism.AdvanceStep()
-            };
-            _runs[runId] = committed;
-            PersistAsync(committed);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            return Result<T>.Failure($"Run transaction failed: {ex.Message}");
-        }
-    }
-
-    private sealed class RunTransaction
-    {
-        public RunTransaction(RunState state) => State = state;
-        public RunState State { get; set; }
-    }
-
-    private static RunState CloneRunState(RunState source)
-    {
-        return new RunState
-        {
-            RunId = source.RunId,
-            Sequence = source.Sequence,
-            ConfigName = source.ConfigName,
-            PlayerEntityId = source.PlayerEntityId,
-            Gold = source.Gold,
-            PowerPoints = source.PowerPoints,
-            CurrentNodeId = source.CurrentNodeId,
-            Deck = CloneDeckState(source.Deck),
-            CardSelections = [.. source.CardSelections.Select(CloneCardSelection)],
-            Shops = [.. source.Shops.Select(CloneShop)],
-            Preparations = [.. source.Preparations.Select(ClonePreparation)],
-            Metadata = source.Metadata,
-            Determinism = source.Determinism
-        };
-    }
-
-    private static DeckState CloneDeckState(DeckState source)
-    {
-        return new DeckState
-        {
-            DrawPile = source.DrawPile,
-            Hand = source.Hand,
-            DiscardPile = source.DiscardPile,
-            ExhaustPile = source.ExhaustPile
-        };
-    }
-
-    private static CardSelectionState CloneCardSelection(CardSelectionState source)
-    {
-        return new CardSelectionState
-        {
-            SelectionInstanceId = source.SelectionInstanceId,
-            RunId = source.RunId,
-            SelectionId = source.SelectionId,
-            PickCount = source.PickCount,
-            OfferCount = source.OfferCount,
-            CardPoolId = source.CardPoolId,
-            Options = source.Options.Select(CloneCardSelectionOption).ToList(),
-            RerollsUsed = source.RerollsUsed,
-            FreeRerollsRemaining = source.FreeRerollsRemaining,
-            RerollCostGold = source.RerollCostGold,
-            Completed = source.Completed,
-            PickedCardIds = source.PickedCardIds.ToList(),
-            DecomposedCardIds = source.DecomposedCardIds.ToList(),
-            Reroll = source.Reroll,
-            Decompose = source.Decompose
-        };
-    }
-
-    private static CardSelectionOptionState CloneCardSelectionOption(CardSelectionOptionState source)
-    {
-        return new CardSelectionOptionState
-        {
-            CardId = source.CardId,
-            Rarity = source.Rarity,
-            Tags = source.Tags.ToList(),
-            DecomposePowerPoints = source.DecomposePowerPoints,
-            Decomposed = source.Decomposed
-        };
-    }
-
-    private static ShopState CloneShop(ShopState source)
-    {
-        return new ShopState
-        {
-            ShopInstanceId = source.ShopInstanceId,
-            RunId = source.RunId,
-            ShopId = source.ShopId,
-            CardPoolId = source.CardPoolId,
-            OfferCount = source.OfferCount,
-            RerollsUsed = source.RerollsUsed,
-            RerollCostGold = source.RerollCostGold,
-            Pricing = source.Pricing,
-            Reroll = source.Reroll,
-            Items = source.Items.Select(CloneShopItem).ToList()
-        };
-    }
-
-    private static ShopItemState CloneShopItem(ShopItemState source)
-    {
-        return new ShopItemState
-        {
-            ItemId = source.ItemId,
-            CardId = source.CardId,
-            Rarity = source.Rarity,
-            Tags = source.Tags.ToList(),
-            BaseGoldPrice = source.BaseGoldPrice,
-            GoldCost = source.GoldCost,
-            PowerPointCost = source.PowerPointCost,
-            PricingBreakdown = new Dictionary<string, double>(source.PricingBreakdown, StringComparer.OrdinalIgnoreCase),
-            Purchased = source.Purchased
-        };
-    }
-
-    private static PreparationState ClonePreparation(PreparationState source)
-    {
-        return new PreparationState
-        {
-            PreparationInstanceId = source.PreparationInstanceId,
-            RunId = source.RunId,
-            PreparationId = source.PreparationId,
-            Options = source.Options.Select(ClonePreparationOption).ToList(),
-            AppliedOptionIds = source.AppliedOptionIds.ToList()
-        };
-    }
-
-    private static PreparationOptionState ClonePreparationOption(PreparationOptionState source)
-    {
-        return new PreparationOptionState
-        {
-            OptionId = source.OptionId,
-            GoldCost = source.GoldCost,
-            PowerPointCost = source.PowerPointCost,
-            AddCardsToDiscard = source.AddCardsToDiscard.ToList(),
-            ApplyModifiers = source.ApplyModifiers.Select(ClonePreparationModifierGrant).ToList(),
-            AppliedModifierInstanceIds = source.AppliedModifierInstanceIds.ToList(),
-            Applied = source.Applied
-        };
-    }
-
-    private static PreparationModifierGrantState ClonePreparationModifierGrant(PreparationModifierGrantState source)
-    {
-        return new PreparationModifierGrantState
-        {
-            OwnerId = source.OwnerId,
-            ModifierId = source.ModifierId,
-            Stacks = source.Stacks,
-            Duration = source.Duration,
-            SourceId = source.SourceId
-        };
+        _runs[transition.State.RunId] = transition.State;
+        PersistAsync(transition.State);
+        return transition.Value;
     }
 
     private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
@@ -906,11 +575,6 @@ public sealed class RunManager : IRunManager
         };
     }
 
-    private static int CalculateRerollCost(RerollRulesDefinition rules, int rerollsUsed)
-    {
-        return rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll;
-    }
-
     private static int RarityRank(CardRarity rarity)
     {
         return rarity switch
@@ -921,17 +585,6 @@ public sealed class RunManager : IRunManager
             CardRarity.Legendary => 3,
             _ => 99
         };
-    }
-
-    private static string ResolvePreparationModifierOwner(RunState state, string ownerId)
-    {
-        if (string.IsNullOrWhiteSpace(ownerId) || ownerId.Equals("run", StringComparison.OrdinalIgnoreCase))
-            return $"run:{state.RunId}";
-
-        if (ownerId.Equals("player", StringComparison.OrdinalIgnoreCase))
-            return state.PlayerEntityId;
-
-        return ownerId;
     }
 
     private List<ShopItemState> GenerateShopItems(RunState state, ShopDefinition definition, int offset = 0)
@@ -1006,11 +659,6 @@ public sealed class RunManager : IRunManager
             ["tagMultiplier"] = tagMultiplier,
             ["final"] = final
         };
-    }
-
-    private static int CalculateShopRerollCost(ShopRerollRules rules, int rerollsUsed)
-    {
-        return rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll;
     }
 
     private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)
@@ -1135,7 +783,7 @@ public sealed class RunManager : IRunManager
         RunState restored;
         lock (_lock)
         {
-            restored = CloneRunState(state);
+            restored = state;
             _runs[state.RunId] = restored;
         }
 

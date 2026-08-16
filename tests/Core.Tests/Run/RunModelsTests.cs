@@ -368,8 +368,8 @@ public class RunModelsTests
         
         // Assert
         Assert.Equal(10, runDef.StartingDeck.Count);
-        Assert.Equal(5, runDef.StartingDeck.FindAll(c => c == "strike").Count);
-        Assert.Equal(5, runDef.StartingDeck.FindAll(c => c == "defend").Count);
+        Assert.Equal(5, runDef.StartingDeck.Count(c => c == "strike"));
+        Assert.Equal(5, runDef.StartingDeck.Count(c => c == "defend"));
     }
     
     [Fact]
@@ -560,9 +560,9 @@ public class RunModelsTests
         
         // Assert
         Assert.Equal(10, ironcladRun.StartingDeck.Count);
-        Assert.Equal(5, ironcladRun.StartingDeck.FindAll(c => c == "strike").Count);
-        Assert.Equal(4, ironcladRun.StartingDeck.FindAll(c => c == "defend").Count);
-        Assert.Single(ironcladRun.StartingDeck.FindAll(c => c == "bash"));
+        Assert.Equal(5, ironcladRun.StartingDeck.Count(c => c == "strike"));
+        Assert.Equal(4, ironcladRun.StartingDeck.Count(c => c == "defend"));
+        Assert.Single(ironcladRun.StartingDeck, c => c == "bash");
     }
     
     [Fact]

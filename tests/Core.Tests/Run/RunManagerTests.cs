@@ -323,7 +323,7 @@ public sealed class RunManagerTests
         run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
         var instanceId = Guid.NewGuid();
         modifierManager
-            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
+            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
             .Returns(Result<ScriptModifierInstance>.Success(new ScriptModifierInstance
             {
                 InstanceId = instanceId,
@@ -341,7 +341,7 @@ public sealed class RunManagerTests
         Assert.Equal(1, run.PowerPoints);
         Assert.Contains("fireball", run.Deck.DiscardPile);
         Assert.Contains(instanceId, option.Value.AppliedModifierInstanceIds);
-        modifierManager.Verify(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"), Times.Once);
+        modifierManager.Verify(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"), Times.Once);
     }
 
     [Fact]
@@ -376,7 +376,7 @@ public sealed class RunManagerTests
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
-            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
+            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
             .Returns(Result<ScriptModifierInstance>.Failure("modifier rejected"));
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
@@ -404,7 +404,7 @@ public sealed class RunManagerTests
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
-            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "double_train"))
+            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "double_train"))
             .Returns(Result<ScriptModifierInstance>.Success(new ScriptModifierInstance
             {
                 InstanceId = firstInstanceId,
@@ -413,7 +413,7 @@ public sealed class RunManagerTests
                 SourceId = "double_train"
             }));
         modifierManager
-            .Setup(m => m.ApplyModifier($"run:{run.RunId}", "missing_modifier", 1, -1, "double_train"))
+            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "missing_modifier", 1, -1, "double_train"))
             .Returns(Result<ScriptModifierInstance>.Failure("modifier missing"));
         modifierManager
             .Setup(m => m.RemoveModifier($"run:{run.RunId}", firstInstanceId))

@@ -55,11 +55,11 @@ public sealed class PreparationControllerTests
         var option = new PreparationOptionState
         {
             OptionId = "train_spell",
-            ApplyModifiers =
+            ApplyModifiers = new[]
             {
                 new PreparationModifierGrantState { OwnerId = "run", ModifierId = "flat_power_bonus", Stacks = 1 }
             },
-            AppliedModifierInstanceIds = { instanceId },
+            AppliedModifierInstanceIds = new[] { instanceId },
             Applied = true
         };
         _runManager.Setup(m => m.ApplyPreparationOption(runId, preparationId, "train_spell"))

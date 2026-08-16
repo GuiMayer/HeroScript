@@ -51,6 +51,17 @@ public sealed class ScriptModifierManagerTests : IDisposable
     }
 
     [Fact]
+    public void ApplyModifier_WithExplicitId_UsesCallerOwnedDeterministicId()
+    {
+        var instanceId = Guid.Parse("50000000-0000-8000-8000-000000000001");
+
+        var result = _manager.ApplyModifier(instanceId, "run-1", "glass_cannon");
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(instanceId, result.Value.InstanceId);
+    }
+
+    [Fact]
     public void GetPipelineModifiers_FiltersByTagsAndAccumulatesValues()
     {
         _manager.ApplyModifier("run-1", "glass_cannon", stacks: 2);

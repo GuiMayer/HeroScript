@@ -87,6 +87,14 @@ public sealed class ScriptModifierManager : IScriptModifierManager
 
     public Result<ScriptModifierInstance> ApplyModifier(string ownerId, string modifierId, int stacks = 1, int? duration = null, string? sourceId = null)
     {
+        return ApplyModifier(Guid.NewGuid(), ownerId, modifierId, stacks, duration, sourceId);
+    }
+
+    public Result<ScriptModifierInstance> ApplyModifier(Guid instanceId, string ownerId, string modifierId, int stacks = 1, int? duration = null, string? sourceId = null)
+    {
+        if (instanceId == Guid.Empty)
+            return Result<ScriptModifierInstance>.Failure("InstanceId cannot be empty");
+
         if (string.IsNullOrWhiteSpace(ownerId))
             return Result<ScriptModifierInstance>.Failure("OwnerId cannot be empty");
 
@@ -119,6 +127,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager
 
             var instance = new ScriptModifierInstance
             {
+                InstanceId = instanceId,
                 ModifierId = definition.ModifierId,
                 Definition = definition,
                 OwnerId = ownerId,
