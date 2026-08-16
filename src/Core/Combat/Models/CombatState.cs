@@ -16,6 +16,8 @@ public record CombatState
     private ImmutableList<string>? _turnOrder;
 
     public Guid CombatId { get; init; } = Guid.Empty;
+    public Guid? RunId { get; init; }
+    public string? RunNodeId { get; init; }
     public DateTime StartedAt { get; init; } = DateTime.UnixEpoch;
     public DeterministicContext Determinism { get; init; } =
         DeterministicContext.Create(0, "legacy-combat");

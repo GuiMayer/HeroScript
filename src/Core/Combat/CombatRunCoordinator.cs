@@ -2,6 +2,7 @@ using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Run;
+using System.Collections.Concurrent;
 
 namespace Core.Combat;
 
@@ -13,6 +14,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     private readonly IRunManager _runManager;
     private readonly IActionManager _actionManager;
     private readonly IScriptModifierManager? _scriptModifierManager;
+    private readonly ConcurrentDictionary<Guid, object> _runLocks = new();
 
     public CombatRunCoordinator(
         ICombatSystem combatSystem,
@@ -26,23 +28,157 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         _scriptModifierManager = scriptModifierManager;
     }
 
+    public Result<CombatRunEncounterResult> StartEncounter(
+        Guid runId,
+        string heroId,
+        IReadOnlyList<string> enemyIds,
+        int initialEnergy = 3)
+    {
+        var runLock = _runLocks.GetOrAdd(runId, _ => new object());
+        lock (runLock)
+        {
+            var runResult = _runManager.GetRun(runId);
+            if (runResult.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(runResult.Error);
+
+            var run = runResult.Value;
+            if (run.GetActiveEncounter() != null)
+                return Result<CombatRunEncounterResult>.Failure(
+                    $"Run already has an active encounter: {run.ActiveEncounterId}");
+            if (run.CurrentNodeId == null)
+                return Result<CombatRunEncounterResult>.Failure("Run has no current map node");
+
+            var node = run.Map.Nodes.FirstOrDefault(item =>
+                string.Equals(item.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
+            if (node == null)
+                return Result<CombatRunEncounterResult>.Failure($"Map node not found: {run.CurrentNodeId}");
+            if (!RunMapTransitions.IsEncounterNode(node.NodeType))
+                return Result<CombatRunEncounterResult>.Failure($"Current map node is not an encounter: {node.NodeId}");
+
+            var seed = run.Determinism.DrawUInt64();
+            var combatResult = _combatSystem.StartCombat(
+                heroId,
+                enemyIds.ToList(),
+                initialEnergy,
+                new CombatStartOptions(
+                    seed.Value,
+                    run.Determinism.ContentRevision,
+                    runId,
+                    node.NodeId));
+            if (combatResult.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
+
+            var attached = _runManager.AttachEncounter(
+                runId,
+                run.Sequence,
+                run.Determinism.Step,
+                combatResult.Value);
+            if (attached.IsFailure)
+            {
+                _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
+                return Result<CombatRunEncounterResult>.Failure(attached.Error);
+            }
+
+            return Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
+            {
+                CombatState = combatResult.Value,
+                RunState = attached.Value
+            });
+        }
+    }
+
+    public Result<CombatRunEncounterResult> GetCurrentEncounter(Guid runId)
+    {
+        var runResult = _runManager.GetRun(runId);
+        if (runResult.IsFailure)
+            return Result<CombatRunEncounterResult>.Failure(runResult.Error);
+
+        var encounter = runResult.Value.GetActiveEncounter();
+        if (encounter == null)
+            return Result<CombatRunEncounterResult>.Failure($"Run has no active encounter: {runId}");
+
+        var restored = _combatSystem.RestoreCombatState(encounter.Combat);
+        return restored.IsFailure
+            ? Result<CombatRunEncounterResult>.Failure(restored.Error)
+            : Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
+            {
+                CombatState = restored.Value,
+                RunState = runResult.Value
+            });
+    }
+
+    public Result<CombatRunEncounterResult> GetCombatState(Guid combatId)
+    {
+        var runResult = _runManager.GetRunByCombat(combatId);
+        if (runResult.IsFailure)
+            return Result<CombatRunEncounterResult>.Failure(runResult.Error);
+
+        var encounter = runResult.Value.GetEncounter(combatId);
+        if (encounter == null)
+            return Result<CombatRunEncounterResult>.Failure($"Run-owned combat not found: {combatId}");
+
+        var restored = _combatSystem.RestoreCombatState(encounter.Combat);
+        return restored.IsFailure
+            ? Result<CombatRunEncounterResult>.Failure(restored.Error)
+            : Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
+            {
+                CombatState = restored.Value,
+                RunState = runResult.Value
+            });
+    }
+
     public Result<CombatRunActionResult> ExecuteAction(Guid combatId, CombatActionCommand command)
     {
         if (command.RunId is not { } runId)
             return Result<CombatRunActionResult>.Failure("RunId is required for run-coordinated combat actions");
 
-        if (command.ActionType is ActionType.PASS or ActionType.END_TURN)
-            return ExecuteWithoutCardConsumption(combatId, runId, command);
+        var runLock = _runLocks.GetOrAdd(runId, _ => new object());
+        lock (runLock)
+        {
+            return ExecuteActionLocked(combatId, runId, command);
+        }
+    }
+
+    private Result<CombatRunActionResult> ExecuteActionLocked(
+        Guid combatId,
+        Guid runId,
+        CombatActionCommand command)
+    {
+        var runResult = _runManager.GetRun(runId);
+        if (runResult.IsFailure)
+            return Result<CombatRunActionResult>.Failure(runResult.Error);
+
+        var run = runResult.Value;
+        var encounter = run.GetActiveEncounter();
+        if (encounter == null || encounter.Combat.CombatId != combatId)
+            return Result<CombatRunActionResult>.Failure($"Combat is not the active encounter for run {runId}: {combatId}");
+        if (!encounter.Combat.IsActive)
+            return Result<CombatRunActionResult>.Failure($"Combat is not active: {combatId}");
+
+        var restored = _combatSystem.RestoreCombatState(encounter.Combat);
+        if (restored.IsFailure)
+            return Result<CombatRunActionResult>.Failure(restored.Error);
+
+        var actor = encounter.Combat.GetEntity(command.ActorId);
+        if (actor == null)
+            return Result<CombatRunActionResult>.Failure($"Actor not found: {command.ActorId}");
+
+        if (!actor.IsHero || command.ActionType is ActionType.PASS or ActionType.END_TURN)
+        {
+            return ExecuteAndCommit(
+                combatId,
+                run,
+                encounter.Combat,
+                command,
+                consumedCardId: null,
+                CardConsumeDestination.None);
+        }
 
         var cardId = ResolveCardId(command);
         if (string.IsNullOrWhiteSpace(cardId))
             return Result<CombatRunActionResult>.Failure("CardId is required for run-coordinated combat actions");
 
-        var handResult = _runManager.HasCardInHand(runId, cardId);
-        if (handResult.IsFailure)
-            return Result<CombatRunActionResult>.Failure(handResult.Error);
-
-        if (!handResult.Value)
+        if (!run.Deck.Hand.Contains(cardId, StringComparer.Ordinal))
             return Result<CombatRunActionResult>.Failure($"Card '{cardId}' is not in run hand");
 
         var actionId = ResolveActionId(command, cardId);
@@ -54,51 +190,84 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var destination = ResolveDestination(actionDefinition);
         var commandWithModifiers = command with
         {
+            ActionType = actionDefinition.ActionType == ActionType.BASIC_ATTACK
+                ? ActionType.BASIC_ATTACK
+                : ActionType.POWER,
+            PowerId = actionDefinition.ActionType == ActionType.BASIC_ATTACK
+                ? null
+                : actionId,
             RunModifiers = ResolveRunModifiers(runId, actionDefinition.Tags)
         };
-        var combatResult = _combatSystem.ExecuteAction(combatId, commandWithModifiers);
-        if (combatResult == null)
-            return Result<CombatRunActionResult>.Failure("Combat action was not executed");
-
-        if (combatResult.IsFailure)
-            return Result<CombatRunActionResult>.Failure(combatResult.Error);
-
-        if (destination != CardConsumeDestination.None)
-        {
-            var consumeResult = _runManager.ConsumeCardsFromHand(runId, new[] { cardId }, destination);
-            if (consumeResult.IsFailure)
-                return Result<CombatRunActionResult>.Failure(consumeResult.Error);
-        }
-
-        var runResult = _runManager.GetRun(runId);
-        if (runResult.IsFailure)
-            return Result<CombatRunActionResult>.Failure(runResult.Error);
-
-        return Result<CombatRunActionResult>.Success(new CombatRunActionResult
-        {
-            CombatState = combatResult.Value,
-            RunState = runResult.Value,
-            ConsumedCardId = destination == CardConsumeDestination.None ? null : cardId,
-            Destination = destination
-        });
+        return ExecuteAndCommit(
+            combatId,
+            run,
+            encounter.Combat,
+            commandWithModifiers,
+            destination == CardConsumeDestination.None ? null : cardId,
+            destination);
     }
 
-    private Result<CombatRunActionResult> ExecuteWithoutCardConsumption(Guid combatId, Guid runId, CombatActionCommand command)
+    private Result<CombatRunActionResult> ExecuteAndCommit(
+        Guid combatId,
+        RunState run,
+        CombatState previousCombat,
+        CombatActionCommand command,
+        string? consumedCardId,
+        CardConsumeDestination destination)
     {
         var combatResult = _combatSystem.ExecuteAction(combatId, command);
         if (combatResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(combatResult.Error);
 
-        var runResult = _runManager.GetRun(runId);
-        if (runResult.IsFailure)
-            return Result<CombatRunActionResult>.Failure(runResult.Error);
+        var committed = _runManager.CommitCombatAction(
+            run.RunId,
+            run.Sequence,
+            previousCombat,
+            combatResult.Value,
+            command,
+            consumedCardId,
+            destination);
+        if (committed.IsFailure)
+        {
+            _combatSystem.RestoreCombatState(previousCombat);
+            return Result<CombatRunActionResult>.Failure(committed.Error);
+        }
 
         return Result<CombatRunActionResult>.Success(new CombatRunActionResult
         {
             CombatState = combatResult.Value,
-            RunState = runResult.Value,
-            Destination = CardConsumeDestination.None
+            RunState = committed.Value,
+            ConsumedCardId = consumedCardId,
+            Destination = destination
         });
+    }
+
+    public Result<CombatRunEncounterResult> ResolveEncounter(Guid runId, Guid combatId)
+    {
+        var runLock = _runLocks.GetOrAdd(runId, _ => new object());
+        lock (runLock)
+        {
+            var runResult = _runManager.GetRun(runId);
+            if (runResult.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(runResult.Error);
+
+            var encounter = runResult.Value.GetActiveEncounter();
+            if (encounter == null || encounter.Combat.CombatId != combatId)
+                return Result<CombatRunEncounterResult>.Failure($"Active run encounter not found: {combatId}");
+            if (encounter.Combat.IsActive)
+                return Result<CombatRunEncounterResult>.Failure($"Combat is still active: {combatId}");
+
+            var resolved = _runManager.ResolveEncounter(runId, runResult.Value.Sequence, combatId);
+            if (resolved.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(resolved.Error);
+
+            _combatSystem.RemoveCombatState(combatId);
+            return Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
+            {
+                CombatState = encounter.Combat,
+                RunState = resolved.Value
+            });
+        }
     }
 
     private static string ResolveCardId(CombatActionCommand command)

@@ -1,11 +1,14 @@
 using Core.Abstractions.Persistence;
 using Core.Config;
+using Core.Combat;
+using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
+using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Core.Run.Replay;
@@ -224,6 +227,113 @@ public sealed class RunManagerTests
         Assert.Equal(new[] { "start" }, current.Map.ResolvedNodeIds);
         Assert.Equal(run.Sequence + 2, current.Sequence);
         Assert.Equal(run.Determinism.Step + 2, current.Determinism.Step);
+    }
+
+    [Fact]
+    public void RunOwnedCombat_AttachActionAndResolutionAreSingleRunTransitions()
+    {
+        var manager = CreateManager(runJson: CombatRunJson);
+        var run = manager.StartRun(new RunStartOptions(
+            "test", "default_run", "hero", Seed: 91UL, ContentRevision: "test")).Value;
+        var combatSeed = run.Determinism.DrawUInt64().Value;
+        var combat = CombatTransitions.Create(
+            CreateCombatEntity("hero", isHero: true),
+            [CreateCombatEntity("enemy", isHero: false)],
+            DeterministicContext.Create(combatSeed, run.Determinism.ContentRevision)) with
+        {
+            RunId = run.RunId,
+            RunNodeId = "start"
+        };
+
+        var attached = manager.AttachEncounter(
+            run.RunId,
+            run.Sequence,
+            run.Determinism.Step,
+            combat);
+        var cardId = attached.Value.Deck.Hand[0];
+        var terminal = combat with
+        {
+            Status = CombatStatus.VICTORY,
+            Determinism = combat.Determinism.AdvanceStep()
+        };
+        var committed = manager.CommitCombatAction(
+            run.RunId,
+            attached.Value.Sequence,
+            combat,
+            terminal,
+            new CombatActionCommand
+            {
+                RunId = run.RunId,
+                ActorId = "hero",
+                ActionType = ActionType.POWER,
+                PowerId = cardId,
+                CardId = cardId,
+                TargetId = "enemy"
+            },
+            cardId,
+            CardConsumeDestination.Discard);
+        var resolved = manager.ResolveEncounter(
+            run.RunId,
+            committed.Value.Sequence,
+            combat.CombatId);
+
+        Assert.True(attached.IsSuccess, attached.IsFailure ? attached.Error : null);
+        Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
+        Assert.True(resolved.IsSuccess, resolved.IsFailure ? resolved.Error : null);
+        Assert.Equal(run.Sequence + 3, resolved.Value.Sequence);
+        Assert.Equal(run.Determinism.Step + 3, resolved.Value.Determinism.Step);
+        Assert.Null(resolved.Value.ActiveEncounterId);
+        var encounter = Assert.Single(resolved.Value.Encounters);
+        Assert.True(encounter.Resolved);
+        Assert.Equal("VICTORY", encounter.Outcome);
+        Assert.Contains("start", resolved.Value.Map.ResolvedNodeIds);
+        Assert.Contains(cardId, resolved.Value.Deck.DiscardPile);
+        Assert.Equal(
+            RunCommandTypes.AdvanceNode,
+            Assert.Single(manager.GetAvailableCommands(run.RunId).Value).Type);
+    }
+
+    [Fact]
+    public void GetRunByCombat_RecoversEmbeddedEncounterAfterManagerRestart()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heroscript-encounter-{Guid.NewGuid():N}");
+        try
+        {
+            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            var manager = CreateManager(repository: repository, runJson: CombatRunJson);
+            var run = manager.StartRun(new RunStartOptions(
+                "test", "default_run", "hero", Seed: 92UL, ContentRevision: "test")).Value;
+            var combatSeed = run.Determinism.DrawUInt64().Value;
+            var combat = CombatTransitions.Create(
+                CreateCombatEntity("hero", isHero: true),
+                [CreateCombatEntity("enemy", isHero: false)],
+                DeterministicContext.Create(combatSeed, run.Determinism.ContentRevision)) with
+            {
+                RunId = run.RunId,
+                RunNodeId = "start"
+            };
+            var attached = manager.AttachEncounter(
+                run.RunId,
+                run.Sequence,
+                run.Determinism.Step,
+                combat);
+            Assert.True(attached.IsSuccess, attached.IsFailure ? attached.Error : null);
+
+            var restarted = CreateManager(repository: repository, runJson: CombatRunJson);
+            var recovered = restarted.GetRunByCombat(combat.CombatId);
+
+            Assert.True(recovered.IsSuccess, recovered.IsFailure ? recovered.Error : null);
+            Assert.Equal(run.RunId, recovered.Value.RunId);
+            Assert.Equal(combat.CombatId, recovered.Value.ActiveEncounterId);
+            Assert.Equal(
+                CanonicalJson.ComputeHash(combat),
+                CanonicalJson.ComputeHash(recovered.Value.GetActiveEncounter()!.Combat));
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
     }
 
     [Fact]
@@ -692,14 +802,15 @@ public sealed class RunManagerTests
     private RunManager CreateManager(
         IScriptModifierManager? scriptModifierManager = null,
         IRunStateRepository? repository = null,
-        IContentManifestProvider? contentManifestProvider = null)
+        IContentManifestProvider? contentManifestProvider = null,
+        string? runJson = null)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
             .Setup(m => m.LoadResource("runs/default_run.json", It.IsAny<IEnumerable<string>>(), false))
             .Returns(new Dictionary<string, JsonElement>
             {
-                ["default_run"] = JsonDocument.Parse(RunJson).RootElement.GetProperty("default_run").Clone()
+                ["default_run"] = JsonDocument.Parse(runJson ?? RunJson).RootElement.GetProperty("default_run").Clone()
             });
         _resourceLoader
             .Setup(m => m.LoadResource("card-selections/basic_reward.json", It.IsAny<IEnumerable<string>>(), false))
@@ -726,6 +837,35 @@ public sealed class RunManagerTests
             scriptModifierManager: scriptModifierManager,
             repository: repository,
             contentManifestProvider: contentManifestProvider);
+    }
+
+    private static CombatEntity CreateCombatEntity(string entityId, bool isHero)
+    {
+        return new CombatEntity
+        {
+            EntityId = entityId,
+            Name = entityId,
+            IsHero = isHero,
+            ResourceState = new EntityResourceState
+            {
+                EntityId = entityId,
+                Resources = new Dictionary<string, ResourcePool>
+                {
+                    ["health"] = new ResourcePool
+                    {
+                        ResourceId = "health",
+                        Current = 10,
+                        Maximum = 10,
+                        Definition = new ResourceDefinition
+                        {
+                            ResourceId = "health",
+                            DisplayName = "Health",
+                            Category = ResourceCategory.VITAL
+                        }
+                    }
+                }
+            }
+        };
     }
 
     private RunManager CreateManagerWithContent()
@@ -776,6 +916,21 @@ public sealed class RunManagerTests
         "startingPowerPoints": 0,
         "startingHandSize": 2,
         "startingDeck": ["strike", "defend", "zap"],
+        "mapNodes": [
+          { "nodeId": "start", "nodeType": "event", "nextNodeIds": ["reward"] },
+          { "nodeId": "reward", "nodeType": "card_selection", "nextNodeIds": [] }
+        ]
+      }
+    }
+    """;
+
+    private const string CombatRunJson = """
+    {
+      "default_run": {
+        "runId": "default_run",
+        "startingGold": 25,
+        "startingHandSize": 1,
+        "startingDeck": ["strike", "defend"],
         "mapNodes": [
           { "nodeId": "start", "nodeType": "combat", "nextNodeIds": ["reward"] },
           { "nodeId": "reward", "nodeType": "card_selection", "nextNodeIds": [] }

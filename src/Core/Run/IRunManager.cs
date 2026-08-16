@@ -1,3 +1,5 @@
+using Core.Combat;
+using Core.Combat.Models;
 using Core.Common;
 
 namespace Core.Run;
@@ -7,9 +9,24 @@ public interface IRunManager
     Result<RunState> StartRun(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player");
     Result<RunState> StartRun(RunStartOptions options);
     Result<RunState> GetRun(Guid runId);
+    Result<RunState> GetRunByCombat(Guid combatId);
     Result<IReadOnlyList<RunAvailableCommand>> GetAvailableCommands(Guid runId);
     Result<RunMapNodeState> ResolveCurrentNode(Guid runId, string currentNodeId);
     Result<RunMapNodeState> AdvanceNode(Guid runId, string targetNodeId);
+    Result<RunState> AttachEncounter(
+        Guid runId,
+        int expectedSequence,
+        ulong expectedStep,
+        CombatState combatState);
+    Result<RunState> CommitCombatAction(
+        Guid runId,
+        int expectedSequence,
+        CombatState previousCombat,
+        CombatState nextCombat,
+        CombatActionCommand command,
+        string? consumedCardId,
+        CardConsumeDestination destination);
+    Result<RunState> ResolveEncounter(Guid runId, int expectedSequence, Guid combatId);
     Result<RunState> ApplyEconomy(Guid runId, string resource, int amount);
     Result<IReadOnlyList<string>> DrawCards(Guid runId, int count);
     Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds);

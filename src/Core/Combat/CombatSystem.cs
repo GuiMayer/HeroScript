@@ -100,7 +100,11 @@ public class CombatSystem : ICombatSystem
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(hero, enemies, context);
+            var combatState = CombatTransitions.Create(hero, enemies, context) with
+            {
+                RunId = options.RunId,
+                RunNodeId = options.RunNodeId
+            };
             
             // Inicializar calculadora de ordem de turnos e calcular ordem inicial
             var initResult = _turnOrderCalculator.InitializeState(combatState);
@@ -174,7 +178,11 @@ public class CombatSystem : ICombatSystem
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(heroCombat, enemiesCombat, context);
+            var combatState = CombatTransitions.Create(heroCombat, enemiesCombat, context) with
+            {
+                RunId = options.RunId,
+                RunNodeId = options.RunNodeId
+            };
             
             // Inicializar calculadora de ordem de turnos e calcular ordem inicial
             var initResult = _turnOrderCalculator.InitializeState(combatState);
@@ -1086,6 +1094,36 @@ public class CombatSystem : ICombatSystem
             return Result<CombatState>.Failure($"Combat {combatId} not found");
         
         return Result<CombatState>.Success(state);
+    }
+
+    public Result<CombatState> RestoreCombatState(CombatState state)
+    {
+        if (state == null)
+            return Result<CombatState>.Failure("Combat state is required");
+        if (state.CombatId == Guid.Empty)
+            return Result<CombatState>.Failure("Combat id is required");
+        if (state.Hero == null)
+            return Result<CombatState>.Failure("Combat hero is required");
+
+        var combatLock = _combatLocks.GetOrAdd(state.CombatId, _ => new object());
+        lock (combatLock)
+        {
+            _activeCombats[state.CombatId] = state;
+            return Result<CombatState>.Success(state);
+        }
+    }
+
+    public Result RemoveCombatState(Guid combatId)
+    {
+        var combatLock = _combatLocks.GetOrAdd(combatId, _ => new object());
+        lock (combatLock)
+        {
+            if (!_activeCombats.TryRemove(combatId, out _))
+                return Result.Failure($"Combat {combatId} not found");
+
+            _combatLocks.TryRemove(combatId, out _);
+            return Result.Success();
+        }
     }
 
     public Result<CombatState> UpdateCombatState(Guid combatId, Func<CombatState, CombatState> update)

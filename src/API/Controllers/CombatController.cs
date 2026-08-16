@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Core.Combat;
 using Core.Combat.Gambits;
 using Core.Combat.Models;
+using Core.Common;
 using Core.Effects;
 using API.Models.Combat;
 using API.Models.Gambits;
@@ -50,6 +51,18 @@ public class CombatController : BaseApiController
     {
         try
         {
+            if (request.RunId is { } runId)
+            {
+                var encounter = _combatRunCoordinator.StartEncounter(
+                    runId,
+                    request.HeroId,
+                    request.Enemies,
+                    request.InitialEnergy);
+                return encounter.IsFailure
+                    ? BadRequest(new { error = encounter.Error })
+                    : Ok(MapToStateResponse(encounter.Value.CombatState));
+            }
+
             var result = _combatSystem.StartCombat(
                 request.HeroId,
                 request.Enemies,
@@ -64,6 +77,72 @@ public class CombatController : BaseApiController
         catch (Exception ex)
         {
             return HandleException(ex, "start combat");
+        }
+    }
+
+    [HttpPost("/api/v1/runs/{runId:guid}/encounters")]
+    public IActionResult StartRunEncounter(Guid runId, [FromBody] StartCombatRequest request)
+    {
+        try
+        {
+            if (request.RunId.HasValue && request.RunId.Value != runId)
+                return BadRequest(new { error = "RunId in payload does not match route" });
+
+            var result = _combatRunCoordinator.StartEncounter(
+                runId,
+                request.HeroId,
+                request.Enemies,
+                request.InitialEnergy);
+            return result.IsFailure
+                ? BadRequest(new { error = result.Error })
+                : Ok(MapToStateResponse(result.Value.CombatState));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "start run encounter", runId.ToString());
+        }
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/encounters/current")]
+    public IActionResult GetCurrentRunEncounter(Guid runId)
+    {
+        try
+        {
+            var result = _combatRunCoordinator.GetCurrentEncounter(runId);
+            return result.IsFailure
+                ? NotFound(new { error = result.Error })
+                : Ok(MapToStateResponse(result.Value.CombatState));
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "get current run encounter", runId.ToString());
+        }
+    }
+
+    [HttpPost("/api/v1/runs/{runId:guid}/encounters/{combatId:guid}/resolve")]
+    public IActionResult ResolveRunEncounter(Guid runId, Guid combatId)
+    {
+        try
+        {
+            var result = _combatRunCoordinator.ResolveEncounter(runId, combatId);
+            if (result.IsFailure)
+                return BadRequest(new { error = result.Error });
+
+            return Ok(new
+            {
+                runId,
+                combatId,
+                outcome = result.Value.CombatState.Status.ToString(),
+                result.Value.RunState.Sequence,
+                result.Value.RunState.Determinism.Step,
+                result.Value.RunState.CurrentNodeId,
+                result.Value.RunState.ActiveEncounterId,
+                stateHash = CanonicalJson.ComputeHash(result.Value.RunState)
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "resolve run encounter", $"{runId}/{combatId}");
         }
     }
 
@@ -82,6 +161,14 @@ public class CombatController : BaseApiController
             if (string.IsNullOrWhiteSpace(request.ActorId))
                 return BadRequest(new { error = "ActorId is required" });
 
+            var runId = request.RunId;
+            if (!runId.HasValue)
+            {
+                var current = GetCombatStateIncludingOwned(combatId);
+                if (current.IsSuccess)
+                    runId = current.Value.RunId;
+            }
+
             var command = new CombatActionCommand
             {
                 ActorId = request.ActorId,
@@ -89,11 +176,11 @@ public class CombatController : BaseApiController
                 PowerId = powerId,
                 TargetId = request.TargetId,
                 CostOptionId = request.CostOptionId,
-                RunId = request.RunId,
+                RunId = runId,
                 CardId = request.CardId
             };
 
-            if (request.RunId.HasValue)
+            if (runId.HasValue)
             {
                 var coordinatedResult = _combatRunCoordinator.ExecuteAction(combatId, command);
                 if (coordinatedResult.IsFailure)
@@ -124,15 +211,19 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var stateResult = _combatSystem.GetCombatState(combatId);
+            var stateResult = GetCombatStateIncludingOwned(combatId);
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
-            var result = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+            var command = new CombatActionCommand
             {
                 ActorId = stateResult.Value.Hero.EntityId,
-                ActionType = ActionType.END_TURN
-            });
+                ActionType = ActionType.END_TURN,
+                RunId = stateResult.Value.RunId
+            };
+            var result = stateResult.Value.RunId.HasValue
+                ? _combatRunCoordinator.ExecuteAction(combatId, command).Map(value => value.CombatState)
+                : _combatSystem.ExecuteAction(combatId, command);
 
             if (result.IsFailure)
                 return BadRequest(new { error = result.Error });
@@ -153,7 +244,7 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var stateResult = _combatSystem.GetCombatState(combatId);
+            var stateResult = GetCombatStateIncludingOwned(combatId);
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
@@ -191,11 +282,12 @@ public class CombatController : BaseApiController
     /// Obtém estado atual do combate.
     /// </summary>
     [HttpGet("{combatId}/state")]
+    [HttpGet("/api/v1/combats/{combatId:guid}")]
     public IActionResult GetState(Guid combatId)
     {
         try
         {
-            var result = _combatSystem.GetCombatState(combatId);
+            var result = GetCombatStateIncludingOwned(combatId);
 
             if (result.IsFailure)
                 return NotFound(new { error = result.Error });
@@ -217,6 +309,13 @@ public class CombatController : BaseApiController
         try
         {
             var result = _combatSystem.GetActionHistory(combatId);
+
+            if (result.IsFailure)
+            {
+                var recovered = GetCombatStateIncludingOwned(combatId);
+                if (recovered.IsSuccess)
+                    result = Result<IReadOnlyList<CombatAction>>.Success(recovered.Value.ActionHistory);
+            }
 
             if (result.IsFailure)
                 return NotFound(new { error = result.Error });
@@ -243,7 +342,7 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var stateResult = _combatSystem.GetCombatState(combatId);
+            var stateResult = GetCombatStateIncludingOwned(combatId);
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
@@ -294,7 +393,7 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var stateResult = _combatSystem.GetCombatState(combatId);
+            var stateResult = GetCombatStateIncludingOwned(combatId);
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
@@ -370,7 +469,7 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var stateResult = _combatSystem.GetCombatState(combatId);
+            var stateResult = GetCombatStateIncludingOwned(combatId);
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
@@ -423,6 +522,24 @@ public class CombatController : BaseApiController
     {
         try
         {
+            var state = GetCombatStateIncludingOwned(combatId);
+            if (state.IsSuccess && state.Value.RunId is { } runId)
+            {
+                var resolved = _combatRunCoordinator.ResolveEncounter(runId, combatId);
+                if (resolved.IsFailure)
+                    return BadRequest(new { error = resolved.Error });
+
+                return Ok(new
+                {
+                    combatId,
+                    status = resolved.Value.CombatState.Status.ToString(),
+                    totalTurns = resolved.Value.CombatState.CurrentTurn,
+                    totalActions = resolved.Value.CombatState.ActionHistory.Count,
+                    runId,
+                    runSequence = resolved.Value.RunState.Sequence
+                });
+            }
+
             var result = _combatSystem.EndCombat(combatId);
 
             if (result.IsFailure)
@@ -456,7 +573,7 @@ public class CombatController : BaseApiController
         try
         {
             // Validar que combate existe e obter estado inicial
-            var stateResult = _combatSystem.GetCombatState(combatId);
+            var stateResult = GetCombatStateIncludingOwned(combatId);
             if (stateResult.IsFailure)
                 return NotFound(new { error = stateResult.Error });
 
@@ -481,11 +598,15 @@ public class CombatController : BaseApiController
                     break;
 
                 // Processar turno do herói (via end-turn que processa efeitos e reinicia energia)
-                var endTurnResult = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+                var endTurnCommand = new CombatActionCommand
                 {
                     ActorId = state.Hero.EntityId,
-                    ActionType = ActionType.END_TURN
-                });
+                    ActionType = ActionType.END_TURN,
+                    RunId = state.RunId
+                };
+                var endTurnResult = state.RunId.HasValue
+                    ? _combatRunCoordinator.ExecuteAction(combatId, endTurnCommand).Map(value => value.CombatState)
+                    : _combatSystem.ExecuteAction(combatId, endTurnCommand);
 
                 if (endTurnResult.IsSuccess)
                 {
@@ -506,7 +627,7 @@ public class CombatController : BaseApiController
             }
 
             // Finalizar combate se ainda estiver ativo
-            if (state.IsActive)
+            if (state.IsActive && !state.RunId.HasValue)
             {
                 var endResult = _combatSystem.EndCombat(combatId);
                 if (endResult.IsSuccess)
@@ -529,7 +650,7 @@ public class CombatController : BaseApiController
             }
 
             // Retornar estado final
-            var finalStateResult = _combatSystem.GetCombatState(combatId);
+            var finalStateResult = GetCombatStateIncludingOwned(combatId);
             if (finalStateResult.IsSuccess)
             {
                 return Ok(new
@@ -583,6 +704,20 @@ public class CombatController : BaseApiController
         return (state, actionsExecuted);
     }
 
+    private Result<CombatState> GetCombatStateIncludingOwned(Guid combatId)
+    {
+        var current = _combatSystem.GetCombatState(combatId);
+        if (current.IsSuccess && !current.Value.RunId.HasValue)
+            return current;
+
+        var recovered = _combatRunCoordinator.GetCombatState(combatId);
+        return recovered.IsSuccess
+            ? Result<CombatState>.Success(recovered.Value.CombatState)
+            : current.IsSuccess
+                ? Result<CombatState>.Failure(recovered.Error)
+                : current;
+    }
+
     // Mappers
     private IActionResult? ResolveExecutionRequest(ExecuteActionRequest request, out ActionType actionType, out string? powerId)
     {
@@ -614,6 +749,8 @@ public class CombatController : BaseApiController
         return new CombatStateResponse
         {
             CombatId = state.CombatId,
+            RunId = state.RunId,
+            RunNodeId = state.RunNodeId,
             Seed = state.Determinism.Seed,
             Step = state.Determinism.Step,
             ContentRevision = state.Determinism.ContentRevision,
@@ -667,6 +804,7 @@ public class CombatController : BaseApiController
     {
         return new
         {
+            combatId = result.CombatState.CombatId,
             combat = MapToStateResponse(result.CombatState),
             run = new
             {
@@ -753,14 +891,18 @@ public class CombatController : BaseApiController
         }
 
         var action = decisionResult.Value;
-        var executionResult = _combatSystem.ExecuteAction(combatId, new CombatActionCommand
+        var command = new CombatActionCommand
         {
             ActorId = enemy.EntityId,
             ActionType = action.ActionType,
             PowerId = action.PowerId,
             TargetId = action.TargetId,
-            CostOptionId = action.CostOptionId?.ToString()
-        });
+            CostOptionId = action.CostOptionId?.ToString(),
+            RunId = state.RunId
+        };
+        var executionResult = state.RunId.HasValue
+            ? _combatRunCoordinator.ExecuteAction(combatId, command).Map(value => value.CombatState)
+            : _combatSystem.ExecuteAction(combatId, command);
 
         if (executionResult.IsFailure)
         {

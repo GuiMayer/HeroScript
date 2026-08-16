@@ -271,6 +271,8 @@ public sealed class RunController : BaseApiController
             stateHash = CanonicalJson.ComputeHash(run),
             deck = MapDeck(run.Deck),
             map = MapMap(run),
+            run.ActiveEncounterId,
+            run.Encounters,
             run.CardSelections,
             run.Shops,
             run.Preparations,

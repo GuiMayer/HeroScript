@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using API.Contracts;
+using Core.Combat;
 using Core.Run;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace API.Tests.Controllers;
@@ -11,9 +13,11 @@ namespace API.Tests.Controllers;
 public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly HttpClient _client;
+    private readonly TestWebApplicationFactory _factory;
 
     public ApiContractFoundationTests(TestWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
     }
 
@@ -105,7 +109,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var commands = await commandsResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, commandsResponse.StatusCode);
         Assert.Equal(
-            RunCommandTypes.ResolveNode,
+            RunCommandTypes.StartEncounter,
             commands.GetProperty("commands")[0].GetProperty("type").GetString());
 
         using var listResponse = await _client.GetAsync(
@@ -122,6 +126,60 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             using var resourceResponse = await _client.GetAsync($"/api/v1/runs/{runId}/{resource}");
             Assert.Equal(HttpStatusCode.OK, resourceResponse.StatusCode);
         }
+    }
+
+    [Fact]
+    public async Task RunEncounter_InheritsRunDeterminismAndIsReconnectable()
+    {
+        var playerEntityId = $"encounter-player-{Guid.NewGuid():N}";
+        using var startRunResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId
+        });
+        var run = await startRunResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, startRunResponse.StatusCode);
+        var runId = run.GetProperty("runId").GetGuid();
+
+        using var startEncounterResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/encounters",
+            new
+            {
+                heroId = playerEntityId,
+                enemies = new[] { "enemy_1" },
+                initialEnergy = 3
+            });
+        var combat = await startEncounterResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, startEncounterResponse.StatusCode);
+        Assert.Equal(runId, combat.GetProperty("runId").GetGuid());
+        Assert.Equal("start", combat.GetProperty("runNodeId").GetString());
+        Assert.Equal(
+            run.GetProperty("contentRevision").GetString(),
+            combat.GetProperty("contentRevision").GetString());
+        Assert.Equal(
+            run.GetProperty("engineVersion").GetString(),
+            combat.GetProperty("engineVersion").GetString());
+        var combatId = combat.GetProperty("combatId").GetGuid();
+
+        using var currentResponse = await _client.GetAsync(
+            $"/api/v1/runs/{runId}/encounters/current");
+        var current = await currentResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, currentResponse.StatusCode);
+        Assert.Equal(combatId, current.GetProperty("combatId").GetGuid());
+
+        var combatSystem = _factory.Services.GetRequiredService<ICombatSystem>();
+        Assert.True(combatSystem.RemoveCombatState(combatId).IsSuccess);
+
+        using var combatResponse = await _client.GetAsync($"/api/v1/combats/{combatId}");
+        Assert.Equal(HttpStatusCode.OK, combatResponse.StatusCode);
+
+        using var runResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var persistedRun = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, runResponse.StatusCode);
+        Assert.Equal(combatId, persistedRun.GetProperty("activeEncounterId").GetGuid());
+        Assert.Single(persistedRun.GetProperty("encounters").EnumerateArray());
     }
 
     [Fact]

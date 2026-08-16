@@ -149,13 +149,30 @@ public static class RunMapTransitions
         if (current == null)
             return [];
 
+        var activeEncounter = state.GetActiveEncounter();
+        if (activeEncounter != null)
+        {
+            return activeEncounter.Combat.IsActive
+                ? []
+                :
+                [
+                    new RunAvailableCommand
+                    {
+                        Type = RunCommandTypes.ResolveCombat,
+                        CurrentNodeId = current.NodeId
+                    }
+                ];
+        }
+
         if (!Contains(state.Map.ResolvedNodeIds, current.NodeId))
         {
             return
             [
                 new RunAvailableCommand
                 {
-                    Type = RunCommandTypes.ResolveNode,
+                    Type = IsEncounterNode(current.NodeType)
+                        ? RunCommandTypes.StartEncounter
+                        : RunCommandTypes.ResolveNode,
                     CurrentNodeId = current.NodeId
                 }
             ];
@@ -182,6 +199,13 @@ public static class RunMapTransitions
         var advance = GetAvailableCommands(state)
             .FirstOrDefault(command => command.Type == RunCommandTypes.AdvanceNode);
         return advance?.TargetNodeIds ?? [];
+    }
+
+    public static bool IsEncounterNode(string nodeType)
+    {
+        return string.Equals(nodeType, "combat", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(nodeType, "elite", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(nodeType, "boss", StringComparison.OrdinalIgnoreCase);
     }
 
     private static RunMapNodeState ToState(RunMapNodeDefinition definition)

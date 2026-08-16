@@ -6,4 +6,6 @@ namespace Core.Combat;
 /// </summary>
 public sealed record CombatStartOptions(
     ulong? Seed = null,
-    string ContentRevision = "combat-default");
+    string ContentRevision = "combat-default",
+    Guid? RunId = null,
+    string? RunNodeId = null);

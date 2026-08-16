@@ -1,5 +1,7 @@
 using Core.Abstractions.Persistence;
 using Core.Common;
+using Core.Combat;
+using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Config;
 using Core.Content;
@@ -200,12 +202,62 @@ public sealed class RunManager : IRunManager
                 RunMapTransitions.GetAvailableCommands(run.Value));
     }
 
+    public Result<RunState> GetRunByCombat(Guid combatId)
+    {
+        lock (_lock)
+        {
+            var cached = _runs.Values.FirstOrDefault(state => state.GetEncounter(combatId) != null);
+            if (cached != null)
+                return Result<RunState>.Success(cached);
+        }
+
+        if (_repository == null)
+            return Result<RunState>.Failure($"Run-owned combat not found: {combatId}");
+
+        try
+        {
+            var runIds = _repository.ListRunIdsAsync().GetAwaiter().GetResult();
+            foreach (var runId in runIds.OrderBy(id => id))
+            {
+                var loaded = _repository.LoadLatestAsync(runId).GetAwaiter().GetResult();
+                if (loaded?.GetEncounter(combatId) == null)
+                    continue;
+
+                var compatibility = ValidateLoadedRunCompatibility(loaded);
+                if (compatibility.IsFailure)
+                    return Result<RunState>.Failure(compatibility.Error);
+
+                lock (_lock)
+                {
+                    _runs[runId] = loaded;
+                }
+                return Result<RunState>.Success(loaded);
+            }
+
+            return Result<RunState>.Failure($"Run-owned combat not found: {combatId}");
+        }
+        catch (Exception exception)
+        {
+            return Result<RunState>.Failure(
+                $"Failed to recover run-owned combat {combatId}: {exception.Message}",
+                exception);
+        }
+    }
+
     public Result<RunMapNodeState> ResolveCurrentNode(Guid runId, string currentNodeId)
     {
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
+
+            var current = state.Map.Nodes.FirstOrDefault(node =>
+                string.Equals(node.NodeId, state.CurrentNodeId, StringComparison.Ordinal));
+            if (current != null && RunMapTransitions.IsEncounterNode(current.NodeType))
+            {
+                return Result<RunMapNodeState>.Failure(
+                    $"Encounter map nodes must be resolved through their combat: {current.NodeId}");
+            }
 
             var transition = RunMapTransitions.Resolve(state, currentNodeId);
             return transition.IsFailure
@@ -231,6 +283,226 @@ public sealed class RunManager : IRunManager
                     transition.Value,
                     RunCommandTypes.AdvanceNode,
                     new { targetNodeId });
+        }
+    }
+
+    public Result<RunState> AttachEncounter(
+        Guid runId,
+        int expectedSequence,
+        ulong expectedStep,
+        CombatState combatState)
+    {
+        if (combatState == null)
+            return Result<RunState>.Failure("Combat state is required");
+
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<RunState>.Failure($"Run not found: {runId}");
+            if (state.Sequence != expectedSequence || state.Determinism.Step != expectedStep)
+            {
+                return Result<RunState>.Failure(
+                    $"Stale run encounter start: expected sequence/step {expectedSequence}/{expectedStep}, " +
+                    $"current is {state.Sequence}/{state.Determinism.Step}");
+            }
+            if (state.GetActiveEncounter() != null)
+                return Result<RunState>.Failure($"Run already has an active encounter: {state.ActiveEncounterId}");
+            if (state.GetEncounter(combatState.CombatId) != null)
+                return Result<RunState>.Failure($"Run encounter already exists: {combatState.CombatId}");
+            if (state.CurrentNodeId == null)
+                return Result<RunState>.Failure("Run has no current map node");
+
+            var currentNode = state.Map.Nodes.FirstOrDefault(node =>
+                string.Equals(node.NodeId, state.CurrentNodeId, StringComparison.Ordinal));
+            if (currentNode == null)
+                return Result<RunState>.Failure($"Map node not found: {state.CurrentNodeId}");
+            if (!RunMapTransitions.IsEncounterNode(currentNode.NodeType))
+                return Result<RunState>.Failure($"Current map node is not an encounter: {currentNode.NodeId}");
+            if (state.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
+                return Result<RunState>.Failure($"Map node already resolved: {currentNode.NodeId}");
+
+            var seed = state.Determinism.DrawUInt64();
+            if (combatState.RunId != runId ||
+                !string.Equals(combatState.RunNodeId, currentNode.NodeId, StringComparison.Ordinal))
+            {
+                return Result<RunState>.Failure("Combat ownership does not match the current run node");
+            }
+            if (combatState.Determinism.Seed != seed.Value)
+                return Result<RunState>.Failure("Combat seed was not derived from the current run state");
+            if (!string.Equals(
+                    combatState.Determinism.ContentRevision,
+                    state.Determinism.ContentRevision,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    combatState.Determinism.EngineVersion,
+                    state.Determinism.EngineVersion,
+                    StringComparison.Ordinal))
+            {
+                return Result<RunState>.Failure("Combat engine/content version does not match its run");
+            }
+            if (!combatState.IsActive)
+                return Result<RunState>.Failure("A new run encounter must be active");
+
+            var encounter = new RunEncounterState
+            {
+                NodeId = currentNode.NodeId,
+                Combat = combatState
+            };
+            var candidate = state with
+            {
+                ActiveEncounterId = combatState.CombatId,
+                Encounters = state.Encounters.Add(encounter),
+                Determinism = seed.Context.AdvanceStep()
+            };
+            return Persist(
+                candidate,
+                RunCommandTypes.StartEncounter,
+                new
+                {
+                    combatId = combatState.CombatId,
+                    nodeId = currentNode.NodeId,
+                    seed = seed.Value
+                });
+        }
+    }
+
+    public Result<RunState> CommitCombatAction(
+        Guid runId,
+        int expectedSequence,
+        CombatState previousCombat,
+        CombatState nextCombat,
+        CombatActionCommand command,
+        string? consumedCardId,
+        CardConsumeDestination destination)
+    {
+        ArgumentNullException.ThrowIfNull(previousCombat);
+        ArgumentNullException.ThrowIfNull(nextCombat);
+        ArgumentNullException.ThrowIfNull(command);
+
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<RunState>.Failure($"Run not found: {runId}");
+            if (state.Sequence != expectedSequence)
+            {
+                return Result<RunState>.Failure(
+                    $"Stale run combat action: expected sequence {expectedSequence}, current is {state.Sequence}");
+            }
+
+            var encounterIndex = FindEncounterIndex(state, previousCombat.CombatId);
+            if (encounterIndex < 0 || state.ActiveEncounterId != previousCombat.CombatId)
+                return Result<RunState>.Failure($"Active run encounter not found: {previousCombat.CombatId}");
+
+            var encounter = state.Encounters[encounterIndex];
+            if (!string.Equals(
+                    CanonicalJson.ComputeHash(encounter.Combat),
+                    CanonicalJson.ComputeHash(previousCombat),
+                    StringComparison.Ordinal))
+            {
+                return Result<RunState>.Failure("Run-owned combat changed before the action could be committed");
+            }
+            if (nextCombat.CombatId != previousCombat.CombatId ||
+                command.RunId != runId ||
+                nextCombat.RunId != runId ||
+                !string.Equals(nextCombat.RunNodeId, encounter.NodeId, StringComparison.Ordinal) ||
+                nextCombat.Determinism.Seed != previousCombat.Determinism.Seed ||
+                !string.Equals(
+                    nextCombat.Determinism.ContentRevision,
+                    state.Determinism.ContentRevision,
+                    StringComparison.Ordinal) ||
+                !string.Equals(
+                    nextCombat.Determinism.EngineVersion,
+                    state.Determinism.EngineVersion,
+                    StringComparison.Ordinal) ||
+                nextCombat.Determinism.Step <= previousCombat.Determinism.Step)
+            {
+                return Result<RunState>.Failure("Invalid replacement combat state for run action");
+            }
+
+            var deck = state.Deck;
+            if (destination != CardConsumeDestination.None)
+            {
+                if (string.IsNullOrWhiteSpace(consumedCardId))
+                    return Result<RunState>.Failure("Consumed card id is required");
+
+                var deckTransition = DeckTransitions.MoveFromHand(
+                    state.Deck,
+                    [consumedCardId],
+                    destination,
+                    state.Determinism);
+                if (deckTransition.IsFailure)
+                    return Result<RunState>.Failure(deckTransition.Error);
+                deck = deckTransition.Value.State;
+            }
+
+            var updatedEncounter = encounter with { Combat = nextCombat };
+            var candidate = state with
+            {
+                Deck = deck,
+                Encounters = state.Encounters.SetItem(encounterIndex, updatedEncounter),
+                Determinism = state.Determinism.AdvanceStep()
+            };
+            return Persist(
+                candidate,
+                "COMBAT_ACTION",
+                new
+                {
+                    combatId = nextCombat.CombatId,
+                    command,
+                    consumedCardId,
+                    destination = destination.ToString()
+                });
+        }
+    }
+
+    public Result<RunState> ResolveEncounter(Guid runId, int expectedSequence, Guid combatId)
+    {
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result<RunState>.Failure($"Run not found: {runId}");
+            if (state.Sequence != expectedSequence)
+            {
+                return Result<RunState>.Failure(
+                    $"Stale combat resolution: expected sequence {expectedSequence}, current is {state.Sequence}");
+            }
+
+            var encounterIndex = FindEncounterIndex(state, combatId);
+            if (encounterIndex < 0 || state.ActiveEncounterId != combatId)
+                return Result<RunState>.Failure($"Active run encounter not found: {combatId}");
+
+            var encounter = state.Encounters[encounterIndex];
+            if (encounter.Combat.IsActive)
+                return Result<RunState>.Failure($"Combat is still active: {combatId}");
+            if (encounter.Resolved)
+                return Result<RunState>.Failure($"Combat already resolved: {combatId}");
+            if (!string.Equals(state.CurrentNodeId, encounter.NodeId, StringComparison.Ordinal))
+                return Result<RunState>.Failure("Encounter no longer belongs to the current map node");
+
+            var mapTransition = RunMapTransitions.Resolve(state, encounter.NodeId);
+            if (mapTransition.IsFailure)
+                return Result<RunState>.Failure(mapTransition.Error);
+
+            var resolved = encounter with
+            {
+                Resolved = true,
+                Outcome = encounter.Combat.Status.ToString()
+            };
+            var candidate = mapTransition.Value.State with
+            {
+                ActiveEncounterId = null,
+                Encounters = state.Encounters.SetItem(encounterIndex, resolved)
+            };
+            return Persist(
+                candidate,
+                RunCommandTypes.ResolveCombat,
+                new
+                {
+                    combatId,
+                    nodeId = encounter.NodeId,
+                    outcome = resolved.Outcome,
+                    combatStateHash = CanonicalJson.ComputeHash(encounter.Combat)
+                });
         }
     }
 
@@ -1050,6 +1322,17 @@ public sealed class RunManager : IRunManager
     private static int SaturatingEconomyChange(int current, int amount)
     {
         return (int)System.Math.Clamp((long)current + amount, 0, int.MaxValue);
+    }
+
+    private static int FindEncounterIndex(RunState state, Guid combatId)
+    {
+        for (var index = 0; index < state.Encounters.Length; index++)
+        {
+            if (state.Encounters[index].Combat.CombatId == combatId)
+                return index;
+        }
+
+        return -1;
     }
 
     private static ulong CreateSeed()

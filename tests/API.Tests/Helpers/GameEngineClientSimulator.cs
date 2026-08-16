@@ -106,7 +106,12 @@ public class GameEngineClientSimulator
         };
 
         var response = await _client.PostAsJsonAsync($"/api/combat/{combatId}/action", request);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException(
+                $"Combat action failed with {(int)response.StatusCode} {response.StatusCode}: {error}");
+        }
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 

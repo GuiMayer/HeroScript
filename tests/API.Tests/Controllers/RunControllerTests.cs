@@ -113,7 +113,7 @@ public sealed class RunControllerTests
         Assert.Equal(2, mapJson.GetProperty("nodes").GetArrayLength());
         Assert.Empty(mapJson.GetProperty("legalNextNodeIds").EnumerateArray());
         Assert.Equal(
-            RunCommandTypes.ResolveNode,
+            RunCommandTypes.StartEncounter,
             commandsJson.GetProperty("commands")[0].GetProperty("type").GetString());
     }
 

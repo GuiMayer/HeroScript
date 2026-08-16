@@ -3,6 +3,8 @@ namespace API.Models.Combat;
 public class CombatStateResponse
 {
     public Guid CombatId { get; set; }
+    public Guid? RunId { get; set; }
+    public string? RunNodeId { get; set; }
     public ulong Seed { get; set; }
     public ulong Step { get; set; }
     public string ContentRevision { get; set; } = string.Empty;

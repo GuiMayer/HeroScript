@@ -174,12 +174,18 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         mock.Setup(m => m.GetDefinitionsByTag(It.IsAny<string>()))
             .Returns((string tag) => resources.Where(r => r.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)).ToList());
         mock.Setup(m => m.CreatePool(It.IsAny<string>(), It.IsAny<float?>()))
-            .Returns((string id, float? current) => new ResourcePool
+            .Returns((string id, float? current) =>
             {
-                ResourceId = id,
-                Current = current ?? 1,
-                Maximum = Math.Max(current ?? 1, 1),
-                Minimum = 0
+                var definition = resources.First(resource =>
+                    string.Equals(resource.ResourceId, id, StringComparison.OrdinalIgnoreCase));
+                return new ResourcePool
+                {
+                    ResourceId = id,
+                    Current = current ?? definition.DefaultCurrent,
+                    Maximum = Math.Max(current ?? definition.DefaultMax, definition.DefaultMax),
+                    Minimum = definition.DefaultMin,
+                    Definition = definition
+                };
             });
         mock.Setup(m => m.CreatePoolFromDefinition(It.IsAny<ResourceDefinition>(), It.IsAny<float?>()))
             .Returns((ResourceDefinition definition, float? current) => new ResourcePool
@@ -187,7 +193,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ResourceId = definition.ResourceId,
                 Current = current ?? definition.DefaultCurrent,
                 Maximum = definition.DefaultMax,
-                Minimum = definition.DefaultMin
+                Minimum = definition.DefaultMin,
+                Definition = definition
             });
         mock.Setup(m => m.CreateDefaultPools()).Returns(new Dictionary<string, ResourcePool>());
         mock.Setup(m => m.ValidateResourceExists(It.IsAny<string>()))

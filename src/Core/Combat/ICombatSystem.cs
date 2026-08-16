@@ -59,6 +59,17 @@ public interface ICombatSystem
     Result<CombatState> GetCombatState(Guid combatId);
 
     /// <summary>
+    /// Rehydrates or replaces the in-memory projection from an authoritative
+    /// run-owned combat snapshot.
+    /// </summary>
+    Result<CombatState> RestoreCombatState(CombatState state);
+
+    /// <summary>
+    /// Removes only the in-memory projection. Durable run state is unchanged.
+    /// </summary>
+    Result RemoveCombatState(Guid combatId);
+
+    /// <summary>
     /// Atualiza estado de combate ativo de forma controlada.
     /// Usado por coordenadores externos para anexar estados actor-agnostic como ativação.
     /// </summary>

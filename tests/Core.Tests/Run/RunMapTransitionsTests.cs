@@ -81,7 +81,7 @@ public sealed class RunMapTransitionsTests
         var afterResolution = Assert.Single(RunMapTransitions.GetAvailableCommands(resolved));
         var terminal = RunMapTransitions.Advance(resolved, "reward").Value.State;
 
-        Assert.Equal(RunCommandTypes.ResolveNode, beforeResolution.Type);
+        Assert.Equal(RunCommandTypes.StartEncounter, beforeResolution.Type);
         Assert.Empty(beforeResolution.TargetNodeIds);
         Assert.Equal(RunCommandTypes.AdvanceNode, afterResolution.Type);
         Assert.Equal(new[] { "reward" }, afterResolution.TargetNodeIds);

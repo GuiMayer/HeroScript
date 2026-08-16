@@ -70,6 +70,8 @@ public sealed record RunAvailableCommand
 
 public static class RunCommandTypes
 {
+    public const string StartEncounter = "START_ENCOUNTER";
+    public const string ResolveCombat = "RESOLVE_COMBAT";
     public const string ResolveNode = "RESOLVE_NODE";
     public const string AdvanceNode = "ADVANCE_NODE";
 }
