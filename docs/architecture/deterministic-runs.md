@@ -54,8 +54,9 @@ it must be treated as non-replayable and cannot claim deterministic guarantees.
 
 ## Authoritative aggregates
 
-Only snapshots owned by `RunManager` and `CombatSystem` are authoritative game
-state. Their public transition methods serialize access per aggregate and replace
+Snapshots owned by `RunManager` are authoritative game state. A run-owned combat
+is embedded in that run; `CombatSystem` is only its in-process execution
+projection. Public transition methods serialize access per aggregate and replace
 the whole snapshot after a successful transition. Nested runtime collections use
 immutable storage and copy caller-owned collections on assignment.
 
@@ -82,22 +83,27 @@ validate command
     -> calculate candidate snapshot
     -> advance deterministic context
     -> calculate canonical state hash
-    -> atomically persist snapshot + journal entry
+    -> atomically append journal checkpoint
+    -> update compactable snapshot projection
     -> publish snapshot in memory
     -> publish observation events
 ```
 
-`RunCheckpoint` is the atomic persistence unit. Its journal entry records the
-command type and payload, run sequence, deterministic step, previous-state hash,
-new-state hash and logical timestamp. If persistence fails, the candidate is not
-published and any external modifier applied during preparation is rolled back.
+`RunCheckpoint` is the atomic persistence unit in the append-only journal. Its
+journal entry records command identity, expected version, command type and
+payload, run sequence, deterministic step, previous-state hash, new-state hash
+and logical timestamp. Snapshot files are a rebuildable projection and may be
+compacted independently; journal checkpoints are never removed by snapshot
+retention. If the journal append fails, the candidate is not published and any
+external modifier applied during preparation is rolled back.
 
 Restoring an older domain snapshot is itself a new command. It never rewinds the
 sequence, random cursor, identifier sequence or logical clock.
 
 ## Replay and integrity
 
-`RunReplayVerifier` loads retained checkpoints in sequence order and verifies:
+`RunReplayVerifier` remains the low-level stored-checkpoint integrity checker. It
+verifies:
 
 - run/sequence identity between snapshot and journal entry;
 - contiguous retained sequences;
@@ -105,12 +111,15 @@ sequence, random cursor, identifier sequence or logical clock.
 - the SHA-256 link to the preceding retained state;
 - the canonical hash of every stored state.
 
-The resulting final snapshot is accepted only when the complete retained chain is
-valid. When retention removes old checkpoints, the first remaining checkpoint is
-the new trust anchor; all links after it are still verified. This is checkpoint
-reconstitution and integrity verification. A future command-only replayer may
-re-execute the recorded command payloads, but it must use the same versioned
-transition registry rather than bypass these invariants.
+`RunSemanticReplayService` is the authoritative verification path. It creates an
+isolated runtime, executes `run.start`, reexecutes every subsequent journal
+command through the same run/combat coordinators, and compares sequence, step and
+canonical state hash after every transition. Stored snapshots are not used as
+replay results. Snapshot retention therefore has no effect on replay coverage.
+
+The public verification surfaces are `POST /api/v1/runs/{runId}/verify` and
+`POST /api/v1/combats/{combatId}/verify`. Journal and checkpoint metadata are
+available under the corresponding versioned read endpoints.
 
 ## Explicit compatibility boundaries
 
@@ -150,3 +159,5 @@ Before merging a deterministic-domain change, run the Core suite, the API unit
 suite and the solution build. At minimum, tests must cover reproducibility from
 the same seed and commands, defensive collection copies, persistence rollback,
 checkpoint hash-chain tampering, and detection of unclassified ambient inputs.
+Semantic replay tests must additionally include at least one run-owned combat
+action and prove equality of the final replay hash.

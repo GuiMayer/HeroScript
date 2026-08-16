@@ -79,11 +79,12 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task VersionedRunReadModel_SupportsReconnectAndPersistedListing()
     {
+        var playerEntityId = $"reconnect-test-player-{Guid.NewGuid():N}";
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
             configName = "default",
             runDefinitionId = "default_run",
-            playerEntityId = "reconnect-test-player"
+            playerEntityId
         });
         var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -113,7 +114,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             commands.GetProperty("commands")[0].GetProperty("type").GetString());
 
         using var listResponse = await _client.GetAsync(
-            "/api/v1/runs?playerEntityId=reconnect-test-player&limit=10");
+            $"/api/v1/runs?playerEntityId={playerEntityId}&limit=10");
         var list = await listResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
         Assert.Contains(
@@ -330,5 +331,77 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.True(
             first.GetProperty("state").GetProperty("combat").GetProperty("determinism")
                 .GetProperty("step").GetUInt64() > expectedStep);
+    }
+
+    [Fact]
+    public async Task DurableJournal_SurvivesSnapshotPolicyAndSemanticReplayMatches()
+    {
+        var player = $"replay-player-{Guid.NewGuid():N}";
+        using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId = player,
+            seed = 443322UL
+        });
+        var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var runId = started.GetProperty("runId").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+
+        using var encounterResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/encounters",
+            new { heroId = player, enemies = new[] { "enemy_1" }, initialEnergy = 3 });
+        var encounter = await encounterResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, encounterResponse.StatusCode);
+        var combatId = encounter.GetProperty("combatId").GetGuid();
+
+        using var currentRunResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var currentRun = await currentRunResponse.Content.ReadFromJsonAsync<JsonElement>();
+        using var actionResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = currentRun.GetProperty("sequence").GetInt32(),
+                expectedStep = encounter.GetProperty("step").GetUInt64(),
+                type = "END_TURN",
+                payload = new { actorId = encounter.GetProperty("hero").GetProperty("entityId").GetString() }
+            });
+        var actionBody = await actionResponse.Content.ReadAsStringAsync();
+        Assert.True(actionResponse.IsSuccessStatusCode, actionBody);
+
+        using var journalResponse = await _client.GetAsync($"/api/v1/runs/{runId}/journal?limit=10");
+        var journal = await journalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, journalResponse.StatusCode);
+        Assert.Equal(3, journal.GetProperty("returned").GetInt32());
+        Assert.Equal("run.start", journal.GetProperty("entries")[0].GetProperty("commandType").GetString());
+        Assert.Equal(RunCommandTypes.StartEncounter, journal.GetProperty("entries")[1].GetProperty("commandType").GetString());
+        Assert.Equal("END_TURN", journal.GetProperty("entries")[2].GetProperty("commandType").GetString());
+
+        using var checkpointsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/checkpoints");
+        var checkpoints = await checkpointsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, checkpointsResponse.StatusCode);
+        Assert.Equal(3, checkpoints.GetProperty("count").GetInt32());
+
+        using var verifyResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var verificationBody = await verifyResponse.Content.ReadAsStringAsync();
+        Assert.True(verifyResponse.IsSuccessStatusCode, verificationBody);
+        var verification = JsonSerializer.Deserialize<JsonElement>(verificationBody);
+        Assert.True(verification.GetProperty("isValid").GetBoolean(), verificationBody);
+        Assert.True(verification.GetProperty("reexecuted").GetBoolean());
+        Assert.Equal(3, verification.GetProperty("commandsReplayed").GetInt32());
+        Assert.Equal(
+            verification.GetProperty("expectedFinalHash").GetString(),
+            verification.GetProperty("actualFinalHash").GetString());
+
+        using var combatJournalResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/journal");
+        var combatJournal = await combatJournalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, combatJournalResponse.StatusCode);
+        Assert.Equal(2, combatJournal.GetProperty("entries").GetArrayLength());
+
+        using var combatVerifyResponse = await _client.PostAsync($"/api/v1/combats/{combatId}/verify", null);
+        var combatVerification = await combatVerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, combatVerifyResponse.StatusCode);
+        Assert.True(combatVerification.GetProperty("isValid").GetBoolean());
     }
 }

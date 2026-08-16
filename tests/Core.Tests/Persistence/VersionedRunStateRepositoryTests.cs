@@ -21,8 +21,12 @@ public sealed class VersionedRunStateRepositoryTests : IDisposable
         }
 
         var snapshots = await repository.ListSnapshotsAsync(runId);
+        var journal = await repository.LoadJournalAsync(runId, limit: 10);
+        var checkpoints = await repository.LoadCheckpointsAsync(runId);
 
         Assert.Equal(new[] { 2, 3 }, snapshots);
+        Assert.Equal(new[] { 1, 2, 3 }, journal.Select(entry => entry.Sequence));
+        Assert.Equal(new[] { 1, 2, 3 }, checkpoints.Select(entry => entry.State.Sequence));
     }
 
     public void Dispose()

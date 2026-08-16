@@ -569,15 +569,15 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 Encounters = state.Encounters.Add(encounter),
                 Determinism = seed.Context.AdvanceStep()
             };
+            var initialEnergy = (int)(combatState.Hero.GetResource("energy")?.Current ?? 0f);
+            var journalCommand = new RunEncounterStartCommand(
+                combatState.Hero.EntityId,
+                combatState.Enemies.Select(enemy => enemy.EntityId).ToArray(),
+                initialEnergy);
             return Persist(
                 candidate,
                 RunCommandTypes.StartEncounter,
-                new
-                {
-                    combatId = combatState.CombatId,
-                    nodeId = currentNode.NodeId,
-                    seed = seed.Value
-                },
+                journalCommand,
                 commandIdentity);
         }
     }

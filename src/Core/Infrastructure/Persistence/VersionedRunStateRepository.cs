@@ -8,9 +8,8 @@ using Core.Run;
 namespace Core.Infrastructure.Persistence;
 
 /// <summary>
-/// Persists each RunState as versioned snapshots inside {runId}/snapshots/ directory.
-/// Snapshots are immutable and append-only. Format: {sequence:D6}.json (e.g., 000001.json, 000042.json)
-/// Uses atomic write (temp file + rename) to prevent corruption on crash.
+/// Persists an append-only checkpoint journal and a compactable snapshot
+/// projection. Journal retention is independent from snapshot retention.
 /// Thread-safe via SemaphoreSlim.
 /// </summary>
 public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDisposable
@@ -59,30 +58,49 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
         var state = checkpoint.State;
         ArgumentNullException.ThrowIfNull(state);
         
-        var snapshotDir = GetSnapshotDirectory(state.RunId);
-        Directory.CreateDirectory(snapshotDir);
-
-        var path = GetSnapshotPath(state.RunId, state.Sequence);
-        var tmp = path + ".tmp";
-
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var json = JsonSerializer.Serialize(checkpoint, _options);
-            await File.WriteAllTextAsync(tmp, json, ct).ConfigureAwait(false);
-            File.Move(tmp, path, overwrite: false); // Never overwrite existing snapshots
+            var snapshotDir = GetSnapshotDirectory(state.RunId);
+            var journalDir = GetJournalDirectory(state.RunId);
+            Directory.CreateDirectory(snapshotDir);
+            Directory.CreateDirectory(journalDir);
+            await MigrateSnapshotsToJournalAsync(state.RunId, ct).ConfigureAwait(false);
 
-            _logger.LogInformation($"Snapshot {state.Sequence} saved for run {state.RunId}");
+            var json = JsonSerializer.Serialize(checkpoint, _options);
+            var journalPath = GetJournalPath(state.RunId, state.Sequence);
+            var journalTmp = journalPath + ".tmp";
+            await File.WriteAllTextAsync(journalTmp, json, ct).ConfigureAwait(false);
+            File.Move(journalTmp, journalPath, overwrite: false);
+
+            // Snapshots are a rebuildable read optimization. Once the journal
+            // transaction is durable, a projection failure must not roll back an
+            // accepted command.
+            try
+            {
+                var snapshotPath = GetSnapshotPath(state.RunId, state.Sequence);
+                var snapshotTmp = snapshotPath + ".tmp";
+                await File.WriteAllTextAsync(snapshotTmp, json, ct).ConfigureAwait(false);
+                File.Move(snapshotTmp, snapshotPath, overwrite: false);
+            }
+            catch (Exception projectionException)
+            {
+                CleanupTempFile(GetSnapshotPath(state.RunId, state.Sequence) + ".tmp");
+                _logger.LogWarning(
+                    $"Checkpoint {state.Sequence} is durable in the journal, but its snapshot projection failed: " +
+                    projectionException.Message);
+            }
+
+            _logger.LogInformation($"Journal checkpoint {state.Sequence} saved for run {state.RunId}");
 
             // Cleanup old snapshots if exceeding max retention
             await CleanupOldSnapshotsAsync(state.RunId, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to save snapshot {state.Sequence} for run {state.RunId}: {ex.Message}", ex);
-            // Clean up temp file if it exists
-            if (File.Exists(tmp))
-                try { File.Delete(tmp); } catch { /* best effort */ }
+            _logger.LogError($"Failed to save journal checkpoint {state.Sequence} for run {state.RunId}: {ex.Message}", ex);
+            CleanupTempFile(GetJournalPath(state.RunId, state.Sequence) + ".tmp");
+            CleanupTempFile(GetSnapshotPath(state.RunId, state.Sequence) + ".tmp");
             throw;
         }
         finally
@@ -94,18 +112,32 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
     /// <inheritdoc />
     public async Task<RunState?> LoadLatestAsync(Guid runId, CancellationToken ct = default)
     {
-        var snapshots = await ListSnapshotsAsync(runId, ct).ConfigureAwait(false);
-        if (snapshots.Count == 0)
+        await _semaphore.WaitAsync(ct).ConfigureAwait(false);
+        int? latestSequence;
+        try
+        {
+            var sequences = ListSnapshotSequences(GetSnapshotDirectory(runId))
+                .Concat(ListSnapshotSequences(GetJournalDirectory(runId)))
+                .Distinct()
+                .ToArray();
+            latestSequence = sequences.Length == 0 ? null : sequences.Max();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+
+        if (!latestSequence.HasValue)
             return null;
 
-        var latestSequence = snapshots.Max();
-        return await LoadAsync(runId, latestSequence, ct).ConfigureAwait(false);
+        return await LoadAsync(runId, latestSequence.Value, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
     public async Task<RunState?> LoadAsync(Guid runId, int sequence, CancellationToken ct = default)
     {
-        var path = GetSnapshotPath(runId, sequence);
+        var snapshotPath = GetSnapshotPath(runId, sequence);
+        var path = File.Exists(snapshotPath) ? snapshotPath : GetJournalPath(runId, sequence);
         if (!File.Exists(path))
             return null;
 
@@ -152,18 +184,21 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
         Guid runId,
         CancellationToken ct = default)
     {
-        var snapshotDir = GetSnapshotDirectory(runId);
-        if (!Directory.Exists(snapshotDir))
+        var journalDir = GetJournalDirectory(runId);
+        var sourceDir = Directory.Exists(journalDir) && ListSnapshotSequences(journalDir).Count > 0
+            ? journalDir
+            : GetSnapshotDirectory(runId);
+        if (!Directory.Exists(sourceDir))
             return Array.Empty<RunCheckpoint>();
 
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             var checkpoints = new List<RunCheckpoint>();
-            foreach (var sequence in ListSnapshotSequences(snapshotDir))
+            foreach (var sequence in ListSnapshotSequences(sourceDir))
             {
                 var json = await File.ReadAllTextAsync(
-                    GetSnapshotPath(runId, sequence),
+                    Path.Combine(sourceDir, $"{sequence:D6}.json"),
                     ct).ConfigureAwait(false);
                 var checkpoint = DeserializeCheckpoint(json);
                 if (checkpoint != null)
@@ -175,6 +210,24 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
         {
             _semaphore.Release();
         }
+    }
+
+    public async Task<IReadOnlyList<RunJournalEntry>> LoadJournalAsync(
+        Guid runId,
+        int afterSequence = 0,
+        int limit = 100,
+        CancellationToken ct = default)
+    {
+        if (limit is < 1 or > 1000)
+            throw new ArgumentOutOfRangeException(nameof(limit), "Limit must be between 1 and 1000");
+
+        var checkpoints = await LoadCheckpointsAsync(runId, ct).ConfigureAwait(false);
+        return checkpoints
+            .Where(item => item.JournalEntry.Sequence > afterSequence)
+            .OrderBy(item => item.JournalEntry.Sequence)
+            .Take(limit)
+            .Select(item => item.JournalEntry)
+            .ToArray();
     }
 
     /// <inheritdoc />
@@ -226,8 +279,34 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
 
     private string GetRunDirectory(Guid runId) => Path.Combine(_storePath, runId.ToString());
     private string GetSnapshotDirectory(Guid runId) => Path.Combine(GetRunDirectory(runId), "snapshots");
+    private string GetJournalDirectory(Guid runId) => Path.Combine(GetRunDirectory(runId), "journal");
     private string GetSnapshotPath(Guid runId, int sequence) => 
         Path.Combine(GetSnapshotDirectory(runId), $"{sequence:D6}.json");
+    private string GetJournalPath(Guid runId, int sequence) =>
+        Path.Combine(GetJournalDirectory(runId), $"{sequence:D6}.json");
+
+    private async Task MigrateSnapshotsToJournalAsync(Guid runId, CancellationToken ct)
+    {
+        var snapshotDir = GetSnapshotDirectory(runId);
+        foreach (var sequence in ListSnapshotSequences(snapshotDir))
+        {
+            var target = GetJournalPath(runId, sequence);
+            if (File.Exists(target))
+                continue;
+
+            var json = await File.ReadAllTextAsync(GetSnapshotPath(runId, sequence), ct).ConfigureAwait(false);
+            var tmp = target + ".tmp";
+            await File.WriteAllTextAsync(tmp, json, ct).ConfigureAwait(false);
+            File.Move(tmp, target, overwrite: false);
+        }
+    }
+
+    private static void CleanupTempFile(string path)
+    {
+        if (!File.Exists(path))
+            return;
+        try { File.Delete(path); } catch { /* best effort */ }
+    }
 
     private async Task CleanupOldSnapshotsAsync(Guid runId, CancellationToken ct)
     {

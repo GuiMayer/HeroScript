@@ -9,4 +9,19 @@ public interface IRunCheckpointRepository : IRunStateRepository
     Task<IReadOnlyList<RunCheckpoint>> LoadCheckpointsAsync(
         Guid runId,
         CancellationToken ct = default);
+
+    async Task<IReadOnlyList<RunJournalEntry>> LoadJournalAsync(
+        Guid runId,
+        int afterSequence = 0,
+        int limit = 100,
+        CancellationToken ct = default)
+    {
+        var checkpoints = await LoadCheckpointsAsync(runId, ct).ConfigureAwait(false);
+        return checkpoints
+            .Where(item => item.JournalEntry.Sequence > afterSequence)
+            .OrderBy(item => item.JournalEntry.Sequence)
+            .Take(limit)
+            .Select(item => item.JournalEntry)
+            .ToArray();
+    }
 }
