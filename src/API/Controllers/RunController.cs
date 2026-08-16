@@ -160,6 +160,7 @@ public sealed class RunController : BaseApiController
             run.Sequence,
             seed = run.Determinism.Seed,
             run.Determinism.ContentRevision,
+            run.ContentManifest,
             run.Determinism.EngineVersion,
             run.Determinism.Step,
             stateHash = CanonicalJson.ComputeHash(run),

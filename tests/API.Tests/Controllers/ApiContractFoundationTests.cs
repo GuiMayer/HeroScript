@@ -51,6 +51,27 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
+    public async Task ContentRevisionEndpoints_ExposeCanonicalManifest()
+    {
+        using var listResponse = await _client.GetAsync("/api/v1/content/revisions?configName=default");
+        var listBody = await listResponse.Content.ReadAsStringAsync();
+
+        Assert.True(listResponse.StatusCode == HttpStatusCode.OK, listBody);
+        var list = JsonSerializer.Deserialize<JsonElement>(listBody);
+        var revision = list.GetProperty("currentRevision").GetString();
+        Assert.NotNull(revision);
+        Assert.Equal(64, revision.Length);
+        Assert.NotEmpty(list.GetProperty("revisions").EnumerateArray());
+
+        using var manifestResponse = await _client.GetAsync($"/api/v1/content/revisions/{revision}");
+        var manifest = await manifestResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, manifestResponse.StatusCode);
+        Assert.Equal(revision, manifest.GetProperty("revision").GetString());
+        Assert.NotEmpty(manifest.GetProperty("artifacts").EnumerateArray());
+    }
+
+    [Fact]
     public void CommandEnvelope_RejectsMissingIdentityAndType()
     {
         var missingIdentity = new CommandEnvelope { Type = "TEST" };

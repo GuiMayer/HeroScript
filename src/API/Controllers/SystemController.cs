@@ -81,6 +81,7 @@ public sealed class SystemController : ControllerBase
         capabilities = new[]
         {
             "deterministic-state",
+            "content-manifests",
             "run-checkpoints",
             "run-content-revision",
             "sse-events",

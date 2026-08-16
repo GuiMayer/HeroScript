@@ -79,6 +79,24 @@ namespace Core.Config
             result = Resolve(relativePath);
             return result.Found ? result.Provider!.OpenRead(relativePath) : null;
         }
+
+        /// <summary>
+        /// Resolves every physical directory contributed by the configured
+        /// providers. Directory discovery cannot use <see cref="Resolve"/>
+        /// because that method intentionally accepts files only.
+        /// </summary>
+        public IReadOnlyList<string> GetExistingPhysicalDirectories(string relativeDirectory)
+        {
+            lock (_lock)
+            {
+                return _providers
+                    .Select(provider => provider.GetPhysicalPath(relativeDirectory))
+                    .Where(path => path != null && Directory.Exists(path))
+                    .Select(path => Path.GetFullPath(path!))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
     }
 
     /// <summary>

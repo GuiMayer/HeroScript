@@ -2,6 +2,7 @@ using Core.Abstractions.Persistence;
 using Core.Config;
 using Core.Combat.Modifiers;
 using Core.Common;
+using Core.Content;
 using Core.Determinism;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
@@ -103,6 +104,42 @@ public sealed class RunManagerTests
         Assert.Equal(first.Value.Deck.Hand, second.Value.Deck.Hand);
         Assert.Equal(first.Value.Determinism, second.Value.Determinism);
         Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(second.Value));
+    }
+
+    [Fact]
+    public void StartRun_WithManifestProvider_PinsFullRevisionAndRejectsMismatch()
+    {
+        var manifest = new ContentManifest
+        {
+            ConfigName = "test",
+            ConfigChain = new[] { "test" },
+            Artifacts = new[]
+            {
+                new ContentArtifactManifest
+                {
+                    Kind = "runs",
+                    Path = "runs/default_run.json",
+                    Hash = new string('a', 64),
+                    DefinitionCount = 1
+                }
+            },
+            Revision = new string('b', 64)
+        };
+        var manifests = new Mock<IContentManifestProvider>();
+        manifests.Setup(provider => provider.GetManifest("test"))
+            .Returns(Result<ContentManifest>.Success(manifest));
+        var manager = CreateManager(contentManifestProvider: manifests.Object);
+
+        var started = manager.StartRun(new RunStartOptions(
+            "test", "default_run", "hero", Seed: 123UL));
+        var mismatch = manager.StartRun(new RunStartOptions(
+            "test", "default_run", "hero", Seed: 124UL, ContentRevision: "stale"));
+
+        Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
+        Assert.Equal(manifest.Revision, started.Value.Determinism.ContentRevision);
+        Assert.Equal(manifest, started.Value.ContentManifest);
+        Assert.True(mismatch.IsFailure);
+        Assert.Contains("not active", mismatch.Error);
     }
 
     [Fact]
@@ -586,7 +623,8 @@ public sealed class RunManagerTests
 
     private RunManager CreateManager(
         IScriptModifierManager? scriptModifierManager = null,
-        IRunStateRepository? repository = null)
+        IRunStateRepository? repository = null,
+        IContentManifestProvider? contentManifestProvider = null)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
@@ -618,7 +656,8 @@ public sealed class RunManagerTests
             _configManager.Object,
             _resourceLoader.Object,
             scriptModifierManager: scriptModifierManager,
-            repository: repository);
+            repository: repository,
+            contentManifestProvider: contentManifestProvider);
     }
 
     private RunManager CreateManagerWithContent()

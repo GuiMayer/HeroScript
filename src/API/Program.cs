@@ -4,6 +4,7 @@ using Core;
 using Core.Abstractions.Persistence;
 using Core.Caching;
 using Core.Config;
+using Core.Content;
 using Core.Infrastructure.Persistence;
 using Core.Math;
 using Core.Events;
@@ -245,6 +246,7 @@ builder.Services.AddSingleton<IRunStateRepository>(sp =>
 });
 
 // Register Run content and manager
+builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<IRunManager>(sp => new RunManager(
@@ -254,7 +256,8 @@ builder.Services.AddSingleton<IRunManager>(sp => new RunManager(
     sp.GetRequiredService<ICardContentCatalog>(),
     sp.GetRequiredService<IScriptModifierManager>(),
     sp.GetRequiredService<IEventBus>(),
-    sp.GetRequiredService<IRunStateRepository>()));
+    sp.GetRequiredService<IRunStateRepository>(),
+    sp.GetRequiredService<IContentManifestProvider>()));
 
 // Register damage pipeline
 builder.Services.AddSingleton<PipelineConfigLoader>(sp =>

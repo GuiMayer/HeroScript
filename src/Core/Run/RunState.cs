@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Core.Content;
 using Core.Determinism;
 
 namespace Core.Run;
@@ -19,6 +20,7 @@ public sealed record RunState
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
     public ImmutableDictionary<string, JsonElement> Metadata { get; init; } =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    public ContentManifest? ContentManifest { get; init; }
     public DeterministicContext Determinism { get; init; } =
         DeterministicContext.Create(0, "legacy");
 }

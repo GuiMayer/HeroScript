@@ -2,6 +2,7 @@ using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Combat.Modifiers;
 using Core.Config;
+using Core.Content;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Determinism;
@@ -23,6 +24,7 @@ public sealed class RunManager : IRunManager
     private readonly IScriptModifierManager? _scriptModifierManager;
     private readonly IEventBus? _eventBus;
     private readonly IRunStateRepository? _repository;
+    private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
@@ -34,7 +36,8 @@ public sealed class RunManager : IRunManager
         ICardContentCatalog? cardContentCatalog = null,
         IScriptModifierManager? scriptModifierManager = null,
         IEventBus? eventBus = null,
-        IRunStateRepository? repository = null)
+        IRunStateRepository? repository = null,
+        IContentManifestProvider? contentManifestProvider = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -43,6 +46,7 @@ public sealed class RunManager : IRunManager
         _scriptModifierManager = scriptModifierManager;
         _eventBus = eventBus;
         _repository = repository;
+        _contentManifestProvider = contentManifestProvider;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -68,10 +72,13 @@ public sealed class RunManager : IRunManager
             return Result<RunState>.Failure(definitionResult.Error);
 
         var definition = definitionResult.Value;
+        var manifestResult = ResolveContentManifest(options, definition);
+        if (manifestResult.IsFailure)
+            return Result<RunState>.Failure(manifestResult.Error);
+
+        var manifest = manifestResult.Value.Manifest;
+        var contentRevision = manifestResult.Value.Revision;
         var seed = options.Seed ?? CreateSeed();
-        var contentRevision = string.IsNullOrWhiteSpace(options.ContentRevision)
-            ? CanonicalJson.ComputeHash(definition, _jsonOptions)
-            : options.ContentRevision;
         var context = DeterministicContext.Create(seed, contentRevision!);
         var runId = context.AllocateId(
             $"run:{options.ConfigName}:{options.RunDefinitionId}:{options.PlayerEntityId}");
@@ -87,6 +94,7 @@ public sealed class RunManager : IRunManager
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
             Deck = new DeckState { DrawPile = [.. definition.StartingDeck] },
             Metadata = ToImmutableMetadata(definition.Metadata),
+            ContentManifest = manifest,
             Determinism = context
         };
 
@@ -117,6 +125,40 @@ public sealed class RunManager : IRunManager
 
         return Result<RunState>.Success(state);
     }
+
+    private Result<ResolvedContentManifest> ResolveContentManifest(
+        RunStartOptions options,
+        RunDefinition definition)
+    {
+        if (_contentManifestProvider == null)
+        {
+            // Compatibility boundary for isolated callers that have not registered
+            // the content catalog. The production composition always supplies it.
+            var revision = string.IsNullOrWhiteSpace(options.ContentRevision)
+                ? CanonicalJson.ComputeHash(definition, _jsonOptions)
+                : options.ContentRevision;
+            return Result<ResolvedContentManifest>.Success(
+                new ResolvedContentManifest(revision!, null));
+        }
+
+        var manifestResult = _contentManifestProvider.GetManifest(options.ConfigName);
+        if (manifestResult.IsFailure)
+            return Result<ResolvedContentManifest>.Failure(manifestResult.Error);
+
+        var manifest = manifestResult.Value;
+        if (!string.IsNullOrWhiteSpace(options.ContentRevision) &&
+            !string.Equals(options.ContentRevision, manifest.Revision, StringComparison.Ordinal))
+        {
+            return Result<ResolvedContentManifest>.Failure(
+                $"Requested content revision '{options.ContentRevision}' is not active for configuration " +
+                $"'{options.ConfigName}'. Active revision: {manifest.Revision}");
+        }
+
+        return Result<ResolvedContentManifest>.Success(
+            new ResolvedContentManifest(manifest.Revision, manifest));
+    }
+
+    private sealed record ResolvedContentManifest(string Revision, ContentManifest? Manifest);
 
     public Result<RunState> GetRun(Guid runId)
     {

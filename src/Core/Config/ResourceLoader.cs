@@ -472,25 +472,16 @@ namespace Core.Config
             {
                 try
                 {
-                    // Try to resolve a dummy file in the directory to get the base path
-                    var testPath = Path.Combine(configName, "Resources", relativeDirectory, "_test.json");
-                    var result = _pathResolver.Resolve(testPath);
-                    
-                    if (result.PhysicalPath != null)
+                    var configDirectory = Path.Combine(configName, "Resources", relativeDirectory);
+                    foreach (var directoryPath in _pathResolver.GetExistingPhysicalDirectories(configDirectory))
                     {
-                        // Extract the directory path from the physical path
-                        var directoryPath = Path.GetDirectoryName(result.PhysicalPath);
-                        
-                        if (directoryPath != null && Directory.Exists(directoryPath))
+                        var files = Directory.GetFiles(directoryPath, filePattern, SearchOption.TopDirectoryOnly);
+
+                        foreach (var file in files)
                         {
-                            var files = Directory.GetFiles(directoryPath, filePattern, SearchOption.TopDirectoryOnly);
-                            
-                            foreach (var file in files)
-                            {
-                                var fileName = Path.GetFileNameWithoutExtension(file);
-                                discoveredFiles.Add(fileName);
-                                _logger.LogDebug($"Discovered resource: {fileName} in config '{configName}'");
-                            }
+                            var fileName = Path.GetFileNameWithoutExtension(file);
+                            discoveredFiles.Add(fileName);
+                            _logger.LogDebug($"Discovered resource: {fileName} in config '{configName}'");
                         }
                     }
                 }
