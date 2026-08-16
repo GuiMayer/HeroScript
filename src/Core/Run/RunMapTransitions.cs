@@ -166,6 +166,24 @@ public static class RunMapTransitions
 
         if (!Contains(state.Map.ResolvedNodeIds, current.NodeId))
         {
+            var nodeType = current.NodeType.ToLowerInvariant();
+            if (nodeType is "upgrade" or "card_upgrade" or "rest" or "forge")
+            {
+                return
+                [
+                    new RunAvailableCommand
+                    {
+                        Type = RunCommandTypes.UpgradeCard,
+                        CurrentNodeId = current.NodeId
+                    },
+                    new RunAvailableCommand
+                    {
+                        Type = RunCommandTypes.ResolveNode,
+                        CurrentNodeId = current.NodeId
+                    }
+                ];
+            }
+
             return
             [
                 new RunAvailableCommand

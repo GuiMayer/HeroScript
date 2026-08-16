@@ -21,6 +21,7 @@ public sealed record RunState
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
+    public ImmutableArray<RunRelicState> Relics { get; init; } = [];
     public ImmutableDictionary<string, JsonElement> Metadata { get; init; } =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     public ContentManifest? ContentManifest { get; init; }

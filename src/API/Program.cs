@@ -256,6 +256,18 @@ builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPubli
     sp.GetRequiredService<IResourceLoader>()));
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
+builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
+    new ResourceCatalog<RelicDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "relics",
+        definition => definition.RelicId));
+builder.Services.AddSingleton<IResourceCatalog<CardUpgradeDefinition>>(sp =>
+    new ResourceCatalog<CardUpgradeDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "card-upgrades",
+        definition => definition.UpgradeId));
 builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IConfigManager>(),
     sp.GetRequiredService<IResourceLoader>(),
@@ -264,7 +276,9 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IScriptModifierManager>(),
     sp.GetRequiredService<IEventBus>(),
     sp.GetRequiredService<IRunStateRepository>(),
-    sp.GetRequiredService<IContentManifestProvider>()));
+    sp.GetRequiredService<IContentManifestProvider>(),
+    sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();

@@ -98,8 +98,55 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.True(state.TryGetProperty("cardSelections", out _));
         Assert.True(state.TryGetProperty("shops", out _));
         Assert.True(state.TryGetProperty("preparations", out _));
+        Assert.True(state.TryGetProperty("relics", out _));
         Assert.True(state.TryGetProperty("contentManifest", out _));
         Assert.Equal("start", state.GetProperty("map").GetProperty("currentNodeId").GetString());
+
+        var card = state.GetProperty("deck").GetProperty("cardInstances")
+            .EnumerateArray()
+            .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
+        var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
+        using var cardResponse = await _client.GetAsync(
+            $"/api/v1/runs/{runId}/cards/{cardInstanceId}");
+        Assert.Equal(HttpStatusCode.OK, cardResponse.StatusCode);
+        using var upgradeOptionsResponse = await _client.GetAsync(
+            $"/api/v1/runs/{runId}/cards/{cardInstanceId}/upgrade-options");
+        var upgradeOptions = await upgradeOptionsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, upgradeOptionsResponse.StatusCode);
+        Assert.Contains(
+            upgradeOptions.GetProperty("options").EnumerateArray(),
+            option => option.GetProperty("upgradeId").GetString() == "sharpened_edge");
+
+        using var relicCatalogResponse = await _client.GetAsync("/api/v1/content/relics");
+        var relicCatalog = await relicCatalogResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, relicCatalogResponse.StatusCode);
+        Assert.Contains(
+            relicCatalog.GetProperty("items").EnumerateArray(),
+            item => item.GetProperty("definitionId").GetString() == "ember_core");
+
+        using var acquireResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                type = RunCommandTypes.AcquireRelic,
+                expectedSequence = state.GetProperty("sequence").GetInt32(),
+                expectedStep = state.GetProperty("step").GetUInt64(),
+                payload = new { relicId = "ember_core" }
+            });
+        Assert.Equal(HttpStatusCode.OK, acquireResponse.StatusCode);
+
+        using var relicsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/relics");
+        var relics = await relicsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, relicsResponse.StatusCode);
+        Assert.Single(relics.GetProperty("relics").EnumerateArray());
+
+        using var p1VerifyResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var p1Verification = await p1VerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, p1VerifyResponse.StatusCode);
+        Assert.True(
+            p1Verification.GetProperty("isValid").GetBoolean(),
+            p1Verification.GetRawText());
 
         using var mapResponse = await _client.GetAsync($"/api/v1/runs/{runId}/map");
         var map = await mapResponse.Content.ReadFromJsonAsync<JsonElement>();

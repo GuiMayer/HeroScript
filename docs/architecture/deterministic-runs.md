@@ -149,6 +149,21 @@ contains only its manifest and canonical artifact payloads. Global compatibility
 reload/apply endpoints are administrative and disabled by default; authoritative
 gameplay mutations continue to enter through the run or combat command gateway.
 
+## Run collectibles
+
+Cards owned by engine-version 4 runs have a deterministic `cardInstanceId`
+separate from their content `definitionId`. Deck zones keep ordered instance-id
+lists beside their compatibility definition projections, so duplicate cards can
+move and upgrade independently. An upgrade appends a versioned content delta to
+one immutable card instance; it never edits the shared card definition.
+
+Relics follow the same aggregate rule. A run stores deterministic relic instance
+ids, stack counts and a copy of the gameplay properties pinned at acquisition.
+`ACQUIRE_RELIC`, `REMOVE_RELIC` and `UPGRADE_CARD` are journaled run commands and
+there are no public endpoints that mutate a global relic or card object. Legacy
+definition-only deck snapshots remain readable but cannot accept instance-level
+upgrades.
+
 ## Explicit compatibility boundaries
 
 Some APIs still serve editors, standalone calculators and older callers. They are

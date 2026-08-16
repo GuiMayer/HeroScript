@@ -10,6 +10,18 @@ http://localhost:5260/api
 
 Swagger UI fica disponivel na raiz da aplicacao em ambiente de desenvolvimento.
 
+## API versionada de conteudo e colecionaveis
+
+- `GET /api/v1/content/revisions` e `GET /api/v1/content/revisions/{revision}` consultam manifestos imutaveis.
+- `GET /api/v1/content/{kind}` e `GET /api/v1/content/{kind}/{definitionId}` consultam qualquer catalogo publicado, incluindo `relics` e `card-upgrades`.
+- `POST /api/v1/admin/content/drafts` cria drafts administrativos; validar e publicar usa os sub-recursos `validate` e `publish` e exige `X-Admin-Key`.
+- `GET /api/v1/runs/{runId}/relics` retorna as instancias de reliquia pertencentes a run.
+- `GET /api/v1/runs/{runId}/cards/{cardInstanceId}` retorna uma carta fisica, sua zona e seus deltas.
+- `GET /api/v1/runs/{runId}/cards/{cardInstanceId}/upgrade-options` retorna opcoes compativeis com a revisao da run.
+- Aquisicao/remocao de reliquias e upgrade de cartas usam o gateway `POST /api/v1/runs/{runId}/commands`, com os tipos `ACQUIRE_RELIC`, `REMOVE_RELIC` e `UPGRADE_CARD`.
+
+Os IDs de instancia acima nao substituem IDs de definicao. Duas copias da mesma carta compartilham `definitionId`, mas sempre possuem `cardInstanceId` diferentes.
+
 ## Estado da API
 
 - Contrato principal de acoes: `effects[]` e `costs`.

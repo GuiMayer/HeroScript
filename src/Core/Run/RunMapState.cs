@@ -83,5 +83,8 @@ public static class RunCommandTypes
     public const string BuyShopItem = "BUY_SHOP_ITEM";
     public const string RerollShop = "REROLL_SHOP";
     public const string ApplyPreparationOption = "APPLY_PREPARATION_OPTION";
+    public const string AcquireRelic = "ACQUIRE_RELIC";
+    public const string RemoveRelic = "REMOVE_RELIC";
+    public const string UpgradeCard = "UPGRADE_CARD";
     public const string RestoreCheckpoint = "RESTORE_CHECKPOINT";
 }

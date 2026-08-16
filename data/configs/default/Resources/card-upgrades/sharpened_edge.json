@@ -1,0 +1,13 @@
+{
+  "sharpened_edge": {
+    "upgradeId": "sharpened_edge",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["basic_attack"],
+    "deltas": {
+      "effects.damage.flatValue": {
+        "operation": "ADD",
+        "value": 3
+      }
+    }
+  }
+}

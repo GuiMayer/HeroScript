@@ -61,6 +61,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly IActionCostEvaluator _actionCostEvaluator;
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     private readonly IPipelineManager _pipelineManager;
+    private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
+    private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunSemanticReplayService(
@@ -76,7 +78,9 @@ public sealed class RunSemanticReplayService : IRunReplayService
         EntityDefinitionLoader entityDefinitionLoader,
         IActionCostEvaluator actionCostEvaluator,
         IRuntimeFormulaEvaluator formulaEvaluator,
-        IPipelineManager pipelineManager)
+        IPipelineManager pipelineManager,
+        IResourceCatalog<RelicDefinition>? relicCatalog = null,
+        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null)
     {
         _repository = repository;
         _configManager = configManager;
@@ -91,6 +95,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
         _actionCostEvaluator = actionCostEvaluator;
         _formulaEvaluator = formulaEvaluator;
         _pipelineManager = pipelineManager;
+        _relicCatalog = relicCatalog;
+        _cardUpgradeCatalog = cardUpgradeCatalog;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -206,7 +212,9 @@ public sealed class RunSemanticReplayService : IRunReplayService
             modifiers,
             eventBus: null,
             repository: null,
-            _contentManifestProvider);
+            _contentManifestProvider,
+            _relicCatalog,
+            _cardUpgradeCatalog);
         var damage = new DamageCalculator(
             _pipelineManager,
             eventBus,

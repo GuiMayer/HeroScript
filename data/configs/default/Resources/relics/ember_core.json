@@ -1,0 +1,11 @@
+{
+  "ember_core": {
+    "relicId": "ember_core",
+    "stackLimit": 1,
+    "properties": {
+      "trigger": "combat.start",
+      "effect": "energy.add",
+      "amount": 1
+    }
+  }
+}

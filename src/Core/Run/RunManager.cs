@@ -27,6 +27,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private readonly IEventBus? _eventBus;
     private readonly IRunStateRepository? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
+    private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
+    private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     private readonly object _lock = new();
@@ -41,7 +43,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         IScriptModifierManager? scriptModifierManager = null,
         IEventBus? eventBus = null,
         IRunStateRepository? repository = null,
-        IContentManifestProvider? contentManifestProvider = null)
+        IContentManifestProvider? contentManifestProvider = null,
+        IResourceCatalog<RelicDefinition>? relicCatalog = null,
+        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -51,6 +55,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         _eventBus = eventBus;
         _repository = repository;
         _contentManifestProvider = contentManifestProvider;
+        _relicCatalog = relicCatalog;
+        _cardUpgradeCatalog = cardUpgradeCatalog;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -92,6 +98,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             $"run:{options.ConfigName}:{options.RunDefinitionId}:{options.PlayerEntityId}");
         context = runId.Context;
 
+        var deckResult = DeckTransitions.Create(definition.StartingDeck, context);
+        if (deckResult.IsFailure)
+            return Result<RunState>.Failure(deckResult.Error);
+        context = deckResult.Value.Context;
+
         var state = new RunState
         {
             RunId = runId.Value,
@@ -101,7 +112,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             PowerPoints = definition.StartingPowerPoints,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
             Map = mapResult.Value,
-            Deck = new DeckState { DrawPile = [.. definition.StartingDeck] },
+            Deck = deckResult.Value.State,
             Metadata = ToImmutableMetadata(definition.Metadata),
             ContentManifest = manifest,
             Determinism = context
@@ -122,7 +133,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             if (_runs.ContainsKey(state.RunId))
                 return Result<RunState>.Failure($"Run already exists for the deterministic inputs: {state.RunId}");
 
-            var persisted = Persist(state, "run.start", options);
+            var persisted = Persist(
+                state,
+                "run.start",
+                options with { Seed = seed, ContentRevision = contentRevision });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
@@ -350,6 +364,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             RunCommandTypes.BuyShopItem => ExecuteBuyShopItem(runId, payload),
             RunCommandTypes.RerollShop => ExecuteRerollShop(runId, payload),
             RunCommandTypes.ApplyPreparationOption => ExecutePreparationOption(runId, payload),
+            RunCommandTypes.AcquireRelic => ExecuteAcquireRelic(runId, payload),
+            RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
+            RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ResolveCombat => Result.Failure(
                 "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
             RunCommandTypes.RestoreCheckpoint => ExecuteRestoreCheckpoint(runId, payload),
@@ -393,6 +410,76 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     {
         var request = DeserializePayload<PreparationPayload>(payload);
         return ToResult(ApplyPreparationOption(runId, request.PreparationInstanceId, request.OptionId));
+    }
+
+    private Result ExecuteAcquireRelic(Guid runId, JsonElement payload)
+    {
+        if (_relicCatalog == null)
+            return Result.Failure("Relic content catalog is not configured");
+        var request = DeserializePayload<RelicPayload>(payload);
+        var run = _runs[runId];
+        var definition = _relicCatalog.Get(request.RelicId, run.ConfigName);
+        if (definition.IsFailure)
+            return Result.Failure(definition.Error);
+        if (!string.Equals(definition.Value.RelicId, request.RelicId, StringComparison.Ordinal))
+            return Result.Failure($"Relic definition identity mismatch: {request.RelicId}");
+
+        var transition = RelicTransitions.Acquire(run, definition.Value);
+        if (transition.IsFailure)
+            return Result.Failure(transition.Error);
+        return ToResult(Persist(
+            transition.Value.State,
+            RunCommandTypes.AcquireRelic,
+            new { relicId = request.RelicId }));
+    }
+
+    private Result ExecuteRemoveRelic(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<RelicInstancePayload>(payload);
+        var transition = RelicTransitions.Remove(_runs[runId], request.RelicInstanceId);
+        if (transition.IsFailure)
+            return Result.Failure(transition.Error);
+        return ToResult(Persist(
+            transition.Value,
+            RunCommandTypes.RemoveRelic,
+            new { relicInstanceId = request.RelicInstanceId }));
+    }
+
+    private Result ExecuteUpgradeCard(Guid runId, JsonElement payload)
+    {
+        if (_cardUpgradeCatalog == null)
+            return Result.Failure("Card upgrade content catalog is not configured");
+        var request = DeserializePayload<CardUpgradePayload>(payload);
+        var run = _runs[runId];
+        var currentNode = run.Map.Nodes.FirstOrDefault(node =>
+            string.Equals(node.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
+        var nodeType = currentNode?.NodeType.ToLowerInvariant();
+        if (currentNode == null || nodeType is not ("upgrade" or "card_upgrade" or "rest" or "forge"))
+            return Result.Failure("The current map node does not allow card upgrades");
+        if (run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
+            return Result.Failure($"Map node already resolved: {currentNode.NodeId}");
+        var definition = _cardUpgradeCatalog.Get(request.UpgradeId, run.ConfigName);
+        if (definition.IsFailure)
+            return Result.Failure(definition.Error);
+        if (!string.Equals(definition.Value.UpgradeId, request.UpgradeId, StringComparison.Ordinal))
+            return Result.Failure($"Card upgrade definition identity mismatch: {request.UpgradeId}");
+
+        var transition = DeckTransitions.ApplyUpgrade(
+            run.Deck,
+            request.CardInstanceId,
+            definition.Value,
+            run.Determinism);
+        if (transition.IsFailure)
+            return Result.Failure(transition.Error);
+        var candidate = run with
+        {
+            Deck = transition.Value.State,
+            Determinism = transition.Value.Context.AdvanceStep()
+        };
+        return ToResult(Persist(
+            candidate,
+            RunCommandTypes.UpgradeCard,
+            new { request.CardInstanceId, request.UpgradeId }));
     }
 
     private Result ExecuteRestoreCheckpoint(Guid runId, JsonElement payload)
@@ -1639,5 +1726,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private sealed record ShopItemPayload(Guid ShopInstanceId, string ItemId);
     private sealed record ShopPayload(Guid ShopInstanceId);
     private sealed record PreparationPayload(Guid PreparationInstanceId, string OptionId);
+    private sealed record RelicPayload(string RelicId);
+    private sealed record RelicInstancePayload(Guid RelicInstanceId);
+    private sealed record CardUpgradePayload(Guid CardInstanceId, string UpgradeId);
     private sealed record CheckpointPayload(int Sequence);
 }

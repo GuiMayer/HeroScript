@@ -2,6 +2,7 @@ using Core.Abstractions.Persistence;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 using Core.Determinism;
+using Core.Config;
 
 namespace API.Controllers;
 
@@ -11,12 +12,18 @@ public sealed class RunController : BaseApiController
 {
     private readonly IRunManager _runManager;
     private readonly IRunStateRepository _repository;
+    private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgrades;
 
-    public RunController(IRunManager runManager, IRunStateRepository repository, ILogger<RunController> logger)
+    public RunController(
+        IRunManager runManager,
+        IRunStateRepository repository,
+        ILogger<RunController> logger,
+        IResourceCatalog<CardUpgradeDefinition>? cardUpgrades = null)
         : base(logger)
     {
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _cardUpgrades = cardUpgrades;
     }
 
     [HttpPost("start")]
@@ -186,6 +193,68 @@ public sealed class RunController : BaseApiController
         }
     }
 
+    [HttpGet("/api/v1/runs/{runId:guid}/relics")]
+    public IActionResult GetRelics(Guid runId)
+    {
+        var result = _runManager.GetRun(runId);
+        return result.IsFailure
+            ? ApiNotFound(result.Error)
+            : Ok(new
+            {
+                runId,
+                result.Value.Sequence,
+                result.Value.Determinism.Step,
+                relics = result.Value.Relics
+                    .OrderBy(relic => relic.RelicInstanceId)
+                    .ToArray()
+            });
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/cards/{cardInstanceId:guid}")]
+    public IActionResult GetCard(Guid runId, Guid cardInstanceId)
+    {
+        var result = _runManager.GetRun(runId);
+        if (result.IsFailure)
+            return ApiNotFound(result.Error);
+        return result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card)
+            ? Ok(MapCardInstance(result.Value.Deck, card))
+            : ApiNotFound($"Card instance not found: {cardInstanceId}");
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/cards/{cardInstanceId:guid}/upgrade-options")]
+    public IActionResult GetCardUpgradeOptions(Guid runId, Guid cardInstanceId)
+    {
+        var result = _runManager.GetRun(runId);
+        if (result.IsFailure)
+            return ApiNotFound(result.Error);
+        if (!result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card))
+            return ApiNotFound($"Card instance not found: {cardInstanceId}");
+        if (_cardUpgrades == null)
+        {
+            return ApiProblem(
+                StatusCodes.Status503ServiceUnavailable,
+                API.Contracts.ApiErrorCodes.DependencyUnavailable,
+                "Card upgrade catalog unavailable",
+                "Card upgrade content catalog is not configured");
+        }
+
+        var options = _cardUpgrades.GetAll(result.Value.ConfigName)
+            .Where(definition => definition.AppliesTo(card.DefinitionId))
+            .Where(definition => card.Upgrades.Count(upgrade =>
+                string.Equals(upgrade.UpgradeId, definition.UpgradeId, StringComparison.Ordinal))
+                < Math.Max(1, definition.MaxApplications))
+            .OrderBy(definition => definition.UpgradeId, StringComparer.Ordinal)
+            .ToArray();
+        return Ok(new
+        {
+            runId,
+            cardInstanceId,
+            card.DefinitionId,
+            contentRevision = result.Value.Determinism.ContentRevision,
+            options
+        });
+    }
+
     [HttpPost("{runId:guid}/draw")]
     public IActionResult Draw(Guid runId, [FromBody] CountRequest? request)
     {
@@ -276,6 +345,7 @@ public sealed class RunController : BaseApiController
             run.CardSelections,
             run.Shops,
             run.Preparations,
+            run.Relics,
             run.Metadata
         };
     }
@@ -323,6 +393,10 @@ public sealed class RunController : BaseApiController
             deck.Hand,
             deck.DiscardPile,
             deck.ExhaustPile,
+            cardInstances = deck.CardInstances.Values
+                .OrderBy(card => card.CardInstanceId)
+                .Select(card => MapCardInstance(deck, card))
+                .ToArray(),
             counts = new
             {
                 drawPile = deck.DrawPile.Count,
@@ -331,6 +405,34 @@ public sealed class RunController : BaseApiController
                 exhaustPile = deck.ExhaustPile.Count
             }
         };
+    }
+
+    private static object MapCardInstance(DeckState deck, CardInstanceState card)
+    {
+        var (zone, index) = FindCardZone(deck, card.CardInstanceId);
+        return new
+        {
+            card.CardInstanceId,
+            card.DefinitionId,
+            card.Upgrades,
+            zone,
+            zoneIndex = index
+        };
+    }
+
+    private static (string Zone, int Index) FindCardZone(DeckState deck, Guid cardInstanceId)
+    {
+        var index = deck.DrawPileInstanceIds.ToList().IndexOf(cardInstanceId);
+        if (index >= 0)
+            return ("draw", index);
+        index = deck.HandInstanceIds.ToList().IndexOf(cardInstanceId);
+        if (index >= 0)
+            return ("hand", index);
+        index = deck.DiscardPileInstanceIds.ToList().IndexOf(cardInstanceId);
+        if (index >= 0)
+            return ("discard", index);
+        index = deck.ExhaustPileInstanceIds.ToList().IndexOf(cardInstanceId);
+        return index >= 0 ? ("exhaust", index) : ("unknown", -1);
     }
 
     // Time-travel / snapshot endpoints

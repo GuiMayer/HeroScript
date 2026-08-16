@@ -29,7 +29,21 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         new("shops", "shops"),
         new("preparations", "preparations"),
         new("activation-rules", "combat-turn-rules"),
-        new("phase-sequences", "phase-sequences")
+        new("phase-sequences", "phase-sequences"),
+        new("races", "races"),
+        new("powers", "powers"),
+        new("companions", "companions"),
+        new("enemies", "enemies"),
+        new("decks", "decks"),
+        new("relics", "relics"),
+        new("card-upgrades", "card-upgrades"),
+        new("modes", "modes"),
+        new("daily-challenges", "daily-challenges"),
+        new("boards", "boards"),
+        new("zones", "zones"),
+        new("keywords", "keywords"),
+        new("reaction-rules", "reaction-rules"),
+        new("run-events", "run-events")
     ];
 
     private readonly IConfigManager _configManager;
