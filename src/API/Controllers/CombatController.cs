@@ -8,6 +8,7 @@ using API.Models.Combat;
 using API.Models.Gambits;
 using Core.Run;
 using Core.Determinism;
+using Core.Combat.TurnPhase;
 
 namespace API.Controllers;
 
@@ -461,6 +462,111 @@ public class CombatController : BaseApiController
         }
     }
 
+    [HttpGet("/api/v1/combats/{combatId:guid}/legal-actions")]
+    public IActionResult GetLegalActions(Guid combatId, [FromQuery] string? actorId = null)
+    {
+        var stateResult = GetCombatStateIncludingOwned(combatId);
+        if (stateResult.IsFailure)
+            return ApiNotFound(stateResult.Error);
+
+        var state = stateResult.Value;
+        var actor = ResolveActor(state, actorId);
+        if (actor == null)
+            return ApiNotFound($"Actor {actorId} not found");
+        IReadOnlyList<string>? hand = null;
+        if (state.RunId is { } runId)
+        {
+            var run = _runManager.GetRun(runId);
+            if (run.IsFailure)
+                return ApiNotFound(run.Error);
+            hand = run.Value.Deck.Hand;
+        }
+
+        var legal = _actionManager.GetAllDefinitions()
+            .Where(action => state.IsActionAllowedInCurrentPhase(action.ActionType))
+            .Where(action => hand == null || hand.Contains(action.ActionId, StringComparer.Ordinal))
+            .Select(action => new
+            {
+                definition = action,
+                affordability = _affordabilityService.CanAfford(action, actor.ResourceState.Resources)
+            })
+            .Where(item => item.affordability.IsSuccess &&
+                (item.affordability.Value.CanAfford || item.affordability.Value.AffordableOptionIds.Count > 0))
+            .OrderBy(item => item.definition.ActionId, StringComparer.Ordinal)
+            .Select(item => new
+            {
+                actionId = item.definition.ActionId,
+                actionType = item.definition.ActionType.ToString(),
+                item.definition.RequiresTarget,
+                item.definition.MultiTarget,
+                affordableOptionIds = item.affordability.Value.AffordableOptionIds
+            })
+            .ToArray();
+
+        return Ok(new
+        {
+            combatId,
+            actorId = actor.EntityId,
+            phase = state.PhaseState?.CurrentPhase.ToString(),
+            priorityActorId = state.GetCurrentPriorityPlayer(),
+            actions = legal
+        });
+    }
+
+    [HttpGet("/api/v1/combats/{combatId:guid}/legal-targets")]
+    public IActionResult GetLegalTargets(
+        Guid combatId,
+        [FromQuery] string actionId,
+        [FromQuery] string? actorId = null)
+    {
+        var stateResult = GetCombatStateIncludingOwned(combatId);
+        if (stateResult.IsFailure)
+            return ApiNotFound(stateResult.Error);
+        var action = _actionManager.GetDefinition(actionId);
+        if (action.IsFailure)
+            return ApiNotFound(action.Error);
+        var actor = ResolveActor(stateResult.Value, actorId);
+        if (actor == null)
+            return ApiNotFound($"Actor {actorId} not found");
+
+        var targets = action.Value.RequiresTarget
+            ? stateResult.Value.GetAllEntities()
+                .Where(entity => entity.IsAlive && entity.EntityId != actor.EntityId)
+                .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+                .Select(entity => entity.EntityId)
+                .ToArray()
+            : [];
+        return Ok(new
+        {
+            combatId,
+            actorId = actor.EntityId,
+            actionId = action.Value.ActionId,
+            action.Value.RequiresTarget,
+            action.Value.MultiTarget,
+            targetIds = targets
+        });
+    }
+
+    [HttpGet("/api/v1/combats/{combatId:guid}/stack")]
+    public IActionResult GetStack(Guid combatId)
+    {
+        var state = GetCombatStateIncludingOwned(combatId);
+        if (state.IsFailure)
+            return ApiNotFound(state.Error);
+        var stack = state.Value.PhaseState?.ActionStack ?? new ActionStack();
+        return Ok(new
+        {
+            combatId,
+            phase = state.Value.PhaseState?.CurrentPhase.ToString(),
+            priorityActorId = state.Value.GetCurrentPriorityPlayer(),
+            stack.IsResolving,
+            stack.CurrentlyResolving,
+            actions = stack.Actions
+                .OrderByDescending(action => action.StackPosition)
+                .ToArray()
+        });
+    }
+
     /// <summary>
     /// Verifica se um ator pode pagar por uma ação específica.
     /// </summary>
@@ -781,7 +887,9 @@ public class CombatController : BaseApiController
                 Current = (int)(state.GetHeroResource("energy")?.Current ?? 0f),
                 Maximum = (int)(state.GetHeroResource("energy")?.Maximum ?? 0f)
             },
-            TotalActions = state.ActionHistory.Count
+            TotalActions = state.ActionHistory.Count,
+            Board = state.Board,
+            Phase = state.PhaseState
         };
     }
 

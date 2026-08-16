@@ -210,7 +210,27 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(
             run.GetProperty("engineVersion").GetString(),
             combat.GetProperty("engineVersion").GetString());
+        Assert.True(combat.TryGetProperty("board", out _));
         var combatId = combat.GetProperty("combatId").GetGuid();
+
+        using var legalActionsResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/legal-actions?actorId={playerEntityId}");
+        var legalActions = await legalActionsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, legalActionsResponse.StatusCode);
+        Assert.NotEmpty(legalActions.GetProperty("actions").EnumerateArray());
+
+        using var legalTargetsResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/legal-targets?actionId=basic_attack&actorId={playerEntityId}");
+        var legalTargets = await legalTargetsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, legalTargetsResponse.StatusCode);
+        Assert.Contains(
+            legalTargets.GetProperty("targetIds").EnumerateArray(),
+            target => target.GetString() == "enemy_1");
+
+        using var stackResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/stack");
+        var stack = await stackResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, stackResponse.StatusCode);
+        Assert.Empty(stack.GetProperty("actions").EnumerateArray());
 
         using var currentResponse = await _client.GetAsync(
             $"/api/v1/runs/{runId}/encounters/current");
@@ -229,6 +249,98 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(HttpStatusCode.OK, runResponse.StatusCode);
         Assert.Equal(combatId, persistedRun.GetProperty("activeEncounterId").GetGuid());
         Assert.Single(persistedRun.GetProperty("encounters").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task P2Contracts_ProjectProfileBranchSimulateAndVerifyDailyAttempt()
+    {
+        var playerId = $"p2-player-{Guid.NewGuid():N}";
+        using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId = playerId,
+            seed = 778899UL,
+            modeId = "standard"
+        });
+        var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+        var runId = started.GetProperty("runId").GetGuid();
+        var sourceSequence = started.GetProperty("sequence").GetInt32();
+
+        using var profileResponse = await _client.GetAsync($"/api/v1/profiles/{playerId}");
+        var profile = await profileResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, profileResponse.StatusCode);
+        Assert.Equal(1, profile.GetProperty("totalRuns").GetInt32());
+        Assert.Equal(64, profile.GetProperty("revision").GetString()!.Length);
+
+        using var branchResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/branches",
+            new { sourceSequence, branchKey = "alternate-path" });
+        var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, branchResponse.StatusCode);
+        var branchId = branch.GetProperty("runId").GetGuid();
+        Assert.NotEqual(runId, branchId);
+
+        using var branchVerifyResponse = await _client.PostAsync(
+            $"/api/v1/runs/{branchId}/verify",
+            null);
+        var branchVerification = await branchVerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, branchVerifyResponse.StatusCode);
+        Assert.True(branchVerification.GetProperty("isValid").GetBoolean(), branchVerification.GetRawText());
+
+        var simulationRequest = new
+        {
+            sourceRunId = runId,
+            sourceSequence,
+            commands = new[]
+            {
+                new { type = RunCommandTypes.DrawCards, payload = new { count = 1 } }
+            }
+        };
+        using var simulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", simulationRequest);
+        var simulation = await simulationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, simulationResponse.StatusCode);
+        var simulationId = simulation.GetProperty("simulationId").GetGuid();
+        Assert.Equal(1, simulation.GetProperty("commandsExecuted").GetInt32());
+
+        using var repeatedSimulationResponse = await _client.PostAsJsonAsync(
+            "/api/v1/simulations",
+            simulationRequest);
+        var repeatedSimulation = await repeatedSimulationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, repeatedSimulationResponse.StatusCode);
+        Assert.Equal(simulationId, repeatedSimulation.GetProperty("simulationId").GetGuid());
+
+        using var simulationVerifyResponse = await _client.PostAsync(
+            $"/api/v1/runs/{simulationId}/verify",
+            null);
+        var simulationVerification = await simulationVerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, simulationVerifyResponse.StatusCode);
+        Assert.True(simulationVerification.GetProperty("isValid").GetBoolean(), simulationVerification.GetRawText());
+
+        using var originalResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var original = await originalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(sourceSequence, original.GetProperty("sequence").GetInt32());
+
+        using var currentChallengeResponse = await _client.GetAsync("/api/v1/challenges/daily/current");
+        var currentChallenge = await currentChallengeResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, currentChallengeResponse.StatusCode);
+        Assert.Equal(64, currentChallenge.GetProperty("proofHash").GetString()!.Length);
+
+        var dailyPlayerId = $"daily-player-{Guid.NewGuid():N}";
+        using var attemptResponse = await _client.PostAsJsonAsync(
+            "/api/v1/challenges/daily/current/attempts",
+            new { playerId = dailyPlayerId });
+        var attempt = await attemptResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, attemptResponse.StatusCode);
+        var attemptRunId = attempt.GetProperty("runId").GetGuid();
+
+        using var submissionResponse = await _client.PostAsJsonAsync(
+            "/api/v1/challenges/daily/current/submissions",
+            new { runId = attemptRunId, playerId = dailyPlayerId });
+        var submission = await submissionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, submissionResponse.StatusCode);
+        Assert.True(submission.GetProperty("accepted").GetBoolean());
     }
 
     [Fact]

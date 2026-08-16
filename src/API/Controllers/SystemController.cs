@@ -84,6 +84,13 @@ public sealed class SystemController : ControllerBase
             "content-manifests",
             "run-checkpoints",
             "run-content-revision",
+            "run-card-instances",
+            "run-relics",
+            "run-branches",
+            "isolated-simulations",
+            "profile-projections",
+            "daily-challenge-proofs",
+            "tcg-legality-reads",
             "sse-events",
             "legacy-routes"
         }

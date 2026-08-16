@@ -29,6 +29,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
+    private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     private readonly object _lock = new();
@@ -45,7 +46,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         IRunStateRepository? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
-        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null)
+        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
+        IResourceCatalog<GameModeDefinition>? modeCatalog = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -57,6 +59,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         _contentManifestProvider = contentManifestProvider;
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
+        _modeCatalog = modeCatalog;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -77,7 +80,23 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         if (string.IsNullOrWhiteSpace(options.PlayerEntityId))
             return Result<RunState>.Failure("Player entity id is required");
 
-        var definitionResult = LoadDefinition(options.ConfigName, options.RunDefinitionId);
+        var effectiveRunDefinitionId = options.RunDefinitionId;
+        if (!string.IsNullOrWhiteSpace(options.ModeId))
+        {
+            if (_modeCatalog == null)
+                return Result<RunState>.Failure("Game mode content catalog is not configured");
+            var mode = _modeCatalog.Get(options.ModeId, options.ConfigName);
+            if (mode.IsFailure)
+                return Result<RunState>.Failure(mode.Error);
+            if (!string.Equals(mode.Value.ModeId, options.ModeId, StringComparison.Ordinal))
+                return Result<RunState>.Failure($"Game mode definition identity mismatch: {options.ModeId}");
+            if (!mode.Value.AllowCustomSeed && options.Seed.HasValue && string.IsNullOrWhiteSpace(options.ChallengeId))
+                return Result<RunState>.Failure($"Game mode does not allow a custom seed: {options.ModeId}");
+            if (!string.IsNullOrWhiteSpace(mode.Value.RunDefinitionId))
+                effectiveRunDefinitionId = mode.Value.RunDefinitionId;
+        }
+
+        var definitionResult = LoadDefinition(options.ConfigName, effectiveRunDefinitionId);
         if (definitionResult.IsFailure)
             return Result<RunState>.Failure(definitionResult.Error);
 
@@ -95,7 +114,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         var seed = options.Seed ?? CreateSeed();
         var context = DeterministicContext.Create(seed, contentRevision!);
         var runId = context.AllocateId(
-            $"run:{options.ConfigName}:{options.RunDefinitionId}:{options.PlayerEntityId}");
+            $"run:{options.ConfigName}:{effectiveRunDefinitionId}:{options.PlayerEntityId}:" +
+            $"{options.ModeId ?? "default"}:{options.ChallengeId ?? "none"}");
         context = runId.Context;
 
         var deckResult = DeckTransitions.Create(definition.StartingDeck, context);
@@ -108,6 +128,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             RunId = runId.Value,
             ConfigName = options.ConfigName,
             PlayerEntityId = options.PlayerEntityId,
+            ModeId = options.ModeId,
+            ChallengeId = options.ChallengeId,
             Gold = definition.StartingGold,
             PowerPoints = definition.StartingPowerPoints,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
@@ -136,7 +158,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             var persisted = Persist(
                 state,
                 "run.start",
-                options with { Seed = seed, ContentRevision = contentRevision });
+                options with
+                {
+                    RunDefinitionId = effectiveRunDefinitionId,
+                    Seed = seed,
+                    ContentRevision = contentRevision
+                });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
@@ -1564,6 +1591,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 ? restored
                 : Result<RunState>.Failure(restored.Error);
         }
+    }
+
+    internal Result<RunState> HydrateForReplay(RunState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        var compatibility = ValidateLoadedRunCompatibility(state);
+        if (compatibility.IsFailure)
+            return Result<RunState>.Failure(compatibility.Error);
+        lock (_lock)
+        {
+            _runs[state.RunId] = state;
+        }
+        return Result<RunState>.Success(state);
     }
 
     /// <summary>

@@ -268,6 +268,18 @@ builder.Services.AddSingleton<IResourceCatalog<CardUpgradeDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "card-upgrades",
         definition => definition.UpgradeId));
+builder.Services.AddSingleton<IResourceCatalog<GameModeDefinition>>(sp =>
+    new ResourceCatalog<GameModeDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "modes",
+        definition => definition.ModeId));
+builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
+    new ResourceCatalog<DailyChallengeDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "daily-challenges",
+        definition => definition.ChallengeId));
 builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IConfigManager>(),
     sp.GetRequiredService<IResourceLoader>(),
@@ -278,11 +290,17 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IRunStateRepository>(),
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>()));
+    sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
 builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReader>();
+builder.Services.AddSingleton<Core.Meta.IPlayerProfileProjectionReader, Core.Meta.PlayerProfileProjectionReader>();
+builder.Services.AddSingleton<Core.Run.Branching.IRunBranchService>(sp =>
+    new Core.Run.Branching.RunBranchService(
+        (Core.Abstractions.Persistence.IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
+builder.Services.AddSingleton<Core.Run.Branching.IRunSimulationService, Core.Run.Branching.RunSimulationService>();
 
 // Register damage pipeline
 builder.Services.AddSingleton<PipelineConfigLoader>(sp =>

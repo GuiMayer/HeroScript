@@ -16,6 +16,8 @@ public class CombatStateResponse
     public List<EnemyStateDto> Enemies { get; set; } = new();
     public EnergyDto Energy { get; set; } = null!;
     public int TotalActions { get; set; }
+    public Core.Combat.Models.CombatBoardState Board { get; set; } = new();
+    public Core.Combat.TurnPhase.PhaseState? Phase { get; set; }
 }
 
 public class HeroStateDto

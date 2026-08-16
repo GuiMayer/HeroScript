@@ -11,6 +11,11 @@ public sealed record RunState
     public int Sequence { get; init; }
     public string ConfigName { get; init; } = "default";
     public string PlayerEntityId { get; init; } = "player";
+    public string? ModeId { get; init; }
+    public string? ChallengeId { get; init; }
+    public Guid? ParentRunId { get; init; }
+    public int? BranchFromSequence { get; init; }
+    public string? BranchKey { get; init; }
     public int Gold { get; init; }
     public int PowerPoints { get; init; }
     public string? CurrentNodeId { get; init; }

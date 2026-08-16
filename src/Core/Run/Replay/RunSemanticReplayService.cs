@@ -18,6 +18,7 @@ using Core.Logging;
 using Core.Math;
 using Core.Resources;
 using Core.Run.Content;
+using Core.Run.Branching;
 using Core.StatusEffects;
 
 namespace Core.Run.Replay;
@@ -63,6 +64,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly IPipelineManager _pipelineManager;
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
+    private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunSemanticReplayService(
@@ -80,7 +82,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
         IRuntimeFormulaEvaluator formulaEvaluator,
         IPipelineManager pipelineManager,
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
-        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null)
+        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
+        IResourceCatalog<GameModeDefinition>? modeCatalog = null)
     {
         _repository = repository;
         _configManager = configManager;
@@ -97,6 +100,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
         _pipelineManager = pipelineManager;
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
+        _modeCatalog = modeCatalog;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -116,20 +120,43 @@ public sealed class RunSemanticReplayService : IRunReplayService
             return Failure(runId, $"Run journal not found: {runId}");
 
         var errors = ImmutableArray.CreateBuilder<string>();
-        if (!string.Equals(checkpoints[0].JournalEntry.CommandType, "run.start", StringComparison.Ordinal))
-            return Failure(runId, "Journal does not begin with run.start");
-
-        RunStartOptions startOptions;
+        RunStartOptions? startOptions = null;
+        RunState? branchInitialState = null;
         try
         {
-            startOptions = Deserialize<RunStartOptions>(checkpoints[0].JournalEntry.Command);
+            if (string.Equals(checkpoints[0].JournalEntry.CommandType, "run.start", StringComparison.Ordinal))
+            {
+                startOptions = Deserialize<RunStartOptions>(checkpoints[0].JournalEntry.Command);
+            }
+            else if (string.Equals(
+                         checkpoints[0].JournalEntry.CommandType,
+                         "run.branch.start",
+                         StringComparison.Ordinal))
+            {
+                var branchCommand = Deserialize<RunBranchStartCommand>(checkpoints[0].JournalEntry.Command);
+                var source = await _repository.LoadAsync(
+                        branchCommand.ParentRunId,
+                        branchCommand.SourceSequence,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (source == null)
+                    return Failure(runId, "Branch source checkpoint is unavailable");
+                var branch = RunBranchTransitions.Create(source, branchCommand);
+                if (branch.IsFailure)
+                    return Failure(runId, branch.Error);
+                branchInitialState = branch.Value;
+            }
+            else
+            {
+                return Failure(runId, "Journal does not begin with run.start or run.branch.start");
+            }
         }
         catch (Exception exception)
         {
-            return Failure(runId, $"Invalid run.start journal payload: {exception.Message}");
+            return Failure(runId, $"Invalid initial journal payload: {exception.Message}");
         }
 
-        var runtime = CreateRuntime(startOptions.ConfigName);
+        var runtime = CreateRuntime(startOptions?.ConfigName ?? branchInitialState!.ConfigName);
         var statesBySequence = new Dictionary<int, RunState>();
         RunState? current = null;
         var commandsReplayed = 0;
@@ -152,7 +179,9 @@ public sealed class RunSemanticReplayService : IRunReplayService
             }
 
             var transition = entry.Sequence == checkpoints[0].JournalEntry.Sequence
-                ? runtime.Runs.StartRun(startOptions)
+                ? startOptions != null
+                    ? runtime.Runs.StartRun(startOptions)
+                    : runtime.Runs.HydrateForReplay(branchInitialState!)
                 : ReplayEntry(runtime, entry, statesBySequence);
             if (transition.IsFailure)
             {
@@ -214,7 +243,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
             repository: null,
             _contentManifestProvider,
             _relicCatalog,
-            _cardUpgradeCatalog);
+            _cardUpgradeCatalog,
+            _modeCatalog);
         var damage = new DamageCalculator(
             _pipelineManager,
             eventBus,

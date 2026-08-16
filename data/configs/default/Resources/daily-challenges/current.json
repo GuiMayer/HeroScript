@@ -1,0 +1,10 @@
+{
+  "current": {
+    "challengeId": "current",
+    "isCurrent": true,
+    "configName": "default",
+    "runDefinitionId": "default_run",
+    "modeId": "standard",
+    "seed": 20260816
+  }
+}

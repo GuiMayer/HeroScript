@@ -22,6 +22,15 @@ Swagger UI fica disponivel na raiz da aplicacao em ambiente de desenvolvimento.
 
 Os IDs de instancia acima nao substituem IDs de definicao. Duas copias da mesma carta compartilham `definitionId`, mas sempre possuem `cardInstanceId` diferentes.
 
+## Contratos P2
+
+- `GET /api/v1/profiles/{playerId}` e os sub-recursos `stats`, `unlocks`, `achievements` e `runs` retornam projecoes reconstruiveis; nao existe unlock publico direto.
+- `GET /api/v1/challenges/daily/current` retorna seed, modo, revisao e hash canonico da prova; `attempts`, `submissions` e `leaderboard` usam runs verificaveis.
+- `GET /api/v1/runs/{runId}/timeline` combina journal e retencao de checkpoints sem apagar o futuro.
+- `POST/GET /api/v1/runs/{runId}/branches` cria e lista agregados derivados de checkpoints.
+- `POST /api/v1/simulations`, `GET /api/v1/simulations/{simulationId}` e `GET .../result` executam comandos numa branch isolada.
+- `GET /api/v1/combats/{combatId}/legal-actions`, `legal-targets` e `stack` expoem leituras TCG sem criar rotas mutaveis paralelas.
+
 ## Estado da API
 
 - Contrato principal de acoes: `effects[]` e `costs`.

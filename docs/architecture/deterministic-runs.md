@@ -164,6 +164,27 @@ there are no public endpoints that mutate a global relic or card object. Legacy
 definition-only deck snapshots remain readable but cannot accept instance-level
 upgrades.
 
+## Branches, simulations and meta projections
+
+An undo never rewrites history. `run.branch.start` creates a new aggregate from
+an immutable parent checkpoint, records the parent id/sequence/hash and derives
+the branch id from the source deterministic context plus a stable branch key.
+Branches cannot be created while an encounter is active. Semantic replay
+reconstructs the same branch from its parent before executing later commands.
+
+Theory-crafting simulations use internal branches whose keys are hashes of the
+ordered command list. Commands commit only to the simulation branch; retrying
+the same request resumes or returns that branch and the source run is untouched.
+Profile statistics, unlocks and achievements are rebuildable projections over
+authoritative run snapshots. There is intentionally no public direct-unlock
+command.
+
+Daily challenge definitions are versioned content. Starting an attempt writes
+the challenge id, mode, fixed seed and effective content revision into the run;
+submission reexecutes the journal before accepting its proof. TCG legality,
+target and stack endpoints are read models over combat state. Future priority or
+stack mutations must still enter through the combat command gateway.
+
 ## Explicit compatibility boundaries
 
 Some APIs still serve editors, standalone calculators and older callers. They are

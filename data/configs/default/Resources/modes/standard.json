@@ -1,0 +1,10 @@
+{
+  "standard": {
+    "modeId": "standard",
+    "runDefinitionId": "default_run",
+    "allowCustomSeed": true,
+    "rules": {
+      "dailyEligible": true
+    }
+  }
+}

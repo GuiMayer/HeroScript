@@ -37,7 +37,8 @@ public sealed class RunController : BaseApiController
                 request?.RunDefinitionId ?? "default_run",
                 request?.PlayerEntityId ?? "player",
                 request?.Seed,
-                request?.ContentRevision));
+                request?.ContentRevision,
+                request?.ModeId));
 
             return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapRun(result.Value));
         }
@@ -328,6 +329,11 @@ public sealed class RunController : BaseApiController
             run.RunId,
             run.ConfigName,
             run.PlayerEntityId,
+            run.ModeId,
+            run.ChallengeId,
+            run.ParentRunId,
+            run.BranchFromSequence,
+            run.BranchKey,
             run.Gold,
             run.PowerPoints,
             run.CurrentNodeId,
@@ -521,7 +527,8 @@ public sealed record StartRunRequest(
     string? RunDefinitionId,
     string? PlayerEntityId,
     ulong? Seed = null,
-    string? ContentRevision = null);
+    string? ContentRevision = null,
+    string? ModeId = null);
 public sealed record CountRequest(int Count);
 public sealed record CardIdsRequest(IReadOnlyList<string> CardIds);
 public sealed record UndoRequest(int? Sequence);

@@ -9,4 +9,6 @@ public sealed record RunStartOptions(
     string RunDefinitionId = "default_run",
     string PlayerEntityId = "player",
     ulong? Seed = null,
-    string? ContentRevision = null);
+    string? ContentRevision = null,
+    string? ModeId = null,
+    string? ChallengeId = null);

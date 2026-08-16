@@ -98,6 +98,46 @@ public sealed class RunJournalController : BaseApiController
             : Ok(checkpoint);
     }
 
+    [HttpGet("timeline")]
+    public async Task<IActionResult> GetTimeline(
+        Guid runId,
+        [FromQuery] int afterSequence = 0,
+        [FromQuery] int limit = 200,
+        CancellationToken cancellationToken = default)
+    {
+        if (afterSequence < 0 || limit is < 1 or > 1000)
+            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
+        if (_repository is not IRunCheckpointRepository checkpoints)
+            return JournalUnavailable();
+        var retained = (await _repository.ListSnapshotsAsync(runId, cancellationToken)).ToHashSet();
+        var items = (await checkpoints.LoadCheckpointsAsync(runId, cancellationToken))
+            .Where(checkpoint => checkpoint.State.Sequence > afterSequence)
+            .OrderBy(checkpoint => checkpoint.State.Sequence)
+            .Take(limit)
+            .Select(checkpoint => new
+            {
+                checkpoint.State.Sequence,
+                checkpoint.JournalEntry.Step,
+                checkpoint.JournalEntry.CommandId,
+                checkpoint.JournalEntry.CommandType,
+                checkpoint.JournalEntry.LogicalTimestamp,
+                checkpoint.JournalEntry.PreviousStateHash,
+                checkpoint.JournalEntry.StateHash,
+                snapshotRetained = retained.Contains(checkpoint.State.Sequence)
+            })
+            .ToArray();
+        if (items.Length == 0 && await _repository.LoadLatestAsync(runId, cancellationToken) == null)
+            return ApiNotFound($"Run timeline not found: {runId}");
+        return Ok(new
+        {
+            runId,
+            afterSequence,
+            returned = items.Length,
+            nextCursor = items.LastOrDefault()?.Sequence ?? afterSequence,
+            items
+        });
+    }
+
     [HttpPost("verify")]
     public async Task<IActionResult> Verify(
         Guid runId,
@@ -115,4 +155,3 @@ public sealed class RunJournalController : BaseApiController
         "Run journal unavailable",
         "The configured repository does not support durable journals");
 }
-
