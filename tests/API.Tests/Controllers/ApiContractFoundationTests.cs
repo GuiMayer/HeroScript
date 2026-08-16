@@ -45,6 +45,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             Content = JsonContent.Create(new { targetId = "enemy_1", instanceId = "not-a-guid" })
         };
         request.Headers.Add("X-Correlation-ID", correlationId);
+        request.Headers.Add("X-Admin-Key", "dev-admin-key");
 
         using var response = await _client.SendAsync(request);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -430,5 +431,81 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.All(
             combatEvents.GetProperty("events").EnumerateArray(),
             item => Assert.Equal(combatId, item.GetProperty("combatId").GetGuid()));
+    }
+
+    [Theory]
+    [InlineData("/api/status/apply")]
+    [InlineData("/api/modifiers/apply")]
+    [InlineData("/api/effect/apply")]
+    [InlineData("/api/gambits/reload")]
+    [InlineData("/api/game-resources/reload")]
+    [InlineData("/api/resource/reload")]
+    public async Task DirectGlobalMutationEndpoints_RequireAdminAuthority(string path)
+    {
+        using var response = await _client.PostAsJsonAsync(path, new { });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ContentDraft_PublishesImmutableQueryableRevision()
+    {
+        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/content/drafts")
+        {
+            Content = JsonContent.Create(new { configName = "default" })
+        };
+        createRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var createResponse = await _client.SendAsync(createRequest);
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var draft = JsonSerializer.Deserialize<JsonElement>(createBody);
+        var draftId = draft.GetProperty("draftId").GetGuid();
+        var version = draft.GetProperty("version").GetInt32();
+
+        using var validateRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/v1/admin/content/drafts/{draftId}/validate");
+        validateRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var validateResponse = await _client.SendAsync(validateRequest);
+        var validation = await validateResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, validateResponse.StatusCode);
+        Assert.True(validation.GetProperty("isValid").GetBoolean());
+
+        using var publishRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/v1/admin/content/drafts/{draftId}/publish")
+        {
+            Content = JsonContent.Create(new { expectedVersion = version })
+        };
+        publishRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var publishResponse = await _client.SendAsync(publishRequest);
+        var publishBody = await publishResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, publishResponse.StatusCode);
+        var published = JsonSerializer.Deserialize<JsonElement>(publishBody);
+        var revision = published.GetProperty("revision").GetString();
+        Assert.NotNull(revision);
+        Assert.Equal(64, revision.Length);
+
+        using var revisionResponse = await _client.GetAsync($"/api/v1/content/revisions/{revision}");
+        Assert.Equal(HttpStatusCode.OK, revisionResponse.StatusCode);
+
+        using var catalogResponse = await _client.GetAsync(
+            $"/api/v1/content/actions?revision={revision}&limit=10");
+        var catalogBody = await catalogResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, catalogResponse.StatusCode);
+        var catalog = JsonSerializer.Deserialize<JsonElement>(catalogBody);
+        Assert.True(catalog.GetProperty("returned").GetInt32() > 0, catalogBody);
+
+        using var republishRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/v1/admin/content/drafts/{draftId}/publish")
+        {
+            Content = JsonContent.Create(new { expectedVersion = version })
+        };
+        republishRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var republishResponse = await _client.SendAsync(republishRequest);
+        var republished = await republishResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, republishResponse.StatusCode);
+        Assert.Equal(revision, republished.GetProperty("revision").GetString());
     }
 }

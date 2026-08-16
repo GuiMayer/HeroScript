@@ -49,6 +49,7 @@ public class EffectController : BaseApiController
     }
 
     [HttpPost("apply")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult ApplyEffect([FromBody] ApplyEffectRequest request)
     {
         try

@@ -25,6 +25,7 @@ public class StatusEffectController : BaseApiController
     /// Aplica um status effect a uma entidade
     /// </summary>
     [HttpPost("apply")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult ApplyStatus([FromBody] ApplyStatusRequest request)
     {
         return ApplyStatusInternal(request);
@@ -56,6 +57,7 @@ public class StatusEffectController : BaseApiController
     /// Remove uma instância específica de status effect
     /// </summary>
     [HttpDelete("remove")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult RemoveStatus([FromBody] RemoveStatusRequest request)
     {
         return RemoveStatusInternal(request);
@@ -82,6 +84,7 @@ public class StatusEffectController : BaseApiController
     /// Remove todos os status effects de um statusId específico
     /// </summary>
     [HttpDelete("{targetId}/status/{statusId}")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult RemoveStatusByStatusId(string targetId, string statusId)
     {
         try
@@ -103,6 +106,7 @@ public class StatusEffectController : BaseApiController
     /// Remove todos os status effects de uma entidade (opcionalmente filtrado por tipo)
     /// </summary>
     [HttpDelete("{targetId}/all")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult RemoveAllStatus(string targetId, [FromQuery] string? type = null)
     {
         try
@@ -132,6 +136,7 @@ public class StatusEffectController : BaseApiController
     /// Adiciona stacks a um status effect existente
     /// </summary>
     [HttpPost("add-stacks")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult AddStacks([FromBody] ModifyStacksRequest request)
     {
         return AddStacksInternal(request);
@@ -161,6 +166,7 @@ public class StatusEffectController : BaseApiController
     /// Remove stacks de um status effect existente
     /// </summary>
     [HttpPost("remove-stacks")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult RemoveStacks([FromBody] ModifyStacksRequest request)
     {
         return RemoveStacksInternal(request);
@@ -193,6 +199,7 @@ public class StatusEffectController : BaseApiController
     /// Atualiza a duração de um status effect
     /// </summary>
     [HttpPut("{targetId}/status/{instanceId}/duration")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult RefreshDuration(string targetId, Guid instanceId, [FromBody] int duration)
     {
         return RefreshDurationInternal(targetId, instanceId, duration);
@@ -316,6 +323,7 @@ public class StatusEffectController : BaseApiController
     /// Processa todos os status effects de uma entidade com um timing específico
     /// </summary>
     [HttpPost("process")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult ProcessStatusEffects([FromBody] ProcessStatusEffectsRequest request)
     {
         try
@@ -343,6 +351,7 @@ public class StatusEffectController : BaseApiController
     /// Decrementa a duração de todos os status effects de uma entidade
     /// </summary>
     [HttpPost("{targetId}/tick")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult TickDurations(string targetId)
     {
         return TickDurationsInternal(targetId);

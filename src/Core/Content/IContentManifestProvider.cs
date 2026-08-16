@@ -8,4 +8,5 @@ public interface IContentManifestProvider
     Result<ContentManifest> RefreshManifest(string configName);
     Result<ContentManifest> GetByRevision(string revision);
     IReadOnlyList<ContentManifest> GetKnownManifests();
+    Result RegisterPublishedManifest(ContentManifest manifest);
 }

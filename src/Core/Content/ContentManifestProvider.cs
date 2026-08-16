@@ -92,6 +92,29 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         }
     }
 
+    public Result RegisterPublishedManifest(ContentManifest manifest)
+    {
+        ArgumentNullException.ThrowIfNull(manifest);
+        if (string.IsNullOrWhiteSpace(manifest.Revision) || manifest.Revision.Length != 64)
+            return Result.Failure("Published content manifest revision must be a SHA-256 hash");
+
+        lock (_lock)
+        {
+            if (_manifestsByRevision.TryGetValue(manifest.Revision, out var existing) &&
+                !string.Equals(
+                    CanonicalJson.ComputeHash(existing),
+                    CanonicalJson.ComputeHash(manifest),
+                    StringComparison.Ordinal))
+            {
+                return Result.Failure($"Content revision collision: {manifest.Revision}");
+            }
+
+            _manifestsByRevision[manifest.Revision] = manifest;
+        }
+
+        return Result.Success();
+    }
+
     private Result<ContentManifest> BuildAndStore(string configName)
     {
         var built = BuildManifest(configName);

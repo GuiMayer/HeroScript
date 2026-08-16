@@ -135,6 +135,20 @@ The versioned SSE endpoints read the same projection and honor both
 remains a compatibility/telemetry facility and must never be used for recovery,
 idempotency or replay.
 
+## Immutable content publication
+
+Gameplay content is exposed as a versioned catalog rather than mutable CRUD.
+Administrative authoring captures the effective configuration into a draft,
+validates every canonical artifact hash, and publishes an immutable bundle named
+by the manifest SHA-256 revision. Publishing the same canonical draft is
+idempotent; a different payload cannot replace an existing revision.
+
+Draft identifiers, optimistic authoring versions and wall-clock timestamps are
+operational metadata outside the simulation boundary. A published bundle
+contains only its manifest and canonical artifact payloads. Global compatibility
+reload/apply endpoints are administrative and disabled by default; authoritative
+gameplay mutations continue to enter through the run or combat command gateway.
+
 ## Explicit compatibility boundaries
 
 Some APIs still serve editors, standalone calculators and older callers. They are

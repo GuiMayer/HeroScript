@@ -154,6 +154,7 @@ public class GameResourceController : ControllerBase
     /// Recarrega definições de recursos (dev mode)
     /// </summary>
     [HttpPost("reload")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(200)]
     [ProducesResponseType(500)]
     public IActionResult ReloadResources([FromQuery] string configName = "default")

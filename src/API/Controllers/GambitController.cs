@@ -36,6 +36,7 @@ public class GambitController : BaseApiController
     }
 
     [HttpPost("reload")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult Reload([FromQuery] string configName = "default")
     {
         var result = _gambitEngine.LoadDefinitions(configName);

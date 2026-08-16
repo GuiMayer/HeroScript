@@ -231,6 +231,7 @@ builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 // Register persistence services
 var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
 var runStatePath = builder.Configuration.GetValue<string>("Persistence:RunStatePath") ?? "data/runs";
+var contentStorePath = builder.Configuration.GetValue<string>("Persistence:ContentStorePath") ?? "data/content";
 var maxRetainedSnapshots = builder.Configuration.GetValue<int>("Persistence:Snapshots:MaxRetainedSnapshots", 100);
 
 builder.Services.AddSingleton<IEventStore>(sp =>
@@ -249,6 +250,10 @@ builder.Services.AddSingleton<IRunStateRepository>(sp =>
 
 // Register Run content and manager
 builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
+builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPublicationService(
+    contentStorePath,
+    sp.GetRequiredService<IContentManifestProvider>(),
+    sp.GetRequiredService<IResourceLoader>()));
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<RunManager>(sp => new RunManager(

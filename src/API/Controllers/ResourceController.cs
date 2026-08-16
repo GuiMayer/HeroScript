@@ -67,6 +67,7 @@ public class ResourceController : ControllerBase
     /// <param name="path">Resource path (optional, if empty reloads all formulas)</param>
     /// <returns>Success message</returns>
     [HttpPost("reload")]
+    [API.Attributes.AdminEndpoint]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

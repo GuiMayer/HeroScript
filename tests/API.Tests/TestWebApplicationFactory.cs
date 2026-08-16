@@ -44,6 +44,8 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         // Usar ambiente de teste
         builder.UseEnvironment("Development");
+        builder.UseSetting("Admin:Enabled", "true");
+        builder.UseSetting("Admin:ApiKey", "dev-admin-key");
          
         // Configurar content root para encontrar arquivos de configuração
         if (projectRoot != null)

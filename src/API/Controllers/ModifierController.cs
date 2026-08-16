@@ -32,6 +32,7 @@ public class ModifierController : BaseApiController
     }
 
     [HttpPost("reload")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult Reload([FromQuery] string configName = "default")
     {
         var result = _modifierManager.LoadDefinitions(configName);
@@ -41,6 +42,7 @@ public class ModifierController : BaseApiController
     }
 
     [HttpPost("apply")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult Apply([FromBody] ApplyModifierRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.OwnerId))
@@ -74,6 +76,7 @@ public class ModifierController : BaseApiController
     }
 
     [HttpDelete("active/{ownerId}/{instanceId:guid}")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult Remove(string ownerId, Guid instanceId)
     {
         var result = _modifierManager.RemoveModifier(ownerId, instanceId);
@@ -83,6 +86,7 @@ public class ModifierController : BaseApiController
     }
 
     [HttpPost("active/{ownerId}/tick")]
+    [API.Attributes.AdminEndpoint]
     public IActionResult TickDurations(string ownerId)
     {
         var result = _modifierManager.TickDurations(ownerId);
