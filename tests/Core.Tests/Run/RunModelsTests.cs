@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Immutable;
 using System.Collections.Generic;
+using System.Text.Json;
 using Core.Run;
 using Xunit;
 
@@ -150,7 +152,7 @@ public class RunModelsTests
         var runState = new RunState();
         
         // Assert
-        Assert.NotEqual(Guid.Empty, runState.RunId);
+        Assert.Equal(Guid.Empty, runState.RunId);
         Assert.Equal(0, runState.Sequence);
         Assert.Equal("default", runState.ConfigName);
         Assert.Equal("player", runState.PlayerEntityId);
@@ -165,14 +167,15 @@ public class RunModelsTests
     }
     
     [Fact]
-    public void RunState_GeneratesUniqueRunId()
+    public void RunState_DoesNotGenerateAmbientRunId()
     {
         // Arrange & Act
         var run1 = new RunState();
         var run2 = new RunState();
         
         // Assert
-        Assert.NotEqual(run1.RunId, run2.RunId);
+        Assert.Equal(Guid.Empty, run1.RunId);
+        Assert.Equal(run1.RunId, run2.RunId);
     }
     
     [Fact]
@@ -193,7 +196,9 @@ public class RunModelsTests
             PowerPoints = 3,
             CurrentNodeId = "node_boss",
             Deck = deckState,
-            Metadata = new Dictionary<string, object> { ["difficulty"] = "hard" }
+            Metadata = ImmutableDictionary<string, JsonElement>.Empty.Add(
+                "difficulty",
+                JsonSerializer.SerializeToElement("hard"))
         };
         
         // Assert
@@ -209,42 +214,45 @@ public class RunModelsTests
     }
     
     [Fact]
-    public void RunState_Sequence_CanBeModified()
+    public void RunState_Sequence_ChangesByReplacement()
     {
         // Arrange
         var runState = new RunState { Sequence = 1 };
         
         // Act
-        runState.Sequence = 10;
+        var updated = runState with { Sequence = 10 };
         
         // Assert
-        Assert.Equal(10, runState.Sequence);
+        Assert.Equal(1, runState.Sequence);
+        Assert.Equal(10, updated.Sequence);
     }
     
     [Fact]
-    public void RunState_Gold_CanBeModified()
+    public void RunState_Gold_ChangesByReplacement()
     {
         // Arrange
         var runState = new RunState { Gold = 100 };
         
         // Act
-        runState.Gold = 150;
+        var updated = runState with { Gold = 150 };
         
         // Assert
-        Assert.Equal(150, runState.Gold);
+        Assert.Equal(100, runState.Gold);
+        Assert.Equal(150, updated.Gold);
     }
     
     [Fact]
-    public void RunState_PowerPoints_CanBeModified()
+    public void RunState_PowerPoints_ChangesByReplacement()
     {
         // Arrange
         var runState = new RunState { PowerPoints = 2 };
         
         // Act
-        runState.PowerPoints = 5;
+        var updated = runState with { PowerPoints = 5 };
         
         // Assert
-        Assert.Equal(5, runState.PowerPoints);
+        Assert.Equal(2, runState.PowerPoints);
+        Assert.Equal(5, updated.PowerPoints);
     }
     
     [Fact]
@@ -518,14 +526,18 @@ public class RunModelsTests
         };
         
         // Act - Win combat, gain gold and PP
-        runState.Gold += 50;
-        runState.PowerPoints += 1;
-        runState.CurrentNodeId = "node_shop_1";
+        var progressed = runState with
+        {
+            Gold = runState.Gold + 50,
+            PowerPoints = runState.PowerPoints + 1,
+            CurrentNodeId = "node_shop_1"
+        };
         
         // Assert
-        Assert.Equal(150, runState.Gold);
-        Assert.Equal(1, runState.PowerPoints);
-        Assert.Equal("node_shop_1", runState.CurrentNodeId);
+        Assert.Equal(100, runState.Gold);
+        Assert.Equal(150, progressed.Gold);
+        Assert.Equal(1, progressed.PowerPoints);
+        Assert.Equal("node_shop_1", progressed.CurrentNodeId);
     }
     
     [Fact]

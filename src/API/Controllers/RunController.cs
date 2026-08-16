@@ -23,10 +23,12 @@ public sealed class RunController : BaseApiController
     {
         try
         {
-            var result = _runManager.StartRun(
+            var result = _runManager.StartRun(new RunStartOptions(
                 request?.ConfigName ?? "default",
                 request?.RunDefinitionId ?? "default_run",
-                request?.PlayerEntityId ?? "player");
+                request?.PlayerEntityId ?? "player",
+                request?.Seed,
+                request?.ContentRevision));
 
             return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapRun(result.Value));
         }
@@ -155,6 +157,10 @@ public sealed class RunController : BaseApiController
             run.PowerPoints,
             run.CurrentNodeId,
             run.Sequence,
+            seed = run.Determinism.Seed,
+            run.Determinism.ContentRevision,
+            run.Determinism.EngineVersion,
+            run.Determinism.Step,
             deck = MapDeck(run.Deck),
             run.Metadata
         };
@@ -259,7 +265,12 @@ public sealed class RunController : BaseApiController
     }
 }
 
-public sealed record StartRunRequest(string? ConfigName, string? RunDefinitionId, string? PlayerEntityId);
+public sealed record StartRunRequest(
+    string? ConfigName,
+    string? RunDefinitionId,
+    string? PlayerEntityId,
+    ulong? Seed = null,
+    string? ContentRevision = null);
 public sealed record CountRequest(int Count);
 public sealed record CardIdsRequest(IReadOnlyList<string> CardIds);
 public sealed record UndoRequest(int? Sequence);

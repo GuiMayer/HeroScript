@@ -1,17 +1,24 @@
+using System.Collections.Immutable;
+using System.Text.Json;
+using Core.Determinism;
+
 namespace Core.Run;
 
 public sealed record RunState
 {
-    public Guid RunId { get; init; } = Guid.NewGuid();
-    public int Sequence { get; set; }
+    public Guid RunId { get; init; }
+    public int Sequence { get; init; }
     public string ConfigName { get; init; } = "default";
     public string PlayerEntityId { get; init; } = "player";
-    public int Gold { get; set; }
-    public int PowerPoints { get; set; }
-    public string? CurrentNodeId { get; set; }
+    public int Gold { get; init; }
+    public int PowerPoints { get; init; }
+    public string? CurrentNodeId { get; init; }
     public DeckState Deck { get; init; } = new();
-    public List<CardSelectionState> CardSelections { get; init; } = new();
-    public List<ShopState> Shops { get; init; } = new();
-    public List<PreparationState> Preparations { get; init; } = new();
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
+    public ImmutableArray<ShopState> Shops { get; init; } = [];
+    public ImmutableArray<PreparationState> Preparations { get; init; } = [];
+    public ImmutableDictionary<string, JsonElement> Metadata { get; init; } =
+        ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    public DeterministicContext Determinism { get; init; } =
+        DeterministicContext.Create(0, "legacy");
 }

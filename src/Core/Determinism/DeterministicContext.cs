@@ -76,7 +76,8 @@ public sealed record DeterministicContext
 
     public ContextValue<Guid> AllocateId(string scope)
     {
-        var id = DeterministicId.Create(Seed, IdSequence, scope);
+        var idScope = $"{EngineVersion}\n{ContentRevision}\n{scope}";
+        var id = DeterministicId.Create(Seed, IdSequence, idScope);
         return new ContextValue<Guid>(id, Copy(idSequence: checked(IdSequence + 1)));
     }
 

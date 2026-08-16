@@ -4,7 +4,11 @@ using Core.Combat.Modifiers;
 using Core.Config;
 using Core.Events;
 using Core.Events.Domain;
+using Core.Determinism;
 using Core.Run.Content;
+using System.Buffers.Binary;
+using System.Collections.Immutable;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -46,33 +50,71 @@ public sealed class RunManager : IRunManager
 
     public Result<RunState> StartRun(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player")
     {
-        var definitionResult = LoadDefinition(configName, runDefinitionId);
+        return StartRun(new RunStartOptions(configName, runDefinitionId, playerEntityId));
+    }
+
+    public Result<RunState> StartRun(RunStartOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (string.IsNullOrWhiteSpace(options.ConfigName))
+            return Result<RunState>.Failure("Config name is required");
+        if (string.IsNullOrWhiteSpace(options.RunDefinitionId))
+            return Result<RunState>.Failure("Run definition id is required");
+        if (string.IsNullOrWhiteSpace(options.PlayerEntityId))
+            return Result<RunState>.Failure("Player entity id is required");
+
+        var definitionResult = LoadDefinition(options.ConfigName, options.RunDefinitionId);
         if (definitionResult.IsFailure)
             return Result<RunState>.Failure(definitionResult.Error);
 
         var definition = definitionResult.Value;
+        var seed = options.Seed ?? CreateSeed();
+        var contentRevision = string.IsNullOrWhiteSpace(options.ContentRevision)
+            ? CanonicalJson.ComputeHash(definition, _jsonOptions)
+            : options.ContentRevision;
+        var context = DeterministicContext.Create(seed, contentRevision!);
+        var runId = context.AllocateId(
+            $"run:{options.ConfigName}:{options.RunDefinitionId}:{options.PlayerEntityId}");
+        context = runId.Context;
+
         var state = new RunState
         {
-            ConfigName = configName,
-            PlayerEntityId = playerEntityId,
+            RunId = runId.Value,
+            ConfigName = options.ConfigName,
+            PlayerEntityId = options.PlayerEntityId,
             Gold = definition.StartingGold,
             PowerPoints = definition.StartingPowerPoints,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
-            Deck = new DeckState { DrawPile = definition.StartingDeck.ToList() },
-            Metadata = new Dictionary<string, object>(definition.Metadata)
+            Deck = new DeckState { DrawPile = [.. definition.StartingDeck] },
+            Metadata = ToImmutableMetadata(definition.Metadata),
+            Determinism = context
+        };
+
+        var initialDraw = DeckTransitions.Draw(state.Deck, definition.StartingHandSize, state.Determinism);
+        if (initialDraw.IsFailure)
+            return Result<RunState>.Failure(initialDraw.Error);
+
+        state = state with
+        {
+            Deck = initialDraw.Value.State,
+            Determinism = initialDraw.Value.Context.AdvanceStep()
         };
 
         lock (_lock)
         {
+            if (_runs.ContainsKey(state.RunId))
+                return Result<RunState>.Failure($"Run already exists for the deterministic inputs: {state.RunId}");
+
             _runs[state.RunId] = state;
+            state = PersistAsync(state);
         }
 
-        _eventBus?.Publish(new RunStartedEvent(state.RunId, configName, playerEntityId, definition.StartingGold, definition.StartingPowerPoints));
+        _eventBus?.Publish(new RunStartedEvent(state.RunId, options.ConfigName, options.PlayerEntityId, definition.StartingGold, definition.StartingPowerPoints));
+        if (!initialDraw.Value.Cards.IsEmpty)
+            _eventBus?.Publish(new CardDrawnEvent(state.RunId, initialDraw.Value.Cards));
 
-        PersistAsync(state);
-
-        var draw = DrawCards(state.RunId, definition.StartingHandSize);
-        return draw.IsFailure ? Result<RunState>.Failure(draw.Error) : GetRun(state.RunId);
+        return Result<RunState>.Success(state);
     }
 
     public Result<RunState> GetRun(Guid runId)
@@ -109,73 +151,67 @@ public sealed class RunManager : IRunManager
             {
                 case "gold":
                     oldValue = state.Gold;
-                    state.Gold = System.Math.Max(0, state.Gold + amount);
-                    newValue = state.Gold;
+                    newValue = SaturatingEconomyChange(state.Gold, amount);
+                    state = state with { Gold = newValue };
                     break;
                 case "pp":
                 case "powerpoints":
                 case "power_points":
                     oldValue = state.PowerPoints;
-                    state.PowerPoints = System.Math.Max(0, state.PowerPoints + amount);
-                    newValue = state.PowerPoints;
+                    newValue = SaturatingEconomyChange(state.PowerPoints, amount);
+                    state = state with { PowerPoints = newValue };
                     break;
                 default:
                     return Result<RunState>.Failure($"Unsupported run economy resource: {resource}");
             }
 
+            state = state with { Determinism = state.Determinism.AdvanceStep() };
+            _runs[runId] = state;
+            state = PersistAsync(state);
             _eventBus?.Publish(new EconomyChangedEvent(runId, resource, oldValue, newValue));
-            PersistAsync(state);
             return Result<RunState>.Success(state);
         }
     }
 
     public Result<IReadOnlyList<string>> DrawCards(Guid runId, int count)
     {
-        List<string> drawn;
+        ImmutableArray<string> drawn;
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
 
-            drawn = new List<string>();
-            for (var i = 0; i < count; i++)
+            var transition = DeckTransitions.Draw(state.Deck, count, state.Determinism);
+            if (transition.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(transition.Error);
+
+            drawn = transition.Value.Cards;
+            if (!drawn.IsEmpty)
             {
-                if (state.Deck.DrawPile.Count == 0)
+                state = state with
                 {
-                    MoveAll(state.Deck.DiscardPile, state.Deck.DrawPile);
-                }
-
-                if (state.Deck.DrawPile.Count == 0)
-                    break;
-
-                var cardId = state.Deck.DrawPile[0];
-                state.Deck.DrawPile.RemoveAt(0);
-                state.Deck.Hand.Add(cardId);
-                drawn.Add(cardId);
+                    Deck = transition.Value.State,
+                    Determinism = transition.Value.Context.AdvanceStep()
+                };
+                _runs[runId] = state;
+                PersistAsync(state);
             }
         }
 
-        if (drawn.Count > 0)
+        if (!drawn.IsEmpty)
             _eventBus?.Publish(new CardDrawnEvent(runId, drawn));
-
-        // Persist after draw mutates deck state
-        if (drawn.Count > 0)
-        {
-            var runResult = GetRun(runId);
-            if (runResult.IsSuccess) PersistAsync(runResult.Value);
-        }
 
         return Result<IReadOnlyList<string>>.Success(drawn);
     }
 
     public Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds)
     {
-        return MoveCards(runId, cardIds, deck => deck.Hand, deck => deck.DiscardPile, "hand");
+        return MoveCards(runId, cardIds, CardConsumeDestination.Discard);
     }
 
     public Result<IReadOnlyList<string>> ExhaustCards(Guid runId, IReadOnlyList<string> cardIds)
     {
-        return MoveCards(runId, cardIds, deck => deck.Hand, deck => deck.ExhaustPile, "hand");
+        return MoveCards(runId, cardIds, CardConsumeDestination.Exhaust);
     }
 
     public Result<IReadOnlyList<string>> AddCardsToHand(Guid runId, IReadOnlyList<string> cardIds)
@@ -185,12 +221,22 @@ public sealed class RunManager : IRunManager
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
 
-            foreach (var cardId in cardIds.Where(id => !string.IsNullOrWhiteSpace(id)))
+            var transition = DeckTransitions.AddToHand(state.Deck, cardIds, state.Determinism);
+            if (transition.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(transition.Error);
+
+            if (!transition.Value.Cards.IsEmpty)
             {
-                state.Deck.Hand.Add(cardId);
+                state = state with
+                {
+                    Deck = transition.Value.State,
+                    Determinism = transition.Value.Context.AdvanceStep()
+                };
+                _runs[runId] = state;
+                PersistAsync(state);
             }
 
-            return Result<IReadOnlyList<string>>.Success(cardIds.ToList());
+            return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
         }
     }
 
@@ -215,32 +261,22 @@ public sealed class RunManager : IRunManager
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
 
-            var cards = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToList();
-            if (cards.Count == 0)
-                return Result<IReadOnlyList<string>>.Failure("At least one card id is required");
+            var transition = DeckTransitions.MoveFromHand(state.Deck, cardIds, destination, state.Determinism);
+            if (transition.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(transition.Error);
 
-            var handSnapshot = state.Deck.Hand.ToList();
-            foreach (var cardId in cards)
+            if (!ReferenceEquals(transition.Value.State, state.Deck))
             {
-                if (!handSnapshot.Remove(cardId))
-                    return Result<IReadOnlyList<string>>.Failure($"Card not found in hand: {cardId}");
+                state = state with
+                {
+                    Deck = transition.Value.State,
+                    Determinism = transition.Value.Context.AdvanceStep()
+                };
+                _runs[runId] = state;
+                PersistAsync(state);
             }
 
-            if (destination == CardConsumeDestination.None)
-                return Result<IReadOnlyList<string>>.Success(cards);
-
-            foreach (var cardId in cards)
-            {
-                state.Deck.Hand.Remove(cardId);
-                if (destination == CardConsumeDestination.Discard)
-                    state.Deck.DiscardPile.Add(cardId);
-                else if (destination == CardConsumeDestination.Exhaust)
-                    state.Deck.ExhaustPile.Add(cardId);
-                else
-                    return Result<IReadOnlyList<string>>.Failure($"Unsupported card consume destination: {destination}");
-            }
-
-            return Result<IReadOnlyList<string>>.Success(cards);
+            return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
         }
     }
 
@@ -251,7 +287,17 @@ public sealed class RunManager : IRunManager
             if (!_runs.TryGetValue(runId, out var state))
                 return Result.Failure($"Run not found: {runId}");
 
-            MoveAll(state.Deck.DiscardPile, state.Deck.DrawPile);
+            var transition = DeckTransitions.ShuffleDiscardIntoDrawPile(state.Deck, state.Determinism);
+            if (!transition.Cards.IsEmpty)
+            {
+                state = state with
+                {
+                    Deck = transition.State,
+                    Determinism = transition.Context.AdvanceStep()
+                };
+                _runs[runId] = state;
+                PersistAsync(state);
+            }
             return Result.Success();
         }
     }
@@ -268,8 +314,10 @@ public sealed class RunManager : IRunManager
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
+            var instanceId = state.Determinism.AllocateId("card-selection");
             var selection = new CardSelectionState
             {
+                SelectionInstanceId = instanceId.Value,
                 RunId = runId,
                 SelectionId = definition.SelectionId,
                 PickCount = definition.PickCount,
@@ -282,7 +330,13 @@ public sealed class RunManager : IRunManager
                 Options = GenerateCardSelectionOptions(state, definition, new HashSet<string>(StringComparer.OrdinalIgnoreCase))
             };
 
-            state.CardSelections.Add(selection);
+            state = state with
+            {
+                CardSelections = state.CardSelections.Add(selection),
+                Determinism = instanceId.Context.AdvanceStep()
+            };
+            _runs[runId] = state;
+            PersistAsync(state);
             return Result<CardSelectionState>.Success(selection);
         }
     }
@@ -291,8 +345,9 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, state =>
+            return ExecuteRunTransaction(runId, transaction =>
             {
+                var state = transaction.State;
                 var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
                 if (selection == null)
                     return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
@@ -312,13 +367,15 @@ public sealed class RunManager : IRunManager
                 if (invalid.Count > 0)
                     return Result<CardSelectionState>.Failure($"Invalid card options: {string.Join(", ", invalid)}");
 
+                var deck = DeckTransitions.AddToDiscard(state.Deck, picks, state.Determinism);
+                if (deck.IsFailure)
+                    return Result<CardSelectionState>.Failure(deck.Error);
+
                 foreach (var cardId in picks)
-                {
-                    state.Deck.DiscardPile.Add(cardId);
                     selection.PickedCardIds.Add(cardId);
-                }
 
                 selection.Completed = true;
+                transaction.State = state with { Deck = deck.Value.State };
                 return Result<CardSelectionState>.Success(selection);
             });
         }
@@ -328,8 +385,9 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, state =>
+            return ExecuteRunTransaction(runId, transaction =>
             {
+                var state = transaction.State;
                 var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
                 if (selection == null)
                     return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
@@ -345,7 +403,7 @@ public sealed class RunManager : IRunManager
                 if (state.Gold < cost)
                     return Result<CardSelectionState>.Failure($"Insufficient gold for reroll: {selection.SelectionId}");
 
-                state.Gold -= cost;
+                transaction.State = state = state with { Gold = state.Gold - cost };
                 selection.RerollsUsed++;
                 selection.FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1);
                 selection.RerollCostGold = CalculateRerollCost(selection.Reroll, selection.RerollsUsed);
@@ -366,8 +424,9 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, state =>
+            return ExecuteRunTransaction(runId, transaction =>
             {
+                var state = transaction.State;
                 var selection = state.CardSelections.FirstOrDefault(s => s.SelectionInstanceId == selectionInstanceId);
                 if (selection == null)
                     return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
@@ -387,7 +446,7 @@ public sealed class RunManager : IRunManager
 
                 option.Decomposed = true;
                 selection.DecomposedCardIds.Add(option.CardId);
-                state.PowerPoints += option.DecomposePowerPoints;
+                transaction.State = state with { PowerPoints = checked(state.PowerPoints + option.DecomposePowerPoints) };
                 return Result<CardSelectionState>.Success(selection);
             });
         }
@@ -405,8 +464,10 @@ public sealed class RunManager : IRunManager
                 return Result<ShopState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
+            var instanceId = state.Determinism.AllocateId("shop");
             var shop = new ShopState
             {
+                ShopInstanceId = instanceId.Value,
                 RunId = runId,
                 ShopId = definition.ShopId,
                 CardPoolId = definition.CardPoolId,
@@ -417,7 +478,13 @@ public sealed class RunManager : IRunManager
                 Items = GenerateShopItems(state, definition)
             };
 
-            state.Shops.Add(shop);
+            state = state with
+            {
+                Shops = state.Shops.Add(shop),
+                Determinism = instanceId.Context.AdvanceStep()
+            };
+            _runs[runId] = state;
+            PersistAsync(state);
             return Result<ShopState>.Success(shop);
         }
     }
@@ -426,8 +493,9 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, state =>
+            return ExecuteRunTransaction(runId, transaction =>
             {
+                var state = transaction.State;
                 var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
                 if (shop == null)
                     return Result<ShopItemState>.Failure($"Shop not found: {shopInstanceId}");
@@ -442,13 +510,22 @@ public sealed class RunManager : IRunManager
                 if (state.Gold < item.GoldCost || state.PowerPoints < item.PowerPointCost)
                     return Result<ShopItemState>.Failure($"Insufficient resources for shop item: {itemId}");
 
-                state.Gold -= item.GoldCost;
-                state.PowerPoints -= item.PowerPointCost;
+                state = state with
+                {
+                    Gold = state.Gold - item.GoldCost,
+                    PowerPoints = state.PowerPoints - item.PowerPointCost
+                };
 
                 if (!string.IsNullOrWhiteSpace(item.CardId))
-                    state.Deck.DiscardPile.Add(item.CardId);
+                {
+                    var deck = DeckTransitions.AddToDiscard(state.Deck, new[] { item.CardId }, state.Determinism);
+                    if (deck.IsFailure)
+                        return Result<ShopItemState>.Failure(deck.Error);
+                    state = state with { Deck = deck.Value.State };
+                }
 
                 item.Purchased = true;
+                transaction.State = state;
                 return Result<ShopItemState>.Success(item);
             });
         }
@@ -458,8 +535,9 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, state =>
+            return ExecuteRunTransaction(runId, transaction =>
             {
+                var state = transaction.State;
                 var shop = state.Shops.FirstOrDefault(s => s.ShopInstanceId == shopInstanceId);
                 if (shop == null)
                     return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
@@ -471,7 +549,7 @@ public sealed class RunManager : IRunManager
                 if (state.Gold < shop.RerollCostGold)
                     return Result<ShopState>.Failure($"Insufficient gold for shop reroll: {shop.ShopId}");
 
-                state.Gold -= shop.RerollCostGold;
+                transaction.State = state = state with { Gold = state.Gold - shop.RerollCostGold };
                 shop.RerollsUsed++;
                 shop.RerollCostGold = CalculateShopRerollCost(shop.Reroll, shop.RerollsUsed);
                 shop.Items.Clear();
@@ -493,8 +571,10 @@ public sealed class RunManager : IRunManager
                 return Result<PreparationState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
+            var instanceId = state.Determinism.AllocateId("preparation");
             var preparation = new PreparationState
             {
+                PreparationInstanceId = instanceId.Value,
                 RunId = runId,
                 PreparationId = definition.PreparationId,
                 Options = definition.Options.Select(option => new PreparationOptionState
@@ -514,7 +594,13 @@ public sealed class RunManager : IRunManager
                 }).ToList()
             };
 
-            state.Preparations.Add(preparation);
+            state = state with
+            {
+                Preparations = state.Preparations.Add(preparation),
+                Determinism = instanceId.Context.AdvanceStep()
+            };
+            _runs[runId] = state;
+            PersistAsync(state);
             return Result<PreparationState>.Success(preparation);
         }
     }
@@ -523,8 +609,9 @@ public sealed class RunManager : IRunManager
     {
         lock (_lock)
         {
-            return ExecuteRunTransaction(runId, state =>
+            return ExecuteRunTransaction(runId, transaction =>
             {
+                var state = transaction.State;
                 var preparation = state.Preparations.FirstOrDefault(p => p.PreparationInstanceId == preparationInstanceId);
                 if (preparation == null)
                     return Result<PreparationOptionState>.Failure($"Preparation not found: {preparationInstanceId}");
@@ -542,9 +629,16 @@ public sealed class RunManager : IRunManager
                 if (option.ApplyModifiers.Count > 0 && _scriptModifierManager == null)
                     return Result<PreparationOptionState>.Failure("Script modifier manager is not available for preparation modifier grants");
 
-                state.Gold -= option.GoldCost;
-                state.PowerPoints -= option.PowerPointCost;
-                state.Deck.DiscardPile.AddRange(option.AddCardsToDiscard);
+                var deck = DeckTransitions.AddToDiscard(state.Deck, option.AddCardsToDiscard, state.Determinism);
+                if (deck.IsFailure)
+                    return Result<PreparationOptionState>.Failure(deck.Error);
+                state = state with
+                {
+                    Gold = state.Gold - option.GoldCost,
+                    PowerPoints = state.PowerPoints - option.PowerPointCost,
+                    Deck = deck.Value.State
+                };
+                transaction.State = state;
 
                 var appliedModifiers = new List<(string OwnerId, Guid InstanceId)>();
                 foreach (var modifier in option.ApplyModifiers)
@@ -589,59 +683,36 @@ public sealed class RunManager : IRunManager
         return Result.Success();
     }
 
-    private Result<T> ExecuteRunTransaction<T>(Guid runId, Func<RunState, Result<T>> operation)
+    private Result<T> ExecuteRunTransaction<T>(Guid runId, Func<RunTransaction, Result<T>> operation)
     {
         if (!_runs.TryGetValue(runId, out var state))
             return Result<T>.Failure($"Run not found: {runId}");
 
-        var snapshot = CloneRunState(state);
+        var transaction = new RunTransaction(CloneRunState(state));
         try
         {
-            var result = operation(state);
+            var result = operation(transaction);
             if (result.IsFailure)
-                RestoreRunState(state, snapshot);
+                return result;
 
+            var committed = transaction.State with
+            {
+                Determinism = transaction.State.Determinism.AdvanceStep()
+            };
+            _runs[runId] = committed;
+            PersistAsync(committed);
             return result;
         }
         catch (Exception ex)
         {
-            RestoreRunState(state, snapshot);
             return Result<T>.Failure($"Run transaction failed: {ex.Message}");
         }
     }
 
-    private static void RestoreRunState(RunState target, RunState snapshot)
+    private sealed class RunTransaction
     {
-        target.Gold = snapshot.Gold;
-        target.PowerPoints = snapshot.PowerPoints;
-        target.CurrentNodeId = snapshot.CurrentNodeId;
-
-        RestoreDeckState(target.Deck, snapshot.Deck);
-
-        target.CardSelections.Clear();
-        target.CardSelections.AddRange(snapshot.CardSelections.Select(CloneCardSelection));
-
-        target.Shops.Clear();
-        target.Shops.AddRange(snapshot.Shops.Select(CloneShop));
-
-        target.Preparations.Clear();
-        target.Preparations.AddRange(snapshot.Preparations.Select(ClonePreparation));
-
-        target.Metadata.Clear();
-        foreach (var entry in snapshot.Metadata)
-            target.Metadata[entry.Key] = entry.Value;
-    }
-
-    private static void RestoreDeckState(DeckState target, DeckState snapshot)
-    {
-        target.DrawPile.Clear();
-        target.DrawPile.AddRange(snapshot.DrawPile);
-        target.Hand.Clear();
-        target.Hand.AddRange(snapshot.Hand);
-        target.DiscardPile.Clear();
-        target.DiscardPile.AddRange(snapshot.DiscardPile);
-        target.ExhaustPile.Clear();
-        target.ExhaustPile.AddRange(snapshot.ExhaustPile);
+        public RunTransaction(RunState state) => State = state;
+        public RunState State { get; set; }
     }
 
     private static RunState CloneRunState(RunState source)
@@ -649,16 +720,18 @@ public sealed class RunManager : IRunManager
         return new RunState
         {
             RunId = source.RunId,
+            Sequence = source.Sequence,
             ConfigName = source.ConfigName,
             PlayerEntityId = source.PlayerEntityId,
             Gold = source.Gold,
             PowerPoints = source.PowerPoints,
             CurrentNodeId = source.CurrentNodeId,
             Deck = CloneDeckState(source.Deck),
-            CardSelections = source.CardSelections.Select(CloneCardSelection).ToList(),
-            Shops = source.Shops.Select(CloneShop).ToList(),
-            Preparations = source.Preparations.Select(ClonePreparation).ToList(),
-            Metadata = CloneMetadata(source.Metadata)
+            CardSelections = [.. source.CardSelections.Select(CloneCardSelection)],
+            Shops = [.. source.Shops.Select(CloneShop)],
+            Preparations = [.. source.Preparations.Select(ClonePreparation)],
+            Metadata = source.Metadata,
+            Determinism = source.Determinism
         };
     }
 
@@ -666,10 +739,10 @@ public sealed class RunManager : IRunManager
     {
         return new DeckState
         {
-            DrawPile = source.DrawPile.ToList(),
-            Hand = source.Hand.ToList(),
-            DiscardPile = source.DiscardPile.ToList(),
-            ExhaustPile = source.ExhaustPile.ToList()
+            DrawPile = source.DrawPile,
+            Hand = source.Hand,
+            DiscardPile = source.DiscardPile,
+            ExhaustPile = source.ExhaustPile
         };
     }
 
@@ -776,11 +849,6 @@ public sealed class RunManager : IRunManager
             Duration = source.Duration,
             SourceId = source.SourceId
         };
-    }
-
-    private static Dictionary<string, object> CloneMetadata(Dictionary<string, object> source)
-    {
-        return source.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
     }
 
     private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
@@ -1032,36 +1100,27 @@ public sealed class RunManager : IRunManager
     private Result<IReadOnlyList<string>> MoveCards(
         Guid runId,
         IReadOnlyList<string> cardIds,
-        Func<DeckState, List<string>> fromSelector,
-        Func<DeckState, List<string>> toSelector,
-        string sourceName)
+        CardConsumeDestination destination)
     {
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
 
-            var from = fromSelector(state.Deck);
-            var to = toSelector(state.Deck);
-            var moved = new List<string>();
+            var transition = DeckTransitions.MoveFromHand(state.Deck, cardIds, destination, state.Determinism);
+            if (transition.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(transition.Error);
 
-            foreach (var cardId in cardIds)
+            state = state with
             {
-                if (!from.Remove(cardId))
-                    return Result<IReadOnlyList<string>>.Failure($"Card '{cardId}' not found in {sourceName}");
+                Deck = transition.Value.State,
+                Determinism = transition.Value.Context.AdvanceStep()
+            };
+            _runs[runId] = state;
+            PersistAsync(state);
 
-                to.Add(cardId);
-                moved.Add(cardId);
-            }
-
-            return Result<IReadOnlyList<string>>.Success(moved);
+            return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
         }
-    }
-
-    private static void MoveAll(List<string> from, List<string> to)
-    {
-        to.AddRange(from);
-        from.Clear();
     }
 
     /// <summary>
@@ -1073,26 +1132,29 @@ public sealed class RunManager : IRunManager
         if (state == null)
             return Result<RunState>.Failure("State cannot be null");
 
+        RunState restored;
         lock (_lock)
         {
-            _runs[state.RunId] = state;
+            restored = CloneRunState(state);
+            _runs[state.RunId] = restored;
         }
 
-        return Result<RunState>.Success(state);
+        return Result<RunState>.Success(restored);
     }
 
     /// <summary>
     /// Fire-and-forget persistence. Failures are swallowed to avoid disrupting game flow.
     /// Increments snapshot sequence before saving.
     /// </summary>
-    private void PersistAsync(RunState state)
+    private RunState PersistAsync(RunState state)
     {
-        if (_repository == null) return;
+        if (_repository == null) return state;
 
         RunState snapshot;
         lock (_persistenceLock)
         {
-            state.Sequence++;
+            state = state with { Sequence = checked(state.Sequence + 1) };
+            _runs[state.RunId] = state;
             snapshot = CreateSnapshot(state);
         }
         
@@ -1101,6 +1163,8 @@ public sealed class RunManager : IRunManager
             try { await _repository.SaveAsync(snapshot).ConfigureAwait(false); }
             catch { /* best effort — repository implementations log internally */ }
         });
+
+        return state;
     }
 
     private RunState CreateSnapshot(RunState state)
@@ -1108,5 +1172,26 @@ public sealed class RunManager : IRunManager
         var json = JsonSerializer.Serialize(state, _jsonOptions);
         return JsonSerializer.Deserialize<RunState>(json, _jsonOptions)
             ?? throw new InvalidOperationException("Failed to create a run-state snapshot");
+    }
+
+    private static int SaturatingEconomyChange(int current, int amount)
+    {
+        return (int)System.Math.Clamp((long)current + amount, 0, int.MaxValue);
+    }
+
+    private static ulong CreateSeed()
+    {
+        Span<byte> bytes = stackalloc byte[sizeof(ulong)];
+        RandomNumberGenerator.Fill(bytes);
+        return BinaryPrimitives.ReadUInt64BigEndian(bytes);
+    }
+
+    private static ImmutableDictionary<string, JsonElement> ToImmutableMetadata(
+        IReadOnlyDictionary<string, object> metadata)
+    {
+        return metadata.ToImmutableDictionary(
+            entry => entry.Key,
+            entry => JsonSerializer.SerializeToElement(entry.Value).Clone(),
+            StringComparer.OrdinalIgnoreCase);
     }
 }

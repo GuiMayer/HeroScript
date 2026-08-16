@@ -1,6 +1,7 @@
 using Core.Config;
 using Core.Combat.Modifiers;
 using Core.Common;
+using Core.Determinism;
 using Core.Run;
 using Core.Run.Content;
 using Moq;
@@ -13,6 +14,28 @@ public sealed class RunManagerTests
 {
     private readonly Mock<IConfigManager> _configManager = new();
     private readonly Mock<IResourceLoader> _resourceLoader = new();
+
+    [Fact]
+    public void StartRun_SameInputsProduceIdenticalStateAndHash()
+    {
+        var options = new RunStartOptions(
+            "test",
+            "default_run",
+            "hero",
+            Seed: 0xC0FFEEUL,
+            ContentRevision: "test-content-v1");
+
+        var first = CreateManager().StartRun(options);
+        var second = CreateManager().StartRun(options);
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
+        Assert.Equal(first.Value.RunId, second.Value.RunId);
+        Assert.Equal(first.Value.Deck.DrawPile, second.Value.Deck.DrawPile);
+        Assert.Equal(first.Value.Deck.Hand, second.Value.Deck.Hand);
+        Assert.Equal(first.Value.Determinism, second.Value.Determinism);
+        Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(second.Value));
+    }
 
     [Fact]
     public void StartRun_LoadsDefinitionFromJsonAndDrawsStartingHand()
@@ -39,9 +62,13 @@ public sealed class RunManagerTests
         Assert.True(discard.IsSuccess, discard.IsFailure ? discard.Error : null);
 
         var drawn = manager.DrawCards(run.RunId, 3);
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(drawn.IsSuccess, drawn.IsFailure ? drawn.Error : null);
-        Assert.Equal(new[] { "zap", "strike", "defend" }, drawn.Value);
+        Assert.Equal("zap", drawn.Value[0]);
+        Assert.Equal(
+            new[] { "defend", "strike" },
+            drawn.Value.Skip(1).OrderBy(card => card, StringComparer.Ordinal));
         Assert.Equal(3, run.Deck.Hand.Count);
     }
 
@@ -53,6 +80,7 @@ public sealed class RunManagerTests
 
         var gold = manager.ApplyEconomy(run.RunId, "gold", -10);
         var pp = manager.ApplyEconomy(run.RunId, "pp", 3);
+        run = pp.Value;
 
         Assert.True(gold.IsSuccess, gold.IsFailure ? gold.Error : null);
         Assert.True(pp.IsSuccess, pp.IsFailure ? pp.Error : null);
@@ -68,6 +96,7 @@ public sealed class RunManagerTests
 
         var selection = manager.CreateCardSelection(run.RunId, "basic_reward");
         var pick = manager.PickCards(run.RunId, selection.Value.SelectionInstanceId, new[] { "zap" });
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(selection.IsSuccess, selection.IsFailure ? selection.Error : null);
         Assert.True(pick.IsSuccess, pick.IsFailure ? pick.Error : null);
@@ -115,6 +144,7 @@ public sealed class RunManagerTests
 
         var decompose = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
         var pick = manager.PickCards(run.RunId, selection.SelectionInstanceId, new[] { "fireball" });
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(decompose.IsSuccess, decompose.IsFailure ? decompose.Error : null);
         Assert.Equal(2, run.PowerPoints);
@@ -146,14 +176,14 @@ public sealed class RunManagerTests
         var run = manager.StartRun("test", "default_run", "hero").Value;
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var first = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
-        var powerPointsAfterFirst = run.PowerPoints;
+        var powerPointsAfterFirst = manager.GetRun(run.RunId).Value.PowerPoints;
 
         var second = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.True(second.IsFailure);
-        Assert.Equal(powerPointsAfterFirst, run.PowerPoints);
-        Assert.Single(selection.DecomposedCardIds, id => id == "fireball");
+        Assert.Equal(powerPointsAfterFirst, manager.GetRun(run.RunId).Value.PowerPoints);
+        Assert.Single(first.Value.DecomposedCardIds, id => id == "fireball");
     }
 
     [Fact]
@@ -164,6 +194,7 @@ public sealed class RunManagerTests
 
         var shop = manager.CreateShop(run.RunId, "basic_shop");
         var item = manager.BuyShopItem(run.RunId, shop.Value.ShopInstanceId, "buy_zap");
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(shop.IsSuccess, shop.IsFailure ? shop.Error : null);
         Assert.True(item.IsSuccess, item.IsFailure ? item.Error : null);
@@ -177,7 +208,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run.Gold = 0;
+        run = manager.ApplyEconomy(run.RunId, "gold", -run.Gold).Value;
         var shop = manager.CreateShop(run.RunId, "basic_shop").Value;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
 
@@ -213,6 +244,7 @@ public sealed class RunManagerTests
         var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
 
         var reroll = manager.RerollShop(run.RunId, shop.ShopInstanceId);
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(reroll.IsSuccess, reroll.IsFailure ? reroll.Error : null);
         Assert.Equal(15, run.Gold);
@@ -227,7 +259,7 @@ public sealed class RunManagerTests
         var manager = CreateManagerWithContent();
         var run = manager.StartRun("test", "default_run", "hero").Value;
         var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
-        run.Gold = 0;
+        run = manager.ApplyEconomy(run.RunId, "gold", -run.Gold).Value;
         var originalItems = shop.Items.Select(i => i.ItemId).ToArray();
         var originalRerolls = shop.RerollsUsed;
         var originalCost = shop.RerollCostGold;
@@ -249,7 +281,7 @@ public sealed class RunManagerTests
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var free = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
         Assert.True(free.IsSuccess, free.IsFailure ? free.Error : null);
-        run.Gold = 0;
+        run = manager.ApplyEconomy(run.RunId, "gold", -run.Gold).Value;
         var originalOptions = selection.Options.Select(o => o.CardId).ToArray();
         var originalRerolls = selection.RerollsUsed;
         var originalFree = selection.FreeRerollsRemaining;
@@ -273,6 +305,7 @@ public sealed class RunManagerTests
 
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation");
         var option = manager.ApplyPreparationOption(run.RunId, preparation.Value.PreparationInstanceId, "pack_supplies");
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(preparation.IsSuccess, preparation.IsFailure ? preparation.Error : null);
         Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
@@ -287,7 +320,7 @@ public sealed class RunManagerTests
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run.PowerPoints = 2;
+        run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
         var instanceId = Guid.NewGuid();
         modifierManager
             .Setup(m => m.ApplyModifier($"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
@@ -301,6 +334,7 @@ public sealed class RunManagerTests
 
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
         var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
         Assert.True(option.Value.Applied);
@@ -315,7 +349,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run.PowerPoints = 2;
+        run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
@@ -337,7 +371,7 @@ public sealed class RunManagerTests
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run.PowerPoints = 2;
+        run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
@@ -364,7 +398,7 @@ public sealed class RunManagerTests
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run.PowerPoints = 3;
+        run = manager.ApplyEconomy(run.RunId, "pp", 3).Value;
         var firstInstanceId = Guid.NewGuid();
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
@@ -405,6 +439,7 @@ public sealed class RunManagerTests
         var run = manager.StartRun("test", "default_run", "hero").Value;
 
         var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "strike" }, CardConsumeDestination.Discard);
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.DoesNotContain("strike", run.Deck.Hand);
@@ -418,6 +453,7 @@ public sealed class RunManagerTests
         var run = manager.StartRun("test", "default_run", "hero").Value;
 
         var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "defend" }, CardConsumeDestination.Exhaust);
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.DoesNotContain("defend", run.Deck.Hand);
@@ -455,9 +491,10 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run.Deck.Hand.Add("strike");
+        manager.AddCardsToHand(run.RunId, new[] { "strike" });
 
         var result = manager.ConsumeCardsFromHand(run.RunId, new[] { "strike" }, CardConsumeDestination.Discard);
+        run = manager.GetRun(run.RunId).Value;
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Single(run.Deck.Hand, card => card == "strike");

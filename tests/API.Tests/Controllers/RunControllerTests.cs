@@ -27,14 +27,14 @@ public sealed class RunControllerTests
     {
         var state = CreateRun();
         _runManager
-            .Setup(m => m.StartRun("test", "default_run", "hero"))
+            .Setup(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null)))
             .Returns(Result<RunState>.Success(state));
 
         var result = _controller.StartRun(new StartRunRequest("test", "default_run", "hero"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
-        _runManager.Verify(m => m.StartRun("test", "default_run", "hero"), Times.Once);
+        _runManager.Verify(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null)), Times.Once);
     }
 
     [Fact]

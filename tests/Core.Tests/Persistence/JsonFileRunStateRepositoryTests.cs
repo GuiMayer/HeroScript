@@ -18,7 +18,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Save_ThenLoad_ReturnsEquivalentState()
     {
-        var state = new RunState { Gold = 100, PowerPoints = 5, CurrentNodeId = "node_1" };
+        var state = new RunState { RunId = Guid.NewGuid(), Gold = 100, PowerPoints = 5, CurrentNodeId = "node_1" };
 
         await _repo.SaveAsync(state);
         var loaded = await _repo.LoadLatestAsync(state.RunId);
@@ -40,10 +40,10 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Save_Overwrite_UpdatesState()
     {
-        var state = new RunState { Gold = 10 };
+        var state = new RunState { RunId = Guid.NewGuid(), Gold = 10 };
         await _repo.SaveAsync(state);
 
-        state.Gold = 999;
+        state = state with { Gold = 999 };
         await _repo.SaveAsync(state);
 
         var loaded = await _repo.LoadLatestAsync(state.RunId);
@@ -54,7 +54,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Delete_ExistingRun_RemovedFromList()
     {
-        var state = new RunState();
+        var state = new RunState { RunId = Guid.NewGuid() };
         await _repo.SaveAsync(state);
 
         await _repo.DeleteAsync(state.RunId);
@@ -65,7 +65,12 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task ListRunIds_ReturnsAllPersisted()
     {
-        var ids = new[] { new RunState(), new RunState(), new RunState() };
+        var ids = new[]
+        {
+            new RunState { RunId = Guid.NewGuid() },
+            new RunState { RunId = Guid.NewGuid() },
+            new RunState { RunId = Guid.NewGuid() }
+        };
         foreach (var s in ids)
             await _repo.SaveAsync(s);
 
@@ -78,7 +83,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     public async Task Save_AtomicWrite_FileNotCorruptedIfFail()
     {
         // Just verify normal path doesn't leave .tmp behind
-        var state = new RunState { Gold = 42 };
+        var state = new RunState { RunId = Guid.NewGuid(), Gold = 42 };
         await _repo.SaveAsync(state);
 
         var tmpFiles = Directory.GetFiles(_tempDir, "*.tmp");
@@ -88,9 +93,9 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Save_ConcurrentWrites_LastWriteWins()
     {
-        var state = new RunState();
+        var state = new RunState { RunId = Guid.NewGuid() };
         var tasks = Enumerable.Range(0, 10)
-            .Select(i => { state.Gold = i; return _repo.SaveAsync(state); });
+            .Select(i => _repo.SaveAsync(state with { Gold = i }));
         await Task.WhenAll(tasks);
 
         var loaded = await _repo.LoadLatestAsync(state.RunId);
