@@ -74,4 +74,14 @@ public static class RunCommandTypes
     public const string ResolveCombat = "RESOLVE_COMBAT";
     public const string ResolveNode = "RESOLVE_NODE";
     public const string AdvanceNode = "ADVANCE_NODE";
+    public const string DrawCards = "DRAW_CARDS";
+    public const string DiscardCards = "DISCARD_CARDS";
+    public const string ShuffleDiscard = "SHUFFLE_DISCARD";
+    public const string PickCardReward = "PICK_CARD_REWARD";
+    public const string RerollCardReward = "REROLL_CARD_REWARD";
+    public const string DecomposeCardReward = "DECOMPOSE_CARD_REWARD";
+    public const string BuyShopItem = "BUY_SHOP_ITEM";
+    public const string RerollShop = "REROLL_SHOP";
+    public const string ApplyPreparationOption = "APPLY_PREPARATION_OPTION";
+    public const string RestoreCheckpoint = "RESTORE_CHECKPOINT";
 }

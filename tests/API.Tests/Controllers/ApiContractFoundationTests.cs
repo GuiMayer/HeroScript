@@ -207,4 +207,128 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.False(typeValid);
         Assert.Contains(typeResults, result => result.MemberNames.Contains(nameof(CommandEnvelope.Type)));
     }
+
+    [Fact]
+    public async Task RunCommandGateway_IsIdempotentAndRejectsStaleVersion()
+    {
+        var player = $"command-player-{Guid.NewGuid():N}";
+        using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId = player,
+            seed = 778899UL
+        });
+        var run = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+
+        var runId = run.GetProperty("runId").GetGuid();
+        var commandId = Guid.NewGuid();
+        var expectedSequence = run.GetProperty("sequence").GetInt32();
+        var expectedStep = run.GetProperty("step").GetUInt64();
+        var envelope = new
+        {
+            commandId,
+            expectedSequence,
+            expectedStep,
+            type = RunCommandTypes.StartEncounter,
+            payload = new
+            {
+                heroId = player,
+                enemyIds = new[] { "enemy_1" },
+                initialEnergy = 3
+            }
+        };
+
+        using var firstResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/commands",
+            envelope);
+        var first = await firstResponse.Content.ReadFromJsonAsync<JsonElement>();
+        using var retryResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/commands",
+            envelope);
+        var retry = await retryResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, retryResponse.StatusCode);
+        Assert.False(first.GetProperty("duplicate").GetBoolean());
+        Assert.True(retry.GetProperty("duplicate").GetBoolean());
+        Assert.Equal(first.GetProperty("sequence").GetInt32(), retry.GetProperty("sequence").GetInt32());
+        Assert.Equal(first.GetProperty("stateHash").GetString(), retry.GetProperty("stateHash").GetString());
+
+        using var staleResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence,
+                expectedStep,
+                type = RunCommandTypes.AdvanceNode,
+                payload = new { targetNodeId = "reward" }
+            });
+        var stale = await staleResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.Conflict, staleResponse.StatusCode);
+        Assert.Equal(ApiErrorCodes.VersionConflict, stale.GetProperty("code").GetString());
+        Assert.True(stale.TryGetProperty("currentSequence", out _));
+        Assert.True(stale.TryGetProperty("currentStep", out _));
+    }
+
+    [Fact]
+    public async Task CombatCommandGateway_CommitsActionOnceInsideRunAggregate()
+    {
+        var player = $"combat-command-player-{Guid.NewGuid():N}";
+        using var startRunResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId = player,
+            seed = 998877UL
+        });
+        var started = await startRunResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var runId = started.GetProperty("runId").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, startRunResponse.StatusCode);
+
+        using var encounterResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/encounters",
+            new { heroId = player, enemies = new[] { "enemy_1" }, initialEnergy = 3 });
+        var encounter = await encounterResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var combatId = encounter.GetProperty("combatId").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, encounterResponse.StatusCode);
+
+        using var runResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var run = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var expectedSequence = run.GetProperty("sequence").GetInt32();
+        var expectedStep = encounter.GetProperty("step").GetUInt64();
+        var envelope = new
+        {
+            commandId = Guid.NewGuid(),
+            expectedSequence,
+            expectedStep,
+            type = "END_TURN",
+            payload = new { actorId = encounter.GetProperty("hero").GetProperty("entityId").GetString() }
+        };
+
+        using var firstResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            envelope);
+        var firstBody = await firstResponse.Content.ReadAsStringAsync();
+        Assert.True(firstResponse.IsSuccessStatusCode, firstBody);
+        var first = JsonSerializer.Deserialize<JsonElement>(firstBody);
+
+        using var retryResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            envelope);
+        var retryBody = await retryResponse.Content.ReadAsStringAsync();
+        Assert.True(retryResponse.IsSuccessStatusCode, retryBody);
+        var retry = JsonSerializer.Deserialize<JsonElement>(retryBody);
+
+        Assert.False(first.GetProperty("duplicate").GetBoolean());
+        Assert.True(retry.GetProperty("duplicate").GetBoolean());
+        Assert.Equal(first.GetProperty("stateHash").GetString(), retry.GetProperty("stateHash").GetString());
+        Assert.Equal(first.GetProperty("sequence").GetInt32(), retry.GetProperty("sequence").GetInt32());
+        Assert.True(
+            first.GetProperty("state").GetProperty("combat").GetProperty("determinism")
+                .GetProperty("step").GetUInt64() > expectedStep);
+    }
 }

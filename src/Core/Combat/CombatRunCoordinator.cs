@@ -32,16 +32,26 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Guid runId,
         string heroId,
         IReadOnlyList<string> enemyIds,
-        int initialEnergy = 3)
+        int initialEnergy = 3,
+        RunCommandIdentity? commandIdentity = null)
     {
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
         lock (runLock)
         {
+            var duplicate = FindDuplicateEncounter(runId, commandIdentity);
+            if (duplicate.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(duplicate.Error);
+            if (duplicate.Value != null)
+                return Result<CombatRunEncounterResult>.Success(duplicate.Value);
+
             var runResult = _runManager.GetRun(runId);
             if (runResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(runResult.Error);
 
             var run = runResult.Value;
+            var versionValidation = ValidateRunVersion(run, commandIdentity, useCombatStep: false);
+            if (versionValidation.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(versionValidation.Error);
             if (run.GetActiveEncounter() != null)
                 return Result<CombatRunEncounterResult>.Failure(
                     $"Run already has an active encounter: {run.ActiveEncounterId}");
@@ -70,9 +80,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var attached = _runManager.AttachEncounter(
                 runId,
-                run.Sequence,
-                run.Determinism.Step,
-                combatResult.Value);
+                commandIdentity?.ExpectedSequence ?? run.Sequence,
+                commandIdentity?.ExpectedStep ?? run.Determinism.Step,
+                combatResult.Value,
+                commandIdentity);
             if (attached.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -127,7 +138,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             });
     }
 
-    public Result<CombatRunActionResult> ExecuteAction(Guid combatId, CombatActionCommand command)
+    public Result<CombatRunActionResult> ExecuteAction(
+        Guid combatId,
+        CombatActionCommand command,
+        RunCommandIdentity? commandIdentity = null)
     {
         if (command.RunId is not { } runId)
             return Result<CombatRunActionResult>.Failure("RunId is required for run-coordinated combat actions");
@@ -135,14 +149,21 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
         lock (runLock)
         {
-            return ExecuteActionLocked(combatId, runId, command);
+            var duplicate = FindDuplicateAction(runId, combatId, commandIdentity);
+            if (duplicate.IsFailure)
+                return Result<CombatRunActionResult>.Failure(duplicate.Error);
+            if (duplicate.Value != null)
+                return Result<CombatRunActionResult>.Success(duplicate.Value);
+
+            return ExecuteActionLocked(combatId, runId, command, commandIdentity);
         }
     }
 
     private Result<CombatRunActionResult> ExecuteActionLocked(
         Guid combatId,
         Guid runId,
-        CombatActionCommand command)
+        CombatActionCommand command,
+        RunCommandIdentity? commandIdentity)
     {
         var runResult = _runManager.GetRun(runId);
         if (runResult.IsFailure)
@@ -154,6 +175,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure($"Combat is not the active encounter for run {runId}: {combatId}");
         if (!encounter.Combat.IsActive)
             return Result<CombatRunActionResult>.Failure($"Combat is not active: {combatId}");
+
+        var versionValidation = ValidateRunVersion(run, commandIdentity, useCombatStep: true);
+        if (versionValidation.IsFailure)
+            return Result<CombatRunActionResult>.Failure(versionValidation.Error);
 
         var restored = _combatSystem.RestoreCombatState(encounter.Combat);
         if (restored.IsFailure)
@@ -171,7 +196,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 encounter.Combat,
                 command,
                 consumedCardId: null,
-                CardConsumeDestination.None);
+                CardConsumeDestination.None,
+                commandIdentity);
         }
 
         var cardId = ResolveCardId(command);
@@ -204,7 +230,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             encounter.Combat,
             commandWithModifiers,
             destination == CardConsumeDestination.None ? null : cardId,
-            destination);
+            destination,
+            commandIdentity);
     }
 
     private Result<CombatRunActionResult> ExecuteAndCommit(
@@ -213,9 +240,13 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CombatState previousCombat,
         CombatActionCommand command,
         string? consumedCardId,
-        CardConsumeDestination destination)
+        CardConsumeDestination destination,
+        RunCommandIdentity? commandIdentity)
     {
-        var combatResult = _combatSystem.ExecuteAction(combatId, command);
+        var effectiveCommand = commandIdentity == null
+            ? command
+            : command with { ExpectedStep = commandIdentity.ExpectedStep };
+        var combatResult = _combatSystem.ExecuteAction(combatId, effectiveCommand);
         if (combatResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(combatResult.Error);
 
@@ -224,9 +255,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             run.Sequence,
             previousCombat,
             combatResult.Value,
-            command,
+            effectiveCommand,
             consumedCardId,
-            destination);
+            destination,
+            commandIdentity);
         if (committed.IsFailure)
         {
             _combatSystem.RestoreCombatState(previousCombat);
@@ -242,11 +274,20 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         });
     }
 
-    public Result<CombatRunEncounterResult> ResolveEncounter(Guid runId, Guid combatId)
+    public Result<CombatRunEncounterResult> ResolveEncounter(
+        Guid runId,
+        Guid combatId,
+        RunCommandIdentity? commandIdentity = null)
     {
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
         lock (runLock)
         {
+            var duplicate = FindDuplicateEncounter(runId, commandIdentity, combatId);
+            if (duplicate.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(duplicate.Error);
+            if (duplicate.Value != null)
+                return Result<CombatRunEncounterResult>.Success(duplicate.Value);
+
             var runResult = _runManager.GetRun(runId);
             if (runResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(runResult.Error);
@@ -257,7 +298,15 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (encounter.Combat.IsActive)
                 return Result<CombatRunEncounterResult>.Failure($"Combat is still active: {combatId}");
 
-            var resolved = _runManager.ResolveEncounter(runId, runResult.Value.Sequence, combatId);
+            var versionValidation = ValidateRunVersion(runResult.Value, commandIdentity, useCombatStep: true);
+            if (versionValidation.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(versionValidation.Error);
+
+            var resolved = _runManager.ResolveEncounter(
+                runId,
+                commandIdentity?.ExpectedSequence ?? runResult.Value.Sequence,
+                combatId,
+                commandIdentity);
             if (resolved.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(resolved.Error);
 
@@ -268,6 +317,98 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 RunState = resolved.Value
             });
         }
+    }
+
+    private Result<CombatRunEncounterResult?> FindDuplicateEncounter(
+        Guid runId,
+        RunCommandIdentity? identity,
+        Guid? expectedCombatId = null)
+    {
+        if (identity == null || _runManager is not IRunCommandProcessor processor)
+            return Result<CombatRunEncounterResult?>.Success(null);
+
+        var receipt = processor.FindReceipt(runId, identity.CommandId);
+        if (receipt.IsFailure)
+            return Result<CombatRunEncounterResult?>.Failure(receipt.Error);
+        if (receipt.Value == null)
+            return Result<CombatRunEncounterResult?>.Success(null);
+        if (!string.Equals(receipt.Value.CommandType, identity.Type, StringComparison.Ordinal))
+            return Result<CombatRunEncounterResult?>.Failure(
+                $"Command id {identity.CommandId} was already used by {receipt.Value.CommandType}");
+        if (!MatchesEnvelope(receipt.Value.JournalEntry, identity))
+            return Result<CombatRunEncounterResult?>.Failure(
+                $"Command id {identity.CommandId} was already used with a different envelope");
+
+        var encounter = expectedCombatId.HasValue
+            ? receipt.Value.State.GetEncounter(expectedCombatId.Value)
+            : receipt.Value.State.Encounters.LastOrDefault();
+        return encounter == null
+            ? Result<CombatRunEncounterResult?>.Failure(
+                $"Command receipt {identity.CommandId} does not contain an encounter")
+            : Result<CombatRunEncounterResult?>.Success(new CombatRunEncounterResult
+            {
+                CombatState = encounter.Combat,
+                RunState = receipt.Value.State
+            });
+    }
+
+    private Result<CombatRunActionResult?> FindDuplicateAction(
+        Guid runId,
+        Guid combatId,
+        RunCommandIdentity? identity)
+    {
+        if (identity == null || _runManager is not IRunCommandProcessor processor)
+            return Result<CombatRunActionResult?>.Success(null);
+
+        var receipt = processor.FindReceipt(runId, identity.CommandId);
+        if (receipt.IsFailure)
+            return Result<CombatRunActionResult?>.Failure(receipt.Error);
+        if (receipt.Value == null)
+            return Result<CombatRunActionResult?>.Success(null);
+        if (!string.Equals(receipt.Value.CommandType, identity.Type, StringComparison.Ordinal))
+            return Result<CombatRunActionResult?>.Failure(
+                $"Command id {identity.CommandId} was already used by {receipt.Value.CommandType}");
+        if (!MatchesEnvelope(receipt.Value.JournalEntry, identity))
+            return Result<CombatRunActionResult?>.Failure(
+                $"Command id {identity.CommandId} was already used with a different envelope");
+
+        var encounter = receipt.Value.State.GetEncounter(combatId);
+        return encounter == null
+            ? Result<CombatRunActionResult?>.Failure(
+                $"Command receipt {identity.CommandId} does not contain combat {combatId}")
+            : Result<CombatRunActionResult?>.Success(new CombatRunActionResult
+            {
+                CombatState = encounter.Combat,
+                RunState = receipt.Value.State
+            });
+    }
+
+    private static Result ValidateRunVersion(
+        RunState run,
+        RunCommandIdentity? identity,
+        bool useCombatStep)
+    {
+        if (identity == null)
+            return Result.Success();
+
+        var currentStep = useCombatStep
+            ? run.GetActiveEncounter()?.Combat.Determinism.Step ?? run.Determinism.Step
+            : run.Determinism.Step;
+        return run.Sequence == identity.ExpectedSequence && currentStep == identity.ExpectedStep
+            ? Result.Success()
+            : Result.Failure(
+                $"{RunCommandErrors.VersionConflictPrefix} Expected sequence/step " +
+                $"{identity.ExpectedSequence}/{identity.ExpectedStep}, current is {run.Sequence}/{currentStep}");
+    }
+
+    private static bool MatchesEnvelope(
+        Core.Abstractions.Persistence.RunJournalEntry entry,
+        RunCommandIdentity identity)
+    {
+        return entry.ExpectedSequence == identity.ExpectedSequence &&
+               entry.ExpectedStep == identity.ExpectedStep &&
+               (string.IsNullOrWhiteSpace(entry.CommandPayloadHash) ||
+                string.Equals(entry.CommandPayloadHash, identity.PayloadHash, StringComparison.Ordinal));
     }
 
     private static string ResolveCardId(CombatActionCommand command)

@@ -17,7 +17,8 @@ public interface IRunManager
         Guid runId,
         int expectedSequence,
         ulong expectedStep,
-        CombatState combatState);
+        CombatState combatState,
+        RunCommandIdentity? commandIdentity = null);
     Result<RunState> CommitCombatAction(
         Guid runId,
         int expectedSequence,
@@ -25,8 +26,13 @@ public interface IRunManager
         CombatState nextCombat,
         CombatActionCommand command,
         string? consumedCardId,
-        CardConsumeDestination destination);
-    Result<RunState> ResolveEncounter(Guid runId, int expectedSequence, Guid combatId);
+        CardConsumeDestination destination,
+        RunCommandIdentity? commandIdentity = null);
+    Result<RunState> ResolveEncounter(
+        Guid runId,
+        int expectedSequence,
+        Guid combatId,
+        RunCommandIdentity? commandIdentity = null);
     Result<RunState> ApplyEconomy(Guid runId, string resource, int amount);
     Result<IReadOnlyList<string>> DrawCards(Guid runId, int count);
     Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds);

@@ -249,7 +249,7 @@ builder.Services.AddSingleton<IRunStateRepository>(sp =>
 builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
-builder.Services.AddSingleton<IRunManager>(sp => new RunManager(
+builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IConfigManager>(),
     sp.GetRequiredService<IResourceLoader>(),
     sp.GetRequiredService<ICardPoolResolver>(),
@@ -258,6 +258,8 @@ builder.Services.AddSingleton<IRunManager>(sp => new RunManager(
     sp.GetRequiredService<IEventBus>(),
     sp.GetRequiredService<IRunStateRepository>(),
     sp.GetRequiredService<IContentManifestProvider>()));
+builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
+builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 
 // Register damage pipeline
 builder.Services.AddSingleton<PipelineConfigLoader>(sp =>

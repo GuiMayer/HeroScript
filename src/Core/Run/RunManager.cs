@@ -17,7 +17,7 @@ using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
-public sealed class RunManager : IRunManager
+public sealed class RunManager : IRunManager, IRunCommandProcessor
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -28,8 +28,10 @@ public sealed class RunManager : IRunManager
     private readonly IRunStateRepository? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly Dictionary<Guid, RunState> _runs = new();
+    private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
+    private RunCommand? _executingCommand;
 
     public RunManager(
         IConfigManager configManager,
@@ -202,6 +204,218 @@ public sealed class RunManager : IRunManager
                 RunMapTransitions.GetAvailableCommands(run.Value));
     }
 
+    public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId)
+    {
+        if (commandId == Guid.Empty)
+            return Result<RunCommandReceipt?>.Failure("Command id is required");
+
+        lock (_lock)
+        {
+            if (_commandReceipts.TryGetValue((runId, commandId), out var cached))
+                return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
+
+            if (_repository is not IRunCheckpointRepository checkpoints)
+                return Result<RunCommandReceipt?>.Success(null);
+
+            try
+            {
+                var checkpoint = checkpoints.LoadCheckpointsAsync(runId)
+                    .GetAwaiter().GetResult()
+                    .LastOrDefault(item => item.JournalEntry.CommandId == commandId);
+                if (checkpoint == null)
+                    return Result<RunCommandReceipt?>.Success(null);
+
+                var receipt = CreateReceipt(checkpoint.State, checkpoint.JournalEntry, duplicate: true);
+                _commandReceipts[(runId, commandId)] = receipt with { Duplicate = false };
+                return Result<RunCommandReceipt?>.Success(receipt);
+            }
+            catch (Exception exception)
+            {
+                return Result<RunCommandReceipt?>.Failure(
+                    $"Failed to read command receipt {commandId}: {exception.Message}",
+                    exception);
+            }
+        }
+    }
+
+    public Result<RunCommandReceipt> Execute(Guid runId, RunCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(command.Identity);
+
+        var identity = command.Identity with
+        {
+            Type = command.Identity.Type.Trim().ToUpperInvariant()
+        };
+        command = command with
+        {
+            Identity = identity,
+            Payload = command.Payload.ValueKind == JsonValueKind.Undefined
+                ? JsonSerializer.SerializeToElement(new { })
+                : command.Payload.Clone()
+        };
+
+        if (identity.CommandId == Guid.Empty)
+            return Result<RunCommandReceipt>.Failure("Command id is required");
+        if (string.IsNullOrWhiteSpace(identity.Type))
+            return Result<RunCommandReceipt>.Failure("Command type is required");
+
+        lock (_lock)
+        {
+            var existingResult = FindReceipt(runId, identity.CommandId);
+            if (existingResult.IsFailure)
+                return Result<RunCommandReceipt>.Failure(existingResult.Error);
+            if (existingResult.Value is { } existing)
+            {
+                return IsSameCommand(existing.JournalEntry, command)
+                    ? Result<RunCommandReceipt>.Success(existing with { Duplicate = true })
+                    : Result<RunCommandReceipt>.Failure(
+                        $"Command id {identity.CommandId} was already used with a different envelope");
+            }
+
+            var runResult = GetRun(runId);
+            if (runResult.IsFailure)
+                return Result<RunCommandReceipt>.Failure(runResult.Error);
+            if (runResult.Value.Sequence != identity.ExpectedSequence ||
+                runResult.Value.Determinism.Step != identity.ExpectedStep)
+            {
+                return Result<RunCommandReceipt>.Failure(
+                    RunCommandErrors.VersionConflict(
+                        identity.ExpectedSequence,
+                        identity.ExpectedStep,
+                        runResult.Value));
+            }
+
+            _executingCommand = command;
+            try
+            {
+                var operation = ExecuteCommandTransition(runId, identity.Type, command.Payload);
+                if (operation.IsFailure)
+                    return Result<RunCommandReceipt>.Failure(operation.Error);
+
+                var receiptResult = FindReceipt(runId, identity.CommandId);
+                if (receiptResult.IsFailure)
+                    return Result<RunCommandReceipt>.Failure(receiptResult.Error);
+
+                // Some valid deck operations are no-ops. They still need a durable
+                // receipt so that a retry remains idempotent.
+                if (receiptResult.Value == null)
+                {
+                    var current = _runs[runId];
+                    var persisted = Persist(
+                        current with { Determinism = current.Determinism.AdvanceStep() },
+                        identity.Type,
+                        command.Payload);
+                    if (persisted.IsFailure)
+                        return Result<RunCommandReceipt>.Failure(persisted.Error);
+
+                    receiptResult = FindReceipt(runId, identity.CommandId);
+                }
+
+                return receiptResult.IsSuccess && receiptResult.Value != null
+                    ? Result<RunCommandReceipt>.Success(receiptResult.Value with { Duplicate = false })
+                    : Result<RunCommandReceipt>.Failure("Command completed without a durable receipt");
+            }
+            catch (Exception exception) when (exception is JsonException or FormatException or OverflowException)
+            {
+                return Result<RunCommandReceipt>.Failure($"Invalid payload for {identity.Type}: {exception.Message}");
+            }
+            finally
+            {
+                _executingCommand = null;
+            }
+        }
+    }
+
+    private Result ExecuteCommandTransition(Guid runId, string commandType, JsonElement payload)
+    {
+        return commandType switch
+        {
+            RunCommandTypes.AdvanceNode => ToResult(AdvanceNode(
+                runId,
+                DeserializePayload<AdvanceNodePayload>(payload).TargetNodeId)),
+            RunCommandTypes.ResolveNode => ToResult(ResolveCurrentNode(
+                runId,
+                DeserializePayload<ResolveNodePayload>(payload).CurrentNodeId)),
+            RunCommandTypes.DrawCards => ToResult(DrawCards(
+                runId,
+                DeserializePayload<CountPayload>(payload).Count)),
+            RunCommandTypes.DiscardCards => ToResult(DiscardCards(
+                runId,
+                DeserializePayload<CardIdsPayload>(payload).CardIds)),
+            RunCommandTypes.ShuffleDiscard => ShuffleDiscardIntoDrawPile(runId),
+            RunCommandTypes.PickCardReward => ExecutePickCardReward(runId, payload),
+            RunCommandTypes.RerollCardReward => ExecuteRerollCardReward(runId, payload),
+            RunCommandTypes.DecomposeCardReward => ExecuteDecomposeCardReward(runId, payload),
+            RunCommandTypes.BuyShopItem => ExecuteBuyShopItem(runId, payload),
+            RunCommandTypes.RerollShop => ExecuteRerollShop(runId, payload),
+            RunCommandTypes.ApplyPreparationOption => ExecutePreparationOption(runId, payload),
+            RunCommandTypes.ResolveCombat => Result.Failure(
+                "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
+            RunCommandTypes.RestoreCheckpoint => ExecuteRestoreCheckpoint(runId, payload),
+            RunCommandTypes.StartEncounter => Result.Failure(
+                "START_ENCOUNTER must be executed through the run encounter coordinator"),
+            _ => Result.Failure($"Unsupported run command type: {commandType}")
+        };
+    }
+
+    private Result ExecutePickCardReward(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<CardSelectionCardsPayload>(payload);
+        return ToResult(PickCards(runId, request.SelectionInstanceId, request.CardIds));
+    }
+
+    private Result ExecuteRerollCardReward(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<RerollCardSelectionPayload>(payload);
+        return ToResult(RerollCardSelection(runId, request.SelectionInstanceId, request.LockedCardIds));
+    }
+
+    private Result ExecuteDecomposeCardReward(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<CardSelectionItemPayload>(payload);
+        return ToResult(DecomposeCardSelectionOption(runId, request.SelectionInstanceId, request.CardId));
+    }
+
+    private Result ExecuteBuyShopItem(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<ShopItemPayload>(payload);
+        return ToResult(BuyShopItem(runId, request.ShopInstanceId, request.ItemId));
+    }
+
+    private Result ExecuteRerollShop(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<ShopPayload>(payload);
+        return ToResult(RerollShop(runId, request.ShopInstanceId));
+    }
+
+    private Result ExecutePreparationOption(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<PreparationPayload>(payload);
+        return ToResult(ApplyPreparationOption(runId, request.PreparationInstanceId, request.OptionId));
+    }
+
+    private Result ExecuteRestoreCheckpoint(Guid runId, JsonElement payload)
+    {
+        if (_repository == null)
+            return Result.Failure("Run persistence is not configured");
+
+        var request = DeserializePayload<CheckpointPayload>(payload);
+        var state = _repository.LoadAsync(runId, request.Sequence).GetAwaiter().GetResult();
+        return state == null
+            ? Result.Failure($"Run checkpoint not found: {runId}/{request.Sequence}")
+            : ToResult(RestoreState(state));
+    }
+
+    private T DeserializePayload<T>(JsonElement payload) where T : class
+    {
+        return payload.Deserialize<T>(_jsonOptions)
+            ?? throw new JsonException($"Payload cannot be deserialized as {typeof(T).Name}");
+    }
+
+    private static Result ToResult<T>(Result<T> result) =>
+        result.IsSuccess ? Result.Success() : Result.Failure(result.Error);
+
     public Result<RunState> GetRunByCombat(Guid combatId)
     {
         lock (_lock)
@@ -290,7 +504,8 @@ public sealed class RunManager : IRunManager
         Guid runId,
         int expectedSequence,
         ulong expectedStep,
-        CombatState combatState)
+        CombatState combatState,
+        RunCommandIdentity? commandIdentity = null)
     {
         if (combatState == null)
             return Result<RunState>.Failure("Combat state is required");
@@ -362,7 +577,8 @@ public sealed class RunManager : IRunManager
                     combatId = combatState.CombatId,
                     nodeId = currentNode.NodeId,
                     seed = seed.Value
-                });
+                },
+                commandIdentity);
         }
     }
 
@@ -373,7 +589,8 @@ public sealed class RunManager : IRunManager
         CombatState nextCombat,
         CombatActionCommand command,
         string? consumedCardId,
-        CardConsumeDestination destination)
+        CardConsumeDestination destination,
+        RunCommandIdentity? commandIdentity = null)
     {
         ArgumentNullException.ThrowIfNull(previousCombat);
         ArgumentNullException.ThrowIfNull(nextCombat);
@@ -451,11 +668,16 @@ public sealed class RunManager : IRunManager
                     command,
                     consumedCardId,
                     destination = destination.ToString()
-                });
+                },
+                commandIdentity);
         }
     }
 
-    public Result<RunState> ResolveEncounter(Guid runId, int expectedSequence, Guid combatId)
+    public Result<RunState> ResolveEncounter(
+        Guid runId,
+        int expectedSequence,
+        Guid combatId,
+        RunCommandIdentity? commandIdentity = null)
     {
         lock (_lock)
         {
@@ -502,7 +724,8 @@ public sealed class RunManager : IRunManager
                     nodeId = encounter.NodeId,
                     outcome = resolved.Outcome,
                     combatStateHash = CanonicalJson.ComputeHash(encounter.Combat)
-                });
+                },
+                commandIdentity);
         }
     }
 
@@ -1263,11 +1486,17 @@ public sealed class RunManager : IRunManager
     private Result<RunState> Persist(
         RunState state,
         string commandType,
-        object command)
+        object command,
+        RunCommandIdentity? commandIdentity = null)
     {
         _runs.TryGetValue(state.RunId, out var previous);
         try
         {
+            var activeCommand = commandIdentity == null ? _executingCommand : null;
+            var identity = commandIdentity ?? activeCommand?.Identity;
+            var effectiveType = identity?.Type ?? commandType;
+            var effectiveCommand = activeCommand?.Payload
+                ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
             var nextSequence = checked((previous?.Sequence ?? 0) + 1);
             state = state with { Sequence = nextSequence };
             var snapshot = CreateSnapshot(state);
@@ -1278,10 +1507,14 @@ public sealed class RunManager : IRunManager
             var entry = new RunJournalEntry
             {
                 RunId = snapshot.RunId,
+                CommandId = identity?.CommandId,
                 Sequence = snapshot.Sequence,
                 Step = snapshot.Determinism.Step,
-                CommandType = commandType,
-                Command = JsonSerializer.SerializeToElement(command, _jsonOptions).Clone(),
+                ExpectedSequence = identity?.ExpectedSequence,
+                ExpectedStep = identity?.ExpectedStep,
+                CommandPayloadHash = identity?.PayloadHash ?? string.Empty,
+                CommandType = effectiveType,
+                Command = effectiveCommand,
                 PreviousStateHash = previousHash,
                 StateHash = stateHash,
                 LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime
@@ -1298,6 +1531,11 @@ public sealed class RunManager : IRunManager
             }
 
             _runs[state.RunId] = state;
+            if (entry.CommandId is { } commandId)
+            {
+                _commandReceipts[(state.RunId, commandId)] =
+                    CreateReceipt(state, entry, duplicate: false);
+            }
             return Result<RunState>.Success(state);
         }
         catch (Exception exception)
@@ -1310,6 +1548,40 @@ public sealed class RunManager : IRunManager
                 $"Failed to persist run transition '{commandType}': {exception.Message}",
                 exception);
         }
+    }
+
+    private static RunCommandReceipt CreateReceipt(
+        RunState state,
+        RunJournalEntry entry,
+        bool duplicate)
+    {
+        return new RunCommandReceipt
+        {
+            CommandId = entry.CommandId ?? Guid.Empty,
+            CommandType = entry.CommandType,
+            Sequence = entry.Sequence,
+            Step = entry.Step,
+            PreviousStateHash = entry.PreviousStateHash,
+            StateHash = entry.StateHash,
+            State = state,
+            JournalEntry = entry,
+            Duplicate = duplicate
+        };
+    }
+
+    private static bool IsSameCommand(RunJournalEntry entry, RunCommand command)
+    {
+        return string.Equals(entry.CommandType, command.Identity.Type, StringComparison.Ordinal) &&
+               entry.ExpectedSequence == command.Identity.ExpectedSequence &&
+               entry.ExpectedStep == command.Identity.ExpectedStep &&
+               string.Equals(
+                   string.IsNullOrWhiteSpace(entry.CommandPayloadHash)
+                       ? CanonicalJson.ComputeHash(entry.Command)
+                       : entry.CommandPayloadHash,
+                   string.IsNullOrWhiteSpace(command.Identity.PayloadHash)
+                       ? CanonicalJson.ComputeHash(command.Payload)
+                       : command.Identity.PayloadHash,
+                   StringComparison.Ordinal);
     }
 
     private RunState CreateSnapshot(RunState state)
@@ -1350,4 +1622,22 @@ public sealed class RunManager : IRunManager
             entry => JsonSerializer.SerializeToElement(entry.Value).Clone(),
             StringComparer.OrdinalIgnoreCase);
     }
+
+    private sealed record AdvanceNodePayload(string TargetNodeId);
+    private sealed record ResolveNodePayload(string CurrentNodeId);
+    private sealed record CountPayload(int Count);
+    private sealed record CardIdsPayload(IReadOnlyList<string> CardIds);
+    private sealed record CardSelectionCardsPayload(
+        Guid SelectionInstanceId,
+        IReadOnlyList<string> CardIds);
+    private sealed record RerollCardSelectionPayload(
+        Guid SelectionInstanceId,
+        IReadOnlyList<string>? LockedCardIds);
+    private sealed record CardSelectionItemPayload(
+        Guid SelectionInstanceId,
+        string CardId);
+    private sealed record ShopItemPayload(Guid ShopInstanceId, string ItemId);
+    private sealed record ShopPayload(Guid ShopInstanceId);
+    private sealed record PreparationPayload(Guid PreparationInstanceId, string OptionId);
+    private sealed record CheckpointPayload(int Sequence);
 }

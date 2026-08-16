@@ -799,6 +799,82 @@ public sealed class RunManagerTests
         Assert.False(missing.Value);
     }
 
+    [Fact]
+    public void CommandGateway_DeduplicatesRetryAndRejectsStaleVersion()
+    {
+        var manager = CreateManager();
+        var started = manager.StartRun(new RunStartOptions(
+            "test", "default_run", "hero", Seed: 500UL, ContentRevision: "test")).Value;
+        var payload = JsonSerializer.SerializeToElement(new { currentNodeId = "start" });
+        var command = new RunCommand(
+            new RunCommandIdentity(
+                Guid.NewGuid(),
+                RunCommandTypes.ResolveNode,
+                started.Sequence,
+                started.Determinism.Step,
+                CanonicalJson.ComputeHash(payload)),
+            payload);
+
+        var first = manager.Execute(started.RunId, command);
+        var retry = manager.Execute(started.RunId, command);
+        var stalePayload = JsonSerializer.SerializeToElement(new { targetNodeId = "reward" });
+        var stale = manager.Execute(started.RunId, new RunCommand(
+            new RunCommandIdentity(
+                Guid.NewGuid(),
+                RunCommandTypes.AdvanceNode,
+                started.Sequence,
+                started.Determinism.Step,
+                CanonicalJson.ComputeHash(stalePayload)),
+            stalePayload));
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.True(retry.IsSuccess, retry.IsFailure ? retry.Error : null);
+        Assert.False(first.Value.Duplicate);
+        Assert.True(retry.Value.Duplicate);
+        Assert.Equal(first.Value.Sequence, retry.Value.Sequence);
+        Assert.Equal(first.Value.StateHash, retry.Value.StateHash);
+        Assert.True(stale.IsFailure);
+        Assert.StartsWith(RunCommandErrors.VersionConflictPrefix, stale.Error);
+        Assert.Equal(first.Value.Sequence, manager.GetRun(started.RunId).Value.Sequence);
+    }
+
+    [Fact]
+    public void CommandGateway_DeduplicatesFromDurableCheckpointAfterRestart()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heroscript-command-{Guid.NewGuid():N}");
+        try
+        {
+            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            var manager = CreateManager(repository: repository);
+            var started = manager.StartRun(new RunStartOptions(
+                "test", "default_run", "hero", Seed: 501UL, ContentRevision: "test")).Value;
+            var payload = JsonSerializer.SerializeToElement(new { currentNodeId = "start" });
+            var command = new RunCommand(
+                new RunCommandIdentity(
+                    Guid.NewGuid(),
+                    RunCommandTypes.ResolveNode,
+                    started.Sequence,
+                    started.Determinism.Step,
+                    CanonicalJson.ComputeHash(payload)),
+                payload);
+            var first = manager.Execute(started.RunId, command);
+
+            var restarted = CreateManager(repository: repository);
+            var retry = restarted.Execute(started.RunId, command);
+
+            Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+            Assert.True(retry.IsSuccess, retry.IsFailure ? retry.Error : null);
+            Assert.True(retry.Value.Duplicate);
+            Assert.Equal(first.Value.StateHash, retry.Value.StateHash);
+            Assert.Equal(first.Value.Sequence, restarted.GetRun(started.RunId).Value.Sequence);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+    }
+
     private RunManager CreateManager(
         IScriptModifierManager? scriptModifierManager = null,
         IRunStateRepository? repository = null,
