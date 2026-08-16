@@ -3,6 +3,11 @@ namespace API.Models.Combat;
 public class CombatStateResponse
 {
     public Guid CombatId { get; set; }
+    public ulong Seed { get; set; }
+    public ulong Step { get; set; }
+    public string ContentRevision { get; set; } = string.Empty;
+    public string EngineVersion { get; set; } = string.Empty;
+    public string StateHash { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int CurrentTurn { get; set; }
     public HeroStateDto Hero { get; set; } = null!;

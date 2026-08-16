@@ -6,6 +6,7 @@ using Core.Effects;
 using API.Models.Combat;
 using API.Models.Gambits;
 using Core.Run;
+using Core.Determinism;
 
 namespace API.Controllers;
 
@@ -613,6 +614,11 @@ public class CombatController : BaseApiController
         return new CombatStateResponse
         {
             CombatId = state.CombatId,
+            Seed = state.Determinism.Seed,
+            Step = state.Determinism.Step,
+            ContentRevision = state.Determinism.ContentRevision,
+            EngineVersion = state.Determinism.EngineVersion,
+            StateHash = CanonicalJson.ComputeHash(state),
             Status = state.Status.ToString(),
             CurrentTurn = state.CurrentTurn,
             Hero = new HeroStateDto

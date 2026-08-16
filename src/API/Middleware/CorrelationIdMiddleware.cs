@@ -7,7 +7,8 @@ namespace API.Middleware;
 /// </summary>
 public class CorrelationIdMiddleware
 {
-    private const string HeaderName = "X-Correlation-ID";
+    public const string HeaderName = "X-Correlation-ID";
+    public const string ItemName = "ApiCorrelationId";
 
     private readonly RequestDelegate _next;
     private readonly ILogger<CorrelationIdMiddleware> _logger;
@@ -26,11 +27,22 @@ public class CorrelationIdMiddleware
 
         // Propagate to response so callers can trace end-to-end
         context.Response.Headers[HeaderName] = correlationId;
+        context.Items[ItemName] = correlationId;
 
         // Inject into the log scope so every log line in this request has CorrelationId
         using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
         {
             await _next(context);
         }
+    }
+
+    public static string GetCorrelationId(HttpContext? context)
+    {
+        if (context?.Items.TryGetValue(ItemName, out var value) == true && value is string correlationId)
+            return correlationId;
+
+        return context?.Request.Headers[HeaderName].FirstOrDefault()
+            ?? context?.TraceIdentifier
+            ?? string.Empty;
     }
 }

@@ -1,0 +1,90 @@
+using Core.Abstractions.Persistence;
+using Core.Config;
+using Core.Determinism;
+using API.Contracts;
+using Microsoft.AspNetCore.Mvc;
+
+namespace API.Controllers;
+
+[ApiController]
+[Route("api/v1")]
+public sealed class SystemController : ControllerBase
+{
+    private readonly IConfigManager _configManager;
+    private readonly IRunStateRepository _runRepository;
+
+    public SystemController(IConfigManager configManager, IRunStateRepository runRepository)
+    {
+        _configManager = configManager;
+        _runRepository = runRepository;
+    }
+
+    [HttpGet("health/live")]
+    public IActionResult Live() => Ok(new { status = "healthy" });
+
+    [HttpGet("health/ready")]
+    public async Task<IActionResult> Ready(CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Guid> persistedRuns;
+        try
+        {
+            persistedRuns = await _runRepository.ListRunIdsAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            var problem = ApiProblemDetailsFactory.Create(
+                HttpContext,
+                StatusCodes.Status503ServiceUnavailable,
+                ApiErrorCodes.DependencyUnavailable,
+                "Service unavailable",
+                "The run store is not ready.");
+            var result = new ObjectResult(problem)
+            {
+                StatusCode = StatusCodes.Status503ServiceUnavailable
+            };
+            result.ContentTypes.Add("application/problem+json");
+            return result;
+        }
+
+        return Ok(new
+        {
+            status = "ready",
+            checks = new
+            {
+                content = new
+                {
+                    status = "ready",
+                    currentConfig = _configManager.CurrentConfig,
+                    defaultConfig = _configManager.DefaultConfig
+                },
+                runStore = new { status = "ready", persistedRuns = persistedRuns.Count }
+            }
+        });
+    }
+
+    [HttpGet("version")]
+    public IActionResult Version()
+    {
+        var assemblyVersion = typeof(Program).Assembly.GetName().Version?.ToString() ?? "unknown";
+        return Ok(new
+        {
+            apiVersion = "1",
+            engineVersion = DeterministicContext.CurrentEngineVersion,
+            assemblyVersion
+        });
+    }
+
+    [HttpGet("capabilities")]
+    public IActionResult Capabilities() => Ok(new
+    {
+        apiVersion = "1",
+        capabilities = new[]
+        {
+            "deterministic-state",
+            "run-checkpoints",
+            "run-content-revision",
+            "sse-events",
+            "legacy-routes"
+        }
+    });
+}

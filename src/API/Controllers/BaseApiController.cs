@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using API.Contracts;
 
 namespace API.Controllers;
 
@@ -33,24 +34,75 @@ public abstract class BaseApiController : ControllerBase
     private IActionResult HandleArgumentException(ArgumentException ex, string context)
     {
         _logger.LogWarning(ex, "Invalid argument: {Context}", context);
-        return BadRequest(new { error = ex.Message });
+        return ApiBadRequest(ApiErrorCodes.InvalidArgument, "Invalid argument", ex.Message);
     }
 
     private IActionResult HandleInvalidOperationException(InvalidOperationException ex, string context)
     {
         _logger.LogWarning(ex, "Invalid operation: {Context}", context);
-        return BadRequest(new { error = ex.Message });
+        return ApiBadRequest(ApiErrorCodes.InvalidOperation, "Invalid operation", ex.Message);
     }
 
     private IActionResult HandleDivideByZeroException(DivideByZeroException ex, string context)
     {
         _logger.LogWarning(ex, "Division by zero: {Context}", context);
-        return BadRequest(new { error = "Division by zero", details = ex.Message });
+        return ApiBadRequest(ApiErrorCodes.InvalidArgument, "Division by zero", ex.Message);
     }
 
     private IActionResult HandleGenericException(Exception ex, string context)
     {
         _logger.LogError(ex, "Error: {Context}", context);
-        return StatusCode(500, new { error = $"Failed to {context}", details = ex.Message });
+        return ApiProblem(
+            StatusCodes.Status500InternalServerError,
+            ApiErrorCodes.InternalError,
+            "Internal server error",
+            $"Failed to {context}");
+    }
+
+    protected BadRequestObjectResult ApiBadRequest(string code, string title, string detail)
+    {
+        var result = BadRequest(ApiProblemDetailsFactory.Create(
+            ControllerContext.HttpContext,
+            StatusCodes.Status400BadRequest,
+            code,
+            title,
+            detail));
+        result.ContentTypes.Add("application/problem+json");
+        return result;
+    }
+
+    protected NotFoundObjectResult ApiNotFound(string detail)
+    {
+        var result = NotFound(ApiProblemDetailsFactory.Create(
+            ControllerContext.HttpContext,
+            StatusCodes.Status404NotFound,
+            ApiErrorCodes.ResourceNotFound,
+            "Resource not found",
+            detail));
+        result.ContentTypes.Add("application/problem+json");
+        return result;
+    }
+
+    protected ObjectResult ApiProblem(
+        int status,
+        string code,
+        string title,
+        string detail,
+        int? currentSequence = null,
+        ulong? currentStep = null)
+    {
+        var result = new ObjectResult(ApiProblemDetailsFactory.Create(
+            ControllerContext.HttpContext,
+            status,
+            code,
+            title,
+            detail,
+            currentSequence,
+            currentStep))
+        {
+            StatusCode = status
+        };
+        result.ContentTypes.Add("application/problem+json");
+        return result;
     }
 }

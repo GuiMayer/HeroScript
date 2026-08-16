@@ -1,6 +1,7 @@
 using Core.Abstractions.Persistence;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
+using Core.Determinism;
 
 namespace API.Controllers;
 
@@ -161,6 +162,7 @@ public sealed class RunController : BaseApiController
             run.Determinism.ContentRevision,
             run.Determinism.EngineVersion,
             run.Determinism.Step,
+            stateHash = CanonicalJson.ComputeHash(run),
             deck = MapDeck(run.Deck),
             run.Metadata
         };

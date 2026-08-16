@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using System.Text.Json;
 
 namespace API.Tests.Controllers;
 
@@ -34,6 +35,11 @@ public sealed class RunControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
+        var json = JsonSerializer.SerializeToElement(
+            ok.Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("stateHash").GetString()));
+        Assert.Equal((ulong)0, json.GetProperty("step").GetUInt64());
         _runManager.Verify(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null)), Times.Once);
     }
 

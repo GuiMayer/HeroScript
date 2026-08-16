@@ -22,11 +22,35 @@ using Core.Run.Content;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Mvc;
+using API.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(entry => entry.Value?.Errors.Count > 0)
+            .ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value!.Errors
+                    .Select(error => string.IsNullOrWhiteSpace(error.ErrorMessage)
+                        ? "The supplied value is invalid."
+                        : error.ErrorMessage)
+                    .ToArray(),
+                StringComparer.Ordinal);
+
+        var result = new BadRequestObjectResult(
+            ApiProblemDetailsFactory.CreateValidation(context.HttpContext, errors));
+        result.ContentTypes.Add("application/problem+json");
+        return result;
+    };
+});
 
 // Configure config reload settings (security flag)
 var allowConfigReload = builder.Configuration.GetValue<bool>("AllowConfigReload", false);
@@ -439,6 +463,7 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseCors();
 app.UseMiddleware<API.Middleware.CorrelationIdMiddleware>();
+app.UseMiddleware<API.Middleware.ApiExceptionMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
 app.MapControllers();
 

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using Core.Determinism;
 
 namespace API.Tests.Controllers;
 
@@ -54,7 +55,10 @@ public sealed class CombatControllerTurnTests
         var result = _controller.EndTurn(state.CombatId);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(ok.Value);
+        var response = Assert.IsType<CombatStateResponse>(ok.Value);
+        Assert.Equal(state.Determinism.Seed, response.Seed);
+        Assert.Equal(state.Determinism.ContentRevision, response.ContentRevision);
+        Assert.Equal(CanonicalJson.ComputeHash(state with { CurrentTurn = 2 }), response.StateHash);
         _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
             c.ActorId == "hero" &&
             c.ActionType == ActionType.END_TURN)), Times.Once);
