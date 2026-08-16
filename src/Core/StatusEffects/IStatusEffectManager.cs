@@ -21,24 +21,24 @@ public interface IStatusEffectManager
     /// <param name="sourceId">ID da entidade que aplicou (opcional)</param>
     /// <returns>Instância do status effect aplicado</returns>
     Result<StatusEffectInstance> ApplyStatus(
-        Guid targetId,
+        string targetId,
         string statusId,
         int stacks = 1,
         int? duration = null,
-        Guid? sourceId = null);
+        string? sourceId = null);
 
     /// <summary>
     /// Aplica um status com identidade e tempo lógico fornecidos pela transição.
     /// Este é o contrato usado por runs determinísticas.
     /// </summary>
     Result<StatusEffectInstance> ApplyStatus(
-        Guid targetId,
+        string targetId,
         string statusId,
         Guid instanceId,
         DateTime appliedAt,
         int stacks = 1,
         int? duration = null,
-        Guid? sourceId = null);
+        string? sourceId = null);
     
     /// <summary>
     /// Remove uma instância específica de status effect
@@ -46,7 +46,7 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <param name="instanceId">ID da instância do status</param>
     /// <returns>Resultado da operação</returns>
-    Result RemoveStatus(Guid targetId, Guid instanceId);
+    Result RemoveStatus(string targetId, Guid instanceId);
     
     /// <summary>
     /// Remove todos os status effects com um statusId específico
@@ -54,7 +54,7 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <param name="statusId">ID do status a remover</param>
     /// <returns>Resultado da operação</returns>
-    Result RemoveStatusByStatusId(Guid targetId, string statusId);
+    Result RemoveStatusByStatusId(string targetId, string statusId);
     
     /// <summary>
     /// Remove todos os status effects de um tipo específico
@@ -62,7 +62,7 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <param name="type">Tipo de status a remover (null = todos)</param>
     /// <returns>Resultado da operação</returns>
-    Result RemoveAllStatus(Guid targetId, StatusEffectType? type = null);
+    Result RemoveAllStatus(string targetId, StatusEffectType? type = null);
     
     // ===== MODIFICAR =====
     
@@ -73,7 +73,7 @@ public interface IStatusEffectManager
     /// <param name="instanceId">ID da instância do status</param>
     /// <param name="stacks">Número de stacks a adicionar</param>
     /// <returns>Instância atualizada</returns>
-    Result<StatusEffectInstance> AddStacks(Guid targetId, Guid instanceId, int stacks);
+    Result<StatusEffectInstance> AddStacks(string targetId, Guid instanceId, int stacks);
     
     /// <summary>
     /// Remove stacks de um status effect existente
@@ -83,7 +83,7 @@ public interface IStatusEffectManager
     /// <param name="instanceId">ID da instância do status</param>
     /// <param name="stacks">Número de stacks a remover</param>
     /// <returns>Instância atualizada (ou null se removido)</returns>
-    Result<StatusEffectInstance?> RemoveStacks(Guid targetId, Guid instanceId, int stacks);
+    Result<StatusEffectInstance?> RemoveStacks(string targetId, Guid instanceId, int stacks);
     
     /// <summary>
     /// Atualiza a duração de um status effect
@@ -92,7 +92,7 @@ public interface IStatusEffectManager
     /// <param name="instanceId">ID da instância do status</param>
     /// <param name="duration">Nova duração em turnos</param>
     /// <returns>Instância atualizada</returns>
-    Result<StatusEffectInstance> RefreshDuration(Guid targetId, Guid instanceId, int duration);
+    Result<StatusEffectInstance> RefreshDuration(string targetId, Guid instanceId, int duration);
     
     // ===== CONSULTAR =====
     
@@ -101,7 +101,7 @@ public interface IStatusEffectManager
     /// </summary>
     /// <param name="targetId">ID da entidade alvo</param>
     /// <returns>Lista de status effects ativos</returns>
-    Result<List<StatusEffectInstance>> GetActiveStatus(Guid targetId);
+    Result<List<StatusEffectInstance>> GetActiveStatus(string targetId);
     
     /// <summary>
     /// Obtém uma instância específica de status effect
@@ -109,7 +109,7 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <param name="instanceId">ID da instância do status</param>
     /// <returns>Instância do status effect</returns>
-    Result<StatusEffectInstance> GetStatus(Guid targetId, Guid instanceId);
+    Result<StatusEffectInstance> GetStatus(string targetId, Guid instanceId);
     
     /// <summary>
     /// Verifica se uma entidade possui um status effect de um tipo específico
@@ -117,7 +117,7 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <param name="type">Tipo de status</param>
     /// <returns>True se possui o status</returns>
-    bool HasStatus(Guid targetId, StatusEffectType type);
+    bool HasStatus(string targetId, StatusEffectType type);
     
     /// <summary>
     /// Obtém o número total de stacks de um tipo de status
@@ -125,7 +125,7 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <param name="type">Tipo de status</param>
     /// <returns>Número total de stacks</returns>
-    int GetStatusStacks(Guid targetId, StatusEffectType type);
+    int GetStatusStacks(string targetId, StatusEffectType type);
     
     // ===== PROCESSAR =====
     
@@ -138,7 +138,7 @@ public interface IStatusEffectManager
     /// <param name="currentTurn">Turno atual</param>
     /// <returns>Resultado do processamento</returns>
     Result<StatusEffectProcessResult> ProcessStatusEffects(
-        Guid targetId,
+        string targetId,
         StatusEffectTiming timing,
         int currentTurn);
     
@@ -148,7 +148,7 @@ public interface IStatusEffectManager
     /// </summary>
     /// <param name="targetId">ID da entidade alvo</param>
     /// <returns>Resultado da operação</returns>
-    Result TickDurations(Guid targetId);
+    Result TickDurations(string targetId);
     
     /// <summary>
     /// Obtém modificadores de pipeline de uma entidade
@@ -156,7 +156,7 @@ public interface IStatusEffectManager
     /// </summary>
     /// <param name="targetId">ID da entidade alvo</param>
     /// <returns>Dicionário de modificadores (chave -> valor)</returns>
-    Dictionary<string, float> GetPipelineModifiers(Guid targetId);
+    Dictionary<string, float> GetPipelineModifiers(string targetId);
     
     // ===== DEFINIÇÕES =====
     
@@ -217,7 +217,7 @@ public record StatusEffectProcessResult
     /// <summary>
     /// ID da entidade processada
     /// </summary>
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     
     /// <summary>
     /// Resultados individuais de cada status effect processado

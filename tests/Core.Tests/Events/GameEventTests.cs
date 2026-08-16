@@ -354,9 +354,9 @@ public class GameEventTests
     public void StatusAppliedEvent_FullConstruction_SetsAllProperties()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var instanceId = Guid.NewGuid();
-        var sourceId = Guid.NewGuid();
+        const string sourceId = "hero_1";
         
         // Act
         var evt = new StatusAppliedEvent(
@@ -378,7 +378,7 @@ public class GameEventTests
         Assert.Equal(nameof(StatusAppliedEvent), evt.EventType);
         Assert.Equal(EventCategory.GAME, evt.Category);
         Assert.Equal(EventSeverity.INFO, evt.Severity);
-        Assert.Equal(targetId.ToString(), evt.Subject);
+        Assert.Equal(targetId, evt.Subject);
         Assert.Equal("status_applied", evt.Verb);
         Assert.Equal("burning", evt.Target);
     }
@@ -387,7 +387,7 @@ public class GameEventTests
     public void StatusAppliedEvent_PayloadContainsAllData()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var instanceId = Guid.NewGuid();
         
         // Act
@@ -415,7 +415,7 @@ public class GameEventTests
     {
         // Arrange & Act
         var evt = new StatusAppliedEvent(
-            targetId: Guid.NewGuid(),
+            targetId: "hero_1",
             statusId: "strength",
             instanceId: Guid.NewGuid(),
             stacks: 1,
@@ -432,7 +432,7 @@ public class GameEventTests
     public void StatusRemovedEvent_FullConstruction_SetsAllProperties()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var instanceId = Guid.NewGuid();
         
         // Act
@@ -457,7 +457,7 @@ public class GameEventTests
     {
         // Arrange & Act
         var evt = new StatusRemovedEvent(
-            targetId: Guid.NewGuid(),
+            targetId: "enemy_1",
             statusId: "vulnerable",
             instanceId: Guid.NewGuid()
         );
@@ -470,7 +470,7 @@ public class GameEventTests
     public void StatusStackChangedEvent_FullConstruction_CalculatesDelta()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "hero_1";
         var instanceId = Guid.NewGuid();
         
         // Act
@@ -495,7 +495,7 @@ public class GameEventTests
     {
         // Arrange & Act
         var evt = new StatusStackChangedEvent(
-            targetId: Guid.NewGuid(),
+            targetId: "enemy_1",
             statusId: "poison",
             instanceId: Guid.NewGuid(),
             oldStacks: 5,
@@ -510,7 +510,7 @@ public class GameEventTests
     public void StatusDurationRefreshedEvent_FullConstruction_SetsAllProperties()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "hero_1";
         var instanceId = Guid.NewGuid();
         
         // Act
@@ -534,7 +534,7 @@ public class GameEventTests
     {
         // Arrange & Act
         var evt = new StatusDurationRefreshedEvent(
-            targetId: Guid.NewGuid(),
+            targetId: "hero_1",
             statusId: "artifact",
             instanceId: Guid.NewGuid(),
             oldDuration: null,
@@ -552,7 +552,7 @@ public class GameEventTests
     public void StatusTickProcessedEvent_WithValue_SetsAllProperties()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var instanceId = Guid.NewGuid();
         
         // Act
@@ -576,7 +576,7 @@ public class GameEventTests
     {
         // Arrange & Act
         var evt = new StatusTickProcessedEvent(
-            targetId: Guid.NewGuid(),
+            targetId: "enemy_1",
             statusId: "weakness",
             instanceId: Guid.NewGuid(),
             remainingDuration: 3,
@@ -592,7 +592,7 @@ public class GameEventTests
     public void StatusExpiredEvent_FullConstruction_SetsAllProperties()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var instanceId = Guid.NewGuid();
         
         // Act
@@ -658,7 +658,7 @@ public class GameEventTests
     public void Scenario_StatusEffectLifecycle_ApplyTickExpire()
     {
         // Arrange
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var instanceId = Guid.NewGuid();
         
         // Act - Apply burning
@@ -668,7 +668,7 @@ public class GameEventTests
             instanceId: instanceId,
             stacks: 3,
             duration: 3,
-            sourceId: Guid.NewGuid()
+            sourceId: "hero_1"
         );
         
         // Tick 1 - duration 2 remaining

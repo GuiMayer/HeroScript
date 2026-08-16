@@ -28,13 +28,13 @@ public record StatusEffectInstance
     /// <summary>
     /// ID da entidade que possui este status (herói ou inimigo)
     /// </summary>
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     
     /// <summary>
     /// ID da entidade que aplicou este status (opcional)
     /// Usado para rastrear origem de efeitos
     /// </summary>
-    public Guid? SourceId { get; init; }
+    public string? SourceId { get; init; }
     
     // ===== VALORES ATUAIS =====
     

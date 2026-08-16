@@ -23,7 +23,7 @@ public class StatusEffectProcessor
     /// </summary>
     public Result<StatusEffectTickResult> ProcessTick(
         StatusEffectInstance instance,
-        Guid targetId,
+        string targetId,
         int currentTurn)
     {
         return instance.Definition.Behavior switch
@@ -48,7 +48,7 @@ public class StatusEffectProcessor
     
     // ===== DAMAGE OVER TIME =====
     
-    private Result<StatusEffectTickResult> ProcessDoT(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessDoT(StatusEffectInstance instance, string targetId)
     {
         var damage = CalculateValue(instance);
         
@@ -71,7 +71,7 @@ public class StatusEffectProcessor
     
     // ===== HEAL OVER TIME =====
     
-    private Result<StatusEffectTickResult> ProcessHoT(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessHoT(StatusEffectInstance instance, string targetId)
     {
         var healing = CalculateValue(instance);
         
@@ -94,7 +94,7 @@ public class StatusEffectProcessor
     
     // ===== STAT MODIFIER =====
     
-    private Result<StatusEffectTickResult> ProcessStatModifier(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessStatModifier(StatusEffectInstance instance, string targetId)
     {
         // Stat modifiers são processados passivamente via GetPipelineModifiers
         // Não precisam de tick ativo
@@ -115,7 +115,7 @@ public class StatusEffectProcessor
     
     // ===== SHIELD =====
     
-    private Result<StatusEffectTickResult> ProcessShield(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessShield(StatusEffectInstance instance, string targetId)
     {
         var result = new StatusEffectTickResult
         {
@@ -133,7 +133,7 @@ public class StatusEffectProcessor
     
     // ===== REACTIVE =====
     
-    private Result<StatusEffectTickResult> ProcessReactive(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessReactive(StatusEffectInstance instance, string targetId)
     {
         var result = new StatusEffectTickResult
         {
@@ -151,7 +151,7 @@ public class StatusEffectProcessor
     
     // ===== CONTROL =====
     
-    private Result<StatusEffectTickResult> ProcessControl(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessControl(StatusEffectInstance instance, string targetId)
     {
         // Control effects são verificados antes de ações
         // Não precisam de tick ativo
@@ -172,7 +172,7 @@ public class StatusEffectProcessor
     
     // ===== BEHAVIORS ESPECIAIS =====
     
-    private Result<StatusEffectTickResult> ProcessPreventDebuff(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessPreventDebuff(StatusEffectInstance instance, string targetId)
     {
         // Artifact: Previne o próximo debuff
         // Processado quando debuff é aplicado
@@ -191,7 +191,7 @@ public class StatusEffectProcessor
         return Result<StatusEffectTickResult>.Success(result);
     }
     
-    private Result<StatusEffectTickResult> ProcessDamageCap(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessDamageCap(StatusEffectInstance instance, string targetId)
     {
         var result = new StatusEffectTickResult
         {
@@ -207,7 +207,7 @@ public class StatusEffectProcessor
         return Result<StatusEffectTickResult>.Success(result);
     }
     
-    private Result<StatusEffectTickResult> ProcessDeathPrevention(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessDeathPrevention(StatusEffectInstance instance, string targetId)
     {
         // Buffer: Previne morte
         // Processado quando HP chegaria a 0
@@ -226,7 +226,7 @@ public class StatusEffectProcessor
         return Result<StatusEffectTickResult>.Success(result);
     }
     
-    private Result<StatusEffectTickResult> ProcessRuleModifier(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessRuleModifier(StatusEffectInstance instance, string targetId)
     {
         // Barricade: Modifica regras do jogo
         // Processado passivamente
@@ -245,7 +245,7 @@ public class StatusEffectProcessor
         return Result<StatusEffectTickResult>.Success(result);
     }
     
-    private Result<StatusEffectTickResult> ProcessTriggerOnStatus(StatusEffectInstance instance, Guid targetId)
+    private Result<StatusEffectTickResult> ProcessTriggerOnStatus(StatusEffectInstance instance, string targetId)
     {
         // Evolve: Dispara ao receber status
         // Processado quando outro status é aplicado

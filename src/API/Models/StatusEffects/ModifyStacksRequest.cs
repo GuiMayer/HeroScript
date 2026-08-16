@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace API.Models.StatusEffects;
 
 /// <summary>
@@ -8,7 +10,8 @@ public class ModifyStacksRequest
     /// <summary>
     /// ID da entidade alvo
     /// </summary>
-    public Guid TargetId { get; set; }
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
     
     /// <summary>
     /// ID da instância do status
@@ -18,5 +21,6 @@ public class ModifyStacksRequest
     /// <summary>
     /// Número de stacks a adicionar/remover
     /// </summary>
+    [Range(1, int.MaxValue)]
     public int Stacks { get; set; }
 }

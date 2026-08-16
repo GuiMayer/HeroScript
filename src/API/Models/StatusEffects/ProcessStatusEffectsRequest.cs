@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace API.Models.StatusEffects;
 
 /// <summary>
@@ -8,11 +10,13 @@ public class ProcessStatusEffectsRequest
     /// <summary>
     /// ID da entidade alvo
     /// </summary>
-    public Guid TargetId { get; set; }
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
     
     /// <summary>
     /// Timing de processamento (START_OF_TURN, END_OF_TURN, etc.)
     /// </summary>
+    [Required]
     public string Timing { get; set; } = string.Empty;
     
     /// <summary>

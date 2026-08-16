@@ -9,6 +9,7 @@ using Core.Events;
 using Core.Logging;
 using Core.Math;
 using Core.Resources;
+using Core.StatusEffects;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -277,6 +278,45 @@ public class CombatSystemTests
         // Assert
         Assert.True(result.IsFailure);
         Assert.Contains("Insufficient", result.Error);
+    }
+
+    [Fact]
+    public void ExecuteAction_WithControlStatusOnOpaqueActorId_ShouldFail()
+    {
+        var statusManager = new Mock<IStatusEffectManager>();
+        statusManager
+            .Setup(manager => manager.GetActiveStatus("hero-1"))
+            .Returns(Result<List<StatusEffectInstance>>.Success(new List<StatusEffectInstance>
+            {
+                new()
+                {
+                    InstanceId = Guid.NewGuid(),
+                    StatusId = "stunned",
+                    TargetId = "hero-1",
+                    Definition = new StatusEffectDefinition
+                    {
+                        StatusId = "stunned",
+                        Type = StatusEffectType.STUNNED,
+                        Behavior = StatusEffectBehavior.CONTROL
+                    }
+                }
+            }));
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
+            _mockEventBus.Object,
+            statusEffectManager: statusManager.Object,
+            actionManager: _mockActionManager.Object);
+        var start = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" });
+
+        var result = combatSystem.ExecuteAction(
+            start.Value.CombatId,
+            Command("hero-1", ActionType.BASIC_ATTACK, targetId: "enemy-1"));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("control effect", result.Error, StringComparison.OrdinalIgnoreCase);
+        statusManager.Verify(manager => manager.GetActiveStatus("hero-1"), Times.Once);
     }
 
     [Fact]

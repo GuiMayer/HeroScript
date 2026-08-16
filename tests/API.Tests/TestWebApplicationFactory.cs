@@ -33,13 +33,11 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<IActionManager>();
             services.RemoveAll<IResourceManager>();
-            services.RemoveAll<IStatusEffectManager>();
             services.RemoveAll<IScriptModifierManager>();
             services.RemoveAll<IGambitEngine>();
 
             services.AddSingleton(CreateActionManager());
             services.AddSingleton(CreateResourceManager());
-            services.AddSingleton(CreateStatusEffectManager());
             services.AddSingleton(CreateScriptModifierManager());
             services.AddSingleton(CreateGambitEngine());
         });
@@ -201,14 +199,6 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             .Returns((EntityResourceState state, RegenerationTiming _, Dictionary<string, float>? _) => Result<EntityResourceState>.Success(state));
         mock.Setup(m => m.ReloadResource(It.IsAny<string>())).Returns(Result.Success());
 
-        return mock.Object;
-    }
-
-    private static IStatusEffectManager CreateStatusEffectManager()
-    {
-        var mock = new Mock<IStatusEffectManager>();
-        mock.Setup(m => m.LoadStatusDefinitions(It.IsAny<string>())).Returns(Result.Success());
-        mock.Setup(m => m.GetAllDefinitions()).Returns(new List<StatusEffectDefinition>());
         return mock.Object;
     }
 

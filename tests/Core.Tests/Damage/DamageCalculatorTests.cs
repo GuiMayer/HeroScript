@@ -395,14 +395,14 @@ public class DamageCalculatorTests
 
         // Setup status effect modifiers for attacker (e.g., Strength buff)
         _mockStatusEffectManager
-            .Setup(m => m.GetPipelineModifiers(Guid.Parse(attackerId)))
+            .Setup(m => m.GetPipelineModifiers(attackerId))
             .Returns(new Dictionary<string, float>
             {
                 ["increased_damage_total"] = 20f
             });
 
         _mockStatusEffectManager
-            .Setup(m => m.GetPipelineModifiers(Guid.Parse(targetId)))
+            .Setup(m => m.GetPipelineModifiers(targetId))
             .Returns(new Dictionary<string, float>());
 
         DamageContext? capturedContext = null;
@@ -437,11 +437,11 @@ public class DamageCalculatorTests
 
         // Setup status effect modifiers for target (e.g., Vulnerable debuff)
         _mockStatusEffectManager
-            .Setup(m => m.GetPipelineModifiers(Guid.Parse(attackerId)))
+            .Setup(m => m.GetPipelineModifiers(attackerId))
             .Returns(new Dictionary<string, float>());
 
         _mockStatusEffectManager
-            .Setup(m => m.GetPipelineModifiers(Guid.Parse(targetId)))
+            .Setup(m => m.GetPipelineModifiers(targetId))
             .Returns(new Dictionary<string, float>
             {
                 ["damage_taken_multiplier"] = 1.5f
@@ -462,7 +462,7 @@ public class DamageCalculatorTests
     }
 
     [Fact]
-    public void CalculateDamage_WithInvalidGuidEntityIds_DoesNotThrow()
+    public void CalculateDamage_WithOpaqueEntityIds_QueriesStatusModifiers()
     {
         // Arrange
         var calculator = new DamageCalculator(
@@ -478,13 +478,17 @@ public class DamageCalculatorTests
         _mockPipelineManager
             .Setup(p => p.ExecutePipeline(It.IsAny<DamageContext>()))
             .Returns((DamageContext ctx) => ctx);
+        _mockStatusEffectManager
+            .Setup(m => m.GetPipelineModifiers(It.IsAny<string>()))
+            .Returns(new Dictionary<string, float>());
 
         // Act
         var exception = Record.Exception(() => calculator.CalculateDamage(action, attacker, target));
 
         // Assert
         Assert.Null(exception);
-        _mockLogger.Verify(l => l.LogWarning(It.Is<string>(s => s.Contains("Invalid entity IDs"))), Times.Once);
+        _mockStatusEffectManager.Verify(m => m.GetPipelineModifiers("not-a-guid-attacker"), Times.Once);
+        _mockStatusEffectManager.Verify(m => m.GetPipelineModifiers("not-a-guid-target"), Times.Once);
     }
 
     [Fact]
@@ -504,7 +508,7 @@ public class DamageCalculatorTests
         var target = CreateEntity(targetId, isHero: false);
 
         _mockStatusEffectManager
-            .Setup(m => m.GetPipelineModifiers(It.IsAny<Guid>()))
+            .Setup(m => m.GetPipelineModifiers(It.IsAny<string>()))
             .Returns((Dictionary<string, float>?)null);
 
         _mockPipelineManager

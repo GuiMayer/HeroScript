@@ -40,7 +40,7 @@ public class StatusEffectResponse
     /// <summary>
     /// ID da entidade que aplicou
     /// </summary>
-    public Guid? SourceId { get; set; }
+    public string? SourceId { get; set; }
     
     /// <summary>
     /// Turno em que foi aplicado

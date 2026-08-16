@@ -158,15 +158,8 @@ public class DamageCalculator : IDamageCalculator
         if (_statusEffectManager == null)
             return;
         
-        // Converter IDs para Guid
-        if (!Guid.TryParse(attackerId, out var attackerGuid) || !Guid.TryParse(targetId, out var targetGuid))
-        {
-            _logger.LogWarning("Invalid entity IDs for status modifier application");
-            return;
-        }
-        
         // Obter modificadores do atacante (ex: Strength aumenta dano)
-        var attackerModifiers = _statusEffectManager.GetPipelineModifiers(attackerGuid);
+        var attackerModifiers = _statusEffectManager.GetPipelineModifiers(attackerId);
         if (attackerModifiers != null && attackerModifiers.Count > 0)
         {
             foreach (var modifier in attackerModifiers)
@@ -185,7 +178,7 @@ public class DamageCalculator : IDamageCalculator
         }
         
         // Obter modificadores do alvo (ex: Vulnerable aumenta dano recebido)
-        var targetModifiers = _statusEffectManager.GetPipelineModifiers(targetGuid);
+        var targetModifiers = _statusEffectManager.GetPipelineModifiers(targetId);
         if (targetModifiers != null && targetModifiers.Count > 0)
         {
             foreach (var modifier in targetModifiers)

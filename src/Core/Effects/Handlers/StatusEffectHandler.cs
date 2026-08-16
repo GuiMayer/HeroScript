@@ -42,12 +42,15 @@ public sealed class StatusEffectHandler : IEffectHandler
         var statusId = request.Effect.Definition.StatusId;
         if (string.IsNullOrWhiteSpace(statusId))
             return EffectResult.CreateFailure("StatusId is required for APPLY_STATUS effect");
-        if (!TryTarget(request.TargetId, out var targetId, out var error))
-            return error!;
+        var targetId = request.TargetId;
+        if (string.IsNullOrWhiteSpace(targetId))
+            return EffectResult.CreateFailure("Target ID is required");
 
         if (_statusEffects != null)
         {
-            Guid? sourceId = Guid.TryParse(request.Effect.SourceEntityId, out var source) ? source : null;
+            var sourceId = string.IsNullOrWhiteSpace(request.Effect.SourceEntityId)
+                ? null
+                : request.Effect.SourceEntityId;
             var applied = request.RandomProvider is DeterministicRandomProvider deterministic
                 ? _statusEffects.ApplyStatus(
                     targetId,
@@ -83,8 +86,9 @@ public sealed class StatusEffectHandler : IEffectHandler
         var statusId = request.Effect.Definition.StatusId;
         if (string.IsNullOrWhiteSpace(statusId))
             return EffectResult.CreateFailure("StatusId is required for REMOVE_STATUS effect");
-        if (!TryTarget(request.TargetId, out var targetId, out var error))
-            return error!;
+        var targetId = request.TargetId;
+        if (string.IsNullOrWhiteSpace(targetId))
+            return EffectResult.CreateFailure("Target ID is required");
 
         if (_statusEffects != null)
         {
@@ -106,8 +110,9 @@ public sealed class StatusEffectHandler : IEffectHandler
 
     private EffectResult Dispel(EffectExecutionRequest request)
     {
-        if (!TryTarget(request.TargetId, out var targetId, out var error))
-            return error!;
+        var targetId = request.TargetId;
+        if (string.IsNullOrWhiteSpace(targetId))
+            return EffectResult.CreateFailure("Target ID is required");
 
         if (_statusEffects != null)
         {
@@ -127,15 +132,4 @@ public sealed class StatusEffectHandler : IEffectHandler
         };
     }
 
-    private static bool TryTarget(string value, out Guid targetId, out EffectResult? error)
-    {
-        if (Guid.TryParse(value, out targetId))
-        {
-            error = null;
-            return true;
-        }
-
-        error = EffectResult.CreateFailure($"Invalid target ID format: {value}");
-        return false;
-    }
 }

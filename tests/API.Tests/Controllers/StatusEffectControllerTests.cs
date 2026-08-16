@@ -15,13 +15,13 @@ public class StatusEffectControllerTests
 {
     private readonly Mock<IStatusEffectManager> _statusEffectManager;
     private readonly StatusEffectController _controller;
-    private readonly Guid _targetId;
+    private readonly string _targetId;
 
     public StatusEffectControllerTests()
     {
         _statusEffectManager = new Mock<IStatusEffectManager>();
         _controller = new StatusEffectController(_statusEffectManager.Object, Mock.Of<ILogger<StatusEffectController>>());
-        _targetId = Guid.NewGuid();
+        _targetId = "enemy_1";
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class StatusEffectControllerTests
                 DisplayName = statusId,
                 Type = StatusEffectType.WEAKNESS
             },
-            TargetId = Guid.NewGuid(),
+            TargetId = "enemy_1",
             Stacks = stacks,
             Duration = duration
         };

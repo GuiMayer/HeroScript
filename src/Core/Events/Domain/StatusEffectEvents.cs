@@ -5,14 +5,14 @@ namespace Core.Events.Domain;
 /// </summary>
 public sealed record StatusAppliedEvent : GameEvent
 {
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public Guid InstanceId { get; init; }
     public int Stacks { get; init; }
     public int? Duration { get; init; }
-    public Guid? SourceId { get; init; }
+    public string? SourceId { get; init; }
 
-    public StatusAppliedEvent(Guid targetId, string statusId, Guid instanceId, int stacks, int? duration, Guid? sourceId)
+    public StatusAppliedEvent(string targetId, string statusId, Guid instanceId, int stacks, int? duration, string? sourceId)
     {
         TargetId = targetId;
         StatusId = statusId;
@@ -23,7 +23,7 @@ public sealed record StatusAppliedEvent : GameEvent
         EventType = nameof(StatusAppliedEvent);
         Category = EventCategory.GAME;
         Severity = EventSeverity.INFO;
-        Subject = targetId.ToString();
+        Subject = targetId;
         Verb = "status_applied";
         Target = statusId;
         Payload = new Dictionary<string, object>
@@ -33,7 +33,7 @@ public sealed record StatusAppliedEvent : GameEvent
             ["instanceId"] = instanceId,
             ["stacks"] = stacks,
             ["duration"] = duration?.ToString() ?? "permanent",
-            ["sourceId"] = sourceId?.ToString() ?? string.Empty
+            ["sourceId"] = sourceId ?? string.Empty
         };
     }
 }
@@ -43,12 +43,12 @@ public sealed record StatusAppliedEvent : GameEvent
 /// </summary>
 public sealed record StatusRemovedEvent : GameEvent
 {
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public Guid InstanceId { get; init; }
     public string Reason { get; init; } = string.Empty;
 
-    public StatusRemovedEvent(Guid targetId, string statusId, Guid instanceId, string reason = "removed")
+    public StatusRemovedEvent(string targetId, string statusId, Guid instanceId, string reason = "removed")
     {
         TargetId = targetId;
         StatusId = statusId;
@@ -57,7 +57,7 @@ public sealed record StatusRemovedEvent : GameEvent
         EventType = nameof(StatusRemovedEvent);
         Category = EventCategory.GAME;
         Severity = EventSeverity.INFO;
-        Subject = targetId.ToString();
+        Subject = targetId;
         Verb = "status_removed";
         Target = statusId;
         Payload = new Dictionary<string, object>
@@ -75,13 +75,13 @@ public sealed record StatusRemovedEvent : GameEvent
 /// </summary>
 public sealed record StatusStackChangedEvent : GameEvent
 {
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public Guid InstanceId { get; init; }
     public int OldStacks { get; init; }
     public int NewStacks { get; init; }
 
-    public StatusStackChangedEvent(Guid targetId, string statusId, Guid instanceId, int oldStacks, int newStacks)
+    public StatusStackChangedEvent(string targetId, string statusId, Guid instanceId, int oldStacks, int newStacks)
     {
         TargetId = targetId;
         StatusId = statusId;
@@ -91,7 +91,7 @@ public sealed record StatusStackChangedEvent : GameEvent
         EventType = nameof(StatusStackChangedEvent);
         Category = EventCategory.GAME;
         Severity = EventSeverity.INFO;
-        Subject = targetId.ToString();
+        Subject = targetId;
         Verb = "status_stacks_changed";
         Target = statusId;
         Payload = new Dictionary<string, object>
@@ -111,13 +111,13 @@ public sealed record StatusStackChangedEvent : GameEvent
 /// </summary>
 public sealed record StatusDurationRefreshedEvent : GameEvent
 {
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public Guid InstanceId { get; init; }
     public int? OldDuration { get; init; }
     public int? NewDuration { get; init; }
 
-    public StatusDurationRefreshedEvent(Guid targetId, string statusId, Guid instanceId, int? oldDuration, int? newDuration)
+    public StatusDurationRefreshedEvent(string targetId, string statusId, Guid instanceId, int? oldDuration, int? newDuration)
     {
         TargetId = targetId;
         StatusId = statusId;
@@ -127,7 +127,7 @@ public sealed record StatusDurationRefreshedEvent : GameEvent
         EventType = nameof(StatusDurationRefreshedEvent);
         Category = EventCategory.GAME;
         Severity = EventSeverity.INFO;
-        Subject = targetId.ToString();
+        Subject = targetId;
         Verb = "status_duration_refreshed";
         Target = statusId;
         Payload = new Dictionary<string, object>
@@ -146,13 +146,13 @@ public sealed record StatusDurationRefreshedEvent : GameEvent
 /// </summary>
 public sealed record StatusTickProcessedEvent : GameEvent
 {
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public Guid InstanceId { get; init; }
     public int RemainingDuration { get; init; }
     public float? ValueApplied { get; init; }
 
-    public StatusTickProcessedEvent(Guid targetId, string statusId, Guid instanceId, int remainingDuration, float? valueApplied = null)
+    public StatusTickProcessedEvent(string targetId, string statusId, Guid instanceId, int remainingDuration, float? valueApplied = null)
     {
         TargetId = targetId;
         StatusId = statusId;
@@ -162,7 +162,7 @@ public sealed record StatusTickProcessedEvent : GameEvent
         EventType = nameof(StatusTickProcessedEvent);
         Category = EventCategory.GAME;
         Severity = EventSeverity.DEBUG;
-        Subject = targetId.ToString();
+        Subject = targetId;
         Verb = "status_ticked";
         Target = statusId;
         Payload = new Dictionary<string, object>
@@ -181,11 +181,11 @@ public sealed record StatusTickProcessedEvent : GameEvent
 /// </summary>
 public sealed record StatusExpiredEvent : GameEvent
 {
-    public Guid TargetId { get; init; }
+    public string TargetId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public Guid InstanceId { get; init; }
 
-    public StatusExpiredEvent(Guid targetId, string statusId, Guid instanceId)
+    public StatusExpiredEvent(string targetId, string statusId, Guid instanceId)
     {
         TargetId = targetId;
         StatusId = statusId;
@@ -193,7 +193,7 @@ public sealed record StatusExpiredEvent : GameEvent
         EventType = nameof(StatusExpiredEvent);
         Category = EventCategory.GAME;
         Severity = EventSeverity.INFO;
-        Subject = targetId.ToString();
+        Subject = targetId;
         Verb = "status_expired";
         Target = statusId;
         Payload = new Dictionary<string, object>

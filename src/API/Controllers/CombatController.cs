@@ -627,7 +627,8 @@ public class CombatController : BaseApiController
                 Name = state.Hero.Name,
                 CurrentHp = (int)(state.Hero.GetResource("health")?.Current ?? 0f),
                 MaxHp = (int)(state.Hero.GetResource("health")?.Maximum ?? 0f),
-                IsAlive = state.Hero.IsAlive
+                IsAlive = state.Hero.IsAlive,
+                Resources = MapResources(state.Hero)
             },
             Enemies = state.Enemies.Select(e => new EnemyStateDto
             {
@@ -635,7 +636,8 @@ public class CombatController : BaseApiController
                 Name = e.Name,
                 CurrentHp = (int)(e.GetResource("health")?.Current ?? 0f),
                 MaxHp = (int)(e.GetResource("health")?.Maximum ?? 0f),
-                IsAlive = e.IsAlive
+                IsAlive = e.IsAlive,
+                Resources = MapResources(e)
             }).ToList(),
             Energy = new EnergyDto
             {
@@ -644,6 +646,21 @@ public class CombatController : BaseApiController
             },
             TotalActions = state.ActionHistory.Count
         };
+    }
+
+    private static IReadOnlyDictionary<string, ResourcePoolDto> MapResources(CombatEntity entity)
+    {
+        return entity.ResourceState.Resources
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .ToDictionary(
+                pair => pair.Key,
+                pair => new ResourcePoolDto
+                {
+                    Current = pair.Value.Current,
+                    Maximum = pair.Value.Maximum,
+                    Minimum = pair.Value.Minimum
+                },
+                StringComparer.Ordinal);
     }
 
     private object MapCombatRunActionResponse(CombatRunActionResult result)

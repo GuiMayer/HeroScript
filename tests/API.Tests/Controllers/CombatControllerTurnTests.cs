@@ -59,6 +59,9 @@ public sealed class CombatControllerTurnTests
         Assert.Equal(state.Determinism.Seed, response.Seed);
         Assert.Equal(state.Determinism.ContentRevision, response.ContentRevision);
         Assert.Equal(CanonicalJson.ComputeHash(state with { CurrentTurn = 2 }), response.StateHash);
+        Assert.Equal(30, response.Hero.Resources["health"].Current);
+        Assert.Equal(100, response.Hero.Resources["health"].Maximum);
+        Assert.Equal(10, response.Enemies[0].Resources["health"].Current);
         _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
             c.ActorId == "hero" &&
             c.ActionType == ActionType.END_TURN)), Times.Once);

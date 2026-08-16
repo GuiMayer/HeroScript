@@ -235,17 +235,17 @@ public class EffectResolverTests
     [Fact]
     public void ResolveEffect_ApplyStatus_WithStatusManager_AppliesStatus()
     {
-        var sourceId = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
-        var state = CreateCombatState(sourceId.ToString(), targetId.ToString());
+        const string sourceId = "hero_1";
+        const string targetId = "enemy_1";
+        var state = CreateCombatState(sourceId, targetId);
         _statusEffectManager
             .Setup(m => m.ApplyStatus(targetId, "burning", 2, 3, sourceId))
             .Returns(Result<StatusEffectInstance>.Success(new StatusEffectInstance { StatusId = "burning" }));
         var resolver = CreateResolver();
         var effect = new EffectInstance
         {
-            SourceEntityId = sourceId.ToString(),
-            TargetEntityId = targetId.ToString(),
+            SourceEntityId = sourceId,
+            TargetEntityId = targetId,
             Definition = new EffectDefinition
             {
                 Type = EffectType.APPLY_STATUS,
@@ -266,9 +266,9 @@ public class EffectResolverTests
     [Fact]
     public void ApplyEffect_ApplyStatus_UsesDeterministicIdentityAndLogicalTime()
     {
-        var sourceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-        var targetId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
-        var state = CreateCombatState(sourceId.ToString(), targetId.ToString());
+        const string sourceId = "hero_1";
+        const string targetId = "enemy_1";
+        var state = CreateCombatState(sourceId, targetId);
         var initial = DeterministicContext.Create(77UL, "test-content").AdvanceStep();
         var effectAllocation = initial.AllocateId("effect");
         var statusAllocation = effectAllocation.Context.AllocateId("status-effect");
@@ -291,8 +291,8 @@ public class EffectResolverTests
         var resolver = CreateResolver();
         var effect = new EffectInstance
         {
-            SourceEntityId = sourceId.ToString(),
-            TargetEntityId = targetId.ToString(),
+            SourceEntityId = sourceId,
+            TargetEntityId = targetId,
             Definition = new EffectDefinition
             {
                 Type = EffectType.APPLY_STATUS,
@@ -316,8 +316,8 @@ public class EffectResolverTests
     public void ResolveEffect_RemoveStatus_WithStatusManager_RemovesStatus()
     {
         var sourceId = Guid.NewGuid().ToString();
-        var targetId = Guid.NewGuid();
-        var state = CreateCombatState(sourceId, targetId.ToString());
+        const string targetId = "enemy_1";
+        var state = CreateCombatState(sourceId, targetId);
         _statusEffectManager
             .Setup(m => m.RemoveStatusByStatusId(targetId, "burning"))
             .Returns(Result.Success());
@@ -325,7 +325,7 @@ public class EffectResolverTests
         var effect = new EffectInstance
         {
             SourceEntityId = sourceId,
-            TargetEntityId = targetId.ToString(),
+            TargetEntityId = targetId,
             Definition = new EffectDefinition
             {
                 Type = EffectType.REMOVE_STATUS,
@@ -557,9 +557,9 @@ public class EffectResolverTests
     [Fact]
     public void ApplyEffect_DispelStatus_RemovesAllStatus()
     {
-        var targetGuid = Guid.NewGuid();
+        const string targetId = "enemy_1";
         _statusEffectManager
-            .Setup(m => m.RemoveAllStatus(targetGuid, null))
+            .Setup(m => m.RemoveAllStatus(targetId, null))
             .Returns(Result.Success());
 
         var resolver = CreateResolver();
@@ -573,7 +573,7 @@ public class EffectResolverTests
                 Target = EffectTarget.TARGET
             },
             SourceEntityId = Guid.NewGuid().ToString(),
-            TargetEntityId = targetGuid.ToString()
+            TargetEntityId = targetId
         };
 
         var state = CreateCombatState(effect.SourceEntityId, effect.TargetEntityId);
@@ -583,7 +583,7 @@ public class EffectResolverTests
 
         Assert.True(result.IsSuccess);
         Assert.Contains("*", result.Value!.EffectResult.StatusRemoved);
-        _statusEffectManager.Verify(m => m.RemoveAllStatus(targetGuid, null), Times.Once);
+        _statusEffectManager.Verify(m => m.RemoveAllStatus(targetId, null), Times.Once);
     }
 
     [Fact]

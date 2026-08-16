@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace API.Models.StatusEffects;
 
 /// <summary>
@@ -8,7 +10,8 @@ public class RemoveStatusRequest
     /// <summary>
     /// ID da entidade alvo
     /// </summary>
-    public Guid TargetId { get; set; }
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
     
     /// <summary>
     /// ID da instância do status a remover

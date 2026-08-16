@@ -23,6 +23,8 @@ public class HeroStateDto
     public int CurrentHp { get; set; }
     public int MaxHp { get; set; }
     public bool IsAlive { get; set; }
+    public IReadOnlyDictionary<string, ResourcePoolDto> Resources { get; set; }
+        = new Dictionary<string, ResourcePoolDto>();
 }
 
 public class EnemyStateDto
@@ -32,6 +34,15 @@ public class EnemyStateDto
     public int CurrentHp { get; set; }
     public int MaxHp { get; set; }
     public bool IsAlive { get; set; }
+    public IReadOnlyDictionary<string, ResourcePoolDto> Resources { get; set; }
+        = new Dictionary<string, ResourcePoolDto>();
+}
+
+public class ResourcePoolDto
+{
+    public float Current { get; set; }
+    public float Maximum { get; set; }
+    public float Minimum { get; set; }
 }
 
 public class EnergyDto

@@ -35,9 +35,9 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     public async Task InvalidModel_ReturnsProblemDetailsWithCorrelationId()
     {
         const string correlationId = "contract-test-correlation";
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/status/apply")
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "/api/status/remove")
         {
-            Content = JsonContent.Create(new { targetId = "not-a-guid", statusId = "poison" })
+            Content = JsonContent.Create(new { targetId = "enemy_1", instanceId = "not-a-guid" })
         };
         request.Headers.Add("X-Correlation-ID", correlationId);
 

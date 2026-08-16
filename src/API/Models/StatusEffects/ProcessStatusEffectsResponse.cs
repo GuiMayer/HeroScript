@@ -10,7 +10,7 @@ public class ProcessStatusEffectsResponse
     /// <summary>
     /// ID da entidade processada
     /// </summary>
-    public Guid TargetId { get; set; }
+    public string TargetId { get; set; } = string.Empty;
     
     /// <summary>
     /// Resultados individuais de cada status effect

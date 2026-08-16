@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace API.Models.StatusEffects;
 
 /// <summary>
@@ -8,16 +10,19 @@ public class ApplyStatusRequest
     /// <summary>
     /// ID da entidade alvo
     /// </summary>
-    public Guid TargetId { get; set; }
+    [Required]
+    public string TargetId { get; set; } = string.Empty;
     
     /// <summary>
     /// ID do status effect a aplicar
     /// </summary>
+    [Required]
     public string StatusId { get; set; } = string.Empty;
     
     /// <summary>
     /// Número de stacks (padrão: 1)
     /// </summary>
+    [Range(1, int.MaxValue)]
     public int Stacks { get; set; } = 1;
     
     /// <summary>
@@ -28,5 +33,5 @@ public class ApplyStatusRequest
     /// <summary>
     /// ID da entidade que aplicou (opcional)
     /// </summary>
-    public Guid? SourceId { get; set; }
+    public string? SourceId { get; set; }
 }

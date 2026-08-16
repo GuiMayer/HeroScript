@@ -36,7 +36,7 @@ public sealed class StatusEffectManagerTests : IDisposable
     [Fact]
     public void ApplyStatus_WithExistingStatus_ClampsStacksAndDoesNotDuplicate()
     {
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
 
         var first = _manager.ApplyStatus(targetId, "burning", stacks: 2);
         var second = _manager.ApplyStatus(targetId, "burning", stacks: 3);
@@ -53,7 +53,7 @@ public sealed class StatusEffectManagerTests : IDisposable
     [Fact]
     public void ProcessStatusEffects_ForMatchingTiming_ReturnsFormulaValue()
     {
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         var apply = _manager.ApplyStatus(targetId, "burning", stacks: 2);
         _formulaEvaluator
             .Setup(m => m.Evaluate("stacks * 3", It.IsAny<Dictionary<string, float>>(), 0f))
@@ -72,7 +72,7 @@ public sealed class StatusEffectManagerTests : IDisposable
     [Fact]
     public void TickDurations_DecrementsFiniteStatusesAndKeepsPermanentStatuses()
     {
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         _manager.ApplyStatus(targetId, "burning", duration: 2);
         _manager.ApplyStatus(targetId, "strength", stacks: 1);
 
@@ -92,7 +92,7 @@ public sealed class StatusEffectManagerTests : IDisposable
     [Fact]
     public void GetPipelineModifiers_UsesModifierFormulaAndAccumulatesByKey()
     {
-        var targetId = Guid.NewGuid();
+        const string targetId = "hero_1";
         _manager.ApplyStatus(targetId, "strength", stacks: 2);
         _manager.ApplyStatus(targetId, "rage", stacks: 1);
         _formulaEvaluator
@@ -113,7 +113,7 @@ public sealed class StatusEffectManagerTests : IDisposable
     [Fact]
     public void ProcessStatusEffects_WhenFormulaFails_FallsBackToBaseValue()
     {
-        var targetId = Guid.NewGuid();
+        const string targetId = "enemy_1";
         _manager.ApplyStatus(targetId, "burning", stacks: 2);
         _formulaEvaluator
             .Setup(m => m.Evaluate("stacks * 3", It.IsAny<Dictionary<string, float>>(), 0f))

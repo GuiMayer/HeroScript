@@ -24,7 +24,8 @@ public class StatusEffectManager : IStatusEffectManager
     private readonly IEventBus? _eventBus;
     
     // Status effects ativos por entidade (thread-safe)
-    private readonly ConcurrentDictionary<Guid, List<StatusEffectInstance>> _activeStatus = new();
+    private readonly ConcurrentDictionary<string, List<StatusEffectInstance>> _activeStatus =
+        new(StringComparer.Ordinal);
     
     // Definições de status effects carregadas (thread-safe)
     private readonly ConcurrentDictionary<string, StatusEffectDefinition> _definitions = new();
@@ -53,11 +54,11 @@ public class StatusEffectManager : IStatusEffectManager
     // ===== APLICAR/REMOVER =====
     
     public Result<StatusEffectInstance> ApplyStatus(
-        Guid targetId,
+        string targetId,
         string statusId,
         int stacks = 1,
         int? duration = null,
-        Guid? sourceId = null)
+        string? sourceId = null)
         => ApplyStatus(
             targetId,
             statusId,
@@ -68,14 +69,17 @@ public class StatusEffectManager : IStatusEffectManager
             sourceId);
 
     public Result<StatusEffectInstance> ApplyStatus(
-        Guid targetId,
+        string targetId,
         string statusId,
         Guid instanceId,
         DateTime appliedAt,
         int stacks = 1,
         int? duration = null,
-        Guid? sourceId = null)
+        string? sourceId = null)
     {
+        if (string.IsNullOrWhiteSpace(targetId))
+            return Result<StatusEffectInstance>.Failure("TargetId cannot be empty");
+
         if (string.IsNullOrWhiteSpace(statusId))
             return Result<StatusEffectInstance>.Failure("StatusId cannot be empty");
 
@@ -134,7 +138,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result<StatusEffectInstance>.Success(instance);
     }
     
-    public Result RemoveStatus(Guid targetId, Guid instanceId)
+    public Result RemoveStatus(string targetId, Guid instanceId)
     {
         var statusList = GetActiveStatusList(targetId);
         string? statusId = null;
@@ -153,7 +157,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result.Success();
     }
     
-    public Result RemoveStatusByStatusId(Guid targetId, string statusId)
+    public Result RemoveStatusByStatusId(string targetId, string statusId)
     {
         if (string.IsNullOrEmpty(statusId))
             return Result.Failure("StatusId cannot be null or empty");
@@ -170,7 +174,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result.Success();
     }
     
-    public Result RemoveAllStatus(Guid targetId, StatusEffectType? type = null)
+    public Result RemoveAllStatus(string targetId, StatusEffectType? type = null)
     {
         var statusList = GetActiveStatusList(targetId);
         
@@ -191,7 +195,7 @@ public class StatusEffectManager : IStatusEffectManager
     
     // ===== MODIFICAR =====
     
-    public Result<StatusEffectInstance> AddStacks(Guid targetId, Guid instanceId, int stacks)
+    public Result<StatusEffectInstance> AddStacks(string targetId, Guid instanceId, int stacks)
     {
         if (stacks <= 0)
             return Result<StatusEffectInstance>.Failure("Stacks must be greater than 0");
@@ -208,7 +212,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result<StatusEffectInstance>.Success(updated);
     }
     
-    public Result<StatusEffectInstance?> RemoveStacks(Guid targetId, Guid instanceId, int stacks)
+    public Result<StatusEffectInstance?> RemoveStacks(string targetId, Guid instanceId, int stacks)
     {
         if (stacks <= 0)
             return Result<StatusEffectInstance?>.Failure("Stacks must be greater than 0");
@@ -232,7 +236,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result<StatusEffectInstance?>.Success(updated);
     }
     
-    public Result<StatusEffectInstance> RefreshDuration(Guid targetId, Guid instanceId, int duration)
+    public Result<StatusEffectInstance> RefreshDuration(string targetId, Guid instanceId, int duration)
     {
         var statusResult = GetStatus(targetId, instanceId);
         if (!statusResult.IsSuccess)
@@ -247,7 +251,7 @@ public class StatusEffectManager : IStatusEffectManager
     
     // ===== CONSULTAR =====
     
-    public Result<List<StatusEffectInstance>> GetActiveStatus(Guid targetId)
+    public Result<List<StatusEffectInstance>> GetActiveStatus(string targetId)
     {
         var statusList = GetActiveStatusList(targetId);
         
@@ -258,7 +262,7 @@ public class StatusEffectManager : IStatusEffectManager
         }
     }
     
-    public Result<StatusEffectInstance> GetStatus(Guid targetId, Guid instanceId)
+    public Result<StatusEffectInstance> GetStatus(string targetId, Guid instanceId)
     {
         var statusList = GetActiveStatusList(targetId);
         
@@ -272,7 +276,7 @@ public class StatusEffectManager : IStatusEffectManager
         }
     }
     
-    public bool HasStatus(Guid targetId, StatusEffectType type)
+    public bool HasStatus(string targetId, StatusEffectType type)
     {
         var statusList = GetActiveStatusList(targetId);
         
@@ -282,7 +286,7 @@ public class StatusEffectManager : IStatusEffectManager
         }
     }
     
-    public int GetStatusStacks(Guid targetId, StatusEffectType type)
+    public int GetStatusStacks(string targetId, StatusEffectType type)
     {
         var statusList = GetActiveStatusList(targetId);
         
@@ -297,7 +301,7 @@ public class StatusEffectManager : IStatusEffectManager
     // ===== PROCESSAR =====
     
     public Result<StatusEffectProcessResult> ProcessStatusEffects(
-        Guid targetId,
+        string targetId,
         StatusEffectTiming timing,
         int currentTurn)
     {
@@ -331,7 +335,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result<StatusEffectProcessResult>.Success(processResult);
     }
     
-    public Result TickDurations(Guid targetId)
+    public Result TickDurations(string targetId)
     {
         var statusList = GetActiveStatusList(targetId);
         var toRemove = new List<StatusEffectInstance>();
@@ -382,7 +386,7 @@ public class StatusEffectManager : IStatusEffectManager
         return Result.Success();
     }
     
-    public Dictionary<string, float> GetPipelineModifiers(Guid targetId)
+    public Dictionary<string, float> GetPipelineModifiers(string targetId)
     {
         var modifiers = new Dictionary<string, float>();
         var statusList = GetActiveStatusList(targetId);
@@ -477,12 +481,12 @@ public class StatusEffectManager : IStatusEffectManager
     
     // ===== HELPERS =====
     
-    private List<StatusEffectInstance> GetActiveStatusList(Guid targetId)
+    private List<StatusEffectInstance> GetActiveStatusList(string targetId)
     {
         return _activeStatus.GetOrAdd(targetId, _ => new List<StatusEffectInstance>());
     }
     
-    private void UpdateStatusInstance(Guid targetId, StatusEffectInstance updated)
+    private void UpdateStatusInstance(string targetId, StatusEffectInstance updated)
     {
         var statusList = GetActiveStatusList(targetId);
         

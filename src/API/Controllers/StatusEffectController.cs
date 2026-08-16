@@ -82,7 +82,7 @@ public class StatusEffectController : BaseApiController
     /// Remove todos os status effects de um statusId específico
     /// </summary>
     [HttpDelete("{targetId}/status/{statusId}")]
-    public IActionResult RemoveStatusByStatusId(Guid targetId, string statusId)
+    public IActionResult RemoveStatusByStatusId(string targetId, string statusId)
     {
         try
         {
@@ -103,7 +103,7 @@ public class StatusEffectController : BaseApiController
     /// Remove todos os status effects de uma entidade (opcionalmente filtrado por tipo)
     /// </summary>
     [HttpDelete("{targetId}/all")]
-    public IActionResult RemoveAllStatus(Guid targetId, [FromQuery] string? type = null)
+    public IActionResult RemoveAllStatus(string targetId, [FromQuery] string? type = null)
     {
         try
         {
@@ -193,12 +193,12 @@ public class StatusEffectController : BaseApiController
     /// Atualiza a duração de um status effect
     /// </summary>
     [HttpPut("{targetId}/status/{instanceId}/duration")]
-    public IActionResult RefreshDuration(Guid targetId, Guid instanceId, [FromBody] int duration)
+    public IActionResult RefreshDuration(string targetId, Guid instanceId, [FromBody] int duration)
     {
         return RefreshDurationInternal(targetId, instanceId, duration);
     }
 
-    private IActionResult RefreshDurationInternal(Guid targetId, Guid instanceId, int duration)
+    private IActionResult RefreshDurationInternal(string targetId, Guid instanceId, int duration)
     {
         try
         {
@@ -219,7 +219,7 @@ public class StatusEffectController : BaseApiController
     /// Obtém todos os status effects ativos de uma entidade (alias curto)
     /// </summary>
     [HttpGet("{targetId}")]
-    public IActionResult GetStatusEffects(Guid targetId)
+    public IActionResult GetStatusEffects(string targetId)
     {
         return GetActiveStatusInternal(targetId);
     }
@@ -228,12 +228,12 @@ public class StatusEffectController : BaseApiController
     /// Obtém todos os status effects ativos de uma entidade
     /// </summary>
     [HttpGet("{targetId}/active")]
-    public IActionResult GetActiveStatus(Guid targetId)
+    public IActionResult GetActiveStatus(string targetId)
     {
         return GetActiveStatusInternal(targetId);
     }
 
-    private IActionResult GetActiveStatusInternal(Guid targetId)
+    private IActionResult GetActiveStatusInternal(string targetId)
     {
         try
         {
@@ -255,7 +255,7 @@ public class StatusEffectController : BaseApiController
     /// Obtém uma instância específica de status effect
     /// </summary>
     [HttpGet("{targetId}/status/{instanceId}")]
-    public IActionResult GetStatus(Guid targetId, Guid instanceId)
+    public IActionResult GetStatus(string targetId, Guid instanceId)
     {
         try
         {
@@ -276,7 +276,7 @@ public class StatusEffectController : BaseApiController
     /// Verifica se uma entidade possui um status effect de um tipo específico
     /// </summary>
     [HttpGet("{targetId}/has/{type}")]
-    public IActionResult HasStatus(Guid targetId, string type)
+    public IActionResult HasStatus(string targetId, string type)
     {
         try
         {
@@ -296,7 +296,7 @@ public class StatusEffectController : BaseApiController
     /// Obtém o número total de stacks de um tipo de status
     /// </summary>
     [HttpGet("{targetId}/stacks/{type}")]
-    public IActionResult GetStatusStacks(Guid targetId, string type)
+    public IActionResult GetStatusStacks(string targetId, string type)
     {
         try
         {
@@ -343,12 +343,12 @@ public class StatusEffectController : BaseApiController
     /// Decrementa a duração de todos os status effects de uma entidade
     /// </summary>
     [HttpPost("{targetId}/tick")]
-    public IActionResult TickDurations(Guid targetId)
+    public IActionResult TickDurations(string targetId)
     {
         return TickDurationsInternal(targetId);
     }
 
-    private IActionResult TickDurationsInternal(Guid targetId)
+    private IActionResult TickDurationsInternal(string targetId)
     {
         try
         {
@@ -369,7 +369,7 @@ public class StatusEffectController : BaseApiController
     /// Obtém modificadores de pipeline de uma entidade
     /// </summary>
     [HttpGet("{targetId}/modifiers")]
-    public IActionResult GetPipelineModifiers(Guid targetId)
+    public IActionResult GetPipelineModifiers(string targetId)
     {
         try
         {

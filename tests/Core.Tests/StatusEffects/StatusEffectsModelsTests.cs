@@ -262,8 +262,8 @@ public class StatusEffectsModelsTests
         };
         
         var instanceId = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
-        var sourceId = Guid.NewGuid();
+        const string targetId = "enemy_1";
+        const string sourceId = "hero_1";
         var appliedAt = DateTime.UtcNow;
         
         // Act
@@ -317,7 +317,7 @@ public class StatusEffectsModelsTests
         // Arrange
         var definition = new StatusEffectDefinition { StatusId = "strength" };
         var id = Guid.NewGuid();
-        var targetId = Guid.NewGuid();
+        const string targetId = "hero_1";
         
         var instance1 = new StatusEffectInstance
         {
@@ -428,8 +428,8 @@ public class StatusEffectsModelsTests
         {
             StatusId = "burning",
             Definition = burningDef,
-            TargetId = Guid.NewGuid(),
-            SourceId = Guid.NewGuid(),
+            TargetId = "enemy_1",
+            SourceId = "hero_1",
             Stacks = 2,
             Duration = 3,
             TurnApplied = 5
@@ -469,7 +469,7 @@ public class StatusEffectsModelsTests
         {
             StatusId = "strength",
             Definition = strengthDef,
-            TargetId = Guid.NewGuid(),
+            TargetId = "hero_1",
             Stacks = 3,
             Duration = -1,
             TurnApplied = 1
@@ -506,7 +506,7 @@ public class StatusEffectsModelsTests
         {
             StatusId = "artifact",
             Definition = artifactDef,
-            TargetId = Guid.NewGuid(),
+            TargetId = "hero_1",
             Stacks = 2,
             Duration = -1,
             CustomData = new Dictionary<string, object>
@@ -546,7 +546,7 @@ public class StatusEffectsModelsTests
         {
             StatusId = "intangible",
             Definition = intangibleDef,
-            TargetId = Guid.NewGuid(),
+            TargetId = "hero_1",
             Stacks = 1,
             Duration = 1,
             TurnApplied = 10
@@ -583,7 +583,7 @@ public class StatusEffectsModelsTests
         {
             StatusId = "vulnerable",
             Definition = vulnerableDef,
-            TargetId = Guid.NewGuid(),
+            TargetId = "enemy_1",
             Stacks = 1,
             Duration = 2
         };

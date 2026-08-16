@@ -321,9 +321,9 @@ public class CombatSystem : ICombatSystem
         // Verificar se o ator está sob controle (STUN, FREEZE, etc.)
         if (command.ActionType != ActionType.PASS && command.ActionType != ActionType.END_TURN)
         {
-            if (_statusEffectManager != null && Guid.TryParse(actor.EntityId, out var actorGuid))
+            if (_statusEffectManager != null)
             {
-                var activeStatusResult = _statusEffectManager.GetActiveStatus(actorGuid);
+                var activeStatusResult = _statusEffectManager.GetActiveStatus(actor.EntityId);
                 if (activeStatusResult.IsSuccess)
                 {
                     var hasControlEffect = activeStatusResult.Value.Any(s => 
@@ -740,31 +740,31 @@ public class CombatSystem : ICombatSystem
     private CombatState ProcessStartOfTurnStatusEffects(CombatState state)
     {
         _logger.LogDebug("Processing start-of-turn status effects");
-        
+        var statusEffectManager = _statusEffectManager!;
         var updatedHero = state.Hero;
         var updatedEnemies = state.Enemies.ToList();
         
         // Processar status effects do herói
-        if (Guid.TryParse(state.Hero.EntityId, out var heroGuid))
+        var heroProcessResult = statusEffectManager.ProcessStatusEffects(
+            state.Hero.EntityId,
+            StatusEffectTiming.START_OF_TURN,
+            state.CurrentTurn);
+        if (heroProcessResult.IsSuccess)
         {
-            var processResult = _statusEffectManager!.ProcessStatusEffects(heroGuid, StatusEffectTiming.START_OF_TURN, state.CurrentTurn);
-            if (processResult.IsSuccess)
-            {
-                updatedHero = ApplyStatusEffectResults(updatedHero, processResult.Value.TickResults);
-            }
+            updatedHero = ApplyStatusEffectResults(updatedHero, heroProcessResult.Value.TickResults);
         }
         
         // Processar status effects dos inimigos
         for (int i = 0; i < updatedEnemies.Count; i++)
         {
             var enemy = updatedEnemies[i];
-            if (Guid.TryParse(enemy.EntityId, out var enemyGuid))
+            var processResult = statusEffectManager.ProcessStatusEffects(
+                enemy.EntityId,
+                StatusEffectTiming.START_OF_TURN,
+                state.CurrentTurn);
+            if (processResult.IsSuccess)
             {
-                var processResult = _statusEffectManager!.ProcessStatusEffects(enemyGuid, StatusEffectTiming.START_OF_TURN, state.CurrentTurn);
-                if (processResult.IsSuccess)
-                {
-                    updatedEnemies[i] = ApplyStatusEffectResults(enemy, processResult.Value.TickResults);
-                }
+                updatedEnemies[i] = ApplyStatusEffectResults(enemy, processResult.Value.TickResults);
             }
         }
         
@@ -781,38 +781,38 @@ public class CombatSystem : ICombatSystem
     private CombatState ProcessEndOfTurnStatusEffects(CombatState state)
     {
         _logger.LogDebug("Processing end-of-turn status effects");
-        
+        var statusEffectManager = _statusEffectManager!;
         var updatedHero = state.Hero;
         var updatedEnemies = state.Enemies.ToList();
         
         // Processar status effects do herói
-        if (Guid.TryParse(state.Hero.EntityId, out var heroGuid))
+        var heroProcessResult = statusEffectManager.ProcessStatusEffects(
+            state.Hero.EntityId,
+            StatusEffectTiming.END_OF_TURN,
+            state.CurrentTurn);
+        if (heroProcessResult.IsSuccess)
         {
-            var processResult = _statusEffectManager!.ProcessStatusEffects(heroGuid, StatusEffectTiming.END_OF_TURN, state.CurrentTurn);
-            if (processResult.IsSuccess)
-            {
-                updatedHero = ApplyStatusEffectResults(updatedHero, processResult.Value.TickResults);
-            }
-            
-            // Decrementar durações
-            _statusEffectManager.TickDurations(heroGuid);
+            updatedHero = ApplyStatusEffectResults(updatedHero, heroProcessResult.Value.TickResults);
         }
+
+        // Decrementar durações
+        statusEffectManager.TickDurations(state.Hero.EntityId);
         
         // Processar status effects dos inimigos
         for (int i = 0; i < updatedEnemies.Count; i++)
         {
             var enemy = updatedEnemies[i];
-            if (Guid.TryParse(enemy.EntityId, out var enemyGuid))
+            var processResult = statusEffectManager.ProcessStatusEffects(
+                enemy.EntityId,
+                StatusEffectTiming.END_OF_TURN,
+                state.CurrentTurn);
+            if (processResult.IsSuccess)
             {
-                var processResult = _statusEffectManager!.ProcessStatusEffects(enemyGuid, StatusEffectTiming.END_OF_TURN, state.CurrentTurn);
-                if (processResult.IsSuccess)
-                {
-                    updatedEnemies[i] = ApplyStatusEffectResults(enemy, processResult.Value.TickResults);
-                }
-                
-                // Decrementar durações
-                _statusEffectManager.TickDurations(enemyGuid);
+                updatedEnemies[i] = ApplyStatusEffectResults(enemy, processResult.Value.TickResults);
             }
+
+            // Decrementar durações
+            statusEffectManager.TickDurations(enemy.EntityId);
         }
         
         return state with
@@ -869,12 +869,12 @@ public class CombatSystem : ICombatSystem
         float incomingDamage,
         int currentTurn)
     {
-        if (_statusEffectManager == null || !Guid.TryParse(target.EntityId, out var targetGuid))
+        if (_statusEffectManager == null)
         {
             return (incomingDamage, attacker);
         }
         
-        var processResult = _statusEffectManager.ProcessStatusEffects(targetGuid, StatusEffectTiming.ON_DAMAGE_TAKEN, currentTurn);
+        var processResult = _statusEffectManager.ProcessStatusEffects(target.EntityId, StatusEffectTiming.ON_DAMAGE_TAKEN, currentTurn);
         if (processResult.IsFailure)
         {
             return (incomingDamage, attacker);
@@ -916,7 +916,7 @@ public class CombatSystem : ICombatSystem
     /// </summary>
     private CombatEntity ApplyDamageWithBufferCheck(CombatEntity entity, float damage)
     {
-        if (_statusEffectManager == null || !Guid.TryParse(entity.EntityId, out var entityGuid))
+        if (_statusEffectManager == null)
         {
             return entity.TakeDamage(damage);
         }
@@ -933,7 +933,7 @@ public class CombatSystem : ICombatSystem
         if (wouldDie)
         {
             // Verificar se há status ativo com comportamento de prevenção de morte
-            var activeStatusResult = _statusEffectManager.GetActiveStatus(entityGuid);
+            var activeStatusResult = _statusEffectManager.GetActiveStatus(entity.EntityId);
             if (activeStatusResult.IsSuccess)
             {
                 var bufferEffect = activeStatusResult.Value.FirstOrDefault(s => 
@@ -944,7 +944,7 @@ public class CombatSystem : ICombatSystem
                     _logger.LogDebug($"Status effect {bufferEffect.StatusId} prevented death for {entity.EntityId}, leaving at 1 HP");
                     
                     // Consumir a prevenção de morte
-                    _statusEffectManager.RemoveStatus(entityGuid, bufferEffect.InstanceId);
+                    _statusEffectManager.RemoveStatus(entity.EntityId, bufferEffect.InstanceId);
                     
                     // Deixar a entidade com 1 HP
                     var newHealthPool = healthPool.Set(1);
