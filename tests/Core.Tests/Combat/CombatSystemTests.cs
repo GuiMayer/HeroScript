@@ -86,6 +86,66 @@ public class CombatSystemTests
     }
 
     [Fact]
+    public void Combat_WithSameInputs_ReproducesIdsTimeAndState()
+    {
+        var options = new CombatStartOptions(Seed: 123456UL, ContentRevision: "test-content");
+
+        var firstStart = _combatSystem.StartCombat(
+            "hero-1", new List<string> { "enemy-1" }, 3, options);
+        Assert.True(firstStart.IsSuccess);
+        var firstAction = _combatSystem.ExecuteAction(
+            firstStart.Value.CombatId,
+            Command("hero-1", ActionType.PASS));
+        Assert.True(firstAction.IsSuccess);
+        _combatSystem.EndCombat(firstStart.Value.CombatId);
+
+        var secondStart = _combatSystem.StartCombat(
+            "hero-1", new List<string> { "enemy-1" }, 3, options);
+        Assert.True(secondStart.IsSuccess);
+        var secondAction = _combatSystem.ExecuteAction(
+            secondStart.Value.CombatId,
+            Command("hero-1", ActionType.PASS));
+
+        Assert.True(secondAction.IsSuccess);
+        Assert.Equal(firstStart.Value.CombatId, secondStart.Value.CombatId);
+        Assert.Equal(firstStart.Value.StartedAt, secondStart.Value.StartedAt);
+        Assert.Equal(firstAction.Value.Determinism, secondAction.Value.Determinism);
+        Assert.Equal(
+            firstAction.Value.ActionHistory.Single(),
+            secondAction.Value.ActionHistory.Single());
+    }
+
+    [Fact]
+    public void ExecuteAction_WithStaleExpectedStep_ShouldFailWithoutChangingState()
+    {
+        var start = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            3,
+            new CombatStartOptions(Seed: 99UL));
+        Assert.True(start.IsSuccess);
+
+        var first = _combatSystem.ExecuteAction(start.Value.CombatId, new CombatActionCommand
+        {
+            ActorId = "hero-1",
+            ActionType = ActionType.PASS,
+            ExpectedStep = start.Value.Determinism.Step
+        });
+        Assert.True(first.IsSuccess);
+
+        var stale = _combatSystem.ExecuteAction(start.Value.CombatId, new CombatActionCommand
+        {
+            ActorId = "hero-1",
+            ActionType = ActionType.PASS,
+            ExpectedStep = start.Value.Determinism.Step
+        });
+
+        Assert.True(stale.IsFailure);
+        Assert.Contains("Stale combat command", stale.Error);
+        Assert.Single(_combatSystem.GetCombatState(start.Value.CombatId).Value.ActionHistory);
+    }
+
+    [Fact]
     public void StartCombat_WithEntityDefinitions_ShouldUseJsonResourcesAndNames()
     {
         // Arrange

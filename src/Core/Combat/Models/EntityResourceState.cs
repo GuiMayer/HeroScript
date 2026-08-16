@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Resources;
 
 namespace Core.Combat.Models;
@@ -8,6 +9,9 @@ namespace Core.Combat.Models;
 /// </summary>
 public record EntityResourceState
 {
+    private ImmutableDictionary<string, ResourcePool> _resources =
+        ImmutableDictionary<string, ResourcePool>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// ID da entidade dona destes recursos.
     /// </summary>
@@ -16,8 +20,12 @@ public record EntityResourceState
     /// <summary>
     /// Recursos da entidade (health, energy, mana, etc.)
     /// </summary>
-    public IReadOnlyDictionary<string, ResourcePool> Resources { get; init; } 
-        = new Dictionary<string, ResourcePool>();
+    public IReadOnlyDictionary<string, ResourcePool> Resources
+    {
+        get => _resources;
+        init => _resources = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, ResourcePool>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    }
     
     /// <summary>
     /// Obtém um recurso específico.
@@ -37,11 +45,7 @@ public record EntityResourceState
     /// </summary>
     public EntityResourceState UpdateResource(string resourceId, ResourcePool newPool)
     {
-        var updated = new Dictionary<string, ResourcePool>(Resources)
-        {
-            [resourceId] = newPool
-        };
-        return this with { Resources = updated };
+        return this with { Resources = _resources.SetItem(resourceId, newPool) };
     }
     
     /// <summary>
@@ -49,9 +53,9 @@ public record EntityResourceState
     /// </summary>
     public EntityResourceState UpdateResources(Dictionary<string, ResourcePool> updates)
     {
-        var merged = new Dictionary<string, ResourcePool>(Resources);
+        var merged = _resources;
         foreach (var (key, value) in updates)
-            merged[key] = value;
+            merged = merged.SetItem(key, value);
         return this with { Resources = merged };
     }
     

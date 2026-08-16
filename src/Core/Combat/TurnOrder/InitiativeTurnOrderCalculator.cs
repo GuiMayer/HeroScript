@@ -11,61 +11,66 @@ namespace Core.Combat.TurnOrder;
 public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
 {
     private readonly ILogger? _logger;
-    private readonly Random _random;
-    private List<string>? _fixedTurnOrder;
-    
+
     public TurnStrategy Strategy => TurnStrategy.INITIATIVE;
     
     public InitiativeTurnOrderCalculator(ILogger? logger = null, Random? random = null)
     {
         _logger = logger;
-        _random = random ?? new Random();
     }
-    
+
+    public Result<CombatState> InitializeState(CombatState state)
+    {
+        var context = state.Determinism;
+        var entities = new List<(string EntityId, int Initiative)>();
+
+        foreach (var entity in state.GetAllEntities())
+        {
+            var roll = context.DrawInt32(20);
+            context = roll.Context;
+            entities.Add((entity.EntityId, roll.Value + 1 + GetSpeedModifier(entity)));
+        }
+
+        var order = entities
+            .OrderByDescending(entity => entity.Initiative)
+            .ThenBy(entity => entity.EntityId, StringComparer.Ordinal)
+            .Select(entity => entity.EntityId)
+            .ToList();
+
+        _logger?.LogDebug($"Initiative turn order calculated: {string.Join(", ", order)}");
+        return Result<CombatState>.Success(state with
+        {
+            Determinism = context,
+            TurnOrder = order
+        });
+    }
+
+    public Result<TurnOrderTransition> Calculate(CombatState state)
+    {
+        if (state.TurnOrder is { Count: > 0 })
+            return Result<TurnOrderTransition>.Success(new TurnOrderTransition(state, state.TurnOrder));
+
+        var initialized = InitializeState(state);
+        return initialized.IsSuccess
+            ? Result<TurnOrderTransition>.Success(
+                new TurnOrderTransition(initialized.Value, initialized.Value.TurnOrder ?? []))
+            : Result<TurnOrderTransition>.Failure(initialized.Error);
+    }
+
+    public Result<CombatState> UpdateStateAfterAction(CombatState state, string actorId) =>
+        Result<CombatState>.Success(state);
+
     public Result<List<string>> CalculateTurnOrder(CombatState state)
     {
-        // Se já temos ordem fixa, retornar ela
-        if (_fixedTurnOrder != null)
-        {
-            return Result<List<string>>.Success(_fixedTurnOrder);
-        }
-        
-        // Caso contrário, calcular nova ordem (não deveria acontecer após Initialize)
-        _logger?.LogWarning("CalculateTurnOrder called before Initialize - calculating new order");
-        var initResult = Initialize(state);
-        if (initResult.IsFailure)
-        {
-            return Result<List<string>>.Failure(initResult.Error);
-        }
-        
-        return Result<List<string>>.Success(_fixedTurnOrder!);
+        var result = Calculate(state);
+        return result.IsSuccess
+            ? Result<List<string>>.Success(result.Value.Order.ToList())
+            : Result<List<string>>.Failure(result.Error);
     }
     
     public Result Initialize(CombatState state)
     {
-        var entities = new List<(string EntityId, int Initiative)>();
-        
-        // Rolar iniciativa para o hero
-        var heroInitiative = RollInitiative(state.Hero);
-        entities.Add((state.Hero.EntityId, heroInitiative));
-        
-        // Rolar iniciativa para os inimigos
-        foreach (var enemy in state.Enemies)
-        {
-            var enemyInitiative = RollInitiative(enemy);
-            entities.Add((enemy.EntityId, enemyInitiative));
-        }
-        
-        // Ordenar por iniciativa (maior primeiro)
-        _fixedTurnOrder = entities
-            .OrderByDescending(e => e.Initiative)
-            .ThenBy(e => e.EntityId) // Desempate por ID
-            .Select(e => e.EntityId)
-            .ToList();
-        
-        _logger?.LogDebug($"Initiative turn order calculated: {string.Join(", ", _fixedTurnOrder.Select(id => $"{id}({entities.First(e => e.EntityId == id).Initiative})"))}");
-        
-        return Result.Success();
+        return InitializeState(state).IsSuccess ? Result.Success() : Result.Failure("Failed to initialize initiative");
     }
     
     public Result UpdateAfterAction(CombatState state, string actorId)
@@ -74,12 +79,8 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
         return Result.Success();
     }
     
-    private int RollInitiative(CombatEntity entity)
+    private static int GetSpeedModifier(CombatEntity entity)
     {
-        // Rolar 1d20 + modificador de velocidade
-        var roll = _random.Next(1, 21); // 1d20
-        
-        // Tentar obter modificador de velocidade
         var speedModifier = 0;
         if (entity.ResourceState.Resources.TryGetValue("speed", out var speedPool))
         {
@@ -87,6 +88,6 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
             speedModifier = (int)(speedPool.Current / 2);
         }
         
-        return roll + speedModifier;
+        return speedModifier;
     }
 }

@@ -2,6 +2,7 @@ using Core.Combat.Models;
 using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Damage;
+using Core.Determinism;
 using Core.Effects;
 using Core.Entity.Definitions;
 using Core.Entity.Integration;
@@ -11,6 +12,7 @@ using Core.Logging;
 using Core.Resources;
 using Core.StatusEffects;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 
 namespace Core.Combat;
 
@@ -22,13 +24,14 @@ namespace Core.Combat;
 public class CombatSystem : ICombatSystem
 {
     private readonly ConcurrentDictionary<Guid, CombatState> _activeCombats = new();
+    private readonly ConcurrentDictionary<Guid, object> _combatLocks = new();
     private readonly IEventBus? _eventBus;
     private readonly ILogger _logger;
     private readonly IResourceManager _resourceManager;
     private readonly IDamageCalculator? _damageCalculator;
     private readonly IStatusEffectManager? _statusEffectManager;
     private readonly IResourceRegenerationProcessor? _regenerationProcessor;
-     private readonly ITurnOrderCalculator _turnOrderCalculator;
+    private readonly ITurnOrderCalculator _turnOrderCalculator;
     private readonly IActionManager? _actionManager;
     private readonly IEffectResolver? _effectResolver;
     private readonly IActionCostEvaluator? _actionCostEvaluator;
@@ -65,6 +68,13 @@ public class CombatSystem : ICombatSystem
     }
     
     public Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3)
+        => StartCombat(heroId, enemyIds, initialEnergy, new CombatStartOptions(Seed: CreateSeed()));
+
+    public Result<CombatState> StartCombat(
+        string heroId,
+        List<string> enemyIds,
+        int initialEnergy,
+        CombatStartOptions options)
     {
         try
         {
@@ -77,38 +87,42 @@ public class CombatSystem : ICombatSystem
             
             if (initialEnergy < 0 || initialEnergy > 10)
                 return Result<CombatState>.Failure("Initial energy must be between 0 and 10");
+
+            if (options == null)
+                return Result<CombatState>.Failure("Combat start options are required");
+
+            if (string.IsNullOrWhiteSpace(options.ContentRevision))
+                return Result<CombatState>.Failure("Content revision cannot be empty");
             
             var hero = CreateHeroCombatEntity(heroId, initialEnergy);
             var enemies = enemyIds.Select(CreateEnemyCombatEntity).ToList();
             
-            // Criar estado inicial
-            var combatState = new CombatState
-            {
-                Hero = hero,
-                Enemies = enemies,
-                CurrentTurn = 1,
-                Status = CombatStatus.ACTIVE
-            };
+            var context = DeterministicContext.Create(
+                options.Seed ?? CreateSeed(),
+                options.ContentRevision);
+            var combatState = CombatTransitions.Create(hero, enemies, context);
             
             // Inicializar calculadora de ordem de turnos e calcular ordem inicial
-            var initResult = _turnOrderCalculator.Initialize(combatState);
+            var initResult = _turnOrderCalculator.InitializeState(combatState);
             if (initResult.IsFailure)
             {
                 _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
             }
             else
             {
-                var turnOrderResult = _turnOrderCalculator.CalculateTurnOrder(combatState);
+                combatState = initResult.Value;
+                var turnOrderResult = _turnOrderCalculator.Calculate(combatState);
                 if (turnOrderResult.IsSuccess)
                 {
-                    combatState = combatState with { TurnOrder = turnOrderResult.Value };
-                    _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value)}");
+                    combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
+                    _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
                 }
             }
             
             // Adicionar ao dicionário
             if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
                 return Result<CombatState>.Failure("Failed to create combat (ID collision)");
+            _combatLocks.TryAdd(combatState.CombatId, new object());
             
             // Publicar evento
             _eventBus?.Publish(new CombatStartedEvent
@@ -131,6 +145,12 @@ public class CombatSystem : ICombatSystem
     }
     
     public Result<CombatState> StartCombatWithEntities(Entity.Entity hero, List<Entity.Entity> enemies)
+        => StartCombatWithEntities(hero, enemies, new CombatStartOptions(Seed: CreateSeed()));
+
+    public Result<CombatState> StartCombatWithEntities(
+        Entity.Entity hero,
+        List<Entity.Entity> enemies,
+        CombatStartOptions options)
     {
         try
         {
@@ -140,39 +160,43 @@ public class CombatSystem : ICombatSystem
             
             if (enemies == null || enemies.Count == 0)
                 return Result<CombatState>.Failure("At least one enemy is required");
+
+            if (options == null)
+                return Result<CombatState>.Failure("Combat start options are required");
+
+            if (string.IsNullOrWhiteSpace(options.ContentRevision))
+                return Result<CombatState>.Failure("Content revision cannot be empty");
             
             // Converter entidades para CombatEntity usando o adapter
             var heroCombat = _entityAdapter.ToCombatEntity(hero);
             var enemiesCombat = _entityAdapter.ToCombatEntities(enemies);
             
-            // Criar estado inicial
-            var combatState = new CombatState
-            {
-                Hero = heroCombat,
-                Enemies = enemiesCombat.ToList(),
-                CurrentTurn = 1,
-                Status = CombatStatus.ACTIVE
-            };
+            var context = DeterministicContext.Create(
+                options.Seed ?? CreateSeed(),
+                options.ContentRevision);
+            var combatState = CombatTransitions.Create(heroCombat, enemiesCombat, context);
             
             // Inicializar calculadora de ordem de turnos e calcular ordem inicial
-            var initResult = _turnOrderCalculator.Initialize(combatState);
+            var initResult = _turnOrderCalculator.InitializeState(combatState);
             if (initResult.IsFailure)
             {
                 _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
             }
             else
             {
-                var turnOrderResult = _turnOrderCalculator.CalculateTurnOrder(combatState);
+                combatState = initResult.Value;
+                var turnOrderResult = _turnOrderCalculator.Calculate(combatState);
                 if (turnOrderResult.IsSuccess)
                 {
-                    combatState = combatState with { TurnOrder = turnOrderResult.Value };
-                    _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value)}");
+                    combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
+                    _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
                 }
             }
             
             // Adicionar ao dicionário
             if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
                 return Result<CombatState>.Failure("Failed to create combat (ID collision)");
+            _combatLocks.TryAdd(combatState.CombatId, new object());
             
             // Publicar evento
             _eventBus?.Publish(new CombatStartedEvent
@@ -196,6 +220,18 @@ public class CombatSystem : ICombatSystem
     
     public Result<CombatState> ExecuteAction(Guid combatId, CombatActionCommand command)
     {
+        if (command == null)
+            return Result<CombatState>.Failure("Combat action command is required");
+
+        var combatLock = _combatLocks.GetOrAdd(combatId, _ => new object());
+        lock (combatLock)
+        {
+            return ExecuteActionLocked(combatId, command);
+        }
+    }
+
+    private Result<CombatState> ExecuteActionLocked(Guid combatId, CombatActionCommand command)
+    {
         try
         {
             // Obter estado atual
@@ -204,6 +240,12 @@ public class CombatSystem : ICombatSystem
             
             if (!currentState.IsActive)
                 return Result<CombatState>.Failure($"Combat {combatId} is not active (status: {currentState.Status})");
+
+            if (command.ExpectedStep.HasValue && command.ExpectedStep.Value != currentState.Determinism.Step)
+            {
+                return Result<CombatState>.Failure(
+                    $"Stale combat command: expected step {command.ExpectedStep.Value}, current step is {currentState.Determinism.Step}");
+            }
 
             var actor = currentState.GetEntity(command.ActorId);
             if (actor == null)
@@ -226,6 +268,21 @@ public class CombatSystem : ICombatSystem
                 ActionType.END_TURN => ExecuteEndTurn(currentState, actor),
                 _ => throw new InvalidOperationException($"Unknown action type: {command.ActionType}")
             };
+
+            var turnState = _turnOrderCalculator.UpdateStateAfterAction(newState, actor.EntityId);
+            if (turnState.IsFailure)
+                return Result<CombatState>.Failure(turnState.Error);
+            newState = turnState.Value;
+
+            if (command.ActionType == ActionType.END_TURN)
+            {
+                var turnOrder = _turnOrderCalculator.Calculate(newState);
+                if (turnOrder.IsSuccess)
+                {
+                    newState = turnOrder.Value.State with { TurnOrder = turnOrder.Value.Order };
+                    _logger.LogDebug($"Turn order for turn {newState.CurrentTurn}: {string.Join(", ", turnOrder.Value.Order)}");
+                }
+            }
             
             // Verificar condições de vitória/derrota
             newState = CheckCombatEnd(newState);
@@ -438,8 +495,6 @@ public class CombatSystem : ICombatSystem
             EnergyChange = energyChange
         };
 
-        var newHistory = state.ActionHistory.Append(action).ToList();
-
         PublishEnergyChange(state, actor.EntityId, previousEnergy, currentEnergy, energyChange, $"Action: {actionId}");
 
         var updatedState = state;
@@ -452,7 +507,7 @@ public class CombatSystem : ICombatSystem
             updatedState = updatedState.ReplaceEntity(updatedActor).ReplaceEntity(newTarget);
         }
 
-        return updatedState with { ActionHistory = newHistory };
+        return CombatTransitions.AppendAction(updatedState, action).State;
     }
 
     private float CalculateActionDamage(ActionDefinition actionDefinition, CombatEntity actor, CombatEntity target)
@@ -604,9 +659,7 @@ public class CombatSystem : ICombatSystem
             ActionType = ActionType.PASS
         };
         
-        var newHistory = state.ActionHistory.Append(action).ToList();
-        
-        return state with { ActionHistory = newHistory };
+        return CombatTransitions.AppendAction(state, action).State;
     }
     
     private CombatState ExecuteEndTurn(CombatState state, CombatEntity actor)
@@ -618,12 +671,8 @@ public class CombatSystem : ICombatSystem
             ActionType = ActionType.END_TURN
         };
         
-        var newHistory = state.ActionHistory.Append(action).ToList();
-        
-        // Incrementar turno primeiro
-        var updatedState = state with
+        var updatedState = CombatTransitions.AppendAction(state, action).State with
         {
-            ActionHistory = newHistory,
             CurrentTurn = state.CurrentTurn + 1
         };
         
@@ -640,15 +689,7 @@ public class CombatSystem : ICombatSystem
         updatedState = ProcessEndOfTurnRegeneration(updatedState);
         updatedState = ProcessStartOfTurnRegeneration(updatedState);
         
-        // Recalcular ordem de turnos para o próximo turno
-         var turnOrderResult = _turnOrderCalculator.CalculateTurnOrder(updatedState);
-         if (turnOrderResult.IsSuccess)
-         {
-             updatedState = updatedState with { TurnOrder = turnOrderResult.Value };
-             _logger.LogDebug($"Turn order for turn {updatedState.CurrentTurn}: {string.Join(", ", turnOrderResult.Value)}");
-         }
-         
-         return updatedState;
+        return updatedState;
     }
     
     /// <summary>
@@ -1010,7 +1051,8 @@ public class CombatSystem : ICombatSystem
 
         try
         {
-            while (true)
+            var combatLock = _combatLocks.GetOrAdd(combatId, _ => new object());
+            lock (combatLock)
             {
                 if (!_activeCombats.TryGetValue(combatId, out var currentState))
                     return Result<CombatState>.Failure($"Combat {combatId} not found");
@@ -1019,8 +1061,14 @@ public class CombatSystem : ICombatSystem
                 if (updatedState == null)
                     return Result<CombatState>.Failure("Combat state update returned null");
 
-                if (_activeCombats.TryUpdate(combatId, updatedState, currentState))
-                    return Result<CombatState>.Success(updatedState);
+                updatedState = updatedState with
+                {
+                    CombatId = currentState.CombatId,
+                    StartedAt = currentState.StartedAt,
+                    Determinism = currentState.Determinism.AdvanceStep()
+                };
+                _activeCombats[combatId] = updatedState;
+                return Result<CombatState>.Success(updatedState);
             }
         }
         catch (Exception ex)
@@ -1031,32 +1079,37 @@ public class CombatSystem : ICombatSystem
     
     public Result<CombatResult> EndCombat(Guid combatId)
     {
-        if (!_activeCombats.TryRemove(combatId, out var state))
-            return Result<CombatResult>.Failure($"Combat {combatId} not found");
-        
-        var result = new CombatResult
+        var combatLock = _combatLocks.GetOrAdd(combatId, _ => new object());
+        lock (combatLock)
         {
-            CombatId = combatId,
-            Status = state.Status,
-            TotalTurns = state.CurrentTurn,
-            TotalActions = state.ActionHistory.Count,
-            DamageDealt = state.ActionHistory.Sum(a => a.DamageDealt ?? 0),
-            DamageTaken = (int)((state.Hero.GetResource("health")?.Maximum ?? 0f) - (state.Hero.GetResource("health")?.Current ?? 0f)),
-            Duration = DateTime.UtcNow - state.StartedAt
-        };
-        
-        _eventBus?.Publish(new CombatEndedEvent
-        {
-            CombatId = combatId,
-            StatusName = state.Status.ToString(),
-            TotalTurns = result.TotalTurns,
-            TotalActions = result.TotalActions,
-            Duration = result.Duration,
-            Target = state.Hero.EntityId
-        });
-        
-        _logger.LogInformation($"Combat ended: {combatId} - {state.Status}");
-        return Result<CombatResult>.Success(result);
+            if (!_activeCombats.TryRemove(combatId, out var state))
+                return Result<CombatResult>.Failure($"Combat {combatId} not found");
+
+            var result = new CombatResult
+            {
+                CombatId = combatId,
+                Status = state.Status,
+                TotalTurns = state.CurrentTurn,
+                TotalActions = state.ActionHistory.Count,
+                DamageDealt = state.ActionHistory.Sum(a => a.DamageDealt ?? 0),
+                DamageTaken = (int)((state.Hero.GetResource("health")?.Maximum ?? 0f) - (state.Hero.GetResource("health")?.Current ?? 0f)),
+                Duration = state.Determinism.LogicalTimestamp.UtcDateTime - state.StartedAt
+            };
+
+            _eventBus?.Publish(new CombatEndedEvent
+            {
+                CombatId = combatId,
+                StatusName = state.Status.ToString(),
+                TotalTurns = result.TotalTurns,
+                TotalActions = result.TotalActions,
+                Duration = result.Duration,
+                Target = state.Hero.EntityId
+            });
+
+            _combatLocks.TryRemove(combatId, out _);
+            _logger.LogInformation($"Combat ended: {combatId} - {state.Status}");
+            return Result<CombatResult>.Success(result);
+        }
     }
     
     public Result<IReadOnlyList<CombatAction>> GetActionHistory(Guid combatId)
@@ -1082,9 +1135,17 @@ public class CombatSystem : ICombatSystem
         foreach (var combatId in inactiveCombats)
         {
             _activeCombats.TryRemove(combatId, out _);
+            _combatLocks.TryRemove(combatId, out _);
         }
         
         _logger.LogInformation($"Cleared {inactiveCombats.Count} inactive combats");
+    }
+
+    private static ulong CreateSeed()
+    {
+        Span<byte> bytes = stackalloc byte[sizeof(ulong)];
+        RandomNumberGenerator.Fill(bytes);
+        return BitConverter.ToUInt64(bytes);
     }
     
     /// <summary>

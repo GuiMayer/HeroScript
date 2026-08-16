@@ -481,15 +481,14 @@ public class CombatModelsTests
     }
     
     [Fact]
-    public void CombatAction_DefaultValues_GenerateGuidAndTimestamp()
+    public void CombatAction_DefaultValues_AreDeterministicSentinels()
     {
         // Arrange & Act
         var action = new CombatAction();
         
         // Assert
-        Assert.NotEqual(Guid.Empty, action.ActionId);
-        Assert.True(action.Timestamp <= DateTime.UtcNow);
-        Assert.True(action.Timestamp >= DateTime.UtcNow.AddSeconds(-1));
+        Assert.Equal(Guid.Empty, action.ActionId);
+        Assert.Equal(DateTime.UnixEpoch, action.Timestamp);
     }
     
     [Fact]

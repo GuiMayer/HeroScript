@@ -6,8 +6,8 @@ namespace Core.Combat.Models;
 /// </summary>
 public record CombatAction
 {
-    public Guid ActionId { get; init; } = Guid.NewGuid();
-    public DateTime Timestamp { get; init; } = DateTime.UtcNow;
+    public Guid ActionId { get; init; } = Guid.Empty;
+    public DateTime Timestamp { get; init; } = DateTime.UnixEpoch;
     public int Turn { get; init; }
     public string ActorId { get; init; } = string.Empty;
     public ActionType ActionType { get; init; }
