@@ -11,7 +11,7 @@ namespace Core.Tests.Events;
 public class EventIntegrationTests
 {
     [Fact]
-    public void EventBus_ThreadSafety_MultipleThreadsPublishing()
+    public async Task EventBus_ThreadSafety_MultipleThreadsPublishing()
     {
         // Arrange
         var eventBus = new EventBus(NullLogger.Instance);
@@ -43,7 +43,7 @@ public class EventIntegrationTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // Assert
         Assert.Equal(100, eventCount);
@@ -51,7 +51,7 @@ public class EventIntegrationTests
     }
 
     [Fact]
-    public void EventBus_SubscriptionDisposal_IsThreadSafe()
+    public async Task EventBus_SubscriptionDisposal_IsThreadSafe()
     {
         // Arrange
         var eventBus = new EventBus(NullLogger.Instance);
@@ -71,7 +71,7 @@ public class EventIntegrationTests
             }));
         }
 
-        Task.WaitAll(tasks.ToArray());
+        await Task.WhenAll(tasks);
 
         // Descartar todas as subscriptions
         foreach (var sub in subscriptions)
@@ -89,7 +89,6 @@ public class EventIntegrationTests
         // Arrange
         var eventBus = new EventBus(NullLogger.Instance);
         var handler1Called = false;
-        var handler2Called = false;
         var handler3Called = false;
 
         using var sub1 = eventBus.Subscribe<ConfigLoadedEvent>(e => handler1Called = true);

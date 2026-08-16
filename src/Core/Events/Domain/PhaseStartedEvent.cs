@@ -23,5 +23,5 @@ public record PhaseStartedEvent : GameEvent
     /// <summary>
     /// Número do turno atual
     /// </summary>
-    public int Turn { get; init; }
+    public new int Turn { get; init; }
 }

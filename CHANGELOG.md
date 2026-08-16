@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+#### Stability hardening (2026-08-16)
+
+- Fixed culture-dependent parsing in the damage pipeline; JSON numeric literals now use invariant culture.
+- Removed a snapshot-retention deadlock in `VersionedRunStateRepository` and added regression coverage.
+- Removed the API configuration service circular dependency through lazy validator resolution.
+- Restored development and build-time discovery of data-driven configuration files, including `.slnx` project roots.
+- Made run persistence snapshots immutable at enqueue time, preventing concurrent writes from sharing a sequence number.
+- Disabled Windows Event Log output in API test hosts so tests run without elevated Windows permissions.
+- Added SDK selection through `global.json` and updated the documented validation baseline.
+
+### Known limitations
+
+- Legacy API integration scenarios still use contracts and fixture content that differ from the current engine. They now execute instead of hanging, but need reconciliation before they can be considered a release gate.
+
 ### Analysis
 
 #### MVP Viability Analysis (2026-07-12)

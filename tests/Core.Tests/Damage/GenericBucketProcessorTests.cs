@@ -5,6 +5,7 @@ using Core.Damage.Events;
 using Core.Events;
 using Core.Logging;
 using Core.Math;
+using System.Globalization;
 using System.Collections.Generic;
 
 namespace Core.Tests.Damage;
@@ -467,6 +468,34 @@ public class GenericBucketProcessorTests
 
         // Assert
         Assert.Equal(250f, result.CurrentDamage);
+    }
+
+    [Fact]
+    public void ResolveValue_UsesInvariantCultureForJsonNumericLiterals()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
+        try
+        {
+            var bucket = new BucketDefinition
+            {
+                BucketId = "test_bucket",
+                Order = 1,
+                Operations = new List<BucketOperation>
+                {
+                    new() { Type = OperationType.MULTIPLY, Source = "1.5" }
+                }
+            };
+
+            var processor = new GenericBucketProcessor(bucket, _mockMathEngine.Object, _mockEventBus.Object, _mockLogger.Object);
+            var result = processor.Process(DamageTestHelpers.CreateBasicContext(baseDamage: 100f));
+
+            Assert.Equal(150f, result.CurrentDamage);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
     }
 
     [Fact]

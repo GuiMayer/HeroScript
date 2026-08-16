@@ -252,9 +252,9 @@ public class DamageContextTests
             tags: new List<string> { "physical", "melee" });
 
         // Assert
-        Assert.True(context.Tags.Contains("physical"));
-        Assert.True(context.Tags.Contains("melee"));
-        Assert.False(context.Tags.Contains("magical"));
+        Assert.Contains("physical", context.Tags);
+        Assert.Contains("melee", context.Tags);
+        Assert.DoesNotContain("magical", context.Tags);
     }
 
     [Fact]

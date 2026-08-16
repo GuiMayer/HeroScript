@@ -48,17 +48,17 @@ builder.Services.AddSingleton<Core.Logging.ILogger>(sp =>
     return new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
 });
 
-// ConfigValidator needs IConfigManager (injected by DI) and optionally ILogger.
-// The Core.Logging.ILogger singleton is used so ConfigValidator gets the adapter.
-builder.Services.AddSingleton<ConfigValidator>();
 builder.Services.AddSingleton<IConfigManager, ConfigManager>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ConfigManager"));
-    var validator = sp.GetRequiredService<ConfigValidator>();
     var eventBus = sp.GetRequiredService<IEventBus>();
-    return new ConfigManager(logger, validator, eventBus);
+    var manager = new ConfigManager(logger, eventBus: eventBus);
+    manager.SetValidatorFactory(() => sp.GetRequiredService<ConfigValidator>());
+    return manager;
 });
+// ConfigValidator depends on IConfigManager, so it must be resolved lazily by ConfigManager.
+builder.Services.AddSingleton<ConfigValidator>();
 
 builder.Services.AddSingleton<ResourceProviderFactory>();
 builder.Services.AddSingleton<IResourceLoader, ResourceLoader>(sp =>

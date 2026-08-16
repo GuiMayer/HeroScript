@@ -122,12 +122,7 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            return Directory.GetFiles(snapshotDir, "*.json")
-                .Select(f => Path.GetFileNameWithoutExtension(f))
-                .Where(name => int.TryParse(name, out _))
-                .Select(name => int.Parse(name))
-                .OrderBy(seq => seq)
-                .ToList();
+            return ListSnapshotSequences(snapshotDir);
         }
         finally
         {
@@ -192,7 +187,9 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
         if (_maxRetainedSnapshots <= 0)
             return;
 
-        var snapshots = await ListSnapshotsAsync(runId, ct).ConfigureAwait(false);
+        // SaveAsync already holds _semaphore. Calling the public ListSnapshotsAsync
+        // here would attempt to acquire it again and deadlock persistence.
+        var snapshots = ListSnapshotSequences(GetSnapshotDirectory(runId));
         if (snapshots.Count <= _maxRetainedSnapshots)
             return;
 
@@ -213,5 +210,18 @@ public sealed class VersionedRunStateRepository : IRunStateRepository, IDisposab
                 _logger.LogWarning($"Failed to delete old snapshot {sequence} for run {runId}: {ex.Message}");
             }
         }
+    }
+
+    private static IReadOnlyList<int> ListSnapshotSequences(string snapshotDir)
+    {
+        if (!Directory.Exists(snapshotDir))
+            return Array.Empty<int>();
+
+        return Directory.GetFiles(snapshotDir, "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(name => int.TryParse(name, out _))
+            .Select(name => int.Parse(name!))
+            .OrderBy(sequence => sequence)
+            .ToList();
     }
 }

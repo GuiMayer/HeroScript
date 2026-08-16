@@ -35,13 +35,13 @@ curl http://localhost:5260/api/health
 
 ## 🎯 Status do MVP
 
-**Última análise:** 2026-07-12
+**Última análise:** 2026-08-16
 
-### Engine (95% completo) ✅
-- **Core Systems:** Combat, Deck, Shop, Status Effects, Gambits - totalmente funcionais
-- **Testes:** 1.248 testes Core + 150 testes API passando
-- **Build:** 0 erros, 31 warnings (nullability/style)
-- **Arquitetura:** Production-ready, thread-safe, event-driven
+### Engine (estabilização em andamento)
+- **Core Systems:** Combat, Deck, Shop, Status Effects e Gambits implementados
+- **Validação atual:** 1.250 testes Core e 125 testes unitários da API aprovados
+- **Integração:** o bloqueio de inicialização foi corrigido; os fluxos legados ainda precisam ser alinhados aos contratos e ao conteúdo atual
+- **Build:** concluído sem erros; warnings de nulidade restantes serão tratados incrementalmente
 
 ### Blockers Críticos para MVP Jogável ❌
 - **Map Navigation System (0%)** - Sistema de progressão entre nós ausente
@@ -81,11 +81,11 @@ HeroScript/
 
 ## Estado Atual
 
-**Última atualização:** 2026-07-12  
-**Fase atual:** Fase 3 BLOQUEADA — aguardando Map System e Event System (blockers críticos).
+**Última atualização:** 2026-08-16
+**Fase atual:** estabilização técnica da Fase 3; Map System e Event System continuam bloqueadores para o MVP jogável.
 
-- **Core.Tests:** 1.248 testes passando
-- **API.Tests:** 150 testes passando (125 unit + 25 integration) com estabilidade
+- **Core.Tests:** 1.250 testes aprovados na última validação local
+- **API.Tests:** 125 testes unitários aprovados; a suíte de integração está sendo atualizada para os contratos atuais
 - **Fase 0:** Config, Math e Resources implementados
 - **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados
 - **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados

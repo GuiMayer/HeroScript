@@ -74,6 +74,14 @@ namespace Core.Config
             var projectRoot = FindProjectRoot();
             if (projectRoot != null)
             {
+                var dataConfigsPath = Path.Combine(projectRoot, "data", "configs");
+                if (Directory.Exists(dataConfigsPath))
+                {
+                    resolver.RegisterProvider(new PhysicalFileResourceProvider(
+                        dataConfigsPath, "DataConfigs (Dev)", priority: 75));
+                    _logger.LogDebug($"Dev mode: Loading data configs from {dataConfigsPath}");
+                }
+
                 var coreResourcesPath = Path.Combine(projectRoot, "src", "Core", "Resources");
                 if (Directory.Exists(coreResourcesPath))
                 {
@@ -132,7 +140,8 @@ namespace Core.Config
             var current = AppContext.BaseDirectory;
             while (current != null)
             {
-                if (File.Exists(Path.Combine(current, "HeroScript.sln")))
+                if (File.Exists(Path.Combine(current, "HeroScript.sln")) ||
+                    File.Exists(Path.Combine(current, "HeroScript.slnx")))
                     return current;
                 current = Directory.GetParent(current)?.FullName;
             }

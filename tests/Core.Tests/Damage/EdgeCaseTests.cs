@@ -109,9 +109,6 @@ public class EdgeCaseTests
                 ["damage_multiplier"] = 1000000f
             });
 
-        // Act
-        var expectedDamage = 100f * 1000000f;
-
         // Assert
         Assert.Equal(100f, context.BaseDamage);
         Assert.Equal(1000000f, context.Modifiers["damage_multiplier"]);
@@ -127,9 +124,6 @@ public class EdgeCaseTests
             {
                 ["damage_multiplier"] = 0.00001f
             });
-
-        // Act
-        var expectedDamage = 100f * 0.00001f;
 
         // Assert
         Assert.Equal(100f, context.BaseDamage);

@@ -21,6 +21,7 @@ public sealed class RunManager : IRunManager
     private readonly IRunStateRepository? _repository;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly object _lock = new();
+    private readonly object _persistenceLock = new();
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunManager(
@@ -1087,14 +1088,25 @@ public sealed class RunManager : IRunManager
     private void PersistAsync(RunState state)
     {
         if (_repository == null) return;
-        
-        // Increment sequence for new snapshot
-        state.Sequence++;
+
+        RunState snapshot;
+        lock (_persistenceLock)
+        {
+            state.Sequence++;
+            snapshot = CreateSnapshot(state);
+        }
         
         _ = Task.Run(async () =>
         {
-            try { await _repository.SaveAsync(state).ConfigureAwait(false); }
+            try { await _repository.SaveAsync(snapshot).ConfigureAwait(false); }
             catch { /* best effort — repository implementations log internally */ }
         });
+    }
+
+    private RunState CreateSnapshot(RunState state)
+    {
+        var json = JsonSerializer.Serialize(state, _jsonOptions);
+        return JsonSerializer.Deserialize<RunState>(json, _jsonOptions)
+            ?? throw new InvalidOperationException("Failed to create a run-state snapshot");
     }
 }

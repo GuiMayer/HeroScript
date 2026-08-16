@@ -16,7 +16,8 @@ namespace Core.Config
     {
         private readonly object _configLock = new();
         private readonly ILogger _logger;
-        private readonly ConfigValidator? _validator;
+        private ConfigValidator? _validator;
+        private Func<ConfigValidator?>? _validatorFactory;
         private readonly Events.IEventBus? _eventBus;
         private string _currentConfig;
 
@@ -43,6 +44,15 @@ namespace Core.Config
             _validator = validator;
             _eventBus = eventBus;
             _currentConfig = DefaultConfig;
+        }
+
+        /// <summary>
+        /// Configures lazy validation after the configuration manager is registered in DI.
+        /// This avoids a circular dependency because ConfigValidator also depends on IConfigManager.
+        /// </summary>
+        public void SetValidatorFactory(Func<ConfigValidator?> validatorFactory)
+        {
+            _validatorFactory = validatorFactory ?? throw new ArgumentNullException(nameof(validatorFactory));
         }
 
         /// <summary>
@@ -168,11 +178,12 @@ namespace Core.Config
                 _logger.LogInformation($"Loading config: {configName}");
 
                 // 1. Validar estrutura de pastas (se validator disponível)
-                if (_validator != null)
+                var validator = _validator ??= _validatorFactory?.Invoke();
+                if (validator != null)
                 {
                     try
                     {
-                        _validator.ValidateConfig(configName);
+                        validator.ValidateConfig(configName);
                     }
                     catch (Exception ex)
                     {

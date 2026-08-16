@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Core.Common;
 using Core.Events;
@@ -332,7 +333,7 @@ public class GenericBucketProcessor
         if (source.StartsWith("constant:"))
         {
             var valueStr = source.Replace("constant:", "");
-            if (float.TryParse(valueStr, out var constantValue))
+            if (float.TryParse(valueStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var constantValue))
                 return Result<float>.Success(constantValue);
             return Result<float>.Failure($"Invalid constant format: {source}");
         }
@@ -351,7 +352,7 @@ public class GenericBucketProcessor
             return Result<float>.Success(context.CurrentDamage);
 
         // "123.45" - valor literal sem prefixo
-        if (float.TryParse(source, out var literal))
+        if (float.TryParse(source, NumberStyles.Float, CultureInfo.InvariantCulture, out var literal))
             return Result<float>.Success(literal);
 
         return Result<float>.Failure($"Could not resolve value from source: {source}");

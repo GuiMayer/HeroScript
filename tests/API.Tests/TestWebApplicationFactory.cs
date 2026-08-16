@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Core.Combat;
 using Core.Combat.Gambits;
 using Core.Combat.Models;
@@ -23,6 +24,10 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var projectRoot = FindProjectRoot();
+
+        // Test hosts must not write to the Windows Event Log, which is unavailable
+        // in ordinary developer and CI environments.
+        builder.ConfigureLogging(logging => logging.ClearProviders());
 
         builder.ConfigureServices(services =>
         {
