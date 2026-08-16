@@ -61,8 +61,8 @@ public class StatusEffectManager : IStatusEffectManager
         => ApplyStatus(
             targetId,
             statusId,
-            Guid.NewGuid(),
-            DateTime.UtcNow,
+            Guid.NewGuid(), // nondeterministic-boundary: compatibility overload outside replayable runs
+            DateTime.UtcNow, // nondeterministic-boundary: compatibility overload outside replayable runs
             stacks,
             duration,
             sourceId);

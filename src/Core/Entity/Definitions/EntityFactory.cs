@@ -46,7 +46,7 @@ public class EntityFactory
             // Criar entidade base
             var entity = new Entity
             {
-                EntityId = entityId ?? Guid.NewGuid().ToString(),
+                EntityId = entityId ?? Guid.NewGuid().ToString(), // nondeterministic-boundary: editor/API convenience
                 Type = definition.Type,
                 DefinitionId = definitionId,
                 DisplayName = definition.DisplayName

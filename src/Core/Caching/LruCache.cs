@@ -150,7 +150,7 @@ public class LruCache<TKey, TValue> where TKey : notnull
         {
             _cache.Clear();
             _lruList.Clear();
-            _lastInvalidation = DateTime.UtcNow;
+            _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational cache telemetry
         }
     }
 

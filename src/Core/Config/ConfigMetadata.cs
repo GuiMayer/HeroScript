@@ -56,6 +56,6 @@ namespace Core.Config
         /// Data de criação da configuração (ISO 8601)
         /// </summary>
         [JsonPropertyName("created_at")]
-        public string CreatedAt { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        public string CreatedAt { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd"); // nondeterministic-boundary: authoring metadata
     }
 }

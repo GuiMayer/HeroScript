@@ -42,6 +42,7 @@
 ## Architecture
 
 - **[System Overview](architecture/overview.md)** - Visão geral da arquitetura headless
+- **[Deterministic Runs](architecture/deterministic-runs.md)** - Contrato de estado imutável, persistência e replay
 - **[Timeline System](architecture/timeline-system.md)** - Sistema de Timeline (Undo/Redo/Simulação)
 - **[Service Patterns](architecture/service-patterns.md)** - Padrões de serviço e injeção de dependências
 

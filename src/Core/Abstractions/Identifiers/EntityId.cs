@@ -19,7 +19,7 @@ public readonly record struct RunId(Guid Value)
 {
     public static RunId Empty => new(Guid.Empty);
     public bool IsEmpty => Value == Guid.Empty;
-    public static RunId NewId() => new(Guid.NewGuid());
+    public static RunId NewId() => new(Guid.NewGuid()); // nondeterministic-boundary: external session convenience
     public override string ToString() => Value.ToString();
     public static implicit operator Guid(RunId id) => id.Value;
     public static implicit operator RunId(Guid value) => new(value);
@@ -32,7 +32,7 @@ public readonly record struct CombatId(Guid Value)
 {
     public static CombatId Empty => new(Guid.Empty);
     public bool IsEmpty => Value == Guid.Empty;
-    public static CombatId NewId() => new(Guid.NewGuid());
+    public static CombatId NewId() => new(Guid.NewGuid()); // nondeterministic-boundary: external session convenience
     public override string ToString() => Value.ToString();
     public static implicit operator Guid(CombatId id) => id.Value;
     public static implicit operator CombatId(Guid value) => new(value);

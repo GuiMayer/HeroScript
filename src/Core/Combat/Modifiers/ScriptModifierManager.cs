@@ -87,7 +87,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager
 
     public Result<ScriptModifierInstance> ApplyModifier(string ownerId, string modifierId, int stacks = 1, int? duration = null, string? sourceId = null)
     {
-        return ApplyModifier(Guid.NewGuid(), ownerId, modifierId, stacks, duration, sourceId);
+        return ApplyModifier(Guid.NewGuid(), ownerId, modifierId, stacks, duration, sourceId); // nondeterministic-boundary: compatibility overload outside replayable runs
     }
 
     public Result<ScriptModifierInstance> ApplyModifier(Guid instanceId, string ownerId, string modifierId, int stacks = 1, int? duration = null, string? sourceId = null)
