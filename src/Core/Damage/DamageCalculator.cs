@@ -39,6 +39,23 @@ public class DamageCalculator : IDamageCalculator
         ActionDefinition action,
         CombatEntity attacker,
         CombatEntity target)
+        => CalculateDamageCore(action, attacker, target, null);
+
+    public DamageResult CalculateDamage(
+        ActionDefinition action,
+        CombatEntity attacker,
+        CombatEntity target,
+        IRandomProvider randomProvider)
+    {
+        ArgumentNullException.ThrowIfNull(randomProvider);
+        return CalculateDamageCore(action, attacker, target, randomProvider);
+    }
+
+    private DamageResult CalculateDamageCore(
+        ActionDefinition action,
+        CombatEntity attacker,
+        CombatEntity target,
+        IRandomProvider? randomProvider)
     {
         // 1. Construir contexto inicial
         var context = BuildInitialContext(action, attacker, target);
@@ -46,7 +63,9 @@ public class DamageCalculator : IDamageCalculator
         _logger.LogDebug($"Calculating damage: {action.ActionId} from {attacker.EntityId} to {target.EntityId}");
         
         // 2. Executar pipeline
-        var result = _pipelineManager.ExecutePipeline(context);
+        var result = randomProvider == null
+            ? _pipelineManager.ExecutePipeline(context)
+            : _pipelineManager.ExecutePipeline(context, randomProvider);
         
         // 3. Garantir dano não-negativo
         var finalDamage = System.Math.Max(0, result.CurrentDamage);

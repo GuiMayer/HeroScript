@@ -1,6 +1,7 @@
 using Core.Combat.Models;
 using Core.Common;
 using Core.Damage;
+using Core.Determinism;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;
@@ -22,6 +23,51 @@ public class EffectResolverTests
     private readonly Mock<IRuntimeFormulaEvaluator> _formulaEvaluator = new();
     private readonly Mock<IStatusEffectManager> _statusEffectManager = new();
     private readonly Mock<IRunManager> _runManager = new();
+
+    [Fact]
+    public void ApplyEffect_WithDeterministicProvider_ReproducesRandomTargetAndContext()
+    {
+        var state = CreateCombatState("hero", "enemy") with
+        {
+            Determinism = DeterministicContext.Create(123UL, "test-content")
+        };
+        _damageCalculator
+            .Setup(m => m.CalculateDamage(
+                It.IsAny<ActionDefinition>(),
+                It.IsAny<CombatEntity>(),
+                It.IsAny<CombatEntity>(),
+                It.IsAny<IRandomProvider>()))
+            .Returns(new DamageResult { FinalDamage = 5f });
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            Definition = new EffectDefinition
+            {
+                EffectId = "random-hit",
+                Type = EffectType.DAMAGE,
+                Target = EffectTarget.RANDOM_ENEMY,
+                FlatValue = 5f
+            },
+            SourceEntityId = "hero",
+            TargetEntityId = "enemy"
+        };
+        var context = CombatEffectContext.FromEffect(effect, state);
+        var firstProvider = new DeterministicRandomProvider(state.Determinism);
+        var secondProvider = new DeterministicRandomProvider(state.Determinism);
+
+        var first = resolver.ApplyEffect(effect, context, firstProvider);
+        var second = resolver.ApplyEffect(effect, context, secondProvider);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.Equal(first.Value.EffectResult.ValueApplied, second.Value.EffectResult.ValueApplied);
+        Assert.Equal(
+            first.Value.EffectResult.AffectedEntityIds,
+            second.Value.EffectResult.AffectedEntityIds);
+        Assert.Equal(firstProvider.Context, secondProvider.Context);
+        Assert.Equal(1UL, firstProvider.Context.IdSequence);
+        Assert.Equal(1UL, firstProvider.Context.RandomState.DrawCount);
+    }
 
     [Fact]
     public void ResolveEffect_DamageWithFormula_UsesCalculatedValue()

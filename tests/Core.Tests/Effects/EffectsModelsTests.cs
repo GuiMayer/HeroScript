@@ -243,7 +243,7 @@ public class EffectsModelsTests
         var definition = new EffectDefinition();
         
         // Assert
-        Assert.NotEqual(string.Empty, definition.EffectId); // Auto-generated GUID
+        Assert.Equal(string.Empty, definition.EffectId);
         Assert.Equal(EffectTarget.TARGET, definition.Target);
         Assert.Equal(EffectTiming.IMMEDIATE, definition.Timing);
         Assert.False(definition.IsPercentage);
@@ -255,16 +255,14 @@ public class EffectsModelsTests
     }
     
     [Fact]
-    public void EffectDefinition_GeneratesGuidWhenNotProvided()
+    public void EffectDefinition_DoesNotGenerateAmbientIds()
     {
         // Arrange & Act
         var def1 = new EffectDefinition();
         var def2 = new EffectDefinition();
         
-        // Assert - Each gets unique ID
-        Assert.NotEqual(string.Empty, def1.EffectId);
-        Assert.NotEqual(string.Empty, def2.EffectId);
-        Assert.NotEqual(def1.EffectId, def2.EffectId);
+        Assert.Equal(string.Empty, def1.EffectId);
+        Assert.Equal(def1.EffectId, def2.EffectId);
     }
     
     [Fact]

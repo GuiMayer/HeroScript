@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Effects;
 
 namespace Core.Combat.Models;
@@ -9,6 +10,9 @@ namespace Core.Combat.Models;
 /// </summary>
 public record ActionDefinition
 {
+    private ImmutableList<EffectDefinition> _effects = [];
+    private ImmutableList<string> _tags = [];
+
     /// <summary>
     /// ID único da ação (ex: "basic_attack", "fireball", "heal").
     /// </summary>
@@ -39,7 +43,11 @@ public record ActionDefinition
     /// Efeitos da ação (dano, cura, status, etc.).
     /// Effect é a unidade fundamental de todas as ações em combate.
     /// </summary>
-    public List<EffectDefinition> Effects { get; init; } = new();
+    public IReadOnlyList<EffectDefinition> Effects
+    {
+        get => _effects;
+        init => _effects = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Se a ação requer um alvo.
@@ -59,5 +67,9 @@ public record ActionDefinition
     /// <summary>
     /// Tags para categorização.
     /// </summary>
-    public List<string> Tags { get; init; } = new();
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableList() ?? [];
+    }
 }

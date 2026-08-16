@@ -314,7 +314,7 @@ public class ActionController : ControllerBase
             RequiresTarget = definition.RequiresTarget,
             MultiTarget = definition.MultiTarget,
             BaseDamage = GetBaseDamage(definition),
-            Tags = definition.Tags,
+            Tags = definition.Tags.ToList(),
             CostOptionsCount = definition.Costs.AlternativeCosts.Count + (definition.Costs.Costs.Any() ? 1 : 0),
             EffectCount = definition.Effects.Count
         };
@@ -332,7 +332,7 @@ public class ActionController : ControllerBase
             RequiresTarget = definition.RequiresTarget,
             MultiTarget = definition.MultiTarget,
             BaseDamage = GetBaseDamage(definition),
-            Tags = definition.Tags,
+            Tags = definition.Tags.ToList(),
             Effects = definition.Effects.Select(MapEffectToDto).ToList(),
             Costs = new ActionCostsDto
             {
@@ -440,12 +440,12 @@ public class ActionController : ControllerBase
             ModifierValue = effect.ModifierValue,
             ModifierFormula = effect.ModifierFormula,
             Condition = effect.Condition,
-            RequiredTags = effect.RequiredTags,
-            ExcludedTags = effect.ExcludedTags,
+            RequiredTags = effect.RequiredTags?.ToList(),
+            ExcludedTags = effect.ExcludedTags?.ToList(),
             Chance = effect.Chance,
             Repeat = effect.Repeat,
-            Tags = effect.Tags,
-            Metadata = effect.Metadata,
+            Tags = effect.Tags.ToList(),
+            Metadata = effect.Metadata.ToDictionary(pair => pair.Key, pair => pair.Value),
             ChainedEffects = effect.ChainedEffects?.Select(MapEffectToDto).ToList(),
             ConditionalEffects = effect.ConditionalEffects?.Select(MapEffectToDto).ToList()
         };

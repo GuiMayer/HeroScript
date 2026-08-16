@@ -468,18 +468,27 @@ public class CombatSystem : ICombatSystem
         string? costOptionId,
         IReadOnlyDictionary<string, float>? runModifiers)
     {
+        var randomProvider = new DeterministicRandomProvider(state.Determinism);
         var target = state.GetEntity(targetId)!;
         var actionDefinition = GetConfiguredAction(actionId)
             ?? throw new InvalidOperationException($"Action definition not found: {actionId}");
 
-        var damageDealt = ApplyRunModifiers(CalculateActionDamage(actionDefinition, actor, target), actionDefinition, runModifiers);
+        var damageDealt = ApplyRunModifiers(
+            CalculateActionDamage(actionDefinition, actor, target, state, randomProvider),
+            actionDefinition,
+            runModifiers);
 
         // Processar status effects ON_DAMAGE_TAKEN por comportamento configurado.
         var (modifiedDamage, updatedActor) = ProcessOnDamageTakenEffects(target, actor, damageDealt, state.CurrentTurn);
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
 
         updatedActor = ApplyCosts(updatedActor, actionDefinition.Costs, costOptionId);
-        updatedActor = ApplyActionResourceEffects(updatedActor, newTarget, actionDefinition.Effects);
+        updatedActor = ApplyActionResourceEffects(
+            updatedActor,
+            newTarget,
+            actionDefinition.Effects,
+            state,
+            randomProvider);
 
         var previousEnergy = actor.GetResource("energy")?.Current ?? 0;
         var currentEnergy = updatedActor.GetResource("energy")?.Current ?? previousEnergy;
@@ -497,7 +506,7 @@ public class CombatSystem : ICombatSystem
 
         PublishEnergyChange(state, actor.EntityId, previousEnergy, currentEnergy, energyChange, $"Action: {actionId}");
 
-        var updatedState = state;
+        var updatedState = state with { Determinism = randomProvider.Context };
         if (updatedActor.EntityId == newTarget.EntityId)
         {
             updatedState = updatedState.ReplaceEntity(updatedActor);
@@ -510,7 +519,12 @@ public class CombatSystem : ICombatSystem
         return CombatTransitions.AppendAction(updatedState, action).State;
     }
 
-    private float CalculateActionDamage(ActionDefinition actionDefinition, CombatEntity actor, CombatEntity target)
+    private float CalculateActionDamage(
+        ActionDefinition actionDefinition,
+        CombatEntity actor,
+        CombatEntity target,
+        CombatState state,
+        IRandomProvider randomProvider)
     {
         var damageEffects = actionDefinition.Effects.Where(e => e.Type == EffectType.DAMAGE).ToList();
         if (damageEffects.Count == 0)
@@ -518,12 +532,22 @@ public class CombatSystem : ICombatSystem
 
         if (_effectResolver != null)
         {
-            return damageEffects.Sum(effect => ResolveActionEffectValue(effect, actionDefinition.ActionId, actor, target));
+            return damageEffects.Sum(effect => ResolveActionEffectValue(
+                effect,
+                actionDefinition.ActionId,
+                actor,
+                target,
+                state,
+                randomProvider));
         }
 
         if (_damageCalculator != null)
         {
-            var damageResult = _damageCalculator.CalculateDamage(actionDefinition, actor, target);
+            var damageResult = _damageCalculator.CalculateDamage(
+                actionDefinition,
+                actor,
+                target,
+                randomProvider);
             _logger.LogDebug($"Action {actionDefinition.ActionId} damage: {damageResult.FinalDamage:F2} (crit tier: {damageResult.CritTier})");
             return damageResult.FinalDamage;
         }
@@ -546,18 +570,24 @@ public class CombatSystem : ICombatSystem
         return actionDefinition.Effects.Any(effect => effect.Type == EffectType.DAMAGE) ? value : baseValue;
     }
 
-    private float ResolveActionEffectValue(EffectDefinition effect, string actionId, CombatEntity actor, CombatEntity target)
+    private float ResolveActionEffectValue(
+        EffectDefinition effect,
+        string actionId,
+        CombatEntity actor,
+        CombatEntity target,
+        CombatState state,
+        IRandomProvider randomProvider)
     {
         var instance = CreateActionEffectInstance(effect, actionId, actor.EntityId, target.EntityId);
         var context = new CombatEffectContext
         {
-            CombatState = new CombatState { Hero = actor, Enemies = new List<CombatEntity> { target } },
+            CombatState = state,
             SourceEntityId = actor.EntityId,
             TargetEntityId = target.EntityId,
             SourceActionId = actionId
         };
 
-        var result = _effectResolver!.ApplyEffect(instance, context);
+        var result = _effectResolver!.ApplyEffect(instance, context, randomProvider);
         if (result.IsSuccess && result.Value.Success && result.Value.EffectResult.ValueApplied.HasValue)
             return result.Value.EffectResult.ValueApplied.Value;
 
@@ -568,13 +598,20 @@ public class CombatSystem : ICombatSystem
     private CombatEntity ApplyActionResourceEffects(
         CombatEntity actor,
         CombatEntity target,
-        IEnumerable<EffectDefinition> effects)
+        IEnumerable<EffectDefinition> effects,
+        CombatState state,
+        IRandomProvider randomProvider)
     {
         var updatedActor = actor;
 
         foreach (var effect in effects.Where(e => e.Type == EffectType.MODIFY_RESOURCE))
         {
-            var value = ResolveResourceEffectValue(effect, updatedActor, target);
+            var value = ResolveResourceEffectValue(
+                effect,
+                updatedActor,
+                target,
+                state,
+                randomProvider);
             var resourceId = effect.TargetResource;
             if (string.IsNullOrWhiteSpace(resourceId) || value == 0)
                 continue;
@@ -596,7 +633,12 @@ public class CombatSystem : ICombatSystem
         return updatedActor;
     }
 
-    private float ResolveResourceEffectValue(EffectDefinition effect, CombatEntity actor, CombatEntity target)
+    private float ResolveResourceEffectValue(
+        EffectDefinition effect,
+        CombatEntity actor,
+        CombatEntity target,
+        CombatState state,
+        IRandomProvider randomProvider)
     {
         if (_effectResolver == null)
             return effect.FlatValue ?? 0;
@@ -604,12 +646,12 @@ public class CombatSystem : ICombatSystem
         var instance = CreateActionEffectInstance(effect, string.Empty, actor.EntityId, target.EntityId);
         var context = new CombatEffectContext
         {
-            CombatState = new CombatState { Hero = actor, Enemies = new List<CombatEntity> { target } },
+            CombatState = state,
             SourceEntityId = actor.EntityId,
             TargetEntityId = target.EntityId
         };
 
-        var result = _effectResolver.ApplyEffect(instance, context);
+        var result = _effectResolver.ApplyEffect(instance, context, randomProvider);
         if (result.IsSuccess && result.Value.Success && result.Value.EffectResult.ValueApplied.HasValue)
             return result.Value.EffectResult.ValueApplied.Value;
 

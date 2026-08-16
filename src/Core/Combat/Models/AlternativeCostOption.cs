@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.Models;
 
 /// <summary>
@@ -6,6 +8,8 @@ namespace Core.Combat.Models;
 /// </summary>
 public record AlternativeCostOption
 {
+    private ImmutableList<ResourceCost> _costs = [];
+
     /// <summary>
     /// ID único da opção (ex: "mana_cost", "health_cost").
     /// </summary>
@@ -20,7 +24,11 @@ public record AlternativeCostOption
     /// Lista de custos de recursos para esta opção.
     /// Todos os custos nesta lista devem ser pagos (AND logic dentro da opção).
     /// </summary>
-    public List<ResourceCost> Costs { get; init; } = new();
+    public IReadOnlyList<ResourceCost> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Verifica se há recursos suficientes para pagar esta opção.

@@ -90,6 +90,19 @@ public class PipelineManager : IPipelineManager
     public DamageContext ExecutePipeline(DamageContext initialContext)
     {
         var processors = GetProcessors();
+        return Execute(initialContext, processors);
+    }
+
+    public DamageContext ExecutePipeline(DamageContext initialContext, IRandomProvider randomProvider)
+    {
+        ArgumentNullException.ThrowIfNull(randomProvider);
+        var config = GetCurrentConfiguration();
+        var processors = InstantiateProcessors(config, randomProvider);
+        return Execute(initialContext, processors);
+    }
+
+    private DamageContext Execute(DamageContext initialContext, IReadOnlyList<GenericBucketProcessor> processors)
+    {
         var context = initialContext;
         
         _logger.LogDebug($"Pipeline start: {context.CurrentDamage:F2} damage, {context.Tags.Count} tags, {context.Modifiers.Count} modifiers");
@@ -178,12 +191,19 @@ public class PipelineManager : IPipelineManager
         }
     }
 
-    private List<GenericBucketProcessor> InstantiateProcessors(PipelineConfiguration config)
+    private List<GenericBucketProcessor> InstantiateProcessors(
+        PipelineConfiguration config,
+        IRandomProvider? randomProvider = null)
     {
         _logger.LogDebug($"Instantiating {config.Buckets.Count} bucket processors");
         
         return config.Buckets
-            .Select(b => new GenericBucketProcessor(b, _mathEngine, _eventBus, _logger, _randomProvider))
+            .Select(b => new GenericBucketProcessor(
+                b,
+                _mathEngine,
+                _eventBus,
+                _logger,
+                randomProvider ?? _randomProvider))
             .ToList();
     }
 

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.Models;
 
 /// <summary>
@@ -6,16 +8,27 @@ namespace Core.Combat.Models;
 /// </summary>
 public record ActionCosts
 {
+    private ImmutableList<ResourceCost> _costs = [];
+    private ImmutableList<AlternativeCostOption> _alternativeCosts = [];
+
     /// <summary>
     /// Lista de custos de recursos (AND logic - todos devem ser pagos).
     /// </summary>
-    public List<ResourceCost> Costs { get; init; } = new();
+    public IReadOnlyList<ResourceCost> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Lista de opções de custos alternativos (OR logic - escolher uma opção).
     /// Se não vazia, o jogador deve escolher UMA opção para pagar.
     /// </summary>
-    public List<AlternativeCostOption> AlternativeCosts { get; init; } = new();
+    public IReadOnlyList<AlternativeCostOption> AlternativeCosts
+    {
+        get => _alternativeCosts;
+        init => _alternativeCosts = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Verifica se há recursos suficientes para pagar todos os custos.

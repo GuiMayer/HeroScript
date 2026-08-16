@@ -62,9 +62,24 @@ public class EffectResolver : IEffectResolver
     }
 
     public Result<EffectApplicationResult> ApplyEffect(EffectInstance effect, IEffectContext context)
+        => ApplyEffectCore(effect, context, _randomProvider, useExplicitDamageRandom: false);
+
+    public Result<EffectApplicationResult> ApplyEffect(
+        EffectInstance effect,
+        IEffectContext context,
+        IRandomProvider randomProvider)
+        => ApplyEffectCore(effect, context, randomProvider, useExplicitDamageRandom: true);
+
+    private Result<EffectApplicationResult> ApplyEffectCore(
+        EffectInstance effect,
+        IEffectContext context,
+        IRandomProvider randomProvider,
+        bool useExplicitDamageRandom)
     {
         try
         {
+            ArgumentNullException.ThrowIfNull(randomProvider);
+            effect = MaterializeEffect(effect, randomProvider, "effect");
             _logger.LogDebug($"Resolving effect {effect.InstanceId} of type {effect.Definition.Type}");
             
             // 1. Validar se pode executar
@@ -93,7 +108,7 @@ public class EffectResolver : IEffectResolver
             // 4. Rolar probabilidade
             if (effect.Definition.Chance < 1.0f)
             {
-                var roll = (float)_randomProvider.NextDouble();
+                var roll = (float)randomProvider.NextDouble();
                 if (roll > effect.Definition.Chance)
                 {
                     _logger.LogDebug($"Effect {effect.InstanceId} failed probability check ({roll} > {effect.Definition.Chance})");
@@ -103,7 +118,12 @@ public class EffectResolver : IEffectResolver
             }
             
             // 5. Resolver alvo(s)
-            var targets = ResolveTargets(effect.Definition.Target, effect.SourceEntityId, effect.TargetEntityId, context);
+            var targets = ResolveTargets(
+                effect.Definition.Target,
+                effect.SourceEntityId,
+                effect.TargetEntityId,
+                context,
+                randomProvider);
             if (targets.Count == 0)
             {
                 _logger.LogWarning($"Effect {effect.InstanceId} has no valid targets");
@@ -118,7 +138,12 @@ public class EffectResolver : IEffectResolver
             {
                 foreach (var targetId in targets)
                 {
-                    var result = ExecuteEffectOnTarget(effect, targetId, context);
+                    var result = ExecuteEffectOnTarget(
+                        effect,
+                        targetId,
+                        context,
+                        randomProvider,
+                        useExplicitDamageRandom);
                     allResults.Add(result);
                 }
             }
@@ -136,7 +161,11 @@ public class EffectResolver : IEffectResolver
                     chainedEffects.Add(chainedInstance);
                     
                     // Executar recursivamente
-                    var chainedResult = ApplyEffect(chainedInstance, context);
+                    var chainedResult = ApplyEffectCore(
+                        chainedInstance,
+                        context,
+                        randomProvider,
+                        useExplicitDamageRandom);
                     if (chainedResult.IsSuccess)
                     {
                         aggregatedResult = aggregatedResult with 
@@ -221,14 +250,24 @@ public class EffectResolver : IEffectResolver
 
     // ===== EXECUÇÃO POR TIPO =====
 
-    private EffectResult ExecuteEffectOnTarget(EffectInstance effect, string targetId, IEffectContext context)
+    private EffectResult ExecuteEffectOnTarget(
+        EffectInstance effect,
+        string targetId,
+        IEffectContext context,
+        IRandomProvider randomProvider,
+        bool useExplicitDamageRandom)
     {
         try
         {
             return effect.Definition.Type switch
             {
                 // Combat
-                EffectType.DAMAGE => ExecuteDamageEffect(effect, targetId, context),
+                EffectType.DAMAGE => ExecuteDamageEffect(
+                    effect,
+                    targetId,
+                    context,
+                    randomProvider,
+                    useExplicitDamageRandom),
                 EffectType.HEAL => ExecuteHealEffect(effect, targetId, context),
                 EffectType.MODIFY_RESOURCE => ExecuteModifyResourceEffect(effect, targetId, context),
 
@@ -273,7 +312,12 @@ public class EffectResolver : IEffectResolver
         }
     }
 
-    private EffectResult ExecuteDamageEffect(EffectInstance effect, string targetId, IEffectContext context)
+    private EffectResult ExecuteDamageEffect(
+        EffectInstance effect,
+        string targetId,
+        IEffectContext context,
+        IRandomProvider randomProvider,
+        bool useExplicitDamageRandom)
     {
         if (context.CombatState == null)
             return EffectResult.CreateFailure("DAMAGE effect requires combat context");
@@ -291,10 +335,12 @@ public class EffectResolver : IEffectResolver
             {
                 ActionId = effect.SourceActionId ?? effect.Definition.EffectId,
                 Effects = new List<EffectDefinition> { effect.Definition with { FlatValue = value, FormulaValue = null } },
-                Tags = effect.Definition.Tags
+                Tags = effect.Definition.Tags.ToList()
             };
 
-            var damageResult = _damageCalculator.CalculateDamage(action, source, target);
+            var damageResult = useExplicitDamageRandom
+                ? _damageCalculator.CalculateDamage(action, source, target, randomProvider)
+                : _damageCalculator.CalculateDamage(action, source, target);
             value = damageResult.FinalDamage;
         }
         
@@ -732,7 +778,12 @@ public class EffectResolver : IEffectResolver
         return result.Value > 0f;
     }
 
-    private List<string> ResolveTargets(EffectTarget targetType, string sourceId, string primaryTargetId, IEffectContext context)
+    private List<string> ResolveTargets(
+        EffectTarget targetType,
+        string sourceId,
+        string primaryTargetId,
+        IEffectContext context,
+        IRandomProvider randomProvider)
     {
         if (context.CombatState == null)
         {
@@ -750,20 +801,37 @@ public class EffectResolver : IEffectResolver
             EffectTarget.TARGET => new List<string> { primaryTargetId },
             EffectTarget.ALL_ENEMIES => context.CombatState.Enemies.Select(e => e.EntityId).ToList(),
             EffectTarget.ALL_ALLIES => new List<string> { context.CombatState.Hero.EntityId }, // TODO: Adicionar aliados quando implementado
-            EffectTarget.RANDOM_ENEMY => new List<string> { SelectRandomEnemy(context.CombatState) },
+            EffectTarget.RANDOM_ENEMY => new List<string> { SelectRandomEnemy(context.CombatState, randomProvider) },
             EffectTarget.LOWEST_HP_ENEMY => new List<string> { SelectLowestHpEnemy(context.CombatState) },
             EffectTarget.HIGHEST_HP_ENEMY => new List<string> { SelectHighestHpEnemy(context.CombatState) },
             _ => new List<string> { primaryTargetId }
         };
     }
 
-    private string SelectRandomEnemy(CombatState state)
+    private static string SelectRandomEnemy(CombatState state, IRandomProvider randomProvider)
     {
         var aliveEnemies = state.Enemies.Where(e => e.IsAlive).ToList();
         if (aliveEnemies.Count == 0) return string.Empty;
         
-        var index = _randomProvider.Next(0, aliveEnemies.Count);
+        var index = randomProvider.Next(0, aliveEnemies.Count);
         return aliveEnemies[index].EntityId;
+    }
+
+    private static EffectInstance MaterializeEffect(
+        EffectInstance effect,
+        IRandomProvider randomProvider,
+        string scope)
+    {
+        if (randomProvider is not DeterministicRandomProvider deterministic)
+            return effect;
+
+        var instanceId = string.IsNullOrWhiteSpace(effect.InstanceId)
+            ? deterministic.AllocateId(scope).ToString("D")
+            : effect.InstanceId;
+        var createdAt = effect.CreatedAt == DateTime.UnixEpoch
+            ? deterministic.LogicalTimestamp
+            : effect.CreatedAt;
+        return effect with { InstanceId = instanceId, CreatedAt = createdAt };
     }
 
     private string SelectLowestHpEnemy(CombatState state)

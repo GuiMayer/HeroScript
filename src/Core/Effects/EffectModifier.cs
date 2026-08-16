@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Effects;
 
 /// <summary>
@@ -7,10 +9,17 @@ namespace Core.Effects;
 /// </summary>
 public record EffectModifier
 {
+    private ImmutableList<string>? _addTags;
+    private ImmutableList<string>? _removeTags;
+    private ImmutableList<string>? _requiredTags;
+    private ImmutableList<string>? _excludedTags;
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// ID único do modificador
     /// </summary>
-    public string ModifierId { get; init; } = Guid.NewGuid().ToString();
+    public string ModifierId { get; init; } = string.Empty;
     
     /// <summary>
     /// Tipo de modificação
@@ -48,12 +57,20 @@ public record EffectModifier
     /// <summary>
     /// Tags a adicionar ao efeito
     /// </summary>
-    public List<string>? AddTags { get; init; }
+    public IReadOnlyList<string>? AddTags
+    {
+        get => _addTags;
+        init => _addTags = value?.ToImmutableList();
+    }
     
     /// <summary>
     /// Tags a remover do efeito
     /// </summary>
-    public List<string>? RemoveTags { get; init; }
+    public IReadOnlyList<string>? RemoveTags
+    {
+        get => _removeTags;
+        init => _removeTags = value?.ToImmutableList();
+    }
     
     // ===== MODIFICAÇÃO DE CHANCE =====
     
@@ -93,19 +110,32 @@ public record EffectModifier
     /// Tags requeridas no efeito para aplicar o modificador
     /// Ex: ["attack"] - só modifica effects com tag "attack"
     /// </summary>
-    public List<string>? RequiredTags { get; init; }
+    public IReadOnlyList<string>? RequiredTags
+    {
+        get => _requiredTags;
+        init => _requiredTags = value?.ToImmutableList();
+    }
     
     /// <summary>
     /// Tags excluídas (modificador não se aplica se effect tem essas tags)
     /// </summary>
-    public List<string>? ExcludedTags { get; init; }
+    public IReadOnlyList<string>? ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = value?.ToImmutableList();
+    }
     
     // ===== METADATA =====
     
     /// <summary>
     /// Metadata adicional
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    }
     
     /// <summary>
     /// Se o modificador é permanente (não expira)

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Effects;
 
 /// <summary>
@@ -7,10 +9,12 @@ namespace Core.Effects;
 /// </summary>
 public record EffectInstance
 {
+    private ImmutableList<EffectModifier> _appliedModifiers = [];
+
     /// <summary>
     /// ID único da instância (gerado automaticamente)
     /// </summary>
-    public string InstanceId { get; init; } = Guid.NewGuid().ToString();
+    public string InstanceId { get; init; } = string.Empty;
     
     /// <summary>
     /// Definição do efeito (template)
@@ -46,7 +50,11 @@ public record EffectInstance
     /// <summary>
     /// Modificadores aplicados durante a run (relíquias, poderes, etc.)
     /// </summary>
-    public List<EffectModifier> AppliedModifiers { get; init; } = new();
+    public IReadOnlyList<EffectModifier> AppliedModifiers
+    {
+        get => _appliedModifiers;
+        init => _appliedModifiers = value?.ToImmutableList() ?? [];
+    }
     
     // ===== ESTADO DE EXECUÇÃO =====
     
@@ -58,7 +66,7 @@ public record EffectInstance
     /// <summary>
     /// Timestamp de criação
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UnixEpoch;
     
     /// <summary>
     /// Timestamp de execução (quando completado)
@@ -79,8 +87,7 @@ public record EffectInstance
     /// </summary>
     public EffectInstance WithModifier(EffectModifier modifier)
     {
-        var newModifiers = new List<EffectModifier>(AppliedModifiers) { modifier };
-        return this with { AppliedModifiers = newModifiers };
+        return this with { AppliedModifiers = _appliedModifiers.Add(modifier) };
     }
     
     /// <summary>
@@ -95,12 +102,15 @@ public record EffectInstance
     /// Cria nova instância com resultado definido
     /// </summary>
     public EffectInstance WithResult(EffectResult result)
+        => WithResult(result, DateTime.UnixEpoch);
+
+    public EffectInstance WithResult(EffectResult result, DateTime executedAt)
     {
         return this with 
         { 
             Result = result,
             State = result.Success ? EffectExecutionState.COMPLETED : EffectExecutionState.FAILED,
-            ExecutedAt = DateTime.UtcNow
+            ExecutedAt = executedAt
         };
     }
     

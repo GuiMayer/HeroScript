@@ -9,6 +9,11 @@ public interface IPipelineManager
     /// Executa o pipeline completo de dano
     /// </summary>
     DamageContext ExecutePipeline(DamageContext initialContext);
+
+    /// <summary>
+    /// Executa o pipeline com uma fonte de aleatoriedade pertencente à transição.
+    /// </summary>
+    DamageContext ExecutePipeline(DamageContext initialContext, IRandomProvider randomProvider);
     
     /// <summary>
     /// Recarrega configuração do pipeline (dev mode)

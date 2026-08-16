@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Effects;
 
 /// <summary>
@@ -7,10 +9,18 @@ namespace Core.Effects;
 /// </summary>
 public record EffectDefinition
 {
+    private ImmutableList<string>? _requiredTags;
+    private ImmutableList<string>? _excludedTags;
+    private ImmutableList<string> _tags = [];
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    private ImmutableList<EffectDefinition>? _chainedEffects;
+    private ImmutableList<EffectDefinition>? _conditionalEffects;
+
     /// <summary>
     /// ID único do efeito (gerado automaticamente se não fornecido)
     /// </summary>
-    public string EffectId { get; init; } = Guid.NewGuid().ToString();
+    public string EffectId { get; init; } = string.Empty;
     
     /// <summary>
     /// Tipo do efeito
@@ -99,13 +109,21 @@ public record EffectDefinition
     /// Tags requeridas para executar (AND)
     /// Ex: ["fire", "spell"] - só executa se ação tem ambas as tags
     /// </summary>
-    public List<string>? RequiredTags { get; init; }
+    public IReadOnlyList<string>? RequiredTags
+    {
+        get => _requiredTags;
+        init => _requiredTags = value?.ToImmutableList();
+    }
     
     /// <summary>
     /// Tags excluídas (NOT)
     /// Ex: ["physical"] - não executa se ação tem tag "physical"
     /// </summary>
-    public List<string>? ExcludedTags { get; init; }
+    public IReadOnlyList<string>? ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = value?.ToImmutableList();
+    }
     
     // ===== PROBABILIDADE =====
     
@@ -128,22 +146,39 @@ public record EffectDefinition
     /// Tags para categorização e filtros
     /// Ex: ["physical", "attack", "fire"]
     /// </summary>
-    public List<string> Tags { get; init; } = new();
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Metadata adicional (livre)
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    }
     
     // ===== EFEITOS ENCADEADOS =====
     
     /// <summary>
     /// Efeitos disparados após este (sempre executam)
     /// </summary>
-    public List<EffectDefinition>? ChainedEffects { get; init; }
+    public IReadOnlyList<EffectDefinition>? ChainedEffects
+    {
+        get => _chainedEffects;
+        init => _chainedEffects = value?.ToImmutableList();
+    }
     
     /// <summary>
     /// Efeitos condicionais (executam se condição for verdadeira)
     /// </summary>
-    public List<EffectDefinition>? ConditionalEffects { get; init; }
+    public IReadOnlyList<EffectDefinition>? ConditionalEffects
+    {
+        get => _conditionalEffects;
+        init => _conditionalEffects = value?.ToImmutableList();
+    }
 }

@@ -149,6 +149,7 @@ public class ActionManagerTests
         Assert.Equal("New JSON Action", result.Value.DisplayName);
         Assert.Equal(ActionType.POWER, result.Value.ActionType);
         Assert.Equal(7, result.Value.Effects.Single().FlatValue);
+        Assert.Equal("new_json_action.effect.0", result.Value.Effects.Single().EffectId);
     }
 
     #endregion

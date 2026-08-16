@@ -71,6 +71,8 @@ public class ActionManager : IActionManager
                         _logger.LogWarning($"Failed to deserialize action definition: {actionName}");
                         continue;
                     }
+
+                    definition = NormalizeEffectIds(definition);
                     
                     var validation = ValidateActionDefinition(definition);
                     if (validation.IsFailure)
@@ -199,6 +201,8 @@ public class ActionManager : IActionManager
             if (definition == null)
                 return Result<ActionDefinition>.Failure($"Failed to deserialize action definition: {actionId}");
 
+            definition = NormalizeEffectIds(definition);
+
             var validation = ValidateActionDefinition(definition);
             if (validation.IsFailure)
                 return Result<ActionDefinition>.Failure(validation.Error);
@@ -220,6 +224,8 @@ public class ActionManager : IActionManager
 
         if (definition == null)
             return Result.Failure("Definition cannot be null");
+
+        definition = NormalizeEffectIds(definition);
 
         // Validate definition first
         var validation = ValidateActionDefinition(definition);
@@ -259,6 +265,8 @@ public class ActionManager : IActionManager
 
         if (updatedDefinition == null)
             return Result.Failure("Updated definition cannot be null");
+
+        updatedDefinition = NormalizeEffectIds(updatedDefinition);
 
         // Ensure IDs match
         if (updatedDefinition.ActionId != actionId)
@@ -318,5 +326,33 @@ public class ActionManager : IActionManager
             _logger.LogError($"Error deleting action definition '{actionId}': {ex.Message}");
             return Result.Failure($"Failed to delete action definition: {ex.Message}");
         }
+    }
+
+    private static ActionDefinition NormalizeEffectIds(ActionDefinition definition)
+    {
+        var effects = definition.Effects
+            .Select((effect, index) => NormalizeEffectId(
+                effect,
+                $"{definition.ActionId}.effect.{index}"))
+            .ToList();
+        return definition with { Effects = effects };
+    }
+
+    private static Effects.EffectDefinition NormalizeEffectId(
+        Effects.EffectDefinition effect,
+        string path)
+    {
+        var chained = effect.ChainedEffects?
+            .Select((child, index) => NormalizeEffectId(child, $"{path}.chained.{index}"))
+            .ToList();
+        var conditional = effect.ConditionalEffects?
+            .Select((child, index) => NormalizeEffectId(child, $"{path}.conditional.{index}"))
+            .ToList();
+        return effect with
+        {
+            EffectId = string.IsNullOrWhiteSpace(effect.EffectId) ? path : effect.EffectId,
+            ChainedEffects = chained,
+            ConditionalEffects = conditional
+        };
     }
 }

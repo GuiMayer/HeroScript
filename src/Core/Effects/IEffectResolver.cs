@@ -1,5 +1,6 @@
 using Core.Combat.Models;
 using Core.Common;
+using Core.Damage;
 
 namespace Core.Effects;
 
@@ -23,6 +24,14 @@ public interface IEffectResolver
     /// Aplica um efeito em um contexto generico de jogo/run.
     /// </summary>
     Result<EffectApplicationResult> ApplyEffect(EffectInstance effect, IEffectContext context);
+
+    /// <summary>
+    /// Aplica um efeito usando o cursor aleatório pertencente à transição atual.
+    /// </summary>
+    Result<EffectApplicationResult> ApplyEffect(
+        EffectInstance effect,
+        IEffectContext context,
+        IRandomProvider randomProvider);
     
     /// <summary>
     /// Resolve múltiplos efeitos em sequência

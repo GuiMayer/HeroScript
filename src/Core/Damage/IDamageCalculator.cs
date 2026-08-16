@@ -14,4 +14,13 @@ public interface IDamageCalculator
         ActionDefinition action,
         CombatEntity attacker,
         CombatEntity target);
+
+    /// <summary>
+    /// Calcula dano usando a fonte de aleatoriedade explícita da transição.
+    /// </summary>
+    DamageResult CalculateDamage(
+        ActionDefinition action,
+        CombatEntity attacker,
+        CombatEntity target,
+        IRandomProvider randomProvider);
 }
