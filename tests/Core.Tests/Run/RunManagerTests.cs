@@ -143,6 +143,50 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public void GetRun_FromRepository_ValidatesEngineAndContentCompatibility()
+    {
+        var runId = Guid.NewGuid();
+        var revision = new string('c', 64);
+        var state = new RunState
+        {
+            RunId = runId,
+            ConfigName = "test",
+            Determinism = DeterministicContext.Create(1UL, revision)
+        };
+        var repository = new Mock<IRunStateRepository>();
+        repository.Setup(store => store.LoadLatestAsync(runId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state);
+        var compatibleManifests = new Mock<IContentManifestProvider>();
+        compatibleManifests.Setup(provider => provider.GetManifest("test"))
+            .Returns(Result<ContentManifest>.Success(new ContentManifest
+            {
+                ConfigName = "test",
+                Revision = revision
+            }));
+        var incompatibleManifests = new Mock<IContentManifestProvider>();
+        incompatibleManifests.Setup(provider => provider.GetManifest("test"))
+            .Returns(Result<ContentManifest>.Success(new ContentManifest
+            {
+                ConfigName = "test",
+                Revision = new string('d', 64)
+            }));
+        var compatible = CreateManager(
+            repository: repository.Object,
+            contentManifestProvider: compatibleManifests.Object);
+        var incompatible = CreateManager(
+            repository: repository.Object,
+            contentManifestProvider: incompatibleManifests.Object);
+
+        var restored = compatible.GetRun(runId);
+        var refused = incompatible.GetRun(runId);
+
+        Assert.True(restored.IsSuccess, restored.IsFailure ? restored.Error : null);
+        Assert.Equal(state, restored.Value);
+        Assert.True(refused.IsFailure);
+        Assert.Contains("Content revision unavailable", refused.Error);
+    }
+
+    [Fact]
     public void StartRun_LoadsDefinitionFromJsonAndDrawsStartingHand()
     {
         var manager = CreateManager();

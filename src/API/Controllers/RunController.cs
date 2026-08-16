@@ -20,6 +20,7 @@ public sealed class RunController : BaseApiController
     }
 
     [HttpPost("start")]
+    [HttpPost("/api/v1/runs")]
     public IActionResult StartRun([FromBody] StartRunRequest? request)
     {
         try
@@ -40,6 +41,7 @@ public sealed class RunController : BaseApiController
     }
 
     [HttpGet("{runId:guid}/state")]
+    [HttpGet("/api/v1/runs/{runId:guid}")]
     public IActionResult GetState(Guid runId)
     {
         try
@@ -53,7 +55,70 @@ public sealed class RunController : BaseApiController
         }
     }
 
+    [HttpGet("/api/v1/runs")]
+    public async Task<IActionResult> ListRuns(
+        [FromQuery] string? playerEntityId = null,
+        [FromQuery] string? configName = null,
+        [FromQuery] Guid? after = null,
+        [FromQuery] int limit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        if (limit is < 1 or > 100)
+            return BadRequest(new { error = "Limit must be between 1 and 100" });
+
+        try
+        {
+            var runIds = await _repository.ListRunIdsAsync(cancellationToken);
+            var summaries = new List<RunSummaryResponse>();
+            foreach (var runId in runIds.OrderBy(id => id))
+            {
+                if (after.HasValue && runId.CompareTo(after.Value) <= 0)
+                    continue;
+
+                var state = await _repository.LoadLatestAsync(runId, cancellationToken);
+                if (state == null)
+                    continue;
+                if (!string.IsNullOrWhiteSpace(playerEntityId) &&
+                    !string.Equals(state.PlayerEntityId, playerEntityId, StringComparison.Ordinal))
+                    continue;
+                if (!string.IsNullOrWhiteSpace(configName) &&
+                    !string.Equals(state.ConfigName, configName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var recovery = _runManager.GetRun(runId);
+                summaries.Add(new RunSummaryResponse(
+                    state.RunId,
+                    state.Sequence,
+                    state.ConfigName,
+                    state.PlayerEntityId,
+                    state.CurrentNodeId,
+                    state.Determinism.Step,
+                    state.Determinism.ContentRevision,
+                    CanonicalJson.ComputeHash(state),
+                    recovery.IsSuccess,
+                    recovery.IsFailure ? recovery.Error : null));
+
+                if (summaries.Count > limit)
+                    break;
+            }
+
+            var hasMore = summaries.Count > limit;
+            var items = summaries.Take(limit).ToList();
+            return Ok(new
+            {
+                items,
+                count = items.Count,
+                nextCursor = hasMore ? items[^1].RunId : (Guid?)null
+            });
+        }
+        catch (Exception ex)
+        {
+            return HandleException(ex, "list persisted runs");
+        }
+    }
+
     [HttpGet("{runId:guid}/deck")]
+    [HttpGet("/api/v1/runs/{runId:guid}/deck")]
     public IActionResult GetDeck(Guid runId)
     {
         try
@@ -68,6 +133,7 @@ public sealed class RunController : BaseApiController
     }
 
     [HttpGet("{runId:guid}/hand")]
+    [HttpGet("/api/v1/runs/{runId:guid}/hand")]
     public IActionResult GetHand(Guid runId)
     {
         try
@@ -165,9 +231,24 @@ public sealed class RunController : BaseApiController
             run.Determinism.Step,
             stateHash = CanonicalJson.ComputeHash(run),
             deck = MapDeck(run.Deck),
+            run.CardSelections,
+            run.Shops,
+            run.Preparations,
             run.Metadata
         };
     }
+
+    private sealed record RunSummaryResponse(
+        Guid RunId,
+        int Sequence,
+        string ConfigName,
+        string PlayerEntityId,
+        string? CurrentNodeId,
+        ulong Step,
+        string ContentRevision,
+        string StateHash,
+        bool Recoverable,
+        string? RecoveryError);
 
     private static object MapDeck(DeckState deck)
     {

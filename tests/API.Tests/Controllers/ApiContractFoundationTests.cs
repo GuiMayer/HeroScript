@@ -72,6 +72,44 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
+    public async Task VersionedRunReadModel_SupportsReconnectAndPersistedListing()
+    {
+        using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId = "reconnect-test-player"
+        });
+        var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+        var runId = started.GetProperty("runId").GetGuid();
+
+        using var stateResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var state = await stateResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, stateResponse.StatusCode);
+        Assert.True(state.TryGetProperty("cardSelections", out _));
+        Assert.True(state.TryGetProperty("shops", out _));
+        Assert.True(state.TryGetProperty("preparations", out _));
+        Assert.True(state.TryGetProperty("contentManifest", out _));
+
+        using var listResponse = await _client.GetAsync(
+            "/api/v1/runs?playerEntityId=reconnect-test-player&limit=10");
+        var list = await listResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        Assert.Contains(
+            list.GetProperty("items").EnumerateArray(),
+            item => item.GetProperty("runId").GetGuid() == runId &&
+                    item.GetProperty("recoverable").GetBoolean());
+
+        foreach (var resource in new[] { "card-selections", "shops", "preparations" })
+        {
+            using var resourceResponse = await _client.GetAsync($"/api/v1/runs/{runId}/{resource}");
+            Assert.Equal(HttpStatusCode.OK, resourceResponse.StatusCode);
+        }
+    }
+
+    [Fact]
     public void CommandEnvelope_RejectsMissingIdentityAndType()
     {
         var missingIdentity = new CommandEnvelope { Type = "TEST" };

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
+using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace API.Tests.Controllers;
@@ -56,6 +57,69 @@ public sealed class RunControllerTests
     }
 
     [Fact]
+    public void GetState_ReturnsAllReconnectableSubstates()
+    {
+        var state = CreateRun() with
+        {
+            CardSelections = new[]
+            {
+                new CardSelectionState { SelectionInstanceId = Guid.NewGuid(), SelectionId = "reward" }
+            }.ToImmutableArray(),
+            Shops = new[]
+            {
+                new ShopState { ShopInstanceId = Guid.NewGuid(), ShopId = "shop" }
+            }.ToImmutableArray(),
+            Preparations = new[]
+            {
+                new PreparationState { PreparationInstanceId = Guid.NewGuid(), PreparationId = "camp" }
+            }.ToImmutableArray()
+        };
+        _runManager.Setup(m => m.GetRun(state.RunId)).Returns(Result<RunState>.Success(state));
+
+        var result = _controller.GetState(state.RunId);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.SerializeToElement(
+            ok.Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.Single(json.GetProperty("cardSelections").EnumerateArray());
+        Assert.Single(json.GetProperty("shops").EnumerateArray());
+        Assert.Single(json.GetProperty("preparations").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task ListRuns_ReturnsPersistedRunsWithStablePagination()
+    {
+        var first = CreateRun() with
+        {
+            RunId = Guid.Parse("00000000-0000-0000-0000-000000000001")
+        };
+        var second = CreateRun() with
+        {
+            RunId = Guid.Parse("00000000-0000-0000-0000-000000000002")
+        };
+        _repository.Setup(repository => repository.ListRunIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { second.RunId, first.RunId });
+        _repository.Setup(repository => repository.LoadLatestAsync(first.RunId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(first);
+        _repository.Setup(repository => repository.LoadLatestAsync(second.RunId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(second);
+        _runManager.Setup(manager => manager.GetRun(first.RunId)).Returns(Result<RunState>.Success(first));
+        _runManager.Setup(manager => manager.GetRun(second.RunId)).Returns(Result<RunState>.Success(second));
+
+        var result = await _controller.ListRuns(limit: 1);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.SerializeToElement(
+            ok.Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var item = Assert.Single(json.GetProperty("items").EnumerateArray());
+        Assert.Equal(first.RunId, item.GetProperty("runId").GetGuid());
+        Assert.True(item.GetProperty("recoverable").GetBoolean());
+        Assert.Equal(first.RunId, json.GetProperty("nextCursor").GetGuid());
+    }
+
+    [Fact]
     public void Draw_ReturnsBadRequestWhenRunManagerFails()
     {
         var runId = Guid.NewGuid();
@@ -70,6 +134,7 @@ public sealed class RunControllerTests
     {
         return new RunState
         {
+            RunId = Guid.NewGuid(),
             ConfigName = "test",
             PlayerEntityId = "hero",
             Gold = 10,

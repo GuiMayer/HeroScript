@@ -15,6 +15,29 @@ public sealed class PreparationController : BaseApiController
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
+    [HttpGet("/api/v1/runs/{runId:guid}/preparations")]
+    public IActionResult List(Guid runId)
+    {
+        var run = _runManager.GetRun(runId);
+        return run.IsFailure
+            ? NotFound(new { error = run.Error })
+            : Ok(run.Value.Preparations.Select(MapPreparation).ToList());
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/preparations/{preparationInstanceId:guid}")]
+    public IActionResult Get(Guid runId, Guid preparationInstanceId)
+    {
+        var run = _runManager.GetRun(runId);
+        if (run.IsFailure)
+            return NotFound(new { error = run.Error });
+
+        var preparation = run.Value.Preparations.FirstOrDefault(
+            item => item.PreparationInstanceId == preparationInstanceId);
+        return preparation == null
+            ? NotFound(new { error = $"Preparation not found: {preparationInstanceId}" })
+            : Ok(MapPreparation(preparation));
+    }
+
     [HttpPost("start")]
     public IActionResult Start(Guid runId, [FromBody] StartPreparationRequest? request = null)
     {

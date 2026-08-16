@@ -15,6 +15,29 @@ public sealed class CardSelectionController : BaseApiController
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
+    [HttpGet("/api/v1/runs/{runId:guid}/card-selections")]
+    public IActionResult List(Guid runId)
+    {
+        var run = _runManager.GetRun(runId);
+        return run.IsFailure
+            ? NotFound(new { error = run.Error })
+            : Ok(run.Value.CardSelections.Select(MapSelection).ToList());
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/card-selections/{selectionInstanceId:guid}")]
+    public IActionResult Get(Guid runId, Guid selectionInstanceId)
+    {
+        var run = _runManager.GetRun(runId);
+        if (run.IsFailure)
+            return NotFound(new { error = run.Error });
+
+        var selection = run.Value.CardSelections.FirstOrDefault(
+            item => item.SelectionInstanceId == selectionInstanceId);
+        return selection == null
+            ? NotFound(new { error = $"Card selection not found: {selectionInstanceId}" })
+            : Ok(MapSelection(selection));
+    }
+
     [HttpPost("start")]
     public IActionResult Start(Guid runId, [FromBody] StartCardSelectionRequest? request = null)
     {

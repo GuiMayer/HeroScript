@@ -174,12 +174,48 @@ public sealed class RunManager : IRunManager
             var loaded = _repository.LoadLatestAsync(runId).GetAwaiter().GetResult();
             if (loaded != null)
             {
+                var compatibility = ValidateLoadedRunCompatibility(loaded);
+                if (compatibility.IsFailure)
+                    return Result<RunState>.Failure(compatibility.Error);
+
                 lock (_lock) { _runs[runId] = loaded; }
                 return Result<RunState>.Success(loaded);
             }
         }
 
         return Result<RunState>.Failure($"Run not found: {runId}");
+    }
+
+    private Result ValidateLoadedRunCompatibility(RunState state)
+    {
+        if (!string.Equals(
+                state.Determinism.EngineVersion,
+                DeterministicContext.CurrentEngineVersion,
+                StringComparison.Ordinal))
+        {
+            return Result.Failure(
+                $"Engine version unavailable for run {state.RunId}: " +
+                $"{state.Determinism.EngineVersion}");
+        }
+
+        if (_contentManifestProvider == null)
+            return Result.Success();
+
+        var currentManifest = _contentManifestProvider.GetManifest(state.ConfigName);
+        if (currentManifest.IsFailure)
+            return Result.Failure(currentManifest.Error);
+
+        if (!string.Equals(
+                state.Determinism.ContentRevision,
+                currentManifest.Value.Revision,
+                StringComparison.Ordinal))
+        {
+            return Result.Failure(
+                $"Content revision unavailable for run {state.RunId}: " +
+                $"{state.Determinism.ContentRevision}");
+        }
+
+        return Result.Success();
     }
 
     public Result<RunState> ApplyEconomy(Guid runId, string resource, int amount)

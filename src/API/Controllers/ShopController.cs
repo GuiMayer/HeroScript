@@ -15,6 +15,28 @@ public sealed class ShopController : BaseApiController
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
+    [HttpGet("/api/v1/runs/{runId:guid}/shops")]
+    public IActionResult List(Guid runId)
+    {
+        var run = _runManager.GetRun(runId);
+        return run.IsFailure
+            ? NotFound(new { error = run.Error })
+            : Ok(run.Value.Shops.Select(MapShop).ToList());
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/shops/{shopInstanceId:guid}")]
+    public IActionResult Get(Guid runId, Guid shopInstanceId)
+    {
+        var run = _runManager.GetRun(runId);
+        if (run.IsFailure)
+            return NotFound(new { error = run.Error });
+
+        var shop = run.Value.Shops.FirstOrDefault(item => item.ShopInstanceId == shopInstanceId);
+        return shop == null
+            ? NotFound(new { error = $"Shop not found: {shopInstanceId}" })
+            : Ok(MapShop(shop));
+    }
+
     [HttpPost("open")]
     public IActionResult Open(Guid runId, [FromBody] OpenShopRequest? request = null)
     {
