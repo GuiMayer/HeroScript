@@ -64,7 +64,7 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             WaitingForInput = IsPlayerActor(combat, run, order[0]),
             RulesId = rules.RulesId,
             RunId = runId,
-            StartedAtUtc = DateTime.UtcNow
+            StartedAtUtc = combat.Determinism.AdvanceStep().LogicalTimestamp.UtcDateTime
         };
 
         var intentResult = ResolveIntentSnapshot(combat, runId, rules, activation);
@@ -212,7 +212,7 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             ActivationOrder = order,
             CompletedActorIds = completed,
             WaitingForInput = IsPlayerActor(combat, run, nextActorId),
-            StartedAtUtc = DateTime.UtcNow
+            StartedAtUtc = combat.Determinism.AdvanceStep().LogicalTimestamp.UtcDateTime
         };
 
         var intentResult = ResolveIntentSnapshot(combat, runId, rules, nextActivation);

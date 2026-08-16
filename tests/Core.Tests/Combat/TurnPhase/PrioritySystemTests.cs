@@ -6,6 +6,25 @@ namespace Core.Tests.Combat.TurnPhase;
 
 public class PrioritySystemTests
 {
+    [Fact]
+    public void PhaseState_DefensivelyCopiesPriorityState()
+    {
+        var order = new List<string> { "hero", "enemy" };
+        var passed = new Dictionary<string, bool> { ["hero"] = false };
+        var phase = new PhaseState
+        {
+            PriorityOrder = order,
+            PlayerPassedPriority = passed
+        };
+
+        order.Clear();
+        passed["hero"] = true;
+
+        Assert.Equal(new[] { "hero", "enemy" }, phase.PriorityOrder);
+        Assert.False(phase.PlayerPassedPriority["hero"]);
+        Assert.Equal(DateTime.UnixEpoch, phase.PhaseStartTime);
+    }
+
     private readonly ILogger _logger;
     
     public PrioritySystemTests()

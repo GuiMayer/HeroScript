@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.TurnPhase;
 
 /// <summary>
@@ -6,6 +8,10 @@ namespace Core.Combat.TurnPhase;
 /// </summary>
 public record PhaseSequenceDefinition
 {
+    private ImmutableList<TurnPhase> _phases = [];
+    private ImmutableDictionary<TurnPhase, PhaseDefinition> _phaseDetails =
+        ImmutableDictionary<TurnPhase, PhaseDefinition>.Empty;
+
     /// <summary>
     /// Nome para exibição (ex: "Magic: The Gathering Standard")
     /// </summary>
@@ -24,12 +30,21 @@ public record PhaseSequenceDefinition
     /// <summary>
     /// Lista ordenada de fases que compõem um turno completo
     /// </summary>
-    public List<TurnPhase> Phases { get; init; } = new();
+    public IReadOnlyList<TurnPhase> Phases
+    {
+        get => _phases;
+        init => _phases = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Detalhes de cada fase (regras, ações permitidas, etc.)
     /// </summary>
-    public Dictionary<TurnPhase, PhaseDefinition> PhaseDetails { get; init; } = new();
+    public IReadOnlyDictionary<TurnPhase, PhaseDefinition> PhaseDetails
+    {
+        get => _phaseDetails;
+        init => _phaseDetails = value?.ToImmutableDictionary()
+            ?? ImmutableDictionary<TurnPhase, PhaseDefinition>.Empty;
+    }
     
     /// <summary>
     /// Se true, permite pular fases opcionais (ex: Main 2 em Magic)

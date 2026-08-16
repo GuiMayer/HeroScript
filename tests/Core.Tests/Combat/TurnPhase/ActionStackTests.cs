@@ -18,6 +18,23 @@ public class ActionStackTests
         Assert.Equal(0, stack.Size);
         Assert.True(stack.IsEmpty);
     }
+
+    [Fact]
+    public void StackAndPendingAction_DefensivelyCopyRuntimeCollections()
+    {
+        var metadata = new Dictionary<string, object> { ["cost"] = 2 };
+        var pending = new PendingAction { Metadata = metadata };
+        var actions = new List<PendingAction> { pending };
+        var stack = new ActionStack { Actions = actions };
+
+        metadata["cost"] = 99;
+        actions.Clear();
+
+        Assert.Single(stack.Actions);
+        Assert.Equal(2, pending.Metadata["cost"]);
+        Assert.Equal(Guid.Empty, pending.ActionId);
+        Assert.Equal(DateTime.UnixEpoch, pending.AddedAt);
+    }
     
     [Fact]
     public void Push_ShouldAddActionToStack()
@@ -132,7 +149,7 @@ public class ActionStackTests
         stack = _manager.PushAction(stack, new PendingAction { ActionId = Guid.NewGuid(), ActorId = "p3", Type = ActionType.PASS }).Value;
         
         // Act
-        stack = stack with { Actions = new Stack<PendingAction>() };
+        stack = stack with { Actions = Array.Empty<PendingAction>() };
         
         // Assert
         Assert.Equal(0, stack.Size);

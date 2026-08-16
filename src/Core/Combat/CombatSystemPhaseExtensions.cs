@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Common;
@@ -49,7 +50,7 @@ public static class CombatSystemPhaseExtensions
             PriorityOrder = playerIds,
             CurrentPriorityIndex = 0,
             ActionStack = new ActionStack(),
-            PhaseStartTime = DateTime.UtcNow
+            PhaseStartTime = state.Determinism.LogicalTimestamp.UtcDateTime
         };
         
         var updatedState = state with { PhaseState = phaseState };
@@ -207,10 +208,16 @@ public static class CombatSystemPhaseExtensions
 /// </summary>
 public record PhaseInfo
 {
+    private System.Collections.Immutable.ImmutableList<ActionType> _allowedActions = [];
+
     public Core.Combat.TurnPhase.TurnPhase Phase { get; init; }
     public string Name { get; init; } = "";
     public string Description { get; init; } = "";
-    public List<ActionType> AllowedActions { get; init; } = new();
+    public IReadOnlyList<ActionType> AllowedActions
+    {
+        get => _allowedActions;
+        init => _allowedActions = value?.ToImmutableList() ?? [];
+    }
     public bool AllowsPriority { get; init; }
     public bool AutoTransition { get; init; }
     public string? CurrentPriorityPlayer { get; init; }

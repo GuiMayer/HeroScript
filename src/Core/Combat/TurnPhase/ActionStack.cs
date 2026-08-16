@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.TurnPhase;
 
 /// <summary>
@@ -8,10 +10,16 @@ namespace Core.Combat.TurnPhase;
 /// </summary>
 public record ActionStack
 {
+    private ImmutableList<PendingAction> _actions = [];
+
     /// <summary>
     /// Pilha de ações pendentes (topo = próxima a resolver)
     /// </summary>
-    public Stack<PendingAction> Actions { get; init; } = new();
+    public IReadOnlyList<PendingAction> Actions
+    {
+        get => _actions;
+        init => _actions = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Se true, a pilha está atualmente resolvendo ações

@@ -46,7 +46,7 @@ public class PhaseManager : IPhaseManager
             ActivePlayerId = playerOrder[0], // Primeiro jogador tem prioridade
             CanTransition = false,
             PlayerPassedPriority = priorityDict,
-            PhaseStartTime = DateTime.UtcNow
+            PhaseStartTime = state.Determinism.LogicalTimestamp.UtcDateTime
         };
         
         _logger.LogDebug($"Started phase {phase} with active player {playerOrder[0]}");
@@ -85,7 +85,7 @@ public class PhaseManager : IPhaseManager
             CurrentPhase = nextPhase,
             PhaseIndex = nextIndex,
             CanTransition = false,
-            PhaseStartTime = DateTime.UtcNow
+            PhaseStartTime = currentPhase.PhaseStartTime.AddTicks(1)
         };
         
         // Resetar prioridade para a nova fase
@@ -108,7 +108,7 @@ public class PhaseManager : IPhaseManager
         }
         
         // Encontrar índice da fase alvo
-        var targetIndex = sequence.Phases.IndexOf(targetPhase);
+        var targetIndex = IndexOf(sequence.Phases, targetPhase);
         if (targetIndex == -1)
         {
             return Result<PhaseState>.Failure($"Phase {targetPhase} not found in sequence");
@@ -127,7 +127,7 @@ public class PhaseManager : IPhaseManager
             CurrentPhase = targetPhase,
             PhaseIndex = targetIndex,
             CanTransition = false,
-            PhaseStartTime = DateTime.UtcNow
+            PhaseStartTime = currentPhase.PhaseStartTime.AddTicks(1)
         };
         
         // Resetar prioridade para a nova fase
@@ -176,7 +176,7 @@ public class PhaseManager : IPhaseManager
             return new List<ActionType>();
         }
         
-        return phaseDefinition.AllowedActions;
+        return phaseDefinition.AllowedActions.ToList();
     }
     
     public Result ValidatePhaseTransition(TurnPhase from, TurnPhase to, PhaseSequenceDefinition sequence)
@@ -204,8 +204,8 @@ public class PhaseManager : IPhaseManager
         else
         {
             // Se não há lista específica, verificar se é a próxima na sequência
-            var fromIndex = sequence.Phases.IndexOf(from);
-            var toIndex = sequence.Phases.IndexOf(to);
+            var fromIndex = IndexOf(sequence.Phases, from);
+            var toIndex = IndexOf(sequence.Phases, to);
             
             if (fromIndex == -1 || toIndex == -1)
             {
@@ -226,5 +226,16 @@ public class PhaseManager : IPhaseManager
         }
         
         return Result.Success();
+    }
+
+    private static int IndexOf<T>(IReadOnlyList<T> values, T value)
+    {
+        for (var index = 0; index < values.Count; index++)
+        {
+            if (EqualityComparer<T>.Default.Equals(values[index], value))
+                return index;
+        }
+
+        return -1;
     }
 }

@@ -8,6 +8,18 @@ namespace Core.Tests.Combat.Activation;
 public sealed class ActivationStateTests
 {
     [Fact]
+    public void ActivationState_CopiesCollectionsAndUsesLogicalTimeSentinel()
+    {
+        var order = new List<string> { "hero", "enemy" };
+        var activation = new ActivationState { ActivationOrder = order };
+
+        order.Clear();
+
+        Assert.Equal(new[] { "hero", "enemy" }, activation.ActivationOrder);
+        Assert.Equal(DateTime.UnixEpoch, activation.StartedAtUtc);
+    }
+
+    [Fact]
     public void CombatState_CanStoreActivationState()
     {
         var state = CreateState() with

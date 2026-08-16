@@ -37,16 +37,12 @@ public class ActionStackManager : IActionStackManager
             return Result<ActionStack>.Failure($"Stack is full (max size: {stack.MaxStackSize})");
         }
         
-        // Criar nova pilha com a ação adicionada
-        var newStack = new Stack<PendingAction>(stack.Actions.Reverse());
-        
         // Atualizar posição da ação
-        var actionWithPosition = action with { StackPosition = newStack.Count };
-        newStack.Push(actionWithPosition);
+        var actionWithPosition = action with { StackPosition = stack.Actions.Count };
         
         var updatedStack = stack with
         {
-            Actions = new Stack<PendingAction>(newStack.Reverse())
+            Actions = stack.Actions.Prepend(actionWithPosition).ToArray()
         };
         
         _logger.LogDebug($"Pushed action {action.Type} by {action.ActorId} to stack (position {actionWithPosition.StackPosition})");
@@ -66,13 +62,11 @@ public class ActionStackManager : IActionStackManager
             return Result<(ActionStack, PendingAction)>.Failure("Cannot pop while stack is resolving");
         }
         
-        // Criar nova pilha sem o topo
-        var newStack = new Stack<PendingAction>(stack.Actions.Reverse());
-        var poppedAction = newStack.Pop();
+        var poppedAction = stack.Actions[0];
         
         var updatedStack = stack with
         {
-            Actions = new Stack<PendingAction>(newStack.Reverse())
+            Actions = stack.Actions.Skip(1).ToArray()
         };
         
         _logger.LogDebug($"Popped action {poppedAction.Type} by {poppedAction.ActorId} from stack");
@@ -88,7 +82,7 @@ public class ActionStackManager : IActionStackManager
         }
         
         // Obter ação do topo
-        var topAction = stack.Actions.Peek();
+        var topAction = stack.Actions[0];
         
         // Marcar como resolvendo
         var resolvingStack = stack with
@@ -161,6 +155,6 @@ public class ActionStackManager : IActionStackManager
             return Result<PendingAction>.Failure("Stack is empty");
         }
         
-        return Result<PendingAction>.Success(stack.Actions.Peek());
+        return Result<PendingAction>.Success(stack.Actions[0]);
     }
 }

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.TurnPhase;
 
 /// <summary>
@@ -6,6 +8,10 @@ namespace Core.Combat.TurnPhase;
 /// </summary>
 public record PhaseState
 {
+    private ImmutableList<string> _priorityOrder = [];
+    private ImmutableDictionary<string, bool> _playerPassedPriority =
+        ImmutableDictionary<string, bool>.Empty.WithComparers(StringComparer.Ordinal);
+
     /// <summary>
     /// Fase atual do turno
     /// </summary>
@@ -24,7 +30,11 @@ public record PhaseState
     /// <summary>
     /// Ordem de prioridade dos jogadores
     /// </summary>
-    public List<string> PriorityOrder { get; init; } = new();
+    public IReadOnlyList<string> PriorityOrder
+    {
+        get => _priorityOrder;
+        init => _priorityOrder = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Índice do jogador com prioridade atual
@@ -49,11 +59,16 @@ public record PhaseState
     /// <summary>
     /// Rastreia quais jogadores já passaram prioridade na fase atual
     /// </summary>
-    public Dictionary<string, bool> PlayerPassedPriority { get; init; } = new();
+    public IReadOnlyDictionary<string, bool> PlayerPassedPriority
+    {
+        get => _playerPassedPriority;
+        init => _playerPassedPriority = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, bool>.Empty.WithComparers(StringComparer.Ordinal);
+    }
     
     /// <summary>
     /// Timestamp de quando a fase atual começou
     /// </summary>
-    public DateTime PhaseStartTime { get; init; } = DateTime.UtcNow;
+    public DateTime PhaseStartTime { get; init; } = DateTime.UnixEpoch;
     
 }

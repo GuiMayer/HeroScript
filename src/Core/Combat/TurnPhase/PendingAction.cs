@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Combat.Models;
 
 namespace Core.Combat.TurnPhase;
@@ -11,7 +12,7 @@ public record PendingAction
     /// <summary>
     /// Identificador único da ação
     /// </summary>
-    public Guid ActionId { get; init; } = Guid.NewGuid();
+    public Guid ActionId { get; init; } = Guid.Empty;
     
     /// <summary>
     /// Tipo de ação sendo executada
@@ -47,11 +48,19 @@ public record PendingAction
     /// <summary>
     /// Timestamp de quando a ação foi adicionada à pilha
     /// </summary>
-    public DateTime AddedAt { get; init; } = DateTime.UtcNow;
+    public DateTime AddedAt { get; init; } = DateTime.UnixEpoch;
     
     /// <summary>
     /// Metadados customizados para extensibilidade
     /// Ex: custos pagos, alvos adicionais, modificadores, etc.
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

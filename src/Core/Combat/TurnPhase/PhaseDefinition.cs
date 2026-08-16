@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Combat.Models;
 
 namespace Core.Combat.TurnPhase;
@@ -7,6 +8,9 @@ namespace Core.Combat.TurnPhase;
 /// </summary>
 public record PhaseDefinition
 {
+    private ImmutableList<ActionType> _allowedActions = [];
+    private ImmutableList<TurnPhase> _validNextPhases = [];
+
     /// <summary>
     /// Nome para exibição (ex: "Main Phase 1", "Battle Phase")
     /// </summary>
@@ -20,13 +24,21 @@ public record PhaseDefinition
     /// <summary>
     /// Ações permitidas durante esta fase
     /// </summary>
-    public List<ActionType> AllowedActions { get; init; } = new();
+    public IReadOnlyList<ActionType> AllowedActions
+    {
+        get => _allowedActions;
+        init => _allowedActions = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Fases válidas para transição a partir desta fase
     /// Vazio = apenas próxima fase na sequência
     /// </summary>
-    public List<TurnPhase> ValidNextPhases { get; init; } = new();
+    public IReadOnlyList<TurnPhase> ValidNextPhases
+    {
+        get => _validNextPhases;
+        init => _validNextPhases = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Se true, a fase avança automaticamente sem input do jogador
