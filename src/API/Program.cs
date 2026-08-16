@@ -21,6 +21,7 @@ using Core.Effects;
 using Core.Run;
 using Core.Run.Content;
 using Core.Run.Replay;
+using Core.Run.Events;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
 using Microsoft.Extensions.Options;
@@ -262,6 +263,7 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
+builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReader>();
 
 // Register damage pipeline
 builder.Services.AddSingleton<PipelineConfigLoader>(sp =>

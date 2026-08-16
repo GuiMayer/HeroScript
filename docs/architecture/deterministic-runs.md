@@ -69,7 +69,8 @@ The main modules have narrow responsibilities:
 | Effect handlers | Adapt a typed effect to combat, status, run or metadata behavior |
 | Deterministic context | Random cursor, logical time, IDs, engine/content version |
 | Repository | Atomically make an accepted run transition durable |
-| Event bus | Publish an immutable, ordered and reproducible observation stream |
+| Durable event projection | Derive reconnectable run/combat events from the journal |
+| Event bus | Deliver transient in-process notifications only |
 
 Managers may coordinate these modules, but domain calculations must not retain a
 hidden random cursor, clock, turn meter or partial state in a singleton.
@@ -120,6 +121,19 @@ replay results. Snapshot retention therefore has no effect on replay coverage.
 The public verification surfaces are `POST /api/v1/runs/{runId}/verify` and
 `POST /api/v1/combats/{combatId}/verify`. Journal and checkpoint metadata are
 available under the corresponding versioned read endpoints.
+
+## Durable event projections
+
+Runtime clients read `GET /api/v1/runs/{runId}/events` or the combat-scoped
+equivalent. These events are deterministic projections of committed journal
+entries: their cursor is the run sequence, their ID is derived from run seed,
+sequence and command type, and their timestamp is logical time. They therefore
+survive restarts without a second transactional write.
+
+The versioned SSE endpoints read the same projection and honor both
+`afterSequence` and `Last-Event-ID`. The older process-global `EventBus` history
+remains a compatibility/telemetry facility and must never be used for recovery,
+idempotency or replay.
 
 ## Explicit compatibility boundaries
 
