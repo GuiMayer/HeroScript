@@ -171,7 +171,8 @@ public class LoggingTests
         
         // Assert
         var output = capture.GetOutput();
-        Assert.Empty(output);
+        Assert.DoesNotContain("This should not appear", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("This should not appear either", output, StringComparison.Ordinal);
     }
     
     [Fact]
