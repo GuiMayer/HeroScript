@@ -8,29 +8,6 @@
     <Project Path="tools/Core.CLI/Core.CLI.csproj" />
     <Project Path="tools/Calculator/Calculator.csproj" />
   </Folder>
-  <Folder Name="/tools/Dashboard/">
-    <File Path="tools/Dashboard/package.json" />
-    <File Path="tools/Dashboard/tsconfig.json" />
-    <File Path="tools/Dashboard/tsconfig.app.json" />
-    <File Path="tools/Dashboard/tsconfig.node.json" />
-    <File Path="tools/Dashboard/vite.config.ts" />
-    <File Path="tools/Dashboard/tailwind.config.ts" />
-    <File Path="tools/Dashboard/postcss.config.mjs" />
-    <File Path="tools/Dashboard/index.html" />
-    <File Path="tools/Dashboard/README.md" />
-  </Folder>
-  <Folder Name="/tools/Dashboard/src/">
-    <File Path="tools/Dashboard/src/main.tsx" />
-    <File Path="tools/Dashboard/src/App.tsx" />
-    <File Path="tools/Dashboard/src/index.css" />
-  </Folder>
-  <Folder Name="/tools/Dashboard/src/components/">
-    <File Path="tools/Dashboard/src/components/Layout.tsx" />
-    <File Path="tools/Dashboard/src/components/Sidebar.tsx" />
-  </Folder>
-  <Folder Name="/tools/Dashboard/src/pages/">
-    <File Path="tools/Dashboard/src/pages/Dashboard.tsx" />
-  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Core.Tests/Core.Tests.csproj" />
     <Project Path="tests/API.Tests/API.Tests.csproj" />
