@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.StatusEffects;
 
 /// <summary>
@@ -9,7 +11,7 @@ public record StatusEffectInstance
     /// <summary>
     /// ID único desta instância
     /// </summary>
-    public Guid InstanceId { get; init; } = Guid.NewGuid();
+    public Guid InstanceId { get; init; } = Guid.Empty;
     
     /// <summary>
     /// ID do status effect (referência à definição)
@@ -52,7 +54,7 @@ public record StatusEffectInstance
     /// <summary>
     /// Quando o status foi aplicado
     /// </summary>
-    public DateTime AppliedAt { get; init; } = DateTime.UtcNow;
+    public DateTime AppliedAt { get; init; } = DateTime.UnixEpoch;
     
     /// <summary>
     /// Turno em que o status foi aplicado
@@ -69,5 +71,13 @@ public record StatusEffectInstance
     /// Ex: { "damage_absorbed": 50 } para Shield
     /// Ex: { "debuffs_prevented": 2 } para Artifact
     /// </summary>
-    public Dictionary<string, object> CustomData { get; init; } = new();
+    private ImmutableDictionary<string, object> _customData =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
+    public IReadOnlyDictionary<string, object> CustomData
+    {
+        get => _customData;
+        init => _customData = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

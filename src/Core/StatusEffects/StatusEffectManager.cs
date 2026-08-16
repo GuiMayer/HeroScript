@@ -58,9 +58,29 @@ public class StatusEffectManager : IStatusEffectManager
         int stacks = 1,
         int? duration = null,
         Guid? sourceId = null)
+        => ApplyStatus(
+            targetId,
+            statusId,
+            Guid.NewGuid(),
+            DateTime.UtcNow,
+            stacks,
+            duration,
+            sourceId);
+
+    public Result<StatusEffectInstance> ApplyStatus(
+        Guid targetId,
+        string statusId,
+        Guid instanceId,
+        DateTime appliedAt,
+        int stacks = 1,
+        int? duration = null,
+        Guid? sourceId = null)
     {
         if (string.IsNullOrWhiteSpace(statusId))
             return Result<StatusEffectInstance>.Failure("StatusId cannot be empty");
+
+        if (instanceId == Guid.Empty)
+            return Result<StatusEffectInstance>.Failure("InstanceId cannot be empty");
         
         if (stacks <= 0)
             return Result<StatusEffectInstance>.Failure("Stacks must be greater than 0");
@@ -91,12 +111,14 @@ public class StatusEffectManager : IStatusEffectManager
         // Criar nova instância
         var instance = new StatusEffectInstance
         {
+            InstanceId = instanceId,
             StatusId = statusId,
             Definition = definition,
             TargetId = targetId,
             SourceId = sourceId,
             Stacks = System.Math.Min(stacks, definition.MaxStacks),
             Duration = duration ?? definition.DefaultDuration,
+            AppliedAt = appliedAt,
             TurnApplied = 0, // Será atualizado pelo CombatSystem
             IsActive = true
         };

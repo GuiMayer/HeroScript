@@ -245,6 +245,55 @@ public class EffectResolverTests
     }
 
     [Fact]
+    public void ApplyEffect_ApplyStatus_UsesDeterministicIdentityAndLogicalTime()
+    {
+        var sourceId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var targetId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var state = CreateCombatState(sourceId.ToString(), targetId.ToString());
+        var initial = DeterministicContext.Create(77UL, "test-content").AdvanceStep();
+        var effectAllocation = initial.AllocateId("effect");
+        var statusAllocation = effectAllocation.Context.AllocateId("status-effect");
+        var provider = new DeterministicRandomProvider(initial);
+        _statusEffectManager
+            .Setup(manager => manager.ApplyStatus(
+                targetId,
+                "burning",
+                statusAllocation.Value,
+                statusAllocation.Context.LogicalTimestamp.UtcDateTime,
+                2,
+                3,
+                sourceId))
+            .Returns(Result<StatusEffectInstance>.Success(new StatusEffectInstance
+            {
+                InstanceId = statusAllocation.Value,
+                AppliedAt = statusAllocation.Context.LogicalTimestamp.UtcDateTime,
+                StatusId = "burning"
+            }));
+        var resolver = CreateResolver();
+        var effect = new EffectInstance
+        {
+            SourceEntityId = sourceId.ToString(),
+            TargetEntityId = targetId.ToString(),
+            Definition = new EffectDefinition
+            {
+                Type = EffectType.APPLY_STATUS,
+                StatusId = "burning",
+                StatusStacks = 2,
+                StatusDuration = 3
+            }
+        };
+
+        var result = resolver.ApplyEffect(
+            effect,
+            CombatEffectContext.FromEffect(effect, state),
+            provider);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(statusAllocation.Context, provider.Context);
+        _statusEffectManager.VerifyAll();
+    }
+
+    [Fact]
     public void ResolveEffect_RemoveStatus_WithStatusManager_RemovesStatus()
     {
         var sourceId = Guid.NewGuid().ToString();

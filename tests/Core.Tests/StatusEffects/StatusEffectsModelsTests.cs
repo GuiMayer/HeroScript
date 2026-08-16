@@ -298,14 +298,14 @@ public class StatusEffectsModelsTests
     }
     
     [Fact]
-    public void StatusEffectInstance_DefaultValues_GenerateGuid()
+    public void StatusEffectInstance_DefaultValues_AreDeterministicSentinels()
     {
         // Arrange & Act
         var instance = new StatusEffectInstance();
         
         // Assert
-        Assert.NotEqual(Guid.Empty, instance.InstanceId);
-        Assert.True(instance.AppliedAt <= DateTime.UtcNow);
+        Assert.Equal(Guid.Empty, instance.InstanceId);
+        Assert.Equal(DateTime.UnixEpoch, instance.AppliedAt);
         Assert.True(instance.IsActive);
         Assert.Equal(1, instance.Stacks);
         Assert.Empty(instance.CustomData);

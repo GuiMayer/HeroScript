@@ -25,6 +25,19 @@ public interface IStatusEffectManager
         int stacks = 1,
         int? duration = null,
         Guid? sourceId = null);
+
+    /// <summary>
+    /// Aplica um status com identidade e tempo lógico fornecidos pela transição.
+    /// Este é o contrato usado por runs determinísticas.
+    /// </summary>
+    Result<StatusEffectInstance> ApplyStatus(
+        Guid targetId,
+        string statusId,
+        Guid instanceId,
+        DateTime appliedAt,
+        int stacks = 1,
+        int? duration = null,
+        Guid? sourceId = null);
     
     /// <summary>
     /// Remove uma instância específica de status effect

@@ -1,4 +1,5 @@
 using Core.Logging;
+using Core.Damage;
 using Core.StatusEffects;
 
 namespace Core.Effects.Handlers;
@@ -47,12 +48,21 @@ public sealed class StatusEffectHandler : IEffectHandler
         if (_statusEffects != null)
         {
             Guid? sourceId = Guid.TryParse(request.Effect.SourceEntityId, out var source) ? source : null;
-            var applied = _statusEffects.ApplyStatus(
-                targetId,
-                statusId,
-                request.Effect.Definition.StatusStacks ?? 1,
-                request.Effect.Definition.StatusDuration,
-                sourceId);
+            var applied = request.RandomProvider is DeterministicRandomProvider deterministic
+                ? _statusEffects.ApplyStatus(
+                    targetId,
+                    statusId,
+                    deterministic.AllocateId("status-effect"),
+                    deterministic.LogicalTimestamp,
+                    request.Effect.Definition.StatusStacks ?? 1,
+                    request.Effect.Definition.StatusDuration,
+                    sourceId)
+                : _statusEffects.ApplyStatus(
+                    targetId,
+                    statusId,
+                    request.Effect.Definition.StatusStacks ?? 1,
+                    request.Effect.Definition.StatusDuration,
+                    sourceId);
             if (applied.IsFailure)
                 return EffectResult.CreateFailure(applied.Error ?? "Failed to apply status");
         }
