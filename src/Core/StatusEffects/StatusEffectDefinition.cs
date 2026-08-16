@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.StatusEffects;
 
 /// <summary>
@@ -7,6 +9,10 @@ namespace Core.StatusEffects;
 /// </summary>
 public record StatusEffectDefinition
 {
+    private ImmutableList<string> _tags = [];
+    private ImmutableDictionary<string, object> _customData =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
     /// <summary>
     /// ID único do status effect
     /// </summary>
@@ -115,7 +121,11 @@ public record StatusEffectDefinition
     /// Tags para categorização e sinergias
     /// Ex: ["fire", "dot", "debuff"]
     /// </summary>
-    public List<string> Tags { get; init; } = new();
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableList() ?? [];
+    }
     
     // ===== FLEXIBILIDADE =====
     
@@ -125,5 +135,10 @@ public record StatusEffectDefinition
     /// Ex: { "damage_cap": 1 } para Intangible
     /// Ex: { "trigger_on": "status_applied" } para Evolve
     /// </summary>
-    public Dictionary<string, object> CustomData { get; init; } = new();
+    public IReadOnlyDictionary<string, object> CustomData
+    {
+        get => _customData;
+        init => _customData = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

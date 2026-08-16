@@ -571,8 +571,8 @@ public class StatusEffectController : BaseApiController
             ModifierFormula = definition.ModifierFormula,
             IconPath = definition.IconPath,
             Color = definition.Color,
-            Tags = definition.Tags,
-            CustomData = definition.CustomData
+            Tags = definition.Tags.ToList(),
+            CustomData = definition.CustomData.ToDictionary(item => item.Key, item => item.Value)
         };
     }
 }

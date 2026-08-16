@@ -825,7 +825,9 @@ public class CombatSystem : ICombatSystem
     /// <summary>
     /// Aplica os resultados de status effects a uma entidade (dano, cura, etc.)
     /// </summary>
-    private CombatEntity ApplyStatusEffectResults(CombatEntity entity, List<StatusEffectTickResult> results)
+    private CombatEntity ApplyStatusEffectResults(
+        CombatEntity entity,
+        IReadOnlyList<StatusEffectTickResult> results)
     {
         var updatedEntity = entity;
         

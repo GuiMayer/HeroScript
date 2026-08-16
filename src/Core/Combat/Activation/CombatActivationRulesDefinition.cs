@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 
 namespace Core.Combat.Activation;
@@ -22,10 +23,16 @@ public sealed record ActivationStartRules
 
 public sealed record ActivationEndRules
 {
+    private ImmutableList<string> _retainTags = ["retain"];
+
     public ActivationDiscardPolicy DiscardPolicy { get; init; } = ActivationDiscardPolicy.None;
     public ActivationActorScope DiscardActorScope { get; init; } = ActivationActorScope.PlayerOnly;
     public int? HandLimit { get; init; }
-    public List<string> RetainTags { get; init; } = new() { "retain" };
+    public IReadOnlyList<string> RetainTags
+    {
+        get => _retainTags;
+        init => _retainTags = value?.ToImmutableList() ?? [];
+    }
     public UnknownCardPolicy UnknownCardPolicy { get; init; } = UnknownCardPolicy.Fail;
 }
 
@@ -37,10 +44,16 @@ public sealed record ActivationAiRules
 
 public sealed record ActivationIntentRules
 {
+    private ImmutableList<string> _gambitIds = [];
+
     public bool Enabled { get; init; }
     public bool Authoritative { get; init; }
     public ActivationIntentActorScope ActorScope { get; init; } = ActivationIntentActorScope.EnemiesOnly;
-    public List<string> GambitIds { get; init; } = new();
+    public IReadOnlyList<string> GambitIds
+    {
+        get => _gambitIds;
+        init => _gambitIds = value?.ToImmutableList() ?? [];
+    }
 }
 
 public sealed record ActivationEventRules

@@ -25,6 +25,25 @@ public class EffectResolverTests
     private readonly Mock<IRunManager> _runManager = new();
 
     [Fact]
+    public void EffectResult_DefensivelyCopiesOutputCollections()
+    {
+        var entities = new List<string> { "enemy" };
+        var metadata = new Dictionary<string, object> { ["damage"] = 5 };
+        var result = new EffectResult
+        {
+            Success = true,
+            AffectedEntityIds = entities,
+            Metadata = metadata
+        };
+
+        entities.Clear();
+        metadata["damage"] = 99;
+
+        Assert.Equal(new[] { "enemy" }, result.AffectedEntityIds);
+        Assert.Equal(5, result.Metadata["damage"]);
+    }
+
+    [Fact]
     public void ApplyEffect_WithDeterministicProvider_ReproducesRandomTargetAndContext()
     {
         var state = CreateCombatState("hero", "enemy") with

@@ -1,4 +1,5 @@
 using Core.Common;
+using System.Collections.Immutable;
 
 namespace Core.StatusEffects;
 
@@ -210,6 +211,9 @@ public interface IStatusEffectManager
 /// </summary>
 public record StatusEffectProcessResult
 {
+    private ImmutableList<StatusEffectTickResult> _tickResults = [];
+    private ImmutableList<StatusEffectInstance> _expiredStatus = [];
+
     /// <summary>
     /// ID da entidade processada
     /// </summary>
@@ -218,12 +222,20 @@ public record StatusEffectProcessResult
     /// <summary>
     /// Resultados individuais de cada status effect processado
     /// </summary>
-    public List<StatusEffectTickResult> TickResults { get; init; } = new();
+    public IReadOnlyList<StatusEffectTickResult> TickResults
+    {
+        get => _tickResults;
+        init => _tickResults = value?.ToImmutableList() ?? [];
+    }
     
     /// <summary>
     /// Status effects que expiraram durante o processamento
     /// </summary>
-    public List<StatusEffectInstance> ExpiredStatus { get; init; } = new();
+    public IReadOnlyList<StatusEffectInstance> ExpiredStatus
+    {
+        get => _expiredStatus;
+        init => _expiredStatus = value?.ToImmutableList() ?? [];
+    }
 }
 
 /// <summary>

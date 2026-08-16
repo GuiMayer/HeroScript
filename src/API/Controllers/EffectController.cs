@@ -139,10 +139,10 @@ public class EffectController : BaseApiController
                 ErrorMessage = result.EffectResult.ErrorMessage,
                 ValueApplied = result.EffectResult.ValueApplied,
                 ResourceAffected = result.EffectResult.ResourceAffected,
-                AffectedEntityIds = result.EffectResult.AffectedEntityIds,
-                StatusApplied = result.EffectResult.StatusApplied,
-                StatusRemoved = result.EffectResult.StatusRemoved,
-                Metadata = result.EffectResult.Metadata
+                AffectedEntityIds = result.EffectResult.AffectedEntityIds.ToList(),
+                StatusApplied = result.EffectResult.StatusApplied.ToList(),
+                StatusRemoved = result.EffectResult.StatusRemoved.ToList(),
+                Metadata = result.EffectResult.Metadata.ToDictionary(item => item.Key, item => item.Value)
             }
         };
     }
