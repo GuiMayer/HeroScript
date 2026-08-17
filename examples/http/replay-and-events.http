@@ -1,0 +1,15 @@
+@baseUrl = http://localhost:5260
+@runId = replace-with-run-id
+
+### Read durable command history
+GET {{baseUrl}}/api/v1/runs/{{runId}}/journal?afterSequence=0&limit=100
+
+### Verify semantic replay
+POST {{baseUrl}}/api/v1/runs/{{runId}}/verify
+
+### Page durable event projections
+GET {{baseUrl}}/api/v1/runs/{{runId}}/events?afterSequence=0&limit=100
+
+### Subscribe with a resumable SSE cursor
+GET {{baseUrl}}/api/v1/runs/{{runId}}/events/stream?afterSequence=0
+Accept: text/event-stream

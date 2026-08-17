@@ -9,6 +9,7 @@
 
 - **[Client Integration Guide](CLIENT_INTEGRATION.md)** - Integrate with Unity, Godot, Web, Python
 - **[Production Deployment Guide](PRODUCTION.md)** - Deploy API to production servers
+- **[API v1 Guide](api/README.md)** - Contrato público, exemplos e migração
 - [Architecture Overview](architecture/overview.md)
 - [API Endpoints](api/endpoints.md)
 - [Development Roadmap](roadmap/README.md)
@@ -51,6 +52,7 @@
 ## API Reference
 
 - **[API Endpoints](api/endpoints.md)** - Documentação completa dos endpoints REST
+- **[API v1 Contract Guide](api/README.md)** - Referência versionada para clientes
 - **[API Conventions](roadmap/analysis/api-conventions.md)** - Convenções e padrões da API
 
 ---
@@ -111,7 +113,8 @@ cd src/API
 dotnet run
 
 # API available at http://localhost:5260
-# Swagger docs at http://localhost:5260/swagger
+# OpenAPI contract at http://localhost:5260/openapi/v1.json
+# Interactive docs in development at http://localhost:5260/docs/api
 ```
 
 ### Testing
@@ -139,8 +142,8 @@ dotnet test tests/API.Tests/API.Tests.csproj
 
 ### Estado Verificado
 
-- **Core.Tests:** 553 tests passing
-- **API.Tests:** project compiles; full/filtered runner can still timeout locally, so API test stability remains a documented follow-up
+- **Core.Tests:** 1.306 testes aprovados na última validação completa
+- **API.Tests:** 213 testes aprovados na última validação completa
 
 ### Phase 0 + Phase 1 + Phase 2
 

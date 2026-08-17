@@ -29,7 +29,7 @@ curl http://localhost:5260/api/health
 
 - **[Unity/Godot/Web Integration](docs/CLIENT_INTEGRATION.md)** - Consume API from game clients
 - **[Production Deployment](docs/PRODUCTION.md)** - Deploy API to production
-- **[API Reference](docs/api/endpoints.md)** - Complete endpoint documentation
+- **[API v1 Guide](docs/api/README.md)** - Contrato público, exemplos e compatibilidade
 
 **Performance:** 5-8ms latency on localhost (imperceptible for turn-based games)
 
@@ -84,8 +84,8 @@ HeroScript/
 **Última atualização:** 2026-08-16
 **Fase atual:** estabilização técnica da Fase 3; Map System e Event System continuam bloqueadores para o MVP jogável.
 
-- **Core.Tests:** 1.250 testes aprovados na última validação local
-- **API.Tests:** 125 testes unitários aprovados; a suíte de integração está sendo atualizada para os contratos atuais
+- **Core.Tests:** 1.306 testes aprovados na última validação completa
+- **API.Tests:** 213 testes aprovados na última validação completa
 - **Fase 0:** Config, Math e Resources implementados
 - **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados
 - **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados

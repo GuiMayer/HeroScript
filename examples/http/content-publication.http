@@ -1,0 +1,12 @@
+@baseUrl = http://localhost:5260
+@adminApiKey = replace-with-admin-key
+
+### List immutable content revisions
+GET {{baseUrl}}/api/v1/content/revisions
+
+### Create an administrative publication draft
+POST {{baseUrl}}/api/v1/admin/content/drafts
+X-Admin-Key: {{adminApiKey}}
+Content-Type: application/json
+
+{ "configName": "default" }

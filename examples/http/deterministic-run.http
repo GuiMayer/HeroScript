@@ -1,0 +1,32 @@
+@baseUrl = http://localhost:5260
+@runId = replace-with-run-id
+@commandId = 54c0c99b-21b1-4e2f-a519-0de7fdf79ece
+
+### Start a deterministic run
+POST {{baseUrl}}/api/v1/runs
+Content-Type: application/json
+
+{
+  "configName": "default",
+  "runDefinitionId": "default_run",
+  "playerEntityId": "player",
+  "seed": 424242
+}
+
+### Read authoritative state
+GET {{baseUrl}}/api/v1/runs/{{runId}}
+
+### Ask the server which commands are legal
+GET {{baseUrl}}/api/v1/runs/{{runId}}/available-commands
+
+### Execute one idempotent run command
+POST {{baseUrl}}/api/v1/runs/{{runId}}/commands
+Content-Type: application/json
+
+{
+  "commandId": "{{commandId}}",
+  "expectedSequence": 1,
+  "expectedStep": 1,
+  "type": "DRAW_CARDS",
+  "payload": { "count": 1 }
+}
