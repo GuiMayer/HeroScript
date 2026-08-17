@@ -8,7 +8,7 @@ namespace API.Controllers;
 /// Controller for resource management and cache operations
 /// </summary>
 [ApiController]
-[Route("api/resource")]
+[Route("api/v1/admin/resources")]
 public class ResourceController : ControllerBase
 {
     private readonly ILogger<ResourceController> _logger;

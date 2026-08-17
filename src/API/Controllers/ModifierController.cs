@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("api/modifiers")]
+[Route("api/v1/modifiers")]
 public class ModifierController : BaseApiController
 {
     private readonly IScriptModifierManager _modifierManager;

@@ -11,7 +11,7 @@ namespace API.Controllers;
 /// Controller para aplicacao central de efeitos data-driven.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/simulations/effects")]
 public class EffectController : BaseApiController
 {
     private readonly IEffectResolver _effectResolver;

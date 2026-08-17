@@ -7,7 +7,7 @@ using Core.Config;
 namespace API.Controllers;
 
 [ApiController]
-[Route("api/run")]
+[Route("api/v1/runs")]
 public sealed class RunController : BaseApiController
 {
     private readonly IRunManager _runManager;
@@ -26,7 +26,6 @@ public sealed class RunController : BaseApiController
         _cardUpgrades = cardUpgrades;
     }
 
-    [HttpPost("start")]
     [HttpPost("/api/v1/runs")]
     public IActionResult StartRun([FromBody] StartRunRequest? request)
     {
@@ -48,7 +47,6 @@ public sealed class RunController : BaseApiController
         }
     }
 
-    [HttpGet("{runId:guid}/state")]
     [HttpGet("/api/v1/runs/{runId:guid}")]
     public IActionResult GetState(Guid runId)
     {
@@ -164,7 +162,6 @@ public sealed class RunController : BaseApiController
         }
     }
 
-    [HttpGet("{runId:guid}/deck")]
     [HttpGet("/api/v1/runs/{runId:guid}/deck")]
     public IActionResult GetDeck(Guid runId)
     {
@@ -179,7 +176,6 @@ public sealed class RunController : BaseApiController
         }
     }
 
-    [HttpGet("{runId:guid}/hand")]
     [HttpGet("/api/v1/runs/{runId:guid}/hand")]
     public IActionResult GetHand(Guid runId)
     {

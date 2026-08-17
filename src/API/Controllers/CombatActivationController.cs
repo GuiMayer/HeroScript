@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("api/combat/{combatId:guid}/activation")]
+[Route("api/v1/combats/{combatId:guid}/activation")]
 public sealed class CombatActivationController : BaseApiController
 {
     private readonly ICombatActivationCoordinator _activationCoordinator;

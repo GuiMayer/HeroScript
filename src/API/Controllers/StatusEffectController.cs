@@ -8,7 +8,7 @@ namespace API.Controllers;
 /// Controller para gerenciamento de status effects.
 /// </summary>
 [ApiController]
-[Route("api/status")]
+[Route("api/v1/statuses")]
 public class StatusEffectController : BaseApiController
 {
     private readonly IStatusEffectManager _statusEffectManager;

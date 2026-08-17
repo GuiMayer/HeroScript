@@ -10,7 +10,7 @@ namespace API.Controllers;
 /// Controller for evaluating formulas from MathFormulas.json
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/simulations/formulas")]
 public class FormulaController : ControllerBase
 {
     private readonly IMathEngine _mathEngine;

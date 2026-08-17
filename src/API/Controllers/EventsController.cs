@@ -8,7 +8,7 @@ namespace API.Controllers;
 /// Controller para consulta de eventos do sistema (Event Sourcing).
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/admin/events")]
 public class EventsController : ControllerBase
 {
     private readonly IEventBus _eventBus;
@@ -81,7 +81,7 @@ public class EventsController : ControllerBase
         }
     }
 
-    [HttpGet("~/api/combat/{combatId:guid}/events")]
+    [HttpGet("~/api/v1/admin/combats/{combatId:guid}/events")]
     public IActionResult GetCombatEvents(
         Guid combatId,
         [FromQuery] int? afterSequence = null,
@@ -128,7 +128,7 @@ public class EventsController : ControllerBase
         }
     }
 
-    [HttpGet("~/api/combat/{combatId:guid}/events/stream")]
+    [HttpGet("~/api/v1/admin/combats/{combatId:guid}/events/stream")]
     public Task StreamCombatEvents(
         Guid combatId,
         [FromQuery] int afterSequence = -1,

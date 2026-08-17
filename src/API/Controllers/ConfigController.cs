@@ -9,7 +9,7 @@ namespace API.Controllers;
 /// Controller for managing configurations and inheritance chains
 /// </summary>
 [ApiController]
-[Route("api/config")]
+[Route("api/v1/admin/config")]
 public class ConfigController : ControllerBase
 {
     private readonly ILogger<ConfigController> _logger;

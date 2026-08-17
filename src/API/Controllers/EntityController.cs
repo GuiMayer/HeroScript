@@ -13,7 +13,7 @@ namespace API.Controllers;
 /// Controller para gerenciamento de entidades.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/entities")]
 public class EntityController : BaseApiController
 {
     private readonly EntityDefinitionLoader _definitionLoader;

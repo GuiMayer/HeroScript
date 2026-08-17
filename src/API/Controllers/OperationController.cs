@@ -8,7 +8,7 @@ namespace API.Controllers;
 /// Controller for mathematical operations metadata
 /// </summary>
 [ApiController]
-[Route("api/operation")]
+[Route("api/v1/operations")]
 public class OperationController : ControllerBase
 {
     private readonly ILogger<OperationController> _logger;

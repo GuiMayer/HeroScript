@@ -16,7 +16,7 @@ namespace API.Controllers;
 /// Controller para gerenciamento de combates.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/combats")]
 public class CombatController : BaseApiController
 {
     private readonly ICombatSystem _combatSystem;
@@ -282,7 +282,6 @@ public class CombatController : BaseApiController
     /// <summary>
     /// Obtém estado atual do combate.
     /// </summary>
-    [HttpGet("{combatId}/state")]
     [HttpGet("/api/v1/combats/{combatId:guid}")]
     public IActionResult GetState(Guid combatId)
     {

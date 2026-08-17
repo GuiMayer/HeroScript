@@ -12,7 +12,7 @@ namespace API.Controllers;
 /// Controller para cálculo de dano e gerenciamento do pipeline
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/simulations/damage")]
 public class DamageController : ControllerBase
 {
     private readonly IDamageCalculator _damageCalculator;

@@ -17,7 +17,7 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetActions_ReturnsRawJsonContract()
     {
-        using var response = await _client.GetAsync("/api/action");
+        using var response = await _client.GetAsync("/api/v1/actions");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -34,7 +34,7 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetMissingAction_ReturnsErrorEnvelope()
     {
-        using var response = await _client.GetAsync("/api/action/missing_action");
+        using var response = await _client.GetAsync("/api/v1/actions/missing_action");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -45,7 +45,7 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetResources_ReturnsRawJsonContract()
     {
-        using var response = await _client.GetAsync("/api/game-resources");
+        using var response = await _client.GetAsync("/api/v1/resources");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -61,7 +61,7 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetResourceByCategory_ReturnsFilteredContract()
     {
-        using var response = await _client.GetAsync("/api/game-resources/by-category/TACTICAL");
+        using var response = await _client.GetAsync("/api/v1/resources/by-category/TACTICAL");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());

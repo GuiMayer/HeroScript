@@ -25,7 +25,7 @@ public class GameEngineClientSimulator
 
     public async Task<Guid> StartRunAsync(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player")
     {
-        var response = await _client.PostAsJsonAsync("/api/run/start", new
+        var response = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
             configName,
             runDefinitionId,
@@ -39,14 +39,14 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> GetRunStateAsync(Guid runId)
     {
-        var response = await _client.GetAsync($"/api/run/{runId}/state");
+        var response = await _client.GetAsync($"/api/v1/runs/{runId}");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<List<string>> DrawCardsAsync(Guid runId, int count = 1)
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/draw", new { count });
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/draw", new { count });
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         return json.GetProperty("drawn").EnumerateArray().Select(e => e.GetString()!).ToList();
@@ -54,14 +54,14 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> DiscardCardsAsync(Guid runId, IEnumerable<string> cardIds)
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/discard", new { cardIds });
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/discard", new { cardIds });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<List<string>> GetHandAsync(Guid runId)
     {
-        var response = await _client.GetAsync($"/api/run/{runId}/hand");
+        var response = await _client.GetAsync($"/api/v1/runs/{runId}/hand");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         return json.GetProperty("hand").EnumerateArray().Select(e => e.GetString()!).ToList();
@@ -79,7 +79,7 @@ public class GameEngineClientSimulator
             runId
         };
 
-        var response = await _client.PostAsJsonAsync("/api/combat/start", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/combats/start", request);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         return json.GetProperty("combatId").GetGuid();
@@ -87,7 +87,7 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> GetCombatStateAsync(Guid combatId)
     {
-        var response = await _client.GetAsync($"/api/combat/{combatId}/state");
+        var response = await _client.GetAsync($"/api/v1/combats/{combatId}");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -106,7 +106,7 @@ public class GameEngineClientSimulator
             actionType = powerId != null ? "POWER" : (cardId != null ? "POWER" : "BASIC_ATTACK")
         };
 
-        var response = await _client.PostAsJsonAsync($"/api/combat/{combatId}/action", request);
+        var response = await _client.PostAsJsonAsync($"/api/v1/combats/{combatId}/action", request);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
@@ -118,21 +118,21 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> EndTurnAsync(Guid combatId)
     {
-        var response = await _client.PostAsync($"/api/combat/{combatId}/end-turn", null);
+        var response = await _client.PostAsync($"/api/v1/combats/{combatId}/end-turn", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<JsonElement> ProcessAiTurnsAsync(Guid combatId)
     {
-        var response = await _client.PostAsync($"/api/combat/{combatId}/process-ai-turns", null);
+        var response = await _client.PostAsync($"/api/v1/combats/{combatId}/process-ai-turns", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<JsonElement> AutoPlayCombatAsync(Guid combatId)
     {
-        var response = await _client.PostAsync($"/api/combat/{combatId}/auto-play", null);
+        var response = await _client.PostAsync($"/api/v1/combats/{combatId}/auto-play", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -141,14 +141,14 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> StartCardSelectionAsync(Guid runId, string selectionId = "basic_reward")
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/card-selection/start", new { selectionId });
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/card-selections/start", new { selectionId });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<JsonElement> PickCardsAsync(Guid runId, Guid selectionInstanceId, IEnumerable<string> cardIds)
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/card-selection/{selectionInstanceId}/pick", 
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/card-selections/{selectionInstanceId}/pick",
             new { cardIds });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -156,7 +156,7 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> RerollCardSelectionAsync(Guid runId, Guid selectionInstanceId, IEnumerable<string>? lockedCardIds = null)
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/card-selection/{selectionInstanceId}/reroll", 
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/card-selections/{selectionInstanceId}/reroll",
             new { lockedCardIds });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -164,7 +164,7 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> DecomposeCardAsync(Guid runId, Guid selectionInstanceId, string cardId)
     {
-        var response = await _client.PostAsync($"/api/run/{runId}/card-selection/{selectionInstanceId}/decompose/{cardId}", null);
+        var response = await _client.PostAsync($"/api/v1/runs/{runId}/card-selections/{selectionInstanceId}/decompose/{cardId}", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -173,21 +173,21 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> OpenShopAsync(Guid runId, string shopId = "basic_shop")
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/shop/open", new { shopId });
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/shops/open", new { shopId });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<JsonElement> BuyShopItemAsync(Guid runId, Guid shopInstanceId, string itemId)
     {
-        var response = await _client.PostAsync($"/api/run/{runId}/shop/{shopInstanceId}/buy/{itemId}", null);
+        var response = await _client.PostAsync($"/api/v1/runs/{runId}/shops/{shopInstanceId}/buy/{itemId}", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<JsonElement> RerollShopAsync(Guid runId, Guid shopInstanceId)
     {
-        var response = await _client.PostAsync($"/api/run/{runId}/shop/{shopInstanceId}/reroll", null);
+        var response = await _client.PostAsync($"/api/v1/runs/{runId}/shops/{shopInstanceId}/reroll", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -196,14 +196,14 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> StartPreparationAsync(Guid runId, string preparationId = "basic_preparation")
     {
-        var response = await _client.PostAsJsonAsync($"/api/run/{runId}/preparation/start", new { preparationId });
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/preparations/start", new { preparationId });
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
     public async Task<JsonElement> ApplyPreparationOptionAsync(Guid runId, Guid preparationInstanceId, string optionId)
     {
-        var response = await _client.PostAsync($"/api/run/{runId}/preparation/{preparationInstanceId}/apply/{optionId}", null);
+        var response = await _client.PostAsync($"/api/v1/runs/{runId}/preparations/{preparationInstanceId}/apply/{optionId}", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -222,7 +222,7 @@ public class GameEngineClientSimulator
             sourceId
         };
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/status/apply")
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/v1/statuses/apply")
         {
             Content = JsonContent.Create(request)
         };
@@ -234,7 +234,7 @@ public class GameEngineClientSimulator
 
     public async Task<List<JsonElement>> GetStatusEffectsAsync(string targetId)
     {
-        var response = await _client.GetAsync($"/api/status/{targetId}");
+        var response = await _client.GetAsync($"/api/v1/statuses/{targetId}");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         return json.EnumerateArray().ToList();
@@ -253,7 +253,7 @@ public class GameEngineClientSimulator
         queryParams.Add($"limit={limit}");
 
         var query = string.Join("&", queryParams);
-        var response = await _client.GetAsync($"/api/events?{query}");
+        var response = await _client.GetAsync($"/api/v1/admin/events?{query}");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         var events = json.ValueKind == JsonValueKind.Array
@@ -273,7 +273,7 @@ public class GameEngineClientSimulator
             paramOverrides = parameters
         };
 
-        var response = await _client.PostAsJsonAsync("/api/formula/evaluate", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/simulations/formulas/evaluate", request);
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
@@ -293,7 +293,7 @@ public class GameEngineClientSimulator
             overrides
         };
 
-        var response = await _client.PostAsJsonAsync("/api/entity/create", request);
+        var response = await _client.PostAsJsonAsync("/api/v1/entities/create", request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }

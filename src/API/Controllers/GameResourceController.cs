@@ -9,7 +9,7 @@ namespace API.Controllers;
 /// Controller para gerenciamento de recursos de gameplay
 /// </summary>
 [ApiController]
-[Route("api/game-resources")]
+[Route("api/v1/resources")]
 public class GameResourceController : ControllerBase
 {
     private readonly IResourceManager _resourceManager;

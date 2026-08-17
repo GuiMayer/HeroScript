@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("api/gambits")]
+[Route("api/v1/gambits")]
 public class GambitController : BaseApiController
 {
     private readonly IGambitEngine _gambitEngine;

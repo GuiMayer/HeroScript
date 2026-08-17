@@ -11,7 +11,7 @@ namespace API.Controllers;
 /// Controller para gerenciamento de definições de ações
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/actions")]
 public class ActionController : ControllerBase
 {
     private readonly IActionManager _actionManager;

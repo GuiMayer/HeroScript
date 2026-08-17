@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace API.Controllers;
 
 [ApiController]
-[Route("api/run/{runId:guid}/shop")]
+[Route("api/v1/runs/{runId:guid}/shops")]
 public sealed class ShopController : BaseApiController
 {
     private readonly IRunManager _runManager;
@@ -15,7 +15,7 @@ public sealed class ShopController : BaseApiController
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
-    [HttpGet("/api/v1/runs/{runId:guid}/shops")]
+    [HttpGet]
     public IActionResult List(Guid runId)
     {
         var run = _runManager.GetRun(runId);
@@ -24,7 +24,7 @@ public sealed class ShopController : BaseApiController
             : Ok(run.Value.Shops.Select(MapShop).ToList());
     }
 
-    [HttpGet("/api/v1/runs/{runId:guid}/shops/{shopInstanceId:guid}")]
+    [HttpGet("{shopInstanceId:guid}")]
     public IActionResult Get(Guid runId, Guid shopInstanceId)
     {
         var run = _runManager.GetRun(runId);

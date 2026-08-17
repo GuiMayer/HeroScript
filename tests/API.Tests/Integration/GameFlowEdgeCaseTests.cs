@@ -23,7 +23,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     {
         // Try to get state for non-existent run
         var nonExistentRunId = Guid.NewGuid();
-        var response = await Client.GetRawResponseAsync($"/api/run/{nonExistentRunId}/state");
+        var response = await Client.GetRawResponseAsync($"/api/v1/runs/{nonExistentRunId}");
 
         // Should return 404 or similar error
         Assert.True(response.StatusCode == HttpStatusCode.NotFound || 
@@ -35,7 +35,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     {
         // Try to get state for non-existent combat
         var nonExistentCombatId = Guid.NewGuid();
-        var response = await Client.GetRawResponseAsync($"/api/combat/{nonExistentCombatId}/state");
+        var response = await Client.GetRawResponseAsync($"/api/v1/combats/{nonExistentCombatId}");
 
         // Should return 404 or similar error
         Assert.True(response.StatusCode == HttpStatusCode.NotFound || 
@@ -49,7 +49,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
 
         // Try to draw more cards than exist in deck
-        var response = await Client.PostRawAsync($"/api/run/{runId}/draw", new { count = 1000 });
+        var response = await Client.PostRawAsync($"/api/v1/runs/{runId}/draw", new { count = 1000 });
 
         // Should handle gracefully (return available cards or error)
         // Not crash or return 500
@@ -64,7 +64,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1" });
 
         // Try to attack non-existent target
-        var response = await Client.PostRawAsync($"/api/combat/{combatId}/action", new
+        var response = await Client.PostRawAsync($"/api/v1/combats/{combatId}/action", new
         {
             actorId = "hero",
             targetId = "non_existent_enemy",
@@ -97,7 +97,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         {
             var itemId = GetJsonString(expensiveItem, "itemId");
             
-            var response = await Client.GetRawResponseAsync($"/api/run/{runId}/shop/{shopInstanceId}/buy/{itemId}");
+            var response = await Client.GetRawResponseAsync($"/api/v1/runs/{runId}/shops/{shopInstanceId}/buy/{itemId}");
 
             // Should return error for insufficient funds
             Assert.True(response.StatusCode == HttpStatusCode.BadRequest || 
@@ -109,7 +109,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     public async Task StartCombat_InvalidHeroId_ReturnsError()
     {
         // Try to start combat with non-existent hero
-        var response = await Client.PostRawAsync("/api/combat/start", new
+        var response = await Client.PostRawAsync("/api/v1/combats/start", new
         {
             heroId = "non_existent_hero_xyz",
             enemies = new[] { "enemy_1" },
@@ -131,7 +131,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var playerEntityId = GetJsonString(runState, "playerEntityId");
 
         // Try to apply non-existent status effect
-        var response = await Client.PostAdminRawAsync("/api/status/apply", new
+        var response = await Client.PostAdminRawAsync("/api/v1/statuses/apply", new
         {
             targetId = playerEntityId,
             statusId = "totally_fake_status_xyz",
@@ -154,7 +154,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             { "value", 10f }
         };
 
-        var response = await Client.PostRawAsync("/api/formula/evaluate", new
+        var response = await Client.PostRawAsync("/api/v1/simulations/formulas/evaluate", new
         {
             formulaName = "non_existent_formula_xyz",
             inputValue = 0f,

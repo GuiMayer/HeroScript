@@ -10,7 +10,7 @@ namespace API.Controllers;
 /// Provides cache statistics, performance monitoring, and system information.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/admin/diagnostics")]
 public class DiagnosticsController : ControllerBase
 {
     private readonly CoreLogger _logger;

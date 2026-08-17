@@ -502,7 +502,6 @@ else
 
 // The machine-readable contract is published in every environment. The
 // interactive UI remains a development aid and never becomes the app root.
-app.UseSwagger(); // Compatibility endpoint: /swagger/v1/swagger.json
 app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
 
 if (app.Environment.IsDevelopment())
@@ -522,7 +521,6 @@ if (!app.Environment.IsDevelopment())
 app.UseCors();
 app.UseMiddleware<API.Middleware.CorrelationIdMiddleware>();
 app.UseMiddleware<API.Middleware.ApiExceptionMiddleware>();
-app.UseMiddleware<API.Middleware.LegacyRouteDeprecationMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
 app.MapControllers();
 

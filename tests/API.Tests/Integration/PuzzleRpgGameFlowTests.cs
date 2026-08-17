@@ -146,7 +146,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         Assert.True(currentEnergy <= 1, "Should start with low energy for this test");
 
         // Try to use expensive power (should fail or be prevented)
-        var expensivePowerResponse = await Client.PostRawAsync($"/api/combat/{combatId}/action", new
+        var expensivePowerResponse = await Client.PostRawAsync($"/api/v1/combats/{combatId}/action", new
         {
             actorId = "mage_hero",
             targetId = "enemy_1",

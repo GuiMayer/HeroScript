@@ -9,7 +9,7 @@ namespace API.Controllers;
 /// Controller for evaluating custom math expressions
 /// </summary>
 [ApiController]
-[Route("api/math/expression")]
+[Route("api/v1/simulations/math/expression")]
 public class MathExpressionController : ControllerBase
 {
     private readonly ILogger<MathExpressionController> _logger;

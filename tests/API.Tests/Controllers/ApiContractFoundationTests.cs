@@ -40,7 +40,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     public async Task InvalidModel_ReturnsProblemDetailsWithCorrelationId()
     {
         const string correlationId = "contract-test-correlation";
-        using var request = new HttpRequestMessage(HttpMethod.Delete, "/api/status/remove")
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/statuses/remove")
         {
             Content = JsonContent.Create(new { targetId = "enemy_1", instanceId = "not-a-guid" })
         };
@@ -593,12 +593,12 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Theory]
-    [InlineData("/api/status/apply")]
-    [InlineData("/api/modifiers/apply")]
-    [InlineData("/api/effect/apply")]
-    [InlineData("/api/gambits/reload")]
-    [InlineData("/api/game-resources/reload")]
-    [InlineData("/api/resource/reload")]
+    [InlineData("/api/v1/statuses/apply")]
+    [InlineData("/api/v1/modifiers/apply")]
+    [InlineData("/api/v1/simulations/effects/apply")]
+    [InlineData("/api/v1/gambits/reload")]
+    [InlineData("/api/v1/resources/reload")]
+    [InlineData("/api/v1/admin/resources/reload")]
     public async Task DirectGlobalMutationEndpoints_RequireAdminAuthority(string path)
     {
         using var response = await _client.PostAsJsonAsync(path, new { });
