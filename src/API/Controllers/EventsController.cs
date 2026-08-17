@@ -236,7 +236,18 @@ public class EventsController : ControllerBase
     {
         if (!expected.HasValue)
             return true;
-        if (@event is not GameEvent gameEvent || !gameEvent.Payload.TryGetValue(key, out var value))
+        if (@event is not GameEvent gameEvent)
+            return false;
+
+        var eventProperty = @event.GetType().GetProperty(
+            key,
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.Public |
+            System.Reflection.BindingFlags.IgnoreCase);
+        if (eventProperty?.GetValue(@event) is Guid eventGuid)
+            return eventGuid == expected.Value;
+
+        if (!gameEvent.Payload.TryGetValue(key, out var value))
             return false;
 
         return value switch

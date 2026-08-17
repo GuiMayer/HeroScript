@@ -99,6 +99,7 @@ public class GameEngineClientSimulator
         {
             actorId,
             targetId,
+            actionId = powerId ?? cardId,
             powerId,
             cardId,
             runId,
@@ -221,7 +222,12 @@ public class GameEngineClientSimulator
             sourceId
         };
 
-        var response = await _client.PostAsJsonAsync("/api/status/apply", request);
+        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/status/apply")
+        {
+            Content = JsonContent.Create(request)
+        };
+        message.Headers.Add("X-Admin-Key", "dev-admin-key");
+        var response = await _client.SendAsync(message);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
@@ -250,7 +256,10 @@ public class GameEngineClientSimulator
         var response = await _client.GetAsync($"/api/events?{query}");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return json.EnumerateArray().ToList();
+        var events = json.ValueKind == JsonValueKind.Array
+            ? json
+            : json.GetProperty("events");
+        return events.EnumerateArray().ToList();
     }
 
     // ==================== FORMULAS ====================
@@ -260,11 +269,17 @@ public class GameEngineClientSimulator
         var request = new
         {
             formulaName,
-            parameters
+            inputValue = 0f,
+            paramOverrides = parameters
         };
 
         var response = await _client.PostAsJsonAsync("/api/formula/evaluate", request);
-        response.EnsureSuccessStatusCode();
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException(
+                $"Formula evaluation failed with {(int)response.StatusCode} {response.StatusCode}: {error}");
+        }
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
@@ -293,5 +308,15 @@ public class GameEngineClientSimulator
     public async Task<HttpResponseMessage> PostRawAsync(string url, object? body = null)
     {
         return await _client.PostAsJsonAsync(url, body ?? new { });
+    }
+
+    public async Task<HttpResponseMessage> PostAdminRawAsync(string url, object? body = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = JsonContent.Create(body ?? new { })
+        };
+        request.Headers.Add("X-Admin-Key", "dev-admin-key");
+        return await _client.SendAsync(request);
     }
 }

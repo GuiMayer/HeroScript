@@ -271,7 +271,14 @@ public class CombatSystem : ICombatSystem
             var newState = command.ActionType switch
             {
                 ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, actor, ActionType.BASIC_ATTACK, BasicAttackActionId, command.TargetId!, command.CostOptionId, command.RunModifiers),
-                ActionType.POWER => ExecuteConfiguredAction(currentState, actor, ActionType.POWER, command.PowerId!, command.TargetId!, command.CostOptionId, command.RunModifiers),
+                ActionType.POWER => ExecuteConfiguredAction(
+                    currentState,
+                    actor,
+                    ActionType.POWER,
+                    command.PowerId!,
+                    command.TargetId ?? actor.EntityId,
+                    command.CostOptionId,
+                    command.RunModifiers),
                 ActionType.PASS => ExecutePass(currentState, actor),
                 ActionType.END_TURN => ExecuteEndTurn(currentState, actor),
                 _ => throw new InvalidOperationException($"Unknown action type: {command.ActionType}")
@@ -367,21 +374,23 @@ public class CombatSystem : ICombatSystem
             case ActionType.POWER:
                 if (string.IsNullOrWhiteSpace(command.PowerId))
                     return Result<bool>.Failure("Power ID is required");
-                if (string.IsNullOrWhiteSpace(command.TargetId))
-                    return Result<bool>.Failure("Target is required for power");
 
                 var actionDefinition = GetConfiguredAction(command.PowerId);
                 if (actionDefinition == null)
                     return Result<bool>.Failure($"Action definition not found: {command.PowerId}");
 
+                if (actionDefinition.RequiresTarget && string.IsNullOrWhiteSpace(command.TargetId))
+                    return Result<bool>.Failure("Target is required for power");
+
                 var affordabilityError = ValidateActionCosts(actor, actionDefinition.Costs, command.CostOptionId);
                 if (affordabilityError != null)
                     return Result<bool>.Failure(affordabilityError);
-                
-                if (state.GetEntity(command.TargetId) == null)
-                    return Result<bool>.Failure($"Target {command.TargetId} not found");
-                if (!state.GetEntity(command.TargetId)!.IsAlive)
-                    return Result<bool>.Failure($"Target {command.TargetId} is already dead");
+
+                var powerTargetId = command.TargetId ?? actor.EntityId;
+                if (state.GetEntity(powerTargetId) == null)
+                    return Result<bool>.Failure($"Target {powerTargetId} not found");
+                if (!state.GetEntity(powerTargetId)!.IsAlive)
+                    return Result<bool>.Failure($"Target {powerTargetId} is already dead");
                 break;
                 
             case ActionType.PASS:

@@ -34,13 +34,10 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         // Verify combat executed
         AssertJsonPropertyExists(autoPlayResult, "combatId");
         
-        // Verify final state
-        var finalState = await Client.GetCombatStateAsync(combatId);
-        AssertCombatStateValid(finalState);
-        
-        // Combat should have progressed (turn counter increased or combat ended)
-        var finalTurn = GetJsonInt(finalState, "currentTurn");
-        Assert.True(finalTurn >= 0);
+        // Standalone combats are archived when auto-play completes, so the
+        // terminal summary returned by the command is the authoritative result.
+        AssertJsonPropertyExists(autoPlayResult, "status");
+        AssertJsonPropertyExists(autoPlayResult, "totalTurns");
     }
 
     [Fact]
@@ -50,17 +47,17 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
         var playerEntityId = GetJsonString(runState, "playerEntityId");
 
-        // Apply synergy buff (simulating "3 knights" synergy bonus)
+        // Apply the implemented stackable strength buff as a synergy projection.
         var statusResult = await Client.ApplyStatusEffectAsync(
             targetId: playerEntityId,
-            statusId: "knight_synergy_bonus",
+            statusId: "strength",
             stacks: 3,
             duration: null, // Permanent synergy
             sourceId: "synergy_system");
 
         // Verify status applied
         AssertJsonPropertyExists(statusResult, "instanceId");
-        AssertJsonPropertyEquals(statusResult, "statusId", "knight_synergy_bonus");
+        AssertJsonPropertyEquals(statusResult, "statusId", "strength");
         AssertJsonPropertyEquals(statusResult, "stacks", 3);
 
         // Verify status is active on entity
@@ -76,7 +73,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         var initialGold = GetJsonInt(runState, "gold");
 
         // Open shop (unit shop)
-        var shopResponse = await Client.OpenShopAsync(runId, "auto_battler_shop");
+        var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
         
         AssertJsonPropertyExists(shopResponse, "shopInstanceId");
         AssertJsonPropertyExists(shopResponse, "items");
@@ -89,12 +86,12 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         {
             var firstUnit = items.EnumerateArray().First();
             var unitId = GetJsonString(firstUnit, "itemId");
-            var price = GetJsonInt(firstUnit, "price");
+            var price = GetJsonInt(firstUnit, "goldCost");
 
             if (initialGold >= price)
             {
                 var buyResult = await Client.BuyShopItemAsync(runId, shopInstanceId, unitId);
-                AssertJsonPropertyExists(buyResult, "success");
+                Assert.True(GetJsonBool(buyResult, "purchased"));
 
                 // Verify gold decreased
                 var updatedRunState = await Client.GetRunStateAsync(runId);
@@ -111,7 +108,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
         var initialGold = GetJsonInt(runState, "gold");
 
-        var shopResponse = await Client.OpenShopAsync(runId, "auto_battler_shop");
+        var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
         var shopInstanceId = GetJsonGuid(shopResponse, "shopInstanceId");
 
         // Get reroll cost
@@ -158,7 +155,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         await Client.AutoPlayCombatAsync(combatId1);
 
         // Round 1: Income phase (simulated via preparation)
-        var prepResponse = await Client.StartPreparationAsync(runId, "income_phase");
+        var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
         
         if (prepResponse.TryGetProperty("options", out var options) && options.GetArrayLength() > 0)
         {
@@ -182,7 +179,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
 
         // Start preparation for level up
-        var prepResponse = await Client.StartPreparationAsync(runId, "level_up_preparation");
+        var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
         
         AssertJsonPropertyExists(prepResponse, "preparationInstanceId");
         AssertJsonPropertyExists(prepResponse, "options");

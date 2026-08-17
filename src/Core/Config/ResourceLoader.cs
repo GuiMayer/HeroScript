@@ -78,6 +78,31 @@ namespace Core.Config
                 var merged = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
                 var origins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
+                // Core resources live directly below the provider root, while
+                // game configs live under <config>/Resources. Load the core
+                // baseline first so the config chain can deterministically
+                // override it with deltas.
+                var coreStream = _pathResolver!.OpenResource(relativePath, out var coreResult);
+                if (coreStream != null)
+                {
+                    try
+                    {
+                        using (coreStream)
+                        {
+                            var resources = LoadFromStream(coreStream, "core", strictMode);
+                            MergeResources(merged, origins, resources, "core", strictMode);
+                            _logger.LogDebug($"Loaded {resources.Count} core resources from {relativePath}");
+                            _logger.LogDebug($"Source: {coreResult.Provider!.Name} - {coreResult.PhysicalPath}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error loading core resource {relativePath}: {ex.Message}", ex);
+                        if (strictMode)
+                            throw;
+                    }
+                }
+
                 // Carregar e fazer merge de cada config na cadeia
                 foreach (var configName in chain)
                 {
@@ -158,6 +183,31 @@ namespace Core.Config
 
             var merged = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
             var origins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            var coreStream = _pathResolver!.OpenResource(relativePath, out var coreResult);
+            if (coreStream != null)
+            {
+                try
+                {
+                    using (coreStream)
+                    {
+                        var resources = await LoadFromStreamAsync(
+                            coreStream,
+                            "core",
+                            strictMode,
+                            cancellationToken);
+                        MergeResources(merged, origins, resources, "core", strictMode);
+                        _logger.LogDebug($"Loaded {resources.Count} core resources from {relativePath}");
+                        _logger.LogDebug($"Source: {coreResult.Provider!.Name} - {coreResult.PhysicalPath}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error loading core resource {relativePath}: {ex.Message}", ex);
+                    if (strictMode)
+                        throw;
+                }
+            }
 
             // Load and merge each config in the chain
             foreach (var configName in chain)

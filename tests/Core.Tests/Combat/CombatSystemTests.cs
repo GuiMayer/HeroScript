@@ -281,6 +281,33 @@ public class CombatSystemTests
     }
 
     [Fact]
+    public void ExecuteAction_PowerWithoutRequiredTarget_ShouldUseActorAsSelfTarget()
+    {
+        var actionManager = new Mock<IActionManager>();
+        SetupActionDefinitions(actionManager, new ActionDefinition
+        {
+            ActionId = "defend",
+            ActionType = ActionType.POWER,
+            RequiresTarget = false,
+            Costs = new ActionCosts()
+        });
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
+            _mockEventBus.Object,
+            actionManager: actionManager.Object);
+        var start = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+
+        var result = combatSystem.ExecuteAction(
+            start.Value.CombatId,
+            Command("hero-1", ActionType.POWER, powerId: "defend"));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal("hero-1", result.Value.ActionHistory.Single().TargetId);
+    }
+
+    [Fact]
     public void ExecuteAction_WithControlStatusOnOpaqueActorId_ShouldFail()
     {
         var statusManager = new Mock<IStatusEffectManager>();

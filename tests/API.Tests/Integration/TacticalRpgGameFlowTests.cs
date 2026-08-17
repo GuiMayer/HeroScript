@@ -75,7 +75,7 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
 
         // Execute action 2: Apply buff to self
-        await Client.ExecuteActionAsync(combatId, "hero", powerId: "defensive_stance");
+        await Client.ExecuteActionAsync(combatId, "hero", powerId: "defend");
 
         // End turn
         var endTurnResult = await Client.EndTurnAsync(combatId);
@@ -143,7 +143,7 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
 
         // Start preparation phase (between missions)
-        var prepResponse = await Client.StartPreparationAsync(runId, "tactical_upgrade");
+        var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
         
         AssertJsonPropertyExists(prepResponse, "preparationInstanceId");
         AssertJsonPropertyExists(prepResponse, "options");

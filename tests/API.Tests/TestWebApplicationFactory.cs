@@ -9,6 +9,7 @@ using Core.Combat.Gambits;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Common;
+using Core.Effects;
 using Core.Entity.Controllers;
 using Core.Resources;
 using Core.StatusEffects;
@@ -109,6 +110,57 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 RequiresTarget = false,
                 Tags = new List<string> { "heal", "utility" },
                 Costs = new ActionCosts()
+            },
+            new()
+            {
+                ActionId = "defend",
+                DisplayName = "Defend",
+                Description = "Deterministic test defense",
+                ActionType = ActionType.POWER,
+                RequiresTarget = false,
+                Tags = new List<string> { "defense", "starter" },
+                Costs = new ActionCosts
+                {
+                    Costs = new List<ResourceCost>
+                    {
+                        new() { ResourceId = "energy", Amount = 1 }
+                    }
+                }
+            },
+            new()
+            {
+                ActionId = "fireball",
+                DisplayName = "Fireball",
+                Description = "Deterministic test spell",
+                ActionType = ActionType.POWER,
+                RequiresTarget = true,
+                Tags = new List<string> { "attack", "fire", "magic" },
+                Costs = new ActionCosts
+                {
+                    Costs = new List<ResourceCost>
+                    {
+                        new() { ResourceId = "energy", Amount = 2 }
+                    }
+                },
+                Effects = new List<EffectDefinition>
+                {
+                    new() { Type = EffectType.DAMAGE, Target = EffectTarget.TARGET, FlatValue = 10 }
+                }
+            },
+            new()
+            {
+                ActionId = "aoe_grenade",
+                DisplayName = "Grenade",
+                Description = "Deterministic multi-target test action",
+                ActionType = ActionType.POWER,
+                RequiresTarget = true,
+                MultiTarget = true,
+                Tags = new List<string> { "attack", "area" },
+                Costs = new ActionCosts(),
+                Effects = new List<EffectDefinition>
+                {
+                    new() { Type = EffectType.DAMAGE, Target = EffectTarget.ALL_ENEMIES, FlatValue = 4 }
+                }
             }
         };
 

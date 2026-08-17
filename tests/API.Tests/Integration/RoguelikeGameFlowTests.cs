@@ -141,13 +141,13 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         {
             var firstItem = items.EnumerateArray().First();
             var itemId = GetJsonString(firstItem, "itemId");
-            var price = GetJsonInt(firstItem, "price");
+            var price = GetJsonInt(firstItem, "goldCost");
 
             if (initialGold >= price)
             {
                 var buyResult = await Client.BuyShopItemAsync(runId, shopInstanceId, itemId);
                 
-                AssertJsonPropertyExists(buyResult, "success");
+                Assert.True(GetJsonBool(buyResult, "purchased"));
                 
                 // Verify gold decreased
                 var updatedRunState = await Client.GetRunStateAsync(runId);
@@ -202,9 +202,13 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         // Verify response
         AssertJsonPropertyExists(discardResult, "runId");
 
-        // Verify card removed from hand
+        // Definition IDs can legitimately repeat; one deterministic instance
+        // must move zones without requiring every copy to disappear.
         var updatedHand = await Client.GetHandAsync(runId);
-        Assert.DoesNotContain(cardToDiscard, updatedHand);
+        Assert.Equal(hand.Count - 1, updatedHand.Count);
+        Assert.Equal(
+            hand.Count(cardId => cardId == cardToDiscard) - 1,
+            updatedHand.Count(cardId => cardId == cardToDiscard));
     }
 
     [Fact]

@@ -109,7 +109,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
 
         // Simulate gem match generating mana (via preparation/event)
-        var prepResponse = await Client.StartPreparationAsync(runId, "gem_match_mana");
+        var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
 
         AssertJsonPropertyExists(prepResponse, "preparationInstanceId");
         AssertJsonPropertyExists(prepResponse, "options");

@@ -76,8 +76,56 @@ namespace Core.Config
         /// </summary>
         public Stream? OpenResource(string relativePath, out ResourceResolutionResult result)
         {
-            result = Resolve(relativePath);
-            return result.Found ? result.Provider!.OpenRead(relativePath) : null;
+            List<IResourceProvider> providers;
+            lock (_lock)
+            {
+                providers = _providers.ToList();
+            }
+
+            var searchedLocations = new List<string>();
+            foreach (var provider in providers)
+            {
+                var physicalPath = provider.GetPhysicalPath(relativePath);
+                searchedLocations.Add($"{provider.Name}: {physicalPath ?? "N/A"}");
+
+                try
+                {
+                    if (!provider.Exists(relativePath))
+                        continue;
+
+                    var stream = provider.OpenRead(relativePath);
+                    if (stream == null)
+                        continue;
+
+                    result = new ResourceResolutionResult
+                    {
+                        Found = true,
+                        Provider = provider,
+                        RelativePath = relativePath,
+                        PhysicalPath = physicalPath,
+                        SearchedLocations = searchedLocations
+                    };
+                    return stream;
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    _logger.LogWarning(
+                        $"Resource provider '{provider.Name}' denied access to '{physicalPath}': {ex.Message}");
+                }
+                catch (IOException ex)
+                {
+                    _logger.LogWarning(
+                        $"Resource provider '{provider.Name}' could not open '{physicalPath}': {ex.Message}");
+                }
+            }
+
+            result = new ResourceResolutionResult
+            {
+                Found = false,
+                RelativePath = relativePath,
+                SearchedLocations = searchedLocations
+            };
+            return null;
         }
 
         /// <summary>

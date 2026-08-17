@@ -253,5 +253,36 @@
       { "op": "MULTIPLY", "value": "params.CRIT_TIER" },
       { "op": "ADD", "value": "1" }
     ]
+  },
+
+  "puzzle_damage": {
+    "description": "Deterministic damage produced by a puzzle match",
+    "params": {
+      "base_damage": 10,
+      "match_count": 3,
+      "multiplier": 1,
+      "bonus": 0
+    },
+    "operations": [
+      { "op": "SET", "value": "params.base_damage" },
+      { "op": "MULTIPLY", "value": "params.match_count" },
+      { "op": "MULTIPLY", "value": "params.multiplier" },
+      { "op": "ADD", "value": "params.bonus" }
+    ]
+  },
+
+  "combo_damage": {
+    "description": "Deterministic combo scaling with a 25 percent bonus per extra link",
+    "params": {
+      "base_damage": 10,
+      "combo_count": 1
+    },
+    "operations": [
+      { "op": "SET", "value": "params.combo_count" },
+      { "op": "SUBTRACT", "value": "1" },
+      { "op": "MULTIPLY", "value": "0.25" },
+      { "op": "ADD", "value": "1" },
+      { "op": "MULTIPLY", "value": "params.base_damage" }
+    ]
   }
 }
