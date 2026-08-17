@@ -44,8 +44,11 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task ManaSystem_SpendResource_AffordabilityCheck()
     {
-        // Setup combat with mana-based powers
-        var (combatId, combatState) = await SetupCombatAsync("mage_hero", new[] { "enemy_1" });
+        var (runId, runState) = await SetupRunAsync();
+        await Client.DrawCardsAsync(runId, 5);
+        var playerEntityId = GetJsonString(runState, "playerEntityId");
+        var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1" }, runId: runId);
+        var combatState = await Client.GetCombatStateAsync(combatId);
 
         var hero = combatState.GetProperty("hero");
         AssertEntityHasResource(hero, "energy");
@@ -55,24 +58,21 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var energy = resources.GetProperty("energy");
         var currentEnergy = GetJsonInt(energy, "current");
 
-        // Try to use a power that costs energy
-        if (currentEnergy >= 2)
-        {
-            var actionResult = await Client.ExecuteActionAsync(combatId, "mage_hero", 
-                targetId: "enemy_1", powerId: "fireball");
+        Assert.True(currentEnergy >= 2, "The default run must start combat with enough energy for Fireball.");
+        var fireballCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "fireball");
+        var actionResult = await Client.ExecuteActionAsync(combatId, playerEntityId,
+            targetId: "enemy_1", cardId: fireballCard, runId: runId);
 
-            // Verify action executed
-            AssertJsonPropertyExists(actionResult, "combatId");
+        AssertJsonPropertyEquals(actionResult, "combatId", combatId);
 
-            // Verify energy decreased
-            var updatedState = await Client.GetCombatStateAsync(combatId);
-            var updatedHero = updatedState.GetProperty("hero");
-            var updatedResources = updatedHero.GetProperty("resources");
-            var updatedEnergy = updatedResources.GetProperty("energy");
-            var newEnergy = GetJsonInt(updatedEnergy, "current");
+        // Verify the exact cost from the published Fireball definition was spent.
+        var updatedState = await Client.GetCombatStateAsync(combatId);
+        var updatedHero = updatedState.GetProperty("hero");
+        var updatedResources = updatedHero.GetProperty("resources");
+        var updatedEnergy = updatedResources.GetProperty("energy");
+        var newEnergy = GetJsonInt(updatedEnergy, "current");
 
-            Assert.True(newEnergy <= currentEnergy, "Energy should decrease or stay same after action");
-        }
+        Assert.Equal(currentEnergy - 2, newEnergy);
     }
 
     [Fact]
@@ -117,24 +117,23 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var prepInstanceId = GetJsonGuid(prepResponse, "preparationInstanceId");
         var options = prepResponse.GetProperty("options");
 
-        // Apply option that grants mana
-        if (options.GetArrayLength() > 0)
-        {
-            var manaOption = options.EnumerateArray().First();
-            var optionId = GetJsonString(manaOption, "optionId");
+        Assert.NotEmpty(options.EnumerateArray());
+        var manaOption = options.EnumerateArray().First();
+        var optionId = GetJsonString(manaOption, "optionId");
 
-            var applyResult = await Client.ApplyPreparationOptionAsync(runId, prepInstanceId, optionId);
+        var applyResult = await Client.ApplyPreparationOptionAsync(runId, prepInstanceId, optionId);
 
-            AssertJsonPropertyExists(applyResult, "applied");
-            Assert.True(GetJsonBool(applyResult, "applied"));
-        }
+        AssertJsonPropertyExists(applyResult, "applied");
+        Assert.True(GetJsonBool(applyResult, "applied"));
     }
 
     [Fact]
     public async Task PowerAffordability_InsufficientMana_Validation()
     {
-        // Setup combat with limited energy
-        var combatId = await Client.StartCombatAsync("mage_hero", new[] { "enemy_1" }, initialEnergy: 1);
+        var (runId, runState) = await SetupRunAsync();
+        await Client.DrawCardsAsync(runId, 5);
+        var playerEntityId = GetJsonString(runState, "playerEntityId");
+        var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1" }, initialEnergy: 1, runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
 
         var hero = combatState.GetProperty("hero");
@@ -145,21 +144,25 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         // Verify low energy
         Assert.True(currentEnergy <= 1, "Should start with low energy for this test");
 
-        // Try to use expensive power (should fail or be prevented)
-        var expensivePowerResponse = await Client.PostRawAsync($"/api/v1/combats/{combatId}/action", new
+        var currentRun = await Client.GetRunStateAsync(runId);
+        var fireballCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "fireball");
+        var expensivePowerResponse = await Client.PostRawAsync($"/api/v1/combats/{combatId}/commands", new
         {
-            actorId = "mage_hero",
-            targetId = "enemy_1",
-            powerId = "mega_spell", // Hypothetical expensive spell
-            actionType = "POWER"
+            commandId = Guid.NewGuid(),
+            expectedSequence = GetJsonInt(currentRun, "sequence"),
+            expectedStep = combatState.GetProperty("step").GetUInt64(),
+            type = "EXECUTE_ACTION",
+            payload = new
+            {
+                actorId = playerEntityId,
+                targetId = "enemy_1",
+                cardId = fireballCard,
+                actionId = fireballCard
+            }
         });
 
-        // Response should indicate failure or validation error
-        // In a real system, this might return 400 or a specific error
         var responseText = await expensivePowerResponse.Content.ReadAsStringAsync();
-        
-        // Verify some response (system should handle affordability)
-        Assert.NotNull(responseText);
-        Assert.NotEmpty(responseText);
+        Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, expensivePowerResponse.StatusCode);
+        Assert.Contains("energy", responseText, StringComparison.OrdinalIgnoreCase);
     }
 }

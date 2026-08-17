@@ -10,6 +10,12 @@ namespace API.Tests;
 /// </summary>
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly string _persistenceRoot = Path.Combine(
+        Path.GetTempPath(),
+        "HeroScript",
+        "api-integration-tests",
+        Guid.NewGuid().ToString("N"));
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var projectRoot = FindProjectRoot();
@@ -22,6 +28,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("Admin:Enabled", "true");
         builder.UseSetting("Admin:ApiKey", "dev-admin-key");
+        builder.UseSetting("Persistence:EventStorePath", Path.Combine(_persistenceRoot, "events"));
+        builder.UseSetting("Persistence:RunStatePath", Path.Combine(_persistenceRoot, "runs"));
+        builder.UseSetting("Persistence:ContentStorePath", Path.Combine(_persistenceRoot, "content"));
          
         // Configurar content root para encontrar arquivos de configuração
         if (projectRoot != null)

@@ -76,16 +76,13 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         // Play a card (simulate Strike)
         var hand = await Client.GetHandAsync(runId);
-        if (hand.Any())
-        {
-            var cardToPlay = hand.First();
-            var result = await Client.ExecuteActionAsync(combatId, playerEntityId, 
-                targetId: "enemy_1", cardId: cardToPlay, runId: runId);
+        Assert.NotEmpty(hand);
+        var cardToPlay = hand.First();
+        var result = await Client.ExecuteActionAsync(combatId, playerEntityId,
+            targetId: "enemy_1", cardId: cardToPlay, runId: runId);
 
-            // Verify action executed
-            Assert.True(result.TryGetProperty("combatState", out _) || 
-                       result.TryGetProperty("combatId", out _));
-        }
+        // Verify action executed through the run-owned combat command gateway.
+        AssertJsonPropertyEquals(result, "combatId", combatId);
 
         // End turn
         var endTurnResult = await Client.EndTurnAsync(combatId, runId);
@@ -100,24 +97,21 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         // Open card selection (simulate post-combat reward)
         var selectionResponse = await Client.StartCardSelectionAsync(runId, "basic_reward");
-        
+
         AssertJsonPropertyExists(selectionResponse, "selectionInstanceId");
         AssertJsonPropertyExists(selectionResponse, "options");
 
         var selectionInstanceId = GetJsonGuid(selectionResponse, "selectionInstanceId");
         var options = selectionResponse.GetProperty("options");
 
-        // Pick first card
-        if (options.GetArrayLength() > 0)
-        {
-            var firstOption = options.EnumerateArray().First();
-            var cardId = GetJsonString(firstOption, "cardId");
+        Assert.NotEmpty(options.EnumerateArray());
+        var firstOption = options.EnumerateArray().First();
+        var cardId = GetJsonString(firstOption, "cardId");
 
-            var pickResult = await Client.PickCardsAsync(runId, selectionInstanceId, new[] { cardId });
-            
-            AssertJsonPropertyExists(pickResult, "completed");
-            Assert.True(GetJsonBool(pickResult, "completed"));
-        }
+        var pickResult = await Client.PickCardsAsync(runId, selectionInstanceId, new[] { cardId });
+
+        AssertJsonPropertyExists(pickResult, "completed");
+        Assert.True(GetJsonBool(pickResult, "completed"));
     }
 
     [Fact]
@@ -129,32 +123,27 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         // Open shop
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
-        
+
         AssertJsonPropertyExists(shopResponse, "shopInstanceId");
         AssertJsonPropertyExists(shopResponse, "items");
 
         var shopInstanceId = GetJsonGuid(shopResponse, "shopInstanceId");
         var items = shopResponse.GetProperty("items");
 
-        // Try to buy first item if available
-        if (items.GetArrayLength() > 0)
-        {
-            var firstItem = items.EnumerateArray().First();
-            var itemId = GetJsonString(firstItem, "itemId");
-            var price = GetJsonInt(firstItem, "goldCost");
+        Assert.NotEmpty(items.EnumerateArray());
+        var firstItem = items.EnumerateArray().First();
+        var itemId = GetJsonString(firstItem, "itemId");
+        var price = GetJsonInt(firstItem, "goldCost");
+        Assert.True(initialGold >= price, "The shipped starting run must afford the first basic-shop item.");
 
-            if (initialGold >= price)
-            {
-                var buyResult = await Client.BuyShopItemAsync(runId, shopInstanceId, itemId);
-                
-                Assert.True(GetJsonBool(buyResult, "purchased"));
-                
-                // Verify gold decreased
-                var updatedRunState = await Client.GetRunStateAsync(runId);
-                var newGold = GetJsonInt(updatedRunState, "gold");
-                Assert.True(newGold <= initialGold);
-            }
-        }
+        var buyResult = await Client.BuyShopItemAsync(runId, shopInstanceId, itemId);
+
+        Assert.True(GetJsonBool(buyResult, "purchased"));
+
+        // Verify the exact persisted economy transition.
+        var updatedRunState = await Client.GetRunStateAsync(runId);
+        var newGold = GetJsonInt(updatedRunState, "gold");
+        Assert.Equal(initialGold - price, newGold);
     }
 
     [Fact]
@@ -172,17 +161,14 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         var prepInstanceId = GetJsonGuid(prepResponse, "preparationInstanceId");
         var options = prepResponse.GetProperty("options");
 
-        // Apply first option if available
-        if (options.GetArrayLength() > 0)
-        {
-            var firstOption = options.EnumerateArray().First();
-            var optionId = GetJsonString(firstOption, "optionId");
+        Assert.NotEmpty(options.EnumerateArray());
+        var firstOption = options.EnumerateArray().First();
+        var optionId = GetJsonString(firstOption, "optionId");
 
-            var applyResult = await Client.ApplyPreparationOptionAsync(runId, prepInstanceId, optionId);
-            
-            AssertJsonPropertyExists(applyResult, "applied");
-            Assert.True(GetJsonBool(applyResult, "applied"));
-        }
+        var applyResult = await Client.ApplyPreparationOptionAsync(runId, prepInstanceId, optionId);
+        
+        AssertJsonPropertyExists(applyResult, "applied");
+        Assert.True(GetJsonBool(applyResult, "applied"));
     }
 
     [Fact]
@@ -222,31 +208,25 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         var selectionResponse = await Client.StartCardSelectionAsync(runId, "basic_reward");
         var selectionInstanceId = GetJsonGuid(selectionResponse, "selectionInstanceId");
         var initialOptions = selectionResponse.GetProperty("options");
-        var initialCardIds = initialOptions.EnumerateArray()
+        Assert.NotEmpty(initialOptions.EnumerateArray());
+
+        var rerollCostGold = selectionResponse.GetProperty("rerollCostGold").GetInt32();
+        var effectiveCost = selectionResponse.GetProperty("freeRerollsRemaining").GetInt32() > 0
+            ? 0
+            : rerollCostGold;
+        Assert.True(initialGold >= effectiveCost);
+
+        var rerollResult = await Client.RerollCardSelectionAsync(runId, selectionInstanceId);
+        
+        AssertJsonPropertyExists(rerollResult, "options");
+        
+        var newOptions = rerollResult.GetProperty("options");
+        var newCardIds = newOptions.EnumerateArray()
             .Select(o => GetJsonString(o, "cardId"))
             .ToList();
 
-        // Reroll (if gold allows)
-        var rerollCostGold = 0;
-        if (selectionResponse.TryGetProperty("rerollCostGold", out var costProp))
-        {
-            rerollCostGold = costProp.GetInt32();
-        }
-
-        if (initialGold >= rerollCostGold)
-        {
-            var rerollResult = await Client.RerollCardSelectionAsync(runId, selectionInstanceId);
-            
-            AssertJsonPropertyExists(rerollResult, "options");
-            
-            var newOptions = rerollResult.GetProperty("options");
-            var newCardIds = newOptions.EnumerateArray()
-                .Select(o => GetJsonString(o, "cardId"))
-                .ToList();
-
-            // Options should change (probabilistic, but usually different)
-            // At minimum, verify structure is valid
-            Assert.NotEmpty(newCardIds);
-        }
+        Assert.NotEmpty(newCardIds);
+        var updatedRunState = await Client.GetRunStateAsync(runId);
+        Assert.Equal(initialGold - effectiveCost, GetJsonInt(updatedRunState, "gold"));
     }
 }

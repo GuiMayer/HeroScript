@@ -23,13 +23,18 @@ public class GameEngineClientSimulator
 
     // ==================== RUN MANAGEMENT ====================
 
-    public async Task<Guid> StartRunAsync(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player")
+    public async Task<Guid> StartRunAsync(
+        string configName = "default",
+        string runDefinitionId = "default_run",
+        string playerEntityId = "player",
+        ulong? seed = null)
     {
         var response = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
             configName,
             runDefinitionId,
-            playerEntityId
+            playerEntityId,
+            seed
         });
 
         response.EnsureSuccessStatusCode();
@@ -306,29 +311,6 @@ public class GameEngineClientSimulator
     }
 
     // ==================== STATUS EFFECTS ====================
-
-    public async Task<JsonElement> ApplyStatusEffectAsync(string targetId, string statusId, int stacks = 1, 
-        int? duration = null, string? sourceId = null)
-    {
-        var request = new
-        {
-            targetId,
-            statusId,
-            stacks,
-            duration,
-            sourceId
-        };
-
-        using var message = new HttpRequestMessage(HttpMethod.Post, "/api/v1/statuses/apply")
-        {
-            Content = JsonContent.Create(request)
-        };
-        message.Headers.Add("X-Admin-Key", "dev-admin-key");
-        var response = await _client.SendAsync(message);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
-    }
-
     public async Task<List<JsonElement>> GetStatusEffectsAsync(string targetId)
     {
         var response = await _client.GetAsync($"/api/v1/statuses/{targetId}");
@@ -382,12 +364,16 @@ public class GameEngineClientSimulator
 
     // ==================== ENTITIES ====================
 
-    public async Task<JsonElement> CreateEntityAsync(string definitionId, Dictionary<string, object>? overrides = null)
+    public async Task<JsonElement> CreateEntityAsync(
+        string definitionId,
+        string entityId,
+        string? displayName = null)
     {
         var request = new
         {
             definitionId,
-            overrides
+            entityId,
+            displayName
         };
 
         var response = await _client.PostAsJsonAsync("/api/v1/entities/create", request);
