@@ -802,21 +802,21 @@ Use these endpoints to validate configurations:
 
 ```bash
 # Validate entity definitions
-POST /api/entity/definitions/validate
+POST /api/v1/entities/definitions/validate
 {
   "definitionId": "hero"
 }
 
 # Validate action definitions
-POST /api/action/validate
+POST /api/v1/actions/validate
 {
   "actionId": "fireball"
 }
 
 # List all loaded definitions
-GET /api/entity/definitions
-GET /api/action
-GET /api/formula
+GET /api/v1/entities/definitions
+GET /api/v1/actions
+GET /api/v1/simulations/formulas
 ```
 
 ### Configuration Debugging
@@ -835,15 +835,15 @@ GET /api/formula
 
 **Check loaded config:**
 ```bash
-GET /api/config/current
+GET /api/v1/admin/config/current
 # Returns currently active configuration name and loaded files
 ```
 
 **Reload configuration without restart:**
 ```bash
-POST /api/formula/reload
-POST /api/action/reload
-POST /api/gambits/reload
+POST /api/v1/simulations/formulas/reload
+POST /api/v1/actions/reload
+POST /api/v1/gambits/reload
 ```
 
 ---
@@ -855,7 +855,7 @@ Before starting a game session, verify:
 - [ ] All required definition files exist for your genre
 - [ ] Entity IDs referenced in code match definition IDs
 - [ ] All action costs reference valid resources
-- [ ] Formula syntax is valid (use `/api/formula/{name}` to test)
+- [ ] Formula syntax is valid (use `/api/v1/simulations/formulas/{name}` to test)
 - [ ] Status effects reference valid timings
 - [ ] Gambit conditions reference valid entity properties
 - [ ] No circular dependencies between definitions
@@ -863,7 +863,7 @@ Before starting a game session, verify:
 **Quick Test:**
 ```bash
 # Start a minimal run to verify config
-POST /api/run/start
+POST /api/v1/runs
 {
   "configName": "your_genre",
   "runDefinitionId": "test_run",

@@ -150,7 +150,7 @@ public void UpdateGold(Guid runId, int delta)
 - Considerar migração para banco temporal quando volume crescer
 
 **Run State (.json):**
-- Deletar manualmente runs antigas via `DELETE /api/run/{runId}`
+- Deletar manualmente runs antigas via `DELETE /api/v1/runs/{runId}`
 - Considerar política de TTL para runs inativas (futuro)
 
 ## Migração Futura

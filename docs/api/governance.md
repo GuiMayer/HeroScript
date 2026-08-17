@@ -18,7 +18,6 @@ As rotas sob `/api/v1` são classificadas com uma das seguintes estabilidades:
 | `experimental` | Pode mudar em versão menor; a resposta explicita essa condição. |
 | `planned` | É documentada apenas como intenção e não integra o contrato executável. |
 | `admin` | Exige credencial administrativa e não é caminho autoritativo de gameplay. |
-| `legacy` | Adaptador temporário em `/api/*`; não recebe capacidades novas. |
 
 O núcleo público estável é formado por consultas e comandos autoritativos de
 run e combate, conteúdo publicado, health/capabilities, replay e eventos
@@ -31,8 +30,6 @@ experimentais até uma revisão explícita desta política.
 - Campos de resposta existentes nunca mudam de significado; campos novos são
   opcionais para consumidores.
 - Remoções, renomes e mudanças semânticas exigem `/api/v2`.
-- Um endpoint legado recebe aviso de depreciação antes de ser removido e aparece
-  no mapa de migração.
 - O changelog registra toda alteração de contrato publicada.
 
 ## Disciplina determinística

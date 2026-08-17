@@ -7,7 +7,7 @@ The Cache Monitoring API provides real-time diagnostics and management for all c
 ## Base URL
 
 ```
-/api/diagnostics
+/api/v1/admin/diagnostics
 ```
 
 ## Authentication
@@ -35,13 +35,13 @@ Currently, no authentication is required. Future implementations should add auth
 
 ### 1. Get All Cache Statistics
 
-**Endpoint:** `GET /api/diagnostics/cache/stats`
+**Endpoint:** `GET /api/v1/admin/diagnostics/cache/stats`
 
 **Description:** Retrieves comprehensive statistics for all registered cache services including hit rates, capacity, utilization, and performance metrics.
 
 **Request:**
 ```bash
-curl -X GET http://localhost:5000/api/diagnostics/cache/stats
+curl -X GET http://localhost:5000/api/v1/admin/diagnostics/cache/stats
 ```
 
 **Response (200 OK):**
@@ -94,7 +94,7 @@ curl -X GET http://localhost:5000/api/diagnostics/cache/stats
 
 ### 2. Get Cache Statistics by Name
 
-**Endpoint:** `GET /api/diagnostics/cache/stats/{cacheName}`
+**Endpoint:** `GET /api/v1/admin/diagnostics/cache/stats/{cacheName}`
 
 **Description:** Retrieves statistics for a specific cache service by its name.
 
@@ -103,7 +103,7 @@ curl -X GET http://localhost:5000/api/diagnostics/cache/stats
 
 **Request:**
 ```bash
-curl -X GET http://localhost:5000/api/diagnostics/cache/stats/EntityDefinitions_default
+curl -X GET http://localhost:5000/api/v1/admin/diagnostics/cache/stats/EntityDefinitions_default
 ```
 
 **Response (200 OK):**
@@ -129,7 +129,7 @@ curl -X GET http://localhost:5000/api/diagnostics/cache/stats/EntityDefinitions_
 
 ### 3. Invalidate Entire Cache
 
-**Endpoint:** `POST /api/diagnostics/cache/invalidate/{cacheName}`
+**Endpoint:** `POST /api/v1/admin/diagnostics/cache/invalidate/{cacheName}`
 
 **Description:** Clears all entries from a specific cache service. This operation cannot be undone and will force the cache to reload data on next access.
 
@@ -138,7 +138,7 @@ curl -X GET http://localhost:5000/api/diagnostics/cache/stats/EntityDefinitions_
 
 **Request:**
 ```bash
-curl -X POST http://localhost:5000/api/diagnostics/cache/invalidate/EntityDefinitions_default
+curl -X POST http://localhost:5000/api/v1/admin/diagnostics/cache/invalidate/EntityDefinitions_default
 ```
 
 **Response (200 OK):**
@@ -164,7 +164,7 @@ curl -X POST http://localhost:5000/api/diagnostics/cache/invalidate/EntityDefini
 
 ### 4. Invalidate Specific Cache Key
 
-**Endpoint:** `POST /api/diagnostics/cache/invalidate/{cacheName}/key`
+**Endpoint:** `POST /api/v1/admin/diagnostics/cache/invalidate/{cacheName}/key`
 
 **Description:** Removes a specific key from a cache service without affecting other cached entries.
 
@@ -176,7 +176,7 @@ curl -X POST http://localhost:5000/api/diagnostics/cache/invalidate/EntityDefini
 
 **Request:**
 ```bash
-curl -X POST "http://localhost:5000/api/diagnostics/cache/invalidate/EntityDefinitions_default/key?key=hero_001"
+curl -X POST "http://localhost:5000/api/v1/admin/diagnostics/cache/invalidate/EntityDefinitions_default/key?key=hero_001"
 ```
 
 **Response (200 OK):**
@@ -197,13 +197,13 @@ curl -X POST "http://localhost:5000/api/diagnostics/cache/invalidate/EntityDefin
 
 ### 5. Get Cache Health Status
 
-**Endpoint:** `GET /api/diagnostics/health/cache`
+**Endpoint:** `GET /api/v1/admin/diagnostics/health/cache`
 
 **Description:** Retrieves the overall health status of all cache services with individual service health indicators.
 
 **Request:**
 ```bash
-curl -X GET http://localhost:5000/api/diagnostics/health/cache
+curl -X GET http://localhost:5000/api/v1/admin/diagnostics/health/cache
 ```
 
 **Response (200 OK):**

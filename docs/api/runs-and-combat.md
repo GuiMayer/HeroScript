@@ -11,8 +11,8 @@
 5. Para encontro ativo, use o gateway de combate associado à run.
 6. Atualize o cliente exclusivamente pelo estado e hashes da resposta aceita.
 
-As rotas de conveniência antigas existem para compatibilidade. Clientes que
-precisam de retry, reconexão ou replay devem usar apenas os gateways v1.
+O contrato v1 é a única superfície HTTP exposta. Clientes que precisam de
+retry, reconexão ou replay devem usar os gateways de comando descritos aqui.
 
 ## Exemplo: avançar uma run
 

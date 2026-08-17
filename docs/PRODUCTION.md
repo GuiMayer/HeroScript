@@ -55,7 +55,7 @@ docker run -d \
   heroscript-api
 
 # 3. Check health
-curl http://localhost:8080/api/health
+curl http://localhost:8080/api/v1/health/live
 ```
 
 #### Using Docker Compose
@@ -323,8 +323,8 @@ AllowedOrigins__0=https://yourgame.com
 
 ### Post-Deployment
 
-- [ ] **Health endpoint responding** (`GET /api/health`)
-- [ ] **Admin endpoints require X-Admin-Key** (`POST /api/actions/reload` returns 401 without header)
+- [ ] **Health endpoint responding** (`GET /api/v1/health/live`)
+- [ ] **Admin endpoints require X-Admin-Key** (`POST /api/v1/actions/reload` returns 401 without header)
 - [ ] **CORS working** (frontend can access API)
 - [ ] **Logs are structured** (check `journalctl` or `docker logs`)
 - [ ] **Backup configured** for `data/events/` and `data/runs/`
@@ -388,7 +388,7 @@ sudo chown -R heroscript:heroscript /opt/heroscript/data
 sudo systemctl start heroscript
 
 # 5. Verify
-curl http://localhost:5260/api/health
+curl http://localhost:5260/api/v1/health/live
 ```
 
 ---
@@ -399,7 +399,7 @@ curl http://localhost:5260/api/health
 
 ```bash
 # Basic health check
-curl http://localhost:5260/api/health
+curl http://localhost:5260/api/v1/health/live
 
 # Expected response
 {
@@ -489,7 +489,7 @@ sudo systemctl restart heroscript
 
 ### 401 Unauthorized on Admin Endpoints
 
-**Symptom:** `POST /api/actions/reload` returns `401 Unauthorized`
+**Symptom:** `POST /api/v1/actions/reload` returns `401 Unauthorized`
 
 **Cause:** Missing or incorrect `X-Admin-Key` header
 
@@ -499,7 +499,7 @@ sudo systemctl restart heroscript
 sudo systemctl show heroscript | grep HERESCRIPT_ADMIN_KEY
 
 # Test with correct key
-curl -X POST http://localhost:5260/api/actions/reload \
+curl -X POST http://localhost:5260/api/v1/actions/reload \
   -H "X-Admin-Key: your-secret-key-here"
 ```
 
@@ -526,7 +526,7 @@ sudo systemctl restart heroscript
 curl -H "Origin: https://yourgame.com" \
   -H "Access-Control-Request-Method: GET" \
   -X OPTIONS \
-  http://localhost:5260/api/actions -v
+  http://localhost:5260/api/v1/actions -v
 ```
 
 ---
@@ -574,7 +574,7 @@ docker run -d \
   heroscript-api:latest
 
 # 3. Health check new container
-curl http://localhost:8081/api/health
+curl http://localhost:8081/api/v1/health/live
 
 # 4. Update nginx upstream (or switch traffic)
 
@@ -601,7 +601,7 @@ sudo cp /backup/heroscript-v1.0.0/API.dll /opt/heroscript/
 sudo systemctl start heroscript
 
 # 4. Verify
-curl http://localhost:5260/api/health
+curl http://localhost:5260/api/v1/health/live
 ```
 
 ---
@@ -630,7 +630,7 @@ Cache static responses to reduce load:
 # Add to nginx config
 proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=heroscript_cache:10m inactive=60m;
 
-location /api/actions {
+location /api/v1/actions {
     proxy_cache heroscript_cache;
     proxy_cache_valid 200 5m;
     proxy_cache_key "$request_uri";
@@ -691,7 +691,7 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 sudo certbot --nginx -d api.yourgame.com
 
 # 8. Verify
-curl https://api.yourgame.com/api/health
+curl https://api.yourgame.com/api/v1/health/live
 ```
 
 ---

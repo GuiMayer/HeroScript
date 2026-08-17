@@ -22,14 +22,14 @@ dotnet run
 ### Verify API is Running
 
 ```bash
-curl http://localhost:5260/api/health
+curl http://localhost:5260/api/v1/health/live
 ```
 
 ### Integration Guides
 
 - **[Unity/Godot/Web Integration](docs/CLIENT_INTEGRATION.md)** - Consume API from game clients
 - **[Production Deployment](docs/PRODUCTION.md)** - Deploy API to production
-- **[API v1 Guide](docs/api/README.md)** - Contrato público, exemplos e compatibilidade
+- **[API v1 Guide](docs/api/README.md)** - Contrato público e exemplos
 
 **Performance:** 5-8ms latency on localhost (imperceptible for turn-based games)
 
@@ -39,8 +39,8 @@ curl http://localhost:5260/api/health
 
 ### Engine (estabilização em andamento)
 - **Core Systems:** Combat, Deck, Shop, Status Effects e Gambits implementados
-- **Validação atual:** 1.250 testes Core e 125 testes unitários da API aprovados
-- **Integração:** o bloqueio de inicialização foi corrigido; os fluxos legados ainda precisam ser alinhados aos contratos e ao conteúdo atual
+- **Validação atual:** 1.306 testes Core e 219 testes da API aprovados
+- **Integração:** comandos e read models de run/combate são expostos pelo contrato único `/api/v1`
 - **Build:** concluído sem erros; warnings de nulidade restantes serão tratados incrementalmente
 
 ### Blockers Críticos para MVP Jogável ❌
@@ -71,8 +71,8 @@ HeroScript/
 │   ├── Core.CLI/             # CLI de debug e testes
 │   └── Calculator/           # Calculadora de debug
 ├── tests/                    # Testes automatizados
-│   ├── Core.Tests/           # Testes do Core (1.248 testes)
-│   ├── API.Tests/            # Testes da API (150 testes: 125 unit + 25 integration)
+│   ├── Core.Tests/           # Testes do Core (1.306 testes)
+│   ├── API.Tests/            # Testes automatizados da API (219 testes)
 │   └── heroscript.runsettings # Configuração de timeout para testes
 ├── .github/workflows/        # CI/CD pipeline
 │   └── ci.yml                # GitHub Actions
@@ -85,7 +85,7 @@ HeroScript/
 **Fase atual:** estabilização técnica da Fase 3; Map System e Event System continuam bloqueadores para o MVP jogável.
 
 - **Core.Tests:** 1.306 testes aprovados na última validação completa
-- **API.Tests:** 213 testes aprovados na última validação completa
+- **API.Tests:** 219 testes aprovados na última validação completa
 - **Fase 0:** Config, Math e Resources implementados
 - **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados
 - **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados
@@ -177,13 +177,13 @@ Calculadora simples para testar expressões matemáticas.
 
 Projetos de testes automatizados usando xUnit.
 
-**Core.Tests (723 testes):**
+**Core.Tests (1.306 testes):**
 - Testes do MathEngine
 - Testes do ConfigManager
 - Testes do ResourceLoader
 - Testes de todos os sistemas Core
 
-**API.Tests (150 testes: 125 unit + 25 integration):**
+**API.Tests (219 testes):**
 - Testes unitários de controllers (mocks)
 - Testes de integração com TestServer
 - Categorização via `[Trait("Category", "Unit|Integration")]`
@@ -212,17 +212,16 @@ export HERESCRIPT_ADMIN_KEY="your-secret-key-here"
 
 **Uso:**
 ```bash
-curl -X POST http://localhost:5260/api/action/reload \
+curl -X POST http://localhost:5260/api/v1/actions/reload \
   -H "X-Admin-Key: your-secret-key-here"
 ```
 
 **Endpoints Protegidos:**
-- `POST /api/action/reload`
-- `POST /api/game-resources/reload`
-- `POST /api/config/load`
-- `POST /api/modifiers/reload`
-- `POST /api/gambits/reload`
-- `POST /api/status/reload`
+- `POST /api/v1/actions/reload`
+- `POST /api/v1/resources/reload`
+- `POST /api/v1/admin/config/load`
+- `POST /api/v1/modifiers/reload`
+- `POST /api/v1/gambits/reload`
 
 ⚠️ **Produção:** Configure uma chave forte antes de deploy. Não commite chaves em `appsettings.json`.
 
@@ -250,7 +249,7 @@ HeroScript suporta persistência em disco para restart-safety e auditoria.
 - **JsonFileEventStore**: Eventos em formato `.jsonl` (append-only, auditoria completa)
 - **JsonFileRunStateRepository**: Run state em `{runId}.json` (write atômico, auto-load)
 
-**Restart Safety:** Após reiniciar o processo, `GET /api/run/{runId}` retorna o estado anterior e `GET /api/events` inclui eventos de sessões anteriores.
+**Restart Safety:** Após reiniciar o processo, `GET /api/v1/runs/{runId}` retorna o estado anterior. Use o journal e os eventos duráveis da run para recuperação.
 
 **Documentação completa:** [docs/persistence.md](docs/persistence.md)
 
@@ -359,7 +358,7 @@ For rapid iteration during development:
 1. **Edit config files** (e.g., `data/configs/default/Actions/fireball.json`)
 2. **Reload via API** (no restart needed):
    ```bash
-   curl -X POST http://localhost:5260/api/actions/reload \
+   curl -X POST http://localhost:5260/api/v1/actions/reload \
      -H "X-Admin-Key: dev-admin-key"
    ```
 3. **Test immediately** in running game client
@@ -390,13 +389,13 @@ dotnet build tools/Core.CLI/Core.CLI.csproj
 # Todos os testes
 dotnet test
 
-# Apenas Core (723 testes)
+# Apenas Core
 dotnet test tests/Core.Tests/Core.Tests.csproj
 
-# Apenas API - testes unitários (125 testes, rápido)
+# Apenas API - testes unitários
 dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Unit"
 
-# Apenas API - testes de integração (25 testes, usa TestServer)
+# Apenas API - testes de integração
 dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Integration"
 ```
 
@@ -409,9 +408,9 @@ jobs:
   test:
     steps:
       - Build solution
-      - Core Tests (723 testes)
-      - API Unit Tests (125 testes) - filtro Category=Unit
-      - API Integration Tests (25 testes) - filtro Category=Integration, timeout 5min
+      - Core Tests
+      - API Unit Tests - filtro Category=Unit
+      - API Integration Tests - filtro Category=Integration, timeout 5min
 ```
 
 Pipeline executa em:
@@ -433,24 +432,17 @@ O projeto segue a arquitetura descrita em [`docs/architecture/overview.md`](docs
 
 ### API REST
 
-A API REST expõe funcionalidades do Core através de endpoints HTTP com documentação Swagger interativa.
+A API REST expõe funcionalidades do Core exclusivamente sob `/api/v1`.
 
 **Documentação Completa:**
-- [API Endpoints](docs/api/endpoints.md) - Referência dos endpoints atuais
-- Swagger UI disponível em `http://localhost:5260/swagger` em desenvolvimento
+- [API v1](docs/api/README.md) - Referência dos endpoints e fluxos públicos
+- OpenAPI em `http://localhost:5260/openapi/v1.json` e UI em `http://localhost:5260/docs/api` durante o desenvolvimento
 
 **APIs Disponíveis:**
-- **Action Management** (`/api/action`) - Gerenciamento de definições de ações de combate
-- **Resource Management** (`/api/game-resources`) - Gerenciamento de recursos de gameplay (HP, MP, etc)
-- **Combat System** (`/api/combat`) - Sistema de combate integrado com ações e recursos
-- **Configuration** (`/api/config`) - Gerenciamento de configurações e herança delta
-- **Math Engine** (`/api/formula`, `/api/math/expression`, `/api/operation`) - Execução de fórmulas e expressões
-- **Effect Engine** (`/api/effect`) - Aplicação central de efeitos data-driven
-- **Status Effects** (`/api/status`) - Status ativos, stacks, ticks e modifiers de pipeline
-- **Script Modifiers** (`/api/modifiers`) - Modificadores data-driven aplicáveis por owner
-- **Gambits** (`/api/gambits`) - Decisão de ações por regras JSON
-- **Entities** (`/api/entity`) - Definições e criação de entidades
-- **Events** (`/api/events`) - Histórico e consulta de eventos
+- **Runtime** (`/api/v1/runs`, `/api/v1/combats`) - Runs, comandos e read models autoritativos
+- **Conteúdo** (`/api/v1/content`) - Revisões e catálogos imutáveis
+- **Operação** (`/api/v1/health/*`, `/api/v1/capabilities`) - Saúde e capacidades
+- **Administração e simulação** (`/api/v1/admin/*`, `/api/v1/simulations/*`) - Ferramentas fora do loop de jogo
 
 **Roadmap:**
 - [API Roadmap](docs/roadmap/README.md) - Roadmap completo da API (6 fases)

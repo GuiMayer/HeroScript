@@ -7,11 +7,11 @@
 
 ## Quick Links
 
-- **[Client Integration Guide](CLIENT_INTEGRATION.md)** - Integrate with Unity, Godot, Web, Python
+- **[Client Integration Guide](CLIENT_INTEGRATION.md)** - Integrate clients through the v1 contract
 - **[Production Deployment Guide](PRODUCTION.md)** - Deploy API to production servers
-- **[API v1 Guide](api/README.md)** - Contrato público, exemplos e migração
+- **[API v1 Guide](api/README.md)** - Contrato público e exemplos
 - [Architecture Overview](architecture/overview.md)
-- [API Endpoints](api/endpoints.md)
+- [API v1 Contract](api/README.md)
 - [Development Roadmap](roadmap/README.md)
 
 ---
@@ -51,7 +51,6 @@
 
 ## API Reference
 
-- **[API Endpoints](api/endpoints.md)** - Documentação completa dos endpoints REST
 - **[API v1 Contract Guide](api/README.md)** - Referência versionada para clientes
 - **[API Conventions](roadmap/analysis/api-conventions.md)** - Convenções e padrões da API
 
@@ -99,10 +98,10 @@
 docker-compose up -d
 
 # 2. Verify health
-curl http://localhost:5260/api/health
+curl http://localhost:5260/api/v1/health/live
 
 # 3. Integrate with your game client
-# See CLIENT_INTEGRATION.md for Unity/Godot/Web examples
+# See CLIENT_INTEGRATION.md for the v1 client workflow
 ```
 
 ### Local Development
@@ -134,7 +133,7 @@ dotnet test tests/API.Tests/API.Tests.csproj
 
 1. **[Integrate your game client](CLIENT_INTEGRATION.md)** - Unity, Godot, Web, Python examples
 2. **[Deploy to production](PRODUCTION.md)** - Docker, systemd, nginx configuration
-3. **[Explore API endpoints](api/endpoints.md)** - Complete REST API reference
+3. **[Explore the API contract](api/README.md)** - Complete v1 reference
 
 ---
 
@@ -143,7 +142,7 @@ dotnet test tests/API.Tests/API.Tests.csproj
 ### Estado Verificado
 
 - **Core.Tests:** 1.306 testes aprovados na última validação completa
-- **API.Tests:** 213 testes aprovados na última validação completa
+- **API.Tests:** 219 testes aprovados na última validação completa
 
 ### Phase 0 + Phase 1 + Phase 2
 

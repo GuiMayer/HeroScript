@@ -17,7 +17,7 @@ Todos os requests HTTP recebem um **Correlation ID** único que rastreia o reque
 
 **Enviar Correlation ID:**
 ```bash
-curl -X GET http://localhost:5260/api/combat/abc123 \
+curl -X GET http://localhost:5260/api/v1/combats/abc123 \
   -H "X-Correlation-ID: 3fa85f64-5717-4562-b3fc-2c963f66afa6"
 ```
 
