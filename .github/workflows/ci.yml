@@ -11,6 +11,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -25,6 +27,19 @@ jobs:
       
       - name: API Unit Tests
         run: dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Unit" --no-build -c Release
+
+      - name: API contract documentation
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Contract" --no-build -c Release
+
+      - name: Contract change policy
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: |
+          changed_files="$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})"
+          if [[ "$changed_files" == *"openapi/heroscript-v1.json"* && "$changed_files" != *"docs/api/changelog.md"* ]]; then
+            echo "An OpenAPI change must include docs/api/changelog.md"
+            exit 1
+          fi
+          git diff --check ${{ github.event.before }} ${{ github.sha }}
       
       - name: API Integration Tests
         timeout-minutes: 5
