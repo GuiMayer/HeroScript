@@ -11,7 +11,7 @@ public class CreateEntityRequest
     public string DefinitionId { get; set; } = string.Empty;
     
     /// <summary>
-    /// ID único para a entidade (opcional, será gerado se não fornecido).
+    /// ID único para a entidade. Obrigatório para que a criação seja reproduzível.
     /// </summary>
     public string? EntityId { get; set; }
     
@@ -21,7 +21,7 @@ public class CreateEntityRequest
     public string? DisplayName { get; set; }
     
     /// <summary>
-    /// Valores iniciais de recursos (opcional, usa os padrões da definição se não fornecido).
+    /// Não suportado neste endpoint. Publique uma definição imutável ou aplique um comando de domínio.
     /// </summary>
     public Dictionary<string, float>? InitialResources { get; set; }
 }

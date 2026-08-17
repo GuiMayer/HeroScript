@@ -1,10 +1,5 @@
 using API.Contracts;
-using Core.Abstractions.Persistence;
-using Core.Config;
-using Core.Content;
-using Core.Determinism;
-using Core.Run;
-using Core.Run.Replay;
+using API.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -13,56 +8,30 @@ namespace API.Controllers;
 [Route("api/v1/challenges/daily/current")]
 public sealed class DailyChallengeController : BaseApiController
 {
-    private readonly IResourceCatalog<DailyChallengeDefinition> _challenges;
-    private readonly IContentManifestProvider _content;
-    private readonly IRunManager _runs;
-    private readonly IRunStateRepository _repository;
-    private readonly IRunReplayService _replay;
+    private readonly DailyChallengeService _dailyChallenges;
 
     public DailyChallengeController(
-        IResourceCatalog<DailyChallengeDefinition> challenges,
-        IContentManifestProvider content,
-        IRunManager runs,
-        IRunStateRepository repository,
-        IRunReplayService replay,
+        DailyChallengeService dailyChallenges,
         ILogger<DailyChallengeController> logger)
         : base(logger)
     {
-        _challenges = challenges;
-        _content = content;
-        _runs = runs;
-        _repository = repository;
-        _replay = replay;
+        _dailyChallenges = dailyChallenges;
     }
 
     [HttpGet]
     public IActionResult GetCurrent()
     {
-        var challenge = ResolveCurrent();
-        if (challenge == null)
-            return ApiNotFound("Current daily challenge is not configured");
-        var manifest = _content.GetManifest(challenge.ConfigName);
-        if (manifest.IsFailure)
-        {
-            return ApiProblem(
-                StatusCodes.Status503ServiceUnavailable,
-                ApiErrorCodes.DependencyUnavailable,
-                "Challenge content unavailable",
-                manifest.Error);
-        }
+        var result = _dailyChallenges.GetCurrent();
+        if (!result.IsSuccess)
+            return MapFailure(result.Error!);
 
-        var proof = new
-        {
-            challenge,
-            contentRevision = manifest.Value.Revision,
-            engineVersion = DeterministicContext.CurrentEngineVersion
-        };
+        var proof = result.Value!;
         return Ok(new
         {
-            proof.challenge,
-            proof.contentRevision,
-            proof.engineVersion,
-            proofHash = CanonicalJson.ComputeHash(proof)
+            challenge = proof.Challenge,
+            proof.ContentRevision,
+            proof.EngineVersion,
+            proofHash = proof.ProofHash
         });
     }
 
@@ -71,41 +40,21 @@ public sealed class DailyChallengeController : BaseApiController
         [FromBody] DailyAttemptRequest request,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.PlayerId) || request.PlayerId.Length > 128)
-            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Player is required", "PlayerId is required");
-        var challenge = ResolveCurrent();
-        if (challenge == null)
-            return ApiNotFound("Current daily challenge is not configured");
+        var result = await _dailyChallenges.StartAttemptAsync(request.PlayerId, cancellationToken);
+        if (!result.IsSuccess)
+            return MapFailure(result.Error!);
 
-        var result = _runs.StartRun(new RunStartOptions(
-            challenge.ConfigName,
-            challenge.RunDefinitionId,
-            request.PlayerId,
-            challenge.Seed,
-            ModeId: challenge.ModeId,
-            ChallengeId: challenge.ChallengeId));
-        if (result.IsSuccess)
-            return Ok(MapAttempt(challenge, result.Value));
-
-        if (result.Error.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+        var attempt = result.Value!;
+        return Ok(new
         {
-            foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken))
-            {
-                var existing = await _repository.LoadLatestAsync(runId, cancellationToken);
-                if (existing != null &&
-                    string.Equals(existing.PlayerEntityId, request.PlayerId, StringComparison.Ordinal) &&
-                    string.Equals(existing.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal))
-                {
-                    return Ok(MapAttempt(challenge, existing));
-                }
-            }
-        }
-
-        return ApiProblem(
-                StatusCodes.Status422UnprocessableEntity,
-                ApiErrorCodes.RuleViolation,
-                "Daily attempt rejected",
-                result.Error);
+            attempt.ChallengeId,
+            attempt.RunId,
+            attempt.Sequence,
+            attempt.Step,
+            attempt.Seed,
+            attempt.ContentRevision,
+            stateHash = attempt.StateHash
+        });
     }
 
     [HttpPost("submissions")]
@@ -113,40 +62,21 @@ public sealed class DailyChallengeController : BaseApiController
         [FromBody] DailySubmissionRequest request,
         CancellationToken cancellationToken)
     {
-        var challenge = ResolveCurrent();
-        if (challenge == null)
-            return ApiNotFound("Current daily challenge is not configured");
-        if (string.IsNullOrWhiteSpace(request.PlayerId) || request.PlayerId.Length > 128)
-            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Player is required", "PlayerId is required");
-        var state = await _repository.LoadLatestAsync(request.RunId, cancellationToken);
-        if (state == null || !string.Equals(state.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal))
-            return ApiNotFound($"Daily attempt not found: {request.RunId}");
-        if (!string.Equals(state.PlayerEntityId, request.PlayerId, StringComparison.Ordinal))
-        {
-            return ApiProblem(
-                StatusCodes.Status403Forbidden,
-                ApiErrorCodes.RuleViolation,
-                "Attempt ownership mismatch",
-                "The run does not belong to the submitted player");
-        }
+        var result = await _dailyChallenges.SubmitAsync(request.RunId, request.PlayerId, cancellationToken);
+        if (!result.IsSuccess)
+            return MapFailure(result.Error!);
 
-        var verification = await _replay.VerifyAsync(request.RunId, cancellationToken);
-        return verification.IsValid
-            ? Ok(new
-            {
-                accepted = true,
-                challengeId = challenge.ChallengeId,
-                state.PlayerEntityId,
-                state.RunId,
-                state.Sequence,
-                stateHash = CanonicalJson.ComputeHash(state),
-                verification.CommandsReplayed
-            })
-            : ApiProblem(
-                StatusCodes.Status422UnprocessableEntity,
-                ApiErrorCodes.RuleViolation,
-                "Daily submission rejected",
-                string.Join("; ", verification.Errors));
+        var submission = result.Value!;
+        return Ok(new
+        {
+            accepted = true,
+            submission.ChallengeId,
+            playerEntityId = submission.PlayerId,
+            submission.RunId,
+            submission.Sequence,
+            stateHash = submission.StateHash,
+            submission.CommandsReplayed
+        });
     }
 
     [HttpGet("leaderboard")]
@@ -156,68 +86,44 @@ public sealed class DailyChallengeController : BaseApiController
     {
         if (limit is < 1 or > 500)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid page size", "Limit must be between 1 and 500");
-        var challenge = ResolveCurrent();
-        if (challenge == null)
-            return ApiNotFound("Current daily challenge is not configured");
 
-        var entries = new List<DailyLeaderboardEntry>();
-        foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken))
-        {
-            var state = await _repository.LoadLatestAsync(runId, cancellationToken);
-            if (state == null || !string.Equals(state.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal) ||
-                !IsCompleted(state))
-                continue;
-            var verification = await _replay.VerifyAsync(runId, cancellationToken);
-            if (!verification.IsValid)
-                continue;
-            entries.Add(new DailyLeaderboardEntry(
-                state.PlayerEntityId,
-                state.RunId,
-                checked((long)state.Gold + (long)state.PowerPoints * 10L),
-                state.Sequence,
-                CanonicalJson.ComputeHash(state)));
-        }
+        var result = await _dailyChallenges.GetLeaderboardAsync(limit, cancellationToken);
+        if (!result.IsSuccess)
+            return MapFailure(result.Error!);
 
-        var ranked = entries
-            .OrderByDescending(entry => entry.Score)
-            .ThenBy(entry => entry.RunId)
-            .Take(limit)
+        var challenge = _dailyChallenges.ResolveCurrent()!;
+        var entries = result.Value!
             .Select((entry, index) => new { rank = index + 1, entry })
             .ToArray();
-        return Ok(new { challengeId = challenge.ChallengeId, entries = ranked });
+        return Ok(new { challengeId = challenge.ChallengeId, entries });
     }
 
-    private DailyChallengeDefinition? ResolveCurrent() => _challenges
-        .GetAll("default")
-        .Where(challenge => challenge.IsCurrent)
-        .OrderBy(challenge => challenge.ChallengeId, StringComparer.Ordinal)
-        .FirstOrDefault();
-
-    private static object MapAttempt(DailyChallengeDefinition challenge, RunState state) => new
+    private IActionResult MapFailure(DailyChallengeError error)
     {
-        challengeId = challenge.ChallengeId,
-        state.RunId,
-        state.Sequence,
-        state.Determinism.Step,
-        state.Determinism.Seed,
-        state.Determinism.ContentRevision,
-        stateHash = CanonicalJson.ComputeHash(state)
-    };
-
-    private static bool IsCompleted(RunState state)
-    {
-        var node = state.Map.Nodes.FirstOrDefault(item =>
-            string.Equals(item.NodeId, state.CurrentNodeId, StringComparison.Ordinal));
-        return state.ActiveEncounterId == null && node != null && node.NextNodeIds.Count == 0 &&
-               state.Map.ResolvedNodeIds.Contains(node.NodeId, StringComparer.Ordinal);
+        return error.Kind switch
+        {
+            DailyChallengeErrorKind.InvalidPlayer => ApiBadRequest(
+                ApiErrorCodes.InvalidRequest,
+                "Player is required",
+                error.Detail),
+            DailyChallengeErrorKind.ChallengeNotConfigured or DailyChallengeErrorKind.AttemptNotFound => ApiNotFound(error.Detail),
+            DailyChallengeErrorKind.ContentUnavailable => ApiProblem(
+                StatusCodes.Status503ServiceUnavailable,
+                ApiErrorCodes.DependencyUnavailable,
+                "Challenge content unavailable",
+                error.Detail),
+            DailyChallengeErrorKind.OwnershipMismatch => ApiProblem(
+                StatusCodes.Status403Forbidden,
+                ApiErrorCodes.RuleViolation,
+                "Attempt ownership mismatch",
+                error.Detail),
+            _ => ApiProblem(
+                StatusCodes.Status422UnprocessableEntity,
+                ApiErrorCodes.RuleViolation,
+                "Daily challenge request rejected",
+                error.Detail)
+        };
     }
-
-    private sealed record DailyLeaderboardEntry(
-        string PlayerId,
-        Guid RunId,
-        long Score,
-        int Sequence,
-        string StateHash);
 }
 
 public sealed record DailyAttemptRequest(string PlayerId);

@@ -400,6 +400,11 @@ builder.Services.AddSingleton<ICombatActivationCoordinator, CombatActivationCoor
 
 // Register EntityFactory
 builder.Services.AddSingleton<IEntityFactory, Core.Combat.EntityFactory>();
+builder.Services.AddSingleton<Core.Entity.Definitions.EntityFactory>(sp => new Core.Entity.Definitions.EntityFactory(
+    sp.GetRequiredService<EntityDefinitionLoader>(),
+    sp.GetRequiredService<IResourceManager>(),
+    new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("EntityDefinitionFactory"))));
+builder.Services.AddSingleton<API.Services.DailyChallengeService>();
 
 // Register ActionAffordabilityService
 builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();

@@ -4,8 +4,8 @@ using Core.Combat.Models;
 using Core.Entity;
 using Core.Entity.Components;
 using Core.Entity.Definitions;
-using Core.Resources;
 using API.Models.Entities;
+using DefinitionEntityFactory = Core.Entity.Definitions.EntityFactory;
 
 namespace API.Controllers;
 
@@ -17,16 +17,16 @@ namespace API.Controllers;
 public class EntityController : BaseApiController
 {
     private readonly EntityDefinitionLoader _definitionLoader;
-    private readonly ResourceManager _resourceManager;
+    private readonly DefinitionEntityFactory _entityFactory;
 
     public EntityController(
         EntityDefinitionLoader definitionLoader,
-        ResourceManager resourceManager,
+        DefinitionEntityFactory entityFactory,
         ILogger<EntityController> logger)
         : base(logger)
     {
         _definitionLoader = definitionLoader ?? throw new ArgumentNullException(nameof(definitionLoader));
-        _resourceManager = resourceManager ?? throw new ArgumentNullException(nameof(resourceManager));
+        _entityFactory = entityFactory ?? throw new ArgumentNullException(nameof(entityFactory));
     }
 
     /// <summary>
@@ -80,74 +80,23 @@ public class EntityController : BaseApiController
     {
         try
         {
-            // Carregar definição
-            var defResult = _definitionLoader.LoadDefinition(request.DefinitionId);
-            if (defResult.IsFailure)
-                return NotFound(new { error = $"Definition not found: {request.DefinitionId}" });
-
-            var definition = defResult.Value;
-            
-            // Gerar ID se não fornecido
-            var entityId = request.EntityId ?? Guid.NewGuid().ToString();
-            
-            // Criar recursos
-            var resources = new Dictionary<string, ResourcePool>();
-            if (definition.Resources?.Resources != null)
+            if (string.IsNullOrWhiteSpace(request.EntityId))
+                return BadRequest(new { error = "EntityId is required for deterministic entity creation" });
+            if (request.InitialResources is { Count: > 0 })
             {
-                foreach (var (resourceId, poolDef) in definition.Resources.Resources)
+                return BadRequest(new
                 {
-                    var initialValue = request.InitialResources?.GetValueOrDefault(resourceId) ?? poolDef.Current;
-                    
-                    // Criar definição de recurso
-                    var resourceDef = new ResourceDefinition
-                    {
-                        ResourceId = resourceId,
-                        DisplayName = resourceId,
-                        DefaultMax = poolDef.Max,
-                        DefaultCurrent = initialValue,
-                        CanExceedMax = false,
-                        CanBeNegative = false
-                    };
-                    
-                    // Criar pool
-                    var pool = new ResourcePool
-                    {
-                        ResourceId = resourceId,
-                        Current = initialValue,
-                        Maximum = poolDef.Max,
-                        Minimum = 0,
-                        Definition = resourceDef
-                    };
-                    
-                    resources[resourceId] = pool;
-                }
+                    error = "InitialResources overrides are not supported; create an immutable definition or apply a domain command"
+                });
             }
-            
-            // Criar estado de recursos
-            var resourceState = new EntityResourceState
-            {
-                EntityId = entityId,
-                Resources = resources
-            };
-            
-            var resourceComponent = new ResourceComponent(resourceState);
-            
-            // Criar componentes
-            var components = new Dictionary<Type, IComponent>
-            {
-                [typeof(ResourceComponent)] = resourceComponent
-            };
-            
-            // Criar entidade
-            var entity = new Core.Entity.Entity
-            {
-                EntityId = entityId,
-                Type = definition.Type,
-                DefinitionId = definition.DefinitionId,
-                DisplayName = request.DisplayName ?? definition.DisplayName,
-                Components = components
-            };
-            
+
+            var result = _entityFactory.CreateEntity(request.DefinitionId, request.EntityId);
+            if (result.IsFailure)
+                return NotFound(new { error = result.Error });
+
+            var entity = string.IsNullOrWhiteSpace(request.DisplayName)
+                ? result.Value
+                : result.Value with { DisplayName = request.DisplayName };
             return Ok(MapToEntityDto(entity));
         }
         catch (Exception ex)
