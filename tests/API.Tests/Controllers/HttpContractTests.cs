@@ -24,7 +24,7 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
 
         var action = Assert.Single(document.RootElement.EnumerateArray(), item => item.GetProperty("actionId").GetString() == "basic_attack");
-        Assert.Equal("Basic Attack", action.GetProperty("displayName").GetString());
+        Assert.Equal("Strike", action.GetProperty("displayName").GetString());
         Assert.Equal("BASIC_ATTACK", action.GetProperty("actionType").GetString());
         Assert.True(action.GetProperty("requiresTarget").GetBoolean());
         Assert.True(action.GetProperty("effectCount").GetInt32() >= 0);
@@ -52,9 +52,9 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
 
         var resource = Assert.Single(document.RootElement.EnumerateArray(), item => item.GetProperty("resourceId").GetString() == "health");
-        Assert.Equal("Health", resource.GetProperty("displayName").GetString());
+        Assert.Equal("Health Points", resource.GetProperty("displayName").GetString());
         Assert.Equal("VITAL", resource.GetProperty("category").GetString());
-        Assert.Equal(30, resource.GetProperty("defaultMax").GetSingle());
+        Assert.Equal(100, resource.GetProperty("defaultMax").GetSingle());
         Assert.Contains("vital", resource.GetProperty("tags").EnumerateArray().Select(tag => tag.GetString()));
     }
 
@@ -65,8 +65,10 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-        var resource = Assert.Single(document.RootElement.EnumerateArray());
-        Assert.Equal("energy", resource.GetProperty("resourceId").GetString());
-        Assert.Equal("TACTICAL", resource.GetProperty("category").GetString());
+        var resources = document.RootElement.EnumerateArray().ToArray();
+        Assert.Equal(2, resources.Length);
+        Assert.All(resources, resource => Assert.Equal("TACTICAL", resource.GetProperty("category").GetString()));
+        Assert.Contains(resources, resource => resource.GetProperty("resourceId").GetString() == "energy");
+        Assert.Contains(resources, resource => resource.GetProperty("resourceId").GetString() == "mana");
     }
 }

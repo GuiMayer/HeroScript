@@ -52,7 +52,9 @@ namespace Core.Config
                 Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == "Development" ||
                 Debugger.IsAttached;
 
-            return isDevelopment ? ResourceMode.Development : ResourceMode.Production;
+            return isDevelopment || FindProjectRoot() != null
+                ? ResourceMode.Development
+                : ResourceMode.Production;
         }
 
         /// <summary>
@@ -141,7 +143,8 @@ namespace Core.Config
             while (current != null)
             {
                 if (File.Exists(Path.Combine(current, "HeroScript.sln")) ||
-                    File.Exists(Path.Combine(current, "HeroScript.slnx")))
+                    File.Exists(Path.Combine(current, "HeroScript.slnx")) ||
+                    Directory.Exists(Path.Combine(current, "src", "API")))
                     return current;
                 current = Directory.GetParent(current)?.FullName;
             }

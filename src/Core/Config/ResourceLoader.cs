@@ -271,20 +271,7 @@ namespace Core.Config
         {
             using var reader = new StreamReader(stream);
             var jsonContent = reader.ReadToEnd();
-            _logger.LogDebug($"File content length: {jsonContent.Length} bytes");
-
-            var rawDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent);
-
-            if (rawDict == null)
-                throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
-
-            _logger.LogDebug($"Deserialized {rawDict.Count} resources from file");
-            foreach (var key in rawDict.Keys)
-            {
-                _logger.LogDebug($"  - {key}");
-            }
-
-            return rawDict;
+            return ParseResourceDocument(jsonContent, configName);
         }
 
         /// <summary>
@@ -298,20 +285,30 @@ namespace Core.Config
         {
             using var reader = new StreamReader(stream);
             var jsonContent = await reader.ReadToEndAsync(cancellationToken);
+            return ParseResourceDocument(jsonContent, configName);
+        }
+
+        private Dictionary<string, JsonElement> ParseResourceDocument(string jsonContent, string configName)
+        {
             _logger.LogDebug($"File content length: {jsonContent.Length} bytes");
+            using var document = JsonDocument.Parse(jsonContent);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                throw new InvalidOperationException($"Resource from {configName} must be a JSON object");
 
-            var rawDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent);
+            var properties = document.RootElement.EnumerateObject().ToArray();
+            var isSingleDefinition = properties.Any(property =>
+                property.Value.ValueKind is not JsonValueKind.Object and not JsonValueKind.Array);
 
-            if (rawDict == null)
-                throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
+            var resources = isSingleDefinition
+                ? new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+                {
+                    ["definition"] = document.RootElement.Clone()
+                }
+                : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent)
+                    ?? throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
 
-            _logger.LogDebug($"Deserialized {rawDict.Count} resources from file");
-            foreach (var key in rawDict.Keys)
-            {
-                _logger.LogDebug($"  - {key}");
-            }
-
-            return rawDict;
+            _logger.LogDebug($"Deserialized {resources.Count} resources from file");
+            return resources;
         }
 
         /// <summary>

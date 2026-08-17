@@ -472,6 +472,10 @@ Core.Logging.LoggerFactory.SetFactory(categoryName =>
 
 // Load status effect definitions
 var statusEffectManager = app.Services.GetRequiredService<IStatusEffectManager>();
+var resourceManager = app.Services.GetRequiredService<IResourceManager>();
+resourceManager.LoadResourceDefinitions("default");
+var actionManager = app.Services.GetRequiredService<IActionManager>();
+actionManager.LoadActionDefinitions("default");
 var loadResult = statusEffectManager.LoadStatusDefinitions("default");
 var logger = loggerFactory.CreateLogger("Startup");
 if (loadResult.IsSuccess)

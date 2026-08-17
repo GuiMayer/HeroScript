@@ -88,26 +88,21 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task AreaOfEffect_MultipleTargets_AllAffected()
+    public async Task Fireball_UsesRealContentAndDamagesTarget()
     {
-        // Setup combat with clustered enemies
+        // Use the shipped default content rather than a fixture-only action.
         var (combatId, combatState) = await SetupCombatAsync("hero", 
-            new[] { "enemy_1", "enemy_2", "enemy_3" });
+            new[] { "enemy_1", "enemy_2" });
+        var initialHealth = combatState.GetProperty("enemies")[0].GetProperty("currentHp").GetInt32();
 
-        // Execute AOE attack (e.g., Grenade, Fireball)
-        var aoeResult = await Client.ExecuteActionAsync(combatId, "hero", 
-            targetId: "enemy_2", // Center target
-            powerId: "aoe_grenade");
+        var actionResult = await Client.ExecuteActionAsync(combatId, "hero", 
+            targetId: "enemy_1",
+            powerId: "fireball");
 
-        // Verify action executed
-        AssertJsonPropertyExists(aoeResult, "combatId");
-        
-        // Get updated state to verify damage
+        AssertJsonPropertyExists(actionResult, "combatId");
         var updatedState = await Client.GetCombatStateAsync(combatId);
-        AssertCombatStateValid(updatedState);
-        
-        // In a real implementation, we'd verify multiple enemies took damage
-        // Here we verify the combat state is still valid after AOE
+        var updatedHealth = updatedState.GetProperty("enemies")[0].GetProperty("currentHp").GetInt32();
+        Assert.True(updatedHealth < initialHealth, "Fireball from the shipped content must damage its target");
     }
 
     [Fact]
