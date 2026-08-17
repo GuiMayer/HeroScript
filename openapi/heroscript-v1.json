@@ -109,6 +109,58 @@
         "responses": { "200": { "description": "Immutable content revision catalog" } }
       }
     },
+    "/api/v1/content/revisions/{revision}": {
+      "get": {
+        "tags": ["Content"],
+        "operationId": "getContentRevision",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "name": "revision", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Immutable content manifest" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/content/{kind}": {
+      "get": {
+        "tags": ["Content"],
+        "operationId": "listContentDefinitions",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "name": "kind", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "revision", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Definitions from one immutable revision" } }
+      }
+    },
+    "/api/v1/profiles/{playerId}": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "getProfileProjection",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Derived immutable player profile projection" } }
+      }
+    },
+    "/api/v1/challenges/daily/current": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "getCurrentDailyChallenge",
+        "x-heroscript-stability": "experimental",
+        "responses": { "200": { "description": "Daily seed, content revision and proof hash" } }
+      }
+    },
+    "/api/v1/simulations": {
+      "post": {
+        "tags": ["Runs"],
+        "operationId": "createSimulation",
+        "x-heroscript-stability": "experimental",
+        "responses": { "200": { "description": "Isolated deterministic simulation" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/admin/content/drafts": {
+      "post": {
+        "tags": ["Content"],
+        "operationId": "createContentDraft",
+        "x-heroscript-stability": "admin",
+        "security": [{ "AdminApiKey": [] }],
+        "responses": { "201": { "description": "Mutable publication draft created" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/runs/{runId}/available-commands": {
       "get": {
         "tags": ["Runs"],
@@ -192,6 +244,9 @@
         "description": "RFC 9457 problem response",
         "content": { "application/problem+json": { "schema": { "$ref": "#/components/schemas/ProblemDetails" } } }
       }
+    },
+    "securitySchemes": {
+      "AdminApiKey": { "type": "apiKey", "in": "header", "name": "X-Admin-Key" }
     },
     "schemas": {
       "RunStartRequest": {
