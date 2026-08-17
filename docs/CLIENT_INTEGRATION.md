@@ -28,6 +28,11 @@ Em `409`, descarte a intenção local, recarregue o read model e solicite uma
 nova escolha. Em `422`, mostre a regra rejeitada sem tentar reproduzir regras
 no cliente.
 
+Seleções de carta, loja, preparação e deck também são comandos da run; suas
+rotas específicas são somente de leitura. Para criar ou alterar definições de
+ações, entidades, status e gambits, use o fluxo administrativo de drafts e
+publicação — a revisão já publicada nunca é alterada em execução.
+
 ## Godot
 
 Mantenha um único serviço de rede baseado em `HTTPRequest`. Ele deve preservar

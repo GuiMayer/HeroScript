@@ -4,7 +4,7 @@
 
 1. Crie a run com `POST /api/v1/runs`, informando seed e revisão de conteúdo
    quando o cliente precisar reproduzir uma partida externa.
-2. Leia `GET /api/v1/runs/{runId}` e guarde `sequence`, `determinism.step`,
+2. Leia `GET /api/v1/runs/{runId}` e guarde `sequence`, `step`,
    `contentRevision` e hash retornados.
 3. Consulte mapa e comandos permitidos em `/map` e `/available-commands`.
 4. Envie uma mutação ao gateway `/commands` com as versões observadas.
@@ -46,6 +46,28 @@ simultaneamente a progressão. Dentro do encontro, use:
 O payload de `EXECUTE_ACTION` aceita `actionId` (preferível), `actorId`,
 `targetId`, `costOptionId` e `cardId` quando aplicável. A API resolve o tipo da
 ação a partir do conteúdo fixado na run.
+
+## Comandos de economia e recompensas
+
+Deck, recompensas, lojas e preparação não possuem rotas próprias de mutação.
+Envie-os ao gateway da run com o `payload` correspondente:
+
+| Tipo | Payload |
+| --- | --- |
+| `DRAW_CARDS` | `{ "count": 1 }` |
+| `DISCARD_CARDS` | `{ "cardIds": ["... "] }` |
+| `SHUFFLE_DISCARD` | `{}` |
+| `CREATE_CARD_SELECTION` | `{ "selectionId": "basic_reward" }` |
+| `PICK_CARD_REWARD` | `{ "selectionInstanceId": "...", "cardIds": ["..."] }` |
+| `REROLL_CARD_REWARD` | `{ "selectionInstanceId": "...", "lockedCardIds": [] }` |
+| `CREATE_SHOP` | `{ "shopId": "basic_shop" }` |
+| `BUY_SHOP_ITEM` | `{ "shopInstanceId": "...", "itemId": "..." }` |
+| `CREATE_PREPARATION` | `{ "preparationId": "basic_preparation" }` |
+| `APPLY_PREPARATION_OPTION` | `{ "preparationInstanceId": "...", "optionId": "..." }` |
+
+As coleções `/card-selections`, `/shops` e `/preparations` permanecem apenas
+como read models. Alterações de conteúdo seguem o fluxo administrativo de
+draft e publicação, que produz uma nova revisão imutável.
 
 ## Recuperação e auditoria
 

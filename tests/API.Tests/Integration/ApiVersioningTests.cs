@@ -44,4 +44,20 @@ public sealed class ApiVersioningTests : IClassFixture<TestWebApplicationFactory
             HttpStatusCode.MethodNotAllowed
         });
     }
+
+    [Theory]
+    [InlineData("/api/v1/actions")]
+    [InlineData("/api/v1/entities/definitions")]
+    [InlineData("/api/v1/statuses/definitions")]
+    [InlineData("/api/v1/gambits/definitions")]
+    public async Task Direct_content_mutation_routes_are_not_exposed(string path)
+    {
+        using var response = await _client.PostAsync(path, content: null);
+
+        Assert.Contains(response.StatusCode, new[]
+        {
+            HttpStatusCode.NotFound,
+            HttpStatusCode.MethodNotAllowed
+        });
+    }
 }
