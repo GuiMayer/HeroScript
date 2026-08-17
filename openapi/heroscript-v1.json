@@ -165,8 +165,10 @@
           "status": { "type": "integer" },
           "detail": { "type": "string" },
           "instance": { "type": "string", "format": "uri-reference" },
-          "code": { "type": "string" },
-          "correlationId": { "type": "string" }
+          "code": { "type": "string", "description": "Stable machine-readable HeroScript error code" },
+          "correlationId": { "type": "string", "description": "Request correlation identifier" },
+          "currentSequence": { "type": "integer", "description": "Authoritative sequence when a command conflicts" },
+          "currentStep": { "type": "integer", "format": "uint64", "description": "Authoritative deterministic step when a command conflicts" }
         }
       }
     }

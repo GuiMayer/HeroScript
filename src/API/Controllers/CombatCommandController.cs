@@ -13,6 +13,7 @@ namespace API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/combats/{combatId:guid}/commands")]
+[Produces("application/json", "application/problem+json")]
 public sealed class CombatCommandController : BaseApiController
 {
     private const string ExecuteActionType = "EXECUTE_ACTION";
@@ -39,6 +40,11 @@ public sealed class CombatCommandController : BaseApiController
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(CommandResultEnvelope<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public IActionResult Execute(Guid combatId, [FromBody] CommandEnvelope envelope)
     {
         if (!envelope.ExpectedSequence.HasValue || !envelope.ExpectedStep.HasValue)

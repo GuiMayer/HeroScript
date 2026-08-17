@@ -12,6 +12,7 @@ namespace API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/runs/{runId:guid}/commands")]
+[Produces("application/json", "application/problem+json")]
 public sealed class RunCommandController : BaseApiController
 {
     private readonly IRunCommandProcessor _commands;
@@ -32,6 +33,11 @@ public sealed class RunCommandController : BaseApiController
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(CommandResultEnvelope<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public IActionResult Execute(Guid runId, [FromBody] CommandEnvelope envelope)
     {
         if (!envelope.ExpectedSequence.HasValue || !envelope.ExpectedStep.HasValue)
