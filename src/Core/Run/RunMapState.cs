@@ -77,11 +77,14 @@ public static class RunCommandTypes
     public const string DrawCards = "DRAW_CARDS";
     public const string DiscardCards = "DISCARD_CARDS";
     public const string ShuffleDiscard = "SHUFFLE_DISCARD";
+    public const string CreateCardSelection = "CREATE_CARD_SELECTION";
     public const string PickCardReward = "PICK_CARD_REWARD";
     public const string RerollCardReward = "REROLL_CARD_REWARD";
     public const string DecomposeCardReward = "DECOMPOSE_CARD_REWARD";
     public const string BuyShopItem = "BUY_SHOP_ITEM";
     public const string RerollShop = "REROLL_SHOP";
+    public const string CreateShop = "CREATE_SHOP";
+    public const string CreatePreparation = "CREATE_PREPARATION";
     public const string ApplyPreparationOption = "APPLY_PREPARATION_OPTION";
     public const string AcquireRelic = "ACQUIRE_RELIC";
     public const string RemoveRelic = "REMOVE_RELIC";

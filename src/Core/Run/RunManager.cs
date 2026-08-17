@@ -385,11 +385,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 runId,
                 DeserializePayload<CardIdsPayload>(payload).CardIds)),
             RunCommandTypes.ShuffleDiscard => ShuffleDiscardIntoDrawPile(runId),
+            RunCommandTypes.CreateCardSelection => ExecuteCreateCardSelection(runId, payload),
             RunCommandTypes.PickCardReward => ExecutePickCardReward(runId, payload),
             RunCommandTypes.RerollCardReward => ExecuteRerollCardReward(runId, payload),
             RunCommandTypes.DecomposeCardReward => ExecuteDecomposeCardReward(runId, payload),
+            RunCommandTypes.CreateShop => ExecuteCreateShop(runId, payload),
             RunCommandTypes.BuyShopItem => ExecuteBuyShopItem(runId, payload),
             RunCommandTypes.RerollShop => ExecuteRerollShop(runId, payload),
+            RunCommandTypes.CreatePreparation => ExecuteCreatePreparation(runId, payload),
             RunCommandTypes.ApplyPreparationOption => ExecutePreparationOption(runId, payload),
             RunCommandTypes.AcquireRelic => ExecuteAcquireRelic(runId, payload),
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
@@ -401,6 +404,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 "START_ENCOUNTER must be executed through the run encounter coordinator"),
             _ => Result.Failure($"Unsupported run command type: {commandType}")
         };
+    }
+
+    private Result ExecuteCreateCardSelection(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<CardSelectionPayload>(payload);
+        return ToResult(CreateCardSelection(runId, request.SelectionId));
     }
 
     private Result ExecutePickCardReward(Guid runId, JsonElement payload)
@@ -421,6 +430,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         return ToResult(DecomposeCardSelectionOption(runId, request.SelectionInstanceId, request.CardId));
     }
 
+    private Result ExecuteCreateShop(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<ShopDefinitionPayload>(payload);
+        return ToResult(CreateShop(runId, request.ShopId));
+    }
+
     private Result ExecuteBuyShopItem(Guid runId, JsonElement payload)
     {
         var request = DeserializePayload<ShopItemPayload>(payload);
@@ -431,6 +446,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     {
         var request = DeserializePayload<ShopPayload>(payload);
         return ToResult(RerollShop(runId, request.ShopInstanceId));
+    }
+
+    private Result ExecuteCreatePreparation(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<PreparationDefinitionPayload>(payload);
+        return ToResult(CreatePreparation(runId, request.PreparationId));
     }
 
     private Result ExecutePreparationOption(Guid runId, JsonElement payload)
@@ -1754,6 +1775,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private sealed record ResolveNodePayload(string CurrentNodeId);
     private sealed record CountPayload(int Count);
     private sealed record CardIdsPayload(IReadOnlyList<string> CardIds);
+    private sealed record CardSelectionPayload(string SelectionId);
     private sealed record CardSelectionCardsPayload(
         Guid SelectionInstanceId,
         IReadOnlyList<string> CardIds);
@@ -1765,7 +1787,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         string CardId);
     private sealed record ShopItemPayload(Guid ShopInstanceId, string ItemId);
     private sealed record ShopPayload(Guid ShopInstanceId);
+    private sealed record ShopDefinitionPayload(string ShopId);
     private sealed record PreparationPayload(Guid PreparationInstanceId, string OptionId);
+    private sealed record PreparationDefinitionPayload(string PreparationId);
     private sealed record RelicPayload(string RelicId);
     private sealed record RelicInstancePayload(Guid RelicInstanceId);
     private sealed record CardUpgradePayload(Guid CardInstanceId, string UpgradeId);

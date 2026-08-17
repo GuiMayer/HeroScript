@@ -38,62 +38,6 @@ public sealed class CardSelectionController : BaseApiController
             : Ok(MapSelection(selection));
     }
 
-    [HttpPost("start")]
-    public IActionResult Start(Guid runId, [FromBody] StartCardSelectionRequest? request = null)
-    {
-        try
-        {
-            var result = _runManager.CreateCardSelection(runId, request?.SelectionId ?? "basic_reward");
-            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapSelection(result.Value));
-        }
-        catch (Exception ex)
-        {
-            return HandleException(ex, "start card selection", runId.ToString());
-        }
-    }
-
-    [HttpPost("{selectionInstanceId:guid}/pick")]
-    public IActionResult Pick(Guid runId, Guid selectionInstanceId, [FromBody] PickCardsRequest request)
-    {
-        try
-        {
-            var result = _runManager.PickCards(runId, selectionInstanceId, request.CardIds);
-            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapSelection(result.Value));
-        }
-        catch (Exception ex)
-        {
-            return HandleException(ex, "pick card selection", runId.ToString());
-        }
-    }
-
-    [HttpPost("{selectionInstanceId:guid}/reroll")]
-    public IActionResult Reroll(Guid runId, Guid selectionInstanceId, [FromBody] RerollCardSelectionRequest? request = null)
-    {
-        try
-        {
-            var result = _runManager.RerollCardSelection(runId, selectionInstanceId, request?.LockedCardIds);
-            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapSelection(result.Value));
-        }
-        catch (Exception ex)
-        {
-            return HandleException(ex, "reroll card selection", runId.ToString());
-        }
-    }
-
-    [HttpPost("{selectionInstanceId:guid}/decompose/{cardId}")]
-    public IActionResult Decompose(Guid runId, Guid selectionInstanceId, string cardId)
-    {
-        try
-        {
-            var result = _runManager.DecomposeCardSelectionOption(runId, selectionInstanceId, cardId);
-            return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapSelection(result.Value));
-        }
-        catch (Exception ex)
-        {
-            return HandleException(ex, "decompose card selection option", runId.ToString());
-        }
-    }
-
     private static object MapSelection(CardSelectionState selection)
     {
         return new
@@ -114,7 +58,3 @@ public sealed class CardSelectionController : BaseApiController
         };
     }
 }
-
-public sealed record StartCardSelectionRequest(string? SelectionId);
-public sealed record PickCardsRequest(IReadOnlyList<string> CardIds);
-public sealed record RerollCardSelectionRequest(IReadOnlyList<string>? LockedCardIds);

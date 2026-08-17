@@ -21,6 +21,27 @@ public sealed class ApiVersioningTests : IClassFixture<TestWebApplicationFactory
     {
         using var response = await _client.GetAsync(path);
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains(response.StatusCode, new[]
+        {
+            HttpStatusCode.NotFound,
+            HttpStatusCode.MethodNotAllowed
+        });
+    }
+
+    [Theory]
+    [InlineData("/api/v1/runs/00000000-0000-0000-0000-000000000001/draw")]
+    [InlineData("/api/v1/runs/00000000-0000-0000-0000-000000000001/discard")]
+    [InlineData("/api/v1/runs/00000000-0000-0000-0000-000000000001/shops/open")]
+    [InlineData("/api/v1/runs/00000000-0000-0000-0000-000000000001/card-selections/start")]
+    [InlineData("/api/v1/runs/00000000-0000-0000-0000-000000000001/preparations/start")]
+    public async Task Direct_run_mutation_routes_are_not_exposed(string path)
+    {
+        using var response = await _client.PostAsync(path, content: null);
+
+        Assert.Contains(response.StatusCode, new[]
+        {
+            HttpStatusCode.NotFound,
+            HttpStatusCode.MethodNotAllowed
+        });
     }
 }

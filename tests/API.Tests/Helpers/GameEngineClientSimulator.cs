@@ -46,17 +46,16 @@ public class GameEngineClientSimulator
 
     public async Task<List<string>> DrawCardsAsync(Guid runId, int count = 1)
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/draw", new { count });
-        response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return json.GetProperty("drawn").EnumerateArray().Select(e => e.GetString()!).ToList();
+        var before = await GetHandAsync(runId);
+        var state = await ExecuteRunCommandStateAsync(runId, "DRAW_CARDS", new { count });
+        var after = state.GetProperty("deck").GetProperty("hand")
+            .EnumerateArray().Select(card => card.GetString()!).ToList();
+        return NewItems(before, after);
     }
 
     public async Task<JsonElement> DiscardCardsAsync(Guid runId, IEnumerable<string> cardIds)
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/discard", new { cardIds });
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        return await ExecuteRunCommandStateAsync(runId, "DISCARD_CARDS", new { cardIds });
     }
 
     public async Task<List<string>> GetHandAsync(Guid runId)
@@ -141,71 +140,111 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> StartCardSelectionAsync(Guid runId, string selectionId = "basic_reward")
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/card-selections/start", new { selectionId });
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(runId, "CREATE_CARD_SELECTION", new { selectionId });
+        return state.GetProperty("cardSelections").EnumerateArray().Last().Clone();
     }
 
     public async Task<JsonElement> PickCardsAsync(Guid runId, Guid selectionInstanceId, IEnumerable<string> cardIds)
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/card-selections/{selectionInstanceId}/pick",
-            new { cardIds });
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(runId, "PICK_CARD_REWARD", new { selectionInstanceId, cardIds });
+        return FindByGuid(state, "cardSelections", "selectionInstanceId", selectionInstanceId);
     }
 
     public async Task<JsonElement> RerollCardSelectionAsync(Guid runId, Guid selectionInstanceId, IEnumerable<string>? lockedCardIds = null)
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/card-selections/{selectionInstanceId}/reroll",
-            new { lockedCardIds });
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(
+            runId,
+            "REROLL_CARD_REWARD",
+            new { selectionInstanceId, lockedCardIds });
+        return FindByGuid(state, "cardSelections", "selectionInstanceId", selectionInstanceId);
     }
 
     public async Task<JsonElement> DecomposeCardAsync(Guid runId, Guid selectionInstanceId, string cardId)
     {
-        var response = await _client.PostAsync($"/api/v1/runs/{runId}/card-selections/{selectionInstanceId}/decompose/{cardId}", null);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(
+            runId,
+            "DECOMPOSE_CARD_REWARD",
+            new { selectionInstanceId, cardId });
+        return FindByGuid(state, "cardSelections", "selectionInstanceId", selectionInstanceId);
     }
 
     // ==================== SHOP ====================
 
     public async Task<JsonElement> OpenShopAsync(Guid runId, string shopId = "basic_shop")
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/shops/open", new { shopId });
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(runId, "CREATE_SHOP", new { shopId });
+        return state.GetProperty("shops").EnumerateArray().Last().Clone();
     }
 
     public async Task<JsonElement> BuyShopItemAsync(Guid runId, Guid shopInstanceId, string itemId)
     {
-        var response = await _client.PostAsync($"/api/v1/runs/{runId}/shops/{shopInstanceId}/buy/{itemId}", null);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(runId, "BUY_SHOP_ITEM", new { shopInstanceId, itemId });
+        var shop = FindByGuid(state, "shops", "shopInstanceId", shopInstanceId);
+        return shop.GetProperty("items").EnumerateArray()
+            .Single(item => string.Equals(item.GetProperty("itemId").GetString(), itemId, StringComparison.Ordinal))
+            .Clone();
     }
 
     public async Task<JsonElement> RerollShopAsync(Guid runId, Guid shopInstanceId)
     {
-        var response = await _client.PostAsync($"/api/v1/runs/{runId}/shops/{shopInstanceId}/reroll", null);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(runId, "REROLL_SHOP", new { shopInstanceId });
+        return FindByGuid(state, "shops", "shopInstanceId", shopInstanceId);
     }
 
     // ==================== PREPARATION ====================
 
     public async Task<JsonElement> StartPreparationAsync(Guid runId, string preparationId = "basic_preparation")
     {
-        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/preparations/start", new { preparationId });
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var state = await ExecuteRunCommandStateAsync(runId, "CREATE_PREPARATION", new { preparationId });
+        return state.GetProperty("preparations").EnumerateArray().Last().Clone();
     }
 
     public async Task<JsonElement> ApplyPreparationOptionAsync(Guid runId, Guid preparationInstanceId, string optionId)
     {
-        var response = await _client.PostAsync($"/api/v1/runs/{runId}/preparations/{preparationInstanceId}/apply/{optionId}", null);
+        var state = await ExecuteRunCommandStateAsync(
+            runId,
+            "APPLY_PREPARATION_OPTION",
+            new { preparationInstanceId, optionId });
+        var preparation = FindByGuid(state, "preparations", "preparationInstanceId", preparationInstanceId);
+        return preparation.GetProperty("options").EnumerateArray()
+            .Single(option => string.Equals(option.GetProperty("optionId").GetString(), optionId, StringComparison.Ordinal))
+            .Clone();
+    }
+
+    private async Task<JsonElement> ExecuteRunCommandStateAsync(Guid runId, string type, object payload)
+    {
+        var current = await GetRunStateAsync(runId);
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            expectedSequence = current.GetProperty("sequence").GetInt32(),
+            expectedStep = current.GetProperty("step").GetUInt64(),
+            type,
+            payload
+        });
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var receipt = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return receipt.GetProperty("state").Clone();
+    }
+
+    private static JsonElement FindByGuid(JsonElement state, string collectionName, string idName, Guid id)
+    {
+        return state.GetProperty(collectionName).EnumerateArray()
+            .Single(item => item.GetProperty(idName).GetGuid() == id)
+            .Clone();
+    }
+
+    private static List<string> NewItems(IEnumerable<string> before, IEnumerable<string> after)
+    {
+        var remaining = before.ToList();
+        var added = new List<string>();
+        foreach (var item in after)
+        {
+            if (!remaining.Remove(item))
+                added.Add(item);
+        }
+
+        return added;
     }
 
     // ==================== STATUS EFFECTS ====================

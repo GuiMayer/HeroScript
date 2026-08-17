@@ -49,12 +49,17 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
 
         // Try to draw more cards than exist in deck
-        var response = await Client.PostRawAsync($"/api/v1/runs/{runId}/draw", new { count = 1000 });
+        var response = await Client.PostRawAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            expectedSequence = GetJsonInt(runState, "sequence"),
+            expectedStep = runState.GetProperty("step").GetUInt64(),
+            type = "DRAW_CARDS",
+            payload = new { count = 1000 }
+        });
 
-        // Should handle gracefully (return available cards or error)
-        // Not crash or return 500
-        Assert.True(response.IsSuccessStatusCode || 
-                   response.StatusCode == HttpStatusCode.BadRequest);
+        // The command boundary must reject or limit an oversized draw without crashing.
+        Assert.True(response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -97,11 +102,8 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         {
             var itemId = GetJsonString(expensiveItem, "itemId");
             
-            var response = await Client.GetRawResponseAsync($"/api/v1/runs/{runId}/shops/{shopInstanceId}/buy/{itemId}");
-
-            // Should return error for insufficient funds
-            Assert.True(response.StatusCode == HttpStatusCode.BadRequest || 
-                       !response.IsSuccessStatusCode);
+            await Assert.ThrowsAsync<HttpRequestException>(
+                () => Client.BuyShopItemAsync(runId, shopInstanceId, itemId));
         }
     }
 

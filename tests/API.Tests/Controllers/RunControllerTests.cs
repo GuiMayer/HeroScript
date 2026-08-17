@@ -149,17 +149,6 @@ public sealed class RunControllerTests
         Assert.Equal(first.RunId, json.GetProperty("nextCursor").GetGuid());
     }
 
-    [Fact]
-    public void Draw_ReturnsBadRequestWhenRunManagerFails()
-    {
-        var runId = Guid.NewGuid();
-        _runManager.Setup(m => m.DrawCards(runId, 2)).Returns(Result<IReadOnlyList<string>>.Failure("no deck"));
-
-        var result = _controller.Draw(runId, new CountRequest(2));
-
-        Assert.IsType<BadRequestObjectResult>(result);
-    }
-
     private static RunState CreateRun()
     {
         return new RunState
