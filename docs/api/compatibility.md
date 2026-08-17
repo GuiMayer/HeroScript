@@ -23,6 +23,8 @@ Uma rota só pode ser removida depois de:
 3. constar em `docs/api/changelog.md` com instrução de migração;
 4. ter cobertura de cliente/exemplo para a alternativa.
 
-Durante a janela, o servidor pode emitir os cabeçalhos `Deprecation` e `Link`
-com a documentação de substituição. Clientes devem migrar pelo mapa acima, não
-inferir compatibilidade por nomes semelhantes.
+Durante a janela, cada resposta de rota legada emite `Deprecation:
+@1786838400` (16 de agosto de 2026, em UTC) e `Link:
+</openapi/v1.json>; rel="successor-version"`. Os cabeçalhos apenas avisam: não
+alteram o status nem o corpo da resposta. Clientes devem migrar pelo mapa
+acima, não inferir compatibilidade por nomes semelhantes.
