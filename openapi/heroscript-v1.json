@@ -232,6 +232,24 @@
         "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
         "responses": { "200": { "description": "Combat projection verified against run semantic replay" } }
       }
+    },
+    "/api/v1/runs/{runId}/events": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunEvents",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }, { "name": "afterSequence", "in": "query", "schema": { "type": "integer", "minimum": 0 } }],
+        "responses": { "200": { "description": "Durable event projection page" } }
+      }
+    },
+    "/api/v1/runs/{runId}/events/stream": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "streamRunEvents",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }, { "name": "afterSequence", "in": "query", "schema": { "type": "integer", "minimum": 0 } }],
+        "responses": { "200": { "description": "SSE stream; see AsyncAPI contract", "content": { "text/event-stream": { "schema": { "type": "string" } } } } }
+      }
     }
   },
   "components": {

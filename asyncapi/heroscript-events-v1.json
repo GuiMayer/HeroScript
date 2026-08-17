@@ -1,0 +1,73 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "HeroScript Durable Events",
+    "version": "v1",
+    "description": "SSE projections derived from deterministic run journals."
+  },
+  "servers": {
+    "local": {
+      "host": "localhost:5260",
+      "protocol": "sse",
+      "description": "Local HeroScript API"
+    }
+  },
+  "channels": {
+    "runEvents": {
+      "address": "/api/v1/runs/{runId}/events/stream",
+      "parameters": {
+        "runId": { "description": "Run UUID", "location": "$message.payload#/runId" }
+      },
+      "messages": { "runTransition": { "$ref": "#/components/messages/RunTransition" } }
+    },
+    "combatEvents": {
+      "address": "/api/v1/combats/{combatId}/events/stream",
+      "parameters": {
+        "combatId": { "description": "Combat UUID", "location": "$message.payload#/combatId" }
+      },
+      "messages": { "runTransition": { "$ref": "#/components/messages/RunTransition" } }
+    }
+  },
+  "operations": {
+    "receiveRunTransitions": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/runEvents" },
+      "messages": [{ "$ref": "#/components/messages/RunTransition" }]
+    },
+    "receiveCombatTransitions": {
+      "action": "receive",
+      "channel": { "$ref": "#/channels/combatEvents" },
+      "messages": [{ "$ref": "#/components/messages/RunTransition" }]
+    }
+  },
+  "components": {
+    "messages": {
+      "RunTransition": {
+        "name": "RUN_TRANSITION_COMMITTED",
+        "title": "Run transition committed",
+        "contentType": "application/json",
+        "payload": { "$ref": "#/components/schemas/RunProjectionEvent" }
+      }
+    },
+    "schemas": {
+      "RunProjectionEvent": {
+        "type": "object",
+        "required": ["eventId", "sequence", "step", "eventType", "commandType", "runId", "timestamp", "previousStateHash", "stateHash", "payload"],
+        "properties": {
+          "eventId": { "type": "string", "format": "uuid" },
+          "sequence": { "type": "integer", "minimum": 1 },
+          "step": { "type": "integer", "format": "uint64" },
+          "eventType": { "type": "string", "const": "RUN_TRANSITION_COMMITTED" },
+          "commandType": { "type": "string" },
+          "runId": { "type": "string", "format": "uuid" },
+          "combatId": { "type": "string", "format": "uuid", "nullable": true },
+          "commandId": { "type": "string", "format": "uuid", "nullable": true },
+          "timestamp": { "type": "string", "format": "date-time", "description": "Deterministic logical timestamp" },
+          "previousStateHash": { "type": "string" },
+          "stateHash": { "type": "string" },
+          "payload": { "type": "object", "additionalProperties": true }
+        }
+      }
+    }
+  }
+}
