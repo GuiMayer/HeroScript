@@ -88,7 +88,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         }
 
         // End turn
-        var endTurnResult = await Client.EndTurnAsync(combatId);
+        var endTurnResult = await Client.EndTurnAsync(combatId, runId);
         AssertJsonPropertyExists(endTurnResult, "combatId");
     }
 

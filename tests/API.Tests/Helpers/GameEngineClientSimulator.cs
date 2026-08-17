@@ -70,6 +70,17 @@ public class GameEngineClientSimulator
 
     public async Task<Guid> StartCombatAsync(string heroId, IEnumerable<string> enemies, int initialEnergy = 3, Guid? runId = null)
     {
+        if (runId.HasValue)
+        {
+            var state = await ExecuteRunCommandStateAsync(runId.Value, "START_ENCOUNTER", new
+            {
+                heroId,
+                enemyIds = enemies,
+                initialEnergy
+            });
+            return state.GetProperty("activeEncounterId").GetGuid();
+        }
+
         var request = new
         {
             heroId,
@@ -94,6 +105,36 @@ public class GameEngineClientSimulator
     public async Task<JsonElement> ExecuteActionAsync(Guid combatId, string actorId, string? targetId = null, 
         string? powerId = null, string? cardId = null, Guid? runId = null)
     {
+        if (runId.HasValue)
+        {
+            var run = await GetRunStateAsync(runId.Value);
+            var combat = await GetCombatStateAsync(combatId);
+            var commandResponse = await _client.PostAsJsonAsync($"/api/v1/combats/{combatId}/commands", new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = run.GetProperty("sequence").GetInt32(),
+                expectedStep = combat.GetProperty("step").GetUInt64(),
+                type = "EXECUTE_ACTION",
+                payload = new
+                {
+                    actorId,
+                    targetId,
+                    actionId = powerId ?? cardId,
+                    powerId,
+                    cardId,
+                    actionType = (int?)(powerId != null || cardId != null ? null : 0)
+                }
+            });
+            if (!commandResponse.IsSuccessStatusCode)
+            {
+                var error = await commandResponse.Content.ReadAsStringAsync();
+                throw new HttpRequestException(
+                    $"Combat command failed with {(int)commandResponse.StatusCode} {commandResponse.StatusCode}: {error}");
+            }
+            var receipt = await commandResponse.Content.ReadFromJsonAsync<JsonElement>();
+            return receipt.GetProperty("state").GetProperty("combat").Clone();
+        }
+
         var request = new
         {
             actorId,
@@ -115,8 +156,25 @@ public class GameEngineClientSimulator
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }
 
-    public async Task<JsonElement> EndTurnAsync(Guid combatId)
+    public async Task<JsonElement> EndTurnAsync(Guid combatId, Guid? runId = null)
     {
+        if (runId.HasValue)
+        {
+            var run = await GetRunStateAsync(runId.Value);
+            var combat = await GetCombatStateAsync(combatId);
+            var commandResponse = await _client.PostAsJsonAsync($"/api/v1/combats/{combatId}/commands", new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = run.GetProperty("sequence").GetInt32(),
+                expectedStep = combat.GetProperty("step").GetUInt64(),
+                type = "END_TURN",
+                payload = new { actorId = combat.GetProperty("hero").GetProperty("entityId").GetString() }
+            });
+            commandResponse.EnsureSuccessStatusCode();
+            var receipt = await commandResponse.Content.ReadFromJsonAsync<JsonElement>();
+            return receipt.GetProperty("state").GetProperty("combat").Clone();
+        }
+
         var response = await _client.PostAsync($"/api/v1/combats/{combatId}/end-turn", null);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();

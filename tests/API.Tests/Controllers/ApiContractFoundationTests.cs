@@ -191,17 +191,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(HttpStatusCode.OK, startRunResponse.StatusCode);
         var runId = run.GetProperty("runId").GetGuid();
 
-        using var startEncounterResponse = await _client.PostAsJsonAsync(
-            $"/api/v1/runs/{runId}/encounters",
-            new
-            {
-                heroId = playerEntityId,
-                enemies = new[] { "enemy_1" },
-                initialEnergy = 3
-            });
-        var combat = await startEncounterResponse.Content.ReadFromJsonAsync<JsonElement>();
-
-        Assert.Equal(HttpStatusCode.OK, startEncounterResponse.StatusCode);
+        var combat = await StartRunEncounterAsync(runId, playerEntityId, new[] { "enemy_1" });
         Assert.Equal(runId, combat.GetProperty("runId").GetGuid());
         Assert.Equal("start", combat.GetProperty("runNodeId").GetString());
         Assert.Equal(
@@ -450,12 +440,8 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var runId = started.GetProperty("runId").GetGuid();
         Assert.Equal(HttpStatusCode.OK, startRunResponse.StatusCode);
 
-        using var encounterResponse = await _client.PostAsJsonAsync(
-            $"/api/v1/runs/{runId}/encounters",
-            new { heroId = player, enemies = new[] { "enemy_1" }, initialEnergy = 3 });
-        var encounter = await encounterResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var encounter = await StartRunEncounterAsync(runId, player, new[] { "enemy_1" });
         var combatId = encounter.GetProperty("combatId").GetGuid();
-        Assert.Equal(HttpStatusCode.OK, encounterResponse.StatusCode);
 
         using var runResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
         var run = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -508,11 +494,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var runId = started.GetProperty("runId").GetGuid();
         Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
 
-        using var encounterResponse = await _client.PostAsJsonAsync(
-            $"/api/v1/runs/{runId}/encounters",
-            new { heroId = player, enemies = new[] { "enemy_1" }, initialEnergy = 3 });
-        var encounter = await encounterResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, encounterResponse.StatusCode);
+        var encounter = await StartRunEncounterAsync(runId, player, new[] { "enemy_1" });
         var combatId = encounter.GetProperty("combatId").GetGuid();
 
         using var currentRunResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
@@ -604,6 +586,35 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         using var response = await _client.PostAsJsonAsync(path, new { });
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    private async Task<JsonElement> StartRunEncounterAsync(
+        Guid runId,
+        string heroId,
+        IReadOnlyList<string> enemyIds,
+        int initialEnergy = 3)
+    {
+        using var runResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var run = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, runResponse.StatusCode);
+
+        using var commandResponse = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            expectedSequence = run.GetProperty("sequence").GetInt32(),
+            expectedStep = run.GetProperty("step").GetUInt64(),
+            type = RunCommandTypes.StartEncounter,
+            payload = new { heroId, enemyIds, initialEnergy }
+        });
+        var receiptBody = await commandResponse.Content.ReadAsStringAsync();
+        Assert.True(commandResponse.IsSuccessStatusCode, receiptBody);
+        var receipt = JsonSerializer.Deserialize<JsonElement>(receiptBody);
+        var combatId = receipt.GetProperty("state").GetProperty("activeEncounterId").GetGuid();
+
+        using var combatResponse = await _client.GetAsync($"/api/v1/combats/{combatId}");
+        var combat = await combatResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, combatResponse.StatusCode);
+        return combat;
     }
 
     [Fact]

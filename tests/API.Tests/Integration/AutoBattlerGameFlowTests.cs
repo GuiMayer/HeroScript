@@ -146,7 +146,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         // Round 1: Combat
         var playerEntityId = GetJsonString(runState, "playerEntityId");
         var combatId1 = await Client.StartCombatAsync(playerEntityId, 
-            new[] { "weak_enemy" }, initialEnergy: 0, runId: runId);
+            new[] { "weak_enemy" }, initialEnergy: 0);
         
         var combat1State = await Client.GetCombatStateAsync(combatId1);
         AssertCombatStateValid(combat1State);

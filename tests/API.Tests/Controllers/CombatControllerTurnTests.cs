@@ -118,40 +118,12 @@ public sealed class CombatControllerTurnTests
     }
 
     [Fact]
-    public void ExecuteAction_WithRunId_UsesCombatRunCoordinator()
+    public void ExecuteAction_WithRunId_IsRejectedOutsideCommandBoundary()
     {
         var state = CreateCombatState();
         var runId = Guid.NewGuid();
-        var run = new RunState
-        {
-            RunId = runId,
-            Deck = new DeckState
-            {
-                Hand = new List<string>(),
-                DiscardPile = new List<string> { "fireball" }
-            }
-        };
-
-        _actionManager.Setup(m => m.GetDefinition("fireball"))
-            .Returns(Result<ActionDefinition>.Success(new ActionDefinition
-            {
-                ActionId = "fireball",
-                ActionType = ActionType.POWER
-            }));
-        _combatRunCoordinator
-            .Setup(c => c.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(command =>
-                command.ActorId == "hero" &&
-                command.RunId == runId &&
-                command.CardId == "fireball" &&
-                command.PowerId == "fireball" &&
-                command.TargetId == "enemy_1")))
-            .Returns(Result<CombatRunActionResult>.Success(new CombatRunActionResult
-            {
-                CombatState = state,
-                RunState = run,
-                ConsumedCardId = "fireball",
-                Destination = CardConsumeDestination.Discard
-            }));
+        _combatSystem.Setup(s => s.GetCombatState(state.CombatId))
+            .Returns(Result<CombatState>.Success(state));
 
         var result = _controller.ExecuteAction(state.CombatId, new ExecuteActionRequest
         {
@@ -162,9 +134,8 @@ public sealed class CombatControllerTurnTests
             CardId = "fireball"
         });
 
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(ok.Value);
-        _combatRunCoordinator.Verify(c => c.ExecuteAction(state.CombatId, It.IsAny<CombatActionCommand>()), Times.Once);
+        Assert.IsType<ObjectResult>(result);
+        _combatRunCoordinator.Verify(c => c.ExecuteAction(state.CombatId, It.IsAny<CombatActionCommand>()), Times.Never);
         _combatSystem.Verify(s => s.ExecuteAction(It.IsAny<Guid>(), It.IsAny<CombatActionCommand>()), Times.Never);
     }
 
