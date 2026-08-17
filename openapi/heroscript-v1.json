@@ -108,6 +108,78 @@
         "x-heroscript-stability": "stable",
         "responses": { "200": { "description": "Immutable content revision catalog" } }
       }
+    },
+    "/api/v1/runs/{runId}/available-commands": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getAvailableRunCommands",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Commands allowed by the pinned immutable state" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/runs/{runId}/map": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunMap",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Pinned map and progression read model" } }
+      }
+    },
+    "/api/v1/runs/{runId}/journal": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunJournal",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Durable, ordered command journal" } }
+      }
+    },
+    "/api/v1/runs/{runId}/verify": {
+      "post": {
+        "tags": ["Runs"],
+        "operationId": "verifyRunReplay",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Semantic replay verification result" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/legal-actions": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getLegalCombatActions",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
+        "responses": { "200": { "description": "Actions legal in the current deterministic phase" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/legal-targets": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getLegalCombatTargets",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "actionId", "in": "query", "required": true, "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "Targets legal for an action" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/stack": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getCombatStack",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
+        "responses": { "200": { "description": "Priority and action stack read model" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/verify": {
+      "post": {
+        "tags": ["Combats"],
+        "operationId": "verifyCombatReplay",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
+        "responses": { "200": { "description": "Combat projection verified against run semantic replay" } }
+      }
     }
   },
   "components": {
