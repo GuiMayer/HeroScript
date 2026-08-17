@@ -26,6 +26,7 @@ using Core.StatusEffects;
 using Core.Entity.Definitions;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.OpenApi;
 using API.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -446,7 +447,15 @@ builder.Services.AddCors(options =>
 
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "HeroScript API",
+        Version = "v1",
+        Description = "Headless deterministic game-engine API. See /docs/api/governance for contract rules."
+    });
+});
 
 var app = builder.Build();
 
@@ -491,14 +500,17 @@ else
     logger.LogWarning("Gambit definitions were not loaded: {Error}", gambitLoadResult.Error);
 }
 
-// Configure the HTTP request pipeline
+// The machine-readable contract is published in every environment. The
+// interactive UI remains a development aid and never becomes the app root.
+app.UseSwagger(); // Compatibility endpoint: /swagger/v1/swagger.json
+app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "HeroScript API v1");
-        options.RoutePrefix = string.Empty; // Serve Swagger UI at root
+        options.SwaggerEndpoint("/openapi/v1.json", "HeroScript API v1");
+        options.RoutePrefix = "docs/api";
     });
 }
 
