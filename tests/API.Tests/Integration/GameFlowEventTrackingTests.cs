@@ -20,17 +20,14 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task GetEvents_CombatEvents_ReturnsHistory()
     {
-        // Setup and run combat
-        var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1" });
+        var (runId, combatId, playerEntityId, _) = await SetupPrototypeCombatAsync(new[] { "enemy_1" });
 
-        // Execute action to generate events
-        await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
+        await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_1");
 
         // Get events for combat
         var events = await Client.GetEventsAsync(combatId: combatId);
 
         // Verify events returned
-        Assert.NotNull(events);
         Assert.NotEmpty(events);
 
         // Verify events have required fields
@@ -45,18 +42,15 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task GetEvents_FilterByCombat_ReturnsFiltered()
     {
-        // Setup combat
-        var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1", "enemy_2" });
+        var (runId, combatId, playerEntityId, _) = await SetupPrototypeCombatAsync(new[] { "enemy_1", "enemy_2" });
 
-        // Execute multiple actions
-        await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
-        await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_2", powerId: "basic_attack");
+        await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_1");
+        await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_2");
 
         // Get events filtered by combat
         var combatEvents = await Client.GetEventsAsync(combatId: combatId);
 
         // Verify filtering worked
-        Assert.NotNull(combatEvents);
         Assert.NotEmpty(combatEvents);
         
         // All events should be from this combat
@@ -72,24 +66,20 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task GetEvents_FilterByEventType_ReturnsFiltered()
     {
-        // Setup combat
-        var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1" });
+        var (runId, combatId, playerEntityId, _) = await SetupPrototypeCombatAsync(new[] { "enemy_1" });
 
-        // Execute action
-        await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
+        await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_1");
 
         // Get events filtered by type
-        var damageEvents = await Client.GetEventsAsync(eventType: "DAMAGE_DEALT");
+        var actionEvents = await Client.GetEventsAsync(eventType: "ActionExecutedEvent");
 
-        // Verify filtering worked
-        Assert.NotNull(damageEvents);
-        
+        Assert.NotEmpty(actionEvents);
         // All events should be damage events
-        foreach (var evt in damageEvents)
+        foreach (var evt in actionEvents)
         {
             if (evt.TryGetProperty("eventType", out var eventType))
             {
-                Assert.Equal("DAMAGE_DEALT", eventType.GetString());
+                Assert.Equal("ActionExecutedEvent", eventType.GetString());
             }
         }
     }
@@ -97,32 +87,29 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task GetEvents_MultipleFilters_ReturnsIntersection()
     {
-        // Setup combat
-        var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1" });
+        var (runId, combatId, playerEntityId, _) = await SetupPrototypeCombatAsync(new[] { "enemy_1" });
 
-        // Execute action
-        await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
+        await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_1");
 
         // Get events with multiple filters
         var filteredEvents = await Client.GetEventsAsync(
             combatId: combatId,
-            eventType: "DAMAGE_DEALT");
+            eventType: "ActionExecutedEvent");
 
         // Verify events match all filters
-        Assert.NotNull(filteredEvents);
-        
+        Assert.NotEmpty(filteredEvents);
         foreach (var evt in filteredEvents)
         {
-            // Should be damage event
+            // Should be an action event.
             if (evt.TryGetProperty("eventType", out var eventType))
             {
-                Assert.Equal("DAMAGE_DEALT", eventType.GetString());
+                Assert.Equal("ActionExecutedEvent", eventType.GetString());
             }
 
-            // Should involve hero
-            var hasHeroInSource = evt.TryGetProperty("sourceEntityId", out var source) && 
-                                 source.GetString() == "hero";
-            Assert.True(hasHeroInSource, "Event should have hero as source");
+            // Should involve the run player.
+            var hasHeroInSource = evt.TryGetProperty("actorId", out var source) &&
+                                 source.GetString() == playerEntityId;
+            Assert.True(hasHeroInSource, $"Event should have the run player as source: {evt.GetRawText()}");
 
             // Should be from this combat
             if (evt.TryGetProperty("combatId", out var evtCombatId))
@@ -135,25 +122,23 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task CombatFlow_EventsRecordFullHistory_Observability()
     {
-        // Setup and run full combat flow
-        var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1" });
+        var (runId, combatId, playerEntityId, combatState) = await SetupPrototypeCombatAsync(new[] { "enemy_1" });
 
         var initialTurn = GetJsonInt(combatState, "currentTurn");
 
-        // Action 1: Attack
-        await Client.ExecuteActionAsync(combatId, "hero", targetId: "enemy_1", powerId: "basic_attack");
+        await Client.DrawCardsAsync(runId, 5);
 
-        // Action 2: Defend
-        await Client.ExecuteActionAsync(combatId, "hero", powerId: "defend");
+        await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_1");
 
-        // End turn
-        await Client.EndTurnAsync(combatId);
+        var defendCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "defend");
+        await Client.ExecuteActionAsync(combatId, playerEntityId, cardId: defendCard, runId: runId);
+
+        await Client.EndTurnAsync(combatId, runId);
 
         // Get all combat events
         var allEvents = await Client.GetEventsAsync(combatId: combatId);
 
         // Verify comprehensive event history
-        Assert.NotNull(allEvents);
         Assert.NotEmpty(allEvents);
 
         // Verify events are chronologically ordered
@@ -180,5 +165,20 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
 
         // Should have action-related events
         Assert.NotEmpty(eventTypes);
+    }
+
+    private async Task<(Guid runId, Guid combatId, string playerEntityId, JsonElement combatState)> SetupPrototypeCombatAsync(
+        string[] enemies)
+    {
+        var (runId, runState) = await SetupRunAsync();
+        var playerEntityId = GetJsonString(runState, "playerEntityId");
+        var combatId = await Client.StartCombatAsync(playerEntityId, enemies, runId: runId);
+        return (runId, combatId, playerEntityId, await Client.GetCombatStateAsync(combatId));
+    }
+
+    private async Task ExecuteBasicAttackAsync(Guid runId, Guid combatId, string playerEntityId, string targetId)
+    {
+        var card = (await Client.GetHandAsync(runId)).First(cardId => cardId == "basic_attack");
+        await Client.ExecuteActionAsync(combatId, playerEntityId, targetId, cardId: card, runId: runId);
     }
 }

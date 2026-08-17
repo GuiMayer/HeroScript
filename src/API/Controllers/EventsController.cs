@@ -11,6 +11,7 @@ namespace API.Controllers;
 [Route("api/v1/admin/events")]
 public class EventsController : ControllerBase
 {
+    private static readonly JsonSerializerOptions EventJsonOptions = new(JsonSerializerDefaults.Web);
     private readonly IEventBus _eventBus;
     private readonly ILogger<EventsController> _logger;
     private readonly IWebHostEnvironment _environment;
@@ -71,7 +72,7 @@ public class EventsController : ControllerBase
                 returned = limitedEvents.Count,
                 afterSequence,
                 lastSequence,
-                events = limitedEvents
+                events = limitedEvents.Select(SerializeEvent)
             });
         }
         catch (Exception ex)
@@ -221,6 +222,9 @@ public class EventsController : ControllerBase
             MatchesPayloadGuid(e, "combatId", combatId) &&
             MatchesPayloadGuid(e, "runId", runId));
     }
+
+    private static JsonElement SerializeEvent(IEvent @event) =>
+        JsonSerializer.SerializeToElement(@event, @event.GetType(), EventJsonOptions);
 
     private static bool MatchesSequence(IEvent @event, int? afterSequence)
     {

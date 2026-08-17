@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
@@ -25,9 +26,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var nonExistentRunId = Guid.NewGuid();
         var response = await Client.GetRawResponseAsync($"/api/v1/runs/{nonExistentRunId}");
 
-        // Should return 404 or similar error
-        Assert.True(response.StatusCode == HttpStatusCode.NotFound || 
-                   response.StatusCode == HttpStatusCode.BadRequest);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -37,9 +36,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var nonExistentCombatId = Guid.NewGuid();
         var response = await Client.GetRawResponseAsync($"/api/v1/combats/{nonExistentCombatId}");
 
-        // Should return 404 or similar error
-        Assert.True(response.StatusCode == HttpStatusCode.NotFound || 
-                   response.StatusCode == HttpStatusCode.BadRequest);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -58,59 +55,81 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             payload = new { count = 1000 }
         });
 
-        // The command boundary must reject or limit an oversized draw without crashing.
-        Assert.True(response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.BadRequest);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
     public async Task ExecuteAction_InvalidTarget_ReturnsError()
     {
-        // Setup combat
-        var (combatId, combatState) = await SetupCombatAsync("hero", new[] { "enemy_1" });
+        var (runId, runState) = await SetupRunAsync();
+        var playerEntityId = GetJsonString(runState, "playerEntityId");
+        var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1" }, runId: runId);
+        var combatState = await Client.GetCombatStateAsync(combatId);
 
-        // Try to attack non-existent target
-        var response = await Client.PostRawAsync($"/api/v1/combats/{combatId}/action", new
+        // The run-owned command boundary must reject a target outside the combat.
+        var response = await Client.PostRawAsync($"/api/v1/combats/{combatId}/commands", new
         {
-            actorId = "hero",
-            targetId = "non_existent_enemy",
-            powerId = "basic_attack",
-            actionType = "POWER"
+            commandId = Guid.NewGuid(),
+            expectedSequence = GetJsonInt((await Client.GetRunStateAsync(runId)), "sequence"),
+            expectedStep = combatState.GetProperty("step").GetUInt64(),
+            type = "EXECUTE_ACTION",
+            payload = new
+            {
+                actorId = playerEntityId,
+                targetId = "non_existent_enemy",
+                cardId = "basic_attack",
+                actionId = "basic_attack"
+            }
         });
 
-        // Should return validation error
-        Assert.True(response.StatusCode == HttpStatusCode.BadRequest || 
-                   response.StatusCode == HttpStatusCode.NotFound);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal("RULE_VIOLATION", problem.GetProperty("code").GetString());
     }
 
     [Fact]
     public async Task BuyShopItem_InsufficientGold_ReturnsError()
     {
-        // Setup run with 0 gold (if possible) or track initial gold
-        var (runId, runState) = await SetupRunAsync();
-        var initialGold = GetJsonInt(runState, "gold");
+        var (runId, _) = await SetupRunAsync();
 
-        // Open shop
+        // Buy a published offer and a paid preparation option, leaving less
+        // gold than every item in the next basic-shop offer.
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
         var shopInstanceId = GetJsonGuid(shopResponse, "shopInstanceId");
         var items = shopResponse.GetProperty("items");
+        var firstItem = items.EnumerateArray().First();
+        await Client.BuyShopItemAsync(runId, shopInstanceId, GetJsonString(firstItem, "itemId"));
 
-        // Find item more expensive than current gold
-        var expensiveItem = items.EnumerateArray()
-            .FirstOrDefault(item => GetJsonInt(item, "goldCost") > initialGold);
-
-        if (expensiveItem.ValueKind != JsonValueKind.Undefined)
+        while (GetJsonInt(await Client.GetRunStateAsync(runId), "gold") >= 10)
         {
-            var itemId = GetJsonString(expensiveItem, "itemId");
-            
-            await Assert.ThrowsAsync<HttpRequestException>(
-                () => Client.BuyShopItemAsync(runId, shopInstanceId, itemId));
+            var preparation = await Client.StartPreparationAsync(runId, "basic_preparation");
+            var paidOption = preparation.GetProperty("options").EnumerateArray()
+                .Single(option => GetJsonInt(option, "goldCost") == 10);
+            await Client.ApplyPreparationOptionAsync(
+                runId,
+                GetJsonGuid(preparation, "preparationInstanceId"),
+                GetJsonString(paidOption, "optionId"));
         }
+
+        var remainingGold = GetJsonInt(await Client.GetRunStateAsync(runId), "gold");
+        Assert.True(remainingGold < 10);
+
+        var secondShop = await Client.OpenShopAsync(runId, "basic_shop");
+        var expensiveItem = secondShop.GetProperty("items").EnumerateArray()
+            .First(item => GetJsonInt(item, "goldCost") > remainingGold);
+
+        var exception = await Assert.ThrowsAsync<HttpRequestException>(
+            () => Client.BuyShopItemAsync(
+                runId,
+                GetJsonGuid(secondShop, "shopInstanceId"),
+                GetJsonString(expensiveItem, "itemId")));
+        Assert.Contains("422", exception.Message);
     }
 
     [Fact]
-    public async Task StartCombat_InvalidHeroId_ReturnsError()
+    public async Task StartCombat_RuntimeHeroId_IsSupportedByTheStandaloneCombatPrimitive()
     {
-        // Try to start combat with non-existent hero
+        // Standalone combat is a simulation primitive and accepts runtime IDs.
         var response = await Client.PostRawAsync("/api/v1/combats/start", new
         {
             heroId = "non_existent_hero_xyz",
@@ -118,33 +137,9 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             initialEnergy = 3
         });
 
-        // Runtime entity IDs are accepted by the generic combat primitive.
-        // The important boundary here is that arbitrary IDs never crash it.
-        Assert.True(response.IsSuccessStatusCode ||
-                   response.StatusCode == HttpStatusCode.BadRequest ||
-                   response.StatusCode == HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task ApplyStatusEffect_InvalidStatusId_HandlesGracefully()
-    {
-        // Setup entity
-        var (runId, runState) = await SetupRunAsync();
-        var playerEntityId = GetJsonString(runState, "playerEntityId");
-
-        // Try to apply non-existent status effect
-        var response = await Client.PostAdminRawAsync("/api/v1/statuses/apply", new
-        {
-            targetId = playerEntityId,
-            statusId = "totally_fake_status_xyz",
-            stacks = 1
-        });
-
-        // Should handle gracefully (error or ignore)
-        // Should not crash with 500
-        Assert.True(response.IsSuccessStatusCode || 
-                   response.StatusCode == HttpStatusCode.BadRequest ||
-                   response.StatusCode == HttpStatusCode.NotFound);
+        var created = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("non_existent_hero_xyz", created.GetProperty("hero").GetProperty("entityId").GetString());
     }
 
     [Fact]
@@ -163,8 +158,6 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             paramOverrides = parameters
         });
 
-        // Should return error
-        Assert.True(response.StatusCode == HttpStatusCode.BadRequest || 
-                   response.StatusCode == HttpStatusCode.NotFound);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
