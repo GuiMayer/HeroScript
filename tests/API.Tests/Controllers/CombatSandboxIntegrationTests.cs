@@ -50,6 +50,18 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
             actor => actor.GetProperty("entityId").GetString() == "goblin_a");
 
+        using var timelineResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/timeline?limit=20");
+        var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, timelineResponse.StatusCode);
+        Assert.NotEmpty(timeline.GetProperty("items").EnumerateArray());
+        Assert.NotEmpty(timeline.GetProperty("turnGroups").EnumerateArray());
+        var historicalSequence = timeline.GetProperty("items")[0].GetProperty("runSequence").GetInt32();
+        using var historicalResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/timeline/{historicalSequence}/state");
+        var historical = await historicalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, historicalResponse.StatusCode);
+        Assert.Equal(combatId, historical.GetProperty("combatId").GetGuid());
+
         using var verification = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, verification.StatusCode);

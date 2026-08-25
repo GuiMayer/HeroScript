@@ -308,6 +308,24 @@
         "responses": { "200": { "description": "Combat commands filtered from the durable run journal" } }
       }
     },
+    "/api/v1/combats/{combatId}/timeline": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getCombatTimeline",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "afterSequence", "in": "query", "schema": { "type": "integer", "minimum": 0 } }, { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": { "200": { "description": "Policy-governed combat command timeline and turn groups" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/timeline/{sequence}/state": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getHistoricalCombatTimelineState",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": { "200": { "description": "Immutable historical state selected by a combat timeline item" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/combats/{combatId}/legal-targets": {
       "get": {
         "tags": ["Combats"],

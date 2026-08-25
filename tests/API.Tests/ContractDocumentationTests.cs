@@ -30,6 +30,7 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/sandbox/scenarios/validate", "post", "experimental");
         AssertOperation(paths, "/api/v1/sandbox/runs", "post", "experimental");
         AssertOperation(paths, "/api/v1/sandbox/runs/{runId}/snapshot", "get", "experimental");
+        AssertOperation(paths, "/api/v1/combats/{combatId}/timeline", "get", "experimental");
 
         var commandType = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CommandEnvelope").GetProperty("properties").GetProperty("type");

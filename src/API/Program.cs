@@ -467,6 +467,9 @@ builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSan
     sp.GetRequiredService<ICardContentCatalog>(),
     sp.GetRequiredService<IStatusEffectManager>(),
     sp.GetRequiredService<IScriptModifierManager>()));
+builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new CombatTimelineProjectionService(
+    sp.GetRequiredService<IRunManager>(),
+    (IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
 
 // Register CombatActivation services
 builder.Services.AddSingleton<ICombatActivationRulesLoader, CombatActivationRulesLoader>();
