@@ -42,6 +42,16 @@ public interface ICombatSystem
         Entity.Entity hero,
         List<Entity.Entity> enemies,
         CombatStartOptions options);
+
+    /// <summary>
+    /// Starts combat from already materialized immutable participants. This is
+    /// the entry point used by scenario compilation, where entity aliases are
+    /// distinct from their JSON definition ids.
+    /// </summary>
+    Result<CombatState> StartCombatWithCombatEntities(
+        CombatEntity hero,
+        IReadOnlyList<CombatEntity> enemies,
+        CombatStartOptions options);
     
     /// <summary>
     /// Executa ação em combate.

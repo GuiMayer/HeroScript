@@ -5,7 +5,9 @@ namespace Core.Run;
 public sealed record RunEncounterStartCommand(
     string HeroId,
     IReadOnlyList<string> EnemyIds,
-    int InitialEnergy);
+    int InitialEnergy,
+    CombatEntity? InitialHero = null,
+    IReadOnlyList<CombatEntity>? InitialEnemies = null);
 
 /// <summary>
 /// Combat snapshot owned by a run. Resolved encounters remain in the run so a

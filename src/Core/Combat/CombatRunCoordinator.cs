@@ -98,6 +98,73 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         }
     }
 
+    public Result<CombatRunEncounterResult> StartEncounter(
+        Guid runId,
+        CombatEntity hero,
+        IReadOnlyList<CombatEntity> enemies,
+        RunCommandIdentity? commandIdentity = null)
+    {
+        ArgumentNullException.ThrowIfNull(hero);
+        ArgumentNullException.ThrowIfNull(enemies);
+        var runLock = _runLocks.GetOrAdd(runId, _ => new object());
+        lock (runLock)
+        {
+            var duplicate = FindDuplicateEncounter(runId, commandIdentity);
+            if (duplicate.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(duplicate.Error);
+            if (duplicate.Value != null)
+                return Result<CombatRunEncounterResult>.Success(duplicate.Value);
+
+            var runResult = _runManager.GetRun(runId);
+            if (runResult.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(runResult.Error);
+            var run = runResult.Value;
+            var versionValidation = ValidateRunVersion(run, commandIdentity, useCombatStep: false);
+            if (versionValidation.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(versionValidation.Error);
+            if (run.GetActiveEncounter() != null)
+                return Result<CombatRunEncounterResult>.Failure(
+                    $"Run already has an active encounter: {run.ActiveEncounterId}");
+            if (run.CurrentNodeId == null)
+                return Result<CombatRunEncounterResult>.Failure("Run has no current map node");
+
+            var node = run.Map.Nodes.FirstOrDefault(item =>
+                string.Equals(item.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
+            if (node == null || !RunMapTransitions.IsEncounterNode(node.NodeType))
+                return Result<CombatRunEncounterResult>.Failure("Current map node is not an encounter");
+
+            var seed = run.Determinism.DrawUInt64();
+            var combatResult = _combatSystem.StartCombatWithCombatEntities(
+                hero,
+                enemies,
+                new CombatStartOptions(
+                    seed.Value,
+                    run.Determinism.ContentRevision,
+                    runId,
+                    node.NodeId));
+            if (combatResult.IsFailure)
+                return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
+
+            var attached = _runManager.AttachEncounter(
+                runId,
+                commandIdentity?.ExpectedSequence ?? run.Sequence,
+                commandIdentity?.ExpectedStep ?? run.Determinism.Step,
+                combatResult.Value,
+                commandIdentity);
+            if (attached.IsFailure)
+            {
+                _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
+                return Result<CombatRunEncounterResult>.Failure(attached.Error);
+            }
+
+            return Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
+            {
+                CombatState = combatResult.Value,
+                RunState = attached.Value
+            });
+        }
+    }
+
     public Result<CombatRunEncounterResult> GetCurrentEncounter(Guid runId)
     {
         var runResult = _runManager.GetRun(runId);

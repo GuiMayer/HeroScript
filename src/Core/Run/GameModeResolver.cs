@@ -1,5 +1,6 @@
 using Core.Common;
 using Core.Config;
+using Core.Run.Content;
 
 namespace Core.Run;
 
@@ -22,6 +23,8 @@ public sealed class GameModeResolver : IGameModeResolver
     private readonly IResourceCatalog<TimelinePolicyDefinition> _timelinePolicies;
     private readonly IResourceCatalog<ContentBindingPolicyDefinition> _contentBindingPolicies;
     private readonly IResourceCatalog<CapabilityPolicyDefinition> _capabilityPolicies;
+    private readonly ICardPoolResolver? _cardPools;
+    private readonly IResourceCatalog<EnemyPoolDefinition>? _enemyPools;
 
     public GameModeResolver(
         IResourceCatalog<GameModeDefinition> modes,
@@ -30,7 +33,9 @@ public sealed class GameModeResolver : IGameModeResolver
         IResourceCatalog<ReplayPolicyDefinition> replayPolicies,
         IResourceCatalog<TimelinePolicyDefinition> timelinePolicies,
         IResourceCatalog<ContentBindingPolicyDefinition> contentBindingPolicies,
-        IResourceCatalog<CapabilityPolicyDefinition> capabilityPolicies)
+        IResourceCatalog<CapabilityPolicyDefinition> capabilityPolicies,
+        ICardPoolResolver? cardPools = null,
+        IResourceCatalog<EnemyPoolDefinition>? enemyPools = null)
     {
         _modes = modes ?? throw new ArgumentNullException(nameof(modes));
         _flowRules = flowRules ?? throw new ArgumentNullException(nameof(flowRules));
@@ -39,6 +44,8 @@ public sealed class GameModeResolver : IGameModeResolver
         _timelinePolicies = timelinePolicies ?? throw new ArgumentNullException(nameof(timelinePolicies));
         _contentBindingPolicies = contentBindingPolicies ?? throw new ArgumentNullException(nameof(contentBindingPolicies));
         _capabilityPolicies = capabilityPolicies ?? throw new ArgumentNullException(nameof(capabilityPolicies));
+        _cardPools = cardPools;
+        _enemyPools = enemyPools;
     }
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName)
@@ -95,6 +102,27 @@ public sealed class GameModeResolver : IGameModeResolver
         {
             return Result<ResolvedGameMode>.Failure(
                 "Capability policy enables hot reload activation but content binding policy rejects active runs");
+        }
+
+        if (_cardPools != null)
+        {
+            foreach (var poolId in mode.Value.CardPoolIds)
+            {
+                var pool = _cardPools.GetPool(poolId, configName);
+                if (pool.IsFailure)
+                    return Result<ResolvedGameMode>.Failure($"Card pool '{poolId}' is invalid: {pool.Error}");
+            }
+        }
+        if (_enemyPools != null)
+        {
+            foreach (var poolId in mode.Value.EnemyPoolIds)
+            {
+                var pool = _enemyPools.Get(poolId, configName);
+                if (pool.IsFailure)
+                    return Result<ResolvedGameMode>.Failure($"Enemy pool '{poolId}' is invalid: {pool.Error}");
+                if (pool.Value.EntityDefinitionIds.Count == 0)
+                    return Result<ResolvedGameMode>.Failure($"Enemy pool '{poolId}' has no entities");
+            }
         }
 
         return Result<ResolvedGameMode>.Success(new ResolvedGameMode

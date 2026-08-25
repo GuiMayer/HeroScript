@@ -238,6 +238,75 @@ public class CombatSystem : ICombatSystem
         }
     }
 
+    public Result<CombatState> StartCombatWithCombatEntities(
+        CombatEntity hero,
+        IReadOnlyList<CombatEntity> enemies,
+        CombatStartOptions options)
+    {
+        try
+        {
+            if (hero == null)
+                return Result<CombatState>.Failure("Hero combat entity cannot be null");
+            if (!hero.IsHero)
+                return Result<CombatState>.Failure("Scenario hero must be a hero entity");
+            if (enemies == null || enemies.Count == 0)
+                return Result<CombatState>.Failure("At least one enemy is required");
+            if (enemies.Any(enemy => enemy == null || enemy.IsHero))
+                return Result<CombatState>.Failure("Scenario enemies must be non-hero entities");
+            if (options == null || string.IsNullOrWhiteSpace(options.ContentRevision))
+                return Result<CombatState>.Failure("Content revision cannot be empty");
+
+            var context = DeterministicContext.Create(
+                options.Seed ?? CreateSeed(),
+                options.ContentRevision);
+            var combatState = CombatTransitions.Create(hero, enemies, context) with
+            {
+                RunId = options.RunId,
+                RunNodeId = options.RunNodeId
+            };
+            var initialized = InitializeCombatState(combatState);
+            if (initialized.IsFailure)
+                return initialized;
+
+            if (!_activeCombats.TryAdd(initialized.Value.CombatId, initialized.Value))
+                return Result<CombatState>.Failure("Failed to create combat (ID collision)");
+            _combatLocks.TryAdd(initialized.Value.CombatId, new object());
+            _eventBus?.Publish(new CombatStartedEvent
+            {
+                CombatId = initialized.Value.CombatId,
+                HeroId = hero.EntityId,
+                EnemyIds = enemies.Select(enemy => enemy.EntityId).ToList(),
+                InitialEnergy = (int)(hero.GetResource("energy")?.Current ?? 0),
+                Target = initialized.Value.CombatId.ToString()
+            });
+            return initialized;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError($"Error starting scenario combat: {exception.Message}");
+            return Result<CombatState>.Failure($"Failed to start scenario combat: {exception.Message}");
+        }
+    }
+
+    private Result<CombatState> InitializeCombatState(CombatState combatState)
+    {
+        var initResult = _turnOrderCalculator.InitializeState(combatState);
+        if (initResult.IsFailure)
+        {
+            _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
+            return Result<CombatState>.Success(combatState);
+        }
+
+        combatState = initResult.Value;
+        var turnOrderResult = _turnOrderCalculator.Calculate(combatState);
+        if (turnOrderResult.IsSuccess)
+        {
+            combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
+            _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
+        }
+        return Result<CombatState>.Success(combatState);
+    }
+
     private Result<CombatState> ExecuteActionLocked(Guid combatId, CombatActionCommand command)
     {
         try

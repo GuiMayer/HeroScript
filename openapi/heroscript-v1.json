@@ -12,7 +12,8 @@
     { "name": "System" },
     { "name": "Runs" },
     { "name": "Combats" },
-    { "name": "Content" }
+    { "name": "Content" },
+    { "name": "Sandbox" }
   ],
   "paths": {
     "/api/v1/health/live": {
@@ -351,6 +352,33 @@
         "parameters": [{ "$ref": "#/components/parameters/RunId" }, { "name": "afterSequence", "in": "query", "schema": { "type": "integer", "minimum": 0 } }],
         "responses": { "200": { "description": "SSE stream; see AsyncAPI contract", "content": { "text/event-stream": { "schema": { "type": "string" } } } } }
       }
+    },
+    "/api/v1/sandbox/scenarios/validate": {
+      "post": {
+        "tags": ["Sandbox"],
+        "operationId": "validateCombatScenario",
+        "x-heroscript-stability": "experimental",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CombatScenarioDefinition" } } } },
+        "responses": { "200": { "description": "Normalized, validated scenario and deterministic scenario hash" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/sandbox/runs": {
+      "post": {
+        "tags": ["Sandbox"],
+        "operationId": "launchCombatScenario",
+        "x-heroscript-stability": "experimental",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CombatScenarioDefinition" } } } },
+        "responses": { "200": { "description": "Idempotent scenario run and active combat launch" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/sandbox/runs/{runId}/scenario": {
+      "get": {
+        "tags": ["Sandbox"],
+        "operationId": "getCombatScenario",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Persisted normalized scenario input" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
     }
   },
   "components": {
@@ -378,6 +406,21 @@
           "seed": { "type": "integer", "format": "uint64" },
           "contentRevision": { "type": "string" },
           "modeId": { "type": "string" }
+        }
+      },
+      "CombatScenarioDefinition": {
+        "type": "object",
+        "required": ["schemaVersion", "modeId", "seed", "attemptKey", "hero", "deck", "enemies"],
+        "properties": {
+          "schemaVersion": { "type": "integer", "const": 1 },
+          "modeId": { "type": "string" },
+          "contentRevision": { "type": "string", "description": "Published content revision; omitted means the current revision." },
+          "seed": { "type": "integer", "format": "uint64" },
+          "attemptKey": { "type": "string", "description": "Changes the deterministic identity of a new attempt." },
+          "hero": { "type": "object" },
+          "deck": { "type": "array", "items": { "type": "object" } },
+          "enemies": { "type": "array", "items": { "type": "object" } },
+          "initialState": { "type": "object" }
         }
       },
       "CommandEnvelope": {

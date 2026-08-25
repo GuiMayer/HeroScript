@@ -22,6 +22,7 @@ using Core.Run;
 using Core.Run.Content;
 using Core.Run.Replay;
 using Core.Run.Events;
+using Core.Run.Sandbox;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
 using Microsoft.Extensions.Options;
@@ -311,6 +312,12 @@ builder.Services.AddSingleton<IResourceCatalog<CapabilityPolicyDefinition>>(sp =
         sp.GetRequiredService<IResourceLoader>(),
         "capability-policies",
         definition => definition.CapabilityPolicyId));
+builder.Services.AddSingleton<IResourceCatalog<EnemyPoolDefinition>>(sp =>
+    new ResourceCatalog<EnemyPoolDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "enemy-pools",
+        definition => definition.EnemyPoolId));
 builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<FlowRulesDefinition>>(),
@@ -318,7 +325,9 @@ builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<ReplayPolicyDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<TimelinePolicyDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<ContentBindingPolicyDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>()));
+    sp.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>(),
+    sp.GetRequiredService<ICardPoolResolver>(),
+    sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>()));
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
     new ResourceCatalog<DailyChallengeDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -439,6 +448,20 @@ builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordina
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<IActionManager>(),
     sp.GetRequiredService<IScriptModifierManager>()));
+builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
+    sp.GetRequiredService<IGameModeResolver>(),
+    sp.GetRequiredService<ICardContentCatalog>(),
+    sp.GetRequiredService<ICardPoolResolver>(),
+    sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
+    sp.GetRequiredService<EntityDefinitionLoader>(),
+    sp.GetRequiredService<IResourceManager>(),
+    sp.GetRequiredService<IContentManifestProvider>()));
+builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxService(
+    sp.GetRequiredService<ICombatScenarioCompiler>(),
+    sp.GetRequiredService<IRunManager>(),
+    sp.GetRequiredService<ICombatRunCoordinator>(),
+    sp.GetRequiredService<IRunStateRepository>()));
 
 // Register CombatActivation services
 builder.Services.AddSingleton<ICombatActivationRulesLoader, CombatActivationRulesLoader>();

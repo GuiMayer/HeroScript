@@ -104,6 +104,18 @@ public sealed record CapabilityPolicyDefinition
     public int MaxBranchesPerRoot { get; init; } = 50;
 }
 
+public sealed record EnemyPoolDefinition
+{
+    private ImmutableArray<string> _entityDefinitionIds = [];
+
+    public string EnemyPoolId { get; init; } = string.Empty;
+    public IReadOnlyList<string> EntityDefinitionIds
+    {
+        get => _entityDefinitionIds;
+        init => _entityDefinitionIds = value?.ToImmutableArray() ?? [];
+    }
+}
+
 /// <summary>
 /// The resolved immutable policy graph captured by a run. It makes the
 /// effective interpretation of a mode visible to clients and replay.

@@ -12,6 +12,11 @@ public interface ICombatRunCoordinator
         IReadOnlyList<string> enemyIds,
         int initialEnergy = 3,
         RunCommandIdentity? commandIdentity = null);
+    Result<CombatRunEncounterResult> StartEncounter(
+        Guid runId,
+        CombatEntity hero,
+        IReadOnlyList<CombatEntity> enemies,
+        RunCommandIdentity? commandIdentity = null);
     Result<CombatRunEncounterResult> GetCurrentEncounter(Guid runId);
     Result<CombatRunEncounterResult> GetCombatState(Guid combatId);
     Result<CombatRunActionResult> ExecuteAction(

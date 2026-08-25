@@ -19,11 +19,22 @@ public static class DeckTransitions
         DeterministicContext context)
     {
         ArgumentNullException.ThrowIfNull(definitionIds);
+        return Create(
+            definitionIds.Select(definitionId => new RunStartingCard { DefinitionId = definitionId }).ToArray(),
+            context);
+    }
+
+    public static Result<DeckTransition> Create(
+        IReadOnlyList<RunStartingCard> cards,
+        DeterministicContext context)
+    {
+        ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(context);
 
-        var definitions = definitionIds
-            .Where(definitionId => !string.IsNullOrWhiteSpace(definitionId))
+        var declarations = cards
+            .Where(card => !string.IsNullOrWhiteSpace(card.DefinitionId))
             .ToImmutableArray();
+        var definitions = declarations.Select(card => card.DefinitionId).ToImmutableArray();
         var instances = ImmutableDictionary.CreateBuilder<Guid, CardInstanceState>();
         var instanceIds = ImmutableList.CreateBuilder<Guid>();
         var currentContext = context;
@@ -35,7 +46,8 @@ public static class DeckTransitions
             instances.Add(allocated.Value, new CardInstanceState
             {
                 CardInstanceId = allocated.Value,
-                DefinitionId = definitions[index]
+                DefinitionId = definitions[index],
+                Upgrades = declarations[index].Upgrades
             });
         }
 

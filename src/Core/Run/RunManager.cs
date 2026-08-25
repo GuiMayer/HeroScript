@@ -9,6 +9,7 @@ using Core.Events;
 using Core.Events.Domain;
 using Core.Determinism;
 using Core.Run.Content;
+using Core.Run.Sandbox;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
@@ -121,10 +122,15 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         var context = DeterministicContext.Create(seed, contentRevision!);
         var runId = context.AllocateId(
             $"run:{options.ConfigName}:{effectiveRunDefinitionId}:{options.PlayerEntityId}:" +
-            $"{options.ModeId ?? "default"}:{options.ChallengeId ?? "none"}");
+            $"{options.ModeId ?? "default"}:{options.ChallengeId ?? "none"}:{options.AttemptKey ?? "default"}");
         context = runId.Context;
 
-        var deckResult = DeckTransitions.Create(definition.StartingDeck, context);
+        var startingDeck = options.StartingDeck ?? definition.StartingDeck
+            .Select(cardId => new RunStartingCard { DefinitionId = cardId })
+            .ToArray();
+        if (startingDeck.Count == 0)
+            return Result<RunState>.Failure("Starting deck cannot be empty");
+        var deckResult = DeckTransitions.Create(startingDeck, context);
         if (deckResult.IsFailure)
             return Result<RunState>.Failure(deckResult.Error);
         context = deckResult.Value.Context;
@@ -137,6 +143,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             ModeId = options.ModeId,
             ResolvedMode = resolvedMode,
             ChallengeId = options.ChallengeId,
+            Scenario = options.Scenario,
+            ScenarioHash = options.ScenarioHash,
+            AttemptKey = options.AttemptKey,
             Gold = definition.StartingGold,
             PowerPoints = definition.StartingPowerPoints,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
@@ -147,7 +156,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             Determinism = context
         };
 
-        var initialDraw = DeckTransitions.Draw(state.Deck, definition.StartingHandSize, state.Determinism);
+        var startingHandSize = options.StartingHandSize ?? definition.StartingHandSize;
+        if (startingHandSize < 0)
+            return Result<RunState>.Failure("Starting hand size cannot be negative");
+        var initialDraw = DeckTransitions.Draw(state.Deck, startingHandSize, state.Determinism);
         if (initialDraw.IsFailure)
             return Result<RunState>.Failure(initialDraw.Error);
 
@@ -169,7 +181,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 {
                     RunDefinitionId = effectiveRunDefinitionId,
                     Seed = seed,
-                    ContentRevision = contentRevision
+                    ContentRevision = contentRevision,
+                    StartingDeck = startingDeck,
+                    StartingHandSize = startingHandSize,
+                    Scenario = options.Scenario
                 });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
@@ -819,7 +834,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             var journalCommand = new RunEncounterStartCommand(
                 combatState.Hero.EntityId,
                 combatState.Enemies.Select(enemy => enemy.EntityId).ToArray(),
-                initialEnergy);
+                initialEnergy,
+                combatState.Hero,
+                combatState.Enemies.ToArray());
             return Persist(
                 candidate,
                 RunCommandTypes.StartEncounter,
