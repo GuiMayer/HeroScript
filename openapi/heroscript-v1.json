@@ -23,6 +23,22 @@
         "responses": { "200": { "description": "Process is alive" } }
       }
     },
+    "/api/v1/health/ready": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "getReadiness",
+        "x-heroscript-stability": "stable",
+        "responses": { "200": { "description": "Content and durable run store are ready" } }
+      }
+    },
+    "/api/v1/version": {
+      "get": {
+        "tags": ["System"],
+        "operationId": "getVersion",
+        "x-heroscript-stability": "stable",
+        "responses": { "200": { "description": "API and deterministic engine version" } }
+      }
+    },
     "/api/v1/capabilities": {
       "get": {
         "tags": ["System"],
@@ -32,6 +48,12 @@
       }
     },
     "/api/v1/runs": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "listRuns",
+        "x-heroscript-stability": "stable",
+        "responses": { "200": { "description": "Persisted run summaries" } }
+      },
       "post": {
         "tags": ["Runs"],
         "operationId": "startRun",
@@ -127,6 +149,15 @@
         "responses": { "200": { "description": "Definitions from one immutable revision" } }
       }
     },
+    "/api/v1/content/{kind}/{definitionId}": {
+      "get": {
+        "tags": ["Content"],
+        "operationId": "getContentDefinition",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "name": "kind", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "definitionId", "in": "path", "required": true, "schema": { "type": "string" } }, { "name": "revision", "in": "query", "schema": { "type": "string" } }],
+        "responses": { "200": { "description": "One definition from an immutable revision" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/profiles/{playerId}": {
       "get": {
         "tags": ["System"],
@@ -188,6 +219,49 @@
         "responses": { "200": { "description": "Durable, ordered command journal" } }
       }
     },
+    "/api/v1/runs/{runId}/checkpoints": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunCheckpoints",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Durable checkpoint metadata" } }
+      }
+    },
+    "/api/v1/runs/{runId}/checkpoints/{sequence}": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunCheckpoint",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": { "200": { "description": "Immutable run checkpoint" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/runs/{runId}/timeline": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunTimeline",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Run command timeline projection" } }
+      }
+    },
+    "/api/v1/runs/{runId}/branches": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "listRunBranches",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Direct deterministic child branches" } }
+      },
+      "post": {
+        "tags": ["Runs"],
+        "operationId": "createRunBranch",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "A deterministic branch from one historical sequence" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/runs/{runId}/verify": {
       "post": {
         "tags": ["Runs"],
@@ -204,6 +278,33 @@
         "x-heroscript-stability": "experimental",
         "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
         "responses": { "200": { "description": "Actions legal in the current deterministic phase" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/available-actions": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getAvailableCombatActions",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
+        "responses": { "200": { "description": "Combat actions with cost, hand and affordability metadata" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/history": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getCombatHistory",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
+        "responses": { "200": { "description": "Resolved combat action history" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/journal": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getCombatJournal",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
+        "responses": { "200": { "description": "Combat commands filtered from the durable run journal" } }
       }
     },
     "/api/v1/combats/{combatId}/legal-targets": {
@@ -275,7 +376,8 @@
           "runDefinitionId": { "type": "string" },
           "playerEntityId": { "type": "string" },
           "seed": { "type": "integer", "format": "uint64" },
-          "contentRevision": { "type": "string" }
+          "contentRevision": { "type": "string" },
+          "modeId": { "type": "string" }
         }
       },
       "CommandEnvelope": {

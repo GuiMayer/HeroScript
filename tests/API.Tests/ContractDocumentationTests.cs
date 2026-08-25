@@ -19,7 +19,12 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/runs", "post", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/commands", "post", "stable");
         AssertOperation(paths, "/api/v1/combats/{combatId}/commands", "post", "stable");
+        AssertOperation(paths, "/api/v1/runs/{runId}/checkpoints", "get", "stable");
+        AssertOperation(paths, "/api/v1/runs/{runId}/timeline", "get", "experimental");
+        AssertOperation(paths, "/api/v1/runs/{runId}/branches", "post", "experimental");
         AssertOperation(paths, "/api/v1/runs/{runId}/verify", "post", "stable");
+        AssertOperation(paths, "/api/v1/combats/{combatId}/journal", "get", "stable");
+        AssertOperation(paths, "/api/v1/combats/{combatId}/history", "get", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/events/stream", "get", "stable");
         AssertOperation(paths, "/api/v1/admin/content/drafts", "post", "admin");
 
