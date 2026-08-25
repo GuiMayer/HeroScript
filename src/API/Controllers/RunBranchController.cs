@@ -55,6 +55,13 @@ public sealed class RunBranchController : BaseApiController
         var branches = await _branches.ListAsync(runId, cancellationToken);
         return Ok(new { runId, branches, count = branches.Count });
     }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/branch-tree")]
+    public async Task<IActionResult> GetTree(Guid runId, CancellationToken cancellationToken)
+    {
+        var tree = await _branches.GetTreeAsync(runId, cancellationToken);
+        return tree.IsSuccess ? Ok(tree.Value) : ApiNotFound(tree.Error);
+    }
 }
 
 public sealed record CreateRunBranchRequest(int SourceSequence, string BranchKey);

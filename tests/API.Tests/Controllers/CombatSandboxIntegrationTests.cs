@@ -62,6 +62,28 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(HttpStatusCode.OK, historicalResponse.StatusCode);
         Assert.Equal(combatId, historical.GetProperty("combatId").GetGuid());
 
+        using var branchResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/timeline/{historicalSequence}/branches",
+            new { branchKey = "alternate-card-line" });
+        var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, branchResponse.StatusCode);
+        var branchRunId = branch.GetProperty("runId").GetGuid();
+        var branchCombatId = branch.GetProperty("activeEncounterId").GetGuid();
+        Assert.NotEqual(runId, branchRunId);
+        Assert.NotEqual(combatId, branchCombatId);
+
+        using var treeResponse = await _client.GetAsync($"/api/v1/runs/{runId}/branch-tree");
+        var tree = await treeResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, treeResponse.StatusCode);
+        Assert.Contains(
+            tree.GetProperty("children").EnumerateArray(),
+            child => child.GetProperty("runId").GetGuid() == branchRunId);
+
+        using var branchVerifyResponse = await _client.PostAsync($"/api/v1/runs/{branchRunId}/verify", null);
+        var branchReplay = await branchVerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, branchVerifyResponse.StatusCode);
+        Assert.True(branchReplay.GetProperty("isValid").GetBoolean(), branchReplay.GetRawText());
+
         using var verification = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, verification.StatusCode);

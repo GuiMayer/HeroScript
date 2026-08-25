@@ -263,6 +263,15 @@
         "responses": { "200": { "description": "A deterministic branch from one historical sequence" }, "422": { "$ref": "#/components/responses/Problem" } }
       }
     },
+    "/api/v1/runs/{runId}/branch-tree": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunBranchTree",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": { "200": { "description": "Immutable root-to-descendant run branch tree" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/runs/{runId}/verify": {
       "post": {
         "tags": ["Runs"],
@@ -324,6 +333,15 @@
         "x-heroscript-stability": "experimental",
         "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
         "responses": { "200": { "description": "Immutable historical state selected by a combat timeline item" }, "422": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/combats/{combatId}/timeline/{sequence}/branches": {
+      "post": {
+        "tags": ["Combats"],
+        "operationId": "createCombatTimelineBranch",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
+        "responses": { "200": { "description": "Independent child run and combat anchored at a historical combat state" }, "422": { "$ref": "#/components/responses/Problem" } }
       }
     },
     "/api/v1/combats/{combatId}/legal-targets": {

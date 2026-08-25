@@ -9,7 +9,8 @@ public sealed record RunBranchStartCommand(
     Guid ParentRunId,
     int SourceSequence,
     string BranchKey,
-    string SourceStateHash);
+    string SourceStateHash,
+    Guid? SourceCombatId = null);
 
 public sealed record RunBranchSummary(
     Guid RunId,
@@ -18,7 +19,21 @@ public sealed record RunBranchSummary(
     string BranchKey,
     int Sequence,
     ulong Step,
-    string StateHash);
+    string StateHash,
+    Guid? SourceCombatId);
+
+public sealed record RunBranchTreeNode
+{
+    public Guid RunId { get; init; }
+    public Guid? ParentRunId { get; init; }
+    public Guid? ParentCombatId { get; init; }
+    public int? SourceSequence { get; init; }
+    public string? BranchKey { get; init; }
+    public int Sequence { get; init; }
+    public ulong Step { get; init; }
+    public string StateHash { get; init; } = string.Empty;
+    public IReadOnlyList<RunBranchTreeNode> Children { get; init; } = [];
+}
 
 public interface IRunBranchService
 {
@@ -29,6 +44,9 @@ public interface IRunBranchService
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RunBranchSummary>> ListAsync(
         Guid parentRunId,
+        CancellationToken cancellationToken = default);
+    Task<Result<RunBranchTreeNode>> GetTreeAsync(
+        Guid runId,
         CancellationToken cancellationToken = default);
 }
 
@@ -60,11 +78,23 @@ public sealed class RunBranchService : IRunBranchService
             .ConfigureAwait(false);
         if (source == null)
             return Result<RunState>.Failure($"Run checkpoint not found: {parentRunId}/{sourceSequence}");
+        var policy = ValidateBranchPolicy(source);
+        if (policy.IsFailure)
+            return Result<RunState>.Failure(policy.Error);
+        var root = await ResolveRootIdAsync(source, cancellationToken).ConfigureAwait(false);
+        var branchLimit = source.ResolvedMode?.CapabilityPolicy.MaxBranchesPerRoot;
+        if (branchLimit.HasValue)
+        {
+            var branchCount = await CountBranchesForRootAsync(root, cancellationToken).ConfigureAwait(false);
+            if (branchCount >= branchLimit.Value)
+                return Result<RunState>.Failure($"Game mode branch limit reached: {branchLimit.Value}");
+        }
         var command = new RunBranchStartCommand(
             parentRunId,
             sourceSequence,
             branchKey.Trim(),
-            CanonicalJson.ComputeHash(source));
+            CanonicalJson.ComputeHash(source),
+            source.ActiveEncounterId);
         var created = RunBranchTransitions.Create(source, command);
         if (created.IsFailure)
             return created;
@@ -122,9 +152,88 @@ public sealed class RunBranchService : IRunBranchService
                 state.BranchKey,
                 state.Sequence,
                 state.Determinism.Step,
-                CanonicalJson.ComputeHash(state)));
+                CanonicalJson.ComputeHash(state),
+                state.ParentCombatId));
         }
         return branches.OrderBy(branch => branch.RunId).ToArray();
+    }
+
+    public async Task<Result<RunBranchTreeNode>> GetTreeAsync(
+        Guid runId,
+        CancellationToken cancellationToken = default)
+    {
+        var selected = await _repository.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
+        if (selected == null)
+            return Result<RunBranchTreeNode>.Failure($"Run not found: {runId}");
+        var states = new Dictionary<Guid, RunState>();
+        foreach (var id in await _repository.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var state = await _repository.LoadLatestAsync(id, cancellationToken).ConfigureAwait(false);
+            if (state != null)
+                states[state.RunId] = state;
+        }
+        var rootId = selected.RunId;
+        while (states.TryGetValue(rootId, out var state) && state.ParentRunId is { } parent)
+            rootId = parent;
+        if (!states.TryGetValue(rootId, out var root))
+            return Result<RunBranchTreeNode>.Failure($"Branch root not found: {rootId}");
+
+        RunBranchTreeNode Build(RunState node) => new()
+        {
+            RunId = node.RunId,
+            ParentRunId = node.ParentRunId,
+            ParentCombatId = node.ParentCombatId,
+            SourceSequence = node.BranchFromSequence,
+            BranchKey = node.BranchKey,
+            Sequence = node.Sequence,
+            Step = node.Determinism.Step,
+            StateHash = CanonicalJson.ComputeHash(node),
+            Children = states.Values
+                .Where(child => child.ParentRunId == node.RunId)
+                .OrderBy(child => child.BranchFromSequence)
+                .ThenBy(child => child.BranchKey, StringComparer.Ordinal)
+                .ThenBy(child => child.RunId)
+                .Select(Build)
+                .ToArray()
+        };
+        return Result<RunBranchTreeNode>.Success(Build(root));
+    }
+
+    private async Task<Guid> ResolveRootIdAsync(RunState source, CancellationToken cancellationToken)
+    {
+        var current = source;
+        while (current.ParentRunId is { } parent)
+        {
+            var parentState = await _repository.LoadLatestAsync(parent, cancellationToken).ConfigureAwait(false);
+            if (parentState == null)
+                break;
+            current = parentState;
+        }
+        return current.RunId;
+    }
+
+    private async Task<int> CountBranchesForRootAsync(Guid rootId, CancellationToken cancellationToken)
+    {
+        var count = 0;
+        foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
+        {
+            var state = await _repository.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
+            if (state?.ParentRunId == null || state.BranchKey?.StartsWith("simulation:", StringComparison.Ordinal) == true)
+                continue;
+            if (await ResolveRootIdAsync(state, cancellationToken).ConfigureAwait(false) == rootId)
+                count++;
+        }
+        return count;
+    }
+
+    private static Result ValidateBranchPolicy(RunState source)
+    {
+        var mode = source.ResolvedMode;
+        if (mode == null)
+            return Result.Success(); // Compatibility for pre-policy persisted runs only.
+        if (!mode.CapabilityPolicy.AllowTimelineFork || !mode.ReplayPolicy.AllowForkFromHistory)
+            return Result.Failure($"Game mode does not allow timeline branches: {source.ModeId}");
+        return Result.Success();
     }
 }
 
@@ -142,26 +251,49 @@ public static class RunBranchTransitions
             return Result<RunState>.Failure("Branch key cannot exceed 128 characters");
         if (!string.Equals(CanonicalJson.ComputeHash(source), command.SourceStateHash, StringComparison.Ordinal))
             return Result<RunState>.Failure("Branch source state hash mismatch");
-        if (source.ActiveEncounterId != null)
-            return Result<RunState>.Failure("Cannot branch while a run encounter is active");
-
         var allocated = source.Determinism.AllocateId(
             $"branch:{source.RunId:N}:{command.SourceSequence}:{command.BranchKey}");
+        var branchContext = allocated.Context;
+        Guid? childCombatId = null;
         var encounters = source.Encounters
             .Select(encounter => encounter with
             {
                 Combat = encounter.Combat with { RunId = allocated.Value }
             })
             .ToArray();
+        if (source.ActiveEncounterId is { } activeCombatId)
+        {
+            if (command.SourceCombatId != activeCombatId)
+                return Result<RunState>.Failure("Branch combat anchor does not match the source checkpoint");
+            var index = Array.FindIndex(encounters, encounter => encounter.Combat.CombatId == activeCombatId);
+            if (index < 0)
+                return Result<RunState>.Failure("Active branch combat is missing from the source checkpoint");
+            var combat = encounters[index].Combat;
+            var allocatedCombat = combat.Determinism.AllocateId(
+                $"branch:{allocated.Value:N}:{command.SourceSequence}:{command.BranchKey}");
+            childCombatId = allocatedCombat.Value;
+            encounters[index] = encounters[index] with
+            {
+                Combat = combat with
+                {
+                    CombatId = childCombatId.Value,
+                    RunId = allocated.Value,
+                    Determinism = allocatedCombat.Context
+                }
+            };
+            branchContext = branchContext.AllocateId($"branch-active-combat:{childCombatId.Value:N}").Context;
+        }
         return Result<RunState>.Success(source with
         {
             RunId = allocated.Value,
             ParentRunId = source.RunId,
+            ParentCombatId = source.ActiveEncounterId,
             BranchFromSequence = source.Sequence,
             BranchKey = command.BranchKey,
             Sequence = 1,
+            ActiveEncounterId = childCombatId,
             Encounters = [.. encounters],
-            Determinism = allocated.Context.AdvanceStep()
+            Determinism = branchContext.AdvanceStep()
         });
     }
 }

@@ -19,6 +19,7 @@ public sealed record RunState
     public string? ScenarioHash { get; init; }
     public string? AttemptKey { get; init; }
     public Guid? ParentRunId { get; init; }
+    public Guid? ParentCombatId { get; init; }
     public int? BranchFromSequence { get; init; }
     public string? BranchKey { get; init; }
     public int Gold { get; init; }

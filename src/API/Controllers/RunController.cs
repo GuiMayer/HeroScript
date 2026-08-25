@@ -263,6 +263,7 @@ public sealed class RunController : BaseApiController
             run.ResolvedMode,
             run.ChallengeId,
             run.ParentRunId,
+            run.ParentCombatId,
             run.BranchFromSequence,
             run.BranchKey,
             run.Gold,

@@ -1,4 +1,6 @@
 using Core.Determinism;
+using Core.Combat.Models;
+using Core.Resources;
 using Core.Run;
 using Core.Run.Branching;
 using Xunit;
@@ -38,24 +40,71 @@ public sealed class RunBranchTransitionsTests
     }
 
     [Fact]
-    public void Create_RejectsChangedSourceAndActiveEncounter()
+    public void Create_CopiesActiveEncounterIntoIndependentCombatBranch()
     {
+        var combatId = Guid.Parse("20000000-0000-0000-0000-000000000011");
         var source = new RunState
         {
             RunId = Guid.Parse("10000000-0000-0000-0000-000000000011"),
             Sequence = 2,
-            ActiveEncounterId = Guid.Parse("20000000-0000-0000-0000-000000000011"),
+            ActiveEncounterId = combatId,
+            Encounters =
+            [
+                new RunEncounterState
+                {
+                    NodeId = "start",
+                    Combat = new Core.Combat.Models.CombatState
+                    {
+                        CombatId = combatId,
+                        RunId = Guid.Parse("10000000-0000-0000-0000-000000000011"),
+                        Determinism = DeterministicContext.Create(987, "content-v1"),
+                        Hero = CreateHero()
+                    }
+                }
+            ],
             Determinism = DeterministicContext.Create(456, "content-v1")
         };
         var command = new RunBranchStartCommand(
             source.RunId,
             source.Sequence,
-            "unsafe",
-            CanonicalJson.ComputeHash(source));
+            "alternate-combat",
+            CanonicalJson.ComputeHash(source),
+            combatId);
 
-        Assert.True(RunBranchTransitions.Create(source, command).IsFailure);
+        var branch = RunBranchTransitions.Create(source, command);
+        Assert.True(branch.IsSuccess, branch.IsFailure ? branch.Error : null);
+        Assert.NotEqual(combatId, branch.Value.ActiveEncounterId);
+        Assert.Equal(combatId, branch.Value.ParentCombatId);
+        Assert.Equal(branch.Value.RunId, branch.Value.GetActiveEncounter()!.Combat.RunId);
+        Assert.NotEqual(combatId, branch.Value.GetActiveEncounter()!.Combat.CombatId);
         Assert.True(RunBranchTransitions.Create(
             source with { ActiveEncounterId = null },
             command).IsFailure);
     }
+
+    private static CombatEntity CreateHero() => new()
+    {
+        EntityId = "hero",
+        Name = "Hero",
+        IsHero = true,
+        ResourceState = new EntityResourceState
+        {
+            EntityId = "hero",
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                ["health"] = new ResourcePool
+                {
+                    ResourceId = "health",
+                    Current = 10,
+                    Maximum = 10,
+                    Definition = new ResourceDefinition
+                    {
+                        ResourceId = "health",
+                        DisplayName = "Health",
+                        Category = ResourceCategory.VITAL
+                    }
+                }
+            }
+        }
+    };
 }

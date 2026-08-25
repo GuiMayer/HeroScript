@@ -251,7 +251,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             runDefinitionId = "default_run",
             playerEntityId = playerId,
             seed = 778899UL,
-            modeId = "standard"
+            modeId = "combat_sandbox"
         });
         var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
