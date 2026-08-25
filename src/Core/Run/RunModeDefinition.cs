@@ -98,10 +98,12 @@ public sealed record CapabilityPolicyDefinition
     public bool AllowInitialEffects { get; init; }
     public bool AllowResourceOverrides { get; init; }
     public bool AllowTimelineFork { get; init; }
+    public bool AllowCombatSimulation { get; init; }
     public bool AllowHotReloadActivation { get; init; }
     public int MaxCards { get; init; } = 100;
     public int MaxEnemies { get; init; } = 5;
     public int MaxBranchesPerRoot { get; init; } = 50;
+    public int MaxSimulationCommands { get; init; } = 100;
 }
 
 public sealed record EnemyPoolDefinition

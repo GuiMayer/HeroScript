@@ -184,6 +184,24 @@
         "responses": { "200": { "description": "Isolated deterministic simulation" }, "422": { "$ref": "#/components/responses/Problem" } }
       }
     },
+    "/api/v1/simulations/{simulationId}": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getSimulation",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "simulationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Simulation status, deterministic result hash and compact command timeline" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/simulations/{simulationId}/result": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getSimulationResult",
+        "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "simulationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }],
+        "responses": { "200": { "description": "Complete immutable simulation result" }, "404": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
     "/api/v1/admin/content/drafts": {
       "post": {
         "tags": ["Content"],

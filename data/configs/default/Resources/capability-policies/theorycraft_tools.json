@@ -6,9 +6,11 @@
     "allowInitialEffects": true,
     "allowResourceOverrides": true,
     "allowTimelineFork": true,
+    "allowCombatSimulation": true,
     "allowHotReloadActivation": true,
     "maxCards": 100,
     "maxEnemies": 5,
-    "maxBranchesPerRoot": 50
+    "maxBranchesPerRoot": 50,
+    "maxSimulationCommands": 250
   }
 }

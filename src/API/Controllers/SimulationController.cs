@@ -49,7 +49,8 @@ public sealed class SimulationController : BaseApiController
                 result.Value.SourceSequence,
                 result.Value.Status,
                 result.Value.CommandsExecuted,
-                result.Value.FinalStateHash
+                result.Value.FinalStateHash,
+                result.Value.Timeline
             })
             : ApiNotFound(result.Error);
     }

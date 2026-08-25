@@ -218,7 +218,7 @@ public sealed class RunBranchService : IRunBranchService
         foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
         {
             var state = await _repository.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
-            if (state?.ParentRunId == null || state.BranchKey?.StartsWith("simulation:", StringComparison.Ordinal) == true)
+            if (state?.ParentRunId == null)
                 continue;
             if (await ResolveRootIdAsync(state, cancellationToken).ConfigureAwait(false) == rootId)
                 count++;

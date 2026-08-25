@@ -89,7 +89,7 @@ public sealed class GameModeResolver : IGameModeResolver
         if (timeline.Value.MaxItemsPerPage is < 1 or > 1000)
             return Result<ResolvedGameMode>.Failure("Timeline policy maxItemsPerPage must be between 1 and 1000");
         if (capabilities.Value.MaxCards < 0 || capabilities.Value.MaxEnemies < 1 ||
-            capabilities.Value.MaxBranchesPerRoot < 0)
+            capabilities.Value.MaxBranchesPerRoot < 0 || capabilities.Value.MaxSimulationCommands < 0)
         {
             return Result<ResolvedGameMode>.Failure("Capability policy limits are invalid");
         }

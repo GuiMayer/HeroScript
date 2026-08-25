@@ -50,6 +50,48 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
             actor => actor.GetProperty("entityId").GetString() == "goblin_a");
 
+        var basicAttack = snapshot.GetProperty("hand").EnumerateArray()
+            .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
+        var simulationRequest = new
+        {
+            sourceRunId = runId,
+            sourceSequence = first.GetProperty("run").GetProperty("sequence").GetInt32(),
+            commands = new object[]
+            {
+                new
+                {
+                    type = "EXECUTE_ACTION",
+                    payload = new
+                    {
+                        actorId = "hero",
+                        actionType = 0,
+                        targetId = "goblin_a",
+                        cardId = basicAttack.GetProperty("cardInstanceId").GetGuid()
+                    }
+                },
+                new { type = "END_TURN", payload = new { actorId = "hero" } }
+            }
+        };
+        using var simulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", simulationRequest);
+        var simulation = await simulationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(simulationResponse.StatusCode == HttpStatusCode.OK, simulation.GetRawText());
+        Assert.Equal(2, simulation.GetProperty("commandsExecuted").GetInt32());
+        Assert.Equal(2, simulation.GetProperty("timeline").GetArrayLength());
+        var simulationId = simulation.GetProperty("simulationId").GetGuid();
+
+        using var repeatSimulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", simulationRequest);
+        var repeatedSimulation = await repeatSimulationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, repeatSimulationResponse.StatusCode);
+        Assert.Equal(simulationId, repeatedSimulation.GetProperty("simulationId").GetGuid());
+        Assert.Equal(
+            simulation.GetProperty("finalStateHash").GetString(),
+            repeatedSimulation.GetProperty("finalStateHash").GetString());
+
+        using var simulationVerifyResponse = await _client.PostAsync($"/api/v1/runs/{simulationId}/verify", null);
+        var simulationReplay = await simulationVerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, simulationVerifyResponse.StatusCode);
+        Assert.True(simulationReplay.GetProperty("isValid").GetBoolean(), simulationReplay.GetRawText());
+
         using var timelineResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/timeline?limit=20");
         var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, timelineResponse.StatusCode);

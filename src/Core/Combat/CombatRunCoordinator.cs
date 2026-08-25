@@ -271,7 +271,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (string.IsNullOrWhiteSpace(cardId))
             return Result<CombatRunActionResult>.Failure("CardId is required for run-coordinated combat actions");
 
-        if (!run.Deck.Hand.Contains(cardId, StringComparer.Ordinal))
+        if (!IsCardInHand(run.Deck, cardId))
             return Result<CombatRunActionResult>.Failure($"Card '{cardId}' is not in run hand");
 
         var actionId = ResolveActionId(command, cardId);
@@ -486,6 +486,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         return command.ActionType == ActionType.BASIC_ATTACK
             ? BasicAttackActionId
             : command.PowerId ?? string.Empty;
+    }
+
+    private static bool IsCardInHand(DeckState deck, string cardReference)
+    {
+        if (deck.Hand.Contains(cardReference, StringComparer.Ordinal))
+            return true;
+        return deck.InstanceTrackingEnabled && Guid.TryParse(cardReference, out var instanceId) &&
+               deck.HandInstanceIds.Contains(instanceId);
     }
 
     private static string ResolveActionId(CombatActionCommand command, string cardId)
