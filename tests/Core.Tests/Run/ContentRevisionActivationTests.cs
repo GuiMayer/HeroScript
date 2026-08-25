@@ -89,22 +89,58 @@ public sealed class ContentRevisionActivationTests
         Assert.Contains("does not allow", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task ActivateContentRevision_PreservesEveryRevisionAcrossSequentialTransitions()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heroscript-content-activation-{Guid.NewGuid():N}");
+        try
+        {
+            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            var revisionA = new string('a', 64);
+            var revisionB = new string('b', 64);
+            var revisionC = new string('c', 64);
+            var manager = CreateManager(repository, revisionA, revisionB, revisionC);
+            var initial = manager.RestoreState(CreateState(revisionA)).Value;
+
+            var activatedB = Activate(manager, initial, revisionB);
+            Assert.True(activatedB.IsSuccess, activatedB.IsFailure ? activatedB.Error : null);
+            var activatedC = Activate(manager, activatedB.Value.State, revisionC);
+            Assert.True(activatedC.IsSuccess, activatedC.IsFailure ? activatedC.Error : null);
+            Assert.Equal(revisionC, activatedC.Value.State.Determinism.ContentRevision);
+
+            var journal = await repository.LoadJournalAsync(initial.RunId, 0, 10);
+            Assert.Equal(3, journal.Count);
+            Assert.Equal(revisionB, journal[1].Command.GetProperty("revision").GetString());
+            Assert.Equal(revisionC, journal[2].Command.GetProperty("revision").GetString());
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+    }
+
     private static RunManager CreateManager(
         IRunStateRepository? repository,
         string revisionA,
-        string revisionB)
+        params string[] additionalRevisions)
     {
         var config = new Mock<IConfigManager>();
         var resources = new Mock<IResourceLoader>();
         var manifests = new Mock<IContentManifestProvider>();
-        var manifestA = new ContentManifest { ConfigName = "test", Revision = revisionA };
-        var manifestB = new ContentManifest { ConfigName = "test", Revision = revisionB };
+        var manifestsByRevision = new[] { revisionA }
+            .Concat(additionalRevisions)
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(
+                revision => revision,
+                revision => new ContentManifest { ConfigName = "test", Revision = revision },
+                StringComparer.Ordinal);
         manifests.Setup(item => item.GetManifest("test"))
-            .Returns(Core.Common.Result<ContentManifest>.Success(manifestA));
-        manifests.Setup(item => item.GetByRevision(revisionA))
-            .Returns(Core.Common.Result<ContentManifest>.Success(manifestA));
-        manifests.Setup(item => item.GetByRevision(revisionB))
-            .Returns(Core.Common.Result<ContentManifest>.Success(manifestB));
+            .Returns(Core.Common.Result<ContentManifest>.Success(manifestsByRevision[revisionA]));
+        manifests.Setup(item => item.GetByRevision(It.IsAny<string>()))
+            .Returns((string revision) => manifestsByRevision.TryGetValue(revision, out var manifest)
+                ? Core.Common.Result<ContentManifest>.Success(manifest)
+                : Core.Common.Result<ContentManifest>.Failure($"Manifest not found: {revision}"));
         return new RunManager(
             config.Object,
             resources.Object,
@@ -135,4 +171,20 @@ public sealed class ContentRevisionActivationTests
             }
         }
     };
+
+    private static Core.Common.Result<RunCommandReceipt> Activate(
+        RunManager manager,
+        RunState state,
+        string revision)
+    {
+        var payload = JsonSerializer.SerializeToElement(new { revision });
+        return manager.Execute(state.RunId, new RunCommand(
+            new RunCommandIdentity(
+                Guid.NewGuid(),
+                RunCommandTypes.ActivateContentRevision,
+                state.Sequence,
+                state.Determinism.Step,
+                CanonicalJson.ComputeHash(payload)),
+            payload));
+    }
 }
