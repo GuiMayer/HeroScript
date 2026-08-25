@@ -462,6 +462,11 @@ builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxServ
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<ICombatRunCoordinator>(),
     sp.GetRequiredService<IRunStateRepository>()));
+builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
+    sp.GetRequiredService<IRunManager>(),
+    sp.GetRequiredService<ICardContentCatalog>(),
+    sp.GetRequiredService<IStatusEffectManager>(),
+    sp.GetRequiredService<IScriptModifierManager>()));
 
 // Register CombatActivation services
 builder.Services.AddSingleton<ICombatActivationRulesLoader, CombatActivationRulesLoader>();

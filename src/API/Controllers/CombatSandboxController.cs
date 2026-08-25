@@ -9,11 +9,16 @@ namespace API.Controllers;
 public sealed class CombatSandboxController : BaseApiController
 {
     private readonly ICombatSandboxService _sandbox;
+    private readonly ICombatSandboxSnapshotService _snapshots;
 
-    public CombatSandboxController(ICombatSandboxService sandbox, ILogger<CombatSandboxController> logger)
+    public CombatSandboxController(
+        ICombatSandboxService sandbox,
+        ICombatSandboxSnapshotService snapshots,
+        ILogger<CombatSandboxController> logger)
         : base(logger)
     {
         _sandbox = sandbox;
+        _snapshots = snapshots;
     }
 
     [HttpPost("scenarios/validate")]
@@ -67,5 +72,14 @@ public sealed class CombatSandboxController : BaseApiController
         return scenario.IsSuccess
             ? Ok(scenario.Value)
             : ApiNotFound(scenario.Error);
+    }
+
+    [HttpGet("runs/{runId:guid}/snapshot")]
+    public IActionResult GetSnapshot(Guid runId)
+    {
+        var snapshot = _snapshots.Get(runId);
+        return snapshot.IsSuccess
+            ? Ok(snapshot.Value)
+            : ApiNotFound(snapshot.Error);
     }
 }

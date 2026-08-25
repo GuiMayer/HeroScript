@@ -40,6 +40,16 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(runId, second.GetProperty("run").GetProperty("runId").GetGuid());
         Assert.Equal(combatId, second.GetProperty("combat").GetProperty("combatId").GetGuid());
 
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
+        Assert.Equal(runId, snapshot.GetProperty("run").GetProperty("runId").GetGuid());
+        Assert.Equal(combatId, snapshot.GetProperty("combat").GetProperty("combatId").GetGuid());
+        Assert.Equal(5, snapshot.GetProperty("hand").GetArrayLength());
+        Assert.Contains(
+            snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
+            actor => actor.GetProperty("entityId").GetString() == "goblin_a");
+
         using var verification = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, verification.StatusCode);
