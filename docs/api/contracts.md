@@ -23,6 +23,11 @@ resultante, o read model imutável e os eventos projetados. Clientes devem usar
 esses valores para atualizar a UI, não reconstruir estado a partir de regras
 locais.
 
+Para jogar uma carta de uma mão com instâncias, envie o UUID em
+`snapshot.hand[].cardInstanceId` como `payload.cardId`. IDs de definição, como
+`basic_attack`, descrevem conteúdo; IDs de instância identificam a cópia
+específica que será movida para descarte/exaustão e pode ter upgrades próprios.
+
 ## Erros
 
 Erros usam `application/problem+json` e possuem `code` e `correlationId`.

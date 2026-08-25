@@ -73,12 +73,14 @@ public sealed class ContractDocumentationTests
             "docs/api/README.md",
             "docs/api/getting-started.md",
             "docs/api/contracts.md",
+            "docs/api/combat-sandbox.md",
             "docs/api/events.md",
             "docs/api/content-and-platform.md",
             "docs/api/changelog.md",
             "examples/http/deterministic-run.http",
             "examples/http/replay-and-events.http",
-            "examples/http/content-publication.http"
+            "examples/http/content-publication.http",
+            "examples/http/combat-sandbox.http"
         };
 
         foreach (var relativePath in files)

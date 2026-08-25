@@ -1,0 +1,104 @@
+@baseUrl = http://localhost:5260
+@runId = replace-with-run-id
+@combatId = replace-with-combat-id
+@cardInstanceId = replace-with-card-instance-id
+@commandId = 6ba5a0e2-0a56-4d43-bdf7-4950e950eac1
+
+### Validate a scenario without persistence
+POST {{baseUrl}}/api/v1/sandbox/scenarios/validate
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "modeId": "combat_sandbox",
+  "seed": 983744,
+  "attemptKey": "godot-smoke-test-01",
+  "hero": { "alias": "hero", "entityDefinitionId": "player_warrior" },
+  "deck": [
+    { "definitionId": "basic_attack" },
+    { "definitionId": "basic_attack" },
+    { "definitionId": "defend" },
+    { "definitionId": "fireball" },
+    { "definitionId": "heal" }
+  ],
+  "enemies": [
+    { "alias": "goblin_a", "entityDefinitionId": "enemy_goblin" }
+  ],
+  "initialState": { "heroResources": { "energy": 3 } }
+}
+
+### Launch; identical normalized input plus attemptKey reopens the same run
+POST {{baseUrl}}/api/v1/sandbox/runs
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "modeId": "combat_sandbox",
+  "seed": 983744,
+  "attemptKey": "godot-smoke-test-01",
+  "hero": { "alias": "hero", "entityDefinitionId": "player_warrior" },
+  "deck": [
+    { "definitionId": "basic_attack" },
+    { "definitionId": "basic_attack" },
+    { "definitionId": "defend" },
+    { "definitionId": "fireball" },
+    { "definitionId": "heal" }
+  ],
+  "enemies": [
+    { "alias": "goblin_a", "entityDefinitionId": "enemy_goblin" }
+  ],
+  "initialState": { "heroResources": { "energy": 3 } }
+}
+
+### Render this consolidated snapshot
+GET {{baseUrl}}/api/v1/sandbox/runs/{{runId}}/snapshot
+
+### Execute an action with snapshot.hand[].cardInstanceId
+POST {{baseUrl}}/api/v1/combats/{{combatId}}/commands
+Content-Type: application/json
+
+{
+  "commandId": "{{commandId}}",
+  "expectedSequence": 2,
+  "expectedStep": 6,
+  "type": "EXECUTE_ACTION",
+  "payload": {
+    "actorId": "hero",
+    "actionId": "basic_attack",
+    "cardId": "{{cardInstanceId}}",
+    "targetId": "goblin_a"
+  }
+}
+
+### Browse history and inspect a snapshot in read-only mode
+GET {{baseUrl}}/api/v1/combats/{{combatId}}/timeline?limit=50
+
+### Create a timeline branch; use its returned activeEncounterId afterward
+POST {{baseUrl}}/api/v1/combats/{{combatId}}/timeline/2/branches
+Content-Type: application/json
+
+{ "branchKey": "fireball-first" }
+
+### Obtain the full branch tree
+GET {{baseUrl}}/api/v1/runs/{{runId}}/branch-tree
+
+### Simulate the same combat rules on an isolated branch
+POST {{baseUrl}}/api/v1/simulations
+Content-Type: application/json
+
+{
+  "sourceRunId": "{{runId}}",
+  "sourceSequence": 2,
+  "commands": [
+    {
+      "type": "EXECUTE_ACTION",
+      "payload": {
+        "actorId": "hero",
+        "actionId": "basic_attack",
+        "cardId": "{{cardInstanceId}}",
+        "targetId": "goblin_a"
+      }
+    },
+    { "type": "END_TURN", "payload": { "actorId": "hero" } }
+  ]
+}
