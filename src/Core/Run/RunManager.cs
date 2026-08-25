@@ -30,6 +30,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
+    private readonly IGameModeResolver? _gameModeResolver;
     private readonly Dictionary<Guid, RunState> _runs = new();
     private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     private readonly object _lock = new();
@@ -47,7 +48,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         IContentManifestProvider? contentManifestProvider = null,
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
-        IResourceCatalog<GameModeDefinition>? modeCatalog = null)
+        IResourceCatalog<GameModeDefinition>? modeCatalog = null,
+        IGameModeResolver? gameModeResolver = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -60,6 +62,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
+        _gameModeResolver = gameModeResolver;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -81,19 +84,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             return Result<RunState>.Failure("Player entity id is required");
 
         var effectiveRunDefinitionId = options.RunDefinitionId;
+        ResolvedGameMode? resolvedMode = null;
         if (!string.IsNullOrWhiteSpace(options.ModeId))
         {
-            if (_modeCatalog == null)
-                return Result<RunState>.Failure("Game mode content catalog is not configured");
-            var mode = _modeCatalog.Get(options.ModeId, options.ConfigName);
+            var mode = _gameModeResolver == null
+                ? ResolveLegacyMode(options.ModeId, options.ConfigName)
+                : _gameModeResolver.Resolve(options.ModeId, options.ConfigName);
             if (mode.IsFailure)
                 return Result<RunState>.Failure(mode.Error);
-            if (!string.Equals(mode.Value.ModeId, options.ModeId, StringComparison.Ordinal))
-                return Result<RunState>.Failure($"Game mode definition identity mismatch: {options.ModeId}");
-            if (!mode.Value.AllowCustomSeed && options.Seed.HasValue && string.IsNullOrWhiteSpace(options.ChallengeId))
+            resolvedMode = mode.Value;
+            if (!resolvedMode.Definition.AllowCustomSeed && options.Seed.HasValue && string.IsNullOrWhiteSpace(options.ChallengeId))
                 return Result<RunState>.Failure($"Game mode does not allow a custom seed: {options.ModeId}");
-            if (!string.IsNullOrWhiteSpace(mode.Value.RunDefinitionId))
-                effectiveRunDefinitionId = mode.Value.RunDefinitionId;
+            if (!string.IsNullOrWhiteSpace(resolvedMode.Definition.RunDefinitionId))
+                effectiveRunDefinitionId = resolvedMode.Definition.RunDefinitionId;
         }
 
         var definitionResult = LoadDefinition(options.ConfigName, effectiveRunDefinitionId);
@@ -129,6 +132,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             ConfigName = options.ConfigName,
             PlayerEntityId = options.PlayerEntityId,
             ModeId = options.ModeId,
+            ResolvedMode = resolvedMode,
             ChallengeId = options.ChallengeId,
             Gold = definition.StartingGold,
             PowerPoints = definition.StartingPowerPoints,
@@ -174,6 +178,25 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             _eventBus?.Publish(new CardDrawnEvent(state.RunId, initialDraw.Value.Cards));
 
         return Result<RunState>.Success(state);
+    }
+
+    private Result<ResolvedGameMode> ResolveLegacyMode(string modeId, string configName)
+    {
+        if (_modeCatalog == null)
+            return Result<ResolvedGameMode>.Failure("Game mode content catalog is not configured");
+
+        var mode = _modeCatalog.Get(modeId, configName);
+        if (mode.IsFailure)
+            return Result<ResolvedGameMode>.Failure(mode.Error);
+        if (!string.Equals(mode.Value.ModeId, modeId, StringComparison.Ordinal))
+            return Result<ResolvedGameMode>.Failure($"Game mode definition identity mismatch: {modeId}");
+
+        // Isolated consumers that predate policy catalogs retain the historical
+        // behavior. Production composition always uses IGameModeResolver.
+        return Result<ResolvedGameMode>.Success(new ResolvedGameMode
+        {
+            Definition = mode.Value
+        });
     }
 
     private Result<ResolvedContentManifest> ResolveContentManifest(

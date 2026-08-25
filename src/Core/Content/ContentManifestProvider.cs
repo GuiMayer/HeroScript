@@ -43,7 +43,14 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         new("zones", "zones"),
         new("keywords", "keywords"),
         new("reaction-rules", "reaction-rules"),
-        new("run-events", "run-events")
+        new("run-events", "run-events"),
+        new("flow-rules", "flow-rules"),
+        new("combat-rules", "combat-rules"),
+        new("enemy-pools", "enemy-pools"),
+        new("replay-policies", "replay-policies"),
+        new("timeline-policies", "timeline-policies"),
+        new("content-binding-policies", "content-binding-policies"),
+        new("capability-policies", "capability-policies")
     ];
 
     private readonly IConfigManager _configManager;

@@ -1,0 +1,14 @@
+{
+  "theorycraft_tools": {
+    "capabilityPolicyId": "theorycraft_tools",
+    "allowScenarioAuthoring": true,
+    "allowCustomDeck": true,
+    "allowInitialEffects": true,
+    "allowResourceOverrides": true,
+    "allowTimelineFork": true,
+    "allowHotReloadActivation": true,
+    "maxCards": 100,
+    "maxEnemies": 5,
+    "maxBranchesPerRoot": 50
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "pinned_published": {
+    "contentBindingPolicyId": "pinned_published",
+    "newRuns": "latest_published",
+    "activeRuns": "pinned",
+    "activationBoundary": "next_command",
+    "retainHistoricalRevisions": true
+  }
+}

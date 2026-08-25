@@ -1,0 +1,12 @@
+{
+  "sandbox_replay": {
+    "replayPolicyId": "sandbox_replay",
+    "journalEnabled": true,
+    "semanticVerification": true,
+    "timelineAccess": "full",
+    "allowHistoricalInspection": true,
+    "allowForkFromHistory": true,
+    "allowHeadRestore": false,
+    "retention": "all_commands"
+  }
+}

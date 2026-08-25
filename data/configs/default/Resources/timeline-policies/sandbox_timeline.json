@@ -1,0 +1,9 @@
+{
+  "sandbox_timeline": {
+    "timelinePolicyId": "sandbox_timeline",
+    "enabled": true,
+    "groupByTurn": true,
+    "granularity": "command",
+    "maxItemsPerPage": 200
+  }
+}

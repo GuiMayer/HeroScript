@@ -1,0 +1,7 @@
+{
+  "sandbox_flow": {
+    "flowRulesId": "sandbox_flow",
+    "allowMapNavigation": false,
+    "requireEncounterResolution": false
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "development_versioned": {
+    "contentBindingPolicyId": "development_versioned",
+    "newRuns": "latest_published",
+    "activeRuns": "allow_versioned_activation",
+    "activationBoundary": "next_command",
+    "retainHistoricalRevisions": true
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "standard_flow": {
+    "flowRulesId": "standard_flow",
+    "allowMapNavigation": true,
+    "requireEncounterResolution": true
+  }
+}

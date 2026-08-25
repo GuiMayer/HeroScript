@@ -260,6 +260,7 @@ public sealed class RunController : BaseApiController
             run.ConfigName,
             run.PlayerEntityId,
             run.ModeId,
+            run.ResolvedMode,
             run.ChallengeId,
             run.ParentRunId,
             run.BranchFromSequence,

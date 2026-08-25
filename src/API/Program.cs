@@ -275,6 +275,50 @@ builder.Services.AddSingleton<IResourceCatalog<GameModeDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "modes",
         definition => definition.ModeId));
+builder.Services.AddSingleton<IResourceCatalog<FlowRulesDefinition>>(sp =>
+    new ResourceCatalog<FlowRulesDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "flow-rules",
+        definition => definition.FlowRulesId));
+builder.Services.AddSingleton<IResourceCatalog<CombatRulesDefinition>>(sp =>
+    new ResourceCatalog<CombatRulesDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "combat-rules",
+        definition => definition.CombatRulesId));
+builder.Services.AddSingleton<IResourceCatalog<ReplayPolicyDefinition>>(sp =>
+    new ResourceCatalog<ReplayPolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "replay-policies",
+        definition => definition.ReplayPolicyId));
+builder.Services.AddSingleton<IResourceCatalog<TimelinePolicyDefinition>>(sp =>
+    new ResourceCatalog<TimelinePolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "timeline-policies",
+        definition => definition.TimelinePolicyId));
+builder.Services.AddSingleton<IResourceCatalog<ContentBindingPolicyDefinition>>(sp =>
+    new ResourceCatalog<ContentBindingPolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "content-binding-policies",
+        definition => definition.ContentBindingPolicyId));
+builder.Services.AddSingleton<IResourceCatalog<CapabilityPolicyDefinition>>(sp =>
+    new ResourceCatalog<CapabilityPolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "capability-policies",
+        definition => definition.CapabilityPolicyId));
+builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
+    sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<FlowRulesDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<CombatRulesDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<ReplayPolicyDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<TimelinePolicyDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<ContentBindingPolicyDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>()));
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
     new ResourceCatalog<DailyChallengeDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -292,7 +336,8 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>()));
+    sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
+    sp.GetRequiredService<IGameModeResolver>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();

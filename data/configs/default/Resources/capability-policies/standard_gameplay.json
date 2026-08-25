@@ -1,0 +1,14 @@
+{
+  "standard_gameplay": {
+    "capabilityPolicyId": "standard_gameplay",
+    "allowScenarioAuthoring": false,
+    "allowCustomDeck": false,
+    "allowInitialEffects": false,
+    "allowResourceOverrides": false,
+    "allowTimelineFork": false,
+    "allowHotReloadActivation": false,
+    "maxCards": 100,
+    "maxEnemies": 5,
+    "maxBranchesPerRoot": 50
+  }
+}

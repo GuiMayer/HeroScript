@@ -1,0 +1,17 @@
+{
+  "combat_sandbox": {
+    "modeId": "combat_sandbox",
+    "runDefinitionId": "default_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "sandbox_flow",
+    "combatRulesId": "standard_combat",
+    "damagePipelineId": "default_damage",
+    "activationRulesId": "default_activation",
+    "cardPoolIds": ["all_cards"],
+    "enemyPoolIds": ["all_enemies"],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "development_versioned",
+    "capabilityPolicyId": "theorycraft_tools"
+  }
+}

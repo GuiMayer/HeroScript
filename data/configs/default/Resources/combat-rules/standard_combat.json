@@ -1,0 +1,7 @@
+{
+  "standard_combat": {
+    "combatRulesId": "standard_combat",
+    "defaultActivationRulesId": "default_activation",
+    "defaultPhaseSequenceId": "classic-style"
+  }
+}

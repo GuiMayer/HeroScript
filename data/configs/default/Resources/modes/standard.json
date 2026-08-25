@@ -3,6 +3,16 @@
     "modeId": "standard",
     "runDefinitionId": "default_run",
     "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "standard_combat",
+    "damagePipelineId": "default_damage",
+    "activationRulesId": "default_activation",
+    "cardPoolIds": ["basic_rewards"],
+    "enemyPoolIds": ["standard_enemies"],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
     "rules": {
       "dailyEligible": true
     }
