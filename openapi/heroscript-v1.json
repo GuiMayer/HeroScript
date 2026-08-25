@@ -387,7 +387,10 @@
           "commandId": { "type": "string", "format": "uuid", "description": "Idempotency key" },
           "expectedSequence": { "type": "integer", "minimum": 0 },
           "expectedStep": { "type": "integer", "format": "uint64" },
-          "type": { "type": "string" },
+          "type": {
+            "type": "string",
+            "description": "Canonical command type. ACTIVATE_CONTENT_REVISION accepts { revision } and is allowed only when the run's resolved GameMode enables versioned activation."
+          },
           "payload": { "type": "object", "additionalProperties": true }
         }
       },

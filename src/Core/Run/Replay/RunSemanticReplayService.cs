@@ -66,6 +66,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
     private readonly IGameModeResolver? _gameModeResolver;
+    private readonly IContentPublicationService? _contentPublications;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunSemanticReplayService(
@@ -85,7 +86,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
-        IGameModeResolver? gameModeResolver = null)
+        IGameModeResolver? gameModeResolver = null,
+        IContentPublicationService? contentPublications = null)
     {
         _repository = repository;
         _configManager = configManager;
@@ -104,6 +106,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
         _gameModeResolver = gameModeResolver;
+        _contentPublications = contentPublications;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -248,7 +251,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _relicCatalog,
             _cardUpgradeCatalog,
             _modeCatalog,
-            _gameModeResolver);
+            _gameModeResolver,
+            _contentPublications);
         var damage = new DamageCalculator(
             _pipelineManager,
             eventBus,

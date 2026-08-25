@@ -90,4 +90,5 @@ public static class RunCommandTypes
     public const string RemoveRelic = "REMOVE_RELIC";
     public const string UpgradeCard = "UPGRADE_CARD";
     public const string RestoreCheckpoint = "RESTORE_CHECKPOINT";
+    public const string ActivateContentRevision = "ACTIVATE_CONTENT_REVISION";
 }

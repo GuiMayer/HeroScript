@@ -337,7 +337,8 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
-    sp.GetRequiredService<IGameModeResolver>()));
+    sp.GetRequiredService<IGameModeResolver>(),
+    sp.GetRequiredService<IContentPublicationService>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();

@@ -89,6 +89,23 @@ public sealed record DeterministicContext
             logicalTick: checked(LogicalTick + logicalTicks));
     }
 
+    /// <summary>
+    /// Changes the immutable content revision at an explicit, journaled
+    /// transition. Callers must never use this as a silent reload mechanism.
+    /// </summary>
+    public DeterministicContext WithContentRevision(string contentRevision)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentRevision);
+        return new DeterministicContext(
+            Seed,
+            RandomState,
+            Step,
+            IdSequence,
+            LogicalTick,
+            contentRevision,
+            EngineVersion);
+    }
+
     private DeterministicContext Copy(
         DeterministicRngState? randomState = null,
         ulong? step = null,

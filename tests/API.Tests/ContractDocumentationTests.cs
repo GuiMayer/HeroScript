@@ -28,6 +28,10 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/runs/{runId}/events/stream", "get", "stable");
         AssertOperation(paths, "/api/v1/admin/content/drafts", "post", "admin");
 
+        var commandType = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CommandEnvelope").GetProperty("properties").GetProperty("type");
+        Assert.Contains("ACTIVATE_CONTENT_REVISION", commandType.GetProperty("description").GetString());
+
         var responses = root.GetProperty("components").GetProperty("responses");
         Assert.True(responses.TryGetProperty("Problem", out var problem));
         Assert.True(problem.GetProperty("content").TryGetProperty("application/problem+json", out _));

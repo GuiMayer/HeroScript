@@ -27,6 +27,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private readonly IEventBus? _eventBus;
     private readonly IRunStateRepository? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
+    private readonly IContentPublicationService? _contentPublications;
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
@@ -49,7 +50,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
-        IGameModeResolver? gameModeResolver = null)
+        IGameModeResolver? gameModeResolver = null,
+        IContentPublicationService? contentPublications = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -59,6 +61,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         _eventBus = eventBus;
         _repository = repository;
         _contentManifestProvider = contentManifestProvider;
+        _contentPublications = contentPublications;
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
@@ -222,13 +225,38 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         if (!string.IsNullOrWhiteSpace(options.ContentRevision) &&
             !string.Equals(options.ContentRevision, manifest.Revision, StringComparison.Ordinal))
         {
-            return Result<ResolvedContentManifest>.Failure(
-                $"Requested content revision '{options.ContentRevision}' is not active for configuration " +
-                $"'{options.ConfigName}'. Active revision: {manifest.Revision}");
+            var historical = ResolveKnownManifest(options.ContentRevision);
+            if (historical.IsFailure ||
+                !string.Equals(historical.Value.ConfigName, options.ConfigName, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result<ResolvedContentManifest>.Failure(
+                    $"Requested content revision '{options.ContentRevision}' is not active or published for configuration " +
+                    $"'{options.ConfigName}'. Active revision: {manifest.Revision}");
+            }
+
+            manifest = historical.Value;
         }
 
         return Result<ResolvedContentManifest>.Success(
             new ResolvedContentManifest(manifest.Revision, manifest));
+    }
+
+    private Result<ContentManifest> ResolveKnownManifest(string revision)
+    {
+        if (_contentManifestProvider == null)
+            return Result<ContentManifest>.Failure("Content manifest provider is not configured");
+
+        var known = _contentManifestProvider.GetByRevision(revision);
+        if (known is { IsSuccess: true })
+            return known;
+
+        if (_contentPublications == null)
+            return known ?? Result<ContentManifest>.Failure($"Content revision not found: {revision}");
+
+        var published = _contentPublications.GetPublishedAsync(revision).GetAwaiter().GetResult();
+        return published.IsSuccess
+            ? Result<ContentManifest>.Success(published.Value.Manifest)
+            : Result<ContentManifest>.Failure(published.Error);
     }
 
     private sealed record ResolvedContentManifest(string Revision, ContentManifest? Manifest);
@@ -420,6 +448,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             RunCommandTypes.AcquireRelic => ExecuteAcquireRelic(runId, payload),
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
+            RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
             RunCommandTypes.ResolveCombat => Result.Failure(
                 "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
             RunCommandTypes.RestoreCheckpoint => ExecuteRestoreCheckpoint(runId, payload),
@@ -563,6 +592,65 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         return state == null
             ? Result.Failure($"Run checkpoint not found: {runId}/{request.Sequence}")
             : ToResult(RestoreState(state));
+    }
+
+    private Result ExecuteActivateContentRevision(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<ContentRevisionPayload>(payload);
+        if (string.IsNullOrWhiteSpace(request.Revision))
+            return Result.Failure("Content revision is required");
+        if (!_runs.TryGetValue(runId, out var state))
+            return Result.Failure($"Run not found: {runId}");
+
+        var mode = state.ResolvedMode;
+        if (mode == null)
+            return Result.Failure("Content revision activation requires a resolved game mode");
+        if (!mode.CapabilityPolicy.AllowHotReloadActivation)
+            return Result.Failure($"Game mode does not allow content revision activation: {state.ModeId}");
+        if (!string.Equals(
+                mode.ContentBindingPolicy.ActiveRuns,
+                "allow_versioned_activation",
+                StringComparison.Ordinal))
+        {
+            return Result.Failure("Game mode pins content for active runs");
+        }
+        if (!string.Equals(
+                mode.ContentBindingPolicy.ActivationBoundary,
+                "next_command",
+                StringComparison.Ordinal))
+        {
+            return Result.Failure("Unsupported content activation boundary");
+        }
+
+        var manifest = ResolveKnownManifest(request.Revision.Trim());
+        if (manifest.IsFailure)
+            return Result.Failure(manifest.Error);
+        if (!string.Equals(manifest.Value.ConfigName, state.ConfigName, StringComparison.OrdinalIgnoreCase))
+            return Result.Failure("Content revision belongs to a different configuration");
+        if (string.Equals(state.Determinism.ContentRevision, manifest.Value.Revision, StringComparison.Ordinal))
+            return Result.Success();
+
+        var encounters = state.Encounters
+            .Select(encounter => encounter with
+            {
+                Combat = encounter.Combat with
+                {
+                    Determinism = encounter.Combat.Determinism.WithContentRevision(manifest.Value.Revision)
+                }
+            })
+            .ToImmutableArray();
+        var candidate = state with
+        {
+            ContentManifest = manifest.Value,
+            Encounters = encounters,
+            Determinism = state.Determinism
+                .WithContentRevision(manifest.Value.Revision)
+                .AdvanceStep()
+        };
+        return ToResult(Persist(
+            candidate,
+            RunCommandTypes.ActivateContentRevision,
+            new { revision = manifest.Value.Revision }));
     }
 
     private T DeserializePayload<T>(JsonElement payload) where T : class
@@ -902,14 +990,18 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         if (_contentManifestProvider == null)
             return Result.Success();
 
-        var currentManifest = _contentManifestProvider.GetManifest(state.ConfigName);
-        if (currentManifest.IsFailure)
-            return Result.Failure(currentManifest.Error);
-
-        if (!string.Equals(
-                state.Determinism.ContentRevision,
-                currentManifest.Value.Revision,
-                StringComparison.Ordinal))
+        var manifest = ResolveKnownManifest(state.Determinism.ContentRevision);
+        if (manifest.IsFailure)
+        {
+            var current = _contentManifestProvider.GetManifest(state.ConfigName);
+            if (current.IsSuccess &&
+                string.Equals(current.Value.Revision, state.Determinism.ContentRevision, StringComparison.Ordinal))
+            {
+                manifest = current;
+            }
+        }
+        if (manifest.IsFailure ||
+            !string.Equals(manifest.Value.ConfigName, state.ConfigName, StringComparison.OrdinalIgnoreCase))
         {
             return Result.Failure(
                 $"Content revision unavailable for run {state.RunId}: " +
@@ -1817,4 +1909,5 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private sealed record RelicInstancePayload(Guid RelicInstanceId);
     private sealed record CardUpgradePayload(Guid CardInstanceId, string UpgradeId);
     private sealed record CheckpointPayload(int Sequence);
+    private sealed record ContentRevisionPayload(string Revision);
 }
