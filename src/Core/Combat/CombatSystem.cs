@@ -11,6 +11,7 @@ using Core.Events.Domain;
 using Core.Logging;
 using Core.Resources;
 using Core.StatusEffects;
+using System.Collections.Immutable;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 
@@ -25,6 +26,7 @@ public class CombatSystem : ICombatSystem
 {
     private readonly ConcurrentDictionary<Guid, CombatState> _activeCombats = new();
     private readonly ConcurrentDictionary<Guid, object> _combatLocks = new();
+    private readonly object _statusSnapshotLock = new();
     private readonly IEventBus? _eventBus;
     private readonly ILogger _logger;
     private readonly IResourceManager _resourceManager;
@@ -100,11 +102,12 @@ public class CombatSystem : ICombatSystem
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(hero, enemies, context) with
+            var combatState = CombatTransitions.Create(hero, enemies, context, options.IdScope ?? "combat") with
             {
                 RunId = options.RunId,
                 RunNodeId = options.RunNodeId
             };
+            combatState = ApplyInitialStatusEffects(combatState, options.InitialStatusEffects);
             
             // Inicializar calculadora de ordem de turnos e calcular ordem inicial
             var initResult = _turnOrderCalculator.InitializeState(combatState);
@@ -178,11 +181,12 @@ public class CombatSystem : ICombatSystem
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(heroCombat, enemiesCombat, context) with
+            var combatState = CombatTransitions.Create(heroCombat, enemiesCombat, context, options.IdScope ?? "combat") with
             {
                 RunId = options.RunId,
                 RunNodeId = options.RunNodeId
             };
+            combatState = ApplyInitialStatusEffects(combatState, options.InitialStatusEffects);
             
             // Inicializar calculadora de ordem de turnos e calcular ordem inicial
             var initResult = _turnOrderCalculator.InitializeState(combatState);
@@ -234,7 +238,10 @@ public class CombatSystem : ICombatSystem
         var combatLock = _combatLocks.GetOrAdd(combatId, _ => new object());
         lock (combatLock)
         {
-            return ExecuteActionLocked(combatId, command);
+            if (_statusEffectManager == null)
+                return ExecuteActionLocked(combatId, command);
+            lock (_statusSnapshotLock)
+                return ExecuteActionLocked(combatId, command);
         }
     }
 
@@ -259,11 +266,12 @@ public class CombatSystem : ICombatSystem
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(hero, enemies, context) with
+            var combatState = CombatTransitions.Create(hero, enemies, context, options.IdScope ?? "combat") with
             {
                 RunId = options.RunId,
                 RunNodeId = options.RunNodeId
             };
+            combatState = ApplyInitialStatusEffects(combatState, options.InitialStatusEffects);
             var initialized = InitializeCombatState(combatState);
             if (initialized.IsFailure)
                 return initialized;
@@ -314,6 +322,10 @@ public class CombatSystem : ICombatSystem
             // Obter estado atual
             if (!_activeCombats.TryGetValue(combatId, out var currentState))
                 return Result<CombatState>.Failure($"Combat {combatId} not found");
+
+            var hydrated = HydrateStatusEffects(currentState);
+            if (hydrated.IsFailure)
+                return Result<CombatState>.Failure(hydrated.Error);
             
             if (!currentState.IsActive)
                 return Result<CombatState>.Failure($"Combat {combatId} is not active (status: {currentState.Status})");
@@ -370,6 +382,7 @@ public class CombatSystem : ICombatSystem
             
             // Verificar condições de vitória/derrota
             newState = CheckCombatEnd(newState);
+            newState = CaptureStatusEffects(newState);
             
             // Atualizar estado
             _activeCombats[combatId] = newState;
@@ -1165,7 +1178,67 @@ public class CombatSystem : ICombatSystem
         
         return state;
     }
-    
+
+    private Result HydrateStatusEffects(CombatState state)
+    {
+        if (_statusEffectManager == null)
+            return Result.Success();
+        // Direct legacy combats may still use the status manager as their
+        // session store. Run-owned combats always hydrate from the immutable
+        // snapshot, including an explicitly empty status set.
+        if (state.RunId == null && state.StatusEffects.Count == 0)
+            return Result.Success();
+        foreach (var entity in state.GetAllEntities())
+        {
+            var statuses = state.StatusEffects.TryGetValue(entity.EntityId, out var stored)
+                ? stored
+                : [];
+            var replaced = _statusEffectManager.ReplaceActiveStatus(entity.EntityId, statuses);
+            if (replaced.IsFailure)
+                return replaced;
+        }
+        return Result.Success();
+    }
+
+    private CombatState CaptureStatusEffects(CombatState state)
+    {
+        if (_statusEffectManager == null)
+            return state;
+
+        var statuses = ImmutableDictionary.CreateBuilder<string, ImmutableArray<StatusEffectInstance>>(
+            StringComparer.Ordinal);
+        foreach (var entity in state.GetAllEntities())
+        {
+            var active = _statusEffectManager.GetActiveStatus(entity.EntityId);
+            if (active.IsSuccess && active.Value.Count > 0)
+            {
+                statuses[entity.EntityId] = active.Value
+                    .OrderBy(status => status.InstanceId)
+                    .ToImmutableArray();
+            }
+        }
+        return state with { StatusEffects = statuses.ToImmutable() };
+    }
+
+    private static CombatState ApplyInitialStatusEffects(
+        CombatState state,
+        IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatuses)
+    {
+        if (initialStatuses == null || initialStatuses.Count == 0)
+            return state;
+
+        var statuses = initialStatuses
+            .OrderBy(item => item.Key, StringComparer.Ordinal)
+            .ToImmutableDictionary(
+                item => item.Key,
+                item => item.Value
+                    .Where(status => status.IsActive)
+                    .OrderBy(status => status.InstanceId)
+                    .ToImmutableArray(),
+                StringComparer.Ordinal);
+        return state with { StatusEffects = statuses };
+    }
+
     public Result<CombatState> GetCombatState(Guid combatId)
     {
         if (!_activeCombats.TryGetValue(combatId, out var state))
@@ -1186,6 +1259,15 @@ public class CombatSystem : ICombatSystem
         var combatLock = _combatLocks.GetOrAdd(state.CombatId, _ => new object());
         lock (combatLock)
         {
+            if (_statusEffectManager != null)
+            {
+                lock (_statusSnapshotLock)
+                {
+                    var hydrated = HydrateStatusEffects(state);
+                    if (hydrated.IsFailure)
+                        return Result<CombatState>.Failure(hydrated.Error);
+                }
+            }
             _activeCombats[state.CombatId] = state;
             return Result<CombatState>.Success(state);
         }

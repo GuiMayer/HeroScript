@@ -1,4 +1,5 @@
 using Core.Combat.Models;
+using Core.StatusEffects;
 
 namespace Core.Run;
 
@@ -7,7 +8,8 @@ public sealed record RunEncounterStartCommand(
     IReadOnlyList<string> EnemyIds,
     int InitialEnergy,
     CombatEntity? InitialHero = null,
-    IReadOnlyList<CombatEntity>? InitialEnemies = null);
+    IReadOnlyList<CombatEntity>? InitialEnemies = null,
+    IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? InitialStatusEffects = null);
 
 /// <summary>
 /// Combat snapshot owned by a run. Resolved encounters remain in the run so a

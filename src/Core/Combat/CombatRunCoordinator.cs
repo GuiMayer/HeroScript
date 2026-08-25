@@ -2,6 +2,7 @@ using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Run;
+using Core.StatusEffects;
 using System.Collections.Concurrent;
 
 namespace Core.Combat;
@@ -74,7 +75,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     seed.Value,
                     run.Determinism.ContentRevision,
                     runId,
-                    node.NodeId));
+                    node.NodeId,
+                    $"run-combat:{runId:N}:{node.NodeId}"));
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
@@ -102,7 +104,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Guid runId,
         CombatEntity hero,
         IReadOnlyList<CombatEntity> enemies,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatusEffects = null)
     {
         ArgumentNullException.ThrowIfNull(hero);
         ArgumentNullException.ThrowIfNull(enemies);
@@ -141,7 +144,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     seed.Value,
                     run.Determinism.ContentRevision,
                     runId,
-                    node.NodeId));
+                    node.NodeId,
+                    $"run-combat:{runId:N}:{node.NodeId}",
+                    initialStatusEffects));
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 

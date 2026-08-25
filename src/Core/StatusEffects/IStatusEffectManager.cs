@@ -102,6 +102,12 @@ public interface IStatusEffectManager
     /// <param name="targetId">ID da entidade alvo</param>
     /// <returns>Lista de status effects ativos</returns>
     Result<List<StatusEffectInstance>> GetActiveStatus(string targetId);
+
+    /// <summary>
+    /// Substitui o conjunto ativo de uma entidade a partir de um snapshot
+    /// imutável de combate. É uma operação de hidratação, não de gameplay.
+    /// </summary>
+    Result ReplaceActiveStatus(string targetId, IReadOnlyList<StatusEffectInstance> statuses);
     
     /// <summary>
     /// Obtém uma instância específica de status effect

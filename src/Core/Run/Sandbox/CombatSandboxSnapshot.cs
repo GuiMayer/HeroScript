@@ -78,18 +78,15 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 {
     private readonly IRunManager _runs;
     private readonly ICardContentCatalog _cards;
-    private readonly IStatusEffectManager _statuses;
     private readonly IScriptModifierManager _modifiers;
 
     public CombatSandboxSnapshotService(
         IRunManager runs,
         ICardContentCatalog cards,
-        IStatusEffectManager statuses,
         IScriptModifierManager modifiers)
     {
         _runs = runs;
         _cards = cards;
-        _statuses = statuses;
         _modifiers = modifiers;
     }
 
@@ -106,7 +103,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 
         var combat = encounter.Combat;
         var actors = combat.GetAllEntities()
-            .Select(MapActor)
+            .Select(entity => MapActor(entity, combat.StatusEffects))
             .OrderBy(actor => actor.IsHero ? 0 : 1)
             .ThenBy(actor => actor.EntityId, StringComparer.Ordinal)
             .ToArray();
@@ -140,9 +137,11 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
         });
     }
 
-    private SandboxActorSnapshot MapActor(CombatEntity entity)
+    private SandboxActorSnapshot MapActor(
+        CombatEntity entity,
+        IReadOnlyDictionary<string, ImmutableArray<StatusEffectInstance>> statusEffects)
     {
-        var statuses = _statuses.GetActiveStatus(entity.EntityId);
+        var statuses = statusEffects.TryGetValue(entity.EntityId, out var active) ? active : [];
         return new SandboxActorSnapshot
         {
             EntityId = entity.EntityId,
@@ -155,9 +154,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                     item => item.Key,
                     item => new SandboxResourceSnapshot(item.Value.Current, item.Value.Maximum, item.Value.Minimum),
                     StringComparer.Ordinal),
-            Statuses = statuses.IsSuccess
-                ? statuses.Value.OrderBy(status => status.InstanceId).ToArray()
-                : [],
+            Statuses = statuses,
             Modifiers = _modifiers.GetActiveModifiers(entity.EntityId)
                 .OrderBy(modifier => modifier.InstanceId)
                 .ToArray()

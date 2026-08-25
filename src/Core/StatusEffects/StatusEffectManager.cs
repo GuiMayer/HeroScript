@@ -261,6 +261,24 @@ public class StatusEffectManager : IStatusEffectManager
                 statusList.Where(s => s.IsActive).ToList());
         }
     }
+
+    public Result ReplaceActiveStatus(string targetId, IReadOnlyList<StatusEffectInstance> statuses)
+    {
+        if (string.IsNullOrWhiteSpace(targetId))
+            return Result.Failure("TargetId cannot be empty");
+
+        var replacement = (statuses ?? [])
+            .Where(status => status.IsActive)
+            .OrderBy(status => status.InstanceId)
+            .ToList();
+        var statusList = _activeStatus.GetOrAdd(targetId, _ => new List<StatusEffectInstance>());
+        lock (statusList)
+        {
+            statusList.Clear();
+            statusList.AddRange(replacement);
+        }
+        return Result.Success();
+    }
     
     public Result<StatusEffectInstance> GetStatus(string targetId, Guid instanceId)
     {

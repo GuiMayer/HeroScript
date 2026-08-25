@@ -61,6 +61,11 @@ Exemplo de ação de carta:
 `cardId` é a instância em `snapshot.hand[].cardInstanceId`, não o ID da
 definição. Assim cópias iguais podem ter upgrades, histórico e destino próprios.
 
+`initialState.effects` pode declarar status iniciais para aliases do cenário
+(por exemplo, `{"targetAlias":"goblin_a","statusId":"poison","stacks":2}`).
+Eles são validados pela capability do modo e ficam no snapshot imutável de
+combate, portanto também aparecem na timeline, branches e replay.
+
 ## Timeline e branches
 
 Use `GET /api/v1/combats/{combatId}/timeline` para uma lista compacta de

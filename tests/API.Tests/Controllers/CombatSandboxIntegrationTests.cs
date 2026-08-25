@@ -40,6 +40,13 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(runId, second.GetProperty("run").GetProperty("runId").GetGuid());
         Assert.Equal(combatId, second.GetProperty("combat").GetProperty("combatId").GetGuid());
 
+        using var nextAttempt = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario($"{attemptKey}-next"));
+        var nextAttemptLaunch = await nextAttempt.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(nextAttempt.StatusCode == HttpStatusCode.OK, nextAttemptLaunch.GetRawText());
+        Assert.NotEqual(runId, nextAttemptLaunch.GetProperty("run").GetProperty("runId").GetGuid());
+
         using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
@@ -49,6 +56,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Contains(
             snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
             actor => actor.GetProperty("entityId").GetString() == "goblin_a");
+        var originalEnemyHealth = Health(snapshot, "goblin_a");
 
         var basicAttack = snapshot.GetProperty("hand").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
@@ -121,6 +129,42 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             tree.GetProperty("children").EnumerateArray(),
             child => child.GetProperty("runId").GetGuid() == branchRunId);
 
+        using var branchSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{branchRunId}/snapshot");
+        var branchSnapshot = await branchSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, branchSnapshotResponse.StatusCode);
+        var branchAttack = branchSnapshot.GetProperty("hand").EnumerateArray()
+            .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
+        var branchEnemyHealth = Health(branchSnapshot, "goblin_a");
+
+        using var branchActionResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{branchCombatId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = branchSnapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
+                expectedStep = branchSnapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
+                type = "EXECUTE_ACTION",
+                payload = new
+                {
+                    actorId = "hero",
+                    actionId = branchAttack.GetProperty("actionId").GetString(),
+                    cardId = branchAttack.GetProperty("cardInstanceId").GetGuid(),
+                    targetId = "goblin_a"
+                }
+            });
+        var branchAction = await branchActionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(branchActionResponse.StatusCode == HttpStatusCode.OK, branchAction.GetRawText());
+
+        using var updatedBranchSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{branchRunId}/snapshot");
+        var updatedBranchSnapshot = await updatedBranchSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, updatedBranchSnapshotResponse.StatusCode);
+        Assert.True(Health(updatedBranchSnapshot, "goblin_a") < branchEnemyHealth);
+
+        using var unchangedParentSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var unchangedParentSnapshot = await unchangedParentSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, unchangedParentSnapshotResponse.StatusCode);
+        Assert.Equal(originalEnemyHealth, Health(unchangedParentSnapshot, "goblin_a"));
+
         using var branchVerifyResponse = await _client.PostAsync($"/api/v1/runs/{branchRunId}/verify", null);
         var branchReplay = await branchVerifyResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, branchVerifyResponse.StatusCode);
@@ -137,7 +181,38 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(attemptKey, persisted.GetProperty("attemptKey").GetString());
     }
 
-    private static object CreateScenario(string attemptKey) => new
+    [Fact]
+    public async Task SandboxScenario_StoresInitialStatusesInTheImmutableCombatSnapshot()
+    {
+        var scenario = CreateScenario(
+            $"api-sandbox-status-{Guid.NewGuid():N}",
+            new
+            {
+                heroResources = new { energy = 3 },
+                effects = new[] { new { targetAlias = "goblin_a", statusId = "poison", stacks = 2 } }
+            });
+
+        using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+        var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
+
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
+        var status = snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray()
+            .First(actor => actor.GetProperty("entityId").GetString() == "goblin_a")
+            .GetProperty("statuses").EnumerateArray()
+            .Single(item => item.GetProperty("statusId").GetString() == "poison");
+        Assert.Equal(2, status.GetProperty("stacks").GetInt32());
+
+        using var verify = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await verify.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+    }
+
+    private static object CreateScenario(string attemptKey, object? initialState = null) => new
     {
         schemaVersion = 1,
         modeId = "combat_sandbox",
@@ -156,6 +231,16 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         {
             new { alias = "goblin_a", entityDefinitionId = "enemy_goblin" }
         },
-        initialState = new { heroResources = new { energy = 3 } }
+        initialState = initialState ?? new { heroResources = new { energy = 3 } }
     };
+
+    private static double Health(JsonElement snapshot, string entityId) => snapshot
+        .GetProperty("combat")
+        .GetProperty("actors")
+        .EnumerateArray()
+        .First(actor => actor.GetProperty("entityId").GetString() == entityId)
+        .GetProperty("resources")
+        .GetProperty("health")
+        .GetProperty("current")
+        .GetDouble();
 }

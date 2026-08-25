@@ -344,7 +344,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 entry.RunId,
                 payload.InitialHero,
                 payload.InitialEnemies,
-                entry.CommandId.HasValue ? CreateIdentity(entry) : null)
+                entry.CommandId.HasValue ? CreateIdentity(entry) : null,
+                payload.InitialStatusEffects)
             : runtime.Combats.StartEncounter(
                 entry.RunId,
                 payload.HeroId,

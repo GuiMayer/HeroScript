@@ -13,13 +13,14 @@ public static class CombatTransitions
     public static CombatState Create(
         CombatEntity hero,
         IEnumerable<CombatEntity> enemies,
-        DeterministicContext context)
+        DeterministicContext context,
+        string idScope = "combat")
     {
         ArgumentNullException.ThrowIfNull(hero);
         ArgumentNullException.ThrowIfNull(enemies);
         ArgumentNullException.ThrowIfNull(context);
 
-        var combatId = context.AllocateId("combat");
+        var combatId = context.AllocateId(idScope);
         return new CombatState
         {
             CombatId = combatId.Value,

@@ -33,6 +33,8 @@ public sealed class RunBranchController : BaseApiController
             {
                 result.Value.RunId,
                 result.Value.ParentRunId,
+                result.Value.ParentCombatId,
+                result.Value.ActiveEncounterId,
                 result.Value.BranchFromSequence,
                 result.Value.BranchKey,
                 result.Value.Sequence,

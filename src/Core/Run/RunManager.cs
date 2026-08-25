@@ -10,6 +10,7 @@ using Core.Events.Domain;
 using Core.Determinism;
 using Core.Run.Content;
 using Core.Run.Sandbox;
+using Core.StatusEffects;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
@@ -836,7 +837,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 combatState.Enemies.Select(enemy => enemy.EntityId).ToArray(),
                 initialEnergy,
                 combatState.Hero,
-                combatState.Enemies.ToArray());
+                combatState.Enemies.ToArray(),
+                combatState.StatusEffects.ToDictionary(
+                    item => item.Key,
+                    item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),
+                    StringComparer.Ordinal));
             return Persist(
                 candidate,
                 RunCommandTypes.StartEncounter,

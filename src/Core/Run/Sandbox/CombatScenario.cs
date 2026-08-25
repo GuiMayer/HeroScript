@@ -8,6 +8,7 @@ using Core.Entity.Definitions;
 using Core.Entity.Integration;
 using Core.Resources;
 using Core.Run.Content;
+using Core.StatusEffects;
 
 namespace Core.Run.Sandbox;
 
@@ -97,6 +98,8 @@ public sealed record CompiledCombatScenario
     public RunStartOptions RunStart { get; init; } = new();
     public CombatEntity Hero { get; init; } = new();
     public IReadOnlyList<CombatEntity> Enemies { get; init; } = [];
+    public IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>> InitialStatusEffects { get; init; } =
+        ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
 }
 
 public interface ICombatScenarioCompiler
@@ -119,6 +122,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
     private readonly EntityDefinitionLoader _entities;
     private readonly IResourceManager _resources;
     private readonly IContentManifestProvider _manifests;
+    private readonly IStatusEffectManager _statuses;
 
     public CombatScenarioCompiler(
         IGameModeResolver modes,
@@ -128,7 +132,8 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         IResourceCatalog<CardUpgradeDefinition> upgrades,
         EntityDefinitionLoader entities,
         IResourceManager resources,
-        IContentManifestProvider manifests)
+        IContentManifestProvider manifests,
+        IStatusEffectManager statuses)
     {
         _modes = modes;
         _cards = cards;
@@ -138,6 +143,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         _entities = entities;
         _resources = resources;
         _manifests = manifests;
+        _statuses = statuses;
     }
 
     public Result<CompiledCombatScenario> Compile(CombatScenarioDefinition scenario, string configName = "default")
@@ -168,9 +174,8 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             return Result<CompiledCombatScenario>.Failure($"Scenario must contain between 1 and {mode.Value.CapabilityPolicy.MaxEnemies} enemies");
         if (scenario.InitialState.HeroResources.Count > 0 && !mode.Value.CapabilityPolicy.AllowResourceOverrides)
             return Result<CompiledCombatScenario>.Failure("Game mode does not allow initial resource overrides");
-        if (scenario.InitialState.Effects.Count > 0)
-            return Result<CompiledCombatScenario>.Failure(
-                "Initial effects are not supported until status effects are stored in the immutable combat snapshot");
+        if (scenario.InitialState.Effects.Count > 0 && !mode.Value.CapabilityPolicy.AllowInitialEffects)
+            return Result<CompiledCombatScenario>.Failure("Game mode does not allow initial status effects");
 
         var manifest = ResolveManifest(scenario.ContentRevision, configName);
         if (manifest.IsFailure)
@@ -236,9 +241,23 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         var normalized = scenario with
         {
             ContentRevision = manifest.Value.Revision,
-            Deck = scenario.Deck.ToArray(),
-            Enemies = scenario.Enemies.OrderBy(item => item.Alias, StringComparer.Ordinal).ToArray()
+            Deck = scenario.Deck.Select(card => card with
+            {
+                UpgradeIds = card.UpgradeIds.OrderBy(id => id, StringComparer.Ordinal).ToArray()
+            }).ToArray(),
+            Enemies = scenario.Enemies.OrderBy(item => item.Alias, StringComparer.Ordinal).ToArray(),
+            InitialState = scenario.InitialState with
+            {
+                Effects = scenario.InitialState.Effects
+                    .OrderBy(effect => effect.TargetAlias, StringComparer.Ordinal)
+                    .ThenBy(effect => effect.StatusId, StringComparer.Ordinal)
+                    .ThenBy(effect => effect.Stacks)
+                    .ToArray()
+            }
         };
+        var initialStatuses = CompileInitialStatusEffects(normalized, aliases, manifest.Value.Revision);
+        if (initialStatuses.IsFailure)
+            return Result<CompiledCombatScenario>.Failure(initialStatuses.Error);
         var scenarioHash = CanonicalJson.ComputeHash(normalized);
         return Result<CompiledCombatScenario>.Success(new CompiledCombatScenario
         {
@@ -258,8 +277,75 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 AttemptKey: normalized.AttemptKey,
                 Scenario: normalized),
             Hero = heroWithResources.Value,
-            Enemies = enemies.ToImmutableArray()
+            Enemies = enemies.ToImmutableArray(),
+            InitialStatusEffects = initialStatuses.Value
         });
+    }
+
+    private Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>> CompileInitialStatusEffects(
+        CombatScenarioDefinition scenario,
+        IReadOnlySet<string> participantAliases,
+        string contentRevision)
+    {
+        if (scenario.InitialState.Effects.Count == 0)
+        {
+            return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Success(
+                ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal));
+        }
+
+        var context = DeterministicContext.Create(scenario.Seed, contentRevision);
+        var statuses = new Dictionary<string, List<StatusEffectInstance>>(StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < scenario.InitialState.Effects.Count; index++)
+        {
+            var effect = scenario.InitialState.Effects[index];
+            if (!participantAliases.Contains(effect.TargetAlias))
+            {
+                return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(
+                    $"Initial status target is not a scenario participant: {effect.TargetAlias}");
+            }
+            if (string.IsNullOrWhiteSpace(effect.StatusId) || effect.Stacks < 1)
+            {
+                return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(
+                    "Initial status requires a statusId and positive stacks");
+            }
+            if (!seen.Add($"{effect.TargetAlias}\n{effect.StatusId}"))
+            {
+                return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(
+                    $"Initial status is duplicated for target: {effect.TargetAlias}/{effect.StatusId}");
+            }
+
+            var definition = _statuses.GetDefinition(effect.StatusId);
+            if (definition.IsFailure)
+                return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(definition.Error);
+            var allocated = context.AllocateId($"scenario-status:{scenario.AttemptKey}:{effect.TargetAlias}:{effect.StatusId}:{index}");
+            context = allocated.Context;
+            if (!statuses.TryGetValue(effect.TargetAlias, out var targetStatuses))
+            {
+                targetStatuses = [];
+                statuses[effect.TargetAlias] = targetStatuses;
+            }
+            targetStatuses.Add(new StatusEffectInstance
+            {
+                InstanceId = allocated.Value,
+                StatusId = definition.Value.StatusId,
+                Definition = definition.Value,
+                TargetId = effect.TargetAlias,
+                Stacks = System.Math.Min(effect.Stacks, definition.Value.MaxStacks),
+                Duration = definition.Value.DefaultDuration,
+                AppliedAt = allocated.Context.LogicalTimestamp.UtcDateTime,
+                TurnApplied = 1,
+                IsActive = true
+            });
+        }
+
+        return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Success(
+            statuses
+                .OrderBy(item => item.Key, StringComparer.Ordinal)
+                .ToImmutableDictionary(
+                    item => item.Key,
+                    item => (IReadOnlyList<StatusEffectInstance>)item.Value.OrderBy(status => status.InstanceId).ToArray(),
+                    StringComparer.Ordinal));
     }
 
     private Result<ContentManifest> ResolveManifest(string? revision, string configName)

@@ -74,7 +74,8 @@ public sealed class CombatSandboxService : ICombatSandboxService
         var encounterResult = _combats.StartEncounter(
             started.Value.RunId,
             compiled.Value.Hero,
-            compiled.Value.Enemies);
+            compiled.Value.Enemies,
+            initialStatusEffects: compiled.Value.InitialStatusEffects);
         if (encounterResult.IsFailure)
             return Result<SandboxCombatLaunch>.Failure(
                 $"Scenario run was created but encounter launch failed: {encounterResult.Error}");

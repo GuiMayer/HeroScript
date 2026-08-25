@@ -1,6 +1,7 @@
 using Core.Combat.Models;
 using Core.Common;
 using Core.Run;
+using Core.StatusEffects;
 
 namespace Core.Combat;
 
@@ -16,7 +17,8 @@ public interface ICombatRunCoordinator
         Guid runId,
         CombatEntity hero,
         IReadOnlyList<CombatEntity> enemies,
-        RunCommandIdentity? commandIdentity = null);
+        RunCommandIdentity? commandIdentity = null,
+        IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatusEffects = null);
     Result<CombatRunEncounterResult> GetCurrentEncounter(Guid runId);
     Result<CombatRunEncounterResult> GetCombatState(Guid combatId);
     Result<CombatRunActionResult> ExecuteAction(

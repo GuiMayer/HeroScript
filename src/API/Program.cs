@@ -456,7 +456,8 @@ builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioC
     sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
     sp.GetRequiredService<EntityDefinitionLoader>(),
     sp.GetRequiredService<IResourceManager>(),
-    sp.GetRequiredService<IContentManifestProvider>()));
+    sp.GetRequiredService<IContentManifestProvider>(),
+    sp.GetRequiredService<IStatusEffectManager>()));
 builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxService(
     sp.GetRequiredService<ICombatScenarioCompiler>(),
     sp.GetRequiredService<IRunManager>(),
@@ -465,7 +466,6 @@ builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxServ
 builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<ICardContentCatalog>(),
-    sp.GetRequiredService<IStatusEffectManager>(),
     sp.GetRequiredService<IScriptModifierManager>()));
 builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new CombatTimelineProjectionService(
     sp.GetRequiredService<IRunManager>(),

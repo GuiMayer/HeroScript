@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
 using Core.Determinism;
+using Core.StatusEffects;
 
 namespace Core.Combat.Models;
 
@@ -60,6 +61,13 @@ public record CombatState
 
     // Estado de ativação por entidade (opcional - Fase 3 run loop)
     public ActivationState? ActivationState { get; init; }
+
+    /// <summary>
+    /// Status ativos pertencem ao snapshot do combate. O gerenciador de status
+    /// pode executar definições, mas não é a fonte de verdade de uma run.
+    /// </summary>
+    public ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>> StatusEffects { get; init; } =
+        ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
     
     // Helpers
     public bool IsActive => Status == CombatStatus.ACTIVE;
