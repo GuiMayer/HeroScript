@@ -24,3 +24,14 @@ public interface IDamageCalculator
         CombatEntity target,
         IRandomProvider randomProvider);
 }
+
+public interface IRevisionedDamageCalculator
+{
+    DamageResult CalculateDamage(
+        ActionDefinition action,
+        CombatEntity attacker,
+        CombatEntity target,
+        IRandomProvider randomProvider,
+        string contentRevision,
+        string? pipelineId = null);
+}

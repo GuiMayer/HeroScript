@@ -66,3 +66,15 @@ public interface IActionManager
     /// <returns>Result indicando sucesso ou falha</returns>
     Result DeleteDefinition(string actionId, string configName = "default");
 }
+
+/// <summary>
+/// Read-side used by deterministic gameplay. Unlike authoring lookups, every
+/// resolution is bound to the content revision owned by the run/combat state.
+/// </summary>
+public interface IRevisionedActionCatalog
+{
+    Result<ActionDefinition> GetDefinition(
+        string actionId,
+        string contentRevision,
+        string? configName = null);
+}

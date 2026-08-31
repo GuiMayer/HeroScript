@@ -1,20 +1,26 @@
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Core.Combat.Activation;
 
-public sealed class CombatActivationRulesLoader : ICombatActivationRulesLoader
+public sealed class CombatActivationRulesLoader : ICombatActivationRulesLoader, IRevisionedCombatActivationRulesLoader
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
 
-    public CombatActivationRulesLoader(IConfigManager configManager, IResourceLoader resourceLoader)
+    public CombatActivationRulesLoader(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+        _contentRuntimes = contentRuntimes;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -46,5 +52,19 @@ public sealed class CombatActivationRulesLoader : ICombatActivationRulesLoader
         {
             return Result<CombatActivationRulesDefinition>.Failure($"Failed to load activation rules {rulesId}: {ex.Message}");
         }
+    }
+
+    public Result<CombatActivationRulesDefinition> Load(
+        string configName,
+        string rulesId,
+        string contentRevision)
+    {
+        if (_contentRuntimes == null)
+            return Load(configName, rulesId);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        return runtime.IsFailure
+            ? Result<CombatActivationRulesDefinition>.Failure(runtime.Error)
+            : runtime.Value.GetDefinition<CombatActivationRulesDefinition>("activation-rules", rulesId);
     }
 }

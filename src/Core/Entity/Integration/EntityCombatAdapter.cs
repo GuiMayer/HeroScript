@@ -81,6 +81,13 @@ public class EntityCombatAdapter
     public CombatEntity CreateCombatEntityFromDefinition(
         string entityId,
         Definitions.EntityDefinition definition)
+        => CreateCombatEntityFromDefinition(entityId, definition, null, null);
+
+    public CombatEntity CreateCombatEntityFromDefinition(
+        string entityId,
+        Definitions.EntityDefinition definition,
+        string? contentRevision,
+        string? configName = null)
     {
         if (definition == null)
             throw new ArgumentNullException(nameof(definition));
@@ -92,7 +99,16 @@ public class EntityCombatAdapter
         {
             foreach (var (resourceId, resourceDef) in definition.Resources.Resources)
             {
-                var pool = _resourceManager.CreatePool(resourceId, resourceDef.Current);
+                var pool = !string.IsNullOrWhiteSpace(contentRevision) &&
+                           _resourceManager is IRevisionedResourceManager revisionedResources
+                    ? revisionedResources.CreatePool(
+                        resourceId,
+                        resourceDef.Current,
+                        contentRevision,
+                        configName).Match(
+                            value => value,
+                            error => throw new InvalidOperationException(error))
+                    : _resourceManager.CreatePool(resourceId, resourceDef.Current);
                 // Ajustar o máximo se necessário
                 if (resourceDef.Max != pool.Maximum)
                 {

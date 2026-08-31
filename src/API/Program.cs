@@ -150,7 +150,12 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceManager"));
     var regenerationProcessor = sp.GetRequiredService<IResourceRegenerationProcessor>();
-    return new ResourceManager(configManager, resourceLoader, logger, regenerationProcessor);
+    return new ResourceManager(
+        configManager,
+        resourceLoader,
+        logger,
+        regenerationProcessor,
+        sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
 // Register CacheRegistry (singleton for centralized cache management)
@@ -164,7 +169,12 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
     var persister = sp.GetRequiredService<IDefinitionPersister>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EntityDefinitionLoader"));
-    var loader = new EntityDefinitionLoader(configManager, resourceLoader, logger, persister: persister);
+    var loader = new EntityDefinitionLoader(
+        configManager,
+        resourceLoader,
+        logger,
+        persister: persister,
+        contentRuntimes: sp.GetRequiredService<IContentRuntimeResolver>());
     
     // Register with CacheRegistry
     var registry = sp.GetRequiredService<CacheRegistry>();
@@ -198,7 +208,14 @@ builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
     var formulaEvaluator = sp.GetRequiredService<IRuntimeFormulaEvaluator>();
     var eventBus = sp.GetRequiredService<IEventBus>();
     var persister = sp.GetRequiredService<IDefinitionPersister>();
-    return new StatusEffectManager(configManager, resourceLoader, resourceManager, formulaEvaluator, eventBus, persister);
+    return new StatusEffectManager(
+        configManager,
+        resourceLoader,
+        resourceManager,
+        formulaEvaluator,
+        eventBus,
+        persister,
+        sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
 // Register ActionManager
@@ -209,7 +226,12 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
     var persister = sp.GetRequiredService<IDefinitionPersister>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ActionManager"));
-    return new ActionManager(configManager, resourceLoader, logger, persister);
+    return new ActionManager(
+        configManager,
+        resourceLoader,
+        logger,
+        persister,
+        sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
 // Register ScriptModifierManager
@@ -217,7 +239,8 @@ builder.Services.AddSingleton<IScriptModifierManager>(sp => new ScriptModifierMa
     sp.GetRequiredService<IConfigManager>(),
     sp.GetRequiredService<IResourceLoader>(),
     sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
-    sp.GetRequiredService<IEventBus>()));
+    sp.GetRequiredService<IEventBus>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 
 // Register GambitEngine
 builder.Services.AddSingleton<IGambitEngine>(sp =>
@@ -226,7 +249,12 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var eventBus = sp.GetRequiredService<IEventBus>();
     var persister = sp.GetRequiredService<IDefinitionPersister>();
-    return new GambitEngine(configManager, resourceLoader, eventBus, persister);
+    return new GambitEngine(
+        configManager,
+        resourceLoader,
+        eventBus,
+        persister,
+        sp.GetRequiredService<IContentRuntimeResolver>());
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 
@@ -256,6 +284,7 @@ builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPubli
     contentStorePath,
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IResourceLoader>()));
+builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
@@ -327,7 +356,8 @@ builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<ContentBindingPolicyDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>(),
     sp.GetRequiredService<ICardPoolResolver>(),
-    sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>()));
+    sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
     new ResourceCatalog<DailyChallengeDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -347,7 +377,8 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
     sp.GetRequiredService<IGameModeResolver>(),
-    sp.GetRequiredService<IContentPublicationService>()));
+    sp.GetRequiredService<IContentPublicationService>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
@@ -375,7 +406,13 @@ builder.Services.AddSingleton<IPipelineManager, PipelineManager>(sp =>
     var eventBus = sp.GetRequiredService<IEventBus>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PipelineManager"));
-    return new PipelineManager(loader, configManager, mathEngine, eventBus, logger);
+    return new PipelineManager(
+        loader,
+        configManager,
+        mathEngine,
+        eventBus,
+        logger,
+        contentRuntimes: sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
 // Register DamageCalculator
@@ -457,7 +494,8 @@ builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioC
     sp.GetRequiredService<EntityDefinitionLoader>(),
     sp.GetRequiredService<IResourceManager>(),
     sp.GetRequiredService<IContentManifestProvider>(),
-    sp.GetRequiredService<IStatusEffectManager>()));
+    sp.GetRequiredService<IStatusEffectManager>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxService(
     sp.GetRequiredService<ICombatScenarioCompiler>(),
     sp.GetRequiredService<IRunManager>(),

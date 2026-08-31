@@ -59,7 +59,9 @@ public sealed class IntentResolver : IIntentResolver
         ActionDefinition? actionDefinition = null;
         if (!string.IsNullOrWhiteSpace(actionId))
         {
-            var definitionResult = _actionManager.GetDefinition(actionId);
+            var definitionResult = _actionManager is IRevisionedActionCatalog revisionedActions
+                ? revisionedActions.GetDefinition(actionId, combat.Determinism.ContentRevision)
+                : _actionManager.GetDefinition(actionId);
             if (definitionResult.IsSuccess)
                 actionDefinition = definitionResult.Value;
         }

@@ -327,18 +327,26 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
         return rules.EndActivation.DiscardPolicy switch
         {
             ActivationDiscardPolicy.DiscardAll => Result<IReadOnlyList<string>>.Success(hand),
-            ActivationDiscardPolicy.DiscardNonRetain => SelectNonRetainedCards(hand, rules),
+            ActivationDiscardPolicy.DiscardNonRetain => SelectNonRetainedCards(
+                hand,
+                rules,
+                run.Determinism.ContentRevision,
+                run.ConfigName),
             ActivationDiscardPolicy.DiscardDownToHandLimit => SelectCardsOverHandLimit(hand, rules),
             _ => Result<IReadOnlyList<string>>.Success(Array.Empty<string>())
         };
     }
 
-    private Result<IReadOnlyList<string>> SelectNonRetainedCards(IReadOnlyList<string> hand, CombatActivationRulesDefinition rules)
+    private Result<IReadOnlyList<string>> SelectNonRetainedCards(
+        IReadOnlyList<string> hand,
+        CombatActivationRulesDefinition rules,
+        string contentRevision,
+        string configName)
     {
         var selected = new List<string>();
         foreach (var cardId in hand)
         {
-            var retained = IsRetained(cardId, rules);
+            var retained = IsRetained(cardId, rules, contentRevision, configName);
             if (retained.IsFailure)
                 return Result<IReadOnlyList<string>>.Failure(retained.Error);
             if (!retained.Value)
@@ -357,9 +365,15 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
         return Result<IReadOnlyList<string>>.Success(hand.Take(hand.Count - limit).ToList());
     }
 
-    private Result<bool> IsRetained(string cardId, CombatActivationRulesDefinition rules)
+    private Result<bool> IsRetained(
+        string cardId,
+        CombatActivationRulesDefinition rules,
+        string contentRevision,
+        string configName)
     {
-        var definition = _actionManager.GetDefinition(cardId);
+        var definition = _actionManager is IRevisionedActionCatalog revisionedActions
+            ? revisionedActions.GetDefinition(cardId, contentRevision, configName)
+            : _actionManager.GetDefinition(cardId);
         if (definition.IsFailure)
         {
             return rules.EndActivation.UnknownCardPolicy == UnknownCardPolicy.Discard
@@ -382,7 +396,12 @@ public sealed class CombatActivationCoordinator : ICombatActivationCoordinator
             return Result<(CombatState, RunState, CombatActivationRulesDefinition)>.Failure(runResult.Error);
 
         var resolvedRulesId = string.IsNullOrWhiteSpace(rulesId) ? DefaultRulesId : rulesId;
-        var rulesResult = _rulesLoader.Load(runResult.Value.ConfigName, resolvedRulesId);
+        var rulesResult = _rulesLoader is IRevisionedCombatActivationRulesLoader revisionedRules
+            ? revisionedRules.Load(
+                runResult.Value.ConfigName,
+                resolvedRulesId,
+                runResult.Value.Determinism.ContentRevision)
+            : _rulesLoader.Load(runResult.Value.ConfigName, resolvedRulesId);
         if (rulesResult.IsFailure)
             return Result<(CombatState, RunState, CombatActivationRulesDefinition)>.Failure(rulesResult.Error);
 

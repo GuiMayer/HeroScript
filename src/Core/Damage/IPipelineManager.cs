@@ -25,3 +25,12 @@ public interface IPipelineManager
     /// </summary>
     PipelineConfiguration GetCurrentConfiguration();
 }
+
+public interface IRevisionedPipelineManager
+{
+    DamageContext ExecutePipeline(
+        DamageContext initialContext,
+        IRandomProvider randomProvider,
+        string contentRevision,
+        string? pipelineId = null);
+}

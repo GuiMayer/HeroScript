@@ -2,6 +2,7 @@ using System.Text.Json;
 using Core.Caching;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using Core.Entity.Components;
 using Core.Entity.Controllers;
 using Core.Logging;
@@ -24,6 +25,7 @@ public class EntityDefinitionLoader : ICacheService
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly string _configName;
     private readonly string _cacheName;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     
     public string CacheName => _cacheName;
 
@@ -33,7 +35,8 @@ public class EntityDefinitionLoader : ICacheService
         ILogger? logger = null,
         string configName = "default",
         int cacheCapacity = 256,
-        IDefinitionPersister? persister = null)
+        IDefinitionPersister? persister = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -41,6 +44,7 @@ public class EntityDefinitionLoader : ICacheService
         _configName = string.IsNullOrWhiteSpace(configName) ? "default" : configName;
         _cacheName = $"EntityDefinitions_{configName}";
         _persister = persister; // Optional for backward compatibility
+        _contentRuntimes = contentRuntimes;
         
         _cache = new LruCache<string, EntityDefinition>(cacheCapacity);
         
@@ -111,6 +115,67 @@ public class EntityDefinitionLoader : ICacheService
         {
             _logger.LogError($"Error loading definition {definitionId}: {ex.Message}", ex);
             return Result<EntityDefinition>.Failure($"Error loading definition: {ex.Message}");
+        }
+    }
+
+    public Result<EntityDefinition> LoadDefinition(
+        string definitionId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return LoadDefinition(definitionId);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName ?? _configName);
+        return runtime.IsFailure
+            ? Result<EntityDefinition>.Failure(runtime.Error)
+            : LoadRevisionDefinition(definitionId, runtime.Value, new HashSet<string>(StringComparer.Ordinal));
+    }
+
+    private Result<EntityDefinition> LoadRevisionDefinition(
+        string definitionId,
+        ContentRuntime runtime,
+        HashSet<string> inheritancePath)
+    {
+        if (!inheritancePath.Add(definitionId))
+            return Result<EntityDefinition>.Failure($"Circular entity inheritance detected: {definitionId}");
+
+        try
+        {
+            var definitions = runtime.GetDefinitions("entities");
+            if (!definitions.TryGetValue(definitionId, out var root))
+                return Result<EntityDefinition>.Failure(
+                    $"Entity definition '{definitionId}' was not found in revision {runtime.Manifest.Revision}");
+
+            var definition = JsonSerializer.Deserialize<EntityDefinition>(root.GetRawText(), _jsonOptions);
+            if (definition == null)
+                return Result<EntityDefinition>.Failure($"Failed to deserialize definition: {definitionId}");
+
+            if (!string.IsNullOrWhiteSpace(definition.BaseDefinitionId))
+            {
+                var baseDefinition = LoadRevisionDefinition(
+                    definition.BaseDefinitionId,
+                    runtime,
+                    inheritancePath);
+                if (baseDefinition.IsFailure)
+                    return Result<EntityDefinition>.Failure(baseDefinition.Error);
+                definition = MergeDefinitions(baseDefinition.Value, definition, root);
+            }
+
+            var validation = ValidateDefinition(definition);
+            return validation.IsFailure
+                ? Result<EntityDefinition>.Failure(validation.Error)
+                : Result<EntityDefinition>.Success(definition);
+        }
+        catch (Exception exception)
+        {
+            return Result<EntityDefinition>.Failure(
+                $"Error loading revisioned entity definition '{definitionId}': {exception.Message}",
+                exception);
+        }
+        finally
+        {
+            inheritancePath.Remove(definitionId);
         }
     }
     

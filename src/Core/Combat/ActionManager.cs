@@ -1,6 +1,7 @@
 using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using Core.Logging;
 using Core.Resources;
 using System.Text.Json;
@@ -12,12 +13,13 @@ namespace Core.Combat;
 /// Gerenciador de ações configuráveis.
 /// Carrega definições de ações de arquivos JSON.
 /// </summary>
-public class ActionManager : IActionManager
+public class ActionManager : IActionManager, IRevisionedActionCatalog
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
     private readonly IDefinitionPersister? _persister;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly Dictionary<string, ActionDefinition> _definitions = new();
     private string? _loadedConfigName;
     
@@ -25,12 +27,14 @@ public class ActionManager : IActionManager
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ILogger logger,
-        IDefinitionPersister? persister = null)
+        IDefinitionPersister? persister = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _persister = persister; // Optional for backward compatibility
+        _contentRuntimes = contentRuntimes;
     }
     
     /// <summary>
@@ -117,6 +121,33 @@ public class ActionManager : IActionManager
         }
         
         return Result<ActionDefinition>.Failure($"Action not found: {actionId}");
+    }
+
+    public Result<ActionDefinition> GetDefinition(
+        string actionId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (string.IsNullOrWhiteSpace(actionId))
+            return Result<ActionDefinition>.Failure("Action ID cannot be empty");
+        if (string.IsNullOrWhiteSpace(contentRevision))
+            return Result<ActionDefinition>.Failure("Content revision cannot be empty");
+        if (_contentRuntimes == null)
+            return GetDefinition(actionId);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<ActionDefinition>.Failure(runtime.Error);
+
+        var definition = runtime.Value.GetDefinition<ActionDefinition>("actions", actionId);
+        if (definition.IsFailure)
+            return definition;
+
+        var normalized = NormalizeEffectIds(definition.Value);
+        var validation = ValidateActionDefinition(normalized);
+        return validation.IsFailure
+            ? Result<ActionDefinition>.Failure(validation.Error)
+            : Result<ActionDefinition>.Success(normalized);
     }
     
     /// <summary>

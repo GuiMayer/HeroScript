@@ -67,6 +67,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
     private readonly IGameModeResolver? _gameModeResolver;
     private readonly IContentPublicationService? _contentPublications;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunSemanticReplayService(
@@ -87,7 +88,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
         IGameModeResolver? gameModeResolver = null,
-        IContentPublicationService? contentPublications = null)
+        IContentPublicationService? contentPublications = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _repository = repository;
         _configManager = configManager;
@@ -107,6 +109,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
         _modeCatalog = modeCatalog;
         _gameModeResolver = gameModeResolver;
         _contentPublications = contentPublications;
+        _contentRuntimes = contentRuntimes;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -228,16 +231,20 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private ReplayRuntime CreateRuntime(string configName)
     {
         var eventBus = new EventBus(NullLogger.Instance);
+        var contentRuntimes = _contentRuntimes ??
+            (_contentPublications == null ? null : new ContentRuntimeResolver(_contentPublications));
         var modifiers = new ScriptModifierManager(
             _configManager,
             _resourceLoader,
-            _formulaEvaluator);
+            _formulaEvaluator,
+            contentRuntimes: contentRuntimes);
         modifiers.LoadDefinitions(configName);
         var statuses = new StatusEffectManager(
             _configManager,
             _resourceLoader,
             _resourceManager,
-            _formulaEvaluator);
+            _formulaEvaluator,
+            contentRuntimes: contentRuntimes);
         statuses.LoadStatusDefinitions(configName);
         var runs = new RunManager(
             _configManager,
@@ -252,7 +259,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _cardUpgradeCatalog,
             _modeCatalog,
             _gameModeResolver,
-            _contentPublications);
+            _contentPublications,
+            contentRuntimes);
         var damage = new DamageCalculator(
             _pipelineManager,
             eventBus,

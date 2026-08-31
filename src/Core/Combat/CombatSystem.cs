@@ -96,8 +96,10 @@ public class CombatSystem : ICombatSystem
             if (string.IsNullOrWhiteSpace(options.ContentRevision))
                 return Result<CombatState>.Failure("Content revision cannot be empty");
             
-            var hero = CreateHeroCombatEntity(heroId, initialEnergy);
-            var enemies = enemyIds.Select(CreateEnemyCombatEntity).ToList();
+            var hero = CreateHeroCombatEntity(heroId, initialEnergy, options.ContentRevision);
+            var enemies = enemyIds
+                .Select(enemyId => CreateEnemyCombatEntity(enemyId, options.ContentRevision))
+                .ToList();
             
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
@@ -444,7 +446,9 @@ public class CombatSystem : ICombatSystem
                 if (!state.GetEntity(command.TargetId)!.IsAlive)
                     return Result<bool>.Failure($"Target {command.TargetId} is already dead");
 
-                var basicActionDefinition = GetConfiguredAction(BasicAttackActionId);
+                var basicActionDefinition = GetConfiguredAction(
+                    BasicAttackActionId,
+                    state.Determinism.ContentRevision);
                 if (basicActionDefinition == null)
                     return Result<bool>.Failure($"Action definition not found: {BasicAttackActionId}");
 
@@ -457,7 +461,9 @@ public class CombatSystem : ICombatSystem
                 if (string.IsNullOrWhiteSpace(command.PowerId))
                     return Result<bool>.Failure("Power ID is required");
 
-                var actionDefinition = GetConfiguredAction(command.PowerId);
+                var actionDefinition = GetConfiguredAction(
+                    command.PowerId,
+                    state.Determinism.ContentRevision);
                 if (actionDefinition == null)
                     return Result<bool>.Failure($"Action definition not found: {command.PowerId}");
 
@@ -487,12 +493,18 @@ public class CombatSystem : ICombatSystem
         return Result<bool>.Success(true);
     }
 
-    private CombatEntity CreateHeroCombatEntity(string heroId, int initialEnergy)
+    private CombatEntity CreateHeroCombatEntity(
+        string heroId,
+        int initialEnergy,
+        string contentRevision)
     {
-        var definition = TryLoadEntityDefinition(heroId);
+        var definition = TryLoadEntityDefinition(heroId, contentRevision);
         if (definition != null)
         {
-            var hero = _entityAdapter.CreateCombatEntityFromDefinition(heroId, definition);
+            var hero = _entityAdapter.CreateCombatEntityFromDefinition(
+                heroId,
+                definition,
+                contentRevision);
             var energyPool = hero.GetResource("energy");
             return energyPool == null
                 ? hero
@@ -520,11 +532,14 @@ public class CombatSystem : ICombatSystem
         };
     }
 
-    private CombatEntity CreateEnemyCombatEntity(string enemyId)
+    private CombatEntity CreateEnemyCombatEntity(string enemyId, string contentRevision)
     {
-        var definition = TryLoadEntityDefinition(enemyId);
+        var definition = TryLoadEntityDefinition(enemyId, contentRevision);
         if (definition != null)
-            return _entityAdapter.CreateCombatEntityFromDefinition(enemyId, definition);
+            return _entityAdapter.CreateCombatEntityFromDefinition(
+                enemyId,
+                definition,
+                contentRevision);
 
         var enemyHealthPool = _resourceManager.CreatePool("health", 50);
         var enemyResources = new Dictionary<string, ResourcePool>
@@ -545,12 +560,12 @@ public class CombatSystem : ICombatSystem
         };
     }
 
-    private EntityDefinition? TryLoadEntityDefinition(string definitionId)
+    private EntityDefinition? TryLoadEntityDefinition(string definitionId, string contentRevision)
     {
         if (_entityDefinitionLoader == null)
             return null;
 
-        var result = _entityDefinitionLoader.LoadDefinition(definitionId);
+        var result = _entityDefinitionLoader.LoadDefinition(definitionId, contentRevision);
         if (result.IsSuccess)
             return result.Value;
 
@@ -569,7 +584,7 @@ public class CombatSystem : ICombatSystem
     {
         var randomProvider = new DeterministicRandomProvider(state.Determinism);
         var target = state.GetEntity(targetId)!;
-        var actionDefinition = GetConfiguredAction(actionId)
+        var actionDefinition = GetConfiguredAction(actionId, state.Determinism.ContentRevision)
             ?? throw new InvalidOperationException($"Action definition not found: {actionId}");
 
         var damageDealt = ApplyRunModifiers(
@@ -642,11 +657,18 @@ public class CombatSystem : ICombatSystem
 
         if (_damageCalculator != null)
         {
-            var damageResult = _damageCalculator.CalculateDamage(
-                actionDefinition,
-                actor,
-                target,
-                randomProvider);
+            var damageResult = _damageCalculator is IRevisionedDamageCalculator revisionedDamage
+                ? revisionedDamage.CalculateDamage(
+                    actionDefinition,
+                    actor,
+                    target,
+                    randomProvider,
+                    state.Determinism.ContentRevision)
+                : _damageCalculator.CalculateDamage(
+                    actionDefinition,
+                    actor,
+                    target,
+                    randomProvider);
             _logger.LogDebug($"Action {actionDefinition.ActionId} damage: {damageResult.FinalDamage:F2} (crit tier: {damageResult.CritTier})");
             return damageResult.FinalDamage;
         }
@@ -1103,12 +1125,14 @@ public class CombatSystem : ICombatSystem
         return actor.UpdateResources(updates);
     }
 
-    private ActionDefinition? GetConfiguredAction(string actionId)
+    private ActionDefinition? GetConfiguredAction(string actionId, string contentRevision)
     {
         if (_actionManager == null)
             return null;
 
-        var result = _actionManager.GetDefinition(actionId);
+        var result = _actionManager is IRevisionedActionCatalog revisioned
+            ? revisioned.GetDefinition(actionId, contentRevision)
+            : _actionManager.GetDefinition(actionId);
         return result.IsSuccess ? result.Value : null;
     }
 

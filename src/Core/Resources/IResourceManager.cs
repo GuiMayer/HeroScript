@@ -102,3 +102,17 @@ public interface IResourceManager
     /// <returns>Resultado da operação</returns>
     Result ReloadResource(string resourceId);
 }
+
+public interface IRevisionedResourceManager
+{
+    Result<ResourceDefinition> GetDefinition(
+        string resourceId,
+        string contentRevision,
+        string? configName = null);
+
+    Result<ResourcePool> CreatePool(
+        string resourceId,
+        float? initialCurrent,
+        string contentRevision,
+        string? configName = null);
+}

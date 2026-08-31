@@ -3,18 +3,20 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Math;
 
 namespace Core.Combat.Modifiers;
 
-public sealed class ScriptModifierManager : IScriptModifierManager
+public sealed class ScriptModifierManager : IScriptModifierManager, IRevisionedScriptModifierManager
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     private readonly IEventBus? _eventBus;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly ConcurrentDictionary<string, ScriptModifierDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, List<ScriptModifierInstance>> _activeModifiers = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
@@ -23,12 +25,14 @@ public sealed class ScriptModifierManager : IScriptModifierManager
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         IRuntimeFormulaEvaluator formulaEvaluator,
-        IEventBus? eventBus = null)
+        IEventBus? eventBus = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
         _eventBus = eventBus;
+        _contentRuntimes = contentRuntimes;
     }
 
     public Result LoadDefinitions(string configName)
@@ -80,6 +84,28 @@ public sealed class ScriptModifierManager : IScriptModifierManager
         return Result<ScriptModifierDefinition>.Failure($"Script modifier definition not found: {modifierId}");
     }
 
+    public Result<ScriptModifierDefinition> GetDefinition(
+        string modifierId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return GetDefinition(modifierId);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<ScriptModifierDefinition>.Failure(runtime.Error);
+        var definition = runtime.Value.GetDefinition<ScriptModifierDefinition>("modifiers", modifierId);
+        return definition.IsFailure
+            ? definition
+            : Result<ScriptModifierDefinition>.Success(definition.Value with
+            {
+                ModifierId = string.IsNullOrWhiteSpace(definition.Value.ModifierId)
+                    ? modifierId
+                    : definition.Value.ModifierId
+            });
+    }
+
     public IReadOnlyList<ScriptModifierDefinition> GetAllDefinitions()
     {
         return _definitions.Values.ToList();
@@ -91,6 +117,41 @@ public sealed class ScriptModifierManager : IScriptModifierManager
     }
 
     public Result<ScriptModifierInstance> ApplyModifier(Guid instanceId, string ownerId, string modifierId, int stacks = 1, int? duration = null, string? sourceId = null)
+        => ApplyModifierWithDefinition(
+            instanceId,
+            ownerId,
+            modifierId,
+            stacks,
+            duration,
+            sourceId,
+            GetDefinition(modifierId));
+
+    public Result<ScriptModifierInstance> ApplyModifier(
+        Guid instanceId,
+        string ownerId,
+        string modifierId,
+        string contentRevision,
+        int stacks = 1,
+        int? duration = null,
+        string? sourceId = null,
+        string? configName = null)
+        => ApplyModifierWithDefinition(
+            instanceId,
+            ownerId,
+            modifierId,
+            stacks,
+            duration,
+            sourceId,
+            GetDefinition(modifierId, contentRevision, configName));
+
+    private Result<ScriptModifierInstance> ApplyModifierWithDefinition(
+        Guid instanceId,
+        string ownerId,
+        string modifierId,
+        int stacks,
+        int? duration,
+        string? sourceId,
+        Result<ScriptModifierDefinition> definitionResult)
     {
         if (instanceId == Guid.Empty)
             return Result<ScriptModifierInstance>.Failure("InstanceId cannot be empty");
@@ -101,7 +162,6 @@ public sealed class ScriptModifierManager : IScriptModifierManager
         if (stacks <= 0)
             return Result<ScriptModifierInstance>.Failure("Stacks must be greater than 0");
 
-        var definitionResult = GetDefinition(modifierId);
         if (!definitionResult.IsSuccess)
         {
             _eventBus?.Publish(new ModifierRejectedEvent(ownerId, modifierId, definitionResult.Error));

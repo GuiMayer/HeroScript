@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Math;
@@ -14,7 +15,7 @@ namespace Core.StatusEffects;
 /// Gerenciador de status effects.
 /// Thread-safe, suporta múltiplas entidades simultaneamente.
 /// </summary>
-public class StatusEffectManager : IStatusEffectManager
+public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffectManager
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -22,6 +23,7 @@ public class StatusEffectManager : IStatusEffectManager
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     private readonly IDefinitionPersister? _persister;
     private readonly IEventBus? _eventBus;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     
     // Status effects ativos por entidade (thread-safe)
     private readonly ConcurrentDictionary<string, List<StatusEffectInstance>> _activeStatus =
@@ -39,7 +41,8 @@ public class StatusEffectManager : IStatusEffectManager
         IResourceManager resourceManager,
         IRuntimeFormulaEvaluator formulaEvaluator,
         IEventBus? eventBus = null,
-        IDefinitionPersister? persister = null)
+        IDefinitionPersister? persister = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -47,6 +50,7 @@ public class StatusEffectManager : IStatusEffectManager
         _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
         _eventBus = eventBus;
         _persister = persister; // Optional for backward compatibility
+        _contentRuntimes = contentRuntimes;
         
         _processor = new StatusEffectProcessor(this, formulaEvaluator);
     }
@@ -76,6 +80,45 @@ public class StatusEffectManager : IStatusEffectManager
         int stacks = 1,
         int? duration = null,
         string? sourceId = null)
+        => ApplyStatusWithDefinition(
+            targetId,
+            statusId,
+            instanceId,
+            appliedAt,
+            stacks,
+            duration,
+            sourceId,
+            GetDefinition(statusId));
+
+    public Result<StatusEffectInstance> ApplyStatus(
+        string targetId,
+        string statusId,
+        Guid instanceId,
+        DateTime appliedAt,
+        string contentRevision,
+        int stacks = 1,
+        int? duration = null,
+        string? sourceId = null,
+        string? configName = null)
+        => ApplyStatusWithDefinition(
+            targetId,
+            statusId,
+            instanceId,
+            appliedAt,
+            stacks,
+            duration,
+            sourceId,
+            GetDefinition(statusId, contentRevision, configName));
+
+    private Result<StatusEffectInstance> ApplyStatusWithDefinition(
+        string targetId,
+        string statusId,
+        Guid instanceId,
+        DateTime appliedAt,
+        int stacks,
+        int? duration,
+        string? sourceId,
+        Result<StatusEffectDefinition> defResult)
     {
         if (string.IsNullOrWhiteSpace(targetId))
             return Result<StatusEffectInstance>.Failure("TargetId cannot be empty");
@@ -89,8 +132,6 @@ public class StatusEffectManager : IStatusEffectManager
         if (stacks <= 0)
             return Result<StatusEffectInstance>.Failure("Stacks must be greater than 0");
         
-        // Obter definição
-        var defResult = GetDefinition(statusId);
         if (!defResult.IsSuccess)
             return Result<StatusEffectInstance>.Failure(defResult.Error!);
         
@@ -474,6 +515,28 @@ public class StatusEffectManager : IStatusEffectManager
             return Result<StatusEffectDefinition>.Success(definition);
         
         return Result<StatusEffectDefinition>.Failure($"Status effect definition not found: {statusId}");
+    }
+
+    public Result<StatusEffectDefinition> GetDefinition(
+        string statusId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return GetDefinition(statusId);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<StatusEffectDefinition>.Failure(runtime.Error);
+        var definition = runtime.Value.GetDefinition<StatusEffectDefinition>("status-effects", statusId);
+        return definition.IsFailure
+            ? definition
+            : Result<StatusEffectDefinition>.Success(definition.Value with
+            {
+                StatusId = string.IsNullOrWhiteSpace(definition.Value.StatusId)
+                    ? statusId
+                    : definition.Value.StatusId
+            });
     }
     
     public List<StatusEffectDefinition> GetAllDefinitions()

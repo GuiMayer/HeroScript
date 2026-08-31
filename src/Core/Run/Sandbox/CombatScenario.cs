@@ -139,6 +139,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
     private readonly IResourceManager _resources;
     private readonly IContentManifestProvider _manifests;
     private readonly IStatusEffectManager _statuses;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
 
     public CombatScenarioCompiler(
         IGameModeResolver modes,
@@ -149,7 +150,8 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         EntityDefinitionLoader entities,
         IResourceManager resources,
         IContentManifestProvider manifests,
-        IStatusEffectManager statuses)
+        IStatusEffectManager statuses,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _modes = modes;
         _cards = cards;
@@ -160,6 +162,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         _resources = resources;
         _manifests = manifests;
         _statuses = statuses;
+        _contentRuntimes = contentRuntimes;
     }
 
     public Result<CompiledCombatScenario> Compile(CombatScenarioDefinition scenario, string configName = "default")
@@ -177,7 +180,13 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             return Result<CompiledCombatScenario>.Failure("Scenario hero alias and entityDefinitionId are required");
         }
 
-        var mode = _modes.Resolve(scenario.ModeId, configName);
+        var manifest = ResolveManifest(scenario.ContentRevision, configName);
+        if (manifest.IsFailure)
+            return Result<CompiledCombatScenario>.Failure(manifest.Error);
+
+        var mode = _modes is IRevisionedGameModeResolver revisionedModes
+            ? revisionedModes.Resolve(scenario.ModeId, configName, manifest.Value.Revision)
+            : _modes.Resolve(scenario.ModeId, configName);
         if (mode.IsFailure)
             return Result<CompiledCombatScenario>.Failure(mode.Error);
         if (!mode.Value.CapabilityPolicy.AllowScenarioAuthoring)
@@ -193,11 +202,10 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         if (scenario.InitialState.Effects.Count > 0 && !mode.Value.CapabilityPolicy.AllowInitialEffects)
             return Result<CompiledCombatScenario>.Failure("Game mode does not allow initial status effects");
 
-        var manifest = ResolveManifest(scenario.ContentRevision, configName);
-        if (manifest.IsFailure)
-            return Result<CompiledCombatScenario>.Failure(manifest.Error);
-
-        var allowedCards = ResolveAllowedCards(mode.Value.Definition.CardPoolIds, configName);
+        var allowedCards = ResolveAllowedCards(
+            mode.Value.Definition.CardPoolIds,
+            configName,
+            manifest.Value.Revision);
         if (allowedCards.IsFailure)
             return Result<CompiledCombatScenario>.Failure(allowedCards.Error);
         var startingCards = new List<RunStartingCard>();
@@ -207,13 +215,23 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 return Result<CompiledCombatScenario>.Failure("Scenario deck contains an empty definitionId");
             if (!allowedCards.Value.Contains(card.DefinitionId))
                 return Result<CompiledCombatScenario>.Failure($"Card is not allowed by the game mode: {card.DefinitionId}");
-            var definition = _cards.GetCard(card.DefinitionId, configName);
+            var definition = GetContent<CardContentDefinition>(
+                "cards",
+                card.DefinitionId,
+                manifest.Value.Revision,
+                configName,
+                () => _cards.GetCard(card.DefinitionId, configName));
             if (definition.IsFailure)
                 return Result<CompiledCombatScenario>.Failure(definition.Error);
             var resolvedUpgrades = new List<CardUpgradeState>();
             foreach (var upgradeId in card.UpgradeIds.OrderBy(id => id, StringComparer.Ordinal))
             {
-                var upgrade = _upgrades.Get(upgradeId, configName);
+                var upgrade = GetContent<CardUpgradeDefinition>(
+                    "card-upgrades",
+                    upgradeId,
+                    manifest.Value.Revision,
+                    configName,
+                    () => _upgrades.Get(upgradeId, configName));
                 if (upgrade.IsFailure)
                     return Result<CompiledCombatScenario>.Failure(upgrade.Error);
                 if (!upgrade.Value.AppliesTo(card.DefinitionId))
@@ -228,12 +246,21 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             startingCards.Add(new RunStartingCard { DefinitionId = definition.Value.CardId, Upgrades = resolvedUpgrades });
         }
 
-        var allowedEnemies = ResolveAllowedEnemies(mode.Value.Definition.EnemyPoolIds, configName);
+        var allowedEnemies = ResolveAllowedEnemies(
+            mode.Value.Definition.EnemyPoolIds,
+            configName,
+            manifest.Value.Revision);
         if (allowedEnemies.IsFailure)
             return Result<CompiledCombatScenario>.Failure(allowedEnemies.Error);
         var aliases = new HashSet<string>(StringComparer.Ordinal) { scenario.Hero.Alias };
         var factory = new EntityCombatAdapter(_resources);
-        var hero = MaterializeParticipant(factory, scenario.Hero.Alias, scenario.Hero.EntityDefinitionId, true);
+        var hero = MaterializeParticipant(
+            factory,
+            scenario.Hero.Alias,
+            scenario.Hero.EntityDefinitionId,
+            true,
+            manifest.Value.Revision,
+            configName);
         if (hero.IsFailure)
             return Result<CompiledCombatScenario>.Failure(hero.Error);
         var heroWithResources = ApplyResources(hero.Value, scenario.InitialState.HeroResources);
@@ -248,7 +275,13 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 return Result<CompiledCombatScenario>.Failure($"Scenario participant alias is duplicated: {enemy.Alias}");
             if (!allowedEnemies.Value.Contains(enemy.EntityDefinitionId))
                 return Result<CompiledCombatScenario>.Failure($"Enemy is not allowed by the game mode: {enemy.EntityDefinitionId}");
-            var materialized = MaterializeParticipant(factory, enemy.Alias, enemy.EntityDefinitionId, false);
+            var materialized = MaterializeParticipant(
+                factory,
+                enemy.Alias,
+                enemy.EntityDefinitionId,
+                false,
+                manifest.Value.Revision,
+                configName);
             if (materialized.IsFailure)
                 return Result<CompiledCombatScenario>.Failure(materialized.Error);
             enemies.Add(materialized.Value);
@@ -331,7 +364,12 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                     $"Initial status is duplicated for target: {effect.TargetAlias}/{effect.StatusId}");
             }
 
-            var definition = _statuses.GetDefinition(effect.StatusId);
+            var definition = GetContent<StatusEffectDefinition>(
+                "status-effects",
+                effect.StatusId,
+                contentRevision,
+                configName: null,
+                () => _statuses.GetDefinition(effect.StatusId));
             if (definition.IsFailure)
                 return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(definition.Error);
             var allocated = context.AllocateId($"scenario-status:{scenario.AttemptKey}:{effect.TargetAlias}:{effect.StatusId}:{index}");
@@ -377,11 +415,45 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             : Result<ContentManifest>.Failure($"Scenario content revision is not available: {revision}");
     }
 
-    private Result<HashSet<string>> ResolveAllowedCards(IReadOnlyList<string> poolIds, string configName)
+    private Result<HashSet<string>> ResolveAllowedCards(
+        IReadOnlyList<string> poolIds,
+        string configName,
+        string contentRevision)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
+        var runtimeResult = _contentRuntimes?.Resolve(contentRevision, configName);
+        if (runtimeResult is { IsFailure: true })
+            return Result<HashSet<string>>.Failure(runtimeResult.Error);
+
         foreach (var poolId in poolIds)
         {
+            if (runtimeResult is { IsSuccess: true })
+            {
+                var revisionedPool = runtimeResult.Value.GetDefinition<CardPoolDefinition>("card-pools", poolId);
+                if (revisionedPool.IsFailure)
+                    return Result<HashSet<string>>.Failure(revisionedPool.Error);
+
+                var includeTags = new HashSet<string>(revisionedPool.Value.IncludeTags, StringComparer.OrdinalIgnoreCase);
+                var excludeTags = new HashSet<string>(revisionedPool.Value.ExcludeTags, StringComparer.OrdinalIgnoreCase);
+                var explicitIds = new HashSet<string>(revisionedPool.Value.ExplicitCardIds, StringComparer.OrdinalIgnoreCase);
+                foreach (var cardId in runtimeResult.Value.GetDefinitions("cards").Keys)
+                {
+                    var card = runtimeResult.Value.GetDefinition<CardContentDefinition>("cards", cardId);
+                    if (card.IsFailure)
+                        return Result<HashSet<string>>.Failure(card.Error);
+                    if (explicitIds.Count > 0 && !explicitIds.Contains(cardId))
+                        continue;
+                    if (includeTags.Count > 0 && !includeTags.All(tag => card.Value.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
+                        continue;
+                    if (excludeTags.Any(tag => card.Value.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
+                        continue;
+                    if (revisionedPool.Value.RarityWeights.Count > 0 && !revisionedPool.Value.RarityWeights.ContainsKey(card.Value.Rarity))
+                        continue;
+                    ids.Add(cardId);
+                }
+                continue;
+            }
+
             var pool = _cardPools.ResolvePool(poolId, configName);
             if (pool.IsFailure)
                 return Result<HashSet<string>>.Failure(pool.Error);
@@ -390,12 +462,20 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         return Result<HashSet<string>>.Success(ids);
     }
 
-    private Result<HashSet<string>> ResolveAllowedEnemies(IReadOnlyList<string> poolIds, string configName)
+    private Result<HashSet<string>> ResolveAllowedEnemies(
+        IReadOnlyList<string> poolIds,
+        string configName,
+        string contentRevision)
     {
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var poolId in poolIds)
         {
-            var pool = _enemyPools.Get(poolId, configName);
+            var pool = GetContent<EnemyPoolDefinition>(
+                "enemy-pools",
+                poolId,
+                contentRevision,
+                configName,
+                () => _enemyPools.Get(poolId, configName));
             if (pool.IsFailure)
                 return Result<HashSet<string>>.Failure(pool.Error);
             ids.UnionWith(pool.Value.EntityDefinitionIds);
@@ -407,15 +487,39 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         EntityCombatAdapter factory,
         string alias,
         string definitionId,
-        bool hero)
+        bool hero,
+        string contentRevision,
+        string configName)
     {
-        var definition = _entities.LoadDefinition(definitionId);
+        var definition = _contentRuntimes == null
+            ? _entities.LoadDefinition(definitionId)
+            : _entities.LoadDefinition(definitionId, contentRevision, configName);
         if (definition.IsFailure)
             return Result<CombatEntity>.Failure(definition.Error);
-        var entity = factory.CreateCombatEntityFromDefinition(alias, definition.Value);
+        var entity = factory.CreateCombatEntityFromDefinition(
+            alias,
+            definition.Value,
+            contentRevision,
+            configName);
         if (entity.IsHero != hero)
             return Result<CombatEntity>.Failure($"Entity definition has an invalid scenario role: {definitionId}");
         return Result<CombatEntity>.Success(entity);
+    }
+
+    private Result<T> GetContent<T>(
+        string kind,
+        string id,
+        string contentRevision,
+        string? configName,
+        Func<Result<T>> fallback)
+    {
+        if (_contentRuntimes == null)
+            return fallback();
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        return runtime.IsFailure
+            ? Result<T>.Failure(runtime.Error)
+            : runtime.Value.GetDefinition<T>(kind, id);
     }
 
     private static Result<CombatEntity> ApplyResources(

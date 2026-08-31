@@ -6,3 +6,11 @@ public interface ICombatActivationRulesLoader
 {
     Result<CombatActivationRulesDefinition> Load(string configName, string rulesId);
 }
+
+public interface IRevisionedCombatActivationRulesLoader
+{
+    Result<CombatActivationRulesDefinition> Load(
+        string configName,
+        string rulesId,
+        string contentRevision);
+}

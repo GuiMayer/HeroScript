@@ -1,5 +1,6 @@
 using Core.Logging;
 using Core.Damage;
+using Core.Common;
 using Core.StatusEffects;
 
 namespace Core.Effects.Handlers;
@@ -51,21 +52,41 @@ public sealed class StatusEffectHandler : IEffectHandler
             var sourceId = string.IsNullOrWhiteSpace(request.Effect.SourceEntityId)
                 ? null
                 : request.Effect.SourceEntityId;
-            var applied = request.RandomProvider is DeterministicRandomProvider deterministic
-                ? _statusEffects.ApplyStatus(
+            Result<StatusEffectInstance> applied;
+            if (request.RandomProvider is DeterministicRandomProvider deterministic &&
+                request.Context.CombatState != null &&
+                _statusEffects is IRevisionedStatusEffectManager revisionedStatuses)
+            {
+                applied = revisionedStatuses.ApplyStatus(
                     targetId,
                     statusId,
                     deterministic.AllocateId("status-effect"),
                     deterministic.LogicalTimestamp,
+                    request.Context.CombatState.Determinism.ContentRevision,
                     request.Effect.Definition.StatusStacks ?? 1,
                     request.Effect.Definition.StatusDuration,
-                    sourceId)
-                : _statusEffects.ApplyStatus(
+                    sourceId);
+            }
+            else if (request.RandomProvider is DeterministicRandomProvider deterministicFallback)
+            {
+                applied = _statusEffects.ApplyStatus(
+                    targetId,
+                    statusId,
+                    deterministicFallback.AllocateId("status-effect"),
+                    deterministicFallback.LogicalTimestamp,
+                    request.Effect.Definition.StatusStacks ?? 1,
+                    request.Effect.Definition.StatusDuration,
+                    sourceId);
+            }
+            else
+            {
+                applied = _statusEffects.ApplyStatus(
                     targetId,
                     statusId,
                     request.Effect.Definition.StatusStacks ?? 1,
                     request.Effect.Definition.StatusDuration,
                     sourceId);
+            }
             if (applied.IsFailure)
                 return EffectResult.CreateFailure(applied.Error ?? "Failed to apply status");
         }

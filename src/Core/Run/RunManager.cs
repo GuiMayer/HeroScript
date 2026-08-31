@@ -30,6 +30,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private readonly IRunStateRepository? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly IContentPublicationService? _contentPublications;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
@@ -53,7 +54,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
         IGameModeResolver? gameModeResolver = null,
-        IContentPublicationService? contentPublications = null)
+        IContentPublicationService? contentPublications = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -64,6 +66,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         _repository = repository;
         _contentManifestProvider = contentManifestProvider;
         _contentPublications = contentPublications;
+        _contentRuntimes = contentRuntimes;
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
@@ -88,13 +91,26 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         if (string.IsNullOrWhiteSpace(options.PlayerEntityId))
             return Result<RunState>.Failure("Player entity id is required");
 
+        ResolvedContentManifest? resolvedContent = null;
+        if (_contentManifestProvider != null)
+        {
+            var earlyManifest = ResolveContentManifest(options, definition: null);
+            if (earlyManifest.IsFailure)
+                return Result<RunState>.Failure(earlyManifest.Error);
+            resolvedContent = earlyManifest.Value;
+        }
+
         var effectiveRunDefinitionId = options.RunDefinitionId;
         ResolvedGameMode? resolvedMode = null;
         if (!string.IsNullOrWhiteSpace(options.ModeId))
         {
-            var mode = _gameModeResolver == null
-                ? ResolveLegacyMode(options.ModeId, options.ConfigName)
-                : _gameModeResolver.Resolve(options.ModeId, options.ConfigName);
+            var mode = _gameModeResolver switch
+            {
+                IRevisionedGameModeResolver revisioned when resolvedContent != null =>
+                    revisioned.Resolve(options.ModeId, options.ConfigName, resolvedContent.Revision),
+                null => ResolveLegacyMode(options.ModeId, options.ConfigName),
+                _ => _gameModeResolver.Resolve(options.ModeId, options.ConfigName)
+            };
             if (mode.IsFailure)
                 return Result<RunState>.Failure(mode.Error);
             resolvedMode = mode.Value;
@@ -104,7 +120,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 effectiveRunDefinitionId = resolvedMode.Definition.RunDefinitionId;
         }
 
-        var definitionResult = LoadDefinition(options.ConfigName, effectiveRunDefinitionId);
+        var definitionResult = LoadDefinition(
+            options.ConfigName,
+            effectiveRunDefinitionId,
+            resolvedContent?.Revision);
         if (definitionResult.IsFailure)
             return Result<RunState>.Failure(definitionResult.Error);
 
@@ -113,12 +132,16 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         if (mapResult.IsFailure)
             return Result<RunState>.Failure(mapResult.Error);
 
-        var manifestResult = ResolveContentManifest(options, definition);
-        if (manifestResult.IsFailure)
-            return Result<RunState>.Failure(manifestResult.Error);
+        if (resolvedContent == null)
+        {
+            var manifestResult = ResolveContentManifest(options, definition);
+            if (manifestResult.IsFailure)
+                return Result<RunState>.Failure(manifestResult.Error);
+            resolvedContent = manifestResult.Value;
+        }
 
-        var manifest = manifestResult.Value.Manifest;
-        var contentRevision = manifestResult.Value.Revision;
+        var manifest = resolvedContent.Manifest;
+        var contentRevision = resolvedContent.Revision;
         var seed = options.Seed ?? CreateSeed();
         var context = DeterministicContext.Create(seed, contentRevision!);
         var runId = context.AllocateId(
@@ -220,12 +243,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
 
     private Result<ResolvedContentManifest> ResolveContentManifest(
         RunStartOptions options,
-        RunDefinition definition)
+        RunDefinition? definition)
     {
         if (_contentManifestProvider == null)
         {
             // Compatibility boundary for isolated callers that have not registered
             // the content catalog. The production composition always supplies it.
+            if (definition == null)
+                return Result<ResolvedContentManifest>.Failure("Run definition is required without a content manifest provider");
             var revision = string.IsNullOrWhiteSpace(options.ContentRevision)
                 ? CanonicalJson.ComputeHash(definition, _jsonOptions)
                 : options.ContentRevision;
@@ -534,7 +559,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             return Result.Failure("Relic content catalog is not configured");
         var request = DeserializePayload<RelicPayload>(payload);
         var run = _runs[runId];
-        var definition = _relicCatalog.Get(request.RelicId, run.ConfigName);
+        var definition = GetContentDefinition(
+            run,
+            "relics",
+            request.RelicId,
+            () => _relicCatalog.Get(request.RelicId, run.ConfigName));
         if (definition.IsFailure)
             return Result.Failure(definition.Error);
         if (!string.Equals(definition.Value.RelicId, request.RelicId, StringComparison.Ordinal))
@@ -574,7 +603,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             return Result.Failure("The current map node does not allow card upgrades");
         if (run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
             return Result.Failure($"Map node already resolved: {currentNode.NodeId}");
-        var definition = _cardUpgradeCatalog.Get(request.UpgradeId, run.ConfigName);
+        var definition = GetContentDefinition(
+            run,
+            "card-upgrades",
+            request.UpgradeId,
+            () => _cardUpgradeCatalog.Get(request.UpgradeId, run.ConfigName));
         if (definition.IsFailure)
             return Result.Failure(definition.Error);
         if (!string.Equals(definition.Value.UpgradeId, request.UpgradeId, StringComparison.Ordinal))
@@ -646,6 +679,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         if (string.Equals(state.Determinism.ContentRevision, manifest.Value.Revision, StringComparison.Ordinal))
             return Result.Success();
 
+        var activatedMode = state.ResolvedMode;
+        if (!string.IsNullOrWhiteSpace(state.ModeId) &&
+            _gameModeResolver is IRevisionedGameModeResolver revisionedModes)
+        {
+            var resolved = revisionedModes.Resolve(
+                state.ModeId,
+                state.ConfigName,
+                manifest.Value.Revision);
+            if (resolved.IsFailure)
+                return Result.Failure($"Target content revision has an invalid game mode graph: {resolved.Error}");
+            activatedMode = resolved.Value;
+        }
+
         var encounters = state.Encounters
             .Select(encounter => encounter with
             {
@@ -658,6 +704,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         var candidate = state with
         {
             ContentManifest = manifest.Value,
+            ResolvedMode = activatedMode,
             Encounters = encounters,
             Determinism = state.Determinism
                 .WithContentRevision(manifest.Value.Revision)
@@ -1218,7 +1265,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-            var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selectionId);
+            var definitionResult = LoadCardSelectionDefinition(
+                state.ConfigName,
+                selectionId,
+                state.Determinism.ContentRevision);
             if (definitionResult.IsFailure)
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
@@ -1263,7 +1313,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             if (selection == null)
                 return Result<CardSelectionState>.Failure($"Card selection not found: {selectionInstanceId}");
 
-            var definitionResult = LoadCardSelectionDefinition(state.ConfigName, selection.SelectionId);
+            var definitionResult = LoadCardSelectionDefinition(
+                state.ConfigName,
+                selection.SelectionId,
+                state.Determinism.ContentRevision);
             if (definitionResult.IsFailure)
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
@@ -1303,7 +1356,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<ShopState>.Failure($"Run not found: {runId}");
 
-            var definitionResult = LoadShopDefinition(state.ConfigName, shopId);
+            var definitionResult = LoadShopDefinition(
+                state.ConfigName,
+                shopId,
+                state.Determinism.ContentRevision);
             if (definitionResult.IsFailure)
                 return Result<ShopState>.Failure(definitionResult.Error);
 
@@ -1344,7 +1400,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             if (shop == null)
                 return Result<ShopState>.Failure($"Shop not found: {shopInstanceId}");
 
-            var definitionResult = LoadShopDefinition(state.ConfigName, shop.ShopId);
+            var definitionResult = LoadShopDefinition(
+                state.ConfigName,
+                shop.ShopId,
+                state.Determinism.ContentRevision);
             if (definitionResult.IsFailure)
                 return Result<ShopState>.Failure(definitionResult.Error);
 
@@ -1366,7 +1425,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<PreparationState>.Failure($"Run not found: {runId}");
 
-            var definitionResult = LoadPreparationDefinition(state.ConfigName, preparationId);
+            var definitionResult = LoadPreparationDefinition(
+                state.ConfigName,
+                preparationId,
+                state.Determinism.ContentRevision);
             if (definitionResult.IsFailure)
                 return Result<PreparationState>.Failure(definitionResult.Error);
 
@@ -1395,13 +1457,23 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             var appliedModifiers = new List<(string OwnerId, Guid InstanceId)>();
             foreach (var grant in plan.Value.ModifierGrants)
             {
-                var apply = _scriptModifierManager!.ApplyModifier(
-                    grant.InstanceId,
-                    grant.OwnerId,
-                    grant.ModifierId,
-                    grant.Stacks,
-                    grant.Duration,
-                    grant.SourceId);
+                var apply = _scriptModifierManager is IRevisionedScriptModifierManager revisionedModifiers
+                    ? revisionedModifiers.ApplyModifier(
+                        grant.InstanceId,
+                        grant.OwnerId,
+                        grant.ModifierId,
+                        state.Determinism.ContentRevision,
+                        grant.Stacks,
+                        grant.Duration,
+                        grant.SourceId,
+                        state.ConfigName)
+                    : _scriptModifierManager!.ApplyModifier(
+                        grant.InstanceId,
+                        grant.OwnerId,
+                        grant.ModifierId,
+                        grant.Stacks,
+                        grant.Duration,
+                        grant.SourceId);
                 if (apply.IsFailure)
                 {
                     var rollback = RollbackAppliedModifiers(appliedModifiers);
@@ -1471,12 +1543,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
     {
         var lockedOptions = lockedCardIds
-            .Select(cardId => CreateCardSelectionOption(state.ConfigName, cardId))
+            .Select(cardId => CreateCardSelectionOption(state, cardId))
             .Where(option => option != null)
             .Cast<CardSelectionOptionState>()
             .ToList();
 
-        var candidates = ResolveCardSelectionCandidates(state.ConfigName, definition)
+        var candidates = ResolveCardSelectionCandidates(state, definition)
             .Where(option => !lockedCardIds.Contains(option.CardId))
             .Where(option => !lockedOptions.Any(locked => locked.CardId.Equals(option.CardId, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(option => RarityRank(option.Rarity))
@@ -1488,27 +1560,39 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         return lockedOptions;
     }
 
-    private List<CardSelectionOptionState> ResolveCardSelectionCandidates(string configName, CardSelectionDefinition definition)
+    private List<CardSelectionOptionState> ResolveCardSelectionCandidates(
+        RunState state,
+        CardSelectionDefinition definition)
     {
         if (!string.IsNullOrWhiteSpace(definition.CardPoolId) && _cardPoolResolver != null)
         {
-            var poolResult = _cardPoolResolver.ResolvePool(definition.CardPoolId, configName);
+            var poolResult = _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
+                ? revisionedPools.ResolvePool(
+                    definition.CardPoolId,
+                    state.Determinism.ContentRevision,
+                    state.ConfigName)
+                : _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
             if (poolResult.IsSuccess)
                 return poolResult.Value.Cards.Select(ToOption).ToList();
         }
 
         return definition.CardPool
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
-            .Select(cardId => CreateCardSelectionOption(configName, cardId) ?? new CardSelectionOptionState { CardId = cardId })
+            .Select(cardId => CreateCardSelectionOption(state, cardId) ?? new CardSelectionOptionState { CardId = cardId })
             .ToList();
     }
 
-    private CardSelectionOptionState? CreateCardSelectionOption(string configName, string cardId)
+    private CardSelectionOptionState? CreateCardSelectionOption(RunState state, string cardId)
     {
         if (_cardContentCatalog == null)
             return null;
 
-        var cardResult = _cardContentCatalog.GetCard(cardId, configName);
+        var cardResult = _cardContentCatalog is IRevisionedCardContentCatalog revisionedCards
+            ? revisionedCards.GetCard(
+                cardId,
+                state.Determinism.ContentRevision,
+                state.ConfigName)
+            : _cardContentCatalog.GetCard(cardId, state.ConfigName);
         return cardResult.IsSuccess ? ToOption(cardResult.Value) : null;
     }
 
@@ -1539,7 +1623,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     {
         if (!string.IsNullOrWhiteSpace(definition.CardPoolId) && _cardPoolResolver != null)
         {
-            var poolResult = _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
+            var poolResult = _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
+                ? revisionedPools.ResolvePool(
+                    definition.CardPoolId,
+                    state.Determinism.ContentRevision,
+                    state.ConfigName)
+                : _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
             if (poolResult.IsSuccess)
             {
                 return poolResult.Value.Cards
@@ -1552,14 +1641,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             }
         }
 
-        return definition.Items.Select((item, index) => ToShopItem(state.ConfigName, item, definition.Pricing, index)).ToList();
+        return definition.Items.Select((item, index) => ToShopItem(state, item, definition.Pricing, index)).ToList();
     }
 
-    private ShopItemState ToShopItem(string configName, ShopItemDefinition item, ShopPricingRules pricing, int index)
+    private ShopItemState ToShopItem(RunState state, ShopItemDefinition item, ShopPricingRules pricing, int index)
     {
         if (!string.IsNullOrWhiteSpace(item.CardId) && _cardContentCatalog != null)
         {
-            var cardResult = _cardContentCatalog.GetCard(item.CardId, configName);
+            var cardResult = _cardContentCatalog is IRevisionedCardContentCatalog revisionedCards
+                ? revisionedCards.GetCard(
+                    item.CardId,
+                    state.Determinism.ContentRevision,
+                    state.ConfigName)
+                : _cardContentCatalog.GetCard(item.CardId, state.ConfigName);
             if (cardResult.IsSuccess)
                 return ToShopItem(cardResult.Value, pricing, index, item.ItemId, item.PowerPointCost, item.GoldCost);
         }
@@ -1609,8 +1703,36 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         };
     }
 
-    private Result<RunDefinition> LoadDefinition(string configName, string runDefinitionId)
+    private Result<T> GetContentDefinition<T>(
+        RunState run,
+        string kind,
+        string definitionId,
+        Func<Result<T>> fallback)
     {
+        if (_contentRuntimes == null)
+            return fallback();
+
+        var runtime = _contentRuntimes.Resolve(
+            run.Determinism.ContentRevision,
+            run.ConfigName);
+        return runtime.IsFailure
+            ? Result<T>.Failure(runtime.Error)
+            : runtime.Value.GetDefinition<T>(kind, definitionId);
+    }
+
+    private Result<RunDefinition> LoadDefinition(
+        string configName,
+        string runDefinitionId,
+        string? contentRevision = null)
+    {
+        if (!string.IsNullOrWhiteSpace(contentRevision) && _contentRuntimes != null)
+        {
+            var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+            return runtime.IsFailure
+                ? Result<RunDefinition>.Failure(runtime.Error)
+                : runtime.Value.GetDefinition<RunDefinition>("runs", runDefinitionId);
+        }
+
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
@@ -1630,8 +1752,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         }
     }
 
-    private Result<CardSelectionDefinition> LoadCardSelectionDefinition(string configName, string selectionId)
+    private Result<CardSelectionDefinition> LoadCardSelectionDefinition(
+        string configName,
+        string selectionId,
+        string? contentRevision = null)
     {
+        if (!string.IsNullOrWhiteSpace(contentRevision) && _contentRuntimes != null)
+        {
+            var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+            return runtime.IsFailure
+                ? Result<CardSelectionDefinition>.Failure(runtime.Error)
+                : runtime.Value.GetDefinition<CardSelectionDefinition>("card-selections", selectionId);
+        }
+
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
@@ -1651,8 +1784,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         }
     }
 
-    private Result<ShopDefinition> LoadShopDefinition(string configName, string shopId)
+    private Result<ShopDefinition> LoadShopDefinition(
+        string configName,
+        string shopId,
+        string? contentRevision = null)
     {
+        if (!string.IsNullOrWhiteSpace(contentRevision) && _contentRuntimes != null)
+        {
+            var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+            return runtime.IsFailure
+                ? Result<ShopDefinition>.Failure(runtime.Error)
+                : runtime.Value.GetDefinition<ShopDefinition>("shops", shopId);
+        }
+
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
@@ -1672,8 +1816,19 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         }
     }
 
-    private Result<PreparationDefinition> LoadPreparationDefinition(string configName, string preparationId)
+    private Result<PreparationDefinition> LoadPreparationDefinition(
+        string configName,
+        string preparationId,
+        string? contentRevision = null)
     {
+        if (!string.IsNullOrWhiteSpace(contentRevision) && _contentRuntimes != null)
+        {
+            var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+            return runtime.IsFailure
+                ? Result<PreparationDefinition>.Failure(runtime.Error)
+                : runtime.Value.GetDefinition<PreparationDefinition>("preparations", preparationId);
+        }
+
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);

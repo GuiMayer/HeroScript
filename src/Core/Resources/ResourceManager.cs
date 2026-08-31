@@ -1,6 +1,7 @@
 using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using Core.Logging;
 using System.Text.Json;
 
@@ -10,7 +11,7 @@ namespace Core.Resources;
 /// Gerenciador de recursos configuráveis.
 /// Carrega definições de recursos de arquivos JSON.
 /// </summary>
-public class ResourceManager : IResourceManager, IDisposable
+public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDisposable
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -18,6 +19,7 @@ public class ResourceManager : IResourceManager, IDisposable
     private readonly IResourceRegenerationProcessor _regenerationProcessor;
     private readonly Dictionary<string, ResourceDefinition> _definitions = new();
     private readonly object _lock = new();
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     
     // Hot-reload support
     private FileSystemWatcher? _fileWatcher;
@@ -28,12 +30,14 @@ public class ResourceManager : IResourceManager, IDisposable
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ILogger logger,
-        IResourceRegenerationProcessor regenerationProcessor)
+        IResourceRegenerationProcessor regenerationProcessor,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _regenerationProcessor = regenerationProcessor ?? throw new ArgumentNullException(nameof(regenerationProcessor));
+        _contentRuntimes = contentRuntimes;
     }
     
     public void LoadResourceDefinitions(string configName)
@@ -116,6 +120,41 @@ public class ResourceManager : IResourceManager, IDisposable
         
         return Result<ResourceDefinition>.Failure($"Resource not found: {resourceId}");
     }
+
+    public Result<ResourceDefinition> GetDefinition(
+        string resourceId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return GetDefinition(resourceId);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<ResourceDefinition>.Failure(runtime.Error);
+        var definition = runtime.Value.GetDefinition<ResourceDefinition>("resources", resourceId);
+        if (definition.IsFailure)
+        {
+            foreach (var key in runtime.Value.GetDefinitions("resources").Keys)
+            {
+                var candidate = runtime.Value.GetDefinition<ResourceDefinition>("resources", key);
+                if (candidate.IsSuccess &&
+                    string.Equals(candidate.Value.ResourceId, resourceId, StringComparison.Ordinal))
+                {
+                    definition = candidate;
+                    break;
+                }
+            }
+        }
+        return definition.IsFailure
+            ? Result<ResourceDefinition>.Failure(definition.Error)
+            : Result<ResourceDefinition>.Success(definition.Value with
+            {
+                ResourceId = string.IsNullOrWhiteSpace(definition.Value.ResourceId)
+                    ? resourceId
+                    : definition.Value.ResourceId
+            });
+    }
     
     public IReadOnlyList<ResourceDefinition> GetAllDefinitions()
     {
@@ -146,6 +185,18 @@ public class ResourceManager : IResourceManager, IDisposable
             throw new InvalidOperationException($"Resource not found: {resourceId}");
         
         return CreatePoolFromDefinition(defResult.Value, initialCurrent);
+    }
+
+    public Result<ResourcePool> CreatePool(
+        string resourceId,
+        float? initialCurrent,
+        string contentRevision,
+        string? configName = null)
+    {
+        var definition = GetDefinition(resourceId, contentRevision, configName);
+        return definition.IsFailure
+            ? Result<ResourcePool>.Failure(definition.Error)
+            : Result<ResourcePool>.Success(CreatePoolFromDefinition(definition.Value, initialCurrent));
     }
     
     public ResourcePool CreatePoolFromDefinition(

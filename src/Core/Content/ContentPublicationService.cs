@@ -42,6 +42,10 @@ public interface IContentPublicationService
     Task<ContentValidationResult> ValidateDraftAsync(Guid draftId, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> PublishDraftAsync(Guid draftId, int expectedVersion, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> GetPublishedAsync(string revision, CancellationToken cancellationToken = default);
+    Task<Result<ContentBundle>> ResolveBundleAsync(
+        string revision,
+        string? configName = null,
+        CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ContentManifest>> GetPublishedManifestsAsync(CancellationToken cancellationToken = default);
     Task<Result<IReadOnlyDictionary<string, JsonElement>>> GetDefinitionsAsync(
         string kind,
@@ -282,6 +286,46 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         return manifests;
     }
 
+    public async Task<Result<ContentBundle>> ResolveBundleAsync(
+        string revision,
+        string? configName = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(revision))
+            return Result<ContentBundle>.Failure("Content revision is required");
+
+        var published = await GetPublishedAsync(revision, cancellationToken).ConfigureAwait(false);
+        if (published.IsSuccess)
+        {
+            if (!string.IsNullOrWhiteSpace(configName) &&
+                !string.Equals(published.Value.Manifest.ConfigName, configName, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result<ContentBundle>.Failure(
+                    $"Content revision '{revision}' belongs to configuration " +
+                    $"'{published.Value.Manifest.ConfigName}', not '{configName}'");
+            }
+
+            return published;
+        }
+
+        var effectiveConfigName = configName;
+        if (string.IsNullOrWhiteSpace(effectiveConfigName))
+        {
+            var knownManifest = _manifests.GetByRevision(revision);
+            if (knownManifest.IsFailure)
+                return Result<ContentBundle>.Failure(published.Error);
+            effectiveConfigName = knownManifest.Value.ConfigName;
+        }
+
+        var current = Capture(effectiveConfigName);
+        if (current.IsFailure)
+            return Result<ContentBundle>.Failure(current.Error);
+        if (!string.Equals(current.Value.Manifest.Revision, revision, StringComparison.Ordinal))
+            return Result<ContentBundle>.Failure(published.Error);
+
+        return current;
+    }
+
     public async Task<Result<IReadOnlyDictionary<string, JsonElement>>> GetDefinitionsAsync(
         string kind,
         string? revision,
@@ -292,27 +336,19 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             return Result<IReadOnlyDictionary<string, JsonElement>>.Failure("Content kind is required");
 
         ContentBundle bundle;
-        if (!string.IsNullOrWhiteSpace(revision))
-        {
-            var published = await GetPublishedAsync(revision, cancellationToken).ConfigureAwait(false);
-            if (published.IsFailure)
-            {
-                var current = Capture(configName);
-                if (current.IsFailure || !string.Equals(current.Value.Manifest.Revision, revision, StringComparison.Ordinal))
-                    return Result<IReadOnlyDictionary<string, JsonElement>>.Failure(published.Error);
-                bundle = current.Value;
-            }
-            else
-            {
-                bundle = published.Value;
-            }
-        }
-        else
+        if (string.IsNullOrWhiteSpace(revision))
         {
             var current = Capture(configName);
             if (current.IsFailure)
                 return Result<IReadOnlyDictionary<string, JsonElement>>.Failure(current.Error);
             bundle = current.Value;
+        }
+        else
+        {
+            var resolved = await ResolveBundleAsync(revision, configName, cancellationToken).ConfigureAwait(false);
+            if (resolved.IsFailure)
+                return Result<IReadOnlyDictionary<string, JsonElement>>.Failure(resolved.Error);
+            bundle = resolved.Value;
         }
 
         var definitions = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);

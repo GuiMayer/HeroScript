@@ -168,7 +168,10 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                 Board = combat.Board,
                 Actors = actors
             },
-            Hand = MapHand(run.Value.Deck, run.Value.ConfigName)
+            Hand = MapHand(
+                run.Value.Deck,
+                run.Value.ConfigName,
+                run.Value.Determinism.ContentRevision)
         });
     }
 
@@ -196,7 +199,10 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
         };
     }
 
-    private IReadOnlyList<SandboxCardSnapshot> MapHand(DeckState deck, string configName)
+    private IReadOnlyList<SandboxCardSnapshot> MapHand(
+        DeckState deck,
+        string configName,
+        string contentRevision)
     {
         var cards = new List<SandboxCardSnapshot>();
         for (var index = 0; index < deck.Hand.Count; index++)
@@ -204,7 +210,9 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
             var instanceId = index < deck.HandInstanceIds.Count ? deck.HandInstanceIds[index] : Guid.Empty;
             var definitionId = deck.Hand[index];
             deck.CardInstances.TryGetValue(instanceId, out var instance);
-            var content = _cards.GetCard(definitionId, configName);
+            var content = _cards is IRevisionedCardContentCatalog revisionedCards
+                ? revisionedCards.GetCard(definitionId, contentRevision, configName)
+                : _cards.GetCard(definitionId, configName);
             cards.Add(new SandboxCardSnapshot
             {
                 CardInstanceId = instanceId,

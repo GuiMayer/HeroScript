@@ -261,7 +261,12 @@ public sealed class RunSimulationService : IRunSimulationService
         var powerId = request.PowerId;
         if (!string.IsNullOrWhiteSpace(request.ActionId))
         {
-            var definition = _actions.GetDefinition(request.ActionId);
+            var definition = _actions is IRevisionedActionCatalog revisionedActions
+                ? revisionedActions.GetDefinition(
+                    request.ActionId,
+                    run.Determinism.ContentRevision,
+                    run.ConfigName)
+                : _actions.GetDefinition(request.ActionId);
             if (definition.IsFailure)
                 return Result<CombatActionCommand>.Failure(definition.Error);
             actionType = definition.Value.ActionType == ActionType.BASIC_ATTACK

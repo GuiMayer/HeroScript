@@ -13,7 +13,7 @@ namespace Core.Damage;
 /// Calculadora de dano que usa o pipeline JSON-driven.
 /// Facade que constrói o contexto inicial e executa o pipeline.
 /// </summary>
-public class DamageCalculator : IDamageCalculator
+public class DamageCalculator : IDamageCalculator, IRevisionedDamageCalculator
 {
     private readonly IPipelineManager _pipelineManager;
     private readonly IEventBus _eventBus;
@@ -48,14 +48,35 @@ public class DamageCalculator : IDamageCalculator
         IRandomProvider randomProvider)
     {
         ArgumentNullException.ThrowIfNull(randomProvider);
-        return CalculateDamageCore(action, attacker, target, randomProvider);
+        return CalculateDamageCore(action, attacker, target, randomProvider, null, null);
+    }
+
+    public DamageResult CalculateDamage(
+        ActionDefinition action,
+        CombatEntity attacker,
+        CombatEntity target,
+        IRandomProvider randomProvider,
+        string contentRevision,
+        string? pipelineId = null)
+    {
+        ArgumentNullException.ThrowIfNull(randomProvider);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentRevision);
+        return CalculateDamageCore(
+            action,
+            attacker,
+            target,
+            randomProvider,
+            contentRevision,
+            pipelineId);
     }
 
     private DamageResult CalculateDamageCore(
         ActionDefinition action,
         CombatEntity attacker,
         CombatEntity target,
-        IRandomProvider? randomProvider)
+        IRandomProvider? randomProvider,
+        string? contentRevision = null,
+        string? pipelineId = null)
     {
         // 1. Construir contexto inicial
         var context = BuildInitialContext(action, attacker, target);
@@ -65,7 +86,9 @@ public class DamageCalculator : IDamageCalculator
         // 2. Executar pipeline
         var result = randomProvider == null
             ? _pipelineManager.ExecutePipeline(context)
-            : _pipelineManager.ExecutePipeline(context, randomProvider);
+            : !string.IsNullOrWhiteSpace(contentRevision) && _pipelineManager is IRevisionedPipelineManager revisioned
+                ? revisioned.ExecutePipeline(context, randomProvider, contentRevision, pipelineId)
+                : _pipelineManager.ExecutePipeline(context, randomProvider);
         
         // 3. Garantir dano não-negativo
         var finalDamage = System.Math.Max(0, result.CurrentDamage);

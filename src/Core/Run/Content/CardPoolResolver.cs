@@ -2,10 +2,11 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 
 namespace Core.Run.Content;
 
-public sealed class CardPoolResolver : ICardPoolResolver
+public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolResolver
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -13,12 +14,18 @@ public sealed class CardPoolResolver : ICardPoolResolver
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly object _lock = new();
     private readonly Dictionary<string, CardPoolDefinition> _poolsByConfigAndId = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IContentRuntimeResolver? _contentRuntimes;
 
-    public CardPoolResolver(IConfigManager configManager, IResourceLoader resourceLoader, ICardContentCatalog catalog)
+    public CardPoolResolver(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        ICardContentCatalog catalog,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        _contentRuntimes = contentRuntimes;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -59,6 +66,43 @@ public sealed class CardPoolResolver : ICardPoolResolver
             PoolId = pool.PoolId,
             Cards = cards
         });
+    }
+
+    public Result<CardPoolDefinition> GetPool(
+        string poolId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return GetPool(poolId, configName ?? "default");
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<CardPoolDefinition>.Failure(runtime.Error);
+        var definition = runtime.Value.GetDefinition<CardPoolDefinition>("card-pools", poolId);
+        return definition.IsFailure
+            ? definition
+            : Result<CardPoolDefinition>.Success(definition.Value with
+            {
+                PoolId = string.IsNullOrWhiteSpace(definition.Value.PoolId) ? poolId : definition.Value.PoolId
+            });
+    }
+
+    public Result<CardPoolResult> ResolvePool(
+        string poolId,
+        string contentRevision,
+        string? configName = null)
+    {
+        var poolResult = GetPool(poolId, contentRevision, configName);
+        if (poolResult.IsFailure)
+            return Result<CardPoolResult>.Failure(poolResult.Error);
+
+        var cardsResult = _catalog is IRevisionedCardContentCatalog revisionedCatalog
+            ? revisionedCatalog.GetAllCards(contentRevision, configName)
+            : _catalog.GetAllCards(configName ?? "default");
+        return cardsResult.IsFailure
+            ? Result<CardPoolResult>.Failure(cardsResult.Error)
+            : ResolvePool(poolResult.Value, cardsResult.Value);
     }
 
     public void Invalidate()
@@ -102,6 +146,23 @@ public sealed class CardPoolResolver : ICardPoolResolver
                 return Result<CardPoolDefinition>.Failure($"Failed to load card pool '{poolId}': {ex.Message}");
             }
         }
+    }
+
+    private static Result<CardPoolResult> ResolvePool(
+        CardPoolDefinition pool,
+        IReadOnlyList<CardContentDefinition> allCards)
+    {
+        var includeTags = new HashSet<string>(pool.IncludeTags, StringComparer.OrdinalIgnoreCase);
+        var excludeTags = new HashSet<string>(pool.ExcludeTags, StringComparer.OrdinalIgnoreCase);
+        var explicitIds = new HashSet<string>(pool.ExplicitCardIds, StringComparer.OrdinalIgnoreCase);
+        var cards = allCards
+            .Where(card => explicitIds.Count == 0 || explicitIds.Contains(card.CardId))
+            .Where(card => includeTags.Count == 0 || includeTags.All(tag => card.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
+            .Where(card => excludeTags.Count == 0 || !excludeTags.Any(tag => card.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)))
+            .Where(card => pool.RarityWeights.Count == 0 || pool.RarityWeights.ContainsKey(card.Rarity))
+            .OrderBy(card => card.CardId, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return Result<CardPoolResult>.Success(new CardPoolResult { PoolId = pool.PoolId, Cards = cards });
     }
 
     private static string CacheKey(string configName, string poolId)

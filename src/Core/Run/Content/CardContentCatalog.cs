@@ -2,21 +2,27 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 
 namespace Core.Run.Content;
 
-public sealed class CardContentCatalog : ICardContentCatalog
+public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardContentCatalog
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly object _lock = new();
     private readonly Dictionary<string, IReadOnlyDictionary<string, CardContentDefinition>> _cardsByConfig = new(StringComparer.OrdinalIgnoreCase);
+    private readonly IContentRuntimeResolver? _contentRuntimes;
 
-    public CardContentCatalog(IConfigManager configManager, IResourceLoader resourceLoader)
+    public CardContentCatalog(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+        _contentRuntimes = contentRuntimes;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -41,6 +47,45 @@ public sealed class CardContentCatalog : ICardContentCatalog
         return cardsResult.IsSuccess
             ? Result<IReadOnlyList<CardContentDefinition>>.Success(cardsResult.Value.Values.ToList())
             : Result<IReadOnlyList<CardContentDefinition>>.Failure(cardsResult.Error);
+    }
+
+    public Result<CardContentDefinition> GetCard(
+        string cardId,
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return GetCard(cardId, configName ?? "default");
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<CardContentDefinition>.Failure(runtime.Error);
+        var definition = runtime.Value.GetDefinition<CardContentDefinition>("cards", cardId);
+        return definition.IsFailure
+            ? definition
+            : Result<CardContentDefinition>.Success(Normalize(definition.Value, cardId));
+    }
+
+    public Result<IReadOnlyList<CardContentDefinition>> GetAllCards(
+        string contentRevision,
+        string? configName = null)
+    {
+        if (_contentRuntimes == null)
+            return GetAllCards(configName ?? "default");
+
+        var runtime = _contentRuntimes.Resolve(contentRevision, configName);
+        if (runtime.IsFailure)
+            return Result<IReadOnlyList<CardContentDefinition>>.Failure(runtime.Error);
+
+        var cards = new List<CardContentDefinition>();
+        foreach (var cardId in runtime.Value.GetDefinitions("cards").Keys.OrderBy(id => id, StringComparer.Ordinal))
+        {
+            var definition = runtime.Value.GetDefinition<CardContentDefinition>("cards", cardId);
+            if (definition.IsFailure)
+                return Result<IReadOnlyList<CardContentDefinition>>.Failure(definition.Error);
+            cards.Add(Normalize(definition.Value, cardId));
+        }
+        return Result<IReadOnlyList<CardContentDefinition>>.Success(cards);
     }
 
     public void Invalidate()
@@ -72,9 +117,8 @@ public sealed class CardContentCatalog : ICardContentCatalog
                     if (definition == null)
                         return Result<IReadOnlyDictionary<string, CardContentDefinition>>.Failure($"Failed to deserialize card content definition: {key}");
 
-                    var cardId = string.IsNullOrWhiteSpace(definition.CardId) ? key : definition.CardId;
-                    var actionId = string.IsNullOrWhiteSpace(definition.ActionId) ? cardId : definition.ActionId;
-                    cards[cardId] = definition with { CardId = cardId, ActionId = actionId };
+                    var normalized = Normalize(definition, key);
+                    cards[normalized.CardId] = normalized;
                 }
 
                 _cardsByConfig[configName] = cards;
@@ -85,5 +129,12 @@ public sealed class CardContentCatalog : ICardContentCatalog
                 return Result<IReadOnlyDictionary<string, CardContentDefinition>>.Failure($"Failed to load card catalog: {ex.Message}");
             }
         }
+    }
+
+    private static CardContentDefinition Normalize(CardContentDefinition definition, string fallbackId)
+    {
+        var cardId = string.IsNullOrWhiteSpace(definition.CardId) ? fallbackId : definition.CardId;
+        var actionId = string.IsNullOrWhiteSpace(definition.ActionId) ? cardId : definition.ActionId;
+        return definition with { CardId = cardId, ActionId = actionId };
     }
 }

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
+using Core.Content;
 using Core.Entity;
 using Core.Entity.Controllers;
 using Core.Events;
@@ -18,13 +19,20 @@ public sealed class GambitEngine : IGambitEngine
     private readonly IEventBus? _eventBus;
     private readonly Dictionary<string, GambitDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
     private string? _loadedConfigName;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
 
-    public GambitEngine(IConfigManager configManager, IResourceLoader resourceLoader, IEventBus? eventBus = null, IDefinitionPersister? persister = null)
+    public GambitEngine(
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        IEventBus? eventBus = null,
+        IDefinitionPersister? persister = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _eventBus = eventBus;
         _persister = persister; // Optional for backward compatibility
+        _contentRuntimes = contentRuntimes;
     }
 
     public Result LoadDefinitions(string configName)
@@ -85,8 +93,10 @@ public sealed class GambitEngine : IGambitEngine
     {
         var combatId = combatState.CombatId;
         var actorId = controlledEntity.EntityId;
-        var candidates = ResolveCandidates(gambitIds);
-        foreach (var gambit in candidates.OrderByDescending(g => g.Priority))
+        var candidates = ResolveCandidates(gambitIds, combatState.Determinism.ContentRevision);
+        if (candidates.IsFailure)
+            return Result<GambitDecision>.Failure(candidates.Error);
+        foreach (var gambit in candidates.Value.OrderByDescending(g => g.Priority))
         {
             if (gambit.Conditions.All(condition => Matches(condition, controlledEntity, combatState, gambit.Action)))
             {
@@ -111,17 +121,43 @@ public sealed class GambitEngine : IGambitEngine
         });
     }
 
-    private IReadOnlyList<GambitDefinition> ResolveCandidates(IEnumerable<string>? gambitIds)
+    private Result<IReadOnlyList<GambitDefinition>> ResolveCandidates(
+        IEnumerable<string>? gambitIds,
+        string contentRevision)
     {
-        if (gambitIds == null)
-            return GetAllDefinitions();
+        if (_contentRuntimes != null)
+        {
+            var runtime = _contentRuntimes.Resolve(contentRevision);
+            if (runtime.IsFailure)
+                return Result<IReadOnlyList<GambitDefinition>>.Failure(runtime.Error);
 
-        return gambitIds
+            var ids = gambitIds?.Where(id => !string.IsNullOrWhiteSpace(id)).ToArray()
+                ?? runtime.Value.GetDefinitions("gambits").Keys.ToArray();
+            var definitions = new List<GambitDefinition>();
+            foreach (var id in ids)
+            {
+                var definition = runtime.Value.GetDefinition<GambitDefinition>("gambits", id);
+                if (definition.IsFailure)
+                    return Result<IReadOnlyList<GambitDefinition>>.Failure(definition.Error);
+                definitions.Add(definition.Value with
+                {
+                    GambitId = string.IsNullOrWhiteSpace(definition.Value.GambitId)
+                        ? id
+                        : definition.Value.GambitId
+                });
+            }
+            return Result<IReadOnlyList<GambitDefinition>>.Success(definitions);
+        }
+
+        if (gambitIds == null)
+            return Result<IReadOnlyList<GambitDefinition>>.Success(GetAllDefinitions());
+
+        return Result<IReadOnlyList<GambitDefinition>>.Success(gambitIds
             .Where(id => !string.IsNullOrWhiteSpace(id))
             .Select(id => _definitions.TryGetValue(id, out var definition) ? definition : null)
             .Where(definition => definition != null)
             .Cast<GambitDefinition>()
-            .ToList();
+            .ToList());
     }
 
     private static bool Matches(GambitCondition condition, Entity.Entity controlledEntity, Models.CombatState state, GambitActionDefinition action)

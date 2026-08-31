@@ -14,3 +14,21 @@ public interface IScriptModifierManager
     Dictionary<string, float> GetPipelineModifiers(string ownerId, IEnumerable<string>? effectTags = null);
     Result TickDurations(string ownerId);
 }
+
+public interface IRevisionedScriptModifierManager
+{
+    Result<ScriptModifierDefinition> GetDefinition(
+        string modifierId,
+        string contentRevision,
+        string? configName = null);
+
+    Result<ScriptModifierInstance> ApplyModifier(
+        Guid instanceId,
+        string ownerId,
+        string modifierId,
+        string contentRevision,
+        int stacks = 1,
+        int? duration = null,
+        string? sourceId = null,
+        string? configName = null);
+}

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core.Config;
+using Core.Content;
 using Core.Events;
 using Core.Logging;
 using Core.Math;
@@ -11,7 +12,7 @@ namespace Core.Damage;
 /// <summary>
 /// Gerenciador do pipeline de dano com cache de processadores
 /// </summary>
-public class PipelineManager : IPipelineManager
+public class PipelineManager : IPipelineManager, IRevisionedPipelineManager
 {
     private readonly PipelineConfigLoader? _loader;
     private readonly IConfigManager? _configManager;
@@ -19,6 +20,7 @@ public class PipelineManager : IPipelineManager
     private readonly IEventBus _eventBus;
     private readonly ILogger _logger;
     private readonly IRandomProvider _randomProvider;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
     
     // Cache de configuração e processadores
     private PipelineConfiguration? _cachedConfig;
@@ -31,7 +33,8 @@ public class PipelineManager : IPipelineManager
         IMathEngine mathEngine,
         IEventBus eventBus,
         ILogger logger,
-        IRandomProvider? randomProvider = null)
+        IRandomProvider? randomProvider = null,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _loader = loader ?? throw new ArgumentNullException(nameof(loader));
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
@@ -39,6 +42,7 @@ public class PipelineManager : IPipelineManager
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _randomProvider = randomProvider ?? new DefaultRandomProvider();
+        _contentRuntimes = contentRuntimes;
     }
 
     // Construtor privado para factory method
@@ -56,6 +60,7 @@ public class PipelineManager : IPipelineManager
         _eventBus = eventBus;
         _logger = logger;
         _randomProvider = randomProvider;
+        _contentRuntimes = null;
         _cachedConfig = config;
         _cachedProcessors = InstantiateProcessors(config);
     }
@@ -99,6 +104,23 @@ public class PipelineManager : IPipelineManager
         var config = GetCurrentConfiguration();
         var processors = InstantiateProcessors(config, randomProvider);
         return Execute(initialContext, processors);
+    }
+
+    public DamageContext ExecutePipeline(
+        DamageContext initialContext,
+        IRandomProvider randomProvider,
+        string contentRevision,
+        string? pipelineId = null)
+    {
+        ArgumentNullException.ThrowIfNull(randomProvider);
+        if (_contentRuntimes == null || _loader == null)
+            return ExecutePipeline(initialContext, randomProvider);
+
+        var runtime = _contentRuntimes.Resolve(contentRevision);
+        if (runtime.IsFailure)
+            throw new InvalidOperationException(runtime.Error);
+        var config = _loader.LoadPipeline(runtime.Value, pipelineId);
+        return Execute(initialContext, InstantiateProcessors(config, randomProvider));
     }
 
     private DamageContext Execute(DamageContext initialContext, IReadOnlyList<GenericBucketProcessor> processors)

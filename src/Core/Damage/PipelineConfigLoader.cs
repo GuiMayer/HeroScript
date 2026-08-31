@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Config;
+using Core.Content;
 using Core.Logging;
 
 namespace Core.Damage;
@@ -45,6 +46,19 @@ public class PipelineConfigLoader
 
         _logger.LogInformation($"Loaded pipeline '{config.ConfigName}' with {config.Buckets.Count} buckets");
         return config;
+    }
+
+    public PipelineConfiguration LoadPipeline(ContentRuntime runtime, string? pipelineId = null)
+    {
+        ArgumentNullException.ThrowIfNull(runtime);
+        var rawData = runtime.GetDefinitions("pipelines")
+            .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+        var config = DeserializePipeline(rawData) with
+        {
+            ConfigName = string.IsNullOrWhiteSpace(pipelineId) ? "default" : pipelineId
+        };
+        config.Validate();
+        return config with { Buckets = config.Buckets.OrderBy(bucket => bucket.Order).ToArray() };
     }
 
     private PipelineConfiguration DeserializePipeline(Dictionary<string, JsonElement> rawData)

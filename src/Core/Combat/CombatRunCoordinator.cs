@@ -280,7 +280,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure($"Card '{cardId}' is not in run hand");
 
         var actionId = ResolveActionId(command, cardId);
-        var actionResult = _actionManager.GetDefinition(actionId);
+        var actionResult = _actionManager is IRevisionedActionCatalog revisionedActions
+            ? revisionedActions.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
+            : _actionManager.GetDefinition(actionId);
         if (actionResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(actionResult.Error);
 

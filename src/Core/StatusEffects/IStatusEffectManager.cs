@@ -212,6 +212,25 @@ public interface IStatusEffectManager
     Result DeleteDefinition(string statusId, string configName = "default");
 }
 
+public interface IRevisionedStatusEffectManager
+{
+    Result<StatusEffectDefinition> GetDefinition(
+        string statusId,
+        string contentRevision,
+        string? configName = null);
+
+    Result<StatusEffectInstance> ApplyStatus(
+        string targetId,
+        string statusId,
+        Guid instanceId,
+        DateTime appliedAt,
+        string contentRevision,
+        int stacks = 1,
+        int? duration = null,
+        string? sourceId = null,
+        string? configName = null);
+}
+
 /// <summary>
 /// Resultado do processamento de status effects
 /// </summary>
