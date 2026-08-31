@@ -30,9 +30,9 @@ public class ModifierDefinitionResponse
             DefaultStacks = definition.DefaultStacks,
             MaxStacks = definition.MaxStacks,
             DefaultDuration = definition.DefaultDuration,
-            RequiredTags = definition.RequiredTags,
-            ExcludedTags = definition.ExcludedTags,
-            Tags = definition.Tags
+            RequiredTags = definition.RequiredTags.ToList(),
+            ExcludedTags = definition.ExcludedTags.ToList(),
+            Tags = definition.Tags.ToList()
         };
     }
 }

@@ -11,9 +11,15 @@ namespace Core.Run.Sandbox;
 
 public sealed record SandboxCombatSnapshot
 {
+    private ImmutableArray<SandboxCardSnapshot> _hand = [];
+
     public SandboxRunSnapshot Run { get; init; } = new();
     public SandboxCombatSnapshotState Combat { get; init; } = new();
-    public IReadOnlyList<SandboxCardSnapshot> Hand { get; init; } = [];
+    public IReadOnlyList<SandboxCardSnapshot> Hand
+    {
+        get => _hand;
+        init => _hand = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record SandboxRunSnapshot
@@ -30,6 +36,8 @@ public sealed record SandboxRunSnapshot
 
 public sealed record SandboxCombatSnapshotState
 {
+    private ImmutableArray<SandboxActorSnapshot> _actors = [];
+
     public Guid CombatId { get; init; }
     public ulong Step { get; init; }
     public string StateHash { get; init; } = string.Empty;
@@ -39,30 +47,57 @@ public sealed record SandboxCombatSnapshotState
     public object? Phase { get; init; }
     public object? Activation { get; init; }
     public CombatBoardState Board { get; init; } = new();
-    public IReadOnlyList<SandboxActorSnapshot> Actors { get; init; } = [];
+    public IReadOnlyList<SandboxActorSnapshot> Actors
+    {
+        get => _actors;
+        init => _actors = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record SandboxActorSnapshot
 {
+    private ImmutableDictionary<string, SandboxResourceSnapshot> _resources =
+        ImmutableDictionary<string, SandboxResourceSnapshot>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<StatusEffectInstance> _statuses = [];
+    private ImmutableArray<ScriptModifierInstance> _modifiers = [];
+
     public string EntityId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public bool IsHero { get; init; }
     public bool IsAlive { get; init; }
-    public IReadOnlyDictionary<string, SandboxResourceSnapshot> Resources { get; init; } =
-        ImmutableDictionary<string, SandboxResourceSnapshot>.Empty;
-    public IReadOnlyList<StatusEffectInstance> Statuses { get; init; } = [];
-    public IReadOnlyList<ScriptModifierInstance> Modifiers { get; init; } = [];
+    public IReadOnlyDictionary<string, SandboxResourceSnapshot> Resources
+    {
+        get => _resources;
+        init => _resources = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, SandboxResourceSnapshot>.Empty.WithComparers(StringComparer.Ordinal);
+    }
+    public IReadOnlyList<StatusEffectInstance> Statuses
+    {
+        get => _statuses;
+        init => _statuses = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ScriptModifierInstance> Modifiers
+    {
+        get => _modifiers;
+        init => _modifiers = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record SandboxResourceSnapshot(float Current, float Maximum, float Minimum);
 
 public sealed record SandboxCardSnapshot
 {
+    private ImmutableArray<CardUpgradeState> _upgrades = [];
+
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     public string ActionId { get; init; } = string.Empty;
     public int HandIndex { get; init; }
-    public IReadOnlyList<CardUpgradeState> Upgrades { get; init; } = [];
+    public IReadOnlyList<CardUpgradeState> Upgrades
+    {
+        get => _upgrades;
+        init => _upgrades = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public interface ICombatSandboxSnapshotService

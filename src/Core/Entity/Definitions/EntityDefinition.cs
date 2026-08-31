@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Entity.Definitions;
 
 /// <summary>
@@ -5,7 +7,15 @@ namespace Core.Entity.Definitions;
 /// </summary>
 public record ResourcesDefinition
 {
-    public Dictionary<string, ResourcePoolDefinition> Resources { get; init; } = new();
+    private ImmutableDictionary<string, ResourcePoolDefinition> _resources =
+        ImmutableDictionary<string, ResourcePoolDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+
+    public IReadOnlyDictionary<string, ResourcePoolDefinition> Resources
+    {
+        get => _resources;
+        init => _resources = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, ResourcePoolDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }
 
 /// <summary>
@@ -22,13 +32,21 @@ public record ResourcePoolDefinition
 /// </summary>
 public record StatsDefinition
 {
+    private ImmutableDictionary<string, float> _customStats =
+        ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+
     public float Strength { get; init; } = 10;
     public float Dexterity { get; init; } = 10;
     public float Intelligence { get; init; } = 10;
     public float Constitution { get; init; } = 10;
     public float Wisdom { get; init; } = 10;
     public float Charisma { get; init; } = 10;
-    public Dictionary<string, float> CustomStats { get; init; } = new();
+    public IReadOnlyDictionary<string, float> CustomStats
+    {
+        get => _customStats;
+        init => _customStats = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }
 
 /// <summary>
@@ -36,8 +54,14 @@ public record StatsDefinition
 /// </summary>
 public record InventoryDefinition
 {
+    private ImmutableArray<string> _startingItems = ImmutableArray<string>.Empty;
+
     public int MaxCapacity { get; init; } = -1;
-    public List<string> StartingItems { get; init; } = new();
+    public IReadOnlyList<string> StartingItems
+    {
+        get => _startingItems;
+        init => _startingItems = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
 }
 
 /// <summary>
@@ -45,8 +69,14 @@ public record InventoryDefinition
 /// </summary>
 public record AIDefinition
 {
+    private ImmutableArray<string> _actions = ImmutableArray<string>.Empty;
+
     public string BehaviorTree { get; init; } = "balanced";
-    public List<string> Actions { get; init; } = new();
+    public IReadOnlyList<string> Actions
+    {
+        get => _actions;
+        init => _actions = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
     public float LowHealthThreshold { get; init; } = 0.5f;
     public float FleeHealthThreshold { get; init; } = 0.3f;
 }
@@ -56,7 +86,13 @@ public record AIDefinition
 /// </summary>
 public record GambitDefinition
 {
-    public List<string> GambitIds { get; init; } = new();
+    private ImmutableArray<string> _gambitIds = ImmutableArray<string>.Empty;
+
+    public IReadOnlyList<string> GambitIds
+    {
+        get => _gambitIds;
+        init => _gambitIds = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
 }
 
 /// <summary>
@@ -64,6 +100,9 @@ public record GambitDefinition
 /// </summary>
 public record EntityDefinition
 {
+    private ImmutableDictionary<string, object> _customData =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
     /// <summary>
     /// ID único da definição
     /// </summary>
@@ -122,7 +161,12 @@ public record EntityDefinition
     /// <summary>
     /// Dados customizados adicionais
     /// </summary>
-    public Dictionary<string, object> CustomData { get; init; } = new();
+    public IReadOnlyDictionary<string, object> CustomData
+    {
+        get => _customData;
+        init => _customData = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
     
     /// <summary>
     /// ID da definição base (para herança delta)

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Damage;
 
 /// <summary>
@@ -6,6 +8,14 @@ namespace Core.Damage;
 /// </summary>
 public record DamageContext
 {
+    private ImmutableHashSet<string> _tags =
+        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    private ImmutableDictionary<string, float> _modifiers =
+        ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<float> _moreMultipliers = ImmutableArray<float>.Empty;
+
     /// <summary>
     /// Dano base original (não muda durante o pipeline)
     /// </summary>
@@ -19,23 +29,42 @@ public record DamageContext
     /// <summary>
     /// Tags da ação (ex: "physical", "spell", "can_crit")
     /// </summary>
-    public HashSet<string> Tags { get; init; } = new();
+    public IReadOnlySet<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableHashSet(StringComparer.Ordinal)
+            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
     
     /// <summary>
     /// Modificadores numéricos (ex: "crit_chance" = 150.0)
     /// </summary>
-    public Dictionary<string, float> Modifiers { get; init; } = new();
+    public IReadOnlyDictionary<string, float> Modifiers
+    {
+        get => _modifiers;
+        init => _modifiers = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    }
     
     /// <summary>
     /// Metadata adicional (ex: "crit_tier" = 2, "attacker_id" = "hero-1")
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
     
     /// <summary>
     /// Lista de multiplicadores "more" aplicados sequencialmente.
     /// Cada multiplicador é aplicado separadamente (não somados).
     /// </summary>
-    public List<float> MoreMultipliers { get; init; } = new();
+    public IReadOnlyList<float> MoreMultipliers
+    {
+        get => _moreMultipliers;
+        init => _moreMultipliers = value?.ToImmutableArray() ?? ImmutableArray<float>.Empty;
+    }
     
     /// <summary>
     /// Cria novo contexto com dano atualizado
@@ -50,11 +79,17 @@ public record DamageContext
     /// </summary>
     public DamageContext WithModifier(string key, float value)
     {
-        var newModifiers = new Dictionary<string, float>(Modifiers)
-        {
-            [key] = value
-        };
-        return this with { Modifiers = newModifiers };
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        return this with { Modifiers = _modifiers.SetItem(key, value) };
+    }
+
+    /// <summary>
+    /// Cria novo contexto sem o modificador informado.
+    /// </summary>
+    public DamageContext WithoutModifier(string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        return this with { Modifiers = _modifiers.Remove(key) };
     }
     
     /// <summary>
@@ -62,8 +97,8 @@ public record DamageContext
     /// </summary>
     public DamageContext WithTag(string tag)
     {
-        var newTags = new HashSet<string>(Tags) { tag };
-        return this with { Tags = newTags };
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+        return this with { Tags = _tags.Add(tag) };
     }
     
     /// <summary>
@@ -71,9 +106,8 @@ public record DamageContext
     /// </summary>
     public DamageContext RemoveTag(string tag)
     {
-        var newTags = new HashSet<string>(Tags);
-        newTags.Remove(tag);
-        return this with { Tags = newTags };
+        ArgumentException.ThrowIfNullOrWhiteSpace(tag);
+        return this with { Tags = _tags.Remove(tag) };
     }
     
     /// <summary>
@@ -81,11 +115,17 @@ public record DamageContext
     /// </summary>
     public DamageContext WithMetadata(string key, object value)
     {
-        var newMetadata = new Dictionary<string, object>(Metadata)
-        {
-            [key] = value
-        };
-        return this with { Metadata = newMetadata };
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        return this with { Metadata = _metadata.SetItem(key, value) };
+    }
+
+    /// <summary>
+    /// Cria novo contexto sem a metadata informada.
+    /// </summary>
+    public DamageContext WithoutMetadata(string key)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        return this with { Metadata = _metadata.Remove(key) };
     }
     
     /// <summary>
@@ -93,7 +133,6 @@ public record DamageContext
     /// </summary>
     public DamageContext WithMoreMultiplier(float multiplier)
     {
-        var newMultipliers = new List<float>(MoreMultipliers) { multiplier };
-        return this with { MoreMultipliers = newMultipliers };
+        return this with { MoreMultipliers = _moreMultipliers.Add(multiplier) };
     }
 }

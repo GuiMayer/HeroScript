@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Damage;
 
 /// <summary>
@@ -6,6 +8,9 @@ namespace Core.Damage;
 /// </summary>
 public record BucketDefinition
 {
+    private ImmutableArray<FilterCondition> _filterConditions = ImmutableArray<FilterCondition>.Empty;
+    private ImmutableArray<BucketOperation> _operations = ImmutableArray<BucketOperation>.Empty;
+
     /// <summary>
     /// Identificador único do bucket
     /// </summary>
@@ -19,12 +24,20 @@ public record BucketDefinition
     /// <summary>
     /// Condições que devem ser satisfeitas para executar o bucket
     /// </summary>
-    public List<FilterCondition> FilterConditions { get; init; } = new();
+    public IReadOnlyList<FilterCondition> FilterConditions
+    {
+        get => _filterConditions;
+        init => _filterConditions = value?.ToImmutableArray() ?? ImmutableArray<FilterCondition>.Empty;
+    }
     
     /// <summary>
     /// Operações a serem executadas sequencialmente
     /// </summary>
-    public List<BucketOperation> Operations { get; init; } = new();
+    public IReadOnlyList<BucketOperation> Operations
+    {
+        get => _operations;
+        init => _operations = value?.ToImmutableArray() ?? ImmutableArray<BucketOperation>.Empty;
+    }
     
     /// <summary>
     /// Se true, emite BucketProcessedEvent após execução

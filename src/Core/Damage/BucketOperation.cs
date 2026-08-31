@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Damage;
 
 /// <summary>
@@ -62,6 +64,9 @@ public enum OperationType
 /// </summary>
 public record BucketOperation
 {
+    private ImmutableDictionary<string, object> _parameters =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
     /// <summary>
     /// Tipo de operação
     /// </summary>
@@ -75,5 +80,10 @@ public record BucketOperation
     /// <summary>
     /// Parâmetros adicionais para a operação
     /// </summary>
-    public Dictionary<string, object> Parameters { get; init; } = new();
+    public IReadOnlyDictionary<string, object> Parameters
+    {
+        get => _parameters;
+        init => _parameters = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

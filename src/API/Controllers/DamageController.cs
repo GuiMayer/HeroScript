@@ -95,7 +95,7 @@ public class DamageController : ControllerBase
                 FinalDamage = result.FinalDamage,
                 CritTier = result.CritTier,
                 BaseDamage = request.BaseDamage,
-                Metadata = result.Metadata,
+                Metadata = result.Metadata.ToDictionary(item => item.Key, item => item.Value),
                 Breakdown = new List<BucketBreakdownDto>() // TODO: Capturar breakdown dos eventos
             };
             

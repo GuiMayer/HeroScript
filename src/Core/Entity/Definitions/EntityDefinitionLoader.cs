@@ -285,8 +285,8 @@ public class EntityDefinitionLoader : ICacheService
     /// Mescla dois dicionários (derived sobrescreve base)
     /// </summary>
     private Dictionary<string, object> MergeDictionaries(
-        Dictionary<string, object> baseDict,
-        Dictionary<string, object> derived)
+        IReadOnlyDictionary<string, object> baseDict,
+        IReadOnlyDictionary<string, object> derived)
     {
         var result = new Dictionary<string, object>(baseDict);
         

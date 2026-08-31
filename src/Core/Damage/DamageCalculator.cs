@@ -142,7 +142,7 @@ public class DamageCalculator : IDamageCalculator
         // Aplicar modifiers do attacker (buffs, debuffs, status effects)
         if (_statusEffectManager != null)
         {
-            ApplyStatusModifiers(context, attacker.EntityId, target.EntityId);
+            context = ApplyStatusModifiers(context, attacker.EntityId, target.EntityId);
         }
         
         _logger.LogDebug($"Initial context: base={baseDamage:F2}, crit_chance={attacker.GetCritChance():F1}%, armor={target.GetArmor():F1}");
@@ -153,10 +153,10 @@ public class DamageCalculator : IDamageCalculator
     /// <summary>
     /// Aplica modificadores de status effects ao contexto de dano
     /// </summary>
-    private void ApplyStatusModifiers(DamageContext context, string attackerId, string targetId)
+    private DamageContext ApplyStatusModifiers(DamageContext context, string attackerId, string targetId)
     {
         if (_statusEffectManager == null)
-            return;
+            return context;
         
         // Obter modificadores do atacante (ex: Strength aumenta dano)
         var attackerModifiers = _statusEffectManager.GetPipelineModifiers(attackerId);
@@ -164,14 +164,8 @@ public class DamageCalculator : IDamageCalculator
         {
             foreach (var modifier in attackerModifiers)
             {
-                if (context.Modifiers.ContainsKey(modifier.Key))
-                {
-                    context.Modifiers[modifier.Key] += modifier.Value;
-                }
-                else
-                {
-                    context.Modifiers[modifier.Key] = modifier.Value;
-                }
+                var currentValue = context.Modifiers.GetValueOrDefault(modifier.Key, 0f);
+                context = context.WithModifier(modifier.Key, currentValue + modifier.Value);
                 
                 _logger.LogDebug($"Applied attacker modifier: {modifier.Key} = {modifier.Value}");
             }
@@ -183,17 +177,13 @@ public class DamageCalculator : IDamageCalculator
         {
             foreach (var modifier in targetModifiers)
             {
-                if (context.Modifiers.ContainsKey(modifier.Key))
-                {
-                    context.Modifiers[modifier.Key] += modifier.Value;
-                }
-                else
-                {
-                    context.Modifiers[modifier.Key] = modifier.Value;
-                }
+                var currentValue = context.Modifiers.GetValueOrDefault(modifier.Key, 0f);
+                context = context.WithModifier(modifier.Key, currentValue + modifier.Value);
                 
                 _logger.LogDebug($"Applied target modifier: {modifier.Key} = {modifier.Value}");
             }
         }
+
+        return context;
     }
 }

@@ -21,9 +21,9 @@ public class GambitDefinitionResponse
             DisplayName = definition.DisplayName,
             Description = definition.Description,
             Priority = definition.Priority,
-            Conditions = definition.Conditions,
+            Conditions = definition.Conditions.ToList(),
             Action = definition.Action,
-            Tags = definition.Tags
+            Tags = definition.Tags.ToList()
         };
     }
 }

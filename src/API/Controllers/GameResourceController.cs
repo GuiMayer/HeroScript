@@ -255,7 +255,7 @@ public class GameResourceController : ControllerBase
             DisplayName = definition.DisplayName,
             Category = definition.Category.ToString(),
             DefaultMax = definition.DefaultMax,
-            Tags = definition.Tags
+            Tags = definition.Tags.ToList()
         };
     }
 
@@ -272,7 +272,7 @@ public class GameResourceController : ControllerBase
             DefaultMin = definition.DefaultMin,
             CanBeNegative = definition.CanBeNegative,
             CanExceedMax = definition.CanExceedMax,
-            Tags = definition.Tags
+            Tags = definition.Tags.ToList()
         };
     }
 

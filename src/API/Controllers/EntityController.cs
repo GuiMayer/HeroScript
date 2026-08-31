@@ -173,7 +173,7 @@ public class EntityController : BaseApiController
                     Max = kvp.Value.Max
                 }
             ),
-            Attributes = definition.Stats?.CustomStats
+            Attributes = definition.Stats?.CustomStats.ToDictionary(item => item.Key, item => item.Value)
         };
     }
 

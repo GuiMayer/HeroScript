@@ -1,25 +1,43 @@
+using System.Collections.Immutable;
 using Core.Combat.Models;
 
 namespace Core.Combat.Gambits;
 
 public record GambitDefinition
 {
+    private ImmutableArray<GambitCondition> _conditions = ImmutableArray<GambitCondition>.Empty;
+    private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+
     public string GambitId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public int Priority { get; init; }
-    public List<GambitCondition> Conditions { get; init; } = new();
+    public IReadOnlyList<GambitCondition> Conditions
+    {
+        get => _conditions;
+        init => _conditions = value?.ToImmutableArray() ?? ImmutableArray<GambitCondition>.Empty;
+    }
     public GambitActionDefinition Action { get; init; } = new();
     public GambitIntentDefinition Intent { get; init; } = new();
-    public List<string> Tags { get; init; } = new();
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
 }
 
 public record GambitIntentDefinition
 {
+    private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+
     public string? DisplayName { get; init; }
     public string? Description { get; init; }
     public string? TelegraphType { get; init; }
-    public List<string> Tags { get; init; } = new();
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
 }
 
 public record GambitCondition

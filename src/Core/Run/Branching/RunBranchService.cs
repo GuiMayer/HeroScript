@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Collections.Immutable;
 using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Determinism;
@@ -24,6 +25,8 @@ public sealed record RunBranchSummary(
 
 public sealed record RunBranchTreeNode
 {
+    private ImmutableArray<RunBranchTreeNode> _children = [];
+
     public Guid RunId { get; init; }
     public Guid? ParentRunId { get; init; }
     public Guid? ParentCombatId { get; init; }
@@ -32,7 +35,11 @@ public sealed record RunBranchTreeNode
     public int Sequence { get; init; }
     public ulong Step { get; init; }
     public string StateHash { get; init; } = string.Empty;
-    public IReadOnlyList<RunBranchTreeNode> Children { get; init; } = [];
+    public IReadOnlyList<RunBranchTreeNode> Children
+    {
+        get => _children;
+        init => _children = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public interface IRunBranchService

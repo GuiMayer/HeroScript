@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,6 +11,8 @@ namespace Core.Damage;
 /// </summary>
 public record PipelineConfiguration
 {
+    private ImmutableArray<BucketDefinition> _buckets = ImmutableArray<BucketDefinition>.Empty;
+
     /// <summary>
     /// Nome da configuração (ex: "default", "high-crit")
     /// </summary>
@@ -18,7 +21,11 @@ public record PipelineConfiguration
     /// <summary>
     /// Lista de buckets do pipeline
     /// </summary>
-    public List<BucketDefinition> Buckets { get; init; } = new();
+    public IReadOnlyList<BucketDefinition> Buckets
+    {
+        get => _buckets;
+        init => _buckets = value?.ToImmutableArray() ?? ImmutableArray<BucketDefinition>.Empty;
+    }
     
     /// <summary>
     /// Valida a configuração do pipeline

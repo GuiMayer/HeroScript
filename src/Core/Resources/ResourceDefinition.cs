@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Resources;
 
 /// <summary>
@@ -6,6 +8,8 @@ namespace Core.Resources;
 /// </summary>
 public record ResourceDefinition
 {
+    private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+
     /// <summary>
     /// Identificador único do recurso (ex: "health", "energy", "mana").
     /// </summary>
@@ -66,5 +70,9 @@ public record ResourceDefinition
     /// <summary>
     /// Tags para categorização e busca.
     /// </summary>
-    public List<string> Tags { get; init; } = new();
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
 }

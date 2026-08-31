@@ -92,14 +92,30 @@ public sealed record ScenarioInitialState
 
 public sealed record CompiledCombatScenario
 {
+    private ImmutableArray<CombatEntity> _enemies = [];
+    private ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>> _initialStatusEffects =
+        ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
+
     public CombatScenarioDefinition Scenario { get; init; } = new();
     public string ScenarioHash { get; init; } = string.Empty;
     public ContentManifest ContentManifest { get; init; } = new();
     public RunStartOptions RunStart { get; init; } = new();
     public CombatEntity Hero { get; init; } = new();
-    public IReadOnlyList<CombatEntity> Enemies { get; init; } = [];
-    public IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>> InitialStatusEffects { get; init; } =
-        ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
+    public IReadOnlyList<CombatEntity> Enemies
+    {
+        get => _enemies;
+        init => _enemies = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>> InitialStatusEffects
+    {
+        get => _initialStatusEffects;
+        init => _initialStatusEffects = value?
+            .ToImmutableDictionary(
+                item => item.Key,
+                item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToImmutableArray(),
+                StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }
 
 public interface ICombatScenarioCompiler

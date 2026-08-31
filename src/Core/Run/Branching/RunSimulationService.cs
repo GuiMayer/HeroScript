@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 using Core.Abstractions.Persistence;
@@ -22,6 +23,8 @@ public sealed record SimulationTimelineItem
 
 public sealed record RunSimulationResult
 {
+    private ImmutableArray<SimulationTimelineItem> _timeline = [];
+
     public Guid SimulationId { get; init; }
     public Guid SourceRunId { get; init; }
     public int SourceSequence { get; init; }
@@ -32,7 +35,11 @@ public sealed record RunSimulationResult
     public int GoldDelta { get; init; }
     public int PowerPointsDelta { get; init; }
     public int CardCountDelta { get; init; }
-    public IReadOnlyList<SimulationTimelineItem> Timeline { get; init; } = [];
+    public IReadOnlyList<SimulationTimelineItem> Timeline
+    {
+        get => _timeline;
+        init => _timeline = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public interface IRunSimulationService

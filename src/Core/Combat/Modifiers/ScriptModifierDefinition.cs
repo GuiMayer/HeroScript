@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.Modifiers;
 
 /// <summary>
@@ -5,6 +7,12 @@ namespace Core.Combat.Modifiers;
 /// </summary>
 public record ScriptModifierDefinition
 {
+    private ImmutableArray<string> _requiredTags = ImmutableArray<string>.Empty;
+    private ImmutableArray<string> _excludedTags = ImmutableArray<string>.Empty;
+    private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
     public string ModifierId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
@@ -14,8 +22,28 @@ public record ScriptModifierDefinition
     public int DefaultStacks { get; init; } = 1;
     public int MaxStacks { get; init; } = 99;
     public int DefaultDuration { get; init; } = -1;
-    public List<string> RequiredTags { get; init; } = new();
-    public List<string> ExcludedTags { get; init; } = new();
-    public List<string> Tags { get; init; } = new();
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyList<string> RequiredTags
+    {
+        get => _requiredTags;
+        init => _requiredTags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
+
+    public IReadOnlyList<string> ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
+
+    public IReadOnlyList<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
+
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

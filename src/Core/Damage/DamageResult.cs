@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Damage;
 
 /// <summary>
@@ -5,6 +7,9 @@ namespace Core.Damage;
 /// </summary>
 public record DamageResult
 {
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+
     /// <summary>
     /// Dano final calculado (após todos os buckets)
     /// </summary>
@@ -18,5 +23,10 @@ public record DamageResult
     /// <summary>
     /// Metadata adicional do cálculo (ex: crit_tier, attacker_id, etc.)
     /// </summary>
-    public Dictionary<string, object> Metadata { get; init; } = new();
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
 }

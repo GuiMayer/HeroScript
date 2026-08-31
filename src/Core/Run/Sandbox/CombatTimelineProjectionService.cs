@@ -21,16 +21,43 @@ public sealed record CombatTimelineItem
     public JsonElement Summary { get; init; }
 }
 
-public sealed record CombatTimelineTurnGroup(int Turn, IReadOnlyList<CombatTimelineItem> Items);
+public sealed record CombatTimelineTurnGroup
+{
+    private ImmutableArray<CombatTimelineItem> _items = [];
+
+    public CombatTimelineTurnGroup(int turn, IReadOnlyList<CombatTimelineItem> items)
+    {
+        Turn = turn;
+        Items = items;
+    }
+
+    public int Turn { get; init; }
+    public IReadOnlyList<CombatTimelineItem> Items
+    {
+        get => _items;
+        init => _items = value?.ToImmutableArray() ?? [];
+    }
+}
 
 public sealed record CombatTimelinePage
 {
+    private ImmutableArray<CombatTimelineItem> _items = [];
+    private ImmutableArray<CombatTimelineTurnGroup> _turnGroups = [];
+
     public Guid RunId { get; init; }
     public Guid CombatId { get; init; }
     public int AfterSequence { get; init; }
     public int NextCursor { get; init; }
-    public IReadOnlyList<CombatTimelineItem> Items { get; init; } = [];
-    public IReadOnlyList<CombatTimelineTurnGroup> TurnGroups { get; init; } = [];
+    public IReadOnlyList<CombatTimelineItem> Items
+    {
+        get => _items;
+        init => _items = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CombatTimelineTurnGroup> TurnGroups
+    {
+        get => _turnGroups;
+        init => _turnGroups = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record CombatTimelineHistoricalState
