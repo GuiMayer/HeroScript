@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
@@ -17,9 +18,10 @@ public sealed class ScriptModifierManager : IScriptModifierManager, IRevisionedS
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
     private readonly IEventBus? _eventBus;
     private readonly IContentRuntimeResolver? _contentRuntimes;
-    private readonly ConcurrentDictionary<string, ScriptModifierDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
+    private ImmutableDictionary<string, ScriptModifierDefinition> _definitions =
+        ImmutableDictionary<string, ScriptModifierDefinition>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, List<ScriptModifierInstance>> _activeModifiers = new(StringComparer.OrdinalIgnoreCase);
-    private string? _loadedConfigName;
+    private volatile string? _loadedConfigName;
 
     public ScriptModifierManager(
         IConfigManager configManager,
@@ -46,8 +48,7 @@ public sealed class ScriptModifierManager : IScriptModifierManager, IRevisionedS
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             options.Converters.Add(new JsonStringEnumConverter());
 
-            _definitions.Clear();
-            _loadedConfigName = configName;
+            var loaded = ImmutableDictionary.CreateBuilder<string, ScriptModifierDefinition>(StringComparer.OrdinalIgnoreCase);
             foreach (var (key, element) in definitionsResult.Value)
             {
                 var definition = JsonSerializer.Deserialize<ScriptModifierDefinition>(element.GetRawText(), options);
@@ -55,8 +56,11 @@ public sealed class ScriptModifierManager : IScriptModifierManager, IRevisionedS
                     return Result.Failure($"Failed to deserialize script modifier: {key}");
 
                 var modifierId = string.IsNullOrWhiteSpace(definition.ModifierId) ? key : definition.ModifierId;
-                _definitions[modifierId] = definition with { ModifierId = modifierId };
+                loaded[modifierId] = definition with { ModifierId = modifierId };
             }
+
+            Interlocked.Exchange(ref _definitions, loaded.ToImmutable());
+            _loadedConfigName = configName;
 
             return Result.Success();
         }
@@ -314,7 +318,11 @@ public sealed class ScriptModifierManager : IScriptModifierManager, IRevisionedS
 
         var resolvedId = string.IsNullOrWhiteSpace(definition.ModifierId) ? modifierId : definition.ModifierId;
         var resolvedDefinition = definition with { ModifierId = resolvedId };
-        _definitions[resolvedId] = resolvedDefinition;
+        ImmutableInterlocked.AddOrUpdate(
+            ref _definitions,
+            resolvedId,
+            resolvedDefinition,
+            (_, _) => resolvedDefinition);
         return Result<ScriptModifierDefinition>.Success(resolvedDefinition);
     }
 

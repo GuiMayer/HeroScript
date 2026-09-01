@@ -1,7 +1,13 @@
 using System.Reflection;
 using Core.Combat.Models;
+using Core.Combat;
+using Core.Combat.Gambits;
+using Core.Caching;
 using Core.Determinism;
+using Core.Resources;
 using Core.Run;
+using Core.StatusEffects;
+using System.Collections.Immutable;
 using Xunit;
 
 namespace Core.Tests.Architecture;
@@ -64,6 +70,49 @@ public sealed class CrossCuttingArchitectureTests
             .ToArray();
 
         Assert.True(missing.Length == 0, $"Missing cross-cutting contracts: {string.Join(", ", missing)}");
+    }
+
+    [Fact]
+    public void RuntimeInfrastructure_DoesNotExposeGlobalMutableServiceLocators()
+    {
+        var coreAssembly = typeof(RunState).Assembly;
+
+        Assert.Null(coreAssembly.GetType("Core.Logging.LoggerFactory"));
+        Assert.Null(typeof(CacheRegistry).GetProperty(
+            "Instance",
+            BindingFlags.Public | BindingFlags.Static));
+    }
+
+    [Theory]
+    [InlineData(typeof(ActionManager), "_definitions")]
+    [InlineData(typeof(GambitEngine), "_definitions")]
+    [InlineData(typeof(ResourceManager), "_definitions")]
+    [InlineData(typeof(StatusEffectManager), "_definitions")]
+    public void ReloadableSingletonCatalogs_PublishImmutableSnapshots(
+        Type serviceType,
+        string fieldName)
+    {
+        var field = serviceType.GetField(
+            fieldName,
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.NotNull(field);
+        Assert.True(field.FieldType.IsGenericType);
+        Assert.Equal(
+            typeof(ImmutableDictionary<,>),
+            field.FieldType.GetGenericTypeDefinition());
+    }
+
+    [Fact]
+    public void CommandExecutionContext_IsIsolatedPerAsyncFlow()
+    {
+        var field = typeof(RunManager).GetField(
+            "_executingCommand",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.NotNull(field);
+        Assert.True(field.FieldType.IsGenericType);
+        Assert.Equal(typeof(AsyncLocal<>), field.FieldType.GetGenericTypeDefinition());
     }
 
     private static bool IsInitOnly(MethodInfo setter)

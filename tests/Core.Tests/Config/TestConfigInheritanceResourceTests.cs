@@ -11,7 +11,9 @@ public sealed class TestConfigInheritanceResourceTests
     {
         var root = Path.Combine(FindProjectRoot(), "tests", "configs");
         var configManager = new TestConfigManager(root);
-        var loader = new ResourceLoader(NullLogger.Instance, new ResourceProviderFactory(configManager));
+        var loader = new ResourceLoader(
+            NullLogger.Instance,
+            new ResourceProviderFactory(configManager, NullLogger.Instance));
         loader.InitializePathResolver(new ResourceConfiguration
         {
             Mode = ResourceMode.Production,
@@ -38,7 +40,9 @@ public sealed class TestConfigInheritanceResourceTests
     {
         var root = Path.Combine(FindProjectRoot(), "tests", "configs");
         var configManager = new TestConfigManager(root);
-        var loader = new ResourceLoader(NullLogger.Instance, new ResourceProviderFactory(configManager));
+        var loader = new ResourceLoader(
+            NullLogger.Instance,
+            new ResourceProviderFactory(configManager, NullLogger.Instance));
         loader.InitializePathResolver(new ResourceConfiguration
         {
             Mode = ResourceMode.Production,

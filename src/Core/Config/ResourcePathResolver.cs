@@ -15,7 +15,12 @@ namespace Core.Config
     {
         private readonly List<IResourceProvider> _providers = new();
         private readonly object _lock = new();
-        private readonly ILogger _logger = LoggerFactory.CreateLogger("ResourcePathResolver");
+        private readonly ILogger _logger;
+
+        public ResourcePathResolver(ILogger logger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
         /// <summary>
         /// Registra um provider de recursos

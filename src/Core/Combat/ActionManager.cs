@@ -4,6 +4,7 @@ using Core.Config;
 using Core.Content;
 using Core.Logging;
 using Core.Resources;
+using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -20,8 +21,9 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
     private readonly ILogger _logger;
     private readonly IDefinitionPersister? _persister;
     private readonly IContentRuntimeResolver? _contentRuntimes;
-    private readonly Dictionary<string, ActionDefinition> _definitions = new();
-    private string? _loadedConfigName;
+    private ImmutableDictionary<string, ActionDefinition> _definitions =
+        ImmutableDictionary<string, ActionDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+    private volatile string? _loadedConfigName;
     
     public ActionManager(
         IConfigManager configManager,
@@ -42,11 +44,9 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
     /// </summary>
     public void LoadActionDefinitions(string configName)
     {
-        _definitions.Clear();
-        _loadedConfigName = configName;
-        
         try
         {
+            var loaded = ImmutableDictionary.CreateBuilder<string, ActionDefinition>(StringComparer.Ordinal);
             // Obter cadeia de herança do config
             var configChain = _configManager.ResolveInheritanceChain(configName);
             
@@ -85,7 +85,7 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                         continue;
                     }
                     
-                    _definitions[definition.ActionId] = definition;
+                    loaded[definition.ActionId] = definition;
                     _logger.LogDebug($"Loaded action: {definition.ActionId}");
                 }
                 catch (Exception ex)
@@ -94,7 +94,9 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                 }
             }
             
-            _logger.LogInformation($"Loaded {_definitions.Count} action definitions from config '{configName}'");
+            Interlocked.Exchange(ref _definitions, loaded.ToImmutable());
+            _loadedConfigName = configName;
+            _logger.LogInformation($"Loaded {loaded.Count} action definitions from config '{configName}'");
         }
         catch (Exception ex)
         {
@@ -238,7 +240,11 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
             if (validation.IsFailure)
                 return Result<ActionDefinition>.Failure(validation.Error);
 
-            _definitions[definition.ActionId] = definition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                definition.ActionId,
+                definition,
+                (_, _) => definition);
             _logger.LogDebug($"Lazy loaded action: {definition.ActionId}");
             return Result<ActionDefinition>.Success(definition);
         }
@@ -274,7 +280,11 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                 return result;
 
             // Add to cache
-            _definitions[definition.ActionId] = definition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                definition.ActionId,
+                definition,
+                (_, _) => definition);
             _logger.LogInformation($"Saved action definition: {definition.ActionId}");
 
             return Result.Success();
@@ -319,7 +329,11 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                 return result;
 
             // Update cache
-            _definitions[actionId] = updatedDefinition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                actionId,
+                updatedDefinition,
+                (_, _) => updatedDefinition);
             _logger.LogInformation($"Updated action definition: {actionId}");
 
             return Result.Success();
@@ -347,7 +361,7 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                 return result;
 
             // Remove from cache
-            _definitions.Remove(actionId);
+            ImmutableInterlocked.TryRemove(ref _definitions, actionId, out _);
             _logger.LogInformation($"Deleted action definition: {actionId}");
 
             return Result.Success();

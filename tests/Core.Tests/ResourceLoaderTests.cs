@@ -22,7 +22,9 @@ namespace Core.Tests
                 File.WriteAllText(Path.Combine(root, "mod", "Resources", "test", "items.json"), "{\"item\":{\"value\":2}}");
 
                 var configManager = new TestConfigManager(root);
-                var loader = new ResourceLoader(NullLogger.Instance, new ResourceProviderFactory(configManager));
+                var loader = new ResourceLoader(
+                    NullLogger.Instance,
+                    new ResourceProviderFactory(configManager, NullLogger.Instance));
                 loader.InitializePathResolver(new ResourceConfiguration
                 {
                     Mode = ResourceMode.Production,

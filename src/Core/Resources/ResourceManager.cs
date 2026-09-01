@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Config;
 using Core.Content;
 using Core.Logging;
+using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace Core.Resources;
@@ -17,13 +18,14 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
     private readonly IResourceRegenerationProcessor _regenerationProcessor;
-    private readonly Dictionary<string, ResourceDefinition> _definitions = new();
+    private ImmutableDictionary<string, ResourceDefinition> _definitions =
+        ImmutableDictionary<string, ResourceDefinition>.Empty.WithComparers(StringComparer.Ordinal);
     private readonly object _lock = new();
     private readonly IContentRuntimeResolver? _contentRuntimes;
     
     // Hot-reload support
     private FileSystemWatcher? _fileWatcher;
-    private string? _currentConfigName;
+    private volatile string? _currentConfigName;
     private bool _hotReloadEnabled;
     
     public ResourceManager(
@@ -42,11 +44,9 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     
     public void LoadResourceDefinitions(string configName)
     {
-        _definitions.Clear();
-        _currentConfigName = configName;
-        
         try
         {
+            var loaded = ImmutableDictionary.CreateBuilder<string, ResourceDefinition>(StringComparer.Ordinal);
             // Obter cadeia de herança do config
             var configChain = _configManager.ResolveInheritanceChain(configName);
             
@@ -93,7 +93,7 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
                         continue;
                     }
                     
-                    _definitions[definition.ResourceId] = definition;
+                    loaded[definition.ResourceId] = definition;
                     _logger.LogDebug($"Loaded resource: {definition.ResourceId}");
                 }
                 catch (Exception ex)
@@ -102,7 +102,12 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
                 }
             }
             
-            _logger.LogInformation($"Loaded {_definitions.Count} resource definitions from config '{configName}'");
+            Interlocked.Exchange(ref _definitions, loaded.ToImmutable());
+            lock (_lock)
+            {
+                _currentConfigName = configName;
+            }
+            _logger.LogInformation($"Loaded {loaded.Count} resource definitions from config '{configName}'");
         }
         catch (Exception ex)
         {
@@ -344,10 +349,7 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
             
             if (resourceData.Count == 0)
             {
-                lock (_lock)
-                {
-                    _definitions.Remove(resourceId);
-                }
+                ImmutableInterlocked.TryRemove(ref _definitions, resourceId, out _);
                 _logger.LogInformation($"Resource '{resourceId}' removed (file not found or empty)");
                 return Result.Success();
             }
@@ -379,10 +381,11 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
                 return Result.Failure($"Invalid resource definition '{resourceId}': {validation.Error}");
             }
             
-            lock (_lock)
-            {
-                _definitions[definition.ResourceId] = definition;
-            }
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                definition.ResourceId,
+                definition,
+                (_, _) => definition);
             
             _logger.LogInformation($"Resource '{resourceId}' reloaded successfully");
             return Result.Success();
@@ -397,6 +400,8 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     private void OnResourceFileChanged(object sender, FileSystemEventArgs e)
     {
         var resourceId = Path.GetFileNameWithoutExtension(e.Name);
+        if (string.IsNullOrWhiteSpace(resourceId))
+            return;
         _logger.LogDebug($"Resource file changed: {e.Name}");
         
         // Debounce: wait a bit for file to be fully written
@@ -413,12 +418,11 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     private void OnResourceFileDeleted(object sender, FileSystemEventArgs e)
     {
         var resourceId = Path.GetFileNameWithoutExtension(e.Name);
+        if (string.IsNullOrWhiteSpace(resourceId))
+            return;
         _logger.LogDebug($"Resource file deleted: {e.Name}");
         
-        lock (_lock)
-        {
-            _definitions.Remove(resourceId);
-        }
+        ImmutableInterlocked.TryRemove(ref _definitions, resourceId, out _);
         
         _logger.LogInformation($"Resource '{resourceId}' removed from definitions");
     }
@@ -427,13 +431,12 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     {
         var oldResourceId = Path.GetFileNameWithoutExtension(e.OldName);
         var newResourceId = Path.GetFileNameWithoutExtension(e.Name);
+        if (string.IsNullOrWhiteSpace(oldResourceId) || string.IsNullOrWhiteSpace(newResourceId))
+            return;
         
         _logger.LogDebug($"Resource file renamed: {e.OldName} -> {e.Name}");
         
-        lock (_lock)
-        {
-            _definitions.Remove(oldResourceId);
-        }
+        ImmutableInterlocked.TryRemove(ref _definitions, oldResourceId, out _);
         
         var result = ReloadResource(newResourceId);
         if (result.IsFailure)

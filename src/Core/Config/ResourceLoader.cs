@@ -396,7 +396,12 @@ namespace Core.Config
 
                 try
                 {
-                    var result = Delta.DeltaMerger.ApplyDelta(baseValue, delta, resourceId, strictMode);
+                    var result = Delta.DeltaMerger.ApplyDelta(
+                        baseValue,
+                        delta,
+                        resourceId,
+                        strictMode,
+                        _logger);
 
                     if (result.HasValue)
                     {

@@ -101,8 +101,7 @@ public class DiagnosticsControllerTests
 
     public DiagnosticsControllerTests()
     {
-        _registry = CacheRegistry.Instance;
-        _registry.Clear();
+        _registry = new CacheRegistry();
         _logger = new MockCoreLogger();
         _controller = new DiagnosticsController(_logger, _registry);
     }

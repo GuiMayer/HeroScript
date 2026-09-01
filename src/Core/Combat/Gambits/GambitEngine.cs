@@ -8,6 +8,7 @@ using Core.Entity.Controllers;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Resources;
+using System.Collections.Immutable;
 
 namespace Core.Combat.Gambits;
 
@@ -17,8 +18,9 @@ public sealed class GambitEngine : IGambitEngine
     private readonly IResourceLoader _resourceLoader;
     private readonly IDefinitionPersister? _persister;
     private readonly IEventBus? _eventBus;
-    private readonly Dictionary<string, GambitDefinition> _definitions = new(StringComparer.OrdinalIgnoreCase);
-    private string? _loadedConfigName;
+    private ImmutableDictionary<string, GambitDefinition> _definitions =
+        ImmutableDictionary<string, GambitDefinition>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    private volatile string? _loadedConfigName;
     private readonly IContentRuntimeResolver? _contentRuntimes;
 
     public GambitEngine(
@@ -45,13 +47,15 @@ public sealed class GambitEngine : IGambitEngine
             if (definitions == null)
                 return Result.Failure("Failed to deserialize gambits");
 
-            _definitions.Clear();
-            _loadedConfigName = configName;
+            var loaded = ImmutableDictionary.CreateBuilder<string, GambitDefinition>(StringComparer.OrdinalIgnoreCase);
             foreach (var (key, definition) in definitions)
             {
                 var gambitId = string.IsNullOrWhiteSpace(definition.GambitId) ? key : definition.GambitId;
-                _definitions[gambitId] = definition with { GambitId = gambitId };
+                loaded[gambitId] = definition with { GambitId = gambitId };
             }
+
+            Interlocked.Exchange(ref _definitions, loaded.ToImmutable());
+            _loadedConfigName = configName;
 
             return Result.Success();
         }
@@ -282,7 +286,11 @@ public sealed class GambitEngine : IGambitEngine
                 return result;
 
             // Add to cache
-            _definitions[definition.GambitId] = definition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                definition.GambitId,
+                definition,
+                (_, _) => definition);
 
             return Result.Success();
         }
@@ -332,7 +340,11 @@ public sealed class GambitEngine : IGambitEngine
                 return result;
 
             // Update cache
-            _definitions[gambitId] = updatedDefinition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                gambitId,
+                updatedDefinition,
+                (_, _) => updatedDefinition);
 
             return Result.Success();
         }
@@ -358,7 +370,7 @@ public sealed class GambitEngine : IGambitEngine
                 return result;
 
             // Remove from cache
-            _definitions.Remove(gambitId);
+            ImmutableInterlocked.TryRemove(ref _definitions, gambitId, out _);
 
             return Result.Success();
         }

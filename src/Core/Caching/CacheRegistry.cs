@@ -6,11 +6,8 @@ namespace Core.Caching;
 /// </summary>
 public sealed class CacheRegistry : ICacheCoordinator
 {
-    private static readonly Lazy<CacheRegistry> _instance = new(() => new CacheRegistry());
     private readonly Dictionary<string, ICacheService> _caches = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
-
-    public static CacheRegistry Instance => _instance.Value;
 
     public CacheRegistry()
     {

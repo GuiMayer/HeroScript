@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Core.Common;
 using Core.Config;
 using Core.Content;
@@ -30,7 +31,8 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
         new(StringComparer.Ordinal);
     
     // Definições de status effects carregadas (thread-safe)
-    private readonly ConcurrentDictionary<string, StatusEffectDefinition> _definitions = new();
+    private ImmutableDictionary<string, StatusEffectDefinition> _definitions =
+        ImmutableDictionary<string, StatusEffectDefinition>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     
     // Processor para executar behaviors
     private readonly StatusEffectProcessor _processor;
@@ -140,43 +142,51 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
         
         var definition = defResult.Value!;
         
-        // Verificar se já existe status do mesmo tipo
-        var existingStatus = GetActiveStatusList(targetId)
-            .FirstOrDefault(s => s.StatusId == statusId && s.IsActive);
-        
-        if (existingStatus != null)
-        {
-            // Adicionar stacks ao existente
-            var oldStacks = existingStatus.Stacks;
-            var newStacks = System.Math.Min(existingStatus.Stacks + stacks, definition.MaxStacks);
-            var updated = existingStatus with { Stacks = newStacks };
-            
-            UpdateStatusInstance(targetId, updated);
-            _eventBus?.Publish(new StatusStackChangedEvent(targetId, statusId, existingStatus.InstanceId, oldStacks, newStacks));
-            return Result<StatusEffectInstance>.Success(updated);
-        }
-        
-        // Criar nova instância
-        var instance = new StatusEffectInstance
-        {
-            InstanceId = instanceId,
-            StatusId = statusId,
-            Definition = definition,
-            TargetId = targetId,
-            SourceId = sourceId,
-            ContentRevision = contentRevision,
-            Stacks = System.Math.Min(stacks, definition.MaxStacks),
-            Duration = duration ?? definition.DefaultDuration,
-            AppliedAt = appliedAt,
-            TurnApplied = 0, // Será atualizado pelo CombatSystem
-            IsActive = true
-        };
-        
-        // Adicionar à lista
-        var statusList = _activeStatus.GetOrAdd(targetId, _ => new List<StatusEffectInstance>());
+        var statusList = GetActiveStatusList(targetId);
+        StatusEffectInstance instance;
+        StatusEffectInstance? existingStatus;
+        int oldStacks = 0;
         lock (statusList)
         {
-            statusList.Add(instance);
+            existingStatus = statusList.FirstOrDefault(s => s.StatusId == statusId && s.IsActive);
+            if (existingStatus != null)
+            {
+                oldStacks = existingStatus.Stacks;
+                instance = existingStatus with
+                {
+                    Stacks = System.Math.Min(existingStatus.Stacks + stacks, definition.MaxStacks)
+                };
+                statusList[statusList.IndexOf(existingStatus)] = instance;
+            }
+            else
+            {
+                instance = new StatusEffectInstance
+                {
+                    InstanceId = instanceId,
+                    StatusId = statusId,
+                    Definition = definition,
+                    TargetId = targetId,
+                    SourceId = sourceId,
+                    ContentRevision = contentRevision,
+                    Stacks = System.Math.Min(stacks, definition.MaxStacks),
+                    Duration = duration ?? definition.DefaultDuration,
+                    AppliedAt = appliedAt,
+                    TurnApplied = 0,
+                    IsActive = true
+                };
+                statusList.Add(instance);
+            }
+        }
+
+        if (existingStatus != null)
+        {
+            _eventBus?.Publish(new StatusStackChangedEvent(
+                targetId,
+                statusId,
+                existingStatus.InstanceId,
+                oldStacks,
+                instance.Stacks));
+            return Result<StatusEffectInstance>.Success(instance);
         }
         
         _eventBus?.Publish(new StatusAppliedEvent(targetId, statusId, instance.InstanceId, instance.Stacks, instance.Duration, sourceId));
@@ -245,16 +255,20 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
         if (stacks <= 0)
             return Result<StatusEffectInstance>.Failure("Stacks must be greater than 0");
         
-        var statusResult = GetStatus(targetId, instanceId);
-        if (!statusResult.IsSuccess)
-            return statusResult;
-        
-        var status = statusResult.Value!;
-        var newStacks = System.Math.Min(status.Stacks + stacks, status.Definition.MaxStacks);
-        var updated = status with { Stacks = newStacks };
-        
-        UpdateStatusInstance(targetId, updated);
-        return Result<StatusEffectInstance>.Success(updated);
+        var statusList = GetActiveStatusList(targetId);
+        lock (statusList)
+        {
+            var index = statusList.FindIndex(status => status.InstanceId == instanceId);
+            if (index < 0)
+                return Result<StatusEffectInstance>.Failure($"Status instance {instanceId} not found");
+            var status = statusList[index];
+            var updated = status with
+            {
+                Stacks = System.Math.Min(status.Stacks + stacks, status.Definition.MaxStacks)
+            };
+            statusList[index] = updated;
+            return Result<StatusEffectInstance>.Success(updated);
+        }
     }
     
     public Result<StatusEffectInstance?> RemoveStacks(string targetId, Guid instanceId, int stacks)
@@ -262,36 +276,45 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
         if (stacks <= 0)
             return Result<StatusEffectInstance?>.Failure("Stacks must be greater than 0");
         
-        var statusResult = GetStatus(targetId, instanceId);
-        if (!statusResult.IsSuccess)
-            return Result<StatusEffectInstance?>.Failure(statusResult.Error!);
-        
-        var status = statusResult.Value!;
-        var newStacks = status.Stacks - stacks;
-        
-        if (newStacks <= 0)
+        var statusList = GetActiveStatusList(targetId);
+        StatusEffectInstance? removed = null;
+        StatusEffectInstance? updated = null;
+        lock (statusList)
         {
-            // Remove o status
-            RemoveStatus(targetId, instanceId);
-            return Result<StatusEffectInstance?>.Success(null);
+            var index = statusList.FindIndex(status => status.InstanceId == instanceId);
+            if (index < 0)
+                return Result<StatusEffectInstance?>.Failure($"Status instance {instanceId} not found");
+            var status = statusList[index];
+            var newStacks = status.Stacks - stacks;
+            if (newStacks <= 0)
+            {
+                removed = status;
+                statusList.RemoveAt(index);
+            }
+            else
+            {
+                updated = status with { Stacks = newStacks };
+                statusList[index] = updated;
+            }
         }
-        
-        var updated = status with { Stacks = newStacks };
-        UpdateStatusInstance(targetId, updated);
+
+        if (removed != null)
+            _eventBus?.Publish(new StatusRemovedEvent(targetId, removed.StatusId, removed.InstanceId));
         return Result<StatusEffectInstance?>.Success(updated);
     }
     
     public Result<StatusEffectInstance> RefreshDuration(string targetId, Guid instanceId, int duration)
     {
-        var statusResult = GetStatus(targetId, instanceId);
-        if (!statusResult.IsSuccess)
-            return statusResult;
-        
-        var status = statusResult.Value!;
-        var updated = status with { Duration = duration };
-        
-        UpdateStatusInstance(targetId, updated);
-        return Result<StatusEffectInstance>.Success(updated);
+        var statusList = GetActiveStatusList(targetId);
+        lock (statusList)
+        {
+            var index = statusList.FindIndex(status => status.InstanceId == instanceId);
+            if (index < 0)
+                return Result<StatusEffectInstance>.Failure($"Status instance {instanceId} not found");
+            var updated = statusList[index] with { Duration = duration };
+            statusList[index] = updated;
+            return Result<StatusEffectInstance>.Success(updated);
+        }
     }
     
     // ===== CONSULTAR =====
@@ -499,11 +522,9 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
             if (definitions == null)
                 return Result.Failure("Failed to deserialize status effects");
             
-            _definitions.Clear();
-            foreach (var kvp in definitions)
-            {
-                _definitions[kvp.Key] = kvp.Value;
-            }
+            Interlocked.Exchange(
+                ref _definitions,
+                definitions.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase));
             
             return Result.Success();
         }
@@ -647,7 +668,11 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
                 return result;
 
             // Add to cache
-            _definitions[definition.StatusId] = definition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                definition.StatusId,
+                definition,
+                (_, _) => definition);
 
             return Result.Success();
         }
@@ -697,7 +722,11 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
                 return result;
 
             // Update cache
-            _definitions[statusId] = updatedDefinition;
+            ImmutableInterlocked.AddOrUpdate(
+                ref _definitions,
+                statusId,
+                updatedDefinition,
+                (_, _) => updatedDefinition);
 
             return Result.Success();
         }
@@ -723,7 +752,7 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
                 return result;
 
             // Remove from cache
-            _definitions.TryRemove(statusId, out _);
+            ImmutableInterlocked.TryRemove(ref _definitions, statusId, out _);
 
             return Result.Success();
         }

@@ -51,6 +51,27 @@ public sealed class StatusEffectManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task ApplyStatus_ConcurrentCalls_PublishOneAtomicStatusSnapshot()
+    {
+        const string targetId = "concurrent_enemy";
+        var tasks = Enumerable.Range(1, 32)
+            .Select(index => Task.Run(() => _manager.ApplyStatus(
+                targetId,
+                "burning",
+                new Guid(index, 0, 0, new byte[8]),
+                DateTime.UnixEpoch,
+                stacks: 1)))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+        var active = _manager.GetActiveStatus(targetId);
+
+        Assert.All(results, result => Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null));
+        var status = Assert.Single(active.Value!);
+        Assert.Equal(4, status.Stacks);
+    }
+
+    [Fact]
     public void ProcessStatusEffects_ForMatchingTiming_ReturnsFormulaValue()
     {
         const string targetId = "enemy_1";

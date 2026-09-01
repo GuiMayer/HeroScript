@@ -12,7 +12,6 @@ namespace Core.Config.Delta
     /// </summary>
     public static class DeltaMerger
     {
-        private static ILogger Logger => LoggerFactory.CreateLogger("DeltaMerger");
         /// <summary>
         /// Aplica uma operação delta em um recurso base.
         /// </summary>
@@ -25,8 +24,10 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode = false)
+            bool strictMode = false,
+            ILogger? logger = null)
         {
+            logger ??= NullLogger.Instance;
             var operation = delta.GetOperationOrDefault();
 
             try
@@ -37,28 +38,28 @@ namespace Core.Config.Delta
                         return ApplyReplace(delta);
 
                     case DeltaOperationType.MERGE_SHALLOW:
-                        return ApplyMergeShallow(baseValue, delta, resourceId, strictMode);
+                        return ApplyMergeShallow(baseValue, delta, resourceId, strictMode, logger);
 
                     case DeltaOperationType.MERGE_DEEP:
-                        return ApplyMergeDeep(baseValue, delta, resourceId, strictMode);
+                        return ApplyMergeDeep(baseValue, delta, resourceId, strictMode, logger);
 
                     case DeltaOperationType.DELETE:
                         return null; // Recurso deletado
 
                     case DeltaOperationType.ARRAY_APPEND:
-                        return ApplyArrayAppend(baseValue, delta, resourceId, strictMode);
+                        return ApplyArrayAppend(baseValue, delta, resourceId, strictMode, logger);
 
                     case DeltaOperationType.ARRAY_PREPEND:
-                        return ApplyArrayPrepend(baseValue, delta, resourceId, strictMode);
+                        return ApplyArrayPrepend(baseValue, delta, resourceId, strictMode, logger);
 
                     case DeltaOperationType.ARRAY_REMOVE_INDEX:
-                        return ApplyArrayRemoveIndex(baseValue, delta, resourceId, strictMode);
+                        return ApplyArrayRemoveIndex(baseValue, delta, resourceId, strictMode, logger);
 
                     case DeltaOperationType.ARRAY_REPLACE_INDEX:
-                        return ApplyArrayReplaceIndex(baseValue, delta, resourceId, strictMode);
+                        return ApplyArrayReplaceIndex(baseValue, delta, resourceId, strictMode, logger);
 
                     case DeltaOperationType.FIELD_DELETE:
-                        return ApplyFieldDelete(baseValue, delta, resourceId, strictMode);
+                        return ApplyFieldDelete(baseValue, delta, resourceId, strictMode, logger);
 
                     default:
                         throw new InvalidOperationException($"Unknown delta operation: {operation}");
@@ -69,7 +70,7 @@ namespace Core.Config.Delta
                 if (strictMode)
                     throw new InvalidOperationException($"[{resourceId}] Delta merge failed: {ex.Message}", ex);
 
-                Logger.LogWarning($"Failed to apply {operation} to '{resourceId}': {ex.Message}");
+                logger.LogWarning($"Failed to apply {operation} to '{resourceId}': {ex.Message}");
                 return baseValue; // Retorna valor original em caso de erro
             }
         }
@@ -94,12 +95,13 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
             {
                 // Sem base, MERGE vira REPLACE
-                Logger.LogWarning($"No base value for '{resourceId}', treating MERGE_SHALLOW as REPLACE");
+                logger.LogWarning($"No base value for '{resourceId}', treating MERGE_SHALLOW as REPLACE");
                 return ApplyReplace(delta);
             }
 
@@ -133,12 +135,13 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
             {
                 // Sem base, MERGE vira REPLACE
-                Logger.LogWarning($"No base value for '{resourceId}', treating MERGE_DEEP as REPLACE");
+                logger.LogWarning($"No base value for '{resourceId}', treating MERGE_DEEP as REPLACE");
                 return ApplyReplace(delta);
             }
 
@@ -198,7 +201,8 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
                 throw new InvalidOperationException($"ARRAY_APPEND requires base value for '{resourceId}'");
@@ -217,7 +221,7 @@ namespace Core.Config.Delta
             }
             else
             {
-                Logger.LogWarning($"Base value for '{resourceId}' is not an array, treating as empty array");
+                logger.LogWarning($"Base value for '{resourceId}' is not an array, treating as empty array");
                 baseArray = new List<JsonElement>();
             }
 
@@ -236,7 +240,8 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
                 throw new InvalidOperationException($"ARRAY_PREPEND requires base value for '{resourceId}'");
@@ -255,7 +260,7 @@ namespace Core.Config.Delta
             }
             else
             {
-                Logger.LogWarning($"Base value for '{resourceId}' is not an array, treating as empty array");
+                logger.LogWarning($"Base value for '{resourceId}' is not an array, treating as empty array");
                 baseArray = new List<JsonElement>();
             }
 
@@ -272,7 +277,8 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
                 throw new InvalidOperationException($"ARRAY_REMOVE_INDEX requires base value for '{resourceId}'");
@@ -291,7 +297,7 @@ namespace Core.Config.Delta
                 if (strictMode)
                     throw new IndexOutOfRangeException(msg);
                 
-                Logger.LogWarning($"Index {delta.Index.Value} out of range [0, {baseArray.Count - 1}] for '{resourceId}', ignoring operation");
+                logger.LogWarning($"Index {delta.Index.Value} out of range [0, {baseArray.Count - 1}] for '{resourceId}', ignoring operation");
                 return baseValue.Value;
             }
 
@@ -307,7 +313,8 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
                 throw new InvalidOperationException($"ARRAY_REPLACE_INDEX requires base value for '{resourceId}'");
@@ -329,7 +336,7 @@ namespace Core.Config.Delta
                 if (strictMode)
                     throw new IndexOutOfRangeException(msg);
                 
-                Logger.LogWarning($"Index {delta.Index.Value} out of range [0, {baseArray.Count - 1}] for '{resourceId}', ignoring operation");
+                logger.LogWarning($"Index {delta.Index.Value} out of range [0, {baseArray.Count - 1}] for '{resourceId}', ignoring operation");
                 return baseValue.Value;
             }
 
@@ -345,7 +352,8 @@ namespace Core.Config.Delta
             JsonElement? baseValue,
             DeltaDefinition delta,
             string resourceId,
-            bool strictMode)
+            bool strictMode,
+            ILogger logger)
         {
             if (!baseValue.HasValue)
                 throw new InvalidOperationException($"FIELD_DELETE requires base value for '{resourceId}'");
@@ -376,7 +384,7 @@ namespace Core.Config.Delta
                     if (strictMode)
                         throw new KeyNotFoundException(msg);
                     
-                    Logger.LogWarning($"Field '{delta.TargetPath}' not found in '{resourceId}', ignoring operation");
+                    logger.LogWarning($"Field '{delta.TargetPath}' not found in '{resourceId}', ignoring operation");
                     return baseValue.Value;
                 }
             }
@@ -394,7 +402,7 @@ namespace Core.Config.Delta
                         if (strictMode)
                             throw new KeyNotFoundException(msg);
                         
-                        Logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
+                        logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
                         return baseValue.Value;
                     }
 
@@ -404,7 +412,7 @@ namespace Core.Config.Delta
                         if (strictMode)
                             throw new InvalidOperationException(msg);
                         
-                        Logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
+                        logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
                         return baseValue.Value;
                     }
 
@@ -420,7 +428,7 @@ namespace Core.Config.Delta
                     if (strictMode)
                         throw new KeyNotFoundException(msg);
                     
-                    Logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
+                    logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
                     return baseValue.Value;
                 }
             }

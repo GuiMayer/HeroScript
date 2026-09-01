@@ -39,7 +39,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
     private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
-    private RunCommand? _executingCommand;
+    private readonly AsyncLocal<RunCommand?> _executingCommand = new();
 
     public RunManager(
         IConfigManager configManager,
@@ -419,7 +419,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                         runResult.Value));
             }
 
-            _executingCommand = command;
+            var previousCommand = _executingCommand.Value;
+            _executingCommand.Value = command;
             try
             {
                 var operation = ExecuteCommandTransition(runId, identity.Type, command.Payload);
@@ -455,7 +456,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
             }
             finally
             {
-                _executingCommand = null;
+                _executingCommand.Value = previousCommand;
             }
         }
     }
@@ -1932,7 +1933,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
         _runs.TryGetValue(state.RunId, out var previous);
         try
         {
-            var activeCommand = commandIdentity == null ? _executingCommand : null;
+            var activeCommand = commandIdentity == null ? _executingCommand.Value : null;
             var identity = commandIdentity ?? activeCommand?.Identity;
             var effectiveType = identity?.Type ?? commandType;
             var effectiveCommand = activeCommand?.Payload

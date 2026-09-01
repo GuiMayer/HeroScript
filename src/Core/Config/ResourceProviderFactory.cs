@@ -12,11 +12,12 @@ namespace Core.Config
     public class ResourceProviderFactory
     {
         private readonly IConfigManager _configManager;
-        private readonly ILogger _logger = LoggerFactory.CreateLogger("ResourceProviderFactory");
+        private readonly ILogger _logger;
 
-        public ResourceProviderFactory(IConfigManager configManager)
+        public ResourceProviderFactory(IConfigManager configManager, ILogger logger)
         {
             _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         /// <summary>
@@ -24,7 +25,7 @@ namespace Core.Config
         /// </summary>
         public ResourcePathResolver CreateResolver(ResourceConfiguration config)
         {
-            var resolver = new ResourcePathResolver();
+            var resolver = new ResourcePathResolver(_logger);
             var mode = config.Mode == ResourceMode.Auto ? DetectMode() : config.Mode;
 
             _logger.LogDebug($"Initializing in {mode} mode");

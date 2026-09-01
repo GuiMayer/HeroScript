@@ -31,6 +31,11 @@ using Microsoft.OpenApi;
 using API.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseDefaultServiceProvider(options =>
+{
+    options.ValidateOnBuild = true;
+    options.ValidateScopes = true;
+});
 
 // Add services to the container
 builder.Services.AddControllers(options =>
@@ -611,11 +616,9 @@ var applicationCaches = new ICacheService[]
 foreach (var cache in applicationCaches)
     cacheCoordinator.Register(cache);
 
-// Configure Core library logging
+// Resolve logging through DI; Core services never depend on global factories.
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 var coreLogger = new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
-Core.Logging.LoggerFactory.SetFactory(categoryName => 
-    new CoreLoggerAdapter(loggerFactory.CreateLogger(categoryName)));
 
 // Load status effect definitions
 var statusEffectManager = app.Services.GetRequiredService<IStatusEffectManager>();

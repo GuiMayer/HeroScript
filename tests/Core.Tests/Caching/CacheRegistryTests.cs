@@ -1,4 +1,5 @@
 using Core.Caching;
+using System.Collections.Concurrent;
 using Xunit;
 
 namespace Core.Tests.Caching;
@@ -8,7 +9,7 @@ namespace Core.Tests.Caching;
 /// </summary>
 public class MockCacheService : ICacheService
 {
-    private readonly Dictionary<string, object?> _cache = new();
+    private readonly ConcurrentDictionary<string, object?> _cache = new();
     private long _hits;
     private long _misses;
     private long _evictions;
@@ -30,10 +31,10 @@ public class MockCacheService : ICacheService
     {
         if (_cache.TryGetValue(key, out value))
         {
-            _hits++;
+            Interlocked.Increment(ref _hits);
             return true;
         }
-        _misses++;
+        Interlocked.Increment(ref _misses);
         return false;
     }
 
@@ -47,7 +48,7 @@ public class MockCacheService : ICacheService
         }
         else
         {
-            _cache.Remove(key);
+            _cache.TryRemove(key, out _);
         }
     }
 
@@ -84,17 +85,7 @@ public class CacheRegistryTests
 
     public CacheRegistryTests()
     {
-        _registry = CacheRegistry.Instance;
-        _registry.Clear();
-    }
-
-    [Fact]
-    public void Singleton_MultipleInstances_ReturnSameReference()
-    {
-        var instance1 = CacheRegistry.Instance;
-        var instance2 = CacheRegistry.Instance;
-
-        Assert.Same(instance1, instance2);
+        _registry = new CacheRegistry();
     }
 
     [Fact]
