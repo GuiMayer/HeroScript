@@ -1,6 +1,5 @@
 using System.Text.Json;
 using API.Contracts;
-using Core.Combat;
 using Core.Determinism;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
@@ -15,21 +14,17 @@ namespace API.Controllers;
 [Produces("application/json", "application/problem+json")]
 public sealed class RunCommandController : BaseApiController
 {
-    private readonly IRunCommandProcessor _commands;
+    private readonly IGameplayCommandGateway _commands;
     private readonly IRunManager _runs;
-    private readonly ICombatRunCoordinator _combats;
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     public RunCommandController(
-        IRunCommandProcessor commands,
+        IGameplayCommandGateway commands,
         IRunManager runs,
-        ICombatRunCoordinator combats,
         ILogger<RunCommandController> logger)
         : base(logger)
     {
         _commands = commands;
         _runs = runs;
-        _combats = combats;
     }
 
     [HttpPost]
@@ -61,15 +56,13 @@ public sealed class RunCommandController : BaseApiController
 
         try
         {
-            if (type == RunCommandTypes.StartEncounter)
-                return ExecuteStartEncounter(runId, identity, payload);
-            if (type == RunCommandTypes.ResolveCombat)
-                return ExecuteResolveEncounter(runId, identity, payload);
-
             var result = _commands.Execute(runId, new RunCommand(identity, payload));
             return result.IsSuccess
-                ? Ok(MapReceipt(result.Value))
-                : MapFailure(runId, result.Error, useCombatStep: false);
+                ? Ok(MapReceipt(result.Value.Receipt))
+                : MapFailure(
+                    runId,
+                    result.Error,
+                    useCombatStep: type == RunCommandTypes.ResolveCombat);
         }
         catch (JsonException exception)
         {
@@ -79,57 +72,6 @@ public sealed class RunCommandController : BaseApiController
         {
             return HandleException(exception, "execute run command", runId.ToString());
         }
-    }
-
-    private IActionResult ExecuteStartEncounter(
-        Guid runId,
-        RunCommandIdentity identity,
-        JsonElement payload)
-    {
-        var existing = _commands.FindReceipt(runId, identity.CommandId);
-        if (existing.IsFailure)
-            return MapFailure(runId, existing.Error, useCombatStep: false);
-        var request = payload.Deserialize<StartEncounterPayload>(_jsonOptions)
-            ?? throw new JsonException("START_ENCOUNTER payload is required");
-        var result = _combats.StartEncounter(
-            runId,
-            request.HeroId,
-            request.EnemyIds,
-            request.InitialEnergy,
-            identity);
-        if (result.IsFailure)
-            return MapFailure(runId, result.Error, useCombatStep: false);
-
-        return ReceiptResponse(runId, identity.CommandId, existing.Value != null);
-    }
-
-    private IActionResult ExecuteResolveEncounter(
-        Guid runId,
-        RunCommandIdentity identity,
-        JsonElement payload)
-    {
-        var existing = _commands.FindReceipt(runId, identity.CommandId);
-        if (existing.IsFailure)
-            return MapFailure(runId, existing.Error, useCombatStep: true);
-        var request = payload.Deserialize<ResolveEncounterPayload>(_jsonOptions)
-            ?? throw new JsonException("RESOLVE_COMBAT payload is required");
-        var result = _combats.ResolveEncounter(runId, request.CombatId, identity);
-        if (result.IsFailure)
-            return MapFailure(runId, result.Error, useCombatStep: true);
-
-        return ReceiptResponse(runId, identity.CommandId, existing.Value != null);
-    }
-
-    private IActionResult ReceiptResponse(Guid runId, Guid commandId, bool duplicate)
-    {
-        var receipt = _commands.FindReceipt(runId, commandId);
-        return receipt.IsSuccess && receipt.Value != null
-            ? Ok(MapReceipt(receipt.Value, duplicate: duplicate))
-            : ApiProblem(
-                StatusCodes.Status503ServiceUnavailable,
-                ApiErrorCodes.DependencyUnavailable,
-                "Command receipt unavailable",
-                receipt.IsFailure ? receipt.Error : "The transition did not create a durable receipt");
     }
 
     private IActionResult MapFailure(Guid runId, string error, bool useCombatStep)
@@ -182,11 +124,4 @@ public sealed class RunCommandController : BaseApiController
             events = Array.Empty<object>()
         };
     }
-
-    private sealed record StartEncounterPayload(
-        string HeroId,
-        IReadOnlyList<string> EnemyIds,
-        int InitialEnergy = 3);
-
-    private sealed record ResolveEncounterPayload(Guid CombatId);
 }

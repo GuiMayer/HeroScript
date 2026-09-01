@@ -377,6 +377,7 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
+builder.Services.AddSingleton<IGameplayCommandGateway, GameplayCommandGateway>();
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
 builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReader>();
 builder.Services.AddSingleton<Core.Meta.IPlayerProfileProjectionReader, Core.Meta.PlayerProfileProjectionReader>();

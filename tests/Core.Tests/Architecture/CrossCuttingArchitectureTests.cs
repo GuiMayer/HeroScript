@@ -52,6 +52,7 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Caching.ICacheService",
             "Core.Config.IResourceLoader",
             "Core.Content.IContentRuntimeResolver",
+            "Core.Run.IGameplayCommandGateway",
             "Core.Events.IEventBus",
             "Core.Logging.ILogger",
             "Core.Math.IRuntimeFormulaEvaluator",

@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Combat;
-using Core.Combat.Models;
 using Core.Common;
 using Core.Determinism;
 
@@ -62,23 +61,16 @@ public sealed class RunSimulationService : IRunSimulationService
 {
     private readonly IRunBranchService _branches;
     private readonly IRunStateRepository _repository;
-    private readonly IRunCommandProcessor _commands;
-    private readonly ICombatRunCoordinator _combats;
-    private readonly IActionManager _actions;
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly IGameplayCommandGateway _commands;
 
     public RunSimulationService(
         IRunBranchService branches,
         IRunStateRepository repository,
-        IRunCommandProcessor commands,
-        ICombatRunCoordinator combats,
-        IActionManager actions)
+        IGameplayCommandGateway commands)
     {
         _branches = branches;
         _repository = repository;
         _commands = commands;
-        _combats = combats;
-        _actions = actions;
     }
 
     public async Task<Result<RunSimulationResult>> ExecuteAsync(
@@ -197,96 +189,16 @@ public sealed class RunSimulationService : IRunSimulationService
         JsonElement payload,
         RunCommandIdentity identity)
     {
-        if (type is "EXECUTE_ACTION" or "END_TURN")
-            return ExecuteCombatCommand(current, type, payload, identity);
-
-        if (type == RunCommandTypes.ResolveCombat)
-        {
-            var encounter = current.GetActiveEncounter();
-            if (encounter == null)
-                return Result<RunState>.Failure("Simulation does not have an active combat to resolve");
-            var resolved = _combats.ResolveEncounter(current.RunId, encounter.Combat.CombatId, identity);
-            return resolved.IsFailure
-                ? Result<RunState>.Failure(resolved.Error)
-                : Result<RunState>.Success(resolved.Value.RunState);
-        }
-
-        var executed = _commands.Execute(current.RunId, new RunCommand(identity, payload));
+        var combatId = type is GameplayCommandTypes.ExecuteAction or GameplayCommandTypes.EndTurn or RunCommandTypes.ResolveCombat
+            ? current.GetActiveEncounter()?.Combat.CombatId
+            : null;
+        var executed = _commands.Execute(
+            current.RunId,
+            new RunCommand(identity, payload),
+            combatId);
         return executed.IsFailure
             ? Result<RunState>.Failure(executed.Error)
-            : Result<RunState>.Success(executed.Value.State);
-    }
-
-    private Result<RunState> ExecuteCombatCommand(
-        RunState current,
-        string type,
-        JsonElement payload,
-        RunCommandIdentity identity)
-    {
-        var encounter = current.GetActiveEncounter();
-        if (encounter == null)
-            return Result<RunState>.Failure("Simulation combat command requires an active encounter");
-
-        var command = BuildCombatCommand(type, payload, current, encounter.Combat);
-        if (command.IsFailure)
-            return Result<RunState>.Failure(command.Error);
-        var executed = _combats.ExecuteAction(encounter.Combat.CombatId, command.Value, identity);
-        return executed.IsFailure
-            ? Result<RunState>.Failure(executed.Error)
-            : Result<RunState>.Success(executed.Value.RunState);
-    }
-
-    private Result<CombatActionCommand> BuildCombatCommand(
-        string type,
-        JsonElement payload,
-        RunState run,
-        CombatState combat)
-    {
-        var request = payload.Deserialize<SimulationCombatCommandPayload>(_jsonOptions) ?? new();
-        var heroId = combat.Hero?.EntityId;
-        if (string.IsNullOrWhiteSpace(heroId))
-            return Result<CombatActionCommand>.Failure("Active combat has no hero actor");
-
-        if (type == "END_TURN")
-        {
-            return Result<CombatActionCommand>.Success(new CombatActionCommand
-            {
-                ActorId = request.ActorId ?? heroId,
-                ActionType = ActionType.END_TURN,
-                RunId = run.RunId
-            });
-        }
-
-        var actionType = request.ActionType;
-        var powerId = request.PowerId;
-        if (!string.IsNullOrWhiteSpace(request.ActionId))
-        {
-            var definition = _actions is IRevisionedActionCatalog revisionedActions
-                ? revisionedActions.GetDefinition(
-                    request.ActionId,
-                    run.Determinism.ContentRevision,
-                    run.ConfigName)
-                : _actions.GetDefinition(request.ActionId);
-            if (definition.IsFailure)
-                return Result<CombatActionCommand>.Failure(definition.Error);
-            actionType = definition.Value.ActionType == ActionType.BASIC_ATTACK
-                ? ActionType.BASIC_ATTACK
-                : ActionType.POWER;
-            powerId = actionType == ActionType.POWER ? definition.Value.ActionId : null;
-        }
-        if (!actionType.HasValue)
-            return Result<CombatActionCommand>.Failure("ActionId or ActionType is required");
-
-        return Result<CombatActionCommand>.Success(new CombatActionCommand
-        {
-            ActorId = request.ActorId ?? heroId,
-            ActionType = actionType.Value,
-            PowerId = powerId,
-            TargetId = request.TargetId,
-            CostOptionId = request.CostOptionId,
-            CardId = request.CardId,
-            RunId = run.RunId
-        });
+            : Result<RunState>.Success(executed.Value.Receipt.State);
     }
 
     private async Task<IReadOnlyList<SimulationTimelineItem>> BuildTimelineAsync(
@@ -324,13 +236,4 @@ public sealed class RunSimulationService : IRunSimulationService
         bytes[8] = (byte)((bytes[8] & 0x3F) | 0x80);
         return new Guid(bytes);
     }
-
-    private sealed record SimulationCombatCommandPayload(
-        string? ActorId = null,
-        string? ActionId = null,
-        ActionType? ActionType = null,
-        string? PowerId = null,
-        string? TargetId = null,
-        string? CostOptionId = null,
-        string? CardId = null);
 }
