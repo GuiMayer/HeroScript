@@ -276,6 +276,7 @@ builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPubli
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IResourceLoader>()));
 builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>();
+builder.Services.AddSingleton<IContentReloadService, ContentReloadService>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>

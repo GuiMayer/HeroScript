@@ -100,6 +100,14 @@ public sealed class ContentManifestProvider : IContentManifestProvider, ICacheSe
         return BuildAndStore(configName);
     }
 
+    public Result<ContentManifest> BuildCandidate(string configName)
+    {
+        if (string.IsNullOrWhiteSpace(configName))
+            return Result<ContentManifest>.Failure("Config name is required");
+
+        return BuildManifest(configName);
+    }
+
     public Result<ContentManifest> GetByRevision(string revision)
     {
         if (string.IsNullOrWhiteSpace(revision))
@@ -142,6 +150,20 @@ public sealed class ContentManifestProvider : IContentManifestProvider, ICacheSe
             }
 
             _manifestsByRevision[manifest.Revision] = manifest;
+        }
+
+        return Result.Success();
+    }
+
+    public Result ActivatePublishedManifest(ContentManifest manifest)
+    {
+        var registration = RegisterPublishedManifest(manifest);
+        if (registration.IsFailure)
+            return registration;
+
+        lock (_lock)
+        {
+            _currentByConfig[manifest.ConfigName] = manifest;
         }
 
         return Result.Success();

@@ -11,6 +11,7 @@ public static class ApiErrorCodes
     public const string ResourceNotFound = "RESOURCE_NOT_FOUND";
     public const string VersionConflict = "VERSION_CONFLICT";
     public const string RuleViolation = "RULE_VIOLATION";
+    public const string Forbidden = "FORBIDDEN";
     public const string DependencyUnavailable = "DEPENDENCY_UNAVAILABLE";
     public const string InternalError = "INTERNAL_ERROR";
 }

@@ -94,6 +94,40 @@ public sealed class ContentManifestProviderTests
         Assert.Equal(2, provider.GetKnownManifests().Count);
     }
 
+    [Fact]
+    public void BuildCandidate_DoesNotReplaceCurrent_UntilPublishedManifestIsActivated()
+    {
+        var config = new Mock<IConfigManager>();
+        var loader = new Mock<IResourceLoader>();
+        var definitions = new Dictionary<string, JsonElement>
+        {
+            ["strike"] = Element("""{ "damage": 6 }""")
+        };
+        config.Setup(manager => manager.ResolveInheritanceChain("test"))
+            .Returns(new[] { "test" });
+        loader.Setup(resourceLoader => resourceLoader.DiscoverResources(
+                "actions", It.IsAny<IEnumerable<string>>(), "*.json"))
+            .Returns(new[] { "combat" });
+        loader.Setup(resourceLoader => resourceLoader.LoadResource(
+                "actions/combat.json", It.IsAny<IEnumerable<string>>(), false))
+            .Returns(() => definitions);
+        var provider = new ContentManifestProvider(config.Object, loader.Object);
+        var current = provider.GetManifest("test").Value;
+        definitions = new Dictionary<string, JsonElement>
+        {
+            ["strike"] = Element("""{ "damage": 9 }""")
+        };
+
+        var candidate = provider.BuildCandidate("test").Value;
+
+        Assert.NotEqual(current.Revision, candidate.Revision);
+        Assert.Equal(current.Revision, provider.GetManifest("test").Value.Revision);
+        Assert.True(provider.GetByRevision(candidate.Revision).IsFailure);
+
+        Assert.True(provider.ActivatePublishedManifest(candidate).IsSuccess);
+        Assert.Equal(candidate.Revision, provider.GetManifest("test").Value.Revision);
+    }
+
     private static ContentManifestProvider CreateProvider(Dictionary<string, JsonElement> definitions)
     {
         var config = new Mock<IConfigManager>();

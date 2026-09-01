@@ -210,10 +210,6 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             return Result<ContentBundle>.Failure(string.Join("; ", validation.Errors));
 
         var bundle = loaded.Value.Bundle;
-        var registration = _manifests.RegisterPublishedManifest(bundle.Manifest);
-        if (registration.IsFailure)
-            return Result<ContentBundle>.Failure(registration.Error);
-
         var publishedPath = GetPublishedPath(bundle.Manifest.Revision);
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -228,6 +224,10 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             };
             await WriteAtomicAsync(GetDraftPath(draftId), publishedDraft, overwrite: true, cancellationToken)
                 .ConfigureAwait(false);
+
+            var activation = _manifests.ActivatePublishedManifest(bundle.Manifest);
+            if (activation.IsFailure)
+                return Result<ContentBundle>.Failure(activation.Error);
             return Result<ContentBundle>.Success(bundle);
         }
         catch (Exception exception)
@@ -369,7 +369,7 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
 
     private Result<ContentBundle> Capture(string configName)
     {
-        var manifestResult = _manifests.RefreshManifest(configName);
+        var manifestResult = _manifests.BuildCandidate(configName);
         if (manifestResult.IsFailure)
             return Result<ContentBundle>.Failure(manifestResult.Error);
 
