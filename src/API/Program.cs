@@ -275,10 +275,12 @@ builder.Services.AddSingleton<IRunStateRepository>(sp =>
 
 // Register Run content and manager
 builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
+builder.Services.AddSingleton<IContentGraphValidator, ContentGraphValidator>();
 builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPublicationService(
     contentStorePath,
     sp.GetRequiredService<IContentManifestProvider>(),
-    sp.GetRequiredService<IResourceLoader>()));
+    sp.GetRequiredService<IResourceLoader>(),
+    sp.GetRequiredService<IContentGraphValidator>()));
 builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>();
 builder.Services.AddSingleton<IContentReloadService, ContentReloadService>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();

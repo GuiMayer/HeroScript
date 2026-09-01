@@ -57,8 +57,15 @@ public sealed class ContentRuntime
                         definition.Name,
                         "definition",
                         StringComparison.Ordinal)
-                        ? Path.GetFileNameWithoutExtension(artifact.Path)
+                        ? ResolveStandaloneDefinitionId(
+                            definition.Value,
+                            Path.GetFileNameWithoutExtension(artifact.Path))
                         : definition.Name;
+                    if (definitions.ContainsKey(definitionId))
+                    {
+                        return Result<ContentRuntime>.Failure(
+                            $"Duplicate definition '{definitionId}' of kind '{kindGroup.Key}' in revision {bundle.Manifest.Revision}");
+                    }
                     definitions[definitionId] = definition.Value.Clone();
                 }
             }
@@ -101,6 +108,32 @@ public sealed class ContentRuntime
         _definitions.TryGetValue(kind, out var definitions)
             ? definitions
             : ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+
+    private static string ResolveStandaloneDefinitionId(JsonElement definition, string fallback)
+    {
+        if (definition.ValueKind != JsonValueKind.Object)
+            return fallback;
+
+        var preferredNames = new[]
+        {
+            "pipelineId", "resourceId", "entityId", "statusId", "modifierId",
+            "actionId", "modeId", "runId", "poolId"
+        };
+        foreach (var preferred in preferredNames)
+        {
+            foreach (var property in definition.EnumerateObject())
+            {
+                if (property.Name.Equals(preferred, StringComparison.OrdinalIgnoreCase) &&
+                    property.Value.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(property.Value.GetString()))
+                {
+                    return property.Value.GetString()!;
+                }
+            }
+        }
+
+        return fallback;
+    }
 
     private static JsonSerializerOptions CreateSerializerOptions()
     {

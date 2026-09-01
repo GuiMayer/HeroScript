@@ -35,6 +35,12 @@ public class PipelineConfigLoader
             configChain,
             strictMode: false
         );
+        if (rawData.TryGetValue("definition", out var standalone) &&
+            standalone.ValueKind == JsonValueKind.Object)
+        {
+            rawData = standalone.EnumerateObject()
+                .ToDictionary(item => item.Name, item => item.Value.Clone(), StringComparer.Ordinal);
+        }
 
         var config = DeserializePipeline(rawData);
         config.Validate();
@@ -51,11 +57,19 @@ public class PipelineConfigLoader
     public PipelineConfiguration LoadPipeline(ContentRuntime runtime, string? pipelineId = null)
     {
         ArgumentNullException.ThrowIfNull(runtime);
-        var rawData = runtime.GetDefinitions("pipelines")
-            .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
+        var available = runtime.GetDefinitions("pipelines");
+        var selectedId = string.IsNullOrWhiteSpace(pipelineId)
+            ? available.Keys.OrderBy(id => id, StringComparer.Ordinal).FirstOrDefault()
+            : pipelineId;
+        if (string.IsNullOrWhiteSpace(selectedId) || !available.TryGetValue(selectedId, out var selected))
+            throw new InvalidOperationException($"Damage pipeline not found: {pipelineId ?? "<default>"}");
+        if (selected.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException($"Damage pipeline is invalid: {selectedId}");
+        var rawData = selected.EnumerateObject()
+            .ToDictionary(item => item.Name, item => item.Value.Clone(), StringComparer.Ordinal);
         var config = DeserializePipeline(rawData) with
         {
-            ConfigName = string.IsNullOrWhiteSpace(pipelineId) ? "default" : pipelineId
+            ConfigName = selectedId
         };
         config.Validate();
         return config with { Buckets = config.Buckets.OrderBy(bucket => bucket.Order).ToArray() };

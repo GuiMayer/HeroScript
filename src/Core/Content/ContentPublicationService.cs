@@ -64,17 +64,20 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
     private readonly string _storePath;
     private readonly IContentManifestProvider _manifests;
     private readonly IResourceLoader _resourceLoader;
+    private readonly IContentGraphValidator _graphValidator;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions;
 
     public ContentPublicationService(
         string storePath,
         IContentManifestProvider manifests,
-        IResourceLoader resourceLoader)
+        IResourceLoader resourceLoader,
+        IContentGraphValidator? graphValidator = null)
     {
         _storePath = storePath;
         _manifests = manifests;
         _resourceLoader = resourceLoader;
+        _graphValidator = graphValidator ?? new ContentGraphValidator();
         Directory.CreateDirectory(GetDraftDirectory());
         Directory.CreateDirectory(GetPublishedDirectory());
         _jsonOptions = new JsonSerializerOptions
@@ -397,9 +400,10 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         }
     }
 
-    private static ContentValidationResult ValidateBundle(ContentBundle bundle)
+    private ContentValidationResult ValidateBundle(ContentBundle bundle)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
+        var warnings = ImmutableArray.CreateBuilder<string>();
         var expectedRevision = CanonicalJson.ComputeHash(new PublicationManifestPayload(
             bundle.Manifest.SchemaVersion,
             bundle.Manifest.ConfigName,
@@ -423,9 +427,18 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             }
         }
 
+
+        if (errors.Count == 0)
+        {
+            var graph = _graphValidator.Validate(bundle);
+            errors.AddRange(graph.Errors);
+            warnings.AddRange(graph.Warnings);
+        }
+
         return new ContentValidationResult
         {
             Errors = errors.ToImmutable(),
+            Warnings = warnings.ToImmutable(),
             Manifest = bundle.Manifest
         };
     }

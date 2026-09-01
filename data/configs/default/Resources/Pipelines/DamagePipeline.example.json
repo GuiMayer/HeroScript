@@ -1,4 +1,5 @@
 {
+  "pipelineId": "example_damage",
   "_comment_intro": "=== DAMAGE PIPELINE CONFIGURATION EXAMPLE ===",
   "_comment_overview": "This file demonstrates the structure of a damage calculation pipeline.",
   "_comment_how_it_works": "The pipeline processes damage through sequential 'buckets', each applying transformations to the damage context.",

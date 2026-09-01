@@ -1,4 +1,5 @@
 {
+  "pipelineId": "high_crit_damage",
   "buckets": [
     {
       "bucketId": "base",

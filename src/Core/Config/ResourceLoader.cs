@@ -550,6 +550,14 @@ namespace Core.Config
 
             var discoveredFiles = new HashSet<string>();
 
+            // Core resources participate in every effective configuration and
+            // therefore must also participate in manifest discovery.
+            foreach (var directoryPath in _pathResolver.GetExistingPhysicalDirectories(relativeDirectory))
+            {
+                foreach (var file in Directory.GetFiles(directoryPath, filePattern, SearchOption.TopDirectoryOnly))
+                    discoveredFiles.Add(Path.GetFileNameWithoutExtension(file));
+            }
+
             // Traverse the config chain from base to most specific
             foreach (var configName in configChain.Reverse())
             {
