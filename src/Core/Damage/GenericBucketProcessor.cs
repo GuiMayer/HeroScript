@@ -20,19 +20,22 @@ public class GenericBucketProcessor
     private readonly IEventBus _eventBus;
     private readonly ILogger _logger;
     private readonly IRandomProvider _randomProvider;
+    private readonly Func<string, Result<FormulaDefinition>>? _formulaResolver;
 
     public GenericBucketProcessor(
         BucketDefinition definition,
         IMathEngine mathEngine,
         IEventBus eventBus,
         ILogger logger,
-        IRandomProvider? randomProvider = null)
+        IRandomProvider? randomProvider = null,
+        Func<string, Result<FormulaDefinition>>? formulaResolver = null)
     {
         _definition = definition ?? throw new ArgumentNullException(nameof(definition));
         _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _randomProvider = randomProvider ?? new DefaultRandomProvider();
+        _formulaResolver = formulaResolver;
     }
 
     /// <summary>
@@ -196,7 +199,7 @@ public class GenericBucketProcessor
 
         try
         {
-            var expression = _mathEngine.BuildFromFormula(formulaName, context.CurrentDamage, formulaParams);
+            var expression = BuildFormula(formulaName, context.CurrentDamage, formulaParams);
             var result = expression.Build();
             return context.WithDamage(result);
         }
@@ -218,7 +221,7 @@ public class GenericBucketProcessor
         var critMult = context.Modifiers.GetValueOrDefault("crit_multiplier", 2.0f);
 
         // Usar MathEngine para calcular tier garantido
-        var guaranteedTierExpr = _mathEngine.BuildFromFormula(
+        var guaranteedTierExpr = BuildFormula(
             "CRIT_GUARANTEED_TIER",
             0f,
             new Dictionary<string, float> { { "CRIT_CHANCE", critChance } }
@@ -226,7 +229,7 @@ public class GenericBucketProcessor
         int guaranteedTier = (int)guaranteedTierExpr.Build();
 
         // Usar MathEngine para calcular chance extra
-        var extraChanceExpr = _mathEngine.BuildFromFormula(
+        var extraChanceExpr = BuildFormula(
             "CRIT_EXTRA_CHANCE",
             0f,
             new Dictionary<string, float> { { "CRIT_CHANCE", critChance } }
@@ -241,7 +244,7 @@ public class GenericBucketProcessor
         }
 
         // Usar MathEngine para calcular multiplicador de dano crítico
-        var critMultiplierExpr = _mathEngine.BuildFromFormula(
+        var critMultiplierExpr = BuildFormula(
             "CRIT_DAMAGE_MULTIPLIER",
             0f,
             new Dictionary<string, float> 
@@ -262,6 +265,24 @@ public class GenericBucketProcessor
         _logger.LogDebug($"Critical roll: {critChance:F1}% chance → Tier {finalTier} (guaranteed: {guaranteedTier}, extra chance: {extraChance:F1}%)");
 
         return newContext;
+    }
+
+    private MathExpression BuildFormula(
+        string formulaName,
+        float inputValue,
+        Dictionary<string, float>? parameters)
+    {
+        if (_formulaResolver == null)
+            return _mathEngine.BuildFromFormula(formulaName, inputValue, parameters);
+
+        var definition = _formulaResolver(formulaName);
+        if (definition.IsFailure)
+            throw new InvalidOperationException(definition.Error);
+        return _mathEngine.BuildFromDefinition(
+            formulaName,
+            definition.Value,
+            inputValue,
+            parameters);
     }
 
     private DamageContext ExecuteSetModifier(DamageContext context, BucketOperation op)

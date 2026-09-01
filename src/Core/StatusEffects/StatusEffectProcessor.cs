@@ -276,7 +276,13 @@ public class StatusEffectProcessor
                 ["duration"] = instance.Duration
             };
 
-            var formulaValue = _formulaEvaluator.Evaluate(instance.Definition.FormulaValue, variables);
+            var formulaValue = !string.IsNullOrWhiteSpace(instance.ContentRevision) &&
+                               _formulaEvaluator is IRevisionedRuntimeFormulaEvaluator revisioned
+                ? revisioned.EvaluateAtRevision(
+                    instance.Definition.FormulaValue,
+                    instance.ContentRevision,
+                    variables)
+                : _formulaEvaluator.Evaluate(instance.Definition.FormulaValue, variables);
             if (formulaValue.IsSuccess)
                 return formulaValue.Value;
         }

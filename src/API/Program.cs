@@ -131,7 +131,11 @@ builder.Services.AddSingleton<IRuntimeFormulaEvaluator, RuntimeFormulaEvaluator>
     var expressionEvaluator = sp.GetRequiredService<IExpressionEvaluator>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("RuntimeFormulaEvaluator"));
-    return new RuntimeFormulaEvaluator(mathEngine, expressionEvaluator, logger);
+    return new RuntimeFormulaEvaluator(
+        mathEngine,
+        expressionEvaluator,
+        logger,
+        sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
 // Register ResourceRegenerationProcessor

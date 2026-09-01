@@ -13,4 +13,5 @@ public interface IEffectContext
     string? SourceActionId { get; }
     string? SourceCardId { get; }
     CombatState? CombatState { get; }
+    string? ContentRevision { get; }
 }

@@ -88,7 +88,8 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
             stacks,
             duration,
             sourceId,
-            GetDefinition(statusId));
+            GetDefinition(statusId),
+            contentRevision: null);
 
     public Result<StatusEffectInstance> ApplyStatus(
         string targetId,
@@ -108,7 +109,8 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
             stacks,
             duration,
             sourceId,
-            GetDefinition(statusId, contentRevision, configName));
+            GetDefinition(statusId, contentRevision, configName),
+            contentRevision);
 
     private Result<StatusEffectInstance> ApplyStatusWithDefinition(
         string targetId,
@@ -118,7 +120,8 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
         int stacks,
         int? duration,
         string? sourceId,
-        Result<StatusEffectDefinition> defResult)
+        Result<StatusEffectDefinition> defResult,
+        string? contentRevision)
     {
         if (string.IsNullOrWhiteSpace(targetId))
             return Result<StatusEffectInstance>.Failure("TargetId cannot be empty");
@@ -161,6 +164,7 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
             Definition = definition,
             TargetId = targetId,
             SourceId = sourceId,
+            ContentRevision = contentRevision,
             Stacks = System.Math.Min(stacks, definition.MaxStacks),
             Duration = duration ?? definition.DefaultDuration,
             AppliedAt = appliedAt,
@@ -591,7 +595,13 @@ public class StatusEffectManager : IStatusEffectManager, IRevisionedStatusEffect
                 ["duration"] = status.Duration
             };
 
-            var formulaValue = _formulaEvaluator.Evaluate(status.Definition.ModifierFormula, variables);
+            var formulaValue = !string.IsNullOrWhiteSpace(status.ContentRevision) &&
+                               _formulaEvaluator is IRevisionedRuntimeFormulaEvaluator revisioned
+                ? revisioned.EvaluateAtRevision(
+                    status.Definition.ModifierFormula,
+                    status.ContentRevision,
+                    variables)
+                : _formulaEvaluator.Evaluate(status.Definition.ModifierFormula, variables);
             if (formulaValue.IsSuccess)
                 return formulaValue.Value;
         }

@@ -452,7 +452,11 @@ public class CombatSystem : ICombatSystem
                 if (basicActionDefinition == null)
                     return Result<bool>.Failure($"Action definition not found: {BasicAttackActionId}");
 
-                var basicAffordabilityError = ValidateActionCosts(actor, basicActionDefinition.Costs, command.CostOptionId);
+                var basicAffordabilityError = ValidateActionCosts(
+                    actor,
+                    basicActionDefinition.Costs,
+                    command.CostOptionId,
+                    state.Determinism.ContentRevision);
                 if (basicAffordabilityError != null)
                     return Result<bool>.Failure(basicAffordabilityError);
                 break;
@@ -470,7 +474,11 @@ public class CombatSystem : ICombatSystem
                 if (actionDefinition.RequiresTarget && string.IsNullOrWhiteSpace(command.TargetId))
                     return Result<bool>.Failure("Target is required for power");
 
-                var affordabilityError = ValidateActionCosts(actor, actionDefinition.Costs, command.CostOptionId);
+                var affordabilityError = ValidateActionCosts(
+                    actor,
+                    actionDefinition.Costs,
+                    command.CostOptionId,
+                    state.Determinism.ContentRevision);
                 if (affordabilityError != null)
                     return Result<bool>.Failure(affordabilityError);
 
@@ -596,7 +604,11 @@ public class CombatSystem : ICombatSystem
         var (modifiedDamage, updatedActor) = ProcessOnDamageTakenEffects(target, actor, damageDealt, state.CurrentTurn);
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
 
-        updatedActor = ApplyCosts(updatedActor, actionDefinition.Costs, costOptionId);
+        updatedActor = ApplyCosts(
+            updatedActor,
+            actionDefinition.Costs,
+            costOptionId,
+            state.Determinism.ContentRevision);
         updatedActor = ApplyActionResourceEffects(
             updatedActor,
             newTarget,
@@ -1086,7 +1098,8 @@ public class CombatSystem : ICombatSystem
     private CombatEntity ApplyCosts(
         CombatEntity actor, 
         ActionCosts costs, 
-        string? costOptionId = null)
+        string? costOptionId = null,
+        string? contentRevision = null)
     {
         var updates = new Dictionary<string, ResourcePool>();
         
@@ -1104,7 +1117,7 @@ public class CombatSystem : ICombatSystem
                 if (pool == null)
                     throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
                 
-                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources);
+                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources, contentRevision);
                 updates[cost.ResourceId] = newPool;
             }
         }
@@ -1117,7 +1130,7 @@ public class CombatSystem : ICombatSystem
                 if (pool == null)
                     throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
                 
-                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources);
+                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources, contentRevision);
                 updates[cost.ResourceId] = newPool;
             }
         }
@@ -1136,19 +1149,27 @@ public class CombatSystem : ICombatSystem
         return result.IsSuccess ? result.Value : null;
     }
 
-    private ResourcePool SpendCost(ResourceCost cost, ResourcePool pool, IReadOnlyDictionary<string, ResourcePool> resources)
+    private ResourcePool SpendCost(
+        ResourceCost cost,
+        ResourcePool pool,
+        IReadOnlyDictionary<string, ResourcePool> resources,
+        string? contentRevision)
     {
         if (_actionCostEvaluator == null)
             return pool.Spend(cost.Amount);
 
-        var spend = _actionCostEvaluator.Spend(cost, pool, resources);
+        var spend = _actionCostEvaluator.Spend(cost, pool, resources, contentRevision);
         if (spend.IsFailure)
             throw new InvalidOperationException(spend.Error);
 
         return spend.Value;
     }
 
-    private string? ValidateActionCosts(CombatEntity actor, ActionCosts costs, string? costOptionId)
+    private string? ValidateActionCosts(
+        CombatEntity actor,
+        ActionCosts costs,
+        string? costOptionId,
+        string? contentRevision)
     {
         var resources = new Dictionary<string, ResourcePool>(actor.ResourceState.Resources);
 
@@ -1161,13 +1182,16 @@ public class CombatSystem : ICombatSystem
             if (option == null)
                 return $"Cost option not found: {costOptionId}";
 
-            return GetCostError(option.Costs, resources);
+            return GetCostError(option.Costs, resources, contentRevision);
         }
 
-        return GetCostError(costs.Costs, resources);
+        return GetCostError(costs.Costs, resources, contentRevision);
     }
 
-    private string? GetCostError(IReadOnlyList<ResourceCost> costs, IReadOnlyDictionary<string, ResourcePool> resources)
+    private string? GetCostError(
+        IReadOnlyList<ResourceCost> costs,
+        IReadOnlyDictionary<string, ResourcePool> resources,
+        string? contentRevision)
     {
         foreach (var cost in costs)
         {
@@ -1181,7 +1205,7 @@ public class CombatSystem : ICombatSystem
                 continue;
             }
 
-            var amount = _actionCostEvaluator.CalculateCost(cost, resources);
+            var amount = _actionCostEvaluator.CalculateCost(cost, resources, contentRevision);
             if (amount.IsFailure)
                 return amount.Error;
 

@@ -18,9 +18,14 @@ public sealed class EffectFormulaEvaluator
     {
         if (!string.IsNullOrEmpty(effect.Definition.FormulaValue))
         {
-            var result = _formulaEvaluator.Evaluate(
+            var variables = BuildVariables(effect, targetId, context);
+            var result = !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+                         _formulaEvaluator is IRevisionedRuntimeFormulaEvaluator revisioned
+                ? revisioned.EvaluateAtRevision(
                 effect.Definition.FormulaValue,
-                BuildVariables(effect, targetId, context));
+                    context.ContentRevision,
+                    variables)
+                : _formulaEvaluator.Evaluate(effect.Definition.FormulaValue, variables);
             if (result.IsSuccess)
                 return result.Value;
 
@@ -36,9 +41,14 @@ public sealed class EffectFormulaEvaluator
         var targetId = string.IsNullOrWhiteSpace(effect.TargetEntityId)
             ? effect.SourceEntityId
             : effect.TargetEntityId;
-        var result = _formulaEvaluator.Evaluate(
-            condition,
-            BuildVariables(effect, targetId, context));
+        var variables = BuildVariables(effect, targetId, context);
+        var result = !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+                     _formulaEvaluator is IRevisionedRuntimeFormulaEvaluator revisioned
+            ? revisioned.EvaluateAtRevision(
+                condition,
+                context.ContentRevision,
+                variables)
+            : _formulaEvaluator.Evaluate(condition, variables);
         if (result.IsFailure)
         {
             _logger.LogWarning($"Failed to evaluate condition for effect {effect.InstanceId}: {result.Error}");

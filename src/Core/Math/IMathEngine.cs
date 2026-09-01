@@ -22,6 +22,16 @@ public interface IMathEngine
         Dictionary<string, float>? paramOverrides = null);
 
     /// <summary>
+    /// Builds an expression from a definition already bound to an immutable
+    /// content revision.
+    /// </summary>
+    MathExpression BuildFromDefinition(
+        string formulaName,
+        FormulaDefinition formula,
+        float inputValue,
+        Dictionary<string, float>? paramOverrides = null);
+
+    /// <summary>
     /// Gets a list of all available formula names.
     /// </summary>
     /// <returns>Enumerable of formula names</returns>

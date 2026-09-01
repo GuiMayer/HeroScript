@@ -120,7 +120,9 @@ public class PipelineManager : IPipelineManager, IRevisionedPipelineManager
         if (runtime.IsFailure)
             throw new InvalidOperationException(runtime.Error);
         var config = _loader.LoadPipeline(runtime.Value, pipelineId);
-        return Execute(initialContext, InstantiateProcessors(config, randomProvider));
+        return Execute(
+            initialContext,
+            InstantiateProcessors(config, randomProvider, runtime.Value));
     }
 
     private DamageContext Execute(DamageContext initialContext, IReadOnlyList<GenericBucketProcessor> processors)
@@ -215,7 +217,8 @@ public class PipelineManager : IPipelineManager, IRevisionedPipelineManager
 
     private List<GenericBucketProcessor> InstantiateProcessors(
         PipelineConfiguration config,
-        IRandomProvider? randomProvider = null)
+        IRandomProvider? randomProvider = null,
+        ContentRuntime? contentRuntime = null)
     {
         _logger.LogDebug($"Instantiating {config.Buckets.Count} bucket processors");
         
@@ -225,7 +228,10 @@ public class PipelineManager : IPipelineManager, IRevisionedPipelineManager
                 _mathEngine,
                 _eventBus,
                 _logger,
-                randomProvider ?? _randomProvider))
+                randomProvider ?? _randomProvider,
+                contentRuntime == null
+                    ? null
+                    : formulaId => contentRuntime.GetDefinition<FormulaDefinition>("formulas", formulaId)))
             .ToList();
     }
 

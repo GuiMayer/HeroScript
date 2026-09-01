@@ -15,6 +15,7 @@ public record CombatEffectContext : IEffectContext
     public CombatState CombatState { get; init; } = null!;
 
     CombatState? IEffectContext.CombatState => CombatState;
+    public string? ContentRevision => CombatState?.Determinism.ContentRevision;
 
     public static CombatEffectContext FromEffect(EffectInstance effect, CombatState state)
     {

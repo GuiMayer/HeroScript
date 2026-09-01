@@ -1,38 +1,128 @@
 using Core.Common;
 using Core.Logging;
 using System.Globalization;
+using Core.Content;
 
 namespace Core.Math;
 
 public interface IRuntimeFormulaEvaluator
 {
-    Result<float> Evaluate(string expressionOrFormulaId, Dictionary<string, float>? variables = null, float initialValue = 0f);
+    Result<float> Evaluate(
+        string expressionOrFormulaId,
+        Dictionary<string, float>? variables = null,
+        float initialValue = 0f);
+
 }
 
-public sealed class RuntimeFormulaEvaluator : IRuntimeFormulaEvaluator
+public interface IRevisionedRuntimeFormulaEvaluator : IRuntimeFormulaEvaluator
+{
+    Result<float> EvaluateAtRevision(
+        string expressionOrFormulaId,
+        string contentRevision,
+        Dictionary<string, float>? variables = null,
+        float initialValue = 0f);
+}
+
+public sealed class RuntimeFormulaEvaluator : IRevisionedRuntimeFormulaEvaluator
 {
     private readonly IMathEngine _mathEngine;
     private readonly IExpressionEvaluator _expressionEvaluator;
     private readonly ILogger _logger;
+    private readonly IContentRuntimeResolver? _contentRuntimes;
 
-    public RuntimeFormulaEvaluator(IMathEngine mathEngine, IExpressionEvaluator expressionEvaluator, ILogger logger)
+    public RuntimeFormulaEvaluator(
+        IMathEngine mathEngine,
+        IExpressionEvaluator expressionEvaluator,
+        ILogger logger,
+        IContentRuntimeResolver? contentRuntimes = null)
     {
         _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
         _expressionEvaluator = expressionEvaluator ?? throw new ArgumentNullException(nameof(expressionEvaluator));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _contentRuntimes = contentRuntimes;
     }
 
-    public Result<float> Evaluate(string expressionOrFormulaId, Dictionary<string, float>? variables = null, float initialValue = 0f)
+    public Result<float> Evaluate(
+        string expressionOrFormulaId,
+        Dictionary<string, float>? variables = null,
+        float initialValue = 0f) =>
+        EvaluateCore(expressionOrFormulaId, variables, initialValue, contentRevision: null);
+
+    public Result<float> EvaluateAtRevision(
+        string expressionOrFormulaId,
+        string contentRevision,
+        Dictionary<string, float>? variables = null,
+        float initialValue = 0f) =>
+        EvaluateCore(expressionOrFormulaId, variables, initialValue, contentRevision);
+
+    private Result<float> EvaluateCore(
+        string expressionOrFormulaId,
+        Dictionary<string, float>? variables,
+        float initialValue,
+        string? contentRevision)
     {
         if (string.IsNullOrWhiteSpace(expressionOrFormulaId))
             return Result<float>.Failure("Formula or expression cannot be empty");
 
         variables ??= new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
 
+        if (!string.IsNullOrWhiteSpace(contentRevision) &&
+            !expressionOrFormulaId.Contains(' ', StringComparison.Ordinal))
+        {
+            var revisioned = EvaluateRevisionedFormula(
+                expressionOrFormulaId,
+                contentRevision,
+                variables,
+                initialValue);
+            if (revisioned != null)
+                return revisioned;
+        }
+
         if (IsFormulaId(expressionOrFormulaId))
             return EvaluateFormula(expressionOrFormulaId, variables, initialValue);
 
         return EvaluateInlineExpression(expressionOrFormulaId, variables, initialValue);
+    }
+
+    private Result<float>? EvaluateRevisionedFormula(
+        string formulaId,
+        string contentRevision,
+        Dictionary<string, float> variables,
+        float initialValue)
+    {
+        if (_contentRuntimes == null)
+            return Result<float>.Failure("Revisioned formula runtime is not configured");
+
+        var runtime = _contentRuntimes.Resolve(contentRevision);
+        if (runtime.IsFailure)
+            return Result<float>.Failure(runtime.Error);
+        var definition = runtime.Value.GetDefinition<FormulaDefinition>("formulas", formulaId);
+        if (definition.IsFailure)
+        {
+            // A single numeric/variable token is still a valid inline expression.
+            if (variables.ContainsKey(formulaId) ||
+                float.TryParse(formulaId, NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+                return null;
+            return Result<float>.Failure(definition.Error);
+        }
+
+        try
+        {
+            var expression = _mathEngine.BuildFromDefinition(
+                formulaId,
+                definition.Value,
+                initialValue,
+                variables);
+            return Result<float>.Success(expression.Build());
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                $"Failed to evaluate formula '{formulaId}' from revision '{contentRevision}': {exception.Message}",
+                exception);
+            return Result<float>.Failure(
+                $"Failed to evaluate revisioned formula '{formulaId}': {exception.Message}");
+        }
     }
 
     private Result<float> EvaluateFormula(string formulaId, Dictionary<string, float> variables, float initialValue)

@@ -16,4 +16,5 @@ public record RunEffectContext : IEffectContext
     public string? SourceActionId { get; init; }
     public string? SourceCardId { get; init; }
     public CombatState? CombatState => null;
+    public string? ContentRevision => RunState?.Determinism.ContentRevision;
 }

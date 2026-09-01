@@ -1,6 +1,9 @@
 using Core.Common;
 using Core.Logging;
 using Core.Math;
+using Core.Content;
+using System.Collections.Immutable;
+using System.Text.Json;
 using Moq;
 using Xunit;
 
@@ -79,5 +82,55 @@ public class RuntimeFormulaEvaluatorTests
 
         Assert.True(result.IsFailure);
         Assert.Contains("Invalid inline expression operand", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Evaluate_WithContentRevision_UsesFormulaFromThatImmutableRuntime()
+    {
+        var revision = new string('a', 64);
+        var definition = new FormulaDefinition
+        {
+            Params = new Dictionary<string, float> { ["BONUS"] = 7f },
+            Operations = [new OperationDefinition { Op = "ADD", Value = "params.BONUS" }]
+        };
+        var path = "Pipelines/MathFormulas.json";
+        var bundle = new ContentBundle
+        {
+            Manifest = new ContentManifest
+            {
+                ConfigName = "default",
+                Revision = revision,
+                Artifacts = [new ContentArtifactManifest { Kind = "formulas", Path = path }]
+            },
+            Artifacts = ImmutableDictionary<string, JsonElement>.Empty
+                .WithComparers(StringComparer.Ordinal)
+                .Add(path, JsonSerializer.SerializeToElement(
+                    new Dictionary<string, FormulaDefinition> { ["BONUS_FORMULA"] = definition }))
+        };
+        var runtime = ContentRuntime.Create(bundle).Value;
+        var runtimes = new Mock<IContentRuntimeResolver>();
+        runtimes.Setup(service => service.Resolve(revision, null))
+            .Returns(Result<ContentRuntime>.Success(runtime));
+        _mathEngine.Setup(engine => engine.BuildFromDefinition(
+                "BONUS_FORMULA",
+                It.Is<FormulaDefinition>(formula => formula.Params["BONUS"] == 7f),
+                3f,
+                It.IsAny<Dictionary<string, float>>()))
+            .Returns(new MathExpression(3f).Add(7f));
+        var evaluator = new RuntimeFormulaEvaluator(
+            _mathEngine.Object,
+            new ExpressionEvaluator(NullLogger.Instance),
+            NullLogger.Instance,
+            runtimes.Object);
+
+        var result = evaluator.EvaluateAtRevision(
+            "BONUS_FORMULA",
+            revision,
+            initialValue: 3f);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(10f, result.Value);
+        _mathEngine.Verify(engine => engine.BuildFromFormula(
+            It.IsAny<string>(), It.IsAny<float>(), It.IsAny<Dictionary<string, float>>()), Times.Never);
     }
 }

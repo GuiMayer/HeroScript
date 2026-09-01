@@ -299,7 +299,21 @@ namespace Core.Math
                 throw new ArgumentException($"Formula '{formulaName}' not found in MathFormulas.json");
             }
 
-            // 4. Mesclar parâmetros (defaults + overrides)
+            return BuildFromDefinition(formulaName, formula, inputValue, paramOverrides);
+        }
+
+        public MathExpression BuildFromDefinition(
+            string formulaName,
+            FormulaDefinition formula,
+            float inputValue,
+            Dictionary<string, float>? paramOverrides = null)
+        {
+            ArgumentNullException.ThrowIfNull(formula);
+            ValidateFormulaName(formulaName);
+            ValidateInputValue(inputValue, nameof(inputValue));
+            ValidateParameterOverrides(paramOverrides);
+
+            // Mesclar parâmetros (defaults + overrides)
             var parameters = new Dictionary<string, float>(formula.Params, StringComparer.OrdinalIgnoreCase);
             if (paramOverrides != null)
             {

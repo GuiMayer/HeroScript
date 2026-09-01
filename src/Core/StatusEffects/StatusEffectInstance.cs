@@ -35,6 +35,11 @@ public record StatusEffectInstance
     /// Usado para rastrear origem de efeitos
     /// </summary>
     public string? SourceId { get; init; }
+
+    /// <summary>
+    /// Immutable content revision that owns the status definition and formulas.
+    /// </summary>
+    public string? ContentRevision { get; init; }
     
     // ===== VALORES ATUAIS =====
     
