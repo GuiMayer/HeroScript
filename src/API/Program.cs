@@ -33,7 +33,8 @@ using API.Contracts;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+    options.Filters.Add<ApiProblemDetailsResultFilter>());
 builder.Services.AddProblemDetails();
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
@@ -676,6 +677,7 @@ if (!app.Environment.IsDevelopment())
 app.UseCors();
 app.UseMiddleware<API.Middleware.CorrelationIdMiddleware>();
 app.UseMiddleware<API.Middleware.ApiExceptionMiddleware>();
+app.UseMiddleware<API.Middleware.ApiStatusCodeProblemDetailsMiddleware>();
 app.UseMiddleware<API.Middleware.AdminKeyMiddleware>();
 app.MapControllers();
 

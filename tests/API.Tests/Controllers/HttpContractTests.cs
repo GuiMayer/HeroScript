@@ -32,14 +32,18 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetMissingAction_ReturnsErrorEnvelope()
+    public async Task GetMissingAction_ReturnsProblemDetails()
     {
         using var response = await _client.GetAsync("/api/v1/actions/missing_action");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
         Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
-        Assert.Contains("missing_action", document.RootElement.GetProperty("error").GetString());
+        Assert.Equal("RESOURCE_NOT_FOUND", document.RootElement.GetProperty("code").GetString());
+        Assert.Contains("missing_action", document.RootElement.GetProperty("detail").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(
+            document.RootElement.GetProperty("correlationId").GetString()));
     }
 
     [Fact]

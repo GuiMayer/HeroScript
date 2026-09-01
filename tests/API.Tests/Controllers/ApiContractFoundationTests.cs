@@ -57,6 +57,43 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
+    public async Task LegacyControllerError_IsNormalizedToProblemDetails()
+    {
+        const string correlationId = "legacy-error-contract";
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            "/api/v1/actions/does_not_exist");
+        request.Headers.Add("X-Correlation-ID", correlationId);
+
+        using var response = await _client.SendAsync(request);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("RESOURCE_NOT_FOUND", json.GetProperty("code").GetString());
+        Assert.Equal(correlationId, json.GetProperty("correlationId").GetString());
+        Assert.Contains("does_not_exist", json.GetProperty("detail").GetString());
+    }
+
+    [Theory]
+    [InlineData("/api/v1/no-such-endpoint", HttpStatusCode.NotFound, "RESOURCE_NOT_FOUND")]
+    [InlineData("/api/v1/admin/content/drafts/00000000-0000-0000-0000-000000000001", HttpStatusCode.Unauthorized, "UNAUTHORIZED")]
+    public async Task EmptyInfrastructureError_IsNormalizedToProblemDetails(
+        string path,
+        HttpStatusCode expectedStatus,
+        string expectedCode)
+    {
+        using var response = await _client.GetAsync(path);
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(expectedStatus, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(expectedCode, json.GetProperty("code").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("correlationId").GetString()));
+        Assert.Equal(path, json.GetProperty("instance").GetString());
+    }
+
+    [Fact]
     public async Task ContentRevisionEndpoints_ExposeCanonicalManifest()
     {
         using var listResponse = await _client.GetAsync("/api/v1/content/revisions?configName=default");
