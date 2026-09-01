@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Common;
 using Core.Config;
 using Core.Determinism;
+using Core.Caching;
 
 namespace Core.Content;
 
@@ -10,7 +11,7 @@ namespace Core.Content;
 /// engine. A manifest remains addressable by revision after a refresh so active
 /// runs keep an immutable content identity.
 /// </summary>
-public sealed class ContentManifestProvider : IContentManifestProvider
+public sealed class ContentManifestProvider : IContentManifestProvider, ICacheService
 {
     private static readonly ImmutableArray<ContentSource> Sources =
     [
@@ -60,6 +61,12 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ContentManifest> _manifestsByRevision =
         new(StringComparer.Ordinal);
+    private long _hits;
+    private long _misses;
+    private DateTime? _lastInvalidation;
+
+    public string CacheName => "CurrentContentManifests";
+    public CacheLayer Layer => CacheLayer.Manifest;
 
     public ContentManifestProvider(IConfigManager configManager, IResourceLoader resourceLoader)
     {
@@ -75,7 +82,11 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         lock (_lock)
         {
             if (_currentByConfig.TryGetValue(configName, out var cached))
+            {
+                _hits++;
                 return Result<ContentManifest>.Success(cached);
+            }
+            _misses++;
         }
 
         return BuildAndStore(configName);
@@ -134,6 +145,36 @@ public sealed class ContentManifestProvider : IContentManifestProvider
         }
 
         return Result.Success();
+    }
+
+    public void Invalidate(string? key = null)
+    {
+        lock (_lock)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                _currentByConfig.Clear();
+            else
+                _currentByConfig.Remove(key);
+            _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
+        }
+    }
+
+    public CacheServiceStats GetStats()
+    {
+        lock (_lock)
+        {
+            var requests = _hits + _misses;
+            return new CacheServiceStats
+            {
+                CacheName = CacheName,
+                Capacity = int.MaxValue,
+                Count = _currentByConfig.Count,
+                Hits = _hits,
+                Misses = _misses,
+                HitRate = requests == 0 ? 0 : (double)_hits / requests,
+                LastInvalidation = _lastInvalidation
+            };
+        }
     }
 
     private Result<ContentManifest> BuildAndStore(string configName)

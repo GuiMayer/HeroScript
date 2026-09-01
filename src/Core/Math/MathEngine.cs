@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Core.Caching;
 
 namespace Core.Math
 {
@@ -68,7 +69,7 @@ namespace Core.Math
     /// em objetos MathExpression executáveis.
     /// Suporta herança delta: configs podem herdar fórmulas de configs pai.
     /// </summary>
-    public class MathEngine : IMathEngine
+    public class MathEngine : IMathEngine, ICacheService
     {
         private readonly object _cacheLock = new();
         private readonly Config.IConfigManager _configManager;
@@ -81,6 +82,12 @@ namespace Core.Math
         
         // Cache de origens das fórmulas (para introspecção)
         private Dictionary<string, string>? _formulaOrigins;
+        private long _cacheHits;
+        private long _cacheMisses;
+        private DateTime? _lastInvalidation;
+
+        public string CacheName => "CompiledMathFormulas";
+        public CacheLayer Layer => CacheLayer.Derived;
 
         /// <summary>
         /// Constructor for dependency injection
@@ -107,12 +114,20 @@ namespace Core.Math
         private Dictionary<string, FormulaDefinition> LoadFormulas()
         {
             if (_formulaCache != null)
+            {
+                Interlocked.Increment(ref _cacheHits);
                 return _formulaCache;
+            }
 
             lock (_cacheLock)
             {
                 if (_formulaCache != null)
+                {
+                    Interlocked.Increment(ref _cacheHits);
                     return _formulaCache;
+                }
+
+                Interlocked.Increment(ref _cacheMisses);
 
                 _logger.LogDebug($"Loading formulas for config '{_configManager.CurrentConfig}'");
 
@@ -153,6 +168,8 @@ namespace Core.Math
             {
                 _formulaCache = null;
                 _formulaOrigins = null;
+                _formulaLoader.InvalidateCache();
+                _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
                 _logger.LogDebug("Formula cache invalidated");
             }
         }
@@ -181,6 +198,26 @@ namespace Core.Math
                 }
 
                 return stats;
+            }
+        }
+
+        void ICacheService.Invalidate(string? key) => InvalidateCache();
+
+        CacheServiceStats ICacheService.GetStats()
+        {
+            lock (_cacheLock)
+            {
+                var requests = _cacheHits + _cacheMisses;
+                return new CacheServiceStats
+                {
+                    CacheName = CacheName,
+                    Capacity = int.MaxValue,
+                    Count = _formulaCache?.Count ?? 0,
+                    Hits = _cacheHits,
+                    Misses = _cacheMisses,
+                    HitRate = requests == 0 ? 0 : (double)_cacheHits / requests,
+                    LastInvalidation = _lastInvalidation
+                };
             }
         }
 

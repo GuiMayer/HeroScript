@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Core.Common;
+using Core.Caching;
 
 namespace Core.Config;
 
@@ -14,7 +15,7 @@ public interface IResourceCatalog<TDefinition>
     void Invalidate(string? id = null);
 }
 
-public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>
+public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>, ICacheService
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -23,6 +24,12 @@ public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly Dictionary<string, TDefinition> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
+    private long _hits;
+    private long _misses;
+    private DateTime? _lastInvalidation;
+
+    public string CacheName => $"Definitions:{_relativeDirectory.Replace('\\', '/')}";
+    public CacheLayer Layer => CacheLayer.Definition;
 
     public ResourceCatalog(
         IConfigManager configManager,
@@ -49,7 +56,11 @@ public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>
         lock (_lock)
         {
             if (_cache.TryGetValue(cacheKey, out var cached))
+            {
+                _hits++;
                 return Result<TDefinition>.Success(cached);
+            }
+            _misses++;
         }
 
         try
@@ -103,11 +114,31 @@ public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>
             if (string.IsNullOrWhiteSpace(id))
             {
                 _cache.Clear();
+                _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
                 return;
             }
 
             foreach (var key in _cache.Keys.Where(k => k.EndsWith($"::{id}", StringComparison.OrdinalIgnoreCase)).ToList())
                 _cache.Remove(key);
+            _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
+        }
+    }
+
+    CacheServiceStats ICacheService.GetStats()
+    {
+        lock (_lock)
+        {
+            var requests = _hits + _misses;
+            return new CacheServiceStats
+            {
+                CacheName = CacheName,
+                Capacity = int.MaxValue,
+                Count = _cache.Count,
+                Hits = _hits,
+                Misses = _misses,
+                HitRate = requests == 0 ? 0 : (double)_hits / requests,
+                LastInvalidation = _lastInvalidation
+            };
         }
     }
 

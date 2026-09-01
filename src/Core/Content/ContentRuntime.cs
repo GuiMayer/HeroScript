@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Core.Caching;
 using Core.Common;
 
 namespace Core.Content;
@@ -119,11 +120,18 @@ public interface IContentRuntimeResolver
 /// Process-wide cache of immutable runtimes. A revision is content-addressed,
 /// so it is safe for every run using that revision to share the same instance.
 /// </summary>
-public sealed class ContentRuntimeResolver : IContentRuntimeResolver
+public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheService
 {
     private readonly IContentPublicationService _publications;
     private readonly ConcurrentDictionary<string, ContentRuntime> _runtimes =
         new(StringComparer.Ordinal);
+    private long _hits;
+    private long _misses;
+    private DateTime? _lastInvalidation;
+
+    public string CacheName => "RevisionedContentRuntimes";
+    public CacheLayer Layer => CacheLayer.Revisioned;
+    public bool PreserveAcrossGlobalInvalidation => true;
 
     public ContentRuntimeResolver(IContentPublicationService publications)
     {
@@ -136,6 +144,7 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver
             return Result<ContentRuntime>.Failure("Content revision is required");
         if (_runtimes.TryGetValue(revision, out var cached))
         {
+            Interlocked.Increment(ref _hits);
             if (!string.IsNullOrWhiteSpace(configName) &&
                 !string.Equals(cached.Manifest.ConfigName, configName, StringComparison.OrdinalIgnoreCase))
             {
@@ -146,6 +155,7 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver
 
             return Result<ContentRuntime>.Success(cached);
         }
+        Interlocked.Increment(ref _misses);
 
         var bundle = _publications
             .ResolveBundleAsync(revision, configName)
@@ -168,9 +178,28 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver
         if (string.IsNullOrWhiteSpace(revision))
         {
             _runtimes.Clear();
+            _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
             return;
         }
 
         _runtimes.TryRemove(revision, out _);
+        _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
+    }
+
+    public CacheServiceStats GetStats()
+    {
+        var hits = Interlocked.Read(ref _hits);
+        var misses = Interlocked.Read(ref _misses);
+        var requests = hits + misses;
+        return new CacheServiceStats
+        {
+            CacheName = CacheName,
+            Capacity = int.MaxValue,
+            Count = _runtimes.Count,
+            Hits = hits,
+            Misses = misses,
+            HitRate = requests == 0 ? 0 : (double)hits / requests,
+            LastInvalidation = _lastInvalidation
+        };
     }
 }

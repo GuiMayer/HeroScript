@@ -4,7 +4,7 @@ namespace Core.Caching;
 /// Centralized registry for cache monitoring.
 /// Allows aggregating statistics from multiple cache implementations.
 /// </summary>
-public sealed class CacheRegistry
+public sealed class CacheRegistry : ICacheCoordinator
 {
     private static readonly Lazy<CacheRegistry> _instance = new(() => new CacheRegistry());
     private readonly Dictionary<string, ICacheService> _caches = new(StringComparer.OrdinalIgnoreCase);
@@ -12,7 +12,7 @@ public sealed class CacheRegistry
 
     public static CacheRegistry Instance => _instance.Value;
 
-    private CacheRegistry()
+    public CacheRegistry()
     {
     }
 
@@ -48,7 +48,11 @@ public sealed class CacheRegistry
     {
         lock (_lock)
         {
-            return _caches.Keys.ToList();
+            return _caches.Values
+                .OrderBy(cache => cache.Layer)
+                .ThenBy(cache => cache.CacheName, StringComparer.Ordinal)
+                .Select(cache => cache.CacheName)
+                .ToList();
         }
     }
 
@@ -73,6 +77,8 @@ public sealed class CacheRegistry
         lock (_lock)
         {
             return _caches.Values
+                .OrderBy(cache => cache.Layer)
+                .ThenBy(cache => cache.CacheName, StringComparer.Ordinal)
                 .Select(c => c.GetStats())
                 .ToList();
         }
@@ -81,15 +87,50 @@ public sealed class CacheRegistry
     /// <summary>
     /// Invalidates a specific cache.
     /// </summary>
-    public void InvalidateCache(string cacheName, string? key = null)
+    public bool InvalidateCache(string cacheName, string? key = null)
     {
+        ICacheService? cache;
         lock (_lock)
         {
-            if (_caches.TryGetValue(cacheName, out var cache))
-            {
-                cache.Invalidate(key);
-            }
+            _caches.TryGetValue(cacheName, out cache);
         }
+
+        if (cache == null)
+            return false;
+
+        cache.Invalidate(key);
+        return true;
+    }
+
+    public CacheInvalidationReport InvalidateAll(string? key = null, bool includeRevisioned = false)
+    {
+        ICacheService[] ordered;
+        lock (_lock)
+        {
+            ordered = _caches.Values
+                .OrderBy(cache => cache.Layer)
+                .ThenBy(cache => cache.CacheName, StringComparer.Ordinal)
+                .ToArray();
+        }
+
+        var entries = new List<CacheInvalidationEntry>(ordered.Length);
+        foreach (var cache in ordered)
+        {
+            if (cache.PreserveAcrossGlobalInvalidation && !includeRevisioned)
+            {
+                entries.Add(new CacheInvalidationEntry(
+                    cache.CacheName,
+                    cache.Layer,
+                    false,
+                    "revision-addressed cache preserved"));
+                continue;
+            }
+
+            cache.Invalidate(key);
+            entries.Add(new CacheInvalidationEntry(cache.CacheName, cache.Layer, true));
+        }
+
+        return new CacheInvalidationReport(entries);
     }
 
     /// <summary>

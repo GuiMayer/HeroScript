@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Core.Logging;
+using Core.Caching;
 
 namespace Core.Config
 {
@@ -13,7 +14,7 @@ namespace Core.Config
     /// Loader universal de recursos JSON com suporte a herança delta.
     /// Funciona como um mod loader genérico para qualquer tipo de recurso do jogo.
     /// </summary>
-    public class ResourceLoader : IResourceLoader
+    public class ResourceLoader : IResourceLoader, ICacheService
     {
         // Cache: resource path + resolved config chain -> (resourceId -> JsonElement)
         private readonly Dictionary<ResourceCacheKey, Dictionary<string, JsonElement>> _cache = new();
@@ -23,6 +24,12 @@ namespace Core.Config
         
         private readonly object _cacheLock = new();
         private readonly ILogger _logger;
+        private long _cacheHits;
+        private long _cacheMisses;
+        private DateTime? _lastInvalidation;
+
+        public string CacheName => "RawResources";
+        public CacheLayer Layer => CacheLayer.Source;
 
         // NOVO: Resolver de caminhos
         private ResourcePathResolver? _pathResolver;
@@ -70,7 +77,11 @@ namespace Core.Config
 
                 // Verificar cache
                 if (_cache.TryGetValue(cacheKey, out var cached))
+                {
+                    _cacheHits++;
                     return cached;
+                }
+                _cacheMisses++;
 
                 _logger.LogDebug($"Loading resource: {relativePath}");
                 _logger.LogDebug($"Config chain: {string.Join(" -> ", chain)}");
@@ -175,7 +186,11 @@ namespace Core.Config
             lock (_cacheLock)
             {
                 if (_cache.TryGetValue(cacheKey, out var cached))
+                {
+                    _cacheHits++;
                     return cached;
+                }
+                _cacheMisses++;
             }
 
             _logger.LogDebug($"Loading resource async: {relativePath}");
@@ -439,6 +454,27 @@ namespace Core.Config
                     _originCache.Clear();
                     _logger.LogInformation("All cache invalidated");
                 }
+                _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
+            }
+        }
+
+        void ICacheService.Invalidate(string? key) => InvalidateCache(key);
+
+        CacheServiceStats ICacheService.GetStats()
+        {
+            lock (_cacheLock)
+            {
+                var requests = _cacheHits + _cacheMisses;
+                return new CacheServiceStats
+                {
+                    CacheName = CacheName,
+                    Capacity = int.MaxValue,
+                    Count = _cache.Count,
+                    Hits = _cacheHits,
+                    Misses = _cacheMisses,
+                    HitRate = requests == 0 ? 0 : (double)_cacheHits / requests,
+                    LastInvalidation = _lastInvalidation
+                };
             }
         }
 

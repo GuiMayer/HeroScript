@@ -3,10 +3,11 @@ using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
 using Core.Content;
+using Core.Caching;
 
 namespace Core.Run.Content;
 
-public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardContentCatalog
+public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardContentCatalog, ICacheService
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -14,6 +15,12 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
     private readonly object _lock = new();
     private readonly Dictionary<string, IReadOnlyDictionary<string, CardContentDefinition>> _cardsByConfig = new(StringComparer.OrdinalIgnoreCase);
     private readonly IContentRuntimeResolver? _contentRuntimes;
+    private long _hits;
+    private long _misses;
+    private DateTime? _lastInvalidation;
+
+    public string CacheName => "Definitions:cards";
+    public CacheLayer Layer => CacheLayer.Definition;
 
     public CardContentCatalog(
         IConfigManager configManager,
@@ -93,6 +100,27 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
         lock (_lock)
         {
             _cardsByConfig.Clear();
+            _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
+        }
+    }
+
+    void ICacheService.Invalidate(string? key) => Invalidate();
+
+    public CacheServiceStats GetStats()
+    {
+        lock (_lock)
+        {
+            var requests = _hits + _misses;
+            return new CacheServiceStats
+            {
+                CacheName = CacheName,
+                Capacity = int.MaxValue,
+                Count = _cardsByConfig.Count,
+                Hits = _hits,
+                Misses = _misses,
+                HitRate = requests == 0 ? 0 : (double)_hits / requests,
+                LastInvalidation = _lastInvalidation
+            };
         }
     }
 
@@ -101,7 +129,11 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
         lock (_lock)
         {
             if (_cardsByConfig.TryGetValue(configName, out var cached))
+            {
+                _hits++;
                 return Result<IReadOnlyDictionary<string, CardContentDefinition>>.Success(cached);
+            }
+            _misses++;
 
             try
             {

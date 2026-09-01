@@ -14,9 +14,9 @@ namespace API.Controllers;
 public class DiagnosticsController : ControllerBase
 {
     private readonly CoreLogger _logger;
-    private readonly CacheRegistry _cacheRegistry;
+    private readonly ICacheCoordinator _cacheRegistry;
 
-    public DiagnosticsController(CoreLogger logger, CacheRegistry cacheRegistry)
+    public DiagnosticsController(CoreLogger logger, ICacheCoordinator cacheRegistry)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _cacheRegistry = cacheRegistry ?? throw new ArgumentNullException(nameof(cacheRegistry));

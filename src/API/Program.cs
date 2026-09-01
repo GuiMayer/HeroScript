@@ -90,6 +90,8 @@ builder.Services.AddSingleton<IConfigManager, ConfigManager>(sp =>
 builder.Services.AddSingleton<ConfigValidator>();
 
 builder.Services.AddSingleton<ResourceProviderFactory>();
+builder.Services.AddSingleton<CacheRegistry>();
+builder.Services.AddSingleton<ICacheCoordinator>(sp => sp.GetRequiredService<CacheRegistry>());
 builder.Services.AddSingleton<IResourceLoader, ResourceLoader>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
@@ -158,9 +160,6 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
         sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
-// Register CacheRegistry (singleton for centralized cache management)
-builder.Services.AddSingleton(CacheRegistry.Instance);
-
 // Register EntityDefinitionLoader
 builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
 {
@@ -176,10 +175,6 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
         persister: persister,
         contentRuntimes: sp.GetRequiredService<IContentRuntimeResolver>());
     
-    // Register with CacheRegistry
-    var registry = sp.GetRequiredService<CacheRegistry>();
-    registry.Register(loader);
-    
     return loader;
 });
 
@@ -191,10 +186,6 @@ builder.Services.AddSingleton<PhaseSequenceLoader>(sp =>
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var loader = new PhaseSequenceLoader(logger, configManager, resourceLoader);
-    
-    // Register with CacheRegistry
-    var registry = sp.GetRequiredService<CacheRegistry>();
-    registry.Register(loader);
     
     return loader;
 });
@@ -578,6 +569,35 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// Cache membership is explicit and complete. The coordinator orders broad
+// invalidations by dependency and preserves revision-addressed runtimes unless
+// an administrator explicitly requests their removal.
+var cacheCoordinator = app.Services.GetRequiredService<ICacheCoordinator>();
+var applicationCaches = new ICacheService[]
+{
+    (ICacheService)app.Services.GetRequiredService<IResourceLoader>(),
+    app.Services.GetRequiredService<EntityDefinitionLoader>(),
+    app.Services.GetRequiredService<PhaseSequenceLoader>(),
+    (ICacheService)app.Services.GetRequiredService<IMathEngine>(),
+    (ICacheService)app.Services.GetRequiredService<IContentManifestProvider>(),
+    (ICacheService)app.Services.GetRequiredService<IContentRuntimeResolver>(),
+    (ICacheService)app.Services.GetRequiredService<ICardContentCatalog>(),
+    (ICacheService)app.Services.GetRequiredService<ICardPoolResolver>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<FlowRulesDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CombatRulesDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<ReplayPolicyDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<TimelinePolicyDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<ContentBindingPolicyDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<DailyChallengeDefinition>>()
+};
+foreach (var cache in applicationCaches)
+    cacheCoordinator.Register(cache);
 
 // Configure Core library logging
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();

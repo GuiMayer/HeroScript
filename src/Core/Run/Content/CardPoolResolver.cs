@@ -3,10 +3,11 @@ using System.Text.Json.Serialization;
 using Core.Common;
 using Core.Config;
 using Core.Content;
+using Core.Caching;
 
 namespace Core.Run.Content;
 
-public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolResolver
+public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolResolver, ICacheService
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -15,6 +16,12 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
     private readonly object _lock = new();
     private readonly Dictionary<string, CardPoolDefinition> _poolsByConfigAndId = new(StringComparer.OrdinalIgnoreCase);
     private readonly IContentRuntimeResolver? _contentRuntimes;
+    private long _hits;
+    private long _misses;
+    private DateTime? _lastInvalidation;
+
+    public string CacheName => "Definitions:card-pools";
+    public CacheLayer Layer => CacheLayer.Definition;
 
     public CardPoolResolver(
         IConfigManager configManager,
@@ -110,6 +117,27 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
         lock (_lock)
         {
             _poolsByConfigAndId.Clear();
+            _lastInvalidation = DateTime.UtcNow; // nondeterministic-boundary: operational telemetry
+        }
+    }
+
+    void ICacheService.Invalidate(string? key) => Invalidate();
+
+    public CacheServiceStats GetStats()
+    {
+        lock (_lock)
+        {
+            var requests = _hits + _misses;
+            return new CacheServiceStats
+            {
+                CacheName = CacheName,
+                Capacity = int.MaxValue,
+                Count = _poolsByConfigAndId.Count,
+                Hits = _hits,
+                Misses = _misses,
+                HitRate = requests == 0 ? 0 : (double)_hits / requests,
+                LastInvalidation = _lastInvalidation
+            };
         }
     }
 
@@ -119,7 +147,11 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
         {
             var cacheKey = CacheKey(configName, poolId);
             if (_poolsByConfigAndId.TryGetValue(cacheKey, out var cached))
+            {
+                _hits++;
                 return Result<CardPoolDefinition>.Success(cached);
+            }
+            _misses++;
 
             try
             {
