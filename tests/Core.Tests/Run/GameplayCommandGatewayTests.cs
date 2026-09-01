@@ -4,6 +4,7 @@ using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Determinism;
 using Core.Run;
+using Core.Events;
 using Moq;
 using Xunit;
 
@@ -107,7 +108,8 @@ public sealed class GameplayCommandGatewayTests
             processor,
             Mock.Of<IRunManager>(),
             combats ?? Mock.Of<ICombatRunCoordinator>(),
-            Mock.Of<IActionManager>());
+            Mock.Of<IActionManager>(),
+            new GameEventContextAccessor());
     }
 
     private static RunCommandReceipt Receipt(Guid runId, Guid commandId, string type) => new()

@@ -14,7 +14,14 @@ public sealed record RunProjectionEvent
     public Guid RunId { get; init; }
     public Guid? CombatId { get; init; }
     public Guid? CommandId { get; init; }
+    public Guid CorrelationId { get; init; }
     public DateTime Timestamp { get; init; } = DateTime.UnixEpoch;
+    public string ConfigName { get; init; } = string.Empty;
+    public string ContentRevision { get; init; } = string.Empty;
+    public ulong Seed { get; init; }
+    public int? ExpectedSequence { get; init; }
+    public ulong? ExpectedStep { get; init; }
+    public string CommandPayloadHash { get; init; } = string.Empty;
     public string PreviousStateHash { get; init; } = string.Empty;
     public string StateHash { get; init; } = string.Empty;
     public JsonElement Payload { get; init; }
@@ -107,7 +114,17 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
             RunId = entry.RunId,
             CombatId = resolvedCombatId,
             CommandId = entry.CommandId,
+            CorrelationId = entry.CommandId ?? DeterministicId.Create(
+                checkpoint.State.Determinism.Seed,
+                checked((ulong)entry.Sequence),
+                $"run-correlation:{entry.CommandType}"),
             Timestamp = entry.LogicalTimestamp,
+            ConfigName = checkpoint.State.ConfigName,
+            ContentRevision = checkpoint.State.Determinism.ContentRevision,
+            Seed = checkpoint.State.Determinism.Seed,
+            ExpectedSequence = entry.ExpectedSequence,
+            ExpectedStep = entry.ExpectedStep,
+            CommandPayloadHash = entry.CommandPayloadHash,
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
             Payload = entry.Command.Clone()

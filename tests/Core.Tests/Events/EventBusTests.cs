@@ -1,6 +1,8 @@
 using Core.Events;
 using Core.Events.Domain;
 using Core.Logging;
+using Core.Infrastructure.Persistence;
+using Core.Abstractions.Persistence;
 using Xunit;
 
 namespace Core.Tests.Events;
@@ -279,5 +281,58 @@ public class EventBusTests
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => 
             _eventBus.Publish<ConfigLoadedEvent>(null!));
+    }
+
+    [Fact]
+    public void Publish_EnrichesEveryGameEventFromAmbientAndEventMetadata()
+    {
+        var accessor = new GameEventContextAccessor();
+        var eventBus = new EventBus(NullLogger.Instance, contextAccessor: accessor);
+        var runId = Guid.NewGuid();
+        var combatId = Guid.NewGuid();
+        var commandId = Guid.NewGuid();
+
+        using (accessor.Push(new GameEventContext
+        {
+            TraceId = "request-42",
+            RunId = runId,
+            CommandId = commandId,
+            CorrelationId = commandId
+        }))
+        {
+            eventBus.Publish(new CombatStartedEvent { CombatId = combatId });
+        }
+
+        var published = Assert.IsType<CombatStartedEvent>(Assert.Single(eventBus.GetEventHistory()));
+        Assert.Equal("request-42", published.Context.TraceId);
+        Assert.Equal(runId, published.Context.RunId);
+        Assert.Equal(combatId, published.Context.CombatId);
+        Assert.Equal(commandId, published.Context.CommandId);
+        Assert.Equal(commandId, published.CorrelationId);
+    }
+
+    [Fact]
+    public async Task Publish_IsDurableBeforeReturning_AndSequenceContinuesAfterRestart()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), $"heroscript-bus-{Guid.NewGuid():N}");
+        try
+        {
+            using var store = new JsonFileEventStore(directory, NullLogger.Instance);
+            var first = new EventBus(NullLogger.Instance, store);
+            first.Publish(new ConfigLoadedEvent { ConfigName = "first" });
+
+            Assert.Single(await store.GetEventsAsync(new EventStoreFilter()));
+
+            var restarted = new EventBus(NullLogger.Instance, store);
+            restarted.Publish(new ConfigLoadedEvent { ConfigName = "second" });
+            var events = await store.GetEventsAsync(new EventStoreFilter(Limit: 10));
+
+            Assert.Equal(new[] { 0, 1 }, events.Cast<GameEvent>().Select(item => item.Sequence));
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+                Directory.Delete(directory, recursive: true);
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Abstractions.Events;
 
 namespace Core.Events;
 
@@ -6,7 +7,7 @@ namespace Core.Events;
 /// Evento imutável do jogo com estrutura completa para Event Sourcing.
 /// Baseado na estrutura LogEntry da arquitetura.
 /// </summary>
-public record GameEvent : IEvent
+public record GameEvent : ICorrelatedEvent
 {
     private ImmutableDictionary<string, object> _payload =
         ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
@@ -20,6 +21,9 @@ public record GameEvent : IEvent
     public string EventType { get; init; } = string.Empty;
     public int Turn { get; init; }
     public int Sequence { get; init; }
+    public GameEventContext Context { get; init; } = GameEventContext.Empty;
+    public Guid CorrelationId => Context.CorrelationId ?? Guid.Empty;
+    public Guid? CausationId => Context.CausationId;
     
     // Classificação
     public EventCategory Category { get; init; }

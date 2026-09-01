@@ -3,6 +3,7 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Determinism;
+using Core.Events;
 
 namespace Core.Run;
 
@@ -36,18 +37,21 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
     private readonly IRunManager _runs;
     private readonly ICombatRunCoordinator _combats;
     private readonly IActionManager _actions;
+    private readonly IGameEventContextAccessor _eventContext;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     public GameplayCommandGateway(
         IRunCommandProcessor commands,
         IRunManager runs,
         ICombatRunCoordinator combats,
-        IActionManager actions)
+        IActionManager actions,
+        IGameEventContextAccessor eventContext)
     {
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
         _runs = runs ?? throw new ArgumentNullException(nameof(runs));
         _combats = combats ?? throw new ArgumentNullException(nameof(combats));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
+        _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
     }
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId) =>
@@ -63,6 +67,20 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         if (normalized.IsFailure)
             return Result<GameplayCommandResult>.Failure(normalized.Error);
         command = normalized.Value;
+
+        var currentRun = _runs.GetRun(runId);
+        using var contextScope = _eventContext.Push(new GameEventContext
+        {
+            CorrelationId = command.Identity.CommandId,
+            RunId = runId,
+            CombatId = combatId,
+            CommandId = command.Identity.CommandId,
+            ExpectedRunSequence = command.Identity.ExpectedSequence,
+            ExpectedRunStep = command.Identity.ExpectedStep,
+            ContentRevision = currentRun is { IsSuccess: true }
+                ? currentRun.Value.Determinism.ContentRevision
+                : string.Empty
+        });
 
         try
         {

@@ -87,6 +87,43 @@ public sealed class JsonFileEventStoreTests : IDisposable
         Assert.Equal(20, results.Count);
     }
 
+    [Fact]
+    public async Task GetEvents_ContextFilters_ReturnOnlyExactRunAndCombat()
+    {
+        var runId = Guid.NewGuid();
+        var combatId = Guid.NewGuid();
+        await _store.AppendAsync(new TestGameEvent("Match", 4)
+        {
+            Context = new GameEventContext { RunId = runId, CombatId = combatId }
+        });
+        await _store.AppendAsync(new TestGameEvent("OtherRun", 5)
+        {
+            Context = new GameEventContext { RunId = Guid.NewGuid(), CombatId = combatId }
+        });
+        await _store.AppendAsync(new TestGameEvent("OtherCombat", 6)
+        {
+            Context = new GameEventContext { RunId = runId, CombatId = Guid.NewGuid() }
+        });
+
+        var results = await _store.GetEventsAsync(new EventStoreFilter(
+            RunId: runId,
+            CombatId: combatId));
+
+        var result = Assert.Single(results);
+        Assert.Equal("Match", result.EventType);
+        Assert.Equal(runId, Assert.IsType<GameEvent>(result).Context.RunId);
+        Assert.Equal(combatId, Assert.IsType<GameEvent>(result).Context.CombatId);
+    }
+
+    [Fact]
+    public async Task GetLastSequence_ReturnsGreatestDurableSequence()
+    {
+        await _store.AppendAsync(new TestGameEvent("Later", 12));
+        await _store.AppendAsync(new TestGameEvent("Earlier", 3));
+
+        Assert.Equal(12, await _store.GetLastSequenceAsync());
+    }
+
     public void Dispose()
     {
         _store.Dispose();

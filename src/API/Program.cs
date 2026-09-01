@@ -62,12 +62,15 @@ var allowConfigReload = builder.Configuration.GetValue<bool>("AllowConfigReload"
 builder.Services.AddSingleton(new ConfigReloadSettings { Enabled = allowConfigReload });
 
 // Register EventBus first (singleton) - must be registered before other services that depend on it
+builder.Services.AddSingleton<IGameEventContextAccessor, GameEventContextAccessor>();
 builder.Services.AddSingleton<IEventBus, EventBus>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EventBus"));
-    // IEventStore is registered later but resolved lazily; use a factory lambda to avoid ordering issues
-    return new EventBus(logger, sp.GetService<IEventStore>());
+    return new EventBus(
+        logger,
+        sp.GetService<IEventStore>(),
+        sp.GetRequiredService<IGameEventContextAccessor>());
 });
 
 // Register Core services with DI
