@@ -1,6 +1,6 @@
 # HeroScript Documentation
 
-**Última atualização:** 2026-05-23
+**Última atualização:** 2026-09-01
 **Versão:** 1.0.0
 
 ---
@@ -36,7 +36,7 @@
 
 ### Events & Effects
 
-- **[EventBus System](systems/events/eventbus-system.md)** - Sistema pub/sub e Event Sourcing
+- **[EventBus System](systems/events/eventbus-system.md)** - Pub/sub e telemetria operacional
 - **[EventBus Implementation](systems/events/eventbus-implementation.md)** - Detalhes de implementação
 - **[Effect System](systems/effects/effect-system.md)** - Sistema de efeitos e modificadores
 
@@ -44,6 +44,7 @@
 
 - **[System Overview](architecture/overview.md)** - Visão geral da arquitetura headless
 - **[Deterministic Runs](architecture/deterministic-runs.md)** - Contrato de estado imutável, persistência e replay
+- **[Cross-cutting Systems](architecture/cross-cutting-systems.md)** - Regras comuns de conteúdo, cache, matemática, comandos, eventos, erros e DI
 - **[Timeline System](architecture/timeline-system.md)** - Sistema de Timeline (Undo/Redo/Simulação)
 - **[Service Patterns](architecture/service-patterns.md)** - Padrões de serviço e injeção de dependências
 
@@ -122,10 +123,10 @@ dotnet run
 # Run all tests
 dotnet test
 
-# Core tests only (1,248 tests)
+# Core tests only
 dotnet test tests/Core.Tests/Core.Tests.csproj
 
-# API tests only (150 tests)
+# API tests only
 dotnet test tests/API.Tests/API.Tests.csproj
 ```
 
@@ -141,8 +142,8 @@ dotnet test tests/API.Tests/API.Tests.csproj
 
 ### Estado Verificado
 
-- **Core.Tests:** 1.306 testes aprovados na última validação completa
-- **API.Tests:** 219 testes aprovados na última validação completa
+- **Core.Tests:** 1.305 testes aprovados na última validação completa
+- **API.Tests:** 220 testes aprovados na última validação completa
 
 ### Phase 0 + Phase 1 + Phase 2
 

@@ -62,6 +62,10 @@ public sealed class ContractDocumentationTests
         Assert.True(properties.TryGetProperty("sequence", out _));
         Assert.True(properties.TryGetProperty("step", out _));
         Assert.True(properties.TryGetProperty("stateHash", out _));
+        Assert.True(properties.TryGetProperty("correlationId", out _));
+        Assert.True(properties.TryGetProperty("contentRevision", out _));
+        Assert.True(properties.TryGetProperty("seed", out _));
+        Assert.True(properties.TryGetProperty("commandPayloadHash", out _));
     }
 
     [Fact]
@@ -77,6 +81,7 @@ public sealed class ContractDocumentationTests
             "docs/api/events.md",
             "docs/api/content-and-platform.md",
             "docs/api/changelog.md",
+            "docs/architecture/cross-cutting-systems.md",
             "examples/http/deterministic-run.http",
             "examples/http/replay-and-events.http",
             "examples/http/content-publication.http",

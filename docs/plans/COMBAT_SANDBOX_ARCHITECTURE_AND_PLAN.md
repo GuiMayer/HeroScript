@@ -17,9 +17,34 @@ Princípios que orientam o desenho:
 5. **Visualizar o passado não o modifica.** Continuar a partir do passado sempre cria uma branch; a run e o combate de origem permanecem intactos.
 6. **Capacidades pertencem ao modo.** Sandbox, theorycraft, modding e jogo publicado podem ativar políticas diferentes sem endpoints de mutação arbitrária.
 
-## 2. Estado atual da engine
+### 1.1 Estado de implementação em 2026-09-01
 
-### 2.1 Capacidades já presentes
+As fases de engine deste plano foram implementadas em ordem e protegidas por
+testes de contrato e integração. A interface visual da Godot permanece uma etapa
+do projeto cliente, mas os contratos necessários já estão disponíveis.
+
+| Fase | Estado | Entrega principal |
+| --- | --- | --- |
+| 0. Contrato e baseline | Concluída | `a79bb71` |
+| 1. Configuração composta | Concluída | `f2f8c99` |
+| 2. Revisões e hot reload | Concluída | `3c71425`, `389cf02`, `cb68116` |
+| 3. Cenários | Concluída | `1416809` |
+| 4. Snapshots | Concluída | `ad61cee` |
+| 5. Timeline | Concluída | `3071470` |
+| 6. Branches de combate | Concluída | `f8e15ae` |
+| 7. Simulações | Concluída | `4e5a095` |
+| 8. Contrato para Godot | Engine concluída; UI externa pendente | `0e7de9f` |
+| 9. Regressão e operabilidade | Concluída e contínua | `a443f84` a `188eb84` |
+
+O endurecimento transversal posterior consolidou imutabilidade profunda,
+conteúdo revisionado, caches coordenados, matemática central, gateway único de
+comandos, validação semântica, telemetria correlacionada, Problem Details, DI e
+concorrência. O contrato vigente está em
+`docs/architecture/cross-cutting-systems.md`.
+
+## 2. Estado da engine na análise original (2026-08-17)
+
+### 2.1 Capacidades presentes na baseline
 
 | Área | Evidência atual | Avaliação para o objetivo |
 |---|---|---|
@@ -35,7 +60,7 @@ Princípios que orientam o desenho:
 | Branches | branch determinística de uma sequência persistida | Parcial: branches de combate ativo são proibidas |
 | Simulações | simulação cria branch isolada e retorna hash final | Parcial: não executa fluxo de combate |
 
-### 2.2 Lacunas confirmadas no código
+### 2.2 Lacunas confirmadas na baseline
 
 1. `GameModeDefinition` contém somente `modeId`, `runDefinitionId`, `allowCustomSeed` e um mapa genérico de `rules`. O `RunManager` efetivamente usa apenas a seleção da run e a regra de seed. O modo ainda não escolhe fluxo, regras de combate, pools, replay, timeline, hot reload ou capacidades.
 2. A publicação de conteúdo já cria bundles imutáveis por hash, e o reload administrativo troca a configuração global. Porém não existe uma ativação de revisão para uma run ativa nem uma entrada de journal que delimite quando uma regra nova começou a valer.
@@ -46,7 +71,7 @@ Princípios que orientam o desenho:
 7. A árvore de branches não existe. A API lista somente filhas diretas da run consultada, não a linhagem completa nem os combates derivados.
 8. A especificação OpenAPI pública cobre a fundação v1, mas ainda não descreve timeline, branches, checkpoints, cenários e a maior parte das leituras de combate que a API já fornece.
 
-### 2.3 Mapa de aderência às etapas acordadas
+### 2.3 Mapa de aderência na baseline
 
 | Etapa proposta | Situação | Justificativa |
 |---|---|---|

@@ -43,14 +43,12 @@ The pseudo-random algorithm is owned and versioned by the engine instead of usin
 UUIDv8 derived from seed, allocation sequence and semantic scope. Simulation time
 comes from the logical clock, never `DateTime.UtcNow`.
 
-## Compatibility rule
+## Version rule
 
 A persisted run records its content and engine versions. A replay must refuse to
 continue when either version is unavailable; silently applying newer rules would
-produce a plausible but invalid run.
-
-Legacy mutable modules are migrated vertically. Until a module uses this contract,
-it must be treated as non-replayable and cannot claim deterministic guarantees.
+produce a plausible but invalid run. Every gameplay module must satisfy this
+contract before it can participate in an authoritative run.
 
 ## Authoritative aggregates
 
@@ -70,7 +68,7 @@ The main modules have narrow responsibilities:
 | Deterministic context | Random cursor, logical time, IDs, engine/content version |
 | Repository | Atomically make an accepted run transition durable |
 | Durable event projection | Derive reconnectable run/combat events from the journal |
-| Event bus | Deliver transient in-process notifications only |
+| Event bus | Deliver correlated observation events and append durable telemetry |
 
 Managers may coordinate these modules, but domain calculations must not retain a
 hidden random cursor, clock, turn meter or partial state in a singleton.
@@ -131,9 +129,10 @@ sequence and command type, and their timestamp is logical time. They therefore
 survive restarts without a second transactional write.
 
 The versioned SSE endpoints read the same projection and honor both
-`afterSequence` and `Last-Event-ID`. The older process-global `EventBus` history
-remains a compatibility/telemetry facility and must never be used for recovery,
-idempotency or replay.
+`afterSequence` and `Last-Event-ID`. The dependency-injected `EventBus` persists
+ordered, correlated operational telemetry and resumes its event sequence after a
+restart. It remains an observation channel: recovery, idempotency and replay use
+the journal, never EventBus storage.
 
 ## Immutable content publication
 
@@ -145,31 +144,30 @@ idempotent; a different payload cannot replace an existing revision.
 
 Draft identifiers, optimistic authoring versions and wall-clock timestamps are
 operational metadata outside the simulation boundary. A published bundle
-contains only its manifest and canonical artifact payloads. Global compatibility
-reload/apply endpoints are administrative and disabled by default; authoritative
+contains only its manifest and canonical artifact payloads. Administrative
+authoring, reload and activation surfaces are disabled by default; authoritative
 gameplay mutations continue to enter through the run or combat command gateway.
 
 ## Run collectibles
 
 Cards owned by engine-version 4 runs have a deterministic `cardInstanceId`
 separate from their content `definitionId`. Deck zones keep ordered instance-id
-lists beside their compatibility definition projections, so duplicate cards can
-move and upgrade independently. An upgrade appends a versioned content delta to
-one immutable card instance; it never edits the shared card definition.
+lists and derived definition projections, so duplicate cards can move and upgrade
+independently. An upgrade appends a versioned content delta to one immutable card
+instance; it never edits the shared card definition.
 
 Relics follow the same aggregate rule. A run stores deterministic relic instance
 ids, stack counts and a copy of the gameplay properties pinned at acquisition.
 `ACQUIRE_RELIC`, `REMOVE_RELIC` and `UPGRADE_CARD` are journaled run commands and
-there are no public endpoints that mutate a global relic or card object. Legacy
-definition-only deck snapshots remain readable but cannot accept instance-level
-upgrades.
+there are no public endpoints that mutate a global relic or card object.
 
 ## Branches, simulations and meta projections
 
 An undo never rewrites history. `run.branch.start` creates a new aggregate from
 an immutable parent checkpoint, records the parent id/sequence/hash and derives
 the branch id from the source deterministic context plus a stable branch key.
-Branches cannot be created while an encounter is active. Semantic replay
+When the checkpoint contains an active encounter, the branch deterministically
+derives a new combat identity and preserves the parent combat. Semantic replay
 reconstructs the same branch from its parent before executing later commands.
 
 Theory-crafting simulations use internal branches whose keys are hashes of the
@@ -185,15 +183,16 @@ submission reexecutes the journal before accepting its proof. TCG legality,
 target and stack endpoints are read models over combat state. Future priority or
 stack mutations must still enter through the combat command gateway.
 
-## Explicit compatibility boundaries
+## Operational nondeterministic boundaries
 
-Some APIs still serve editors, standalone calculators and older callers. They are
-not part of a replayable run unless the caller supplies deterministic inputs:
+Editors, standalone calculators and administrative tools may operate outside a
+replayable run. These surfaces are intentionally separate from gameplay and must
+receive deterministic inputs before their result can enter an authoritative run:
 
 - `DefaultRandomProvider` uses process entropy; the run path passes
   `DeterministicRandomProvider` explicitly;
-- compatibility overloads for status and script modifiers allocate ambient IDs;
-  run/effect transitions call overloads with deterministic IDs and logical time;
+- standalone status and script-modifier helpers may allocate ambient IDs;
+  run/effect transitions require deterministic IDs and logical time;
 - optional entity/session ID helpers are conveniences for external API callers;
 - cache invalidation time and configuration authoring dates are operational
   metadata and never enter a run snapshot or its hash.

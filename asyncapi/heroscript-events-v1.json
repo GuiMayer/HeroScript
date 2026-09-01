@@ -52,7 +52,7 @@
     "schemas": {
       "RunProjectionEvent": {
         "type": "object",
-        "required": ["eventId", "sequence", "step", "eventType", "commandType", "runId", "timestamp", "previousStateHash", "stateHash", "payload"],
+        "required": ["eventId", "sequence", "step", "eventType", "commandType", "runId", "correlationId", "timestamp", "configName", "contentRevision", "seed", "commandPayloadHash", "previousStateHash", "stateHash", "payload"],
         "properties": {
           "eventId": { "type": "string", "format": "uuid" },
           "sequence": { "type": "integer", "minimum": 1 },
@@ -62,7 +62,14 @@
           "runId": { "type": "string", "format": "uuid" },
           "combatId": { "type": "string", "format": "uuid", "nullable": true },
           "commandId": { "type": "string", "format": "uuid", "nullable": true },
+          "correlationId": { "type": "string", "format": "uuid" },
           "timestamp": { "type": "string", "format": "date-time", "description": "Deterministic logical timestamp" },
+          "configName": { "type": "string" },
+          "contentRevision": { "type": "string", "description": "Immutable content revision used by this transition" },
+          "seed": { "type": "integer", "format": "uint64" },
+          "expectedSequence": { "type": "integer", "nullable": true },
+          "expectedStep": { "type": "integer", "format": "uint64", "nullable": true },
+          "commandPayloadHash": { "type": "string", "description": "Canonical SHA-256 of the submitted command payload" },
           "previousStateHash": { "type": "string" },
           "stateHash": { "type": "string" },
           "payload": { "type": "object", "additionalProperties": true }

@@ -3,7 +3,7 @@
   "info": {
     "title": "HeroScript API",
     "version": "v1",
-    "description": "Contrato público para runs determinísticas, conteúdo imutável e replay verificável."
+    "description": "Contrato público para runs determinísticas, conteúdo imutável e replay verificável. Toda resposta não bem-sucedida usa RFC 9457 Problem Details."
   },
   "servers": [
     { "url": "http://localhost:5260", "description": "Desenvolvimento local" }
@@ -515,6 +515,7 @@
       },
       "ProblemDetails": {
         "type": "object",
+        "required": ["type", "title", "status", "detail", "instance", "code", "correlationId"],
         "properties": {
           "type": { "type": "string", "format": "uri-reference" },
           "title": { "type": "string" },
