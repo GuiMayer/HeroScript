@@ -771,6 +771,12 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 return Result<CombatRunEncounterResult>.Failure($"Active run encounter not found: {combatId}");
             if (encounter.Combat.IsActive)
                 return Result<CombatRunEncounterResult>.Failure($"Combat is still active: {combatId}");
+            var resolutionStrategy = runResult.Value.ResolvedMode?.CombatRules.Flow.EncounterResolution.Strategy;
+            if (resolutionStrategy is not null and not EncounterResolutionStrategy.ManualAck)
+            {
+                return Result<CombatRunEncounterResult>.Failure(
+                    $"Encounter resolution strategy is not executable: {resolutionStrategy}");
+            }
 
             var versionValidation = ValidateRunVersion(runResult.Value, commandIdentity, useCombatStep: true);
             if (versionValidation.IsFailure)

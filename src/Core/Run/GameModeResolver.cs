@@ -2,6 +2,7 @@ using Core.Common;
 using Core.Combat.Flow;
 using Core.Config;
 using Core.Content;
+using Core.Logging;
 using Core.Run.Content;
 
 namespace Core.Run;
@@ -33,6 +34,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     private readonly ICardPoolResolver? _cardPools;
     private readonly IResourceCatalog<EnemyPoolDefinition>? _enemyPools;
     private readonly IContentRuntimeResolver? _contentRuntimes;
+    private readonly ILogger? _logger;
 
     public GameModeResolver(
         IResourceCatalog<GameModeDefinition> modes,
@@ -44,7 +46,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         IResourceCatalog<CapabilityPolicyDefinition> capabilityPolicies,
         ICardPoolResolver? cardPools = null,
         IResourceCatalog<EnemyPoolDefinition>? enemyPools = null,
-        IContentRuntimeResolver? contentRuntimes = null)
+        IContentRuntimeResolver? contentRuntimes = null,
+        ILogger? logger = null)
     {
         _modes = modes ?? throw new ArgumentNullException(nameof(modes));
         _flowRules = flowRules ?? throw new ArgumentNullException(nameof(flowRules));
@@ -56,6 +59,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         _cardPools = cardPools;
         _enemyPools = enemyPools;
         _contentRuntimes = contentRuntimes;
+        _logger = logger;
     }
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName)
@@ -96,6 +100,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             return Result<ResolvedGameMode>.Failure(string.Join("; ", errors.Where(error => error != null)));
         }
 
+        WarnReservedPolicies(combat.Value);
         var policyValidation = ValidatePolicies(
             combat.Value,
             replay.Value,
@@ -183,6 +188,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             return Result<ResolvedGameMode>.Failure(string.Join("; ", errors.Where(error => error != null)));
         }
 
+        WarnReservedPolicies(combat.Value);
         var policyValidation = ValidatePolicies(
             combat.Value,
             replay.Value,
@@ -248,6 +254,22 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         }
 
         return Result.Success();
+    }
+
+    private void WarnReservedPolicies(CombatRulesDefinition combat)
+    {
+        if (combat.Flow.Reactions.Strategy != ReactionStrategy.Disabled)
+        {
+            _logger?.LogWarning(
+                $"Combat rules '{combat.CombatRulesId}' requested reaction strategy " +
+                $"'{combat.Flow.Reactions.Strategy}', but reactions are not implemented");
+        }
+        if (combat.Flow.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
+        {
+            _logger?.LogWarning(
+                $"Combat rules '{combat.CombatRulesId}' requested encounter resolution strategy " +
+                $"'{combat.Flow.EncounterResolution.Strategy}', but only ManualAck is implemented");
+        }
     }
 
     private static Result<T> GetRequired<T>(

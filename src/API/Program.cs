@@ -366,7 +366,8 @@ builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>(),
     sp.GetRequiredService<ICardPoolResolver>(),
     sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
-    sp.GetRequiredService<IContentRuntimeResolver>()));
+    sp.GetRequiredService<IContentRuntimeResolver>(),
+    new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("GameModeResolver"))));
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
     new ResourceCatalog<DailyChallengeDefinition>(
         sp.GetRequiredService<IConfigManager>(),

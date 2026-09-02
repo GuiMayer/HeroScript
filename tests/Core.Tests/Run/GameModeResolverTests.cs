@@ -1,7 +1,9 @@
 using Core.Common;
 using Core.Combat.Flow;
 using Core.Config;
+using Core.Logging;
 using Core.Run;
+using Moq;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -83,15 +85,51 @@ public sealed class GameModeResolverTests
         Assert.Contains("hot reload", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void Resolve_WarnsAndRejectsReservedReactionStrategy()
+    {
+        var logger = new Mock<ILogger>();
+        var combat = CreateCombatRules();
+        combat = combat with
+        {
+            Flow = combat.Flow with
+            {
+                Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Stack }
+            }
+        };
+        var resolver = CreateResolver(
+            new GameModeDefinition
+            {
+                ModeId = "reserved",
+                FlowRulesId = "flow",
+                CombatRulesId = "combat",
+                ReplayPolicyId = "replay",
+                TimelinePolicyId = "timeline",
+                ContentBindingPolicyId = "binding",
+                CapabilityPolicyId = "capabilities"
+            },
+            combat: combat,
+            logger: logger.Object);
+
+        var result = resolver.Resolve("reserved", "test");
+
+        Assert.True(result.IsFailure);
+        logger.Verify(item => item.LogWarning(
+            It.Is<string>(message => message.Contains("reactions are not implemented", StringComparison.Ordinal))),
+            Times.Once);
+    }
+
     private static GameModeResolver CreateResolver(
         GameModeDefinition mode,
         ReplayPolicyDefinition? replay = null,
-        ContentBindingPolicyDefinition? binding = null)
+        ContentBindingPolicyDefinition? binding = null,
+        CombatRulesDefinition? combat = null,
+        ILogger? logger = null)
     {
         return new GameModeResolver(
             new Catalog<GameModeDefinition>(mode),
             new Catalog<FlowRulesDefinition>(new FlowRulesDefinition { FlowRulesId = "flow" }),
-            new Catalog<CombatRulesDefinition>(CreateCombatRules()),
+            new Catalog<CombatRulesDefinition>(combat ?? CreateCombatRules()),
             new Catalog<ReplayPolicyDefinition>(replay ?? new ReplayPolicyDefinition
             {
                 ReplayPolicyId = "replay",
@@ -112,7 +150,8 @@ public sealed class GameModeResolverTests
                 CapabilityPolicyId = "capabilities",
                 AllowTimelineFork = true,
                 AllowHotReloadActivation = true
-            }));
+            }),
+            logger: logger);
     }
 
     private static CombatRulesDefinition CreateCombatRules() => new()

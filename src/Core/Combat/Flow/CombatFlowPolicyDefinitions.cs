@@ -245,8 +245,8 @@ public static class CombatFlowPolicyValidator
         if (policies.Outcome.EvaluationBoundary == OutcomeEvaluationBoundary.Unspecified ||
             policies.Outcome.TieBreak == OutcomeTieBreak.Unspecified)
             return Result.Failure("Outcome evaluation boundary and tieBreak are required");
-        if (policies.EncounterResolution.Strategy == EncounterResolutionStrategy.Unspecified)
-            return Result.Failure("Encounter resolution strategy is required");
+        if (policies.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
+            return Result.Failure("Only encounter resolution strategy 'ManualAck' is implemented");
         if (policies.Animation.Mode == AnimationFrameMode.Unspecified)
             return Result.Failure("Animation frame mode is required");
         if (policies.Journal.Granularity != CombatJournalGranularity.Full)

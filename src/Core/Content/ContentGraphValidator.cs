@@ -169,10 +169,20 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                         $"combat-rules/{id} selects reaction strategy " +
                         $"'{combat.Flow.Reactions.Strategy}', which is reserved but not implemented");
                 }
+                if (combat.Flow.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
+                {
+                    warnings.Add(
+                        $"combat-rules/{id} selects encounter resolution strategy " +
+                        $"'{combat.Flow.EncounterResolution.Strategy}', which is reserved but not implemented");
+                }
 
                 var implementedSubset = combat.Flow with
                 {
-                    Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Disabled }
+                    Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Disabled },
+                    EncounterResolution = new EncounterResolutionPolicyDefinition
+                    {
+                        Strategy = EncounterResolutionStrategy.ManualAck
+                    }
                 };
                 var validation = CombatFlowPolicyValidator.Validate(implementedSubset);
                 if (validation.IsFailure)

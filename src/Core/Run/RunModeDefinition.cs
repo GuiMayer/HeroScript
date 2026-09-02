@@ -50,7 +50,6 @@ public sealed record FlowRulesDefinition
 {
     public string FlowRulesId { get; init; } = string.Empty;
     public bool AllowMapNavigation { get; init; } = true;
-    public bool RequireEncounterResolution { get; init; } = true;
 }
 
 public sealed record CombatRulesDefinition

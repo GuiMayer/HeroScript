@@ -29,6 +29,23 @@ public sealed class CombatFlowPolicyValidatorTests
     }
 
     [Fact]
+    public void Validate_RejectsUnimplementedAutomaticEncounterResolution()
+    {
+        var policies = ValidPolicies() with
+        {
+            EncounterResolution = new EncounterResolutionPolicyDefinition
+            {
+                Strategy = EncounterResolutionStrategy.Automatic
+            }
+        };
+
+        var result = CombatFlowPolicyValidator.Validate(policies);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("ManualAck", result.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Validate_AcceptsExplicitImplementedPolicyGraph()
     {
         var result = CombatFlowPolicyValidator.Validate(ValidPolicies());
