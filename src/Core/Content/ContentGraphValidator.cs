@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Core.Combat.Flow;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
+using Core.Calculations;
 using Core.Effects;
 using Core.Resources;
 using Core.Run;
@@ -60,6 +61,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidatePreparations(runtime, errors);
         ValidateDailyChallenges(runtime, errors);
         ValidatePipelines(runtime, errors);
+        ValidateCalculationPipelines(runtime, errors);
 
         var reservedKinds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -90,6 +92,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "flowRulesId", "flow-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "combatRulesId", "combat-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "damagePipelineId", "pipelines");
+            RequireArray(runtime, errors, "modes", id, definition, "calculationPipelineIds", "calculation-pipelines");
             RequireProperty(runtime, errors, "modes", id, definition, "replayPolicyId", "replay-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "timelinePolicyId", "timeline-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "contentBindingPolicyId", "content-binding-policies");
@@ -500,6 +503,41 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                          .Where(value => value.StartsWith("formula:", StringComparison.OrdinalIgnoreCase)))
             {
                 Require(runtime, errors, "pipelines", id, source["formula:".Length..], "formulas");
+            }
+        }
+    }
+
+    private static void ValidateCalculationPipelines(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        var engine = new CalculationEngine();
+        foreach (var (id, definition) in runtime.GetDefinitions("calculation-pipelines"))
+        {
+            try
+            {
+                var pipeline = definition.Deserialize<CalculationPipelineDefinition>(CreateJsonOptions());
+                if (pipeline == null)
+                {
+                    errors.Add($"calculation-pipelines/{id} is invalid");
+                    continue;
+                }
+                pipeline = pipeline with
+                {
+                    PipelineId = string.IsNullOrWhiteSpace(pipeline.PipelineId) ? id : pipeline.PipelineId
+                };
+                var validation = engine.Calculate(new CalculationRequest
+                {
+                    CalculationId = $"validation:{id}",
+                    Channel = pipeline.Channel,
+                    BaseValue = 0
+                }, pipeline);
+                if (validation.IsFailure)
+                    errors.Add($"calculation-pipelines/{id}: {validation.Error}");
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"calculation-pipelines/{id} could not be parsed: {exception.Message}");
             }
         }
     }

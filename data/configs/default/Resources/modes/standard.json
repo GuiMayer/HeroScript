@@ -6,6 +6,7 @@
     "flowRulesId": "standard_flow",
     "combatRulesId": "standard_combat",
     "damagePipelineId": "default_damage",
+    "calculationPipelineIds": ["default_effect_amount"],
     "cardPoolIds": ["basic_rewards"],
     "enemyPoolIds": ["standard_enemies"],
     "replayPolicyId": "standard_replay",

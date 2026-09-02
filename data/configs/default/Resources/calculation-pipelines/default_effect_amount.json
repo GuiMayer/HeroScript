@@ -1,0 +1,30 @@
+{
+  "default_effect_amount": {
+    "pipelineId": "default_effect_amount",
+    "channel": "effect_amount",
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "order": 30,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "final",
+        "order": 40,
+        "operation": "Add",
+        "minimum": 0,
+        "rounding": "Round"
+      }
+    ]
+  }
+}

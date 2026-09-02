@@ -22,6 +22,7 @@ public sealed class ContentManifestProvider : IContentManifestProvider, ICacheSe
         new("resources", "resources"),
         new("formulas", "Pipelines", file => file.Equals("MathFormulas", StringComparison.OrdinalIgnoreCase)),
         new("pipelines", "Pipelines", file => file.StartsWith("DamagePipeline", StringComparison.OrdinalIgnoreCase)),
+        new("calculation-pipelines", "calculation-pipelines"),
         new("status-effects", "StatusEffects"),
         new("modifiers", "Modifiers"),
         new("gambits", "Gambits"),

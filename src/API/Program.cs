@@ -3,6 +3,7 @@ using API.Logging;
 using Core;
 using Core.Abstractions.Persistence;
 using Core.Caching;
+using Core.Calculations;
 using Core.Config;
 using Core.Content;
 using Core.Infrastructure.Persistence;
@@ -296,6 +297,9 @@ builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>()
 builder.Services.AddSingleton<IContentReloadService, ContentReloadService>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
+builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
+builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
+builder.Services.AddSingleton<ICalculationEngine, CalculationEngine>();
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
     new ResourceCatalog<RelicDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -308,6 +312,12 @@ builder.Services.AddSingleton<IResourceCatalog<CardUpgradeDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "card-upgrades",
         definition => definition.UpgradeId));
+builder.Services.AddSingleton<IResourceCatalog<CalculationPipelineDefinition>>(sp =>
+    new ResourceCatalog<CalculationPipelineDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "calculation-pipelines",
+        definition => definition.PipelineId));
 builder.Services.AddSingleton<IResourceCatalog<GameModeDefinition>>(sp =>
     new ResourceCatalog<GameModeDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -609,6 +619,7 @@ var applicationCaches = new ICacheService[]
     (ICacheService)app.Services.GetRequiredService<ICardPoolResolver>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CalculationPipelineDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<FlowRulesDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CombatRulesDefinition>>(),

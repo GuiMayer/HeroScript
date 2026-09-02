@@ -10,6 +10,7 @@ public sealed record GameModeDefinition
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableArray<string> _cardPoolIds = [];
     private ImmutableArray<string> _enemyPoolIds = [];
+    private ImmutableArray<string> _calculationPipelineIds = [];
 
     public string ModeId { get; init; } = string.Empty;
     public string? RunDefinitionId { get; init; }
@@ -21,6 +22,12 @@ public sealed record GameModeDefinition
     public string? TimelinePolicyId { get; init; }
     public string? ContentBindingPolicyId { get; init; }
     public string? CapabilityPolicyId { get; init; }
+
+    public IReadOnlyList<string> CalculationPipelineIds
+    {
+        get => _calculationPipelineIds;
+        init => _calculationPipelineIds = value?.ToImmutableArray() ?? [];
+    }
 
     public IReadOnlyList<string> CardPoolIds
     {

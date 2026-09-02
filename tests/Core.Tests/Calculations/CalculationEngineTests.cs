@@ -1,0 +1,207 @@
+using Core.Calculations;
+using Core.Combat.Models;
+using Core.Resources;
+using Core.Run.Content;
+using Xunit;
+
+namespace Core.Tests.Calculations;
+
+public sealed class CalculationEngineTests
+{
+    private readonly CalculationEngine _engine = new();
+
+    [Fact]
+    public void Calculate_ReducesConfiguredBucketsWithCompleteTrace()
+    {
+        var pipeline = Pipeline();
+        var request = new CalculationRequest
+        {
+            CalculationId = "card.effect.damage",
+            Channel = "resource_reduction",
+            BaseValue = 10,
+            Influences =
+            [
+                Influence("relic.more", "more", 1.5f, CalculationSourceKind.Relic),
+                Influence("status.weak", "increased", -0.25f, CalculationSourceKind.Status),
+                Influence("actor.power", "flat", 2, CalculationSourceKind.Actor)
+            ]
+        };
+
+        var result = _engine.Calculate(request, pipeline);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(13.5f, result.Value.Value);
+        Assert.Equal([10f, 12f, 9f], result.Value.Buckets.Select(bucket => bucket.Input));
+        Assert.Equal([12f, 9f, 13.5f], result.Value.Buckets.Select(bucket => bucket.Output));
+        Assert.Equal(64, result.Value.Fingerprint.Length);
+    }
+
+    [Fact]
+    public void Calculate_InputOrderDoesNotChangeTraceOrFingerprint()
+    {
+        var influences = new[]
+        {
+            Influence("b", "flat", 2, CalculationSourceKind.Status, priority: 5),
+            Influence("a", "flat", 3, CalculationSourceKind.Relic, priority: 5)
+        };
+        var first = _engine.Calculate(new CalculationRequest
+        {
+            CalculationId = "same",
+            Channel = "resource_reduction",
+            BaseValue = 1,
+            Influences = influences
+        }, Pipeline());
+        var second = _engine.Calculate(new CalculationRequest
+        {
+            CalculationId = "same",
+            Channel = "resource_reduction",
+            BaseValue = 1,
+            Influences = influences.Reverse().ToArray()
+        }, Pipeline());
+
+        Assert.Equal(first.Value.Value, second.Value.Value);
+        Assert.Equal(first.Value.Fingerprint, second.Value.Fingerprint);
+        Assert.Equal(
+            first.Value.Buckets[0].Contributions.Select(item => item.InfluenceId),
+            second.Value.Buckets[0].Contributions.Select(item => item.InfluenceId));
+    }
+
+    [Fact]
+    public void Calculate_RejectsInfluenceForUnknownBucket()
+    {
+        var result = _engine.Calculate(new CalculationRequest
+        {
+            CalculationId = "invalid",
+            Channel = "resource_reduction",
+            BaseValue = 1,
+            Influences = [Influence("bad", "implicit_health_rule", 5, CalculationSourceKind.Status)]
+        }, Pipeline());
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("unknown bucket", result.Error);
+    }
+
+    [Fact]
+    public void EntityResourceProvider_UsesExplicitBindingsForArbitraryResources()
+    {
+        var actor = Entity("mage", "mana", 7);
+        var provider = new EntityResourceInfluenceProvider(
+        [
+            new ResourceInfluenceBindingDefinition
+            {
+                BindingId = "actor.mana.scaling",
+                Scope = CalculationEntityScope.Actor,
+                ResourceId = "mana",
+                Channel = "resource_reduction",
+                Bucket = "flat",
+                Scale = 2,
+                Offset = 1
+            }
+        ]);
+
+        var result = provider.Collect(new CalculationSourceContext { Actor = actor });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var influence = Assert.Single(result.Value);
+        Assert.Equal(15, influence.Value);
+        Assert.Equal("resource_reduction", influence.Channel);
+        Assert.Equal("flat", influence.Bucket);
+    }
+
+    [Fact]
+    public void CardInfluenceProvider_ProjectsComponentsWithoutKnowingTheirMeaning()
+    {
+        var card = new EffectiveCardDefinition
+        {
+            CardInstanceId = Guid.Parse("10000000-0000-8000-8000-000000000001"),
+            DefinitionId = "strike",
+            Components =
+            [
+                new CardInfluenceComponentDefinition
+                {
+                    ComponentId = "scaling.strength",
+                    Channel = "effect_amount",
+                    Bucket = "increased",
+                    Value = 0.25f,
+                    Priority = 20
+                }
+            ]
+        };
+
+        var result = new CardComponentInfluenceProvider().Collect(
+            new CalculationSourceContext { Card = card });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var influence = Assert.Single(result.Value);
+        Assert.Equal("effect_amount", influence.Channel);
+        Assert.Equal("increased", influence.Bucket);
+        Assert.Equal(CalculationSourceKind.Card, influence.SourceKind);
+        Assert.Equal(0.25f, influence.Value);
+    }
+
+    private static CalculationPipelineDefinition Pipeline() => new()
+    {
+        PipelineId = "generic-resource-change",
+        Channel = "resource_reduction",
+        Buckets =
+        [
+            new CalculationBucketDefinition
+            {
+                BucketId = "flat",
+                Order = 10,
+                Operation = CalculationBucketOperation.Add
+            },
+            new CalculationBucketDefinition
+            {
+                BucketId = "increased",
+                Order = 20,
+                Operation = CalculationBucketOperation.AddPercent
+            },
+            new CalculationBucketDefinition
+            {
+                BucketId = "more",
+                Order = 30,
+                Operation = CalculationBucketOperation.Multiply
+            }
+        ]
+    };
+
+    private static CalculationInfluence Influence(
+        string id,
+        string bucket,
+        float value,
+        CalculationSourceKind kind,
+        int priority = 0) => new()
+    {
+        InfluenceId = id,
+        SourceKind = kind,
+        SourceId = id,
+        Channel = "resource_reduction",
+        Bucket = bucket,
+        Value = value,
+        Priority = priority
+    };
+
+    private static CombatEntity Entity(string id, string resourceId, float value) => new()
+    {
+        EntityId = id,
+        ResourceState = new EntityResourceState
+        {
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                [resourceId] = new ResourcePool
+                {
+                    ResourceId = resourceId,
+                    Current = value,
+                    Maximum = 100,
+                    Minimum = 0,
+                    Definition = new ResourceDefinition
+                    {
+                        ResourceId = resourceId,
+                        DisplayName = resourceId
+                    }
+                }
+            }
+        }
+    };
+}
