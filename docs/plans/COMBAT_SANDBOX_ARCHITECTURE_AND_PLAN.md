@@ -42,6 +42,38 @@ comandos, validação semântica, telemetria correlacionada, Problem Details, DI
 concorrência. O contrato vigente está em
 `docs/architecture/cross-cutting-systems.md`.
 
+### 1.2 Fechamento do loop de combate em 2026-09-02
+
+O segundo ciclo implementou as decisões específicas do demo de combate sem
+criar outro motor para o sandbox:
+
+| Decisão | Implementação atual |
+| --- | --- |
+| Resolução automática | `ToNextPlayerInput`; ação do jogador, ativações inimigas e retorno ao próximo input são um único lote atômico. |
+| Ordem | Snapshot imutável por rodada, com viés de empate configurável. |
+| Orçamento | `combat_sandbox` usa energia/custos; `combat_sandbox_fixed_actions` ignora custos e limita ações por ativação. |
+| Deck e recursos | Compra, descarte/retenção, embaralhamento e refresh são políticas do `CombatRules`. |
+| IA e intents | Gambit do modo decide a ação e publica o intent derivado da mesma decisão determinística. |
+| Status | Gatilho, redução de duração e prioridade pertencem à definição JSON do status e são executados nos boundaries configurados. |
+| Resultado | Avaliado depois da ação atual, com empate configurável; conclusão do encontro exige `ManualAck`. |
+| Apresentação | Cada comando persiste frames `FullSnapshots` ou `CompactWithSnapshotLookup`, recuperáveis por `commandId`. |
+| Autoridade HTTP | Toda run omissa usa o modo `standard`; criação e mutação de combate existem somente nos gateways canônicos. |
+
+Os marcos desse ciclo vão de `75a96ad` a `4cf7b0d`. A suíte de fechamento tem
+1.515 testes (`Core.Tests`: 1.295; `API.Tests`: 220), incluindo sandbox real,
+replay semântico, timeline, branches, os dois orçamentos e os dois formatos de
+frame.
+
+Opções mantidas no modelo para evolução, mas deliberadamente não executáveis,
+falham na resolução do modo e produzem warning de conteúdo: reações/prioridade,
+resolução automática do encontro e boundaries de resultado diferentes de
+`AfterCurrentAction`. A navegação por várias fases interativas dentro da mesma
+ativação também permanece fora do primeiro demo; o runtime atual usa a sequência
+`classic-style`, com exatamente uma fase de cada papel semântico. Uma regra de
+combate que selecione um grafo multifase é rejeitada na validação de conteúdo,
+em vez de ter fases ignoradas silenciosamente. Esses itens não possuem fallback
+silencioso nem rota paralela parcialmente autoritativa.
+
 ## 2. Estado da engine na análise original (2026-08-17)
 
 ### 2.1 Capacidades presentes na baseline

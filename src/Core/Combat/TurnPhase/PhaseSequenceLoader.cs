@@ -140,6 +140,30 @@ public sealed class PhaseSequenceLoader : ICacheService
         return Result.Success();
     }
 
+    /// <summary>
+    /// Operational subset currently supported by the canonical activation
+    /// planner. Richer phase graphs stay valid content for future modes, but a
+    /// combat rule cannot select them until explicit phase commands exist.
+    /// </summary>
+    public static Result ValidateCanonicalActivationSequence(PhaseSequenceDefinition sequence)
+    {
+        var validation = ValidateSequence(sequence);
+        if (validation.IsFailure)
+            return validation;
+
+        foreach (var role in new[] { PhaseRole.Start, PhaseRole.Middle, PhaseRole.End })
+        {
+            var count = sequence.Phases.Count(phase => phase.Role == role);
+            if (count != 1)
+            {
+                return Result.Failure(
+                    $"Canonical activation flow currently requires exactly one {role.ToString().ToUpperInvariant()} phase; found {count}");
+            }
+        }
+
+        return Result.Success();
+    }
+
     private Result<PhaseSequenceDefinition> ParseAndCache(
         string json,
         string? sequenceId,

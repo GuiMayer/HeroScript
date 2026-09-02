@@ -221,7 +221,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies)
     {
-        var validation = PhaseSequenceLoader.ValidateSequence(sequence);
+        var validation = PhaseSequenceLoader.ValidateCanonicalActivationSequence(sequence);
         if (validation.IsFailure)
             return Result<CombatState>.Failure(validation.Error);
 

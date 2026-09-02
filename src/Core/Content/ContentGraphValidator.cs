@@ -157,6 +157,24 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     continue;
                 }
 
+                if (!string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
+                {
+                    var selectedSequence = runtime.GetDefinition<PhaseSequenceDefinition>(
+                        "phase-sequences",
+                        combat.DefaultPhaseSequenceId);
+                    if (selectedSequence.IsSuccess)
+                    {
+                        var operationalSequence = PhaseSequenceLoader.ValidateCanonicalActivationSequence(
+                            selectedSequence.Value);
+                        if (operationalSequence.IsFailure)
+                        {
+                            errors.Add(
+                                $"combat-rules/{id} selects unsupported phase sequence " +
+                                $"'{combat.DefaultPhaseSequenceId}': {operationalSequence.Error}");
+                        }
+                    }
+                }
+
                 if (combat.Flow.Reactions.Strategy == ReactionStrategy.Unspecified)
                 {
                     errors.Add($"combat-rules/{id} requires an explicit reaction strategy");

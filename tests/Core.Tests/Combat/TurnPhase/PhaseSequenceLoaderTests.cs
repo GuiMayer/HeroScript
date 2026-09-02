@@ -64,6 +64,30 @@ public sealed class PhaseSequenceLoaderTests
         Assert.Contains("unique and ascending", result.Error);
     }
 
+    [Fact]
+    public void CanonicalActivation_RejectsMultiPhaseGraphInsteadOfIgnoringExtraPhases()
+    {
+        var parsed = _loader.LoadFromJson(ValidJson);
+        Assert.True(parsed.IsSuccess);
+        var phases = parsed.Value.Phases.ToList();
+        phases.Insert(2, new PhaseDefinition
+        {
+            PhaseId = "second_planning_window",
+            Role = PhaseRole.Middle,
+            Order = 25,
+            AllowedActions = [ActionType.PASS],
+            ValidNextPhaseIds = ["cleanup_custom"]
+        });
+        var sequence = parsed.Value with { Phases = phases };
+
+        var generic = PhaseSequenceLoader.ValidateSequence(sequence);
+        var canonical = PhaseSequenceLoader.ValidateCanonicalActivationSequence(sequence);
+
+        Assert.True(generic.IsSuccess);
+        Assert.True(canonical.IsFailure);
+        Assert.Contains("exactly one MIDDLE", canonical.Error, StringComparison.Ordinal);
+    }
+
     internal const string ValidJson = """
     {
       "sequenceId": "custom",
