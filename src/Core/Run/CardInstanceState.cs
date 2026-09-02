@@ -1,5 +1,5 @@
 using System.Collections.Immutable;
-using System.Text.Json;
+using Core.Run.Content;
 
 namespace Core.Run;
 
@@ -25,24 +25,21 @@ public sealed record CardInstanceState
 
 public sealed record CardUpgradeState
 {
-    private ImmutableDictionary<string, JsonElement> _deltas =
-        ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<CardUpgradePatchDefinition> _patches = [];
 
     public string UpgradeId { get; init; } = string.Empty;
 
-    public IReadOnlyDictionary<string, JsonElement> Deltas
+    public IReadOnlyList<CardUpgradePatchDefinition> Patches
     {
-        get => _deltas;
-        init => _deltas = value?.ToImmutableDictionary(StringComparer.Ordinal)
-            ?? ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+        get => _patches;
+        init => _patches = value?.ToImmutableArray() ?? [];
     }
 }
 
 public sealed record CardUpgradeDefinition
 {
     private ImmutableArray<string> _cardDefinitionIds = [];
-    private ImmutableDictionary<string, JsonElement> _deltas =
-        ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<CardUpgradePatchDefinition> _patches = [];
 
     public string UpgradeId { get; init; } = string.Empty;
     public int MaxApplications { get; init; } = 1;
@@ -53,11 +50,10 @@ public sealed record CardUpgradeDefinition
         init => _cardDefinitionIds = value?.ToImmutableArray() ?? [];
     }
 
-    public IReadOnlyDictionary<string, JsonElement> Deltas
+    public IReadOnlyList<CardUpgradePatchDefinition> Patches
     {
-        get => _deltas;
-        init => _deltas = value?.ToImmutableDictionary(StringComparer.Ordinal)
-            ?? ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+        get => _patches;
+        init => _patches = value?.ToImmutableArray() ?? [];
     }
 
     public bool AppliesTo(string definitionId) =>

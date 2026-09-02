@@ -26,20 +26,21 @@ public class DefaultJsonContractsTests
     }
 
     [Fact]
-    public void CardCatalog_AllCardsReferenceExistingActions()
+    public void CardCatalog_AllCardsOwnStableComponentContainers()
     {
         var cards = LoadResource("cards", "card_catalog.json");
-        var actionIds = Directory.GetFiles(Path.Combine(ResourcesRoot, "actions"), "*.json")
-            .SelectMany(file => LoadResource("actions", Path.GetFileName(file)).Keys)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         Assert.NotEmpty(cards);
-        Assert.NotEmpty(actionIds);
-
         foreach (var (cardId, card) in cards)
         {
-            var actionId = RequiredString(card, "actionId", cardId);
-            Assert.Contains(actionId, actionIds);
+            Assert.False(card.TryGetProperty("actionId", out _));
+            var components = card.GetProperty("components").EnumerateArray().ToArray();
+            Assert.NotEmpty(components);
+            var componentIds = components
+                .Select(component => RequiredString(component, "componentId", cardId))
+                .ToArray();
+            Assert.Equal(componentIds.Length, componentIds.Distinct(StringComparer.Ordinal).Count());
+            Assert.All(components, component => RequiredString(component, "type", cardId));
         }
     }
 

@@ -3,11 +3,14 @@
     "upgradeId": "sharpened_edge",
     "maxApplications": 1,
     "cardDefinitionIds": ["basic_attack"],
-    "deltas": {
-      "effects.damage.flatValue": {
-        "operation": "ADD",
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "effect.damage",
+        "attribute": "FlatValue",
+        "operation": "Add",
         "value": 3
       }
-    }
+    ]
   }
 }

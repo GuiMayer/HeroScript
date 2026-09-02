@@ -240,7 +240,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 resolvedUpgrades.Add(new CardUpgradeState
                 {
                     UpgradeId = upgrade.Value.UpgradeId,
-                    Deltas = upgrade.Value.Deltas
+                    Patches = upgrade.Value.Patches
                 });
             }
             startingCards.Add(new RunStartingCard { DefinitionId = definition.Value.CardId, Upgrades = resolvedUpgrades });

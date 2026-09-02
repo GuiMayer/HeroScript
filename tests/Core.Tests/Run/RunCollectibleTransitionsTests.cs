@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Core.Determinism;
 using Core.Run;
+using Core.Run.Content;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -40,10 +41,16 @@ public sealed class RunCollectibleTransitionsTests
         {
             UpgradeId = "sharpened",
             CardDefinitionIds = ["strike"],
-            Deltas = new Dictionary<string, JsonElement>
-            {
-                ["damage"] = JsonSerializer.SerializeToElement(new { operation = "ADD", value = 3 })
-            }
+            Patches =
+            [
+                new CardEffectNumericPatchDefinition
+                {
+                    ComponentId = "effect.damage",
+                    Attribute = CardEffectNumericAttribute.FlatValue,
+                    Operation = CardNumericPatchOperation.Add,
+                    Value = 3
+                }
+            ]
         };
 
         var upgraded = DeckTransitions.ApplyUpgrade(

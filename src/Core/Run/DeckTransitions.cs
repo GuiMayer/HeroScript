@@ -225,7 +225,7 @@ public static class DeckTransitions
         var upgrade = new CardUpgradeState
         {
             UpgradeId = definition.UpgradeId,
-            Deltas = definition.Deltas
+            Patches = definition.Patches
         };
         var next = state with
         {

@@ -422,8 +422,44 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
     private static void ValidateCardUpgrades(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
     {
+        var compiler = new CardContentCompiler();
+        var resolver = new EffectiveCardResolver();
         foreach (var (id, definition) in runtime.GetDefinitions("card-upgrades"))
+        {
             RequireArray(runtime, errors, "card-upgrades", id, definition, "cardDefinitionIds", "cards");
+            try
+            {
+                var upgrade = definition.Deserialize<CardUpgradeDefinition>(CreateJsonOptions());
+                if (upgrade == null)
+                {
+                    errors.Add($"card-upgrades/{id} is invalid");
+                    continue;
+                }
+                upgrade = upgrade with
+                {
+                    UpgradeId = string.IsNullOrWhiteSpace(upgrade.UpgradeId) ? id : upgrade.UpgradeId
+                };
+                var cardIds = upgrade.CardDefinitionIds.Count == 0
+                    ? runtime.GetDefinitions("cards").Keys.OrderBy(value => value, StringComparer.Ordinal)
+                    : upgrade.CardDefinitionIds.OrderBy(value => value, StringComparer.Ordinal);
+                foreach (var cardId in cardIds)
+                {
+                    var compiled = compiler.Compile(cardId, runtime);
+                    if (compiled.IsFailure)
+                    {
+                        errors.Add($"card-upgrades/{id}: {compiled.Error}");
+                        continue;
+                    }
+                    var validation = resolver.ValidateUpgrade(compiled.Value, upgrade);
+                    if (validation.IsFailure)
+                        errors.Add($"card-upgrades/{id}: {validation.Error}");
+                }
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"card-upgrades/{id} could not be parsed: {exception.Message}");
+            }
+        }
     }
 
     private static void ValidateShops(ContentRuntime runtime, ImmutableArray<string>.Builder errors)

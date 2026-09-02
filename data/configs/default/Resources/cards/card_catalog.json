@@ -1,34 +1,192 @@
 {
   "basic_attack": {
     "cardId": "basic_attack",
-    "actionId": "basic_attack",
     "rarity": "Common",
     "baseGoldPrice": 10,
     "decomposePowerPoints": 1,
-    "tags": ["attack", "common", "starter"]
+    "tags": ["attack", "common", "starter"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "basic_attack.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "timing": "IMMEDIATE",
+          "flatValue": 6,
+          "targetResource": "health",
+          "tags": ["physical", "attack"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.primary",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "destination": "Discard"
+      }
+    ]
   },
   "defend": {
     "cardId": "defend",
-    "actionId": "defend",
     "rarity": "Common",
     "baseGoldPrice": 10,
     "decomposePowerPoints": 1,
-    "tags": ["defense", "common", "starter"]
+    "tags": ["defense", "common", "starter"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.block",
+        "order": 20,
+        "effect": {
+          "effectId": "defend.block",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "timing": "IMMEDIATE",
+          "flatValue": 5,
+          "targetResource": "block",
+          "operation": "ADD",
+          "tags": ["defense", "block"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "destination": "Discard"
+      }
+    ]
   },
   "fireball": {
     "cardId": "fireball",
-    "actionId": "fireball",
     "rarity": "Uncommon",
     "baseGoldPrice": 25,
     "decomposePowerPoints": 2,
-    "tags": ["attack", "fire", "magic", "uncommon"]
+    "tags": ["attack", "fire", "magic", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "fireball.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "timing": "IMMEDIATE",
+          "flatValue": 10,
+          "targetResource": "health",
+          "tags": ["fire", "magic", "spell"]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.burning",
+        "order": 30,
+        "effect": {
+          "effectId": "fireball.burning",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "timing": "IMMEDIATE",
+          "statusId": "burning",
+          "statusStacks": 2,
+          "chance": 1.0,
+          "tags": ["fire", "status"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.primary",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "destination": "Discard"
+      }
+    ]
   },
   "heal": {
     "cardId": "heal",
-    "actionId": "heal",
     "rarity": "Common",
     "baseGoldPrice": 18,
     "decomposePowerPoints": 1,
-    "tags": ["heal", "utility", "common"]
+    "tags": ["heal", "utility", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.restore",
+        "order": 20,
+        "effect": {
+          "effectId": "heal.restore",
+          "type": "HEAL",
+          "target": "SELF",
+          "timing": "IMMEDIATE",
+          "flatValue": 8,
+          "targetResource": "health",
+          "tags": ["heal", "utility"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "destination": "Discard"
+      }
+    ]
   }
 }
