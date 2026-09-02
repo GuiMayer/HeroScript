@@ -18,6 +18,7 @@ public sealed class CombatFlowTransitionsTests
         var policy = new ActionBudgetPolicyDefinition
         {
             Strategy = ActionBudgetStrategy.FixedCount,
+            ActionCosts = ActionCostStrategy.Ignore,
             ActorScope = FlowActorScope.All,
             MaxActionsPerActivation = 2,
             ConsumingCommands = ["EXECUTE_ACTION"]
@@ -44,6 +45,7 @@ public sealed class CombatFlowTransitionsTests
         var policy = new ActionBudgetPolicyDefinition
         {
             Strategy = ActionBudgetStrategy.FixedCount,
+            ActionCosts = ActionCostStrategy.Ignore,
             ActorScope = FlowActorScope.All,
             MaxActionsPerActivation = 2,
             ConsumingCommands = ["EXECUTE_ACTION"]

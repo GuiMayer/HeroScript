@@ -12,5 +12,19 @@
     "timelinePolicyId": "sandbox_timeline",
     "contentBindingPolicyId": "development_versioned",
     "capabilityPolicyId": "theorycraft_tools"
+  },
+  "combat_sandbox_fixed_actions": {
+    "modeId": "combat_sandbox_fixed_actions",
+    "runDefinitionId": "default_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "sandbox_flow",
+    "combatRulesId": "fixed_action_combat",
+    "damagePipelineId": "default_damage",
+    "cardPoolIds": ["all_cards"],
+    "enemyPoolIds": ["all_enemies"],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "development_versioned",
+    "capabilityPolicyId": "theorycraft_tools"
   }
 }

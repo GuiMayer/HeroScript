@@ -214,10 +214,82 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
     }
 
-    private static object CreateScenario(string attemptKey, object? initialState = null) => new
+    [Fact]
+    public async Task FixedActionSandbox_IgnoresEnergyCostsAndAdvancesAfterConfiguredActionCount()
+    {
+        var scenario = CreateScenario(
+            $"api-fixed-actions-{Guid.NewGuid():N}",
+            new { heroResources = new { energy = 0 } },
+            modeId: "combat_sandbox_fixed_actions");
+
+        using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+
+        var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+        using var initialSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var initialSnapshot = await initialSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, initialSnapshotResponse.StatusCode);
+        var hand = initialSnapshot.GetProperty("hand").EnumerateArray().ToArray();
+        var fireball = hand.Single(card => card.GetProperty("definitionId").GetString() == "fireball");
+        var basicAttack = hand.First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
+
+        var afterFirst = await ExecuteCardCommand(runId, combatId, fireball, "goblin_a");
+        Assert.Equal(0, Energy(afterFirst));
+        Assert.Equal(1, afterFirst.GetProperty("activationState").GetProperty("actionsTaken").GetInt32());
+        var firstActivation = afterFirst.GetProperty("activationState").GetProperty("activationNumber").GetInt32();
+
+        var afterSecond = await ExecuteCardCommand(runId, combatId, basicAttack, "goblin_a");
+        var nextActivation = afterSecond.GetProperty("activationState");
+        Assert.Equal("hero", nextActivation.GetProperty("activeActorId").GetString());
+        Assert.Equal(0, nextActivation.GetProperty("actionsTaken").GetInt32());
+        Assert.True(nextActivation.GetProperty("activationNumber").GetInt32() > firstActivation);
+
+        using var verify = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await verify.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+    }
+
+    private async Task<JsonElement> ExecuteCardCommand(
+        Guid runId,
+        Guid combatId,
+        JsonElement card,
+        string targetId)
+    {
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
+
+        using var response = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = snapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
+                expectedStep = snapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
+                type = "EXECUTE_ACTION",
+                payload = new
+                {
+                    actorId = "hero",
+                    actionId = card.GetProperty("actionId").GetString(),
+                    cardId = card.GetProperty("cardInstanceId").GetGuid(),
+                    targetId
+                }
+            });
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, result.GetRawText());
+        return result.GetProperty("state").GetProperty("combat").Clone();
+    }
+
+    private static object CreateScenario(
+        string attemptKey,
+        object? initialState = null,
+        string modeId = "combat_sandbox") => new
     {
         schemaVersion = 1,
-        modeId = "combat_sandbox",
+        modeId,
         seed = 983744UL,
         attemptKey,
         hero = new { alias = "hero", entityDefinitionId = "player_warrior" },
@@ -243,6 +315,14 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         .First(actor => actor.GetProperty("entityId").GetString() == entityId)
         .GetProperty("resources")
         .GetProperty("health")
+        .GetProperty("current")
+        .GetDouble();
+
+    private static double Energy(JsonElement combat) => combat
+        .GetProperty("hero")
+        .GetProperty("resourceState")
+        .GetProperty("resources")
+        .GetProperty("energy")
         .GetProperty("current")
         .GetDouble();
 }

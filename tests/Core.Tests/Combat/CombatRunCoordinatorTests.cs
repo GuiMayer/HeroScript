@@ -446,6 +446,7 @@ public sealed class CombatRunCoordinatorTests
         ActionBudget = new()
         {
             Strategy = ActionBudgetStrategy.FixedCount,
+            ActionCosts = ActionCostStrategy.Configured,
             ActorScope = FlowActorScope.Player,
             MaxActionsPerActivation = 2,
             ConsumingCommands = ["EXECUTE_ACTION"]

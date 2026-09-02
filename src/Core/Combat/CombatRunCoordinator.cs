@@ -445,7 +445,11 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 return Result<CombatRunActionResult>.Failure(rootDeck.Error);
         }
 
-        var effectiveCommand = command with { ExpectedStep = effectiveIdentity.ExpectedStep };
+        var effectiveCommand = command with
+        {
+            ExpectedStep = effectiveIdentity.ExpectedStep,
+            IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore
+        };
         var executed = _combatSystem.ExecuteAction(combatId, effectiveCommand);
         if (executed.IsFailure)
             return Result<CombatRunActionResult>.Failure(executed.Error);
@@ -483,7 +487,11 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var currentRunDeterminism = rootDeck.Value.Context.AdvanceStep();
         var automaticSteps = 0;
 
-        if (command.ActionType == ActionType.END_TURN && currentCombat.IsActive)
+        var activationBudgetExhausted =
+            policies.ActionBudget.Strategy == ActionBudgetStrategy.FixedCount &&
+            currentCombat.ActivationState is { } resolvedActivation &&
+            resolvedActivation.ActionsTaken >= policies.ActionBudget.MaxActionsPerActivation;
+        if ((command.ActionType == ActionType.END_TURN || activationBudgetExhausted) && currentCombat.IsActive)
         {
             var advanced = AppendActivationPlan(
                 run,
@@ -664,6 +672,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var restored = _combatSystem.RestoreCombatState(combat);
         if (restored.IsFailure)
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(restored.Error);
+        command = command with
+        {
+            IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore
+        };
         var executed = _combatSystem.ExecuteAction(combatId, command);
         if (executed.IsFailure)
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(executed.Error);

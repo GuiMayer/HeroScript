@@ -17,6 +17,7 @@ public sealed record CombatActionCommand
     public string? CostOptionId { get; init; }
     public Guid? RunId { get; init; }
     public string? CardId { get; init; }
+    public bool IgnoreConfiguredCosts { get; init; }
     public IReadOnlyDictionary<string, float> RunModifiers
     {
         get => _runModifiers;

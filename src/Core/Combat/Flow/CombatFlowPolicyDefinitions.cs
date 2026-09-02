@@ -59,6 +59,7 @@ public sealed record ActionBudgetPolicyDefinition
     private ImmutableArray<string> _consumingCommands = [];
 
     public ActionBudgetStrategy Strategy { get; init; }
+    public ActionCostStrategy ActionCosts { get; init; }
     public FlowActorScope ActorScope { get; init; }
     public string? ResourceId { get; init; }
     public int? MaxActionsPerActivation { get; init; }
@@ -155,6 +156,9 @@ public enum ActivationTieBreak { Unspecified, StableActorId, HeroesFirst, Enemie
 public enum ActionBudgetStrategy { Unspecified, ResourceLimited, FixedCount }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ActionCostStrategy { Unspecified, Configured, Ignore }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum FlowActorScope { Unspecified, Player, Enemies, All }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -206,6 +210,8 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Activation order tieBreak is required");
         if (policies.ActionBudget.Strategy == ActionBudgetStrategy.Unspecified)
             return Result.Failure("Action budget strategy is required");
+        if (policies.ActionBudget.ActionCosts == ActionCostStrategy.Unspecified)
+            return Result.Failure("Action budget actionCosts strategy is required");
         if (policies.ActionBudget.ActorScope == FlowActorScope.Unspecified)
             return Result.Failure("Action budget actorScope is required");
         if (policies.ActionBudget.Strategy == ActionBudgetStrategy.ResourceLimited &&

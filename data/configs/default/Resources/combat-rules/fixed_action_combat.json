@@ -1,6 +1,6 @@
 {
-  "standard_combat": {
-    "combatRulesId": "standard_combat",
+  "fixed_action_combat": {
+    "combatRulesId": "fixed_action_combat",
     "defaultPhaseSequenceId": "classic-style",
     "flow": {
       "automaticResolution": {
@@ -12,10 +12,10 @@
         "tieBreak": "StableActorId"
       },
       "actionBudget": {
-        "strategy": "ResourceLimited",
-        "actionCosts": "Configured",
+        "strategy": "FixedCount",
+        "actionCosts": "Ignore",
         "actorScope": "Player",
-        "resourceId": "energy",
+        "maxActionsPerActivation": 2,
         "consumingCommands": ["EXECUTE_ACTION"]
       },
       "ai": {
@@ -38,7 +38,7 @@
       "resourceCycle": {
         "resourceId": "energy",
         "actorScope": "Player",
-        "startActivation": "ResetToMax"
+        "startActivation": "Preserve"
       },
       "statusTiming": {
         "boundaries": ["StartRound", "StartActivation", "EndActivation", "EndRound"],

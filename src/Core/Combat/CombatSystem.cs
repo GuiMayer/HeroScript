@@ -353,7 +353,7 @@ public class CombatSystem : ICombatSystem
             // Executar ação e criar novo estado
             var newState = command.ActionType switch
             {
-                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, actor, ActionType.BASIC_ATTACK, BasicAttackActionId, command.TargetId!, command.CostOptionId, command.RunModifiers),
+                ActionType.BASIC_ATTACK => ExecuteConfiguredAction(currentState, actor, ActionType.BASIC_ATTACK, BasicAttackActionId, command.TargetId!, command.CostOptionId, command.RunModifiers, command.IgnoreConfiguredCosts),
                 ActionType.POWER => ExecuteConfiguredAction(
                     currentState,
                     actor,
@@ -361,7 +361,8 @@ public class CombatSystem : ICombatSystem
                     command.PowerId!,
                     command.TargetId ?? actor.EntityId,
                     command.CostOptionId,
-                    command.RunModifiers),
+                    command.RunModifiers,
+                    command.IgnoreConfiguredCosts),
                 ActionType.PASS => ExecutePass(currentState, actor),
                 ActionType.END_TURN => ExecuteEndTurn(currentState, actor),
                 _ => throw new InvalidOperationException($"Unknown action type: {command.ActionType}")
@@ -452,7 +453,7 @@ public class CombatSystem : ICombatSystem
                 if (basicActionDefinition == null)
                     return Result<bool>.Failure($"Action definition not found: {BasicAttackActionId}");
 
-                var basicAffordabilityError = ValidateActionCosts(
+                var basicAffordabilityError = command.IgnoreConfiguredCosts ? null : ValidateActionCosts(
                     actor,
                     basicActionDefinition.Costs,
                     command.CostOptionId,
@@ -474,7 +475,7 @@ public class CombatSystem : ICombatSystem
                 if (actionDefinition.RequiresTarget && string.IsNullOrWhiteSpace(command.TargetId))
                     return Result<bool>.Failure("Target is required for power");
 
-                var affordabilityError = ValidateActionCosts(
+                var affordabilityError = command.IgnoreConfiguredCosts ? null : ValidateActionCosts(
                     actor,
                     actionDefinition.Costs,
                     command.CostOptionId,
@@ -588,7 +589,8 @@ public class CombatSystem : ICombatSystem
         string actionId,
         string targetId,
         string? costOptionId,
-        IReadOnlyDictionary<string, float>? runModifiers)
+        IReadOnlyDictionary<string, float>? runModifiers,
+        bool ignoreConfiguredCosts)
     {
         var randomProvider = new DeterministicRandomProvider(state.Determinism);
         var target = state.GetEntity(targetId)!;
@@ -604,11 +606,14 @@ public class CombatSystem : ICombatSystem
         var (modifiedDamage, updatedActor) = ProcessOnDamageTakenEffects(target, actor, damageDealt, state.CurrentTurn);
         var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
 
-        updatedActor = ApplyCosts(
-            updatedActor,
-            actionDefinition.Costs,
-            costOptionId,
-            state.Determinism.ContentRevision);
+        if (!ignoreConfiguredCosts)
+        {
+            updatedActor = ApplyCosts(
+                updatedActor,
+                actionDefinition.Costs,
+                costOptionId,
+                state.Determinism.ContentRevision);
+        }
         updatedActor = ApplyActionResourceEffects(
             updatedActor,
             newTarget,

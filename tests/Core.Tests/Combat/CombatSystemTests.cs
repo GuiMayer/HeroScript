@@ -281,6 +281,27 @@ public class CombatSystemTests
     }
 
     [Fact]
+    public void ExecuteAction_WhenConfiguredCostsAreIgnored_ShouldNotValidateOrSpendEnergy()
+    {
+        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var command = Command(
+            "hero-1",
+            ActionType.POWER,
+            powerId: "FIREBALL",
+            targetId: startResult.Value.Enemies[0].EntityId) with
+        {
+            IgnoreConfiguredCosts = true
+        };
+
+        var result = _combatSystem.ExecuteAction(startResult.Value.CombatId, command);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(0, result.Value.GetHeroResource("energy")?.Current);
+        Assert.Equal(20, result.Value.Enemies[0].GetResource("health")?.Current);
+        Assert.Equal(0, result.Value.ActionHistory.Single().EnergyChange);
+    }
+
+    [Fact]
     public void ExecuteAction_PowerWithoutRequiredTarget_ShouldUseActorAsSelfTarget()
     {
         var actionManager = new Mock<IActionManager>();

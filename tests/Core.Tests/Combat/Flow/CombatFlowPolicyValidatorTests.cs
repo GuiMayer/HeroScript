@@ -51,6 +51,7 @@ public sealed class CombatFlowPolicyValidatorTests
         ActionBudget = new()
         {
             Strategy = ActionBudgetStrategy.ResourceLimited,
+            ActionCosts = ActionCostStrategy.Configured,
             ActorScope = FlowActorScope.Player,
             ResourceId = "energy",
             ConsumingCommands = ["EXECUTE_ACTION"]
