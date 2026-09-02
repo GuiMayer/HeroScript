@@ -19,7 +19,7 @@ using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
-public sealed class RunManager : IRunManager, IRunCommandProcessor
+public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatResolutionCommitter
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -968,25 +968,95 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 deck = deckTransition.Value.State;
             }
 
-            var updatedEncounter = encounter with { Combat = nextCombat };
-            var candidate = state with
-            {
-                Deck = deck,
-                Encounters = state.Encounters.SetItem(encounterIndex, updatedEncounter),
-                Determinism = state.Determinism.AdvanceStep()
-            };
-            return Persist(
-                candidate,
-                "COMBAT_ACTION",
-                new
+            return CommitCombatResolutionLocked(
+                state,
+                previousCombat,
+                commandIdentity,
+                [new CombatResolutionStep
                 {
-                    combatId = nextCombat.CombatId,
-                    command,
-                    consumedCardId,
-                    destination = destination.ToString()
-                },
-                commandIdentity);
+                    TransitionType = "combat.action.applied",
+                    Combat = nextCombat,
+                    Deck = deck,
+                    Payload = JsonSerializer.SerializeToElement(new
+                    {
+                        combatId = nextCombat.CombatId,
+                        command,
+                        consumedCardId,
+                        destination = destination.ToString()
+                    }, _jsonOptions)
+                }]);
         }
+    }
+
+    public Result<RunState> CommitCombatResolution(CombatResolutionCommit resolution)
+    {
+        ArgumentNullException.ThrowIfNull(resolution);
+        ArgumentNullException.ThrowIfNull(resolution.PreviousCombat);
+        ArgumentNullException.ThrowIfNull(resolution.RootCommand);
+        if (resolution.Steps.Count == 0)
+            return Result<RunState>.Failure("Combat resolution requires at least one transition");
+
+        lock (_lock)
+        {
+            if (!_runs.TryGetValue(resolution.RunId, out var state))
+                return Result<RunState>.Failure($"Run not found: {resolution.RunId}");
+            if (state.Sequence != resolution.ExpectedSequence)
+                return Result<RunState>.Failure(
+                    $"Stale combat resolution: expected sequence {resolution.ExpectedSequence}, current is {state.Sequence}");
+            return CommitCombatResolutionLocked(
+                state,
+                resolution.PreviousCombat,
+                resolution.RootCommand,
+                resolution.Steps);
+        }
+    }
+
+    private Result<RunState> CommitCombatResolutionLocked(
+        RunState state,
+        CombatState previousCombat,
+        RunCommandIdentity? rootCommand,
+        IReadOnlyList<CombatResolutionStep> steps)
+    {
+        var encounterIndex = FindEncounterIndex(state, previousCombat.CombatId);
+        if (encounterIndex < 0 || state.ActiveEncounterId != previousCombat.CombatId)
+            return Result<RunState>.Failure($"Active run encounter not found: {previousCombat.CombatId}");
+        var encounter = state.Encounters[encounterIndex];
+        if (!string.Equals(
+                CanonicalJson.ComputeHash(encounter.Combat),
+                CanonicalJson.ComputeHash(previousCombat),
+                StringComparison.Ordinal))
+            return Result<RunState>.Failure("Run-owned combat changed before the resolution could be committed");
+
+        foreach (var step in steps)
+        {
+            if (step.Combat == null || step.Combat.CombatId != previousCombat.CombatId ||
+                step.Combat.RunId != state.RunId ||
+                !string.Equals(step.Combat.RunNodeId, encounter.NodeId, StringComparison.Ordinal) ||
+                step.Combat.Determinism.Seed != previousCombat.Determinism.Seed ||
+                !string.Equals(
+                    step.Combat.Determinism.ContentRevision,
+                    state.Determinism.ContentRevision,
+                    StringComparison.Ordinal) ||
+                string.IsNullOrWhiteSpace(step.TransitionType))
+                return Result<RunState>.Failure("Invalid transition in combat resolution");
+        }
+
+        var candidates = new List<(RunState State, CombatResolutionStep Step)>(steps.Count);
+        var candidate = state;
+        foreach (var step in steps)
+        {
+            candidate = candidate with
+            {
+                Deck = step.Deck,
+                Encounters = candidate.Encounters.SetItem(
+                    encounterIndex,
+                    candidate.Encounters[encounterIndex] with { Combat = step.Combat }),
+                Determinism = candidate.Determinism.AdvanceStep()
+            };
+            candidates.Add((candidate, step));
+        }
+
+        return PersistBatch(state, candidates, rootCommand);
     }
 
     public Result<RunState> ResolveEncounter(
@@ -1987,6 +2057,100 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor
                 _runs[state.RunId] = previous;
             return Result<RunState>.Failure(
                 $"Failed to persist run transition '{commandType}': {exception.Message}",
+                exception);
+        }
+    }
+
+    private Result<RunState> PersistBatch(
+        RunState previous,
+        IReadOnlyList<(RunState State, CombatResolutionStep Step)> candidates,
+        RunCommandIdentity? rootCommand)
+    {
+        try
+        {
+            var checkpoints = new List<RunCheckpoint>(candidates.Count);
+            var priorState = previous;
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                var isFinal = index == candidates.Count - 1;
+                var candidate = candidates[index];
+                var state = candidate.State with
+                {
+                    Sequence = checked(previous.Sequence + index + 1)
+                };
+                var snapshot = CreateSnapshot(state);
+                var stateHash = CanonicalJson.ComputeHash(snapshot);
+                var previousHash = CanonicalJson.ComputeHash(priorState);
+                var internalId = rootCommand == null
+                    ? (Guid?)null
+                    : DeterministicId.Create(
+                        previous.Determinism.Seed,
+                        (ulong)index,
+                        $"combat-resolution:{rootCommand.CommandId:N}:{candidate.Step.TransitionType}");
+                var commandId = isFinal && rootCommand != null
+                    ? rootCommand.CommandId
+                    : internalId;
+                var entry = new RunJournalEntry
+                {
+                    RunId = state.RunId,
+                    CommandId = commandId,
+                    RootCommandId = rootCommand?.CommandId,
+                    CausationId = rootCommand?.CommandId,
+                    TransitionIndex = index,
+                    TransitionCount = candidates.Count,
+                    Sequence = snapshot.Sequence,
+                    Step = snapshot.Determinism.Step,
+                    ExpectedSequence = isFinal ? rootCommand?.ExpectedSequence : null,
+                    ExpectedStep = isFinal ? rootCommand?.ExpectedStep : null,
+                    CommandPayloadHash = isFinal ? rootCommand?.PayloadHash ?? string.Empty : string.Empty,
+                    CommandType = isFinal && rootCommand != null
+                        ? rootCommand.Type
+                        : candidate.Step.TransitionType,
+                    Command = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
+                        ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
+                        : candidate.Step.Payload.Clone(),
+                    PreviousStateHash = previousHash,
+                    StateHash = stateHash,
+                    LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime
+                };
+                checkpoints.Add(new RunCheckpoint(snapshot, entry));
+                priorState = state;
+            }
+
+            var batch = new RunCheckpointBatch
+            {
+                RunId = previous.RunId,
+                RootCommandId = rootCommand?.CommandId,
+                Checkpoints = checkpoints
+            };
+            if (_repository is IRunCheckpointRepository checkpointRepository)
+            {
+                checkpointRepository.SaveCheckpointBatchAsync(batch).GetAwaiter().GetResult();
+            }
+            else if (_repository != null)
+            {
+                _repository.SaveAsync(checkpoints[^1].State).GetAwaiter().GetResult();
+            }
+
+            var finalState = candidates[^1].State with { Sequence = checkpoints[^1].State.Sequence };
+            _runs[previous.RunId] = finalState;
+            foreach (var checkpoint in checkpoints)
+            {
+                if (checkpoint.JournalEntry.CommandId is { } commandId)
+                {
+                    _commandReceipts[(previous.RunId, commandId)] = CreateReceipt(
+                        checkpoint.State,
+                        checkpoint.JournalEntry,
+                        duplicate: false);
+                }
+            }
+            return Result<RunState>.Success(finalState);
+        }
+        catch (Exception exception)
+        {
+            _runs[previous.RunId] = previous;
+            return Result<RunState>.Failure(
+                $"Failed to persist combat resolution: {exception.Message}",
                 exception);
         }
     }

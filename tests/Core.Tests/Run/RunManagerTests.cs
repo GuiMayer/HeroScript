@@ -294,6 +294,95 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public async Task CommitCombatResolution_PersistsEveryTransitionAsOneCausalBatch()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"heroscript-resolution-{Guid.NewGuid():N}");
+        try
+        {
+            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            var manager = CreateManager(repository: repository, runJson: CombatRunJson);
+            var run = manager.StartRun(new RunStartOptions(
+                "test", "default_run", "hero", Seed: 93UL, ContentRevision: "test")).Value;
+            var combatSeed = run.Determinism.DrawUInt64().Value;
+            var combat = CombatTransitions.Create(
+                CreateCombatEntity("hero", isHero: true),
+                [CreateCombatEntity("enemy", isHero: false)],
+                DeterministicContext.Create(combatSeed, run.Determinism.ContentRevision)) with
+            {
+                RunId = run.RunId,
+                RunNodeId = "start"
+            };
+            var attached = manager.AttachEncounter(
+                run.RunId,
+                run.Sequence,
+                run.Determinism.Step,
+                combat).Value;
+            var rootCommand = new RunCommandIdentity(
+                Guid.NewGuid(),
+                "COMBAT_ACTION",
+                attached.Sequence,
+                combat.Determinism.Step,
+                "payload-hash");
+            var first = combat with
+            {
+                CurrentTurn = 2,
+                Determinism = combat.Determinism.AdvanceStep()
+            };
+            var second = first with
+            {
+                CurrentTurn = 3,
+                Determinism = first.Determinism.AdvanceStep()
+            };
+
+            var committed = manager.CommitCombatResolution(new CombatResolutionCommit
+            {
+                RunId = run.RunId,
+                ExpectedSequence = attached.Sequence,
+                PreviousCombat = combat,
+                RootCommand = rootCommand,
+                Steps =
+                [
+                    new CombatResolutionStep
+                    {
+                        TransitionType = "combat.activation.ended",
+                        Combat = first,
+                        Deck = attached.Deck,
+                        Payload = JsonSerializer.SerializeToElement(new { actorId = "hero" })
+                    },
+                    new CombatResolutionStep
+                    {
+                        TransitionType = "combat.activation.started",
+                        Combat = second,
+                        Deck = attached.Deck,
+                        Payload = JsonSerializer.SerializeToElement(new { actorId = "enemy" })
+                    }
+                ]
+            });
+
+            Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
+            Assert.Equal(attached.Sequence + 2, committed.Value.Sequence);
+            Assert.Equal(3, committed.Value.GetActiveEncounter()!.Combat.CurrentTurn);
+            var journal = await repository.LoadJournalAsync(run.RunId);
+            var transitions = journal.TakeLast(2).ToArray();
+            Assert.Equal(new[] { 0, 1 }, transitions.Select(entry => entry.TransitionIndex));
+            Assert.All(transitions, entry =>
+            {
+                Assert.Equal(2, entry.TransitionCount);
+                Assert.Equal(rootCommand.CommandId, entry.RootCommandId);
+                Assert.Equal(rootCommand.CommandId, entry.CausationId);
+            });
+            Assert.Equal("combat.activation.ended", transitions[0].CommandType);
+            Assert.Equal(rootCommand.CommandId, transitions[1].CommandId);
+            Assert.Equal("COMBAT_ACTION", transitions[1].CommandType);
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+                Directory.Delete(path, recursive: true);
+        }
+    }
+
+    [Fact]
     public void GetRunByCombat_RecoversEmbeddedEncounterAfterManagerRestart()
     {
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-encounter-{Guid.NewGuid():N}");

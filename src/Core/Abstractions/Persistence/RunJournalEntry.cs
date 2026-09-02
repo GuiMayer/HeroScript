@@ -6,6 +6,10 @@ public sealed record RunJournalEntry
 {
     public Guid RunId { get; init; }
     public Guid? CommandId { get; init; }
+    public Guid? RootCommandId { get; init; }
+    public Guid? CausationId { get; init; }
+    public int TransitionIndex { get; init; }
+    public int TransitionCount { get; init; } = 1;
     public int Sequence { get; init; }
     public ulong Step { get; init; }
     public int? ExpectedSequence { get; init; }
