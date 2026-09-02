@@ -6,6 +6,7 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Flow;
 using Core.Combat.Gambits;
+using Core.Combat.Intents;
 using Core.Combat.Modifiers;
 using Core.Combat.TurnOrder;
 using Core.Common;
@@ -337,14 +338,17 @@ public sealed class RunSemanticReplayService : IRunReplayService
             entityDefinitionLoader: _entityDefinitionLoader,
             effectResolver: effects,
             actionCostEvaluator: _actionCostEvaluator);
-        var flowPlanner = contentRuntimes == null
-            ? null
-            : new CombatFlowPlanner(contentRuntimes, _actionManager);
         var gambits = new GambitEngine(
             _configManager,
             _resourceLoader,
             eventBus,
             contentRuntimes: contentRuntimes);
+        var flowPlanner = contentRuntimes == null
+            ? null
+            : new CombatFlowPlanner(
+                contentRuntimes,
+                _actionManager,
+                new IntentResolver(gambits, _actionManager));
         var combats = new CombatRunCoordinator(
             combatSystem,
             runs,

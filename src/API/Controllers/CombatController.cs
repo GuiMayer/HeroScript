@@ -816,7 +816,8 @@ public class CombatController : BaseApiController
             },
             TotalActions = state.ActionHistory.Count,
             Board = state.Board,
-            Phase = state.PhaseState
+            Phase = state.PhaseState,
+            Activation = state.ActivationState
         };
     }
 

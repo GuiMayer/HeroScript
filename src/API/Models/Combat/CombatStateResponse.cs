@@ -18,6 +18,7 @@ public class CombatStateResponse
     public int TotalActions { get; set; }
     public Core.Combat.Models.CombatBoardState Board { get; set; } = new();
     public Core.Combat.TurnPhase.PhaseState? Phase { get; set; }
+    public Core.Combat.Activation.ActivationState? Activation { get; set; }
 }
 
 public class HeroStateDto

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Combat.Activation;
+using Core.Combat.Intents;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Common;
@@ -44,11 +45,16 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
 {
     private readonly IContentRuntimeResolver _contentRuntimes;
     private readonly IActionManager _actions;
+    private readonly IIntentResolver _intents;
 
-    public CombatFlowPlanner(IContentRuntimeResolver contentRuntimes, IActionManager actions)
+    public CombatFlowPlanner(
+        IContentRuntimeResolver contentRuntimes,
+        IActionManager actions,
+        IIntentResolver intents)
     {
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
+        _intents = intents ?? throw new ArgumentNullException(nameof(intents));
     }
 
     public Result<CombatState> Initialize(RunState run, CombatState combat)
@@ -56,9 +62,12 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
         var context = ResolveContext(run);
-        return context.IsFailure
-            ? Result<CombatState>.Failure(context.Error)
-            : Initialize(run, combat, context.Value.Sequence, context.Value.Policies);
+        if (context.IsFailure)
+            return Result<CombatState>.Failure(context.Error);
+        var initialized = Initialize(run, combat, context.Value.Sequence, context.Value.Policies);
+        return initialized.IsFailure
+            ? initialized
+            : PublishIntents(run, initialized.Value, context.Value.Policies);
     }
 
     public Result<CombatFlowAdvanceResult> AdvanceActivation(
@@ -75,7 +84,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (context.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(context.Error);
 
-        return AdvanceActivation(
+        var advanced = AdvanceActivation(
             run,
             combat,
             deck,
@@ -83,6 +92,15 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             context.Value.Sequence,
             context.Value.Policies,
             actionId => ResolveAction(run, actionId));
+        if (advanced.IsFailure)
+            return advanced;
+
+        var published = PublishIntents(run, advanced.Value.Combat, context.Value.Policies);
+        if (published.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(published.Error);
+        var steps = advanced.Value.Steps.ToArray();
+        steps[^1] = steps[^1] with { Combat = published.Value };
+        return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
     }
 
     public static Result<CombatState> Initialize(
@@ -288,6 +306,34 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         _actions is IRevisionedActionCatalog revisioned
             ? revisioned.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
             : _actions.GetDefinition(actionId);
+
+    private Result<CombatState> PublishIntents(
+        RunState run,
+        CombatState combat,
+        CombatFlowPoliciesDefinition policies)
+    {
+        var activation = combat.ActivationState;
+        if (activation == null)
+            return Result<CombatState>.Failure("Combat activation has not been initialized");
+        if (!policies.Ai.PublishIntents)
+        {
+            return Result<CombatState>.Success(combat with
+            {
+                ActivationState = activation with { Intents = [] }
+            });
+        }
+
+        var resolved = _intents.ResolveEnemyIntents(
+            combat,
+            run.RunId,
+            policies.Ai.GambitIds.Count == 0 ? null : policies.Ai.GambitIds);
+        return resolved.IsFailure
+            ? Result<CombatState>.Failure(resolved.Error)
+            : Result<CombatState>.Success(combat with
+            {
+                ActivationState = activation with { Intents = resolved.Value }
+            });
+    }
 
     private static Result<ResourceRefreshResult> ApplyStartDeckCycle(
         RunState run,

@@ -491,7 +491,8 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 // Register CombatRunCoordinator
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
-    sp.GetRequiredService<IActionManager>()));
+    sp.GetRequiredService<IActionManager>(),
+    sp.GetRequiredService<IIntentResolver>()));
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
     sp.GetRequiredService<ICombatSystem>(),
     sp.GetRequiredService<IRunManager>(),

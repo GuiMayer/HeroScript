@@ -56,6 +56,15 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Contains(
             snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
             actor => actor.GetProperty("entityId").GetString() == "goblin_a");
+        var intents = snapshot.GetProperty("combat")
+            .GetProperty("activation")
+            .GetProperty("intents")
+            .EnumerateArray()
+            .ToArray();
+        Assert.Single(intents);
+        Assert.Equal("goblin_a", intents[0].GetProperty("actorId").GetString());
+        Assert.Equal("hero", intents[0].GetProperty("targetId").GetString());
+        Assert.Equal("Attack", intents[0].GetProperty("telegraphType").GetString());
         var originalEnemyHealth = Health(snapshot, "goblin_a");
 
         var basicAttack = snapshot.GetProperty("hand").EnumerateArray()
