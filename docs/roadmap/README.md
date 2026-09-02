@@ -33,6 +33,8 @@ Este roadmap documenta a evolução da API REST do HeroScript, mapeando todos os
 
 **Lacunas de Integração Frontend:** Para lacunas identificadas durante planejamento de protótipo visual, consulte [analysis/frontend-integration-gaps.md](analysis/frontend-integration-gaps.md).
 
+**Viabilidade do GDD:** Para a classificação das mecânicas do GDD entre completas, parciais e sem runtime executável, consulte [gdd-mechanics-feasibility.md](gdd-mechanics-feasibility.md).
+
 ## Filosofia da API
 
 A API do HeroScript segue os princípios da arquitetura headless:
