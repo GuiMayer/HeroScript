@@ -171,7 +171,7 @@ public enum FatigueStrategy { Unspecified, None }
 public enum ResourceRefreshStrategy { Unspecified, ResetToMax, Add, Preserve, Set }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum StatusTriggerBoundary { StartActivation, EndActivation, StartRound, EndRound }
+public enum StatusTriggerBoundary { Unspecified, StartActivation, EndActivation, StartRound, EndRound }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum StatusOrderingStrategy { Unspecified, PriorityThenInstanceId }
@@ -239,6 +239,7 @@ public static class CombatFlowPolicyValidator
             policies.ResourceCycle.Amount is null)
             return Result.Failure("Resource cycle Add/Set strategy requires amount");
         if (policies.StatusTiming.Boundaries.Count == 0 ||
+            policies.StatusTiming.Boundaries.Contains(StatusTriggerBoundary.Unspecified) ||
             policies.StatusTiming.Ordering == StatusOrderingStrategy.Unspecified)
             return Result.Failure("Status timing boundaries and ordering are required");
         if (policies.Outcome.EvaluationBoundary == OutcomeEvaluationBoundary.Unspecified ||

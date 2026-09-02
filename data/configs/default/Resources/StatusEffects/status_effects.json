@@ -12,6 +12,9 @@
     "FormulaValue": "stacks * 3",
     "ScalesWithStacks": true,
     "Timing": "END_OF_TURN",
+    "TriggerBoundary": "EndActivation",
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 0,
     "Tags": ["fire", "dot", "debuff"]
   },
   "poison": {
@@ -27,6 +30,9 @@
     "FormulaValue": "stacks * 2",
     "ScalesWithStacks": true,
     "Timing": "END_OF_TURN",
+    "TriggerBoundary": "EndActivation",
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 0,
     "Tags": ["poison", "dot", "debuff"]
   },
   "strength": {
@@ -43,6 +49,9 @@
     "ModifierFormula": "stacks * 0.25",
     "ScalesWithStacks": true,
     "Timing": "PERMANENT",
+    "TriggerBoundary": "Unspecified",
+    "DurationTickBoundary": "Unspecified",
+    "Priority": 0,
     "Tags": ["buff", "damage"]
   },
   "weakness": {
@@ -59,6 +68,9 @@
     "ModifierFormula": "stacks * -0.25",
     "ScalesWithStacks": true,
     "Timing": "PERMANENT",
+    "TriggerBoundary": "Unspecified",
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 0,
     "Tags": ["debuff", "damage"]
   },
   "stunned": {
@@ -73,6 +85,9 @@
     "BaseValue": 0.0,
     "ScalesWithStacks": false,
     "Timing": "PERMANENT",
+    "TriggerBoundary": "Unspecified",
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 0,
     "Tags": ["debuff", "control"]
   }
 }

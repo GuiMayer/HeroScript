@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Combat.Flow;
 
 namespace Core.StatusEffects;
 
@@ -102,6 +103,23 @@ public record StatusEffectDefinition
     /// Quando o status effect é processado
     /// </summary>
     public StatusEffectTiming Timing { get; init; }
+
+    /// <summary>
+    /// Exact canonical combat boundary that actively executes this status.
+    /// Reactive and passive statuses leave this as Unspecified.
+    /// </summary>
+    public StatusTriggerBoundary TriggerBoundary { get; init; }
+
+    /// <summary>
+    /// Exact canonical combat boundary that decrements finite duration.
+    /// Permanent statuses leave this as Unspecified.
+    /// </summary>
+    public StatusTriggerBoundary DurationTickBoundary { get; init; }
+
+    /// <summary>
+    /// Higher values resolve first; instance id is the deterministic tie-break.
+    /// </summary>
+    public int Priority { get; init; }
     
     // ===== VISUAL =====
     
