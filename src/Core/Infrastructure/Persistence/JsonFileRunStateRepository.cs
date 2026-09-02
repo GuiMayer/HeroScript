@@ -50,18 +50,21 @@ public sealed class JsonFileRunStateRepository : IRunCheckpointRepository, IDisp
         await SaveCheckpointAsync(new RunCheckpoint(state, entry), ct).ConfigureAwait(false);
     }
 
-    public async Task SaveCheckpointAsync(RunCheckpoint checkpoint, CancellationToken ct = default)
+    public Task SaveCheckpointAsync(RunCheckpoint checkpoint, CancellationToken ct = default) =>
+        SaveCheckpointBatchAsync(RunCheckpointBatch.Single(checkpoint), ct);
+
+    public async Task SaveCheckpointBatchAsync(RunCheckpointBatch batch, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(checkpoint);
-        var state = checkpoint.State;
-        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(batch);
+        batch.Validate();
+        var state = batch.Checkpoints[^1].State;
         var path = GetPath(state.RunId);
         var tmp = path + ".tmp";
 
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var json = JsonSerializer.Serialize(checkpoint, _options);
+            var json = JsonSerializer.Serialize(batch, _options);
             await File.WriteAllTextAsync(tmp, json, ct).ConfigureAwait(false);
             File.Move(tmp, path, overwrite: true);
         }
@@ -90,7 +93,7 @@ public sealed class JsonFileRunStateRepository : IRunCheckpointRepository, IDisp
         try
         {
             var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
-            return DeserializeCheckpoint(json)?.State;
+            return DeserializeBatch(json)?.Checkpoints.LastOrDefault()?.State;
         }
         catch (Exception ex)
         {
@@ -135,8 +138,7 @@ public sealed class JsonFileRunStateRepository : IRunCheckpointRepository, IDisp
         try
         {
             var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
-            var checkpoint = DeserializeCheckpoint(json);
-            return checkpoint == null ? Array.Empty<RunCheckpoint>() : new[] { checkpoint };
+            return DeserializeBatch(json)?.Checkpoints.ToArray() ?? [];
         }
         finally
         {
@@ -186,19 +188,25 @@ public sealed class JsonFileRunStateRepository : IRunCheckpointRepository, IDisp
 
     private string GetPath(Guid runId) => Path.Combine(_storePath, $"{runId}.json");
 
-    private RunCheckpoint? DeserializeCheckpoint(string json)
+    private RunCheckpointBatch? DeserializeBatch(string json)
     {
         using var document = JsonDocument.Parse(json);
+        if (document.RootElement.TryGetProperty("checkpoints", out _)
+            || document.RootElement.TryGetProperty("Checkpoints", out _))
+        {
+            return JsonSerializer.Deserialize<RunCheckpointBatch>(json, _options);
+        }
         if (document.RootElement.TryGetProperty("state", out _)
             || document.RootElement.TryGetProperty("State", out _))
         {
-            return JsonSerializer.Deserialize<RunCheckpoint>(json, _options);
+            var checkpoint = JsonSerializer.Deserialize<RunCheckpoint>(json, _options);
+            return checkpoint == null ? null : RunCheckpointBatch.Single(checkpoint);
         }
 
         var state = JsonSerializer.Deserialize<RunState>(json, _options);
         if (state == null)
             return null;
-        return new RunCheckpoint(state, new RunJournalEntry
+        return RunCheckpointBatch.Single(new RunCheckpoint(state, new RunJournalEntry
         {
             RunId = state.RunId,
             Sequence = state.Sequence,
@@ -207,6 +215,6 @@ public sealed class JsonFileRunStateRepository : IRunCheckpointRepository, IDisp
             Command = JsonSerializer.SerializeToElement(new { }),
             StateHash = CanonicalJson.ComputeHash(state),
             LogicalTimestamp = state.Determinism.LogicalTimestamp.UtcDateTime
-        });
+        }));
     }
 }

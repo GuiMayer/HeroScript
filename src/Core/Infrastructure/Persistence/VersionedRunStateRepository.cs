@@ -52,36 +52,47 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
         await SaveCheckpointAsync(new RunCheckpoint(state, entry), ct).ConfigureAwait(false);
     }
 
-    public async Task SaveCheckpointAsync(RunCheckpoint checkpoint, CancellationToken ct = default)
+    public Task SaveCheckpointAsync(RunCheckpoint checkpoint, CancellationToken ct = default) =>
+        SaveCheckpointBatchAsync(RunCheckpointBatch.Single(checkpoint), ct);
+
+    public async Task SaveCheckpointBatchAsync(RunCheckpointBatch batch, CancellationToken ct = default)
     {
-        ArgumentNullException.ThrowIfNull(checkpoint);
-        var state = checkpoint.State;
-        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(batch);
+        batch.Validate();
+        var first = batch.Checkpoints[0];
+        var final = batch.Checkpoints[^1];
+        var state = final.State;
         
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             var snapshotDir = GetSnapshotDirectory(state.RunId);
             var journalDir = GetJournalDirectory(state.RunId);
+            var batchDir = GetBatchDirectory(state.RunId);
             Directory.CreateDirectory(snapshotDir);
             Directory.CreateDirectory(journalDir);
+            Directory.CreateDirectory(batchDir);
             await MigrateSnapshotsToJournalAsync(state.RunId, ct).ConfigureAwait(false);
 
-            var json = JsonSerializer.Serialize(checkpoint, _options);
-            var journalPath = GetJournalPath(state.RunId, state.Sequence);
-            var journalTmp = journalPath + ".tmp";
-            await File.WriteAllTextAsync(journalTmp, json, ct).ConfigureAwait(false);
-            File.Move(journalTmp, journalPath, overwrite: false);
+            var batchJson = JsonSerializer.Serialize(batch, _options);
+            var batchPath = GetBatchPath(state.RunId, first.State.Sequence, final.State.Sequence);
+            var batchTmp = batchPath + ".tmp";
+            await File.WriteAllTextAsync(batchTmp, batchJson, ct).ConfigureAwait(false);
+            File.Move(batchTmp, batchPath, overwrite: false);
 
             // Snapshots are a rebuildable read optimization. Once the journal
             // transaction is durable, a projection failure must not roll back an
             // accepted command.
             try
             {
-                var snapshotPath = GetSnapshotPath(state.RunId, state.Sequence);
-                var snapshotTmp = snapshotPath + ".tmp";
-                await File.WriteAllTextAsync(snapshotTmp, json, ct).ConfigureAwait(false);
-                File.Move(snapshotTmp, snapshotPath, overwrite: false);
+                foreach (var checkpoint in batch.Checkpoints)
+                {
+                    var snapshotPath = GetSnapshotPath(state.RunId, checkpoint.State.Sequence);
+                    var snapshotTmp = snapshotPath + ".tmp";
+                    var snapshotJson = JsonSerializer.Serialize(checkpoint, _options);
+                    await File.WriteAllTextAsync(snapshotTmp, snapshotJson, ct).ConfigureAwait(false);
+                    File.Move(snapshotTmp, snapshotPath, overwrite: false);
+                }
             }
             catch (Exception projectionException)
             {
@@ -91,16 +102,18 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
                     projectionException.Message);
             }
 
-            _logger.LogInformation($"Journal checkpoint {state.Sequence} saved for run {state.RunId}");
+            _logger.LogInformation(
+                $"Journal batch {first.State.Sequence}-{final.State.Sequence} saved for run {state.RunId}");
 
             // Cleanup old snapshots if exceeding max retention
             await CleanupOldSnapshotsAsync(state.RunId, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to save journal checkpoint {state.Sequence} for run {state.RunId}: {ex.Message}", ex);
-            CleanupTempFile(GetJournalPath(state.RunId, state.Sequence) + ".tmp");
-            CleanupTempFile(GetSnapshotPath(state.RunId, state.Sequence) + ".tmp");
+            _logger.LogError($"Failed to save journal batch for run {state.RunId}: {ex.Message}", ex);
+            CleanupTempFile(GetBatchPath(state.RunId, first.State.Sequence, final.State.Sequence) + ".tmp");
+            foreach (var checkpoint in batch.Checkpoints)
+                CleanupTempFile(GetSnapshotPath(state.RunId, checkpoint.State.Sequence) + ".tmp");
             throw;
         }
         finally
@@ -118,6 +131,7 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
         {
             var sequences = ListSnapshotSequences(GetSnapshotDirectory(runId))
                 .Concat(ListSnapshotSequences(GetJournalDirectory(runId)))
+                .Concat(ListBatchSequences(GetBatchDirectory(runId)))
                 .Distinct()
                 .ToArray();
             latestSequence = sequences.Length == 0 ? null : sequences.Max();
@@ -137,15 +151,24 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
     public async Task<RunState?> LoadAsync(Guid runId, int sequence, CancellationToken ct = default)
     {
         var snapshotPath = GetSnapshotPath(runId, sequence);
-        var path = File.Exists(snapshotPath) ? snapshotPath : GetJournalPath(runId, sequence);
-        if (!File.Exists(path))
-            return null;
+        var journalPath = GetJournalPath(runId, sequence);
 
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
-            var state = DeserializeCheckpoint(json)?.State;
+            RunState? state;
+            if (File.Exists(snapshotPath) || File.Exists(journalPath))
+            {
+                var path = File.Exists(snapshotPath) ? snapshotPath : journalPath;
+                var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
+                state = DeserializeCheckpoint(json)?.State;
+            }
+            else
+            {
+                state = (await LoadBatchesUnsafeAsync(runId, ct).ConfigureAwait(false))
+                    .SelectMany(batch => batch.Checkpoints)
+                    .FirstOrDefault(checkpoint => checkpoint.State.Sequence == sequence)?.State;
+            }
             
             _logger.LogInformation($"Snapshot {sequence} loaded for run {runId}");
             
@@ -184,17 +207,14 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
         Guid runId,
         CancellationToken ct = default)
     {
-        var journalDir = GetJournalDirectory(runId);
-        var sourceDir = Directory.Exists(journalDir) && ListSnapshotSequences(journalDir).Count > 0
-            ? journalDir
-            : GetSnapshotDirectory(runId);
-        if (!Directory.Exists(sourceDir))
-            return Array.Empty<RunCheckpoint>();
-
         await _semaphore.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            var checkpoints = new List<RunCheckpoint>();
+            var checkpoints = new Dictionary<int, RunCheckpoint>();
+            var journalDir = GetJournalDirectory(runId);
+            var sourceDir = Directory.Exists(journalDir) && ListSnapshotSequences(journalDir).Count > 0
+                ? journalDir
+                : GetSnapshotDirectory(runId);
             foreach (var sequence in ListSnapshotSequences(sourceDir))
             {
                 var json = await File.ReadAllTextAsync(
@@ -202,9 +222,12 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
                     ct).ConfigureAwait(false);
                 var checkpoint = DeserializeCheckpoint(json);
                 if (checkpoint != null)
-                    checkpoints.Add(checkpoint);
+                    checkpoints[sequence] = checkpoint;
             }
-            return checkpoints;
+            foreach (var batch in await LoadBatchesUnsafeAsync(runId, ct).ConfigureAwait(false))
+            foreach (var checkpoint in batch.Checkpoints)
+                checkpoints[checkpoint.State.Sequence] = checkpoint;
+            return checkpoints.Values.OrderBy(checkpoint => checkpoint.State.Sequence).ToArray();
         }
         finally
         {
@@ -280,10 +303,43 @@ public sealed class VersionedRunStateRepository : IRunCheckpointRepository, IDis
     private string GetRunDirectory(Guid runId) => Path.Combine(_storePath, runId.ToString());
     private string GetSnapshotDirectory(Guid runId) => Path.Combine(GetRunDirectory(runId), "snapshots");
     private string GetJournalDirectory(Guid runId) => Path.Combine(GetRunDirectory(runId), "journal");
+    private string GetBatchDirectory(Guid runId) => Path.Combine(GetRunDirectory(runId), "batches");
     private string GetSnapshotPath(Guid runId, int sequence) => 
         Path.Combine(GetSnapshotDirectory(runId), $"{sequence:D6}.json");
     private string GetJournalPath(Guid runId, int sequence) =>
         Path.Combine(GetJournalDirectory(runId), $"{sequence:D6}.json");
+    private string GetBatchPath(Guid runId, int firstSequence, int lastSequence) =>
+        Path.Combine(GetBatchDirectory(runId), $"{firstSequence:D6}-{lastSequence:D6}.json");
+
+    private async Task<IReadOnlyList<RunCheckpointBatch>> LoadBatchesUnsafeAsync(
+        Guid runId,
+        CancellationToken ct)
+    {
+        var directory = GetBatchDirectory(runId);
+        if (!Directory.Exists(directory))
+            return [];
+        var batches = new List<RunCheckpointBatch>();
+        foreach (var path in Directory.GetFiles(directory, "*.json").OrderBy(path => path, StringComparer.Ordinal))
+        {
+            var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
+            var batch = JsonSerializer.Deserialize<RunCheckpointBatch>(json, _options);
+            if (batch != null)
+                batches.Add(batch);
+        }
+        return batches;
+    }
+
+    private static IReadOnlyList<int> ListBatchSequences(string batchDir)
+    {
+        if (!Directory.Exists(batchDir))
+            return [];
+        return Directory.GetFiles(batchDir, "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .SelectMany(name => name?.Split('-', StringSplitOptions.RemoveEmptyEntries) ?? [])
+            .Where(value => int.TryParse(value, out _))
+            .Select(int.Parse)
+            .ToArray();
+    }
 
     private async Task MigrateSnapshotsToJournalAsync(Guid runId, CancellationToken ct)
     {

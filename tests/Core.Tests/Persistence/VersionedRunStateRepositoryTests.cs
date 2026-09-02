@@ -1,4 +1,7 @@
 using Core.Infrastructure.Persistence;
+using Core.Abstractions.Persistence;
+using Core.Determinism;
+using System.Text.Json;
 using Core.Logging;
 using Core.Run;
 using Xunit;
@@ -27,6 +30,79 @@ public sealed class VersionedRunStateRepositoryTests : IDisposable
         Assert.Equal(new[] { 2, 3 }, snapshots);
         Assert.Equal(new[] { 1, 2, 3 }, journal.Select(entry => entry.Sequence));
         Assert.Equal(new[] { 1, 2, 3 }, checkpoints.Select(entry => entry.State.Sequence));
+    }
+
+    [Fact]
+    public async Task SaveCheckpointBatch_PublishesEveryCheckpointAtomically()
+    {
+        using var repository = new VersionedRunStateRepository(_storePath, new TestLogger());
+        var runId = Guid.NewGuid();
+        var firstState = new RunState { RunId = runId, Sequence = 1, Gold = 10 };
+        var firstHash = CanonicalJson.ComputeHash(firstState);
+        var secondState = firstState with { Sequence = 2, Gold = 20 };
+        var secondHash = CanonicalJson.ComputeHash(secondState);
+        var commandId = Guid.NewGuid();
+        var batch = new RunCheckpointBatch
+        {
+            RunId = runId,
+            RootCommandId = commandId,
+            Checkpoints =
+            [
+                new RunCheckpoint(firstState, new RunJournalEntry
+                {
+                    RunId = runId,
+                    CommandId = commandId,
+                    Sequence = 1,
+                    CommandType = "ROOT",
+                    Command = JsonSerializer.SerializeToElement(new { }),
+                    StateHash = firstHash
+                }),
+                new RunCheckpoint(secondState, new RunJournalEntry
+                {
+                    RunId = runId,
+                    CommandId = commandId,
+                    Sequence = 2,
+                    CommandType = "INTERNAL",
+                    Command = JsonSerializer.SerializeToElement(new { }),
+                    PreviousStateHash = firstHash,
+                    StateHash = secondHash
+                })
+            ]
+        };
+
+        await repository.SaveCheckpointBatchAsync(batch);
+
+        var loaded = await repository.LoadCheckpointsAsync(runId);
+        Assert.Equal([1, 2], loaded.Select(checkpoint => checkpoint.State.Sequence));
+        Assert.Equal(20, (await repository.LoadLatestAsync(runId))?.Gold);
+        Assert.Single(Directory.GetFiles(Path.Combine(_storePath, runId.ToString(), "batches"), "*.json"));
+    }
+
+    [Fact]
+    public async Task SaveCheckpointBatch_RejectsBrokenHashChainWithoutWritingAnything()
+    {
+        using var repository = new VersionedRunStateRepository(_storePath, new TestLogger());
+        var runId = Guid.NewGuid();
+        var state = new RunState { RunId = runId, Sequence = 1 };
+        var batch = new RunCheckpointBatch
+        {
+            RunId = runId,
+            Checkpoints =
+            [
+                new RunCheckpoint(state, new RunJournalEntry
+                {
+                    RunId = runId,
+                    Sequence = 1,
+                    Command = JsonSerializer.SerializeToElement(new { }),
+                    StateHash = "incorrect"
+                })
+            ]
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repository.SaveCheckpointBatchAsync(batch));
+
+        Assert.Null(await repository.LoadLatestAsync(runId));
     }
 
     public void Dispose()

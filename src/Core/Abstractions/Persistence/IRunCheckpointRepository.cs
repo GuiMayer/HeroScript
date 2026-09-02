@@ -6,6 +6,7 @@ namespace Core.Abstractions.Persistence;
 public interface IRunCheckpointRepository : IRunStateRepository
 {
     Task SaveCheckpointAsync(RunCheckpoint checkpoint, CancellationToken ct = default);
+    Task SaveCheckpointBatchAsync(RunCheckpointBatch batch, CancellationToken ct = default);
     Task<IReadOnlyList<RunCheckpoint>> LoadCheckpointsAsync(
         Guid runId,
         CancellationToken ct = default);
