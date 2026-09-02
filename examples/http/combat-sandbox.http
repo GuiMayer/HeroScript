@@ -70,6 +70,9 @@ Content-Type: application/json
   }
 }
 
+### Resume the deterministic animation queue after a reconnect
+GET {{baseUrl}}/api/v1/combats/{{combatId}}/resolutions/{{commandId}}
+
 ### Browse history and inspect a snapshot in read-only mode
 GET {{baseUrl}}/api/v1/combats/{{combatId}}/timeline?limit=50
 

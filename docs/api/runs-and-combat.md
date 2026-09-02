@@ -41,6 +41,7 @@ simultaneamente a progressão. Dentro do encontro, use:
 - `GET /api/v1/combats/{combatId}` para o read model;
 - `GET /legal-actions` e `/legal-targets` para não duplicar regras no cliente;
 - `POST /commands` com `EXECUTE_ACTION` ou `END_TURN`;
+- `GET /resolutions/{commandId}` para retomar a fila visual durável;
 - `GET /stack` para sistemas TCG que exibem prioridade e pilha.
 
 O payload de `EXECUTE_ACTION` aceita `actionId` (preferível), `actorId`,

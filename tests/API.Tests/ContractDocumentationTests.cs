@@ -19,6 +19,7 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/runs", "post", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/commands", "post", "stable");
         AssertOperation(paths, "/api/v1/combats/{combatId}/commands", "post", "stable");
+        AssertOperation(paths, "/api/v1/combats/{combatId}/resolutions/{commandId}", "get", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/checkpoints", "get", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/timeline", "get", "experimental");
         AssertOperation(paths, "/api/v1/runs/{runId}/branches", "post", "experimental");
@@ -40,6 +41,21 @@ public sealed class ContractDocumentationTests
         var commandType = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CommandEnvelope").GetProperty("properties").GetProperty("type");
         Assert.Contains("ACTIVATE_CONTENT_REVISION", commandType.GetProperty("description").GetString());
+
+        var resolution = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatResolutionRecord");
+        Assert.Contains(
+            "CompactWithSnapshotLookup",
+            resolution.GetProperty("properties").GetProperty("mode").GetProperty("enum")
+                .EnumerateArray().Select(item => item.GetString()));
+        Assert.True(root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatAnimationFrame").GetProperty("properties")
+            .TryGetProperty("snapshotSequence", out _));
+        Assert.Equal(
+            "#/components/schemas/CombatResolutionRecord",
+            root.GetProperty("components").GetProperty("schemas")
+                .GetProperty("CombatCommandState").GetProperty("properties")
+                .GetProperty("resolution").GetProperty("$ref").GetString());
 
         var responses = root.GetProperty("components").GetProperty("responses");
         Assert.True(responses.TryGetProperty("Problem", out var problem));

@@ -1,5 +1,15 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-02
+
+- Comandos de combate passaram a expor uma resolução visual durável, composta
+  por frames ordenados e recuperável por `commandId` após reconexão.
+- Foram documentados os modos `FullSnapshots` e
+  `CompactWithSnapshotLookup`, incluindo a busca histórica por
+  `snapshotSequence`.
+- Os sandboxes iniciais agora exercitam os dois orçamentos de ação: energia
+  configurada e quantidade fixa por ativação.
+
 ## v1 — 2026-09-01
 
 - Todas as respostas HTTP não bem-sucedidas foram normalizadas como RFC 9457

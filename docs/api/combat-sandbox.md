@@ -39,7 +39,8 @@ atual; após `422`, mostre o diagnóstico e não tente corrigir o estado local.
    `attemptKey` é idempotente; trocar só `attemptKey` abre outra tentativa.
 4. Leia `GET /api/v1/sandbox/runs/{runId}/snapshot` para montar a tela.
 5. Envie intenção ao gateway canônico de combate usando as versões observadas.
-6. Atualize a tela pelo recibo ou releia o snapshot.
+6. Reproduza em ordem os frames de `state.resolution.frames`.
+7. Atualize a tela pelo último frame ou releia o snapshot.
 
 Exemplo de ação de carta:
 
@@ -65,6 +66,26 @@ definição. Assim cópias iguais podem ter upgrades, histórico e destino próp
 (por exemplo, `{"targetAlias":"goblin_a","statusId":"poison","stacks":2}`).
 Eles são validados pela capability do modo e ficam no snapshot imutável de
 combate, portanto também aparecem na timeline, branches e replay.
+
+## Fila de animação durável
+
+A engine resolve todo o comando imediatamente. A Godot não espera animações
+para autorizar a transição seguinte da engine; ela consome a fila imutável
+associada ao `commandId` no ritmo visual desejado.
+
+| Política JSON | Conteúdo do frame | Uso no cliente |
+| --- | --- | --- |
+| `FullSnapshots` | `stateAfter` contém o combate após cada transição | Renderize diretamente; é o modo de `combat_sandbox`. |
+| `CompactWithSnapshotLookup` | `stateAfter` é `null` e o frame contém `snapshotSequence` | Busque `/timeline/{snapshotSequence}/state`; é o modo de `combat_sandbox_fixed_actions`. |
+
+`frameId`, ordem, payload, sequência e step são determinísticos. Se a conexão
+cair após o comando ser aceito, repita o comando com o mesmo `commandId` ou
+consulte `/resolutions/{commandId}`; não gere uma segunda intenção para tentar
+recriar as animações.
+
+Os dois modos iniciais diferem também no orçamento de ação: `combat_sandbox`
+usa custos configurados e energia; `combat_sandbox_fixed_actions` ignora esses
+custos e encerra a ativação após a quantidade definida em JSON.
 
 ## Timeline e branches
 
@@ -108,6 +129,7 @@ run já iniciada.
 ## Checklist de cliente
 
 - Gere um novo `commandId` para cada intenção; reutilize-o somente para retry.
+- Termine de consumir `resolution.frames` antes de liberar o próximo input visual.
 - Use `expectedSequence` da run e `expectedStep` do combate atual.
 - Use IDs retornados, sobretudo `cardInstanceId`; não gere IDs no cliente.
 - Habilite botões e alvos somente a partir das leituras legais da API.

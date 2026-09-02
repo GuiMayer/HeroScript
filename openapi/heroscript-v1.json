@@ -118,9 +118,24 @@
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CommandEnvelope" } } }
         },
         "responses": {
-          "200": { "description": "Idempotent command result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CommandResult" } } } },
+          "200": { "description": "Idempotent command result with durable animation resolution", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CombatCommandResult" } } } },
           "409": { "$ref": "#/components/responses/Problem" },
           "422": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/combats/{combatId}/resolutions/{commandId}": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getCombatResolution",
+        "x-heroscript-stability": "stable",
+        "parameters": [
+          { "$ref": "#/components/parameters/CombatId" },
+          { "name": "commandId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Durable ordered animation frames produced by one accepted combat command", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CombatResolutionRecord" } } } },
+          "404": { "$ref": "#/components/responses/Problem" }
         }
       }
     },
@@ -511,6 +526,65 @@
           "stateHash": { "type": "string" },
           "state": { "type": "object", "additionalProperties": true },
           "events": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
+      "CombatCommandResult": {
+        "allOf": [
+          { "$ref": "#/components/schemas/CommandResult" },
+          {
+            "type": "object",
+            "properties": {
+              "state": { "$ref": "#/components/schemas/CombatCommandState" }
+            }
+          }
+        ]
+      },
+      "CombatCommandState": {
+        "type": "object",
+        "required": ["run", "combat", "resolution"],
+        "properties": {
+          "run": { "type": "object", "additionalProperties": true },
+          "combat": { "type": "object", "nullable": true, "additionalProperties": true },
+          "resolution": { "$ref": "#/components/schemas/CombatResolutionRecord" }
+        }
+      },
+      "CombatResolutionRecord": {
+        "type": "object",
+        "required": ["commandId", "combatId", "commandType", "mode", "firstSequence", "finalSequence", "frames"],
+        "properties": {
+          "commandId": { "type": "string", "format": "uuid" },
+          "combatId": { "type": "string", "format": "uuid" },
+          "commandType": { "type": "string" },
+          "mode": { "type": "string", "enum": ["FullSnapshots", "CompactWithSnapshotLookup"] },
+          "firstSequence": { "type": "integer", "minimum": 1 },
+          "finalSequence": { "type": "integer", "minimum": 1 },
+          "frames": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CombatAnimationFrame" }
+          }
+        }
+      },
+      "CombatAnimationFrame": {
+        "type": "object",
+        "required": ["frameId", "index", "runSequence", "combatStep", "transitionType", "payload", "snapshotSequence"],
+        "properties": {
+          "frameId": { "type": "string", "format": "uuid" },
+          "index": { "type": "integer", "minimum": 0 },
+          "runSequence": { "type": "integer", "minimum": 1 },
+          "combatStep": { "type": "integer", "format": "uint64" },
+          "transitionType": { "type": "string" },
+          "payload": { "type": "object", "additionalProperties": true },
+          "stateAfter": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true,
+            "description": "Present in FullSnapshots mode; null in compact mode."
+          },
+          "snapshotSequence": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Sequence accepted by GET /timeline/{sequence}/state for compact frame lookup."
+          }
         }
       },
       "ProblemDetails": {

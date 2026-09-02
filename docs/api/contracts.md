@@ -23,6 +23,12 @@ resultante, o read model imutável e os eventos projetados. Clientes devem usar
 esses valores para atualizar a UI, não reconstruir estado a partir de regras
 locais.
 
+Comandos de combate também retornam `state.resolution`. Essa resolução é a fila
+ordenada de transições que a engine já calculou e persistiu para apresentação.
+Ela pode ser relida, inclusive após reconexão, em
+`GET /api/v1/combats/{combatId}/resolutions/{commandId}`. O cliente confirma
+animações apenas no próprio estado visual; essa confirmação não altera a run.
+
 Para jogar uma carta de uma mão com instâncias, envie o UUID em
 `snapshot.hand[].cardInstanceId` como `payload.cardId`. IDs de definição, como
 `basic_attack`, descrevem conteúdo; IDs de instância identificam a cópia
