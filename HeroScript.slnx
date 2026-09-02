@@ -33,7 +33,6 @@
     <File Path="data/configs/default/Resources/cards/card_catalog.json" />
     <File Path="data/configs/default/Resources/card-pools/basic_rewards.json" />
     <File Path="data/configs/default/Resources/card-selections/basic_reward.json" />
-    <File Path="data/configs/default/Resources/combat-turn-rules/default_activation.json" />
     <File Path="data/configs/default/Resources/preparations/basic_preparation.json" />
     <File Path="data/configs/default/Resources/runs/default_run.json" />
     <File Path="data/configs/default/Resources/shops/basic_shop.json" />

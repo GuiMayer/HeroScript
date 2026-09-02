@@ -29,7 +29,6 @@ public sealed class ContentManifestProvider : IContentManifestProvider, ICacheSe
         new("card-selections", "card-selections"),
         new("shops", "shops"),
         new("preparations", "preparations"),
-        new("activation-rules", "combat-turn-rules"),
         new("phase-sequences", "phase-sequences"),
         new("races", "races"),
         new("powers", "powers"),

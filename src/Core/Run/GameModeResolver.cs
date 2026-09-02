@@ -226,9 +226,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         ContentBindingPolicyDefinition binding,
         CapabilityPolicyDefinition capabilities)
     {
-        if (string.IsNullOrWhiteSpace(combat.DefaultActivationRulesId) ||
-            string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
-            return Result.Failure("Combat rules require activation and phase sequence ids");
+        if (string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
+            return Result.Failure("Combat rules require a phase sequence id");
         var combatFlow = CombatFlowPolicyValidator.Validate(combat.Flow);
         if (combatFlow.IsFailure)
             return combatFlow;

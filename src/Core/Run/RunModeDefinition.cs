@@ -17,7 +17,6 @@ public sealed record GameModeDefinition
     public string? FlowRulesId { get; init; }
     public string? CombatRulesId { get; init; }
     public string? DamagePipelineId { get; init; }
-    public string? ActivationRulesId { get; init; }
     public string? ReplayPolicyId { get; init; }
     public string? TimelinePolicyId { get; init; }
     public string? ContentBindingPolicyId { get; init; }
@@ -57,7 +56,6 @@ public sealed record FlowRulesDefinition
 public sealed record CombatRulesDefinition
 {
     public string CombatRulesId { get; init; } = string.Empty;
-    public string? DefaultActivationRulesId { get; init; }
     public string? DefaultPhaseSequenceId { get; init; }
     public CombatFlowPoliciesDefinition Flow { get; init; } = new();
 }

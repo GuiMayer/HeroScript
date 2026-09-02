@@ -118,7 +118,6 @@ public sealed class GameModeResolverTests
     private static CombatRulesDefinition CreateCombatRules() => new()
     {
         CombatRulesId = "combat",
-        DefaultActivationRulesId = "activation",
         DefaultPhaseSequenceId = "phases",
         Flow = new CombatFlowPoliciesDefinition
         {

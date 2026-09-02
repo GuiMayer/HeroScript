@@ -12,7 +12,6 @@ public sealed record RunDefinition
     public int StartingGold { get; init; }
     public int StartingPowerPoints { get; init; }
     public int StartingHandSize { get; init; } = 5;
-    public string CombatActivationRulesId { get; init; } = "default_activation";
     public IReadOnlyList<string> StartingDeck
     {
         get => _startingDeck;

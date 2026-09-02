@@ -82,7 +82,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "flowRulesId", "flow-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "combatRulesId", "combat-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "damagePipelineId", "pipelines");
-            RequireProperty(runtime, errors, "modes", id, definition, "activationRulesId", "activation-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "replayPolicyId", "replay-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "timelinePolicyId", "timeline-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "contentBindingPolicyId", "content-binding-policies");
@@ -96,7 +95,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
     {
         foreach (var (id, definition) in runtime.GetDefinitions("runs"))
         {
-            RequireProperty(runtime, errors, "runs", id, definition, "combatActivationRulesId", "activation-rules");
             RequireArray(runtime, errors, "runs", id, definition, "startingDeck", "cards");
             ValidateMap(id, definition, errors);
         }
@@ -139,14 +137,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
         foreach (var (id, definition) in runtime.GetDefinitions("combat-rules"))
         {
-            RequireProperty(
-                runtime,
-                errors,
-                "combat-rules",
-                id,
-                definition,
-                "defaultActivationRulesId",
-                "activation-rules");
             RequireProperty(
                 runtime,
                 errors,

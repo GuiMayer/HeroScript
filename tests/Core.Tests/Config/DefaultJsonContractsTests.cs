@@ -61,10 +61,9 @@ public class DefaultJsonContractsTests
     }
 
     [Fact]
-    public void RunDefinition_ReferencesExistingDeckCardsAndActivationRules()
+    public void RunDefinition_ReferencesExistingDeckCards()
     {
         var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var rules = LoadResource("combat-turn-rules", "default_activation.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var runs = LoadResource("runs", "default_run.json");
 
         Assert.NotEmpty(runs);
@@ -72,9 +71,6 @@ public class DefaultJsonContractsTests
         {
             foreach (var cardId in run.GetProperty("startingDeck").EnumerateArray().Select(x => x.GetString()))
                 Assert.Contains(cardId!, cards);
-
-            var rulesId = RequiredString(run, "combatActivationRulesId", runId);
-            Assert.Contains(rulesId, rules);
         }
     }
 

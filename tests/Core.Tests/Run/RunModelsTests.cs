@@ -307,7 +307,6 @@ public class RunModelsTests
         Assert.Equal(0, runDef.StartingGold);
         Assert.Equal(0, runDef.StartingPowerPoints);
         Assert.Equal(5, runDef.StartingHandSize);
-        Assert.Equal("default_activation", runDef.CombatActivationRulesId);
         Assert.Empty(runDef.StartingDeck);
         Assert.Empty(runDef.MapNodes);
         Assert.Empty(runDef.Metadata);
@@ -323,7 +322,6 @@ public class RunModelsTests
             StartingGold = 100,
             StartingPowerPoints = 3,
             StartingHandSize = 6,
-            CombatActivationRulesId = "advanced_rules",
             StartingDeck = new List<string> { "strike", "strike", "defend", "bash" },
             MapNodes = new List<RunMapNodeDefinition>
             {
@@ -337,7 +335,6 @@ public class RunModelsTests
         Assert.Equal(100, runDef.StartingGold);
         Assert.Equal(3, runDef.StartingPowerPoints);
         Assert.Equal(6, runDef.StartingHandSize);
-        Assert.Equal("advanced_rules", runDef.CombatActivationRulesId);
         Assert.Equal(4, runDef.StartingDeck.Count);
         Assert.Single(runDef.MapNodes);
         Assert.Single(runDef.Metadata);
