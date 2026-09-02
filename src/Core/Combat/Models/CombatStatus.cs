@@ -19,6 +19,11 @@ public enum CombatStatus
     /// Herói derrotado.
     /// </summary>
     DEFEAT,
+
+    /// <summary>
+    /// Todos os lados satisfizeram a condição terminal na mesma fronteira.
+    /// </summary>
+    DRAW,
     
     /// <summary>
     /// Combate abandonado.

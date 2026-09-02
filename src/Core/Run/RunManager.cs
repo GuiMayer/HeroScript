@@ -1039,6 +1039,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     StringComparison.Ordinal) ||
                 string.IsNullOrWhiteSpace(step.TransitionType))
                 return Result<RunState>.Failure("Invalid transition in combat resolution");
+            if (step.RunDeterminism != null &&
+                (step.RunDeterminism.Seed != state.Determinism.Seed ||
+                 !string.Equals(
+                     step.RunDeterminism.ContentRevision,
+                     state.Determinism.ContentRevision,
+                     StringComparison.Ordinal) ||
+                 step.RunDeterminism.Step < state.Determinism.Step))
+                return Result<RunState>.Failure("Invalid run determinism in combat resolution");
         }
 
         var candidates = new List<(RunState State, CombatResolutionStep Step)>(steps.Count);
@@ -1051,7 +1059,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 Encounters = candidate.Encounters.SetItem(
                     encounterIndex,
                     candidate.Encounters[encounterIndex] with { Combat = step.Combat }),
-                Determinism = candidate.Determinism.AdvanceStep()
+                Determinism = (step.RunDeterminism ?? candidate.Determinism).AdvanceStep()
             };
             candidates.Add((candidate, step));
         }

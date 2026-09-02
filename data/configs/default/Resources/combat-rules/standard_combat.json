@@ -17,9 +17,16 @@
         "resourceId": "energy",
         "consumingCommands": ["EXECUTE_ACTION"]
       },
+      "ai": {
+        "enabled": true,
+        "autoEndAfterAction": true,
+        "publishIntents": true,
+        "gambitIds": ["enemy_basic_attack"]
+      },
       "deckCycle": {
         "drawPerActivation": 5,
         "handLimit": 10,
+        "actorScope": "Player",
         "endDiscard": "NonRetain",
         "retainTags": ["retain"],
         "etherealTag": "ethereal",
@@ -29,6 +36,7 @@
       },
       "resourceCycle": {
         "resourceId": "energy",
+        "actorScope": "All",
         "startActivation": "ResetToMax"
       },
       "statusTiming": {

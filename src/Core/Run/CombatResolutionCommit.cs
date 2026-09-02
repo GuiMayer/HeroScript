@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Determinism;
 
 namespace Core.Run;
 
@@ -10,6 +11,7 @@ public sealed record CombatResolutionStep
     public string TransitionType { get; init; } = string.Empty;
     public CombatState Combat { get; init; } = null!;
     public DeckState Deck { get; init; } = new();
+    public DeterministicContext? RunDeterminism { get; init; }
     public JsonElement Payload { get; init; }
 }
 

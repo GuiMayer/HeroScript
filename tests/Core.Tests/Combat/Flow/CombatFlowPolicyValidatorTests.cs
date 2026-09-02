@@ -54,15 +54,18 @@ public sealed class CombatFlowPolicyValidatorTests
             ResourceId = "energy",
             ConsumingCommands = ["EXECUTE_ACTION"]
         },
+        Ai = new() { Enabled = true },
         DeckCycle = new()
         {
             HandLimit = 10,
+            ActorScope = FlowActorScope.Player,
             EndDiscard = DeckEndDiscardStrategy.NonRetain,
             Fatigue = FatigueStrategy.None
         },
         ResourceCycle = new()
         {
             ResourceId = "energy",
+            ActorScope = FlowActorScope.All,
             StartActivation = ResourceRefreshStrategy.ResetToMax
         },
         StatusTiming = new()

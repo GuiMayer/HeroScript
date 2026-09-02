@@ -65,6 +65,14 @@ public static class DeckTransitions
         DeckState state,
         int count,
         DeterministicContext context)
+        => Draw(state, count, context, shuffleDiscardWhenEmpty: true, allowPartialDraw: true);
+
+    public static Result<DeckTransition> Draw(
+        DeckState state,
+        int count,
+        DeterministicContext context,
+        bool shuffleDiscardWhenEmpty,
+        bool allowPartialDraw)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(context);
@@ -83,9 +91,12 @@ public static class DeckTransitions
         {
             if (current.DrawPileItems.IsEmpty)
             {
-                var shuffled = ShuffleDiscardIntoDrawPile(current, currentContext);
-                current = shuffled.State;
-                currentContext = shuffled.Context;
+                if (shuffleDiscardWhenEmpty)
+                {
+                    var shuffled = ShuffleDiscardIntoDrawPile(current, currentContext);
+                    current = shuffled.State;
+                    currentContext = shuffled.Context;
+                }
             }
 
             if (current.DrawPileItems.IsEmpty)
@@ -105,6 +116,10 @@ public static class DeckTransitions
             };
             drawn.Add(cardId);
         }
+
+        if (!allowPartialDraw && drawn.Count != count)
+            return Result<DeckTransition>.Failure(
+                $"Unable to draw {count} cards without a partial draw; only {drawn.Count} are available");
 
         return Result<DeckTransition>.Success(
             new DeckTransition(current, currentContext, drawn.MoveToImmutable()));

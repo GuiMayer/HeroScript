@@ -13,6 +13,7 @@ public sealed record CombatFlowPoliciesDefinition
     public AutomaticResolutionPolicyDefinition AutomaticResolution { get; init; } = new();
     public ActivationOrderPolicyDefinition ActivationOrder { get; init; } = new();
     public ActionBudgetPolicyDefinition ActionBudget { get; init; } = new();
+    public AiTurnPolicyDefinition Ai { get; init; } = new();
     public DeckCyclePolicyDefinition DeckCycle { get; init; } = new();
     public ResourceCyclePolicyDefinition ResourceCycle { get; init; } = new();
     public StatusTimingPolicyDefinition StatusTiming { get; init; } = new();
@@ -21,6 +22,24 @@ public sealed record CombatFlowPoliciesDefinition
     public AnimationPolicyDefinition Animation { get; init; } = new();
     public JournalPolicyDefinition Journal { get; init; } = new();
     public ReactionPolicyDefinition Reactions { get; init; } = new();
+}
+
+public sealed record AiTurnPolicyDefinition
+{
+    private ImmutableArray<string> _gambitIds = [];
+
+    public bool Enabled { get; init; }
+    public bool AutoEndAfterAction { get; init; } = true;
+    public bool PublishIntents { get; init; } = true;
+    public IReadOnlyList<string> GambitIds
+    {
+        get => _gambitIds;
+        init => _gambitIds = value?
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record AutomaticResolutionPolicyDefinition
@@ -59,6 +78,7 @@ public sealed record DeckCyclePolicyDefinition
 
     public int DrawPerActivation { get; init; }
     public int HandLimit { get; init; }
+    public FlowActorScope ActorScope { get; init; }
     public DeckEndDiscardStrategy EndDiscard { get; init; }
     public IReadOnlyList<string> RetainTags
     {
@@ -78,6 +98,7 @@ public sealed record DeckCyclePolicyDefinition
 public sealed record ResourceCyclePolicyDefinition
 {
     public string ResourceId { get; init; } = string.Empty;
+    public FlowActorScope ActorScope { get; init; }
     public ResourceRefreshStrategy StartActivation { get; init; }
     public float? Amount { get; init; }
 }
@@ -131,6 +152,9 @@ public enum ActivationTieBreak { Unspecified, StableActorId, HeroesFirst, Enemie
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ActionBudgetStrategy { Unspecified, ResourceLimited, FixedCount }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum FlowActorScope { Unspecified, Player, Enemies, All }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DeckEndDiscardStrategy { Unspecified, None, All, NonRetain, DownToHandLimit }
@@ -189,14 +213,19 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Fixed-count action budget requires a positive maxActionsPerActivation");
         if (policies.ActionBudget.ConsumingCommands.Count == 0)
             return Result.Failure("Action budget consumingCommands cannot be empty");
+        if (!policies.Ai.Enabled)
+            return Result.Failure("ToNextPlayerInput automatic resolution requires AI processing to be enabled");
         if (policies.DeckCycle.DrawPerActivation < 0 || policies.DeckCycle.HandLimit < 1)
             return Result.Failure("Deck cycle draw and hand limits are invalid");
+        if (policies.DeckCycle.ActorScope == FlowActorScope.Unspecified)
+            return Result.Failure("Deck cycle actorScope is required");
         if (policies.DeckCycle.EndDiscard == DeckEndDiscardStrategy.Unspecified ||
             policies.DeckCycle.Fatigue == FatigueStrategy.Unspecified)
             return Result.Failure("Deck cycle discard and fatigue strategies are required");
         if (string.IsNullOrWhiteSpace(policies.ResourceCycle.ResourceId) ||
-            policies.ResourceCycle.StartActivation == ResourceRefreshStrategy.Unspecified)
-            return Result.Failure("Resource cycle resourceId and startActivation strategy are required");
+            policies.ResourceCycle.StartActivation == ResourceRefreshStrategy.Unspecified ||
+            policies.ResourceCycle.ActorScope == FlowActorScope.Unspecified)
+            return Result.Failure("Resource cycle resourceId, actorScope and startActivation strategy are required");
         if (policies.ResourceCycle.StartActivation is ResourceRefreshStrategy.Add or ResourceRefreshStrategy.Set &&
             policies.ResourceCycle.Amount is null)
             return Result.Failure("Resource cycle Add/Set strategy requires amount");
