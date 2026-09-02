@@ -1,54 +1,41 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Core.Combat.Models;
 
 namespace Core.Combat.TurnPhase;
 
-/// <summary>
-/// Define as características e regras de uma fase específica do turno.
-/// </summary>
-public record PhaseDefinition
+public sealed record PhaseDefinition
 {
-    private ImmutableList<ActionType> _allowedActions = [];
-    private ImmutableList<TurnPhase> _validNextPhases = [];
+    private ImmutableArray<ActionType> _allowedActions = [];
+    private ImmutableArray<string> _validNextPhaseIds = [];
 
-    /// <summary>
-    /// Nome para exibição (ex: "Main Phase 1", "Battle Phase")
-    /// </summary>
-    public string Name { get; init; } = "";
-    
-    /// <summary>
-    /// Descrição da fase e suas regras
-    /// </summary>
-    public string Description { get; init; } = "";
-    
-    /// <summary>
-    /// Ações permitidas durante esta fase
-    /// </summary>
+    public string PhaseId { get; init; } = string.Empty;
+    public PhaseRole Role { get; init; }
+    public int Order { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
     public IReadOnlyList<ActionType> AllowedActions
     {
         get => _allowedActions;
-        init => _allowedActions = value?.ToImmutableList() ?? [];
+        init => _allowedActions = value?.ToImmutableArray() ?? [];
     }
-    
-    /// <summary>
-    /// Fases válidas para transição a partir desta fase
-    /// Vazio = apenas próxima fase na sequência
-    /// </summary>
-    public IReadOnlyList<TurnPhase> ValidNextPhases
+    public IReadOnlyList<string> ValidNextPhaseIds
     {
-        get => _validNextPhases;
-        init => _validNextPhases = value?.ToImmutableList() ?? [];
+        get => _validNextPhaseIds;
+        init => _validNextPhaseIds = value?
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .ToImmutableArray() ?? [];
     }
-    
-    /// <summary>
-    /// Se true, a fase avança automaticamente sem input do jogador
-    /// Útil para fases de manutenção automática
-    /// </summary>
-    public bool AutoTransition { get; init; } = false;
-    
-    /// <summary>
-    /// Se true, jogadores podem passar prioridade nesta fase
-    /// Se false, a fase avança automaticamente (ex: Untap em Magic)
-    /// </summary>
-    public bool AllowPriority { get; init; } = true;
+    public bool AutoTransition { get; init; }
+    public bool AllowPriority { get; init; }
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PhaseRole
+{
+    Unspecified,
+    Start,
+    Middle,
+    End
 }

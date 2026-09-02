@@ -3,51 +3,25 @@ using System.Collections.Immutable;
 namespace Core.Combat.TurnPhase;
 
 /// <summary>
-/// Define uma sequência completa de fases para um estilo de jogo específico.
-/// Configurável via JSON para suportar diferentes TCGs (Magic, Yu-Gi-Oh!, etc.)
+/// Ordered data-driven turn graph. Phase ids are content identifiers; roles
+/// provide the only engine-level semantics required by every turn-based game.
 /// </summary>
-public record PhaseSequenceDefinition
+public sealed record PhaseSequenceDefinition
 {
-    private ImmutableList<TurnPhase> _phases = [];
-    private ImmutableDictionary<TurnPhase, PhaseDefinition> _phaseDetails =
-        ImmutableDictionary<TurnPhase, PhaseDefinition>.Empty;
+    private ImmutableArray<PhaseDefinition> _phases = [];
 
-    /// <summary>
-    /// Nome para exibição (ex: "Magic: The Gathering Standard")
-    /// </summary>
-    public string Name { get; init; } = "";
-    
-    /// <summary>
-    /// Descrição do estilo de jogo e suas características
-    /// </summary>
-    public string Description { get; init; } = "";
-    
-    /// <summary>
-    /// Versão da configuração
-    /// </summary>
+    public string SequenceId { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
     public string Version { get; init; } = "1.0.0";
-    
-    /// <summary>
-    /// Lista ordenada de fases que compõem um turno completo
-    /// </summary>
-    public IReadOnlyList<TurnPhase> Phases
+    public IReadOnlyList<PhaseDefinition> Phases
     {
         get => _phases;
-        init => _phases = value?.ToImmutableList() ?? [];
+        init => _phases = value?.ToImmutableArray() ?? [];
     }
-    
-    /// <summary>
-    /// Detalhes de cada fase (regras, ações permitidas, etc.)
-    /// </summary>
-    public IReadOnlyDictionary<TurnPhase, PhaseDefinition> PhaseDetails
-    {
-        get => _phaseDetails;
-        init => _phaseDetails = value?.ToImmutableDictionary()
-            ?? ImmutableDictionary<TurnPhase, PhaseDefinition>.Empty;
-    }
-    
-    /// <summary>
-    /// Se true, permite pular fases opcionais (ex: Main 2 em Magic)
-    /// </summary>
-    public bool AllowPhaseSkipping { get; init; } = false;
+    public bool AllowPhaseSkipping { get; init; }
+
+    public PhaseDefinition? Find(string phaseId) =>
+        _phases.FirstOrDefault(phase =>
+            string.Equals(phase.PhaseId, phaseId, StringComparison.Ordinal));
 }

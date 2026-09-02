@@ -3,7 +3,6 @@ using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Logging;
-using TurnPhaseEnum = Core.Combat.TurnPhase.TurnPhase;
 
 namespace Core.Combat;
 
@@ -38,14 +37,14 @@ public static class CombatSystemPhaseExtensions
         
         // Criar estado inicial de fase
         var firstPhase = phaseSystem.Sequence.Phases.FirstOrDefault();
-        if (firstPhase == TurnPhaseEnum.NONE)
+        if (firstPhase == null)
         {
             return Result<CombatState>.Failure("Phase sequence must have at least one valid phase");
         }
         
         var phaseState = new PhaseState
         {
-            CurrentPhase = firstPhase,
+            CurrentPhaseId = firstPhase.PhaseId,
             PhaseSequence = phaseSystem.Sequence,
             PriorityOrder = playerIds,
             CurrentPriorityIndex = 0,
@@ -73,13 +72,9 @@ public static class CombatSystemPhaseExtensions
             return true;
         }
         
-        var currentPhase = state.PhaseState.CurrentPhase;
-        
-        // Se não há detalhes da fase, permitir (fallback)
-        if (!state.PhaseState.PhaseSequence.PhaseDetails.TryGetValue(currentPhase, out var phaseDefinition))
-        {
-            return true;
-        }
+        var phaseDefinition = state.PhaseState.PhaseSequence.Find(state.PhaseState.CurrentPhaseId);
+        if (phaseDefinition == null)
+            return false;
         
         // Verificar se a ação está na lista de ações permitidas
         return phaseDefinition.AllowedActions.Contains(actionType);
@@ -138,12 +133,9 @@ public static class CombatSystemPhaseExtensions
             return false;
         }
         
-        var currentPhase = state.PhaseState.CurrentPhase;
-        
-        if (!state.PhaseState.PhaseSequence.PhaseDetails.TryGetValue(currentPhase, out var phaseDefinition))
-        {
+        var phaseDefinition = state.PhaseState.PhaseSequence.Find(state.PhaseState.CurrentPhaseId);
+        if (phaseDefinition == null)
             return false;
-        }
         
         return phaseDefinition.AllowPriority;
     }
@@ -160,12 +152,9 @@ public static class CombatSystemPhaseExtensions
             return false;
         }
         
-        var currentPhase = state.PhaseState.CurrentPhase;
-        
-        if (!state.PhaseState.PhaseSequence.PhaseDetails.TryGetValue(currentPhase, out var phaseDefinition))
-        {
+        var phaseDefinition = state.PhaseState.PhaseSequence.Find(state.PhaseState.CurrentPhaseId);
+        if (phaseDefinition == null)
             return false;
-        }
         
         return phaseDefinition.AutoTransition;
     }
@@ -182,16 +171,14 @@ public static class CombatSystemPhaseExtensions
             return null;
         }
         
-        var currentPhase = state.PhaseState.CurrentPhase;
-        
-        if (!state.PhaseState.PhaseSequence.PhaseDetails.TryGetValue(currentPhase, out var phaseDefinition))
-        {
+        var phaseDefinition = state.PhaseState.PhaseSequence.Find(state.PhaseState.CurrentPhaseId);
+        if (phaseDefinition == null)
             return null;
-        }
         
         return new PhaseInfo
         {
-            Phase = currentPhase,
+            PhaseId = phaseDefinition.PhaseId,
+            Role = phaseDefinition.Role,
             Name = phaseDefinition.Name,
             Description = phaseDefinition.Description,
             AllowedActions = phaseDefinition.AllowedActions,
@@ -210,7 +197,8 @@ public record PhaseInfo
 {
     private System.Collections.Immutable.ImmutableList<ActionType> _allowedActions = [];
 
-    public Core.Combat.TurnPhase.TurnPhase Phase { get; init; }
+    public string PhaseId { get; init; } = string.Empty;
+    public PhaseRole Role { get; init; }
     public string Name { get; init; } = "";
     public string Description { get; init; } = "";
     public IReadOnlyList<ActionType> AllowedActions

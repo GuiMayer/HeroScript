@@ -13,6 +13,7 @@ public sealed record ActivationState
     public int Round { get; init; } = 1;
     public int ActivationIndex { get; init; }
     public int ActivationNumber { get; init; }
+    public int ActionsTaken { get; init; }
     public IReadOnlyList<string> ActivationOrder
     {
         get => _activationOrder;

@@ -439,7 +439,7 @@ public class CombatController : BaseApiController
         {
             combatId,
             actorId = actor.EntityId,
-            phase = state.PhaseState?.CurrentPhase.ToString(),
+            phase = state.PhaseState?.CurrentPhaseId,
             priorityActorId = state.GetCurrentPriorityPlayer(),
             actions = legal
         });
@@ -489,7 +489,7 @@ public class CombatController : BaseApiController
         return Ok(new
         {
             combatId,
-            phase = state.Value.PhaseState?.CurrentPhase.ToString(),
+            phase = state.Value.PhaseState?.CurrentPhaseId,
             priorityActorId = state.Value.GetCurrentPriorityPlayer(),
             stack.IsResolving,
             stack.CurrentlyResolving,

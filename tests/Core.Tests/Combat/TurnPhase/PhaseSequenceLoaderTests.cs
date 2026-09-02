@@ -1,242 +1,78 @@
+using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Config;
 using Core.Logging;
 using Moq;
-using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat.TurnPhase;
 
-public class PhaseSequenceLoaderTests
+public sealed class PhaseSequenceLoaderTests
 {
-    private readonly ILogger _logger;
     private readonly PhaseSequenceLoader _loader;
-    private readonly Mock<IConfigManager> _configManager;
-    private readonly Mock<IResourceLoader> _resourceLoader;
-    
+
     public PhaseSequenceLoaderTests()
     {
-        _logger = new ConsoleLogger(nameof(PhaseSequenceLoaderTests));
-        _configManager = new Mock<IConfigManager>();
-        _resourceLoader = new Mock<IResourceLoader>();
-        _configManager.Setup(x => x.ResolveInheritanceChain("test"))
-            .Returns(new[] { "test" });
-        _loader = new PhaseSequenceLoader(_logger, _configManager.Object, _resourceLoader.Object);
+        _loader = new PhaseSequenceLoader(
+            new ConsoleLogger(nameof(PhaseSequenceLoaderTests)),
+            Mock.Of<IConfigManager>(),
+            Mock.Of<IResourceLoader>());
     }
-    
+
     [Fact]
-    public void LoadFromJson_ValidJson_ShouldSucceed()
+    public void LoadFromJson_AcceptsArbitraryIdsWithRequiredSemanticRoles()
     {
-        // Arrange
-        var json = @"{
-            ""name"": ""Test Sequence"",
-            ""description"": ""Test description"",
-            ""version"": ""1.0.0"",
-            ""phases"": [""MAIN_1"", ""END""],
-            ""phaseDetails"": {
-                ""MAIN_1"": {
-                    ""name"": ""Main Phase"",
-                    ""description"": ""Main phase description"",
-                    ""allowedActions"": [""POWER"", ""PASS""],
-                    ""validNextPhases"": [""END""],
-                    ""autoTransition"": false,
-                    ""allowPriority"": true
-                },
-                ""END"": {
-                    ""name"": ""End Step"",
-                    ""description"": ""End step description"",
-                    ""allowedActions"": [""PASS""],
-                    ""validNextPhases"": [""MAIN_1""],
-                    ""autoTransition"": true,
-                    ""allowPriority"": false
-                }
-            },
-            ""allowPhaseSkipping"": false
-        }";
-        
-        // Act
-        var result = _loader.LoadFromJson(json);
-        
-        // Assert
+        var result = _loader.LoadFromJson(ValidJson);
+
         Assert.True(result.IsSuccess);
-        Assert.Equal("Test Sequence", result.Value.Name);
-        Assert.Equal(2, result.Value.Phases.Count);
-        Assert.Equal(2, result.Value.PhaseDetails.Count);
-    }
-    
-    [Fact]
-    public void LoadFromJson_EmptyJson_ShouldFail()
-    {
-        // Arrange
-        var json = "";
-        
-        // Act
-        var result = _loader.LoadFromJson(json);
-        
-        // Assert
-        Assert.True(result.IsFailure);
-        Assert.Contains("cannot be empty", result.Error);
-    }
-    
-    [Fact]
-    public void LoadFromJson_InvalidPhase_ShouldFail()
-    {
-        // Arrange
-        var json = @"{
-            ""name"": ""Test"",
-            ""phases"": [""INVALID_PHASE""],
-            ""phaseDetails"": {
-                ""INVALID_PHASE"": {
-                    ""name"": ""Invalid"",
-                    ""allowedActions"": [],
-                    ""validNextPhases"": []
-                }
-            }
-        }";
-        
-        // Act
-        var result = _loader.LoadFromJson(json);
-        
-        // Assert
-        Assert.True(result.IsFailure);
-        Assert.Contains("Invalid phase name", result.Error);
-    }
-    
-    [Fact]
-    public void LoadFromJson_MissingPhaseDetails_ShouldFail()
-    {
-        // Arrange
-        var json = @"{
-            ""name"": ""Test"",
-            ""phases"": [""MAIN_1"", ""END""],
-            ""phaseDetails"": {
-                ""MAIN_1"": {
-                    ""name"": ""Main"",
-                    ""allowedActions"": [],
-                    ""validNextPhases"": []
-                }
-            }
-        }";
-        
-        // Act
-        var result = _loader.LoadFromJson(json);
-        
-        // Assert
-        Assert.True(result.IsFailure);
-        Assert.Contains("Missing phase details", result.Error);
-    }
-    
-    [Fact]
-    public void LoadFromJson_InvalidNextPhase_ShouldFail()
-    {
-        // Arrange
-        var json = @"{
-            ""name"": ""Test"",
-            ""phases"": [""MAIN_1""],
-            ""phaseDetails"": {
-                ""MAIN_1"": {
-                    ""name"": ""Main"",
-                    ""allowedActions"": [],
-                    ""validNextPhases"": [""NONEXISTENT_PHASE""]
-                }
-            }
-        }";
-        
-        // Act
-        var result = _loader.LoadFromJson(json);
-        
-        // Assert
-        Assert.True(result.IsFailure);
-        Assert.Contains("Invalid next phase", result.Error);
-    }
-    
-    [Fact]
-    public void LoadFromJson_InvalidActionType_ShouldFail()
-    {
-        // Arrange
-        var json = @"{
-            ""name"": ""Test"",
-            ""phases"": [""MAIN_1""],
-            ""phaseDetails"": {
-                ""MAIN_1"": {
-                    ""name"": ""Main"",
-                    ""allowedActions"": [""INVALID_ACTION""],
-                    ""validNextPhases"": []
-                }
-            }
-        }";
-        
-        // Act
-        var result = _loader.LoadFromJson(json);
-        
-        // Assert
-        Assert.True(result.IsFailure);
-        Assert.Contains("Invalid action type", result.Error);
-    }
-    
-    [Fact]
-    public void LoadFromJson_WithCache_ShouldUseCacheOnSecondLoad()
-    {
-        // Arrange
-        var json = @"{
-            ""name"": ""Cached Test"",
-            ""phases"": [""MAIN_1""],
-            ""phaseDetails"": {
-                ""MAIN_1"": {
-                    ""name"": ""Main"",
-                    ""allowedActions"": [],
-                    ""validNextPhases"": []
-                }
-            }
-        }";
-        
-        // Act
-        var result1 = _loader.LoadFromJson(json);
-        var result2 = _loader.LoadFromJson(json);
-        
-        // Assert
-        Assert.True(result1.IsSuccess);
-        Assert.True(result2.IsSuccess);
-        // Note: JSON loading doesn't use cache (only file loading does)
-        // This test documents current behavior
+        Assert.Equal(["upkeep_custom", "planning_window", "cleanup_custom"],
+            result.Value.Phases.Select(phase => phase.PhaseId));
+        Assert.Equal(PhaseRole.Middle, result.Value.Find("planning_window")?.Role);
+        Assert.Contains(ActionType.POWER, result.Value.Find("planning_window")!.AllowedActions);
     }
 
     [Fact]
-    public void LoadFromResource_ValidResource_ShouldSucceedAndCache()
+    public void LoadFromJson_RejectsSequenceWithoutEverySemanticRole()
     {
-        // Arrange
-        var json = @"{
-            ""classic-style"": {
-                ""name"": ""Classic Resource"",
-                ""phases"": [""MAIN_1""],
-                ""phaseDetails"": {
-                    ""MAIN_1"": {
-                        ""name"": ""Action"",
-                        ""allowedActions"": [""POWER""],
-                        ""validNextPhases"": [""MAIN_1""]
-                    }
-                }
-            }
-        }";
+        var json = ValidJson.Replace("\"role\": \"End\"", "\"role\": \"Middle\"");
 
-        _resourceLoader.Setup(x => x.LoadResource("phase-sequences/classic-style.json", It.IsAny<IEnumerable<string>>(), false))
-            .Returns(ParseResource(json));
+        var result = _loader.LoadFromJson(json);
 
-        // Act
-        var result1 = _loader.LoadFromResource("classic-style", "test");
-        var result2 = _loader.LoadFromResource("classic-style", "test");
-
-        // Assert
-        Assert.True(result1.IsSuccess);
-        Assert.True(result2.IsSuccess);
-        Assert.Equal("Classic Resource", result1.Value.Name);
-        _resourceLoader.Verify(x => x.LoadResource("phase-sequences/classic-style.json", It.IsAny<IEnumerable<string>>(), false), Times.Once);
+        Assert.True(result.IsFailure);
+        Assert.Contains("END", result.Error);
     }
 
-    private static Dictionary<string, JsonElement> ParseResource(string json)
+    [Fact]
+    public void LoadFromJson_RejectsUnknownTransitionTarget()
     {
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.EnumerateObject()
-            .ToDictionary(property => property.Name, property => property.Value.Clone());
+        var json = ValidJson.Replace("cleanup_custom\"]", "missing\"]");
+
+        var result = _loader.LoadFromJson(json);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("invalid next phase", result.Error, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void LoadFromJson_RejectsDuplicateOrder()
+    {
+        var json = ValidJson.Replace("\"order\": 20", "\"order\": 10");
+
+        var result = _loader.LoadFromJson(json);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("unique and ascending", result.Error);
+    }
+
+    internal const string ValidJson = """
+    {
+      "sequenceId": "custom",
+      "name": "Custom",
+      "phases": [
+        { "phaseId": "upkeep_custom", "role": "Start", "order": 10, "allowedActions": [], "validNextPhaseIds": ["planning_window"], "autoTransition": true },
+        { "phaseId": "planning_window", "role": "Middle", "order": 20, "allowedActions": ["POWER", "END_TURN"], "validNextPhaseIds": ["cleanup_custom"] },
+        { "phaseId": "cleanup_custom", "role": "End", "order": 30, "allowedActions": [], "validNextPhaseIds": ["upkeep_custom"], "autoTransition": true }
+      ]
+    }
+    """;
 }

@@ -1,4 +1,5 @@
 using Core.Combat.Models;
+using Core.Combat.Flow;
 using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Run;
@@ -317,18 +318,38 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CardConsumeDestination destination,
         RunCommandIdentity? commandIdentity)
     {
+        var actionBudget = run.ResolvedMode?.CombatRules.Flow.ActionBudget;
+        var effectiveCommandType = commandIdentity?.Type ?? "COMBAT_ACTION";
+        if (actionBudget != null)
+        {
+            var budgetValidation = CombatFlowTransitions.ValidateActionBudget(
+                previousCombat,
+                command,
+                actionBudget,
+                effectiveCommandType);
+            if (budgetValidation.IsFailure)
+                return Result<CombatRunActionResult>.Failure(budgetValidation.Error);
+        }
+
         var effectiveCommand = commandIdentity == null
             ? command
             : command with { ExpectedStep = commandIdentity.ExpectedStep };
         var combatResult = _combatSystem.ExecuteAction(combatId, effectiveCommand);
         if (combatResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(combatResult.Error);
+        var nextCombat = actionBudget == null
+            ? combatResult.Value
+            : CombatFlowTransitions.ConsumeActionBudget(
+                combatResult.Value,
+                effectiveCommand,
+                actionBudget,
+                effectiveCommandType);
 
         var committed = _runManager.CommitCombatAction(
             run.RunId,
             run.Sequence,
             previousCombat,
-            combatResult.Value,
+            nextCombat,
             effectiveCommand,
             consumedCardId,
             destination,
@@ -341,7 +362,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
         return Result<CombatRunActionResult>.Success(new CombatRunActionResult
         {
-            CombatState = combatResult.Value,
+            CombatState = nextCombat,
             RunState = committed.Value,
             ConsumedCardId = consumedCardId,
             Destination = destination

@@ -36,7 +36,7 @@ public class PrioritySystemTests
     {
         return new PhaseState
         {
-            CurrentPhase = Core.Combat.TurnPhase.TurnPhase.MAIN_1,
+            CurrentPhaseId = "main",
             ActivePlayerId = players.FirstOrDefault() ?? string.Empty,
             PriorityOrder = players.ToList(),
             PlayerPassedPriority = players.ToDictionary(player => player, _ => false)

@@ -15,7 +15,7 @@ public record PhaseState
     /// <summary>
     /// Fase atual do turno
     /// </summary>
-    public TurnPhase CurrentPhase { get; init; } = TurnPhase.NONE;
+    public string CurrentPhaseId { get; init; } = string.Empty;
     
     /// <summary>
     /// Índice da fase atual na sequência (0-based)

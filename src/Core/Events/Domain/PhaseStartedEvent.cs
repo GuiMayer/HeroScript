@@ -1,4 +1,3 @@
-using Core.Combat.TurnPhase;
 using Core.Events;
 
 namespace Core.Events.Domain;
@@ -13,7 +12,7 @@ public record PhaseStartedEvent : GameEvent
     /// <summary>
     /// Fase que foi iniciada
     /// </summary>
-    public TurnPhase Phase { get; init; }
+    public string PhaseId { get; init; } = string.Empty;
     
     /// <summary>
     /// ID do jogador que tem prioridade nesta fase

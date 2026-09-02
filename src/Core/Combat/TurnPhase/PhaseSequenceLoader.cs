@@ -1,198 +1,93 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Caching;
-using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
 using Core.Logging;
 
 namespace Core.Combat.TurnPhase;
 
-/// <summary>
-/// Carregador de sequências de fases a partir de arquivos JSON.
-/// Permite configurar diferentes estilos de TCG (Magic, Yu-Gi-Oh!, Hearthstone, etc.)
-/// Thread-safe com cache LRU.
-/// </summary>
-public class PhaseSequenceLoader : ICacheService
+public sealed class PhaseSequenceLoader : ICacheService
 {
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
     private readonly ILogger _logger;
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly LruCache<string, PhaseSequenceDefinition> _cache;
-    private readonly string _cacheName;
-    
-    public string CacheName => _cacheName;
-    
-    public PhaseSequenceLoader(ILogger logger, IConfigManager configManager, IResourceLoader resourceLoader, int cacheCapacity = 64)
+
+    public PhaseSequenceLoader(
+        ILogger logger,
+        IConfigManager configManager,
+        IResourceLoader resourceLoader,
+        int cacheCapacity = 64)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _cache = new LruCache<string, PhaseSequenceDefinition>(cacheCapacity);
-        _cacheName = "PhaseSequences";
     }
-    
-    /// <summary>
-    /// Carrega uma sequência de fases a partir dos recursos JSON configurados.
-    /// Thread-safe com cache LRU.
-    /// </summary>
-    /// <param name="sequenceId">Identificador da sequência em phase-sequences/{sequenceId}.json</param>
-    /// <param name="configName">Configuração/mod chain usada para resolver o recurso</param>
-    /// <param name="useCache">Se true, usa cache se disponível</param>
-    /// <returns>Definição da sequência de fases</returns>
-    public Result<PhaseSequenceDefinition> LoadFromResource(string sequenceId, string configName = "default", bool useCache = true)
+
+    public string CacheName => "PhaseSequences";
+
+    public Result<PhaseSequenceDefinition> LoadFromResource(
+        string sequenceId,
+        string configName = "default",
+        bool useCache = true)
     {
         if (string.IsNullOrWhiteSpace(sequenceId))
-        {
             return Result<PhaseSequenceDefinition>.Failure("Sequence id cannot be empty");
-        }
-
         if (string.IsNullOrWhiteSpace(configName))
-        {
             return Result<PhaseSequenceDefinition>.Failure("Config name cannot be empty");
-        }
 
         var cacheKey = $"{configName.ToLowerInvariant()}::{sequenceId.ToLowerInvariant()}";
-        
-        if (useCache && _cache.TryGetValue(cacheKey, out var cached))
-        {
-            _logger.LogDebug($"Loaded phase sequence from cache: {sequenceId}");
+        if (useCache && _cache.TryGetValue(cacheKey, out var cached) && cached != null)
             return Result<PhaseSequenceDefinition>.Success(cached);
-        }
-        
+
         try
         {
-            var configChain = _configManager.ResolveInheritanceChain(configName);
-            var relativePath = $"phase-sequences/{sequenceId}.json";
-            var resources = _resourceLoader.LoadResource(relativePath, configChain, strictMode: false);
-
+            var resources = _resourceLoader.LoadResource(
+                $"phase-sequences/{sequenceId}.json",
+                _configManager.ResolveInheritanceChain(configName),
+                strictMode: false);
             if (resources.Count == 0)
-            {
-                return Result<PhaseSequenceDefinition>.Failure($"Phase sequence not found: {relativePath}");
-            }
+                return Result<PhaseSequenceDefinition>.Failure($"Phase sequence not found: {sequenceId}");
 
             var element = resources.TryGetValue(sequenceId, out var exact)
                 ? exact
                 : resources.Values.First();
-
-            var dto = DeserializeDto(element.GetRawText());
-            if (dto == null)
-            {
-                return Result<PhaseSequenceDefinition>.Failure("Failed to deserialize JSON");
-            }
-            
-            // Converter DTO para record
-            var result = ConvertDtoToDefinition(dto);
-            if (result.IsFailure)
-            {
-                return result;
-            }
-            
-            // Validar
-            var validationResult = ValidateSequence(result.Value);
-            if (validationResult.IsFailure)
-            {
-                return Result<PhaseSequenceDefinition>.Failure($"Validation failed: {validationResult.Error}");
-            }
-            
-            // Adicionar ao cache (thread-safe)
-            _cache.Set(cacheKey, result.Value);
-            
-            _logger.LogInformation($"Loaded phase sequence: {result.Value.Name} from {relativePath}");
-            
-            return result;
+            return ParseAndCache(element.GetRawText(), sequenceId, cacheKey);
         }
-        catch (JsonException ex)
+        catch (Exception exception)
         {
-            return Result<PhaseSequenceDefinition>.Failure($"JSON parsing error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return Result<PhaseSequenceDefinition>.Failure($"Error loading phase sequence: {ex.Message}");
+            return Result<PhaseSequenceDefinition>.Failure(
+                $"Error loading phase sequence '{sequenceId}': {exception.Message}",
+                exception);
         }
     }
-    
-    /// <summary>
-    /// Carrega uma sequência de fases a partir de uma string JSON.
-    /// </summary>
-    /// <param name="json">String JSON</param>
-    /// <returns>Definição da sequência de fases</returns>
+
     public Result<PhaseSequenceDefinition> LoadFromJson(string json)
     {
         if (string.IsNullOrWhiteSpace(json))
-        {
             return Result<PhaseSequenceDefinition>.Failure("JSON string cannot be empty");
-        }
-        
-        try
-        {
-            var dto = DeserializeDto(json);
-            
-            if (dto == null)
-            {
-                return Result<PhaseSequenceDefinition>.Failure("Failed to deserialize JSON");
-            }
-            
-            // Converter DTO para record
-            var result = ConvertDtoToDefinition(dto);
-            if (result.IsFailure)
-            {
-                return result;
-            }
-            
-            // Validar
-            var validationResult = ValidateSequence(result.Value);
-            if (validationResult.IsFailure)
-            {
-                return Result<PhaseSequenceDefinition>.Failure($"Validation failed: {validationResult.Error}");
-            }
-            
-            _logger.LogInformation($"Loaded phase sequence from JSON: {result.Value.Name}");
-            
-            return result;
-        }
-        catch (JsonException ex)
-        {
-            return Result<PhaseSequenceDefinition>.Failure($"JSON parsing error: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return Result<PhaseSequenceDefinition>.Failure($"Error parsing JSON: {ex.Message}");
-        }
-    }
-    
-    /// <summary>
-    /// Limpa o cache de sequências carregadas.
-    /// </summary>
-    public void ClearCache()
-    {
-        _cache.Clear();
-        _logger.LogDebug("Phase sequence cache cleared");
+        return ParseAndCache(json, null, null);
     }
 
-    /// <summary>
-    /// Implementa ICacheService.Invalidate().
-    /// </summary>
+    public void ClearCache() => _cache.Clear();
+
     public void Invalidate(string? key = null)
     {
         if (string.IsNullOrWhiteSpace(key))
-        {
-            ClearCache();
-        }
+            _cache.Clear();
         else
-        {
             _cache.Remove(key);
-        }
     }
 
-    /// <summary>
-    /// Implementa ICacheService.GetStats().
-    /// </summary>
     public CacheServiceStats GetStats()
     {
         var stats = _cache.GetStats();
         return new CacheServiceStats
         {
-            CacheName = _cacheName,
+            CacheName = CacheName,
             Capacity = stats.Capacity,
             Count = stats.Count,
             Hits = stats.Hits,
@@ -203,145 +98,82 @@ public class PhaseSequenceLoader : ICacheService
         };
     }
 
-    private static PhaseSequenceDto? DeserializeDto(string json)
+    public static Result ValidateSequence(PhaseSequenceDefinition sequence)
     {
-        return JsonSerializer.Deserialize<PhaseSequenceDto>(json, new JsonSerializerOptions
+        ArgumentNullException.ThrowIfNull(sequence);
+        if (sequence.Phases.Count < 3)
+            return Result.Failure("A phase sequence requires at least START, MIDDLE and END phases");
+        if (sequence.Phases.Any(phase => string.IsNullOrWhiteSpace(phase.PhaseId)))
+            return Result.Failure("Every phase requires phaseId");
+        if (sequence.Phases.Select(phase => phase.PhaseId).Distinct(StringComparer.Ordinal).Count() !=
+            sequence.Phases.Count)
+            return Result.Failure("Phase ids must be unique");
+        if (sequence.Phases.Any(phase => phase.Role == PhaseRole.Unspecified))
+            return Result.Failure("Every phase requires a semantic role");
+        foreach (var role in new[] { PhaseRole.Start, PhaseRole.Middle, PhaseRole.End })
         {
-            PropertyNameCaseInsensitive = true,
-            ReadCommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true
-        });
+            if (!sequence.Phases.Any(phase => phase.Role == role))
+                return Result.Failure($"Phase sequence requires at least one {role.ToString().ToUpperInvariant()} phase");
+        }
+
+        var ordered = sequence.Phases.OrderBy(phase => phase.Order).ToArray();
+        if (!ordered.SequenceEqual(sequence.Phases) || ordered.Select(phase => phase.Order).Distinct().Count() != ordered.Length)
+            return Result.Failure("Phase order values must be unique and ascending");
+        var roleRanks = ordered.Select(phase => phase.Role switch
+        {
+            PhaseRole.Start => 0,
+            PhaseRole.Middle => 1,
+            PhaseRole.End => 2,
+            _ => -1
+        }).ToArray();
+        if (!roleRanks.SequenceEqual(roleRanks.OrderBy(rank => rank)))
+            return Result.Failure("Phase roles must follow START, MIDDLE, END order");
+
+        var known = sequence.Phases.Select(phase => phase.PhaseId).ToHashSet(StringComparer.Ordinal);
+        foreach (var phase in sequence.Phases)
+        foreach (var next in phase.ValidNextPhaseIds)
+        {
+            if (!known.Contains(next))
+                return Result.Failure($"Phase {phase.PhaseId} references invalid next phase: {next}");
+        }
+
+        return Result.Success();
     }
-    
-    private Result<PhaseSequenceDefinition> ConvertDtoToDefinition(PhaseSequenceDto dto)
+
+    private Result<PhaseSequenceDefinition> ParseAndCache(
+        string json,
+        string? sequenceId,
+        string? cacheKey)
     {
         try
         {
-            // Converter strings de fase para enum
-            var phases = new List<TurnPhase>();
-            foreach (var phaseStr in dto.Phases)
-            {
-                if (!Enum.TryParse<TurnPhase>(phaseStr, true, out var phase))
-                {
-                    return Result<PhaseSequenceDefinition>.Failure($"Invalid phase name: {phaseStr}");
-                }
-                phases.Add(phase);
-            }
-            
-            // Converter detalhes de fase
-            var phaseDetails = new Dictionary<TurnPhase, PhaseDefinition>();
-            foreach (var kvp in dto.PhaseDetails)
-            {
-                if (!Enum.TryParse<TurnPhase>(kvp.Key, true, out var phase))
-                {
-                    return Result<PhaseSequenceDefinition>.Failure($"Invalid phase name in details: {kvp.Key}");
-                }
-                
-                var detailDto = kvp.Value;
-                
-                // Converter ações permitidas
-                var allowedActions = new List<ActionType>();
-                foreach (var actionStr in detailDto.AllowedActions)
-                {
-                    if (!Enum.TryParse<ActionType>(actionStr, true, out var action))
-                    {
-                        return Result<PhaseSequenceDefinition>.Failure($"Invalid action type: {actionStr}");
-                    }
-                    allowedActions.Add(action);
-                }
-                
-                // Converter próximas fases válidas
-                var validNextPhases = new List<TurnPhase>();
-                foreach (var nextPhaseStr in detailDto.ValidNextPhases)
-                {
-                    if (!Enum.TryParse<TurnPhase>(nextPhaseStr, true, out var nextPhase))
-                    {
-                        return Result<PhaseSequenceDefinition>.Failure($"Invalid next phase: {nextPhaseStr}");
-                    }
-                    validNextPhases.Add(nextPhase);
-                }
-                
-                var definition = new PhaseDefinition
-                {
-                    Name = detailDto.Name,
-                    Description = detailDto.Description,
-                    AllowedActions = allowedActions,
-                    ValidNextPhases = validNextPhases,
-                    AutoTransition = detailDto.AutoTransition,
-                    AllowPriority = detailDto.AllowPriority
-                };
-                
-                phaseDetails[phase] = definition;
-            }
-            
-            var sequence = new PhaseSequenceDefinition
-            {
-                Name = dto.Name,
-                Description = dto.Description,
-                Version = dto.Version,
-                Phases = phases,
-                PhaseDetails = phaseDetails,
-                AllowPhaseSkipping = dto.AllowPhaseSkipping
-            };
-            
+            var sequence = JsonSerializer.Deserialize<PhaseSequenceDefinition>(json, JsonOptions);
+            if (sequence == null)
+                return Result<PhaseSequenceDefinition>.Failure("Failed to deserialize phase sequence");
+            if (!string.IsNullOrWhiteSpace(sequenceId))
+                sequence = sequence with { SequenceId = sequenceId };
+            var validation = ValidateSequence(sequence);
+            if (validation.IsFailure)
+                return Result<PhaseSequenceDefinition>.Failure($"Validation failed: {validation.Error}");
+            if (cacheKey != null)
+                _cache.Set(cacheKey, sequence);
+            _logger.LogInformation($"Loaded phase sequence: {sequence.SequenceId ?? sequence.Name}");
             return Result<PhaseSequenceDefinition>.Success(sequence);
         }
-        catch (Exception ex)
+        catch (JsonException exception)
         {
-            return Result<PhaseSequenceDefinition>.Failure($"Error converting DTO: {ex.Message}");
+            return Result<PhaseSequenceDefinition>.Failure($"JSON parsing error: {exception.Message}");
         }
     }
-    
-    private Result ValidateSequence(PhaseSequenceDefinition sequence)
+
+    private static JsonSerializerOptions CreateJsonOptions()
     {
-        // Validar que há pelo menos uma fase
-        if (sequence.Phases.Count == 0)
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
-            return Result.Failure("Sequence must have at least one phase");
-        }
-        
-        // Validar que todas as fases têm detalhes
-        foreach (var phase in sequence.Phases)
-        {
-            if (!sequence.PhaseDetails.ContainsKey(phase))
-            {
-                return Result.Failure($"Missing phase details for: {phase}");
-            }
-        }
-        
-        // Validar que próximas fases válidas existem na sequência
-        foreach (var kvp in sequence.PhaseDetails)
-        {
-            foreach (var nextPhase in kvp.Value.ValidNextPhases)
-            {
-                if (!sequence.Phases.Contains(nextPhase))
-                {
-                    return Result.Failure($"Phase {kvp.Key} references invalid next phase: {nextPhase}");
-                }
-            }
-        }
-        
-        return Result.Success();
-    }
-    
-    // DTOs para deserialização JSON
-    private class PhaseSequenceDto
-    {
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public string Version { get; set; } = "1.0.0";
-        public List<string> Phases { get; set; } = new();
-        public Dictionary<string, PhaseDefinitionDto> PhaseDetails { get; set; } = new();
-        public bool AllowPhaseSkipping { get; set; } = false;
-    }
-    
-    private class PhaseDefinitionDto
-    {
-        public string Name { get; set; } = "";
-        public string Description { get; set; } = "";
-        public List<string> AllowedActions { get; set; } = new();
-        public List<string> ValidNextPhases { get; set; } = new();
-        public bool AutoTransition { get; set; } = false;
-        public bool AllowPriority { get; set; } = true;
+            ReadCommentHandling = JsonCommentHandling.Skip,
+            AllowTrailingCommas = true
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 }

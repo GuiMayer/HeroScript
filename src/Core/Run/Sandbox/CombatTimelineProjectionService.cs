@@ -203,7 +203,7 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
             RunSequence = checkpoint.State.Sequence,
             CombatStep = combat.Determinism.Step,
             Turn = combat.CurrentTurn,
-            Phase = combat.PhaseState?.CurrentPhase.ToString(),
+            Phase = combat.PhaseState?.CurrentPhaseId,
             ActorId = combat.ActivationState?.ActiveActorId,
             CommandType = checkpoint.JournalEntry.CommandType,
             CommandId = checkpoint.JournalEntry.CommandId,

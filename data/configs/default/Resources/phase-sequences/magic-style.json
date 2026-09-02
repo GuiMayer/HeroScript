@@ -1,23 +1,23 @@
 {
   "magic-style": {
-    "name": "Magic: The Gathering Style",
-    "description": "Sistema de fases inspirado em Magic com fases principais, combate e limpeza.",
-    "version": "1.0.0",
+    "sequenceId": "magic-style",
+    "name": "Magic Style",
+    "description": "Fine-grained phases expressed as content ids and semantic roles.",
+    "version": "2.0.0",
     "allowPhaseSkipping": false,
-    "phases": ["UNTAP", "UPKEEP", "DRAW", "MAIN_1", "BATTLE_START", "BATTLE_DECLARE_ATTACKERS", "BATTLE_DECLARE_BLOCKERS", "BATTLE_DAMAGE", "BATTLE_END", "MAIN_2", "END", "CLEANUP"],
-    "phaseDetails": {
-      "UNTAP": { "name": "Untap", "description": "Recarrega recursos.", "allowedActions": [], "validNextPhases": ["UPKEEP"], "autoTransition": true, "allowPriority": false },
-      "UPKEEP": { "name": "Upkeep", "description": "Gatilhos de início.", "allowedActions": ["PASS"], "validNextPhases": ["DRAW"], "autoTransition": false, "allowPriority": true },
-      "DRAW": { "name": "Draw", "description": "Compra de carta.", "allowedActions": ["PASS"], "validNextPhases": ["MAIN_1"], "autoTransition": false, "allowPriority": true },
-      "MAIN_1": { "name": "Main Phase 1", "description": "Ações antes do combate.", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS"], "validNextPhases": ["BATTLE_START"], "autoTransition": false, "allowPriority": true },
-      "BATTLE_START": { "name": "Begin Combat", "description": "Início do combate.", "allowedActions": ["PASS"], "validNextPhases": ["BATTLE_DECLARE_ATTACKERS"], "autoTransition": false, "allowPriority": true },
-      "BATTLE_DECLARE_ATTACKERS": { "name": "Declare Attackers", "description": "Declara atacantes.", "allowedActions": ["BASIC_ATTACK", "PASS"], "validNextPhases": ["BATTLE_DECLARE_BLOCKERS"], "autoTransition": false, "allowPriority": true },
-      "BATTLE_DECLARE_BLOCKERS": { "name": "Declare Blockers", "description": "Declara bloqueadores.", "allowedActions": ["PASS"], "validNextPhases": ["BATTLE_DAMAGE"], "autoTransition": false, "allowPriority": true },
-      "BATTLE_DAMAGE": { "name": "Combat Damage", "description": "Resolve dano.", "allowedActions": ["PASS"], "validNextPhases": ["BATTLE_END"], "autoTransition": true, "allowPriority": false },
-      "BATTLE_END": { "name": "End Combat", "description": "Fim do combate.", "allowedActions": ["PASS"], "validNextPhases": ["MAIN_2"], "autoTransition": false, "allowPriority": true },
-      "MAIN_2": { "name": "Main Phase 2", "description": "Ações após combate.", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS"], "validNextPhases": ["END"], "autoTransition": false, "allowPriority": true },
-      "END": { "name": "End Step", "description": "Gatilhos finais.", "allowedActions": ["PASS", "END_TURN"], "validNextPhases": ["CLEANUP"], "autoTransition": false, "allowPriority": true },
-      "CLEANUP": { "name": "Cleanup", "description": "Limpeza.", "allowedActions": [], "validNextPhases": ["UNTAP"], "autoTransition": true, "allowPriority": false }
-    }
+    "phases": [
+      { "phaseId": "untap", "role": "Start", "order": 10, "name": "Untap", "allowedActions": [], "validNextPhaseIds": ["upkeep"], "autoTransition": true, "allowPriority": false },
+      { "phaseId": "upkeep", "role": "Start", "order": 20, "name": "Upkeep", "allowedActions": ["PASS"], "validNextPhaseIds": ["draw"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "draw", "role": "Start", "order": 30, "name": "Draw", "allowedActions": ["PASS"], "validNextPhaseIds": ["main_1"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "main_1", "role": "Middle", "order": 40, "name": "Main 1", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS"], "validNextPhaseIds": ["battle_start"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "battle_start", "role": "Middle", "order": 50, "name": "Battle Start", "allowedActions": ["PASS"], "validNextPhaseIds": ["declare_attackers"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "declare_attackers", "role": "Middle", "order": 60, "name": "Declare Attackers", "allowedActions": ["BASIC_ATTACK", "PASS"], "validNextPhaseIds": ["declare_blockers"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "declare_blockers", "role": "Middle", "order": 70, "name": "Declare Blockers", "allowedActions": ["PASS"], "validNextPhaseIds": ["battle_damage"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "battle_damage", "role": "Middle", "order": 80, "name": "Battle Damage", "allowedActions": ["PASS"], "validNextPhaseIds": ["battle_end"], "autoTransition": true, "allowPriority": false },
+      { "phaseId": "battle_end", "role": "Middle", "order": 90, "name": "Battle End", "allowedActions": ["PASS"], "validNextPhaseIds": ["main_2"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "main_2", "role": "Middle", "order": 100, "name": "Main 2", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS"], "validNextPhaseIds": ["end"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "end", "role": "End", "order": 110, "name": "End", "allowedActions": ["PASS", "END_TURN"], "validNextPhaseIds": ["cleanup"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "cleanup", "role": "End", "order": 120, "name": "Cleanup", "allowedActions": [], "validNextPhaseIds": ["untap"], "autoTransition": true, "allowPriority": false }
+    ]
   }
 }

@@ -94,40 +94,6 @@ public class PhaseSystemFactory
         return CreateFromPreset("classic-style");
     }
     
-    /// <summary>
-    /// Cria um sistema de fases sem fases (retrocompatibilidade).
-    /// Permite que o combate funcione sem sistema de fases ativo.
-    /// </summary>
-    /// <returns>Sistema de fases desabilitado</returns>
-    public Result<PhaseSystem> CreateDisabled()
-    {
-        var sequence = new PhaseSequenceDefinition
-        {
-            Name = "Disabled",
-            Description = "No phase system - backward compatibility mode",
-            Version = "1.0.0",
-            Phases = new List<TurnPhase> { TurnPhase.NONE },
-            PhaseDetails = new Dictionary<TurnPhase, PhaseDefinition>
-            {
-                {
-                    TurnPhase.NONE,
-                    new PhaseDefinition
-                    {
-                        Name = "No Phases",
-                        Description = "Phase system disabled",
-                        AllowedActions = new List<ActionType>(),
-                        ValidNextPhases = new List<TurnPhase>(),
-                        AutoTransition = false,
-                        AllowPriority = false
-                    }
-                }
-            },
-            AllowPhaseSkipping = false
-        };
-        
-        return CreateSystem(sequence);
-    }
-    
     private Result<PhaseSystem> CreateFromPreset(string presetFileName)
     {
         return CreateFromResource(presetFileName);

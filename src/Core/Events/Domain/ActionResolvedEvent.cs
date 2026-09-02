@@ -26,7 +26,7 @@ public record ActionResolvedEvent : GameEvent
     /// <summary>
     /// Fase atual
     /// </summary>
-    public TurnPhase CurrentPhase { get; init; }
+    public string CurrentPhaseId { get; init; } = string.Empty;
     
     /// <summary>
     /// Se true, a pilha está agora vazia

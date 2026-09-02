@@ -26,5 +26,5 @@ public record ActionStackedEvent : GameEvent
     /// <summary>
     /// Fase atual
     /// </summary>
-    public TurnPhase CurrentPhase { get; init; }
+    public string CurrentPhaseId { get; init; } = string.Empty;
 }

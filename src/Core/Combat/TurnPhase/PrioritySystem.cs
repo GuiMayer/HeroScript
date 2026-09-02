@@ -45,7 +45,7 @@ public class PrioritySystem : IPrioritySystem
             [playerId] = true
         };
         
-        _logger.LogDebug($"Player {playerId} passed priority in phase {phaseState.CurrentPhase}");
+        _logger.LogDebug($"Player {playerId} passed priority in phase {phaseState.CurrentPhaseId}");
         
         return Result<PhaseState>.Success(phaseState with
         {
@@ -76,7 +76,7 @@ public class PrioritySystem : IPrioritySystem
         var resetPassed = phaseState.PlayerPassedPriority.Keys
             .ToDictionary(playerId => playerId, _ => false);
         
-        _logger.LogDebug($"Priority reset for phase {phaseState.CurrentPhase}, active player: {activePlayerId}");
+        _logger.LogDebug($"Priority reset for phase {phaseState.CurrentPhaseId}, active player: {activePlayerId}");
         
         return Result<PhaseState>.Success(phaseState with
         {

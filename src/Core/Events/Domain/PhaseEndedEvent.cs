@@ -1,4 +1,3 @@
-using Core.Combat.TurnPhase;
 using Core.Events;
 
 namespace Core.Events.Domain;
@@ -13,12 +12,12 @@ public record PhaseEndedEvent : GameEvent
     /// <summary>
     /// Fase que foi finalizada
     /// </summary>
-    public TurnPhase Phase { get; init; }
+    public string PhaseId { get; init; } = string.Empty;
     
     /// <summary>
     /// Próxima fase (se houver)
     /// </summary>
-    public TurnPhase? NextPhase { get; init; }
+    public string? NextPhaseId { get; init; }
     
     /// <summary>
     /// Número do turno atual

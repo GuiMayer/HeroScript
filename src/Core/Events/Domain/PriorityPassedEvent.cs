@@ -1,4 +1,3 @@
-using Core.Combat.TurnPhase;
 using Core.Events;
 
 namespace Core.Events.Domain;
@@ -18,7 +17,7 @@ public record PriorityPassedEvent : GameEvent
     /// <summary>
     /// Fase atual
     /// </summary>
-    public TurnPhase CurrentPhase { get; init; }
+    public string CurrentPhaseId { get; init; } = string.Empty;
     
     /// <summary>
     /// Se true, todos os jogadores passaram prioridade

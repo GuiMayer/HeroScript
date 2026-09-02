@@ -5,237 +5,121 @@ using Core.Logging;
 
 namespace Core.Combat.TurnPhase;
 
-/// <summary>
-/// Implementação do gerenciador de fases de turno.
-/// Controla transições, valida ações, e gerencia o fluxo de fases TCG-style.
-/// </summary>
-public class PhaseManager : IPhaseManager
+public sealed class PhaseManager : IPhaseManager
 {
     private readonly IPrioritySystem _prioritySystem;
     private readonly ILogger _logger;
-    private readonly IEventBus? _eventBus;
-    
+
     public PhaseManager(IPrioritySystem prioritySystem, ILogger logger, IEventBus? eventBus = null)
     {
         _prioritySystem = prioritySystem ?? throw new ArgumentNullException(nameof(prioritySystem));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _eventBus = eventBus;
     }
-    
-    public Result<PhaseState> StartPhase(TurnPhase phase, CombatState state)
+
+    public Result<PhaseState> StartPhase(
+        string phaseId,
+        CombatState state,
+        PhaseSequenceDefinition sequence)
     {
-        if (phase == TurnPhase.NONE)
-        {
-            return Result<PhaseState>.Failure("Cannot start NONE phase");
-        }
-        
-        // Obter ordem de jogadores para inicializar prioridade
+        if (string.IsNullOrWhiteSpace(phaseId) || sequence.Find(phaseId) == null)
+            return Result<PhaseState>.Failure($"Unknown phase: {phaseId}");
+
         var playerOrder = _prioritySystem.GetPlayerOrder(state);
         if (playerOrder.Count == 0)
-        {
-            return Result<PhaseState>.Failure("No players found in combat state");
-        }
-        
-        // Criar dicionário de prioridade com todos os jogadores
-        var priorityDict = playerOrder.ToDictionary(id => id, _ => false);
-        
+            return Result<PhaseState>.Failure("No actors found in combat state");
+
         var phaseState = new PhaseState
         {
-            CurrentPhase = phase,
-            PhaseIndex = 0,
-            ActivePlayerId = playerOrder[0], // Primeiro jogador tem prioridade
+            CurrentPhaseId = phaseId,
+            PhaseIndex = IndexOf(sequence, phaseId),
+            PhaseSequence = sequence,
+            PriorityOrder = playerOrder,
+            ActivePlayerId = playerOrder[0],
             CanTransition = false,
-            PlayerPassedPriority = priorityDict,
+            PlayerPassedPriority = playerOrder.ToDictionary(id => id, _ => false),
             PhaseStartTime = state.Determinism.LogicalTimestamp.UtcDateTime
         };
-        
-        _logger.LogDebug($"Started phase {phase} with active player {playerOrder[0]}");
-        
+        _logger.LogDebug($"Started phase {phaseId} with active actor {playerOrder[0]}");
         return Result<PhaseState>.Success(phaseState);
     }
-    
-    public Result<PhaseState> TransitionToNextPhase(PhaseState currentPhase, PhaseSequenceDefinition sequence)
+
+    public Result<PhaseState> TransitionToNextPhase(
+        PhaseState currentPhase,
+        PhaseSequenceDefinition sequence)
     {
-        if (sequence.Phases.Count == 0)
-        {
-            return Result<PhaseState>.Failure("Phase sequence is empty");
-        }
-        
-        // Encontrar índice da próxima fase
         var nextIndex = currentPhase.PhaseIndex + 1;
-        
-        // Se chegou ao fim da sequência, retornar erro (caller deve iniciar novo turno)
         if (nextIndex >= sequence.Phases.Count)
-        {
             return Result<PhaseState>.Failure("Reached end of phase sequence");
-        }
-        
-        var nextPhase = sequence.Phases[nextIndex];
-        
-        // Validar transição
-        var validationResult = ValidatePhaseTransition(currentPhase.CurrentPhase, nextPhase, sequence);
-        if (validationResult.IsFailure)
-        {
-            return Result<PhaseState>.Failure(validationResult.Error);
-        }
-        
-        // Criar novo estado de fase
-        var newPhaseState = currentPhase with
-        {
-            CurrentPhase = nextPhase,
-            PhaseIndex = nextIndex,
-            CanTransition = false,
-            PhaseStartTime = currentPhase.PhaseStartTime.AddTicks(1)
-        };
-        
-        // Resetar prioridade para a nova fase
-        var resetResult = _prioritySystem.ResetPriority(newPhaseState, currentPhase.ActivePlayerId);
-        if (resetResult.IsFailure)
-        {
-            return Result<PhaseState>.Failure($"Failed to reset priority: {resetResult.Error}");
-        }
-        
-        _logger.LogDebug($"Transitioned from {currentPhase.CurrentPhase} to {nextPhase}");
-        
-        return Result<PhaseState>.Success(resetResult.Value);
+        return TransitionToPhase(sequence.Phases[nextIndex].PhaseId, currentPhase, sequence);
     }
-    
-    public Result<PhaseState> TransitionToPhase(TurnPhase targetPhase, PhaseState currentPhase, PhaseSequenceDefinition sequence)
+
+    public Result<PhaseState> TransitionToPhase(
+        string targetPhaseId,
+        PhaseState currentPhase,
+        PhaseSequenceDefinition sequence)
     {
-        if (targetPhase == TurnPhase.NONE)
+        var targetIndex = IndexOf(sequence, targetPhaseId);
+        if (targetIndex < 0)
+            return Result<PhaseState>.Failure($"Phase {targetPhaseId} not found in sequence");
+        var validation = ValidatePhaseTransition(currentPhase.CurrentPhaseId, targetPhaseId, sequence);
+        if (validation.IsFailure)
+            return Result<PhaseState>.Failure(validation.Error);
+
+        var changed = currentPhase with
         {
-            return Result<PhaseState>.Failure("Cannot transition to NONE phase");
-        }
-        
-        // Encontrar índice da fase alvo
-        var targetIndex = IndexOf(sequence.Phases, targetPhase);
-        if (targetIndex == -1)
-        {
-            return Result<PhaseState>.Failure($"Phase {targetPhase} not found in sequence");
-        }
-        
-        // Validar transição
-        var validationResult = ValidatePhaseTransition(currentPhase.CurrentPhase, targetPhase, sequence);
-        if (validationResult.IsFailure)
-        {
-            return Result<PhaseState>.Failure(validationResult.Error);
-        }
-        
-        // Criar novo estado de fase
-        var newPhaseState = currentPhase with
-        {
-            CurrentPhase = targetPhase,
+            CurrentPhaseId = targetPhaseId,
             PhaseIndex = targetIndex,
             CanTransition = false,
             PhaseStartTime = currentPhase.PhaseStartTime.AddTicks(1)
         };
-        
-        // Resetar prioridade para a nova fase
-        var resetResult = _prioritySystem.ResetPriority(newPhaseState, currentPhase.ActivePlayerId);
-        if (resetResult.IsFailure)
-        {
-            return Result<PhaseState>.Failure($"Failed to reset priority: {resetResult.Error}");
-        }
-        
-        _logger.LogDebug($"Transitioned from {currentPhase.CurrentPhase} to {targetPhase}");
-        
-        return Result<PhaseState>.Success(resetResult.Value);
-    }
-    
-    public bool CanExecuteAction(ActionType action, PhaseState phaseState, PhaseSequenceDefinition sequence)
-    {
-        // Se fase é NONE, permite todas as ações (retrocompatibilidade)
-        if (phaseState.CurrentPhase == TurnPhase.NONE)
-        {
-            return true;
-        }
-        
-        // Obter definição da fase atual
-        if (!sequence.PhaseDetails.TryGetValue(phaseState.CurrentPhase, out var phaseDefinition))
-        {
-            _logger.LogWarning($"Phase definition not found for {phaseState.CurrentPhase}");
-            return false;
-        }
-        
-        // Verificar se ação está na lista de permitidas
-        return phaseDefinition.AllowedActions.Contains(action);
-    }
-    
-    public List<ActionType> GetAllowedActions(PhaseState phaseState, PhaseSequenceDefinition sequence)
-    {
-        // Se fase é NONE, retorna lista vazia (sem restrições)
-        if (phaseState.CurrentPhase == TurnPhase.NONE)
-        {
-            return new List<ActionType>();
-        }
-        
-        // Obter definição da fase atual
-        if (!sequence.PhaseDetails.TryGetValue(phaseState.CurrentPhase, out var phaseDefinition))
-        {
-            _logger.LogWarning($"Phase definition not found for {phaseState.CurrentPhase}");
-            return new List<ActionType>();
-        }
-        
-        return phaseDefinition.AllowedActions.ToList();
-    }
-    
-    public Result ValidatePhaseTransition(TurnPhase from, TurnPhase to, PhaseSequenceDefinition sequence)
-    {
-        // Transição de NONE é sempre permitida (inicialização)
-        if (from == TurnPhase.NONE)
-        {
-            return Result.Success();
-        }
-        
-        // Obter definição da fase de origem
-        if (!sequence.PhaseDetails.TryGetValue(from, out var fromDefinition))
-        {
-            return Result.Failure($"Phase definition not found for {from}");
-        }
-        
-        // Se há lista de próximas fases válidas, verificar
-        if (fromDefinition.ValidNextPhases.Count > 0)
-        {
-            if (!fromDefinition.ValidNextPhases.Contains(to))
-            {
-                return Result.Failure($"Cannot transition from {from} to {to} - not in valid next phases");
-            }
-        }
-        else
-        {
-            // Se não há lista específica, verificar se é a próxima na sequência
-            var fromIndex = IndexOf(sequence.Phases, from);
-            var toIndex = IndexOf(sequence.Phases, to);
-            
-            if (fromIndex == -1 || toIndex == -1)
-            {
-                return Result.Failure($"Phase not found in sequence");
-            }
-            
-            // Permitir apenas transição para próxima fase, a menos que skipping seja permitido
-            if (toIndex != fromIndex + 1 && !sequence.AllowPhaseSkipping)
-            {
-                return Result.Failure($"Cannot skip phases - transition from {from} to {to} not allowed");
-            }
-            
-            // Se skipping é permitido, verificar se não está voltando
-            if (sequence.AllowPhaseSkipping && toIndex <= fromIndex)
-            {
-                return Result.Failure($"Cannot go backwards in phase sequence");
-            }
-        }
-        
-        return Result.Success();
+        var reset = _prioritySystem.ResetPriority(changed, currentPhase.ActivePlayerId);
+        if (reset.IsFailure)
+            return Result<PhaseState>.Failure($"Failed to reset priority: {reset.Error}");
+
+        _logger.LogDebug($"Transitioned from {currentPhase.CurrentPhaseId} to {targetPhaseId}");
+        return reset;
     }
 
-    private static int IndexOf<T>(IReadOnlyList<T> values, T value)
+    public bool CanExecuteAction(
+        ActionType action,
+        PhaseState phaseState,
+        PhaseSequenceDefinition sequence) =>
+        sequence.Find(phaseState.CurrentPhaseId)?.AllowedActions.Contains(action) == true;
+
+    public List<ActionType> GetAllowedActions(
+        PhaseState phaseState,
+        PhaseSequenceDefinition sequence) =>
+        sequence.Find(phaseState.CurrentPhaseId)?.AllowedActions.ToList() ?? [];
+
+    public Result ValidatePhaseTransition(
+        string fromPhaseId,
+        string toPhaseId,
+        PhaseSequenceDefinition sequence)
     {
-        for (var index = 0; index < values.Count; index++)
+        var from = sequence.Find(fromPhaseId);
+        var toIndex = IndexOf(sequence, toPhaseId);
+        if (from == null || toIndex < 0)
+            return Result.Failure("Phase transition references an unknown phase");
+        if (from.ValidNextPhaseIds.Count > 0)
+            return from.ValidNextPhaseIds.Contains(toPhaseId, StringComparer.Ordinal)
+                ? Result.Success()
+                : Result.Failure($"Cannot transition from {fromPhaseId} to {toPhaseId}");
+
+        var fromIndex = IndexOf(sequence, fromPhaseId);
+        if (toIndex == fromIndex + 1)
+            return Result.Success();
+        if (sequence.AllowPhaseSkipping && toIndex > fromIndex)
+            return Result.Success();
+        return Result.Failure($"Cannot transition from {fromPhaseId} to {toPhaseId}");
+    }
+
+    private static int IndexOf(PhaseSequenceDefinition sequence, string phaseId)
+    {
+        for (var index = 0; index < sequence.Phases.Count; index++)
         {
-            if (EqualityComparer<T>.Default.Equals(values[index], value))
+            if (string.Equals(sequence.Phases[index].PhaseId, phaseId, StringComparison.Ordinal))
                 return index;
         }
-
         return -1;
     }
 }

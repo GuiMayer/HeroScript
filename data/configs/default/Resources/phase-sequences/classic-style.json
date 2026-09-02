@@ -1,19 +1,14 @@
 {
   "classic-style": {
-    "name": "Classic Simple Style",
-    "description": "Sistema de fases simplificado para jogos de RPG clássicos sem prioridade interativa",
-    "version": "1.0.0",
+    "sequenceId": "classic-style",
+    "name": "Classic Actor Activation",
+    "description": "Minimum configurable START, MIDDLE and END activation flow.",
+    "version": "2.0.0",
     "allowPhaseSkipping": false,
-    "phases": ["MAIN_1"],
-    "phaseDetails": {
-      "MAIN_1": {
-        "name": "Action Phase",
-        "description": "Fase única onde o jogador executa todas as suas ações.",
-        "allowedActions": ["BASIC_ATTACK", "POWER", "PASS", "END_TURN"],
-        "validNextPhases": ["MAIN_1"],
-        "autoTransition": false,
-        "allowPriority": false
-      }
-    }
+    "phases": [
+      { "phaseId": "activation_start", "role": "Start", "order": 10, "name": "Activation Start", "allowedActions": [], "validNextPhaseIds": ["action"], "autoTransition": true, "allowPriority": false },
+      { "phaseId": "action", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS", "END_TURN"], "validNextPhaseIds": ["activation_end"], "autoTransition": false, "allowPriority": false },
+      { "phaseId": "activation_end", "role": "End", "order": 30, "name": "Activation End", "allowedActions": [], "validNextPhaseIds": ["activation_start"], "autoTransition": true, "allowPriority": false }
+    ]
   }
 }

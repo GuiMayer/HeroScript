@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Combat.Flow;
+using Core.Combat.TurnPhase;
 using Core.Run;
 
 namespace Core.Content;
@@ -40,6 +41,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         var runtime = created.Value;
         ValidateModes(runtime, errors);
         ValidateCombatRules(runtime, errors, warnings);
+        ValidatePhaseSequences(runtime, errors);
         ValidateRuns(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
@@ -97,6 +99,33 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "runs", id, definition, "combatActivationRulesId", "activation-rules");
             RequireArray(runtime, errors, "runs", id, definition, "startingDeck", "cards");
             ValidateMap(id, definition, errors);
+        }
+    }
+
+    private static void ValidatePhaseSequences(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        foreach (var (id, definition) in runtime.GetDefinitions("phase-sequences"))
+        {
+            try
+            {
+                var sequence = definition.Deserialize<PhaseSequenceDefinition>(options);
+                if (sequence == null)
+                {
+                    errors.Add($"phase-sequences/{id} is invalid");
+                    continue;
+                }
+                var validation = PhaseSequenceLoader.ValidateSequence(sequence);
+                if (validation.IsFailure)
+                    errors.Add($"phase-sequences/{id}: {validation.Error}");
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"phase-sequences/{id} could not be parsed: {exception.Message}");
+            }
         }
     }
 

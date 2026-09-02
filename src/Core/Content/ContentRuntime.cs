@@ -117,7 +117,7 @@ public sealed class ContentRuntime
         var preferredNames = new[]
         {
             "pipelineId", "resourceId", "entityId", "statusId", "modifierId",
-            "actionId", "modeId", "runId", "poolId"
+            "actionId", "modeId", "runId", "poolId", "sequenceId"
         };
         foreach (var preferred in preferredNames)
         {
