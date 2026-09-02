@@ -165,6 +165,11 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             });
         var branchAction = await branchActionResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(branchActionResponse.StatusCode == HttpStatusCode.OK, branchAction.GetRawText());
+        var fullResolution = branchAction.GetProperty("state").GetProperty("resolution");
+        Assert.Equal("FullSnapshots", fullResolution.GetProperty("mode").GetString());
+        Assert.All(
+            fullResolution.GetProperty("frames").EnumerateArray(),
+            frame => Assert.Equal(JsonValueKind.Object, frame.GetProperty("stateAfter").ValueKind));
 
         using var updatedBranchSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{branchRunId}/snapshot");
         var updatedBranchSnapshot = await updatedBranchSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -244,9 +249,34 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var fireball = hand.Single(card => card.GetProperty("definitionId").GetString() == "fireball");
         var basicAttack = hand.First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
 
-        var afterFirst = await ExecuteCardCommand(runId, combatId, fireball, "goblin_a");
+        var firstCommandId = Guid.NewGuid();
+        var firstResult = await ExecuteCardCommandResult(
+            runId,
+            combatId,
+            fireball,
+            "goblin_a",
+            firstCommandId);
+        var afterFirst = firstResult.GetProperty("state").GetProperty("combat");
         Assert.Equal(0, Energy(afterFirst));
         Assert.Equal(1, afterFirst.GetProperty("activationState").GetProperty("actionsTaken").GetInt32());
+        var compactResolution = firstResult.GetProperty("state").GetProperty("resolution");
+        Assert.Equal("CompactWithSnapshotLookup", compactResolution.GetProperty("mode").GetString());
+        var compactFrame = compactResolution.GetProperty("frames").EnumerateArray().Single();
+        Assert.Equal(JsonValueKind.Null, compactFrame.GetProperty("stateAfter").ValueKind);
+        Assert.True(compactFrame.GetProperty("snapshotSequence").GetInt32() > 0);
+
+        using var resolutionResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/resolutions/{firstCommandId}");
+        var durableResolution = await resolutionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, resolutionResponse.StatusCode);
+        Assert.Equal(
+            compactResolution.GetProperty("finalSequence").GetInt32(),
+            durableResolution.GetProperty("finalSequence").GetInt32());
+        using var compactStateResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/timeline/{compactFrame.GetProperty("snapshotSequence").GetInt32()}/state");
+        var compactState = await compactStateResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, compactStateResponse.StatusCode);
+        Assert.Equal(combatId, compactState.GetProperty("combatId").GetGuid());
         using var afterFirstSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var afterFirstSnapshot = await afterFirstSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         var appliedBurning = afterFirstSnapshot.GetProperty("combat").GetProperty("actors")
@@ -313,6 +343,17 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         JsonElement card,
         string targetId)
     {
+        var result = await ExecuteCardCommandResult(runId, combatId, card, targetId, Guid.NewGuid());
+        return result.GetProperty("state").GetProperty("combat").Clone();
+    }
+
+    private async Task<JsonElement> ExecuteCardCommandResult(
+        Guid runId,
+        Guid combatId,
+        JsonElement card,
+        string targetId,
+        Guid commandId)
+    {
         using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
@@ -321,7 +362,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             $"/api/v1/combats/{combatId}/commands",
             new
             {
-                commandId = Guid.NewGuid(),
+                commandId,
                 expectedSequence = snapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
                 expectedStep = snapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
                 type = "EXECUTE_ACTION",
@@ -335,7 +376,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             });
         var result = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(response.StatusCode == HttpStatusCode.OK, result.GetRawText());
-        return result.GetProperty("state").GetProperty("combat").Clone();
+        return result.Clone();
     }
 
     private static object CreateScenario(

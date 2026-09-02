@@ -52,7 +52,7 @@
         "strategy": "ManualAck"
       },
       "animation": {
-        "mode": "FullSnapshots"
+        "mode": "CompactWithSnapshotLookup"
       },
       "journal": {
         "granularity": "Full"
