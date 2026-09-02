@@ -1,4 +1,5 @@
 using Core.Common;
+using Core.Combat.Flow;
 using Core.Config;
 using Core.Content;
 using Core.Run.Content;
@@ -95,23 +96,14 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             return Result<ResolvedGameMode>.Failure(string.Join("; ", errors.Where(error => error != null)));
         }
 
-        if (timeline.Value.MaxItemsPerPage is < 1 or > 1000)
-            return Result<ResolvedGameMode>.Failure("Timeline policy maxItemsPerPage must be between 1 and 1000");
-        if (capabilities.Value.MaxCards < 0 || capabilities.Value.MaxEnemies < 1 ||
-            capabilities.Value.MaxBranchesPerRoot < 0 || capabilities.Value.MaxSimulationCommands < 0)
-        {
-            return Result<ResolvedGameMode>.Failure("Capability policy limits are invalid");
-        }
-        if (replay.Value.AllowForkFromHistory && !timeline.Value.Enabled)
-            return Result<ResolvedGameMode>.Failure("Replay policy requires a timeline when history forks are enabled");
-        if (capabilities.Value.AllowTimelineFork && !replay.Value.AllowForkFromHistory)
-            return Result<ResolvedGameMode>.Failure("Capability policy enables timeline forks but replay policy rejects them");
-        if (capabilities.Value.AllowHotReloadActivation &&
-            !string.Equals(binding.Value.ActiveRuns, "allow_versioned_activation", StringComparison.Ordinal))
-        {
-            return Result<ResolvedGameMode>.Failure(
-                "Capability policy enables hot reload activation but content binding policy rejects active runs");
-        }
+        var policyValidation = ValidatePolicies(
+            combat.Value,
+            replay.Value,
+            timeline.Value,
+            binding.Value,
+            capabilities.Value);
+        if (policyValidation.IsFailure)
+            return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
         if (_cardPools != null)
         {
@@ -191,7 +183,12 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             return Result<ResolvedGameMode>.Failure(string.Join("; ", errors.Where(error => error != null)));
         }
 
-        var policyValidation = ValidatePolicies(replay.Value, timeline.Value, binding.Value, capabilities.Value);
+        var policyValidation = ValidatePolicies(
+            combat.Value,
+            replay.Value,
+            timeline.Value,
+            binding.Value,
+            capabilities.Value);
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
@@ -223,11 +220,18 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     }
 
     private static Result ValidatePolicies(
+        CombatRulesDefinition combat,
         ReplayPolicyDefinition replay,
         TimelinePolicyDefinition timeline,
         ContentBindingPolicyDefinition binding,
         CapabilityPolicyDefinition capabilities)
     {
+        if (string.IsNullOrWhiteSpace(combat.DefaultActivationRulesId) ||
+            string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
+            return Result.Failure("Combat rules require activation and phase sequence ids");
+        var combatFlow = CombatFlowPolicyValidator.Validate(combat.Flow);
+        if (combatFlow.IsFailure)
+            return combatFlow;
         if (timeline.MaxItemsPerPage is < 1 or > 1000)
             return Result.Failure("Timeline policy maxItemsPerPage must be between 1 and 1000");
         if (capabilities.MaxCards < 0 || capabilities.MaxEnemies < 1 ||

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Core.Combat.Flow;
 
 namespace Core.Run;
 
@@ -58,6 +59,7 @@ public sealed record CombatRulesDefinition
     public string CombatRulesId { get; init; } = string.Empty;
     public string? DefaultActivationRulesId { get; init; }
     public string? DefaultPhaseSequenceId { get; init; }
+    public CombatFlowPoliciesDefinition Flow { get; init; } = new();
 }
 
 public sealed record ReplayPolicyDefinition

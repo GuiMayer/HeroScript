@@ -1,5 +1,8 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using Core.Combat.Flow;
+using Core.Run;
 
 namespace Core.Content;
 
@@ -36,6 +39,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
         var runtime = created.Value;
         ValidateModes(runtime, errors);
+        ValidateCombatRules(runtime, errors, warnings);
         ValidateRuns(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
@@ -93,6 +97,70 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "runs", id, definition, "combatActivationRulesId", "activation-rules");
             RequireArray(runtime, errors, "runs", id, definition, "startingDeck", "cards");
             ValidateMap(id, definition, errors);
+        }
+    }
+
+    private static void ValidateCombatRules(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors,
+        ImmutableArray<string>.Builder warnings)
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+
+        foreach (var (id, definition) in runtime.GetDefinitions("combat-rules"))
+        {
+            RequireProperty(
+                runtime,
+                errors,
+                "combat-rules",
+                id,
+                definition,
+                "defaultActivationRulesId",
+                "activation-rules");
+            RequireProperty(
+                runtime,
+                errors,
+                "combat-rules",
+                id,
+                definition,
+                "defaultPhaseSequenceId",
+                "phase-sequences");
+
+            try
+            {
+                var combat = definition.Deserialize<CombatRulesDefinition>(options);
+                if (combat == null)
+                {
+                    errors.Add($"combat-rules/{id} is invalid");
+                    continue;
+                }
+
+                if (combat.Flow.Reactions.Strategy == ReactionStrategy.Unspecified)
+                {
+                    errors.Add($"combat-rules/{id} requires an explicit reaction strategy");
+                    continue;
+                }
+
+                if (combat.Flow.Reactions.Strategy != ReactionStrategy.Disabled)
+                {
+                    warnings.Add(
+                        $"combat-rules/{id} selects reaction strategy " +
+                        $"'{combat.Flow.Reactions.Strategy}', which is reserved but not implemented");
+                }
+
+                var implementedSubset = combat.Flow with
+                {
+                    Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Disabled }
+                };
+                var validation = CombatFlowPolicyValidator.Validate(implementedSubset);
+                if (validation.IsFailure)
+                    errors.Add($"combat-rules/{id}: {validation.Error}");
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"combat-rules/{id} could not be parsed: {exception.Message}");
+            }
         }
     }
 

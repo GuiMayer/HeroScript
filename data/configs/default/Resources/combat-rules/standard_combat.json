@@ -2,6 +2,55 @@
   "standard_combat": {
     "combatRulesId": "standard_combat",
     "defaultActivationRulesId": "default_activation",
-    "defaultPhaseSequenceId": "classic-style"
+    "defaultPhaseSequenceId": "classic-style",
+    "flow": {
+      "automaticResolution": {
+        "strategy": "ToNextPlayerInput",
+        "maxAutomaticSteps": 100
+      },
+      "activationOrder": {
+        "strategy": "RoundSnapshot",
+        "tieBreak": "StableActorId"
+      },
+      "actionBudget": {
+        "strategy": "ResourceLimited",
+        "resourceId": "energy",
+        "consumingCommands": ["EXECUTE_ACTION"]
+      },
+      "deckCycle": {
+        "drawPerActivation": 5,
+        "handLimit": 10,
+        "endDiscard": "NonRetain",
+        "retainTags": ["retain"],
+        "etherealTag": "ethereal",
+        "shuffleDiscardWhenDrawEmpty": true,
+        "allowPartialDraw": true,
+        "fatigue": "None"
+      },
+      "resourceCycle": {
+        "resourceId": "energy",
+        "startActivation": "ResetToMax"
+      },
+      "statusTiming": {
+        "boundaries": ["StartRound", "StartActivation", "EndActivation", "EndRound"],
+        "ordering": "PriorityThenInstanceId"
+      },
+      "outcome": {
+        "evaluationBoundary": "AfterCurrentAction",
+        "tieBreak": "Draw"
+      },
+      "encounterResolution": {
+        "strategy": "ManualAck"
+      },
+      "animation": {
+        "mode": "FullSnapshots"
+      },
+      "journal": {
+        "granularity": "Full"
+      },
+      "reactions": {
+        "strategy": "Disabled"
+      }
+    }
   }
 }

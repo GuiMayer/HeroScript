@@ -1,4 +1,5 @@
 using Core.Common;
+using Core.Combat.Flow;
 using Core.Config;
 using Core.Run;
 using Xunit;
@@ -90,7 +91,7 @@ public sealed class GameModeResolverTests
         return new GameModeResolver(
             new Catalog<GameModeDefinition>(mode),
             new Catalog<FlowRulesDefinition>(new FlowRulesDefinition { FlowRulesId = "flow" }),
-            new Catalog<CombatRulesDefinition>(new CombatRulesDefinition { CombatRulesId = "combat" }),
+            new Catalog<CombatRulesDefinition>(CreateCombatRules()),
             new Catalog<ReplayPolicyDefinition>(replay ?? new ReplayPolicyDefinition
             {
                 ReplayPolicyId = "replay",
@@ -113,6 +114,57 @@ public sealed class GameModeResolverTests
                 AllowHotReloadActivation = true
             }));
     }
+
+    private static CombatRulesDefinition CreateCombatRules() => new()
+    {
+        CombatRulesId = "combat",
+        DefaultActivationRulesId = "activation",
+        DefaultPhaseSequenceId = "phases",
+        Flow = new CombatFlowPoliciesDefinition
+        {
+            AutomaticResolution = new()
+            {
+                Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,
+                MaxAutomaticSteps = 100
+            },
+            ActivationOrder = new()
+            {
+                Strategy = ActivationOrderStrategy.RoundSnapshot,
+                TieBreak = ActivationTieBreak.StableActorId
+            },
+            ActionBudget = new()
+            {
+                Strategy = ActionBudgetStrategy.ResourceLimited,
+                ResourceId = "energy",
+                ConsumingCommands = ["EXECUTE_ACTION"]
+            },
+            DeckCycle = new()
+            {
+                HandLimit = 10,
+                EndDiscard = DeckEndDiscardStrategy.NonRetain,
+                Fatigue = FatigueStrategy.None
+            },
+            ResourceCycle = new()
+            {
+                ResourceId = "energy",
+                StartActivation = ResourceRefreshStrategy.ResetToMax
+            },
+            StatusTiming = new()
+            {
+                Boundaries = [StatusTriggerBoundary.StartActivation],
+                Ordering = StatusOrderingStrategy.PriorityThenInstanceId
+            },
+            Outcome = new()
+            {
+                EvaluationBoundary = OutcomeEvaluationBoundary.AfterCurrentAction,
+                TieBreak = OutcomeTieBreak.Draw
+            },
+            EncounterResolution = new() { Strategy = EncounterResolutionStrategy.ManualAck },
+            Animation = new() { Mode = AnimationFrameMode.FullSnapshots },
+            Journal = new() { Granularity = CombatJournalGranularity.Full },
+            Reactions = new() { Strategy = ReactionStrategy.Disabled }
+        }
+    };
 
     private sealed class Catalog<TDefinition>(TDefinition definition) : IResourceCatalog<TDefinition>
     {
