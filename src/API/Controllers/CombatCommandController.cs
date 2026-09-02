@@ -81,7 +81,12 @@ public sealed class CombatCommandController : BaseApiController
             var encounter = receipt.State.GetEncounter(combatId);
             return Ok(RunCommandController.MapReceipt(
                 receipt,
-                new { run = receipt.State, combat = encounter?.Combat },
+                new
+                {
+                    run = receipt.State,
+                    combat = encounter?.Combat,
+                    resolution = receipt.State.GetCombatResolution(receipt.CommandId)
+                },
                 step: encounter?.Combat.Determinism.Step));
         }
         catch (JsonException exception)

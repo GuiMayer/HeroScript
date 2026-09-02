@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
+using Core.Combat.Flow;
 using Core.Config;
 using Core.Content;
 using Core.Events;
@@ -1066,6 +1067,47 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 Determinism = (step.RunDeterminism ?? candidate.Determinism).AdvanceStep()
             };
             candidates.Add((candidate, step));
+        }
+
+        if (rootCommand != null)
+        {
+            var mode = state.ResolvedMode?.CombatRules.Flow.Animation.Mode
+                ?? AnimationFrameMode.FullSnapshots;
+            var frames = candidates.Select((candidate, index) => new CombatAnimationFrame
+            {
+                FrameId = DeterministicId.Create(
+                    state.Determinism.Seed,
+                    (ulong)index,
+                    $"combat-frame:{rootCommand.CommandId:N}"),
+                Index = index,
+                RunSequence = checked(state.Sequence + index + 1),
+                CombatStep = candidate.Step.Combat.Determinism.Step,
+                TransitionType = candidate.Step.TransitionType,
+                Payload = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
+                    ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
+                    : candidate.Step.Payload.Clone(),
+                StateAfter = mode == AnimationFrameMode.FullSnapshots
+                    ? candidate.Step.Combat
+                    : null,
+                SnapshotSequence = checked(state.Sequence + index + 1)
+            }).ToArray();
+            var record = new CombatResolutionRecord
+            {
+                CommandId = rootCommand.CommandId,
+                CombatId = previousCombat.CombatId,
+                CommandType = rootCommand.Type,
+                Mode = mode,
+                FirstSequence = frames[0].RunSequence,
+                FinalSequence = frames[^1].RunSequence,
+                Frames = frames
+            };
+            var final = candidates[^1];
+            candidates[^1] = (final.State with
+            {
+                CombatResolutions = final.State.CombatResolutions
+                    .ToImmutableDictionary()
+                    .SetItem(rootCommand.CommandId, record)
+            }, final.Step);
         }
 
         return PersistBatch(state, candidates, rootCommand, rootPayload);
