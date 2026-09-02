@@ -300,6 +300,7 @@ builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
 builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
 builder.Services.AddSingleton<ICalculationEngine, CalculationEngine>();
+builder.Services.AddSingleton<IImmutableEffectProcessor, ImmutableEffectProcessor>();
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
     new ResourceCatalog<RelicDefinition>(
         sp.GetRequiredService<IConfigManager>(),

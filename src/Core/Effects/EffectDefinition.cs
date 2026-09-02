@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-
 namespace Core.Effects;
 
 /// <summary>
@@ -62,6 +61,12 @@ public record EffectDefinition
     /// não existe recurso implícito associado ao tipo do efeito.
     /// </summary>
     public string? TargetResource { get; init; }
+
+    /// <summary>
+    /// Explicit operation for MODIFY_RESOURCE. DAMAGE and HEAL are authoring
+    /// aliases for SUBTRACT and ADD; none of them selects a resource by name.
+    /// </summary>
+    public ResourceEffectOperation Operation { get; init; } = ResourceEffectOperation.ADD;
     
     // ===== STATUS (para APPLY_STATUS, REMOVE_STATUS) =====
     
