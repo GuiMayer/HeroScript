@@ -247,6 +247,15 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var afterFirst = await ExecuteCardCommand(runId, combatId, fireball, "goblin_a");
         Assert.Equal(0, Energy(afterFirst));
         Assert.Equal(1, afterFirst.GetProperty("activationState").GetProperty("actionsTaken").GetInt32());
+        using var afterFirstSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var afterFirstSnapshot = await afterFirstSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var appliedBurning = afterFirstSnapshot.GetProperty("combat").GetProperty("actors")
+            .EnumerateArray()
+            .Single(actor => actor.GetProperty("entityId").GetString() == "goblin_a")
+            .GetProperty("statuses")[0];
+        Assert.Equal(
+            "EndActivation",
+            appliedBurning.GetProperty("definition").GetProperty("triggerBoundary").GetString());
         var firstActivation = afterFirst.GetProperty("activationState").GetProperty("activationNumber").GetInt32();
 
         var afterSecond = await ExecuteCardCommand(runId, combatId, basicAttack, "goblin_a");
@@ -254,11 +263,48 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal("hero", nextActivation.GetProperty("activeActorId").GetString());
         Assert.Equal(0, nextActivation.GetProperty("actionsTaken").GetInt32());
         Assert.True(nextActivation.GetProperty("activationNumber").GetInt32() > firstActivation);
+        Assert.Equal(2, afterSecond.GetProperty("currentTurn").GetInt32());
+
+        using var lifecycleSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var lifecycleSnapshot = await lifecycleSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, lifecycleSnapshotResponse.StatusCode);
+        Assert.Equal(28, Health(lifecycleSnapshot, "goblin_a"));
+        var burning = lifecycleSnapshot.GetProperty("combat").GetProperty("actors")
+            .EnumerateArray()
+            .Single(actor => actor.GetProperty("entityId").GetString() == "goblin_a")
+            .GetProperty("statuses")
+            .EnumerateArray()
+            .Single(status => status.GetProperty("statusId").GetString() == "burning");
+        Assert.Equal(2, burning.GetProperty("duration").GetInt32());
 
         using var verify = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var replay = await verify.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, verify.StatusCode);
         Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+    }
+
+    [Fact]
+    public async Task SandboxHeal_AppliesConfiguredEffectToAuthoritativeSnapshot()
+    {
+        var scenario = CreateScenario(
+            $"api-heal-{Guid.NewGuid():N}",
+            new { heroResources = new { energy = 3, health = 20 } });
+        using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+        var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var heal = snapshot.GetProperty("hand").EnumerateArray()
+            .Single(card => card.GetProperty("definitionId").GetString() == "heal");
+
+        await ExecuteCardCommand(runId, combatId, heal, "hero");
+
+        using var afterResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var after = await afterResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(28, Health(after, "hero"));
     }
 
     private async Task<JsonElement> ExecuteCardCommand(

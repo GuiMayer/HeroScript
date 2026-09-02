@@ -46,15 +46,18 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     private readonly IContentRuntimeResolver _contentRuntimes;
     private readonly IActionManager _actions;
     private readonly IIntentResolver _intents;
+    private readonly ICombatStatusLifecycle _statusLifecycle;
 
     public CombatFlowPlanner(
         IContentRuntimeResolver contentRuntimes,
         IActionManager actions,
-        IIntentResolver intents)
+        IIntentResolver intents,
+        ICombatStatusLifecycle statusLifecycle)
     {
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _intents = intents ?? throw new ArgumentNullException(nameof(intents));
+        _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
     }
 
     public Result<CombatState> Initialize(RunState run, CombatState combat)
@@ -65,9 +68,12 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (context.IsFailure)
             return Result<CombatState>.Failure(context.Error);
         var initialized = Initialize(run, combat, context.Value.Sequence, context.Value.Policies);
-        return initialized.IsFailure
-            ? initialized
-            : PublishIntents(run, initialized.Value, context.Value.Policies);
+        if (initialized.IsFailure)
+            return initialized;
+        var withLifecycle = ApplyInitialLifecycle(initialized.Value, context.Value.Policies);
+        return withLifecycle.IsFailure
+            ? withLifecycle
+            : PublishIntents(run, withLifecycle.Value, context.Value.Policies);
     }
 
     public Result<CombatFlowAdvanceResult> AdvanceActivation(
@@ -84,14 +90,13 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (context.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(context.Error);
 
-        var advanced = AdvanceActivation(
+        var advanced = AdvanceWithLifecycle(
             run,
             combat,
             deck,
             runDeterminism,
             context.Value.Sequence,
-            context.Value.Policies,
-            actionId => ResolveAction(run, actionId));
+            context.Value.Policies);
         if (advanced.IsFailure)
             return advanced;
 
@@ -100,6 +105,113 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             return Result<CombatFlowAdvanceResult>.Failure(published.Error);
         var steps = advanced.Value.Steps.ToArray();
         steps[^1] = steps[^1] with { Combat = published.Value };
+        return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+    }
+
+    private Result<CombatFlowAdvanceResult> AdvanceWithLifecycle(
+        RunState run,
+        CombatState combat,
+        DeckState deck,
+        DeterministicContext runDeterminism,
+        PhaseSequenceDefinition sequence,
+        CombatFlowPoliciesDefinition policies)
+    {
+        var planned = AdvanceActivation(
+            run,
+            combat,
+            deck,
+            runDeterminism,
+            sequence,
+            policies,
+            actionId => ResolveAction(run, actionId));
+        if (planned.IsFailure)
+            return planned;
+
+        var steps = new List<CombatResolutionStep> { planned.Value.Steps[0] };
+        var current = planned.Value.Steps[0].Combat;
+        var endedDeck = planned.Value.Steps[0].Deck;
+        var endedActorId = combat.ActivationState!.ActiveActorId!;
+        var endActivation = AppendBoundary(
+            steps,
+            current,
+            endedDeck,
+            StatusTriggerBoundary.EndActivation,
+            endedActorId,
+            policies);
+        if (endActivation.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(endActivation.Error);
+        current = endActivation.Value;
+        if (!current.IsActive)
+            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+
+        var startsNewRound = StartsNewRound(current);
+        if (startsNewRound)
+        {
+            var endRound = AppendBoundary(
+                steps,
+                current,
+                endedDeck,
+                StatusTriggerBoundary.EndRound,
+                endedActorId,
+                policies);
+            if (endRound.IsFailure)
+                return Result<CombatFlowAdvanceResult>.Failure(endRound.Error);
+            current = endRound.Value;
+            if (!current.IsActive)
+                return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+        }
+
+        var recalculated = AdvanceActivation(
+            run,
+            current,
+            deck,
+            runDeterminism,
+            sequence,
+            policies,
+            actionId => ResolveAction(run, actionId));
+        if (recalculated.IsFailure)
+            return recalculated;
+        var startedStep = recalculated.Value.Steps[1];
+        current = startedStep.Combat with
+        {
+            CurrentTurn = startedStep.Combat.ActivationState!.Round
+        };
+
+        if (startsNewRound)
+        {
+            var startRound = AppendBoundary(
+                steps,
+                current,
+                startedStep.Deck,
+                StatusTriggerBoundary.StartRound,
+                current.ActivationState!.ActiveActorId,
+                policies);
+            if (startRound.IsFailure)
+                return Result<CombatFlowAdvanceResult>.Failure(startRound.Error);
+            current = startRound.Value;
+            if (!current.IsActive)
+                return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+        }
+
+        var adjustedStartContext = startedStep.RunDeterminism;
+        for (var index = 1; index < steps.Count && adjustedStartContext != null; index++)
+            adjustedStartContext = adjustedStartContext.AdvanceStep();
+        steps.Add(startedStep with
+        {
+            Combat = current,
+            RunDeterminism = adjustedStartContext
+        });
+
+        var startActivation = AppendBoundary(
+            steps,
+            current,
+            startedStep.Deck,
+            StatusTriggerBoundary.StartActivation,
+            current.ActivationState!.ActiveActorId,
+            policies);
+        if (startActivation.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(startActivation.Error);
+
         return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
     }
 
@@ -278,6 +390,84 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             Steps = [endStep, startStep]
         });
     }
+
+    private Result<CombatState> ApplyInitialLifecycle(
+        CombatState combat,
+        CombatFlowPoliciesDefinition policies)
+    {
+        var current = combat;
+        foreach (var boundary in new[]
+                 {
+                     StatusTriggerBoundary.StartRound,
+                     StatusTriggerBoundary.StartActivation
+                 })
+        {
+            if (!policies.StatusTiming.Boundaries.Contains(boundary))
+                continue;
+            var processed = _statusLifecycle.Process(
+                current,
+                boundary,
+                current.ActivationState?.ActiveActorId);
+            if (processed.IsFailure)
+                return Result<CombatState>.Failure(processed.Error);
+            current = CombatFlowTransitions.EvaluateOutcome(
+                processed.Value.Combat,
+                policies.Outcome,
+                current.ActivationState?.ActiveActorId);
+            if (!current.IsActive)
+                break;
+        }
+        return Result<CombatState>.Success(current);
+    }
+
+    private Result<CombatState> AppendBoundary(
+        ICollection<CombatResolutionStep> steps,
+        CombatState combat,
+        DeckState deck,
+        StatusTriggerBoundary boundary,
+        string? activeActorId,
+        CombatFlowPoliciesDefinition policies)
+    {
+        if (!policies.StatusTiming.Boundaries.Contains(boundary))
+            return Result<CombatState>.Success(combat);
+        var processed = _statusLifecycle.Process(combat, boundary, activeActorId);
+        if (processed.IsFailure)
+            return Result<CombatState>.Failure(processed.Error);
+        var evaluated = CombatFlowTransitions.EvaluateOutcome(
+            processed.Value.Combat,
+            policies.Outcome,
+            activeActorId);
+        steps.Add(new CombatResolutionStep
+        {
+            TransitionType = $"combat.status.{ToSnakeCase(boundary)}",
+            Combat = evaluated,
+            Deck = deck,
+            Payload = JsonSerializer.SerializeToElement(new
+            {
+                boundary = boundary.ToString(),
+                activeActorId,
+                events = processed.Value.Events
+            })
+        });
+        return Result<CombatState>.Success(evaluated);
+    }
+
+    private static bool StartsNewRound(CombatState combat)
+    {
+        var activation = combat.ActivationState;
+        return activation != null && activation.ActivationOrder
+            .Where(actorId => combat.GetEntity(actorId)?.IsAlive == true)
+            .All(actorId => activation.CompletedActorIds.Contains(actorId, StringComparer.Ordinal));
+    }
+
+    private static string ToSnakeCase(StatusTriggerBoundary boundary) => boundary switch
+    {
+        StatusTriggerBoundary.StartActivation => "start_activation",
+        StatusTriggerBoundary.EndActivation => "end_activation",
+        StatusTriggerBoundary.StartRound => "start_round",
+        StatusTriggerBoundary.EndRound => "end_round",
+        _ => "unknown"
+    };
 
     private Result<(PhaseSequenceDefinition Sequence, CombatFlowPoliciesDefinition Policies)> ResolveContext(
         RunState run)

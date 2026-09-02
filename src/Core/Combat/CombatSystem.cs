@@ -364,7 +364,7 @@ public class CombatSystem : ICombatSystem
                     command.RunModifiers,
                     command.IgnoreConfiguredCosts),
                 ActionType.PASS => ExecutePass(currentState, actor),
-                ActionType.END_TURN => ExecuteEndTurn(currentState, actor),
+                ActionType.END_TURN => ExecuteEndTurn(currentState, actor, command.DeferTurnLifecycle),
                 _ => throw new InvalidOperationException($"Unknown action type: {command.ActionType}")
             };
 
@@ -646,8 +646,64 @@ public class CombatSystem : ICombatSystem
         {
             updatedState = updatedState.ReplaceEntity(updatedActor).ReplaceEntity(newTarget);
         }
+        updatedState = ApplyActionSideEffects(
+            updatedState,
+            actionDefinition.Effects,
+            actionId,
+            actor.EntityId,
+            targetId,
+            randomProvider);
+        updatedState = updatedState with { Determinism = randomProvider.Context };
 
         return CombatTransitions.AppendAction(updatedState, action).State;
+    }
+
+    private CombatState ApplyActionSideEffects(
+        CombatState state,
+        IEnumerable<EffectDefinition> effects,
+        string actionId,
+        string actorId,
+        string targetId,
+        IRandomProvider randomProvider)
+    {
+        if (_effectResolver == null)
+            return state;
+
+        var current = state;
+        foreach (var effect in effects.Where(item => item.Type is
+                     EffectType.HEAL or
+                     EffectType.APPLY_STATUS or
+                     EffectType.REMOVE_STATUS or
+                     EffectType.DISPEL_STATUS))
+        {
+            var context = new CombatEffectContext
+            {
+                CombatState = current,
+                SourceEntityId = actorId,
+                TargetEntityId = targetId,
+                SourceActionId = actionId
+            };
+            var applied = _effectResolver.ApplyEffect(
+                CreateActionEffectInstance(effect, actionId, actorId, targetId),
+                context,
+                randomProvider);
+            if (applied.IsFailure || !applied.Value.Success)
+            {
+                throw new InvalidOperationException(
+                    applied.IsFailure ? applied.Error : applied.Value.ErrorMessage);
+            }
+
+            if (effect.Type != EffectType.HEAL || applied.Value.EffectResult.ValueApplied is not { } healing)
+                continue;
+            foreach (var affectedId in applied.Value.EffectResult.AffectedEntityIds)
+            {
+                var affected = current.GetEntity(affectedId);
+                var health = affected?.GetResource("health");
+                if (affected != null && health != null)
+                    current = current.ReplaceEntity(affected.UpdateResource("health", health.Gain(healing)));
+            }
+        }
+        return current;
     }
 
     private float CalculateActionDamage(
@@ -842,7 +898,7 @@ public class CombatSystem : ICombatSystem
         return CombatTransitions.AppendAction(state, action).State;
     }
     
-    private CombatState ExecuteEndTurn(CombatState state, CombatEntity actor)
+    private CombatState ExecuteEndTurn(CombatState state, CombatEntity actor, bool deferTurnLifecycle)
     {
         var action = new CombatAction
         {
@@ -852,6 +908,9 @@ public class CombatSystem : ICombatSystem
         };
         
         var updatedState = CombatTransitions.AppendAction(state, action).State;
+
+        if (deferTurnLifecycle)
+            return updatedState;
         
         if (_statusEffectManager != null)
         {

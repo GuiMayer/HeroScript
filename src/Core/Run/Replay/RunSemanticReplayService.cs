@@ -348,7 +348,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
             : new CombatFlowPlanner(
                 contentRuntimes,
                 _actionManager,
-                new IntentResolver(gambits, _actionManager));
+                new IntentResolver(gambits, _actionManager),
+                new CombatStatusLifecycle(_formulaEvaluator));
         var combats = new CombatRunCoordinator(
             combatSystem,
             runs,

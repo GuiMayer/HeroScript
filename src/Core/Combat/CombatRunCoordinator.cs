@@ -448,7 +448,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var effectiveCommand = command with
         {
             ExpectedStep = effectiveIdentity.ExpectedStep,
-            IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore
+            IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
+            DeferTurnLifecycle = true
         };
         var executed = _combatSystem.ExecuteAction(combatId, effectiveCommand);
         if (executed.IsFailure)
@@ -674,7 +675,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(restored.Error);
         command = command with
         {
-            IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore
+            IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
+            DeferTurnLifecycle = true
         };
         var executed = _combatSystem.ExecuteAction(combatId, command);
         if (executed.IsFailure)

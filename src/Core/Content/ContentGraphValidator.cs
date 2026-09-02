@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Core.Combat.Flow;
 using Core.Combat.TurnPhase;
 using Core.Run;
+using Core.StatusEffects;
 
 namespace Core.Content;
 
@@ -45,6 +46,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateRuns(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
+        ValidateStatusEffects(runtime, errors);
         ValidateEnemyPools(runtime, errors);
         ValidateCardPools(runtime, errors);
         ValidateCardUpgrades(runtime, errors);
@@ -197,6 +199,44 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 Require(runtime, errors, "actions", id, value, "resources");
             foreach (var value in FindStringProperties(definition, "statusId"))
                 Require(runtime, errors, "actions", id, value, "status-effects");
+        }
+    }
+
+    private static void ValidateStatusEffects(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        foreach (var (id, definition) in runtime.GetDefinitions("status-effects"))
+        {
+            try
+            {
+                var status = definition.Deserialize<StatusEffectDefinition>(options);
+                if (status == null)
+                {
+                    errors.Add($"status-effects/{id} is invalid");
+                    continue;
+                }
+                if (status.DefaultDuration == 0 || status.DefaultDuration < -1)
+                    errors.Add($"status-effects/{id} has invalid defaultDuration");
+                if (status.DefaultDuration > 0 &&
+                    status.DurationTickBoundary == StatusTriggerBoundary.Unspecified)
+                {
+                    errors.Add(
+                        $"status-effects/{id} requires durationTickBoundary for finite duration");
+                }
+                if (status.Timing is StatusEffectTiming.START_OF_TURN or StatusEffectTiming.END_OF_TURN &&
+                    status.TriggerBoundary == StatusTriggerBoundary.Unspecified)
+                {
+                    errors.Add(
+                        $"status-effects/{id} requires triggerBoundary for turn timing");
+                }
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"status-effects/{id} could not be parsed: {exception.Message}");
+            }
         }
     }
 

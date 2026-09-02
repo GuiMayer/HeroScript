@@ -61,6 +61,30 @@ public sealed class ContentGraphValidatorTests
         Assert.Contains("Duplicate definition 'same'", result.Errors.Single());
     }
 
+    [Fact]
+    public void Validate_RejectsFiniteStatusWithoutExplicitDurationBoundary()
+    {
+        var bundle = Bundle(
+            ("status-effects", "StatusEffects/status.json", new Dictionary<string, object>
+            {
+                ["burning"] = new
+                {
+                    statusId = "burning",
+                    behavior = "DAMAGE_OVER_TIME",
+                    timing = "END_OF_TURN",
+                    defaultDuration = 3,
+                    triggerBoundary = "EndActivation"
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            "status-effects/burning requires durationTickBoundary for finite duration",
+            result.Errors);
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

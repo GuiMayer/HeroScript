@@ -262,6 +262,7 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
         sp.GetRequiredService<IContentRuntimeResolver>());
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
+builder.Services.AddSingleton<ICombatStatusLifecycle, CombatStatusLifecycle>();
 
 // Register persistence services
 var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
@@ -492,7 +493,8 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<IActionManager>(),
-    sp.GetRequiredService<IIntentResolver>()));
+    sp.GetRequiredService<IIntentResolver>(),
+    sp.GetRequiredService<ICombatStatusLifecycle>()));
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
     sp.GetRequiredService<ICombatSystem>(),
     sp.GetRequiredService<IRunManager>(),
