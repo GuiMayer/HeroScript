@@ -968,6 +968,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 deck = deckTransition.Value.State;
             }
 
+            var rootPayload = JsonSerializer.SerializeToElement(new
+            {
+                combatId = nextCombat.CombatId,
+                command,
+                consumedCardId,
+                destination = destination.ToString()
+            }, _jsonOptions);
             return CommitCombatResolutionLocked(
                 state,
                 previousCombat,
@@ -977,14 +984,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     TransitionType = "combat.action.applied",
                     Combat = nextCombat,
                     Deck = deck,
-                    Payload = JsonSerializer.SerializeToElement(new
-                    {
-                        combatId = nextCombat.CombatId,
-                        command,
-                        consumedCardId,
-                        destination = destination.ToString()
-                    }, _jsonOptions)
-                }]);
+                    Payload = rootPayload
+                }],
+                rootPayload);
         }
     }
 
@@ -1007,7 +1009,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 state,
                 resolution.PreviousCombat,
                 resolution.RootCommand,
-                resolution.Steps);
+                resolution.Steps,
+                resolution.RootPayload);
         }
     }
 
@@ -1015,7 +1018,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         RunState state,
         CombatState previousCombat,
         RunCommandIdentity? rootCommand,
-        IReadOnlyList<CombatResolutionStep> steps)
+        IReadOnlyList<CombatResolutionStep> steps,
+        JsonElement rootPayload = default)
     {
         var encounterIndex = FindEncounterIndex(state, previousCombat.CombatId);
         if (encounterIndex < 0 || state.ActiveEncounterId != previousCombat.CombatId)
@@ -1064,7 +1068,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             candidates.Add((candidate, step));
         }
 
-        return PersistBatch(state, candidates, rootCommand);
+        return PersistBatch(state, candidates, rootCommand, rootPayload);
     }
 
     public Result<RunState> ResolveEncounter(
@@ -2072,7 +2076,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private Result<RunState> PersistBatch(
         RunState previous,
         IReadOnlyList<(RunState State, CombatResolutionStep Step)> candidates,
-        RunCommandIdentity? rootCommand)
+        RunCommandIdentity? rootCommand,
+        JsonElement rootPayload = default)
     {
         try
         {
@@ -2114,7 +2119,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     CommandType = isFinal && rootCommand != null
                         ? rootCommand.Type
                         : candidate.Step.TransitionType,
-                    Command = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
+                    Command = isFinal && rootPayload.ValueKind != JsonValueKind.Undefined
+                        ? rootPayload.Clone()
+                        : candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
                         ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
                         : candidate.Step.Payload.Clone(),
                     PreviousStateHash = previousHash,

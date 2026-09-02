@@ -135,6 +135,7 @@ public sealed class GameModeResolverTests
             ActionBudget = new()
             {
                 Strategy = ActionBudgetStrategy.ResourceLimited,
+                ActorScope = FlowActorScope.Player,
                 ResourceId = "energy",
                 ConsumingCommands = ["EXECUTE_ACTION"]
             },

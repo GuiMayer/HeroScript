@@ -21,6 +21,12 @@ public static class CombatFlowTransitions
             !policy.ConsumingCommands.Contains(commandType, StringComparer.Ordinal))
             return Result.Success();
 
+        var actor = combat.GetEntity(command.ActorId);
+        if (actor == null)
+            return Result.Failure($"Actor not found: {command.ActorId}");
+        if (!ScopeApplies(policy.ActorScope, actor))
+            return Result.Success();
+
         return policy.Strategy switch
         {
             ActionBudgetStrategy.ResourceLimited => ValidateResourceBudget(combat, command, policy),
@@ -42,7 +48,9 @@ public static class CombatFlowTransitions
         if (policy.Strategy != ActionBudgetStrategy.FixedCount ||
             command.ActionType is ActionType.END_TURN or ActionType.PASS ||
             !policy.ConsumingCommands.Contains(commandType, StringComparer.Ordinal) ||
-            combat.ActivationState == null)
+            combat.ActivationState == null ||
+            combat.GetEntity(command.ActorId) is not { } actor ||
+            !ScopeApplies(policy.ActorScope, actor))
             return combat;
 
         return combat with
@@ -73,6 +81,36 @@ public static class CombatFlowTransitions
             .ToArray();
     }
 
+    public static CombatState EvaluateOutcome(
+        CombatState combat,
+        OutcomePolicyDefinition policy,
+        string? activeActorId)
+    {
+        ArgumentNullException.ThrowIfNull(combat);
+        ArgumentNullException.ThrowIfNull(policy);
+        var heroesDefeated = combat.HeroIsDead;
+        var enemiesDefeated = combat.AllEnemiesDead;
+        if (!heroesDefeated && !enemiesDefeated)
+            return combat with { Status = CombatStatus.ACTIVE };
+        if (!heroesDefeated)
+            return combat with { Status = CombatStatus.VICTORY };
+        if (!enemiesDefeated)
+            return combat with { Status = CombatStatus.DEFEAT };
+
+        var status = policy.TieBreak switch
+        {
+            OutcomeTieBreak.Draw => CombatStatus.DRAW,
+            OutcomeTieBreak.HeroesWin => CombatStatus.VICTORY,
+            OutcomeTieBreak.EnemiesWin => CombatStatus.DEFEAT,
+            OutcomeTieBreak.ActiveActorWins =>
+                string.Equals(activeActorId, combat.Hero.EntityId, StringComparison.Ordinal)
+                    ? CombatStatus.VICTORY
+                    : CombatStatus.DEFEAT,
+            _ => CombatStatus.DRAW
+        };
+        return combat with { Status = status };
+    }
+
     private static Result ValidateResourceBudget(
         CombatState combat,
         CombatActionCommand command,
@@ -85,6 +123,14 @@ public static class CombatFlowTransitions
             ? Result.Failure($"Action budget resource not found: {policy.ResourceId}")
             : Result.Success();
     }
+
+    private static bool ScopeApplies(FlowActorScope scope, CombatEntity actor) => scope switch
+    {
+        FlowActorScope.Player => actor.IsHero,
+        FlowActorScope.Enemies => !actor.IsHero,
+        FlowActorScope.All => true,
+        _ => false
+    };
 
     private static int TieRank(CombatEntity entity, ActivationTieBreak tieBreak) => tieBreak switch
     {

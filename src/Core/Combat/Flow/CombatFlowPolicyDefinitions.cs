@@ -59,6 +59,7 @@ public sealed record ActionBudgetPolicyDefinition
     private ImmutableArray<string> _consumingCommands = [];
 
     public ActionBudgetStrategy Strategy { get; init; }
+    public FlowActorScope ActorScope { get; init; }
     public string? ResourceId { get; init; }
     public int? MaxActionsPerActivation { get; init; }
     public IReadOnlyList<string> ConsumingCommands
@@ -205,6 +206,8 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Activation order tieBreak is required");
         if (policies.ActionBudget.Strategy == ActionBudgetStrategy.Unspecified)
             return Result.Failure("Action budget strategy is required");
+        if (policies.ActionBudget.ActorScope == FlowActorScope.Unspecified)
+            return Result.Failure("Action budget actorScope is required");
         if (policies.ActionBudget.Strategy == ActionBudgetStrategy.ResourceLimited &&
             string.IsNullOrWhiteSpace(policies.ActionBudget.ResourceId))
             return Result.Failure("Resource-limited action budget requires resourceId");

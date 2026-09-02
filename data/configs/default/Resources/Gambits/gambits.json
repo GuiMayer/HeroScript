@@ -10,8 +10,8 @@
       }
     ],
     "action": {
-      "actionType": "BASIC_ATTACK",
-      "powerId": "basic_attack",
+      "actionType": "POWER",
+      "powerId": "enemy_basic_attack",
       "target": "HERO"
     },
     "intent": {

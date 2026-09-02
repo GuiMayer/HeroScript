@@ -23,6 +23,7 @@ public sealed record CombatResolutionCommit
     public int ExpectedSequence { get; init; }
     public CombatState PreviousCombat { get; init; } = null!;
     public RunCommandIdentity RootCommand { get; init; } = null!;
+    public JsonElement RootPayload { get; init; }
     public IReadOnlyList<CombatResolutionStep> Steps
     {
         get => _steps;

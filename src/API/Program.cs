@@ -9,6 +9,7 @@ using Core.Infrastructure.Persistence;
 using Core.Math;
 using Core.Events;
 using Core.Combat;
+using Core.Combat.Flow;
 using Core.Combat.Activation;
 using Core.Combat.Intents;
 using Core.Combat.Modifiers;
@@ -488,11 +489,16 @@ builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
 });
 
 // Register CombatRunCoordinator
+builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
+    sp.GetRequiredService<IContentRuntimeResolver>(),
+    sp.GetRequiredService<IActionManager>()));
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
     sp.GetRequiredService<ICombatSystem>(),
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<IActionManager>(),
-    sp.GetRequiredService<IScriptModifierManager>()));
+    sp.GetRequiredService<IScriptModifierManager>(),
+    sp.GetRequiredService<ICombatFlowPlanner>(),
+    sp.GetRequiredService<IGambitEngine>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IGameModeResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),

@@ -4,6 +4,8 @@ using System.Text.Json.Serialization;
 using Core.Abstractions.Persistence;
 using Core.Combat;
 using Core.Combat.Models;
+using Core.Combat.Flow;
+using Core.Combat.Gambits;
 using Core.Combat.Modifiers;
 using Core.Combat.TurnOrder;
 using Core.Common;
@@ -127,6 +129,9 @@ public sealed class RunSemanticReplayService : IRunReplayService
             .ToArray();
         if (checkpoints.Length == 0)
             return Failure(runId, $"Run journal not found: {runId}");
+        var structural = RunReplayVerifier.Verify(checkpoints);
+        if (!structural.IsValid)
+            return Failure(runId, string.Join("; ", structural.Errors));
 
         var errors = ImmutableArray.CreateBuilder<string>();
         RunStartOptions? startOptions = null;
@@ -170,9 +175,10 @@ public sealed class RunSemanticReplayService : IRunReplayService
         RunState? current = null;
         var commandsReplayed = 0;
 
-        foreach (var checkpoint in checkpoints)
+        for (var checkpointIndex = 0; checkpointIndex < checkpoints.Length; checkpointIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var checkpoint = checkpoints[checkpointIndex];
             var entry = checkpoint.JournalEntry;
             if (entry.RunId != runId)
             {
@@ -185,6 +191,52 @@ public sealed class RunSemanticReplayService : IRunReplayService
             {
                 errors.Add($"Previous hash mismatch before sequence {entry.Sequence}");
                 break;
+            }
+
+            if (entry.RootCommandId.HasValue && entry.TransitionCount > 1)
+            {
+                var group = checkpoints
+                    .Skip(checkpointIndex)
+                    .TakeWhile(item =>
+                        item.JournalEntry.RootCommandId == entry.RootCommandId)
+                    .ToArray();
+                if (group.Length != entry.TransitionCount ||
+                    group.Select(item => item.JournalEntry.TransitionIndex)
+                        .Where(index => index >= 0)
+                        .OrderBy(index => index)
+                        .SequenceEqual(Enumerable.Range(0, entry.TransitionCount)) == false)
+                {
+                    errors.Add($"Invalid combat resolution group at sequence {entry.Sequence}");
+                    break;
+                }
+
+                var root = group[^1].JournalEntry;
+                var groupedTransition = ReplayEntry(runtime, root, statesBySequence);
+                if (groupedTransition.IsFailure)
+                {
+                    errors.Add($"Sequence {root.Sequence} ({root.CommandType}) failed: {groupedTransition.Error}");
+                    break;
+                }
+
+                current = groupedTransition.Value;
+                runtime.SetRunId(current.RunId);
+                commandsReplayed += group.Length;
+                foreach (var item in group)
+                    statesBySequence[item.State.Sequence] = item.State;
+                var expected = group[^1];
+                var groupedActualHash = CanonicalJson.ComputeHash(current);
+                if (current.Sequence != expected.State.Sequence)
+                    errors.Add($"Sequence mismatch: journal {expected.State.Sequence}, replay {current.Sequence}");
+                if (current.Determinism.Step != expected.JournalEntry.Step)
+                    errors.Add(
+                        $"Step mismatch at sequence {expected.State.Sequence}: " +
+                        $"journal {expected.JournalEntry.Step}, replay {current.Determinism.Step}");
+                if (!string.Equals(expected.JournalEntry.StateHash, groupedActualHash, StringComparison.Ordinal))
+                    errors.Add($"State hash mismatch at sequence {expected.State.Sequence}");
+                checkpointIndex += group.Length - 1;
+                if (errors.Count > 0)
+                    break;
+                continue;
             }
 
             var transition = entry.Sequence == checkpoints[0].JournalEntry.Sequence
@@ -285,11 +337,21 @@ public sealed class RunSemanticReplayService : IRunReplayService
             entityDefinitionLoader: _entityDefinitionLoader,
             effectResolver: effects,
             actionCostEvaluator: _actionCostEvaluator);
+        var flowPlanner = contentRuntimes == null
+            ? null
+            : new CombatFlowPlanner(contentRuntimes, _actionManager);
+        var gambits = new GambitEngine(
+            _configManager,
+            _resourceLoader,
+            eventBus,
+            contentRuntimes: contentRuntimes);
         var combats = new CombatRunCoordinator(
             combatSystem,
             runs,
             _actionManager,
-            modifiers);
+            modifiers,
+            flowPlanner,
+            gambits);
         return new ReplayRuntime(runs, combats);
     }
 

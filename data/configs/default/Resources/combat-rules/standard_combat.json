@@ -14,6 +14,7 @@
       },
       "actionBudget": {
         "strategy": "ResourceLimited",
+        "actorScope": "Player",
         "resourceId": "energy",
         "consumingCommands": ["EXECUTE_ACTION"]
       },
@@ -36,7 +37,7 @@
       },
       "resourceCycle": {
         "resourceId": "energy",
-        "actorScope": "All",
+        "actorScope": "Player",
         "startActivation": "ResetToMax"
       },
       "statusTiming": {

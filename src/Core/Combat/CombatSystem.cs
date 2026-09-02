@@ -846,22 +846,18 @@ public class CombatSystem : ICombatSystem
             ActionType = ActionType.END_TURN
         };
         
-        var updatedState = CombatTransitions.AppendAction(state, action).State with
-        {
-            CurrentTurn = state.CurrentTurn + 1
-        };
+        var updatedState = CombatTransitions.AppendAction(state, action).State;
         
         if (_statusEffectManager != null)
         {
-            // Processar START_OF_TURN (regeneração, energia, verificar stun)
-            updatedState = ProcessStartOfTurnStatusEffects(updatedState);
-            
-            // Processar END_OF_TURN (DoT, decrementar durações)
+            // Fechar integralmente a fronteira atual antes de abrir a próxima.
             updatedState = ProcessEndOfTurnStatusEffects(updatedState);
         }
-        
-        // Processar regeneração de recursos
         updatedState = ProcessEndOfTurnRegeneration(updatedState);
+
+        updatedState = updatedState with { CurrentTurn = state.CurrentTurn + 1 };
+        if (_statusEffectManager != null)
+            updatedState = ProcessStartOfTurnStatusEffects(updatedState);
         updatedState = ProcessStartOfTurnRegeneration(updatedState);
         
         return updatedState;

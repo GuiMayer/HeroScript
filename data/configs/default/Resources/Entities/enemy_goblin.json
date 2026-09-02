@@ -22,7 +22,7 @@
     },
     "ai": {
       "behaviorTree": "aggressive",
-      "actions": ["basic_attack"],
+      "actions": ["enemy_basic_attack"],
       "lowHealthThreshold": 0.3,
       "fleeHealthThreshold": 0.2
     },

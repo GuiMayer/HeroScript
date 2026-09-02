@@ -89,7 +89,9 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
 
         using var repeatSimulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", simulationRequest);
         var repeatedSimulation = await repeatSimulationResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, repeatSimulationResponse.StatusCode);
+        Assert.True(
+            repeatSimulationResponse.StatusCode == HttpStatusCode.OK,
+            repeatedSimulation.GetRawText());
         Assert.Equal(simulationId, repeatedSimulation.GetProperty("simulationId").GetGuid());
         Assert.Equal(
             simulation.GetProperty("finalStateHash").GetString(),

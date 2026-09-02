@@ -115,7 +115,8 @@ public sealed class RunSimulationService : IRunSimulationService
             return Result<RunSimulationResult>.Failure(branch.Error);
 
         var current = branch.Value;
-        var completedCommands = System.Math.Max(0, current.Sequence - 1);
+        var completedCommands = await CountCompletedCommandsAsync(current, cancellationToken)
+            .ConfigureAwait(false);
         if (completedCommands > commands.Count)
             return Result<RunSimulationResult>.Failure("Simulation branch contains more commands than requested");
         for (var index = completedCommands; index < commands.Count; index++)
@@ -153,7 +154,8 @@ public sealed class RunSimulationService : IRunSimulationService
         {
             return Result<RunSimulationResult>.Failure($"Simulation not found: {simulationId}");
         }
-        var commandsExecuted = System.Math.Max(0, state.Sequence - 1);
+        var commandsExecuted = await CountCompletedCommandsAsync(state, cancellationToken)
+            .ConfigureAwait(false);
         return await BuildResultAsync(state, commandsExecuted, cancellationToken).ConfigureAwait(false);
     }
 
@@ -211,17 +213,35 @@ public sealed class RunSimulationService : IRunSimulationService
         var entries = await checkpoints.LoadCheckpointsAsync(state.RunId, cancellationToken).ConfigureAwait(false);
         return entries
             .Where(item => item.State.Sequence > 1)
+            .GroupBy(item => item.JournalEntry.RootCommandId ?? item.JournalEntry.CommandId)
+            .Select(group => group.OrderBy(item => item.State.Sequence).Last())
             .OrderBy(item => item.State.Sequence)
             .Take(commandsExecuted)
-            .Select(item => new SimulationTimelineItem
+            .Select((item, index) => new SimulationTimelineItem
             {
-                CommandIndex = item.State.Sequence - 2,
+                CommandIndex = index,
                 CommandType = item.JournalEntry.CommandType,
                 RunSequence = item.State.Sequence,
                 CombatStep = item.State.GetActiveEncounter()?.Combat.Determinism.Step,
                 StateHash = item.JournalEntry.StateHash
             })
             .ToArray();
+    }
+
+    private async Task<int> CountCompletedCommandsAsync(
+        RunState state,
+        CancellationToken cancellationToken)
+    {
+        if (_repository is not IRunCheckpointRepository checkpoints)
+            return System.Math.Max(0, state.Sequence - 1);
+        var journal = await checkpoints.LoadCheckpointsAsync(state.RunId, cancellationToken).ConfigureAwait(false);
+        return journal
+            .Select(checkpoint => checkpoint.JournalEntry)
+            .Where(entry => entry.Sequence > 1)
+            .Select(entry => entry.RootCommandId ?? entry.CommandId)
+            .Where(commandId => commandId.HasValue)
+            .Distinct()
+            .Count();
     }
 
     private static int CountCards(DeckState deck) =>
