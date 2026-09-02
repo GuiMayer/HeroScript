@@ -547,6 +547,7 @@ builder.Services.AddSingleton<API.Services.DailyChallengeService>();
 
 // Register ActionAffordabilityService
 builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();
+builder.Services.AddSingleton<ICardPlayEvaluator, CardPlayEvaluator>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 
 // Register ExpressionEvaluator

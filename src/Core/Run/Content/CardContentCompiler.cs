@@ -139,6 +139,10 @@ public sealed class CardContentCompiler : ICardContentCompiler
             CardTargetingComponentDefinition targeting when targeting.MinimumTargets < 0 ||
                                                            targeting.MaximumTargets < targeting.MinimumTargets =>
                 Result.Failure($"Card {cardId} targeting {component.ComponentId} has an invalid target range"),
+            CardTargetingComponentDefinition targeting when
+                targeting.Target is EffectTarget.LOWEST_HP_ENEMY or EffectTarget.HIGHEST_HP_ENEMY &&
+                string.IsNullOrWhiteSpace(targeting.SelectionResourceId) =>
+                Result.Failure($"Card {cardId} targeting {component.ComponentId} requires selectionResourceId"),
             CardTriggerComponentDefinition trigger when string.IsNullOrWhiteSpace(trigger.Boundary) =>
                 Result.Failure($"Card {cardId} trigger {component.ComponentId} requires boundary"),
             CardInfluenceComponentDefinition influence when string.IsNullOrWhiteSpace(influence.Channel) ||

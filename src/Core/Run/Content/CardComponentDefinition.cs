@@ -45,6 +45,7 @@ public sealed record CardTargetingComponentDefinition : CardComponentDefinition
     public int MinimumTargets { get; init; } = 1;
     public int MaximumTargets { get; init; } = 1;
     public bool AllowSelf { get; init; }
+    public string? SelectionResourceId { get; init; }
 }
 
 public sealed record CardDispositionComponentDefinition : CardComponentDefinition
