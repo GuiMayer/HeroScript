@@ -17,6 +17,7 @@ public sealed class ContentManifestProvider : IContentManifestProvider, ICacheSe
     [
         new("actions", "actions"),
         new("cards", "cards"),
+        new("card-component-bundles", "card-component-bundles"),
         new("entities", "Entities"),
         new("resources", "resources"),
         new("formulas", "Pipelines", file => file.Equals("MathFormulas", StringComparison.OrdinalIgnoreCase)),

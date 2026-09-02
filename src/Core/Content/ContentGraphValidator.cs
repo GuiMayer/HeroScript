@@ -7,6 +7,7 @@ using Core.Combat.TurnPhase;
 using Core.Effects;
 using Core.Resources;
 using Core.Run;
+using Core.Run.Content;
 using Core.StatusEffects;
 
 namespace Core.Content;
@@ -48,6 +49,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidatePhaseSequences(runtime, errors);
         ValidateRuns(runtime, errors);
         ValidateResources(runtime, errors);
+        ValidateCardComponentBundles(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
         ValidateStatusEffects(runtime, errors);
@@ -229,8 +231,48 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
     private static void ValidateCards(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
     {
+        var compiler = new CardContentCompiler();
         foreach (var (id, definition) in runtime.GetDefinitions("cards"))
-            RequireProperty(runtime, errors, "cards", id, definition, "actionId", "actions");
+        {
+            var card = definition.Deserialize<CardContentDefinition>(CreateJsonOptions());
+            if (card == null)
+            {
+                errors.Add($"cards/{id} is invalid");
+                continue;
+            }
+            if (card.Components.Count == 0 && card.ComponentBundleIds.Count == 0)
+            {
+                RequireProperty(runtime, errors, "cards", id, definition, "actionId", "actions");
+                continue;
+            }
+
+            var compiled = compiler.Compile(id, runtime);
+            if (compiled.IsFailure)
+                errors.Add($"cards/{id}: {compiled.Error}");
+            foreach (var value in FindStringProperties(definition, "resourceId", "targetResource"))
+                Require(runtime, errors, "cards", id, value, "resources");
+            foreach (var value in FindStringProperties(definition, "statusId"))
+                Require(runtime, errors, "cards", id, value, "status-effects");
+        }
+    }
+
+    private static void ValidateCardComponentBundles(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        foreach (var (id, definition) in runtime.GetDefinitions("card-component-bundles"))
+        {
+            var bundle = definition.Deserialize<CardComponentBundleDefinition>(CreateJsonOptions());
+            if (bundle == null)
+            {
+                errors.Add($"card-component-bundles/{id} is invalid");
+                continue;
+            }
+            foreach (var value in FindStringProperties(definition, "resourceId", "targetResource"))
+                Require(runtime, errors, "card-component-bundles", id, value, "resources");
+            foreach (var value in FindStringProperties(definition, "statusId"))
+                Require(runtime, errors, "card-component-bundles", id, value, "status-effects");
+        }
     }
 
     private static void ValidateActions(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
