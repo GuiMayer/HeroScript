@@ -305,7 +305,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (!IsCardInHand(run.Deck, cardId))
             return Result<CombatRunActionResult>.Failure($"Card '{cardId}' is not in run hand");
 
-        var actionId = ResolveActionId(command, cardId);
+        var actionId = ResolveActionId(command, run.Deck, cardId);
         var actionResult = _actionManager is IRevisionedActionCatalog revisionedActions
             ? revisionedActions.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
             : _actionManager.GetDefinition(actionId);
@@ -903,17 +903,22 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
     private static bool IsCardInHand(DeckState deck, string cardReference)
     {
-        if (deck.Hand.Contains(cardReference, StringComparer.Ordinal))
-            return true;
-        return deck.InstanceTrackingEnabled && Guid.TryParse(cardReference, out var instanceId) &&
+        return Guid.TryParse(cardReference, out var instanceId) &&
                deck.HandInstanceIds.Contains(instanceId);
     }
 
-    private static string ResolveActionId(CombatActionCommand command, string cardId)
+    private static string ResolveActionId(
+        CombatActionCommand command,
+        DeckState deck,
+        string cardInstanceId)
     {
-        return command.ActionType == ActionType.BASIC_ATTACK
-            ? BasicAttackActionId
-            : command.PowerId ?? cardId;
+        if (command.ActionType == ActionType.BASIC_ATTACK)
+            return BasicAttackActionId;
+        if (!string.IsNullOrWhiteSpace(command.PowerId))
+            return command.PowerId;
+        return Guid.TryParse(cardInstanceId, out var instanceId)
+            ? deck.GetDefinitionId(instanceId) ?? cardInstanceId
+            : cardInstanceId;
     }
 
     private static CardConsumeDestination ResolveDestination(ActionDefinition actionDefinition)

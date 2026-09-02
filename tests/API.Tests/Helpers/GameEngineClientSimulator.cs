@@ -52,24 +52,57 @@ public class GameEngineClientSimulator
 
     public async Task<List<string>> DrawCardsAsync(Guid runId, int count = 1)
     {
-        var before = await GetHandAsync(runId);
-        var state = await ExecuteRunCommandStateAsync(runId, "DRAW_CARDS", new { count });
-        var after = state.GetProperty("deck").GetProperty("hand")
-            .EnumerateArray().Select(card => card.GetString()!).ToList();
-        return NewItems(before, after);
+        var before = await GetHandCardsAsync(runId);
+        await ExecuteRunCommandStateAsync(runId, "DRAW_CARDS", new { count });
+        var after = await GetHandCardsAsync(runId);
+        var previousIds = before.Select(card => card.CardInstanceId).ToHashSet();
+        return after
+            .Where(card => !previousIds.Contains(card.CardInstanceId))
+            .Select(card => card.DefinitionId)
+            .ToList();
     }
 
     public async Task<JsonElement> DiscardCardsAsync(Guid runId, IEnumerable<string> cardIds)
     {
-        return await ExecuteRunCommandStateAsync(runId, "DISCARD_CARDS", new { cardIds });
+        var hand = await GetHandCardsAsync(runId);
+        var used = new HashSet<Guid>();
+        var instanceIds = cardIds.Select(reference =>
+        {
+            if (Guid.TryParse(reference, out var instanceId))
+                return instanceId;
+            var card = hand.First(item =>
+                !used.Contains(item.CardInstanceId) &&
+                string.Equals(item.DefinitionId, reference, StringComparison.Ordinal));
+            used.Add(card.CardInstanceId);
+            return card.CardInstanceId;
+        }).ToArray();
+        return await ExecuteRunCommandStateAsync(runId, "DISCARD_CARDS", new { cardIds = instanceIds });
     }
 
     public async Task<List<string>> GetHandAsync(Guid runId)
     {
+        return (await GetHandCardsAsync(runId))
+            .Select(card => card.DefinitionId)
+            .ToList();
+    }
+
+    public async Task<Guid> GetHandCardInstanceIdAsync(Guid runId, string definitionId)
+    {
+        return (await GetHandCardsAsync(runId))
+            .First(card => string.Equals(card.DefinitionId, definitionId, StringComparison.Ordinal))
+            .CardInstanceId;
+    }
+
+    private async Task<List<HandCard>> GetHandCardsAsync(Guid runId)
+    {
         var response = await _client.GetAsync($"/api/v1/runs/{runId}/hand");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return json.GetProperty("hand").EnumerateArray().Select(e => e.GetString()!).ToList();
+        return json.GetProperty("cards").EnumerateArray()
+            .Select(card => new HandCard(
+                card.GetProperty("cardInstanceId").GetGuid(),
+                card.GetProperty("definitionId").GetString()!))
+            .ToList();
     }
 
     // ==================== COMBAT MANAGEMENT ====================
@@ -99,6 +132,19 @@ public class GameEngineClientSimulator
         string? powerId = null, string? cardId = null, Guid? runId = null)
     {
         var ownerRunId = ResolveRunId(combatId, runId);
+        var cardInstanceId = cardId;
+        string? cardDefinitionId = null;
+        if (!string.IsNullOrWhiteSpace(cardId) && !Guid.TryParse(cardId, out _))
+        {
+            cardDefinitionId = cardId;
+            cardInstanceId = (await GetHandCardInstanceIdAsync(ownerRunId, cardId)).ToString();
+        }
+        else if (Guid.TryParse(cardId, out var parsedCardInstanceId))
+        {
+            cardDefinitionId = (await GetHandCardsAsync(ownerRunId))
+                .First(card => card.CardInstanceId == parsedCardInstanceId)
+                .DefinitionId;
+        }
         var run = await GetRunStateAsync(ownerRunId);
         var combat = await GetCombatStateAsync(combatId);
         var commandResponse = await _client.PostAsJsonAsync($"/api/v1/combats/{combatId}/commands", new
@@ -111,9 +157,9 @@ public class GameEngineClientSimulator
             {
                 actorId,
                 targetId,
-                actionId = powerId ?? cardId,
+                actionId = powerId ?? cardDefinitionId,
                 powerId,
-                cardId,
+                cardId = cardInstanceId,
                 actionType = (int?)(powerId != null || cardId != null ? null : 0)
             }
         });
@@ -126,6 +172,8 @@ public class GameEngineClientSimulator
         var receipt = await commandResponse.Content.ReadFromJsonAsync<JsonElement>();
         return receipt.GetProperty("state").GetProperty("combat").Clone();
     }
+
+    private sealed record HandCard(Guid CardInstanceId, string DefinitionId);
 
     public async Task<JsonElement> EndTurnAsync(Guid combatId, Guid? runId = null)
     {

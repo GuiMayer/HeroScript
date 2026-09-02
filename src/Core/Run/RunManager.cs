@@ -1171,6 +1171,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     private Result ValidateLoadedRunCompatibility(RunState state)
     {
+        var topology = DeckTransitions.ValidateTopology(state.Deck);
+        if (topology.IsFailure)
+            return topology;
+
         if (!string.Equals(
                 state.Determinism.EngineVersion,
                 DeterministicContext.CurrentEngineVersion,
@@ -1326,7 +1330,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<bool>.Failure($"Run not found: {runId}");
 
-            return Result<bool>.Success(state.Deck.Hand.Contains(cardId));
+            return Result<bool>.Success(
+                Guid.TryParse(cardId, out var instanceId) && state.Deck.HandInstanceIds.Contains(instanceId));
         }
     }
 

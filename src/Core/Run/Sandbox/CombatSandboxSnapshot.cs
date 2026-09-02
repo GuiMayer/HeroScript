@@ -207,9 +207,10 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
         var cards = new List<SandboxCardSnapshot>();
         for (var index = 0; index < deck.Hand.Count; index++)
         {
-            var instanceId = index < deck.HandInstanceIds.Count ? deck.HandInstanceIds[index] : Guid.Empty;
-            var definitionId = deck.Hand[index];
-            deck.CardInstances.TryGetValue(instanceId, out var instance);
+            var instanceId = deck.HandInstanceIds[index];
+            var instance = deck.GetCard(instanceId)
+                ?? throw new InvalidOperationException($"Card instance not found: {instanceId}");
+            var definitionId = instance.DefinitionId;
             var content = _cards is IRevisionedCardContentCatalog revisionedCards
                 ? revisionedCards.GetCard(definitionId, contentRevision, configName)
                 : _cards.GetCard(definitionId, configName);
@@ -219,7 +220,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                 DefinitionId = definitionId,
                 ActionId = content.IsSuccess ? content.Value.ActionId : definitionId,
                 HandIndex = index,
-                Upgrades = instance?.Upgrades ?? []
+                Upgrades = instance.Upgrades
             });
         }
         return cards;

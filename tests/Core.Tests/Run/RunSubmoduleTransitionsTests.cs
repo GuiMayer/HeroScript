@@ -131,7 +131,9 @@ public sealed class RunSubmoduleTransitionsTests
         Assert.True(committed.Value.Value.Applied);
         Assert.Equal(0, committed.Value.State.PowerPoints);
         Assert.Equal(new[] { "fireball" }, committed.Value.State.Deck.DiscardPile);
-        Assert.Equal(1UL, committed.Value.State.Determinism.IdSequence);
+        // One deterministic identity is allocated for the modifier and another
+        // for the newly acquired card instance.
+        Assert.Equal(2UL, committed.Value.State.Determinism.IdSequence);
     }
 
     [Fact]

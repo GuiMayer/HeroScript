@@ -73,10 +73,15 @@ public sealed class CombatRunCoordinatorTests
         var run = CreateRunState(Guid.NewGuid(), ["fireball"]);
         var previous = run.GetActiveEncounter()!.Combat;
         var next = previous with { Determinism = previous.Determinism.AdvanceStep() };
-        var command = Command(run.RunId, "fireball");
+        var cardInstanceId = Assert.Single(run.Deck.HandInstanceIds);
+        var command = Command(run.RunId, "fireball", cardInstanceId);
         var committed = run with
         {
-            Deck = run.Deck with { Hand = [], DiscardPile = ["fireball"] },
+            Deck = run.Deck with
+            {
+                HandInstanceIds = [],
+                DiscardPileInstanceIds = [cardInstanceId]
+            },
             Encounters = [run.GetActiveEncounter()! with { Combat = next }]
         };
         _runManager.Setup(manager => manager.GetRun(run.RunId))
@@ -91,14 +96,14 @@ public sealed class CombatRunCoordinatorTests
                 previous,
                 next,
                 It.IsAny<CombatActionCommand>(),
-                "fireball",
+                cardInstanceId.ToString(),
                 CardConsumeDestination.Discard))
             .Returns(Result<RunState>.Success(committed));
 
         var result = CreateCoordinator().ExecuteAction(previous.CombatId, command);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal("fireball", result.Value.ConsumedCardId);
+        Assert.Equal(cardInstanceId.ToString(), result.Value.ConsumedCardId);
         Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
         Assert.Contains("fireball", result.Value.RunState.Deck.DiscardPile);
         _runManager.Verify(manager => manager.ConsumeCardsFromHand(
@@ -113,7 +118,8 @@ public sealed class CombatRunCoordinatorTests
         var run = CreateRunState(Guid.NewGuid(), ["fireball"]);
         var previous = run.GetActiveEncounter()!.Combat;
         var next = previous with { Determinism = previous.Determinism.AdvanceStep() };
-        var command = Command(run.RunId, "fireball");
+        var cardInstanceId = Assert.Single(run.Deck.HandInstanceIds);
+        var command = Command(run.RunId, "fireball", cardInstanceId);
         var definition = new ActionDefinition
         {
             ActionId = "fireball",
@@ -137,7 +143,7 @@ public sealed class CombatRunCoordinatorTests
                 previous,
                 next,
                 It.Is<CombatActionCommand>(actual => actual.RunModifiers["added_damage"] == 3),
-                "fireball",
+                cardInstanceId.ToString(),
                 CardConsumeDestination.Exhaust))
             .Returns(Result<RunState>.Success(run));
 
@@ -153,6 +159,7 @@ public sealed class CombatRunCoordinatorTests
         var run = CreateRunState(Guid.NewGuid(), ["fireball"]);
         var previous = run.GetActiveEncounter()!.Combat;
         var next = previous with { Determinism = previous.Determinism.AdvanceStep() };
+        var cardInstanceId = Assert.Single(run.Deck.HandInstanceIds);
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
         _actionManager.Setup(manager => manager.GetDefinition("fireball"))
@@ -165,11 +172,13 @@ public sealed class CombatRunCoordinatorTests
                 previous,
                 next,
                 It.IsAny<CombatActionCommand>(),
-                "fireball",
+                cardInstanceId.ToString(),
                 CardConsumeDestination.Discard))
             .Returns(Result<RunState>.Failure("disk unavailable"));
 
-        var result = CreateCoordinator().ExecuteAction(previous.CombatId, Command(run.RunId, "fireball"));
+        var result = CreateCoordinator().ExecuteAction(
+            previous.CombatId,
+            Command(run.RunId, "fireball", cardInstanceId));
 
         Assert.True(result.IsFailure);
         Assert.Contains("disk unavailable", result.Error);
@@ -184,7 +193,9 @@ public sealed class CombatRunCoordinatorTests
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
 
-        var result = CreateCoordinator().ExecuteAction(combatId, Command(run.RunId, "fireball"));
+        var result = CreateCoordinator().ExecuteAction(
+            combatId,
+            Command(run.RunId, "fireball", Guid.Parse("ffffffff-ffff-8fff-bfff-ffffffffffff")));
 
         Assert.True(result.IsFailure);
         Assert.Contains("not in run hand", result.Error);
@@ -362,10 +373,10 @@ public sealed class CombatRunCoordinatorTests
     private CombatRunCoordinator CreateCoordinator() =>
         new(_combatSystem.Object, _runManager.Object, _actionManager.Object, _scriptModifierManager.Object);
 
-    private static CombatActionCommand Command(Guid runId, string actionId) => new()
+    private static CombatActionCommand Command(Guid runId, string actionId, Guid cardInstanceId) => new()
     {
         RunId = runId,
-        CardId = actionId,
+        CardId = cardInstanceId.ToString(),
         ActorId = "hero",
         ActionType = ActionType.POWER,
         PowerId = actionId,
@@ -512,8 +523,22 @@ public sealed class CombatRunCoordinatorTests
             Encounters = activeEncounter
                 ? [new RunEncounterState { NodeId = "combat", Combat = combat }]
                 : [],
-            Deck = new DeckState { Hand = hand },
+            Deck = CreateHand(hand, context),
             Determinism = context
+        };
+    }
+
+    private static DeckState CreateHand(
+        IReadOnlyList<string> definitionIds,
+        DeterministicContext context)
+    {
+        var created = DeckTransitions.Create(definitionIds, context);
+        if (created.IsFailure)
+            throw new InvalidOperationException(created.Error);
+        return created.Value.State with
+        {
+            DrawPileInstanceIds = [],
+            HandInstanceIds = created.Value.State.DrawPileInstanceIds
         };
     }
 }

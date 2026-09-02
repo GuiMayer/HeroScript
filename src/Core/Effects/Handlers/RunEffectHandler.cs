@@ -135,10 +135,10 @@ public sealed class RunEffectHandler : IEffectHandler
             "DRAW_CARD" => _runs.DrawCards(runContext.RunState.RunId, count),
             "DISCARD_CARD" => _runs.DiscardCards(
                 runContext.RunState.RunId,
-                SelectCards(effect, runContext.RunState.Deck.Hand, count)),
+                SelectCards(effect, runContext.RunState.Deck.HandInstanceIds, count)),
             "EXHAUST_CARD" => _runs.ExhaustCards(
                 runContext.RunState.RunId,
-                SelectCards(effect, runContext.RunState.Deck.Hand, count)),
+                SelectCards(effect, runContext.RunState.Deck.HandInstanceIds, count)),
             "ADD_CARD_TO_HAND" => _runs.AddCardsToHand(
                 runContext.RunState.RunId,
                 ResolveCardIds(effect, count)),
@@ -155,11 +155,13 @@ public sealed class RunEffectHandler : IEffectHandler
 
     private static IReadOnlyList<string> SelectCards(
         EffectInstance effect,
-        IReadOnlyList<string> source,
+        IReadOnlyList<Guid> source,
         int count)
     {
         var explicitCards = ResolveCardIds(effect, count);
-        return explicitCards.Count > 0 ? explicitCards : source.Take(count).ToList();
+        return explicitCards.Count > 0
+            ? explicitCards
+            : source.Take(count).Select(id => id.ToString()).ToList();
     }
 
     private static IReadOnlyList<string> ResolveCardIds(EffectInstance effect, int count)

@@ -182,7 +182,16 @@ public sealed class RunController : BaseApiController
         try
         {
             var result = _runManager.GetRun(runId);
-            return result.IsFailure ? NotFound(new { error = result.Error }) : Ok(new { runId, hand = result.Value.Deck.Hand });
+            if (result.IsFailure)
+                return NotFound(new { error = result.Error });
+            var deck = result.Value.Deck;
+            return Ok(new
+            {
+                runId,
+                cards = deck.HandInstanceIds
+                    .Select(id => MapCardInstance(deck, deck.CardInstances[id]))
+                    .ToArray()
+            });
         }
         catch (Exception ex)
         {
@@ -327,20 +336,20 @@ public sealed class RunController : BaseApiController
     {
         return new
         {
-            deck.DrawPile,
-            deck.Hand,
-            deck.DiscardPile,
-            deck.ExhaustPile,
+            deck.DrawPileInstanceIds,
+            deck.HandInstanceIds,
+            deck.DiscardPileInstanceIds,
+            deck.ExhaustPileInstanceIds,
             cardInstances = deck.CardInstances.Values
                 .OrderBy(card => card.CardInstanceId)
                 .Select(card => MapCardInstance(deck, card))
                 .ToArray(),
             counts = new
             {
-                drawPile = deck.DrawPile.Count,
-                hand = deck.Hand.Count,
-                discardPile = deck.DiscardPile.Count,
-                exhaustPile = deck.ExhaustPile.Count
+                drawPile = deck.DrawPileInstanceIds.Count,
+                hand = deck.HandInstanceIds.Count,
+                discardPile = deck.DiscardPileInstanceIds.Count,
+                exhaustPile = deck.ExhaustPileInstanceIds.Count
             }
         };
     }

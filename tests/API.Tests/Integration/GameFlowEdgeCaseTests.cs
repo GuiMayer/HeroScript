@@ -65,6 +65,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var playerEntityId = GetJsonString(runState, "playerEntityId");
         var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1" }, runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
+        var cardInstanceId = await Client.GetHandCardInstanceIdAsync(runId, "basic_attack");
 
         // The run-owned command boundary must reject a target outside the combat.
         var response = await Client.PostRawAsync($"/api/v1/combats/{combatId}/commands", new
@@ -77,7 +78,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             {
                 actorId = playerEntityId,
                 targetId = "non_existent_enemy",
-                cardId = "basic_attack",
+                cardId = cardInstanceId,
                 actionId = "basic_attack"
             }
         });

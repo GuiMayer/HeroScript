@@ -73,9 +73,10 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
 
     protected static void AssertDeckStateValid(JsonElement deckState)
     {
-        AssertJsonPropertyExists(deckState, "drawPile");
-        AssertJsonPropertyExists(deckState, "hand");
-        AssertJsonPropertyExists(deckState, "discardPile");
+        AssertJsonPropertyExists(deckState, "drawPileInstanceIds");
+        AssertJsonPropertyExists(deckState, "handInstanceIds");
+        AssertJsonPropertyExists(deckState, "discardPileInstanceIds");
+        AssertJsonPropertyExists(deckState, "cardInstances");
     }
 
     protected static void AssertEntityHasResource(JsonElement entity, string resourceId)

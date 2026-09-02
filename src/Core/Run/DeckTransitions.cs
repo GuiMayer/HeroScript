@@ -9,20 +9,15 @@ public sealed record DeckTransition(
     DeterministicContext Context,
     ImmutableArray<string> Cards);
 
-/// <summary>
-/// Pure deck state machine. Input instances are never modified.
-/// </summary>
+/// <summary>Pure instance-only card collection and zone state machine.</summary>
 public static class DeckTransitions
 {
     public static Result<DeckTransition> Create(
         IReadOnlyList<string> definitionIds,
-        DeterministicContext context)
-    {
-        ArgumentNullException.ThrowIfNull(definitionIds);
-        return Create(
-            definitionIds.Select(definitionId => new RunStartingCard { DefinitionId = definitionId }).ToArray(),
+        DeterministicContext context) =>
+        Create(
+            definitionIds.Select(id => new RunStartingCard { DefinitionId = id }).ToArray(),
             context);
-    }
 
     public static Result<DeckTransition> Create(
         IReadOnlyList<RunStartingCard> cards,
@@ -30,42 +25,43 @@ public static class DeckTransitions
     {
         ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(context);
+        if (cards.Any(card => string.IsNullOrWhiteSpace(card.DefinitionId)))
+            return Result<DeckTransition>.Failure("Card definition id cannot be empty");
 
-        var declarations = cards
-            .Where(card => !string.IsNullOrWhiteSpace(card.DefinitionId))
-            .ToImmutableArray();
-        var definitions = declarations.Select(card => card.DefinitionId).ToImmutableArray();
         var instances = ImmutableDictionary.CreateBuilder<Guid, CardInstanceState>();
-        var instanceIds = ImmutableList.CreateBuilder<Guid>();
+        var drawPile = ImmutableList.CreateBuilder<Guid>();
+        var definitions = ImmutableArray.CreateBuilder<string>();
         var currentContext = context;
-        for (var index = 0; index < definitions.Length; index++)
+        for (var index = 0; index < cards.Count; index++)
         {
-            var allocated = currentContext.AllocateId($"card:{definitions[index]}:{index}");
+            var declaration = cards[index];
+            var allocated = currentContext.AllocateId($"card:{declaration.DefinitionId}:{index}");
             currentContext = allocated.Context;
-            instanceIds.Add(allocated.Value);
+            drawPile.Add(allocated.Value);
+            definitions.Add(declaration.DefinitionId);
             instances.Add(allocated.Value, new CardInstanceState
             {
                 CardInstanceId = allocated.Value,
-                DefinitionId = definitions[index],
-                Upgrades = declarations[index].Upgrades
+                DefinitionId = declaration.DefinitionId,
+                Upgrades = declaration.Upgrades
             });
         }
 
-        var state = new DeckState
-        {
-            InstanceTrackingEnabled = true,
-            DrawPile = definitions,
-            DrawPileInstanceIds = instanceIds.ToImmutable(),
-            CardInstances = instances.ToImmutable()
-        };
-        return Result<DeckTransition>.Success(new DeckTransition(state, currentContext, definitions));
+        return Result<DeckTransition>.Success(new DeckTransition(
+            new DeckState
+            {
+                DrawPileInstanceIds = drawPile.ToImmutable(),
+                CardInstances = instances.ToImmutable()
+            },
+            currentContext,
+            definitions.ToImmutable()));
     }
 
     public static Result<DeckTransition> Draw(
         DeckState state,
         int count,
-        DeterministicContext context)
-        => Draw(state, count, context, shuffleDiscardWhenEmpty: true, allowPartialDraw: true);
+        DeterministicContext context) =>
+        Draw(state, count, context, shuffleDiscardWhenEmpty: true, allowPartialDraw: true);
 
     public static Result<DeckTransition> Draw(
         DeckState state,
@@ -76,175 +72,102 @@ public static class DeckTransitions
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(context);
-
         if (count < 0)
             return Result<DeckTransition>.Failure("Draw count cannot be negative");
-        var topology = ValidateInstanceTopology(state);
+        var topology = ValidateTopology(state);
         if (topology.IsFailure)
             return Result<DeckTransition>.Failure(topology.Error);
 
         var current = state;
         var currentContext = context;
         var drawn = ImmutableArray.CreateBuilder<string>(count);
-
         for (var index = 0; index < count; index++)
         {
-            if (current.DrawPileItems.IsEmpty)
+            if (current.DrawPileItems.IsEmpty && shuffleDiscardWhenEmpty)
             {
-                if (shuffleDiscardWhenEmpty)
-                {
-                    var shuffled = ShuffleDiscardIntoDrawPile(current, currentContext);
-                    current = shuffled.State;
-                    currentContext = shuffled.Context;
-                }
+                var shuffled = ShuffleDiscardIntoDrawPile(current, currentContext);
+                current = shuffled.State;
+                currentContext = shuffled.Context;
             }
-
             if (current.DrawPileItems.IsEmpty)
                 break;
 
-            var cardId = current.DrawPileItems[0];
+            var instanceId = current.DrawPileItems[0];
+            var definitionId = current.GetDefinitionId(instanceId)!;
             current = current with
             {
-                DrawPile = current.DrawPileItems.RemoveAt(0),
-                Hand = current.HandItems.Add(cardId),
-                DrawPileInstanceIds = current.InstanceTrackingEnabled
-                    ? current.DrawPileInstanceIdItems.RemoveAt(0)
-                    : current.DrawPileInstanceIdItems,
-                HandInstanceIds = current.InstanceTrackingEnabled
-                    ? current.HandInstanceIdItems.Add(current.DrawPileInstanceIdItems[0])
-                    : current.HandInstanceIdItems
+                DrawPileInstanceIds = current.DrawPileItems.RemoveAt(0),
+                HandInstanceIds = current.HandItems.Add(instanceId)
             };
-            drawn.Add(cardId);
+            drawn.Add(definitionId);
         }
 
         if (!allowPartialDraw && drawn.Count != count)
+        {
             return Result<DeckTransition>.Failure(
                 $"Unable to draw {count} cards without a partial draw; only {drawn.Count} are available");
-
+        }
         return Result<DeckTransition>.Success(
             new DeckTransition(current, currentContext, drawn.MoveToImmutable()));
     }
 
     public static Result<DeckTransition> AddToHand(
         DeckState state,
-        IReadOnlyList<string> cardIds,
-        DeterministicContext context)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(cardIds);
-        ArgumentNullException.ThrowIfNull(context);
-
-        var cards = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToImmutableArray();
-        var added = AddInstances(state, cards, context);
-        if (added.IsFailure)
-            return Result<DeckTransition>.Failure(added.Error);
-        return Result<DeckTransition>.Success(
-            new DeckTransition(
-                state with
-                {
-                    Hand = state.HandItems.AddRange(cards),
-                    CardInstances = added.Value.Instances,
-                    HandInstanceIds = state.InstanceTrackingEnabled
-                        ? state.HandInstanceIdItems.AddRange(added.Value.InstanceIds)
-                        : state.HandInstanceIdItems
-                },
-                added.Value.Context,
-                cards));
-    }
+        IReadOnlyList<string> definitionIds,
+        DeterministicContext context) =>
+        AddToZone(state, definitionIds, context, CardZone.Hand);
 
     public static Result<DeckTransition> AddToDiscard(
         DeckState state,
-        IReadOnlyList<string> cardIds,
-        DeterministicContext context)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(cardIds);
-        ArgumentNullException.ThrowIfNull(context);
-
-        var cards = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToImmutableArray();
-        var added = AddInstances(state, cards, context);
-        if (added.IsFailure)
-            return Result<DeckTransition>.Failure(added.Error);
-        return Result<DeckTransition>.Success(
-            new DeckTransition(
-                state with
-                {
-                    DiscardPile = state.DiscardPileItems.AddRange(cards),
-                    CardInstances = added.Value.Instances,
-                    DiscardPileInstanceIds = state.InstanceTrackingEnabled
-                        ? state.DiscardPileInstanceIdItems.AddRange(added.Value.InstanceIds)
-                        : state.DiscardPileInstanceIdItems
-                },
-                added.Value.Context,
-                cards));
-    }
+        IReadOnlyList<string> definitionIds,
+        DeterministicContext context) =>
+        AddToZone(state, definitionIds, context, CardZone.Discard);
 
     public static Result<DeckTransition> MoveFromHand(
         DeckState state,
-        IReadOnlyList<string> cardIds,
+        IReadOnlyList<string> cardInstanceIds,
         CardConsumeDestination destination,
         DeterministicContext context)
     {
         ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(cardIds);
+        ArgumentNullException.ThrowIfNull(cardInstanceIds);
         ArgumentNullException.ThrowIfNull(context);
-
-        var cards = cardIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToImmutableArray();
-        if (cards.IsEmpty)
-            return Result<DeckTransition>.Failure("At least one card id is required");
-
+        if (cardInstanceIds.Count == 0)
+            return Result<DeckTransition>.Failure("At least one card instance id is required");
         if (destination is not (CardConsumeDestination.None or CardConsumeDestination.Discard or CardConsumeDestination.Exhaust))
             return Result<DeckTransition>.Failure($"Unsupported card consume destination: {destination}");
-        var topology = ValidateInstanceTopology(state);
+        var topology = ValidateTopology(state);
         if (topology.IsFailure)
             return Result<DeckTransition>.Failure(topology.Error);
 
-        var remainingHand = state.HandItems.ToBuilder();
-        var remainingInstanceIds = state.HandInstanceIdItems.ToBuilder();
-        var movedDefinitions = ImmutableArray.CreateBuilder<string>(cards.Length);
-        var movedInstanceIds = ImmutableArray.CreateBuilder<Guid>(cards.Length);
-        foreach (var cardReference in cards)
+        var parsed = new List<Guid>(cardInstanceIds.Count);
+        foreach (var value in cardInstanceIds)
         {
-            var index = -1;
-            if (state.InstanceTrackingEnabled && Guid.TryParse(cardReference, out var instanceId))
-                index = remainingInstanceIds.IndexOf(instanceId);
-            if (index < 0)
-                index = remainingHand.IndexOf(cardReference);
-            if (index < 0)
-                return Result<DeckTransition>.Failure($"Card not found in hand: {cardReference}");
-
-            movedDefinitions.Add(remainingHand[index]);
-            remainingHand.RemoveAt(index);
-            if (state.InstanceTrackingEnabled)
-            {
-                movedInstanceIds.Add(remainingInstanceIds[index]);
-                remainingInstanceIds.RemoveAt(index);
-            }
+            if (!Guid.TryParse(value, out var instanceId))
+                return Result<DeckTransition>.Failure($"Invalid card instance id: {value}");
+            if (!state.HandItems.Contains(instanceId))
+                return Result<DeckTransition>.Failure($"Card instance not found in hand: {instanceId}");
+            if (parsed.Contains(instanceId))
+                return Result<DeckTransition>.Failure($"Card instance selected more than once: {instanceId}");
+            parsed.Add(instanceId);
         }
-
+        var definitions = parsed.Select(id => state.GetDefinitionId(id)!).ToImmutableArray();
         if (destination == CardConsumeDestination.None)
-            return Result<DeckTransition>.Success(
-                new DeckTransition(state, context, movedDefinitions.ToImmutable()));
+            return Result<DeckTransition>.Success(new DeckTransition(state, context, definitions));
 
-        var next = state with
-        {
-            Hand = remainingHand.ToImmutable(),
-            HandInstanceIds = remainingInstanceIds.ToImmutable()
-        };
-        next = destination == CardConsumeDestination.Discard
-            ? next with
+        var remaining = state.HandItems.RemoveRange(parsed);
+        var next = destination == CardConsumeDestination.Discard
+            ? state with
             {
-                DiscardPile = next.DiscardPileItems.AddRange(movedDefinitions),
-                DiscardPileInstanceIds = next.DiscardPileInstanceIdItems.AddRange(movedInstanceIds)
+                HandInstanceIds = remaining,
+                DiscardPileInstanceIds = state.DiscardPileItems.AddRange(parsed)
             }
-            : next with
+            : state with
             {
-                ExhaustPile = next.ExhaustPileItems.AddRange(movedDefinitions),
-                ExhaustPileInstanceIds = next.ExhaustPileInstanceIdItems.AddRange(movedInstanceIds)
+                HandInstanceIds = remaining,
+                ExhaustPileInstanceIds = state.ExhaustPileItems.AddRange(parsed)
             };
-
-        return Result<DeckTransition>.Success(
-            new DeckTransition(next, context, movedDefinitions.ToImmutable()));
+        return Result<DeckTransition>.Success(new DeckTransition(next, context, definitions));
     }
 
     public static DeckTransition ShuffleDiscardIntoDrawPile(
@@ -253,40 +176,29 @@ public static class DeckTransitions
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(context);
-
         if (state.DiscardPileItems.IsEmpty)
             return new DeckTransition(state, context, []);
-
-        var topology = ValidateInstanceTopology(state);
+        var topology = ValidateTopology(state);
         if (topology.IsFailure)
             throw new InvalidOperationException(topology.Error);
 
         var shuffled = state.DiscardPileItems.ToBuilder();
-        var shuffledInstanceIds = state.DiscardPileInstanceIdItems.ToBuilder();
         var currentContext = context;
         for (var index = shuffled.Count - 1; index > 0; index--)
         {
             var draw = currentContext.DrawInt32(index + 1);
             currentContext = draw.Context;
             (shuffled[index], shuffled[draw.Value]) = (shuffled[draw.Value], shuffled[index]);
-            if (state.InstanceTrackingEnabled)
-            {
-                (shuffledInstanceIds[index], shuffledInstanceIds[draw.Value]) =
-                    (shuffledInstanceIds[draw.Value], shuffledInstanceIds[index]);
-            }
         }
-
-        var cards = shuffled.ToImmutable();
-        var next = state with
-        {
-            DrawPile = state.DrawPileItems.AddRange(cards),
-            DiscardPile = [],
-            DrawPileInstanceIds = state.InstanceTrackingEnabled
-                ? state.DrawPileInstanceIdItems.AddRange(shuffledInstanceIds)
-                : state.DrawPileInstanceIdItems,
-            DiscardPileInstanceIds = []
-        };
-        return new DeckTransition(next, currentContext, cards.ToImmutableArray());
+        var cards = state.ResolveDefinitionIds(shuffled).ToImmutableArray();
+        return new DeckTransition(
+            state with
+            {
+                DrawPileInstanceIds = state.DrawPileItems.AddRange(shuffled),
+                DiscardPileInstanceIds = []
+            },
+            currentContext,
+            cards);
     }
 
     public static Result<DeckTransition> ApplyUpgrade(
@@ -298,9 +210,6 @@ public static class DeckTransitions
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(context);
-
-        if (!state.InstanceTrackingEnabled)
-            return Result<DeckTransition>.Failure("Card instance tracking is unavailable for this legacy run");
         if (!state.CardInstanceItems.TryGetValue(cardInstanceId, out var instance))
             return Result<DeckTransition>.Failure($"Card instance not found: {cardInstanceId}");
         if (string.IsNullOrWhiteSpace(definition.UpgradeId))
@@ -308,92 +217,87 @@ public static class DeckTransitions
         if (!definition.AppliesTo(instance.DefinitionId))
             return Result<DeckTransition>.Failure(
                 $"Upgrade {definition.UpgradeId} does not apply to {instance.DefinitionId}");
-
         var applications = instance.UpgradeItems.Count(upgrade =>
             string.Equals(upgrade.UpgradeId, definition.UpgradeId, StringComparison.Ordinal));
         if (applications >= System.Math.Max(1, definition.MaxApplications))
-            return Result<DeckTransition>.Failure(
-                $"Upgrade application limit reached: {definition.UpgradeId}");
+            return Result<DeckTransition>.Failure($"Upgrade application limit reached: {definition.UpgradeId}");
 
         var upgrade = new CardUpgradeState
         {
             UpgradeId = definition.UpgradeId,
             Deltas = definition.Deltas
         };
-        var updated = instance with { Upgrades = instance.UpgradeItems.Add(upgrade) };
         var next = state with
         {
-            CardInstances = state.CardInstanceItems.SetItem(cardInstanceId, updated)
+            CardInstances = state.CardInstanceItems.SetItem(
+                cardInstanceId,
+                instance with { Upgrades = instance.UpgradeItems.Add(upgrade) })
         };
         return Result<DeckTransition>.Success(
             new DeckTransition(next, context, [instance.DefinitionId]));
     }
 
-    private static Result<AddedCardInstances> AddInstances(
-        DeckState state,
-        ImmutableArray<string> definitions,
-        DeterministicContext context)
+    public static Result ValidateTopology(DeckState state)
     {
-        var topology = ValidateInstanceTopology(state);
-        if (topology.IsFailure)
-            return Result<AddedCardInstances>.Failure(topology.Error);
-        if (!state.InstanceTrackingEnabled || definitions.IsEmpty)
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.TopologyVersion != DeckState.CurrentTopologyVersion)
         {
-            return Result<AddedCardInstances>.Success(new AddedCardInstances(
-                state.CardInstanceItems,
-                [],
-                context));
+            return Result.Failure(
+                $"Unsupported card topology version: {state.TopologyVersion}");
         }
+        var zoneIds = state.DrawPileItems
+            .Concat(state.HandItems)
+            .Concat(state.DiscardPileItems)
+            .Concat(state.ExhaustPileItems)
+            .ToArray();
+        if (zoneIds.Distinct().Count() != zoneIds.Length)
+            return Result.Failure("Card instance topology contains duplicate zone identities");
+        if (zoneIds.Any(id => !state.CardInstanceItems.ContainsKey(id)))
+            return Result.Failure("Card instance topology contains an unknown identity");
+        if (state.CardInstanceItems.Any(pair => pair.Key == Guid.Empty ||
+                                                pair.Value.CardInstanceId != pair.Key ||
+                                                string.IsNullOrWhiteSpace(pair.Value.DefinitionId)))
+            return Result.Failure("Card collection contains an invalid instance");
+        return Result.Success();
+    }
+
+    private static Result<DeckTransition> AddToZone(
+        DeckState state,
+        IReadOnlyList<string> definitionIds,
+        DeterministicContext context,
+        CardZone zone)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(definitionIds);
+        ArgumentNullException.ThrowIfNull(context);
+        var definitions = definitionIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToImmutableArray();
+        var topology = ValidateTopology(state);
+        if (topology.IsFailure)
+            return Result<DeckTransition>.Failure(topology.Error);
 
         var instances = state.CardInstanceItems.ToBuilder();
-        var addedIds = ImmutableList.CreateBuilder<Guid>();
+        var ids = ImmutableList.CreateBuilder<Guid>();
         var currentContext = context;
         foreach (var definitionId in definitions)
         {
             var allocated = currentContext.AllocateId($"card:{definitionId}:acquired");
             currentContext = allocated.Context;
-            addedIds.Add(allocated.Value);
+            ids.Add(allocated.Value);
             instances.Add(allocated.Value, new CardInstanceState
             {
                 CardInstanceId = allocated.Value,
                 DefinitionId = definitionId
             });
         }
-
-        return Result<AddedCardInstances>.Success(new AddedCardInstances(
-            instances.ToImmutable(),
-            addedIds.ToImmutable(),
-            currentContext));
+        var next = state with { CardInstances = instances.ToImmutable() };
+        next = zone == CardZone.Hand
+            ? next with { HandInstanceIds = state.HandItems.AddRange(ids) }
+            : next with { DiscardPileInstanceIds = state.DiscardPileItems.AddRange(ids) };
+        return Result<DeckTransition>.Success(
+            new DeckTransition(next, currentContext, definitions));
     }
 
-    private static Result ValidateInstanceTopology(DeckState state)
-    {
-        if (!state.InstanceTrackingEnabled)
-            return Result.Success();
-        if (state.DrawPileItems.Count != state.DrawPileInstanceIdItems.Count ||
-            state.HandItems.Count != state.HandInstanceIdItems.Count ||
-            state.DiscardPileItems.Count != state.DiscardPileInstanceIdItems.Count ||
-            state.ExhaustPileItems.Count != state.ExhaustPileInstanceIdItems.Count)
-        {
-            return Result.Failure("Card instance topology does not match deck zones");
-        }
-
-        var zoneIds = state.DrawPileInstanceIdItems
-            .Concat(state.HandInstanceIdItems)
-            .Concat(state.DiscardPileInstanceIdItems)
-            .Concat(state.ExhaustPileInstanceIdItems)
-            .ToArray();
-        if (zoneIds.Distinct().Count() != zoneIds.Length ||
-            zoneIds.Any(instanceId => !state.CardInstanceItems.ContainsKey(instanceId)))
-        {
-            return Result.Failure("Card instance topology contains duplicate or unknown identities");
-        }
-
-        return Result.Success();
-    }
-
-    private sealed record AddedCardInstances(
-        ImmutableDictionary<Guid, CardInstanceState> Instances,
-        ImmutableList<Guid> InstanceIds,
-        DeterministicContext Context);
+    private enum CardZone { Hand, Discard }
 }

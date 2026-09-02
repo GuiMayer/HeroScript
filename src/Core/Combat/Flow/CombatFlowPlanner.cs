@@ -566,14 +566,16 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var discard = new List<string>();
         for (var index = 0; index < deck.Hand.Count; index++)
         {
-            var cardId = deck.Hand[index];
+            var cardInstanceId = deck.HandInstanceIds[index];
+            var cardId = deck.GetDefinitionId(cardInstanceId);
+            if (cardId == null)
+                return Result<EndDeckCycleResult>.Failure(
+                    $"Card instance not found: {cardInstanceId}");
             var definition = resolveAction(cardId);
             if (definition.IsFailure)
                 return Result<EndDeckCycleResult>.Failure(definition.Error);
             var tags = definition.Value.Tags;
-            var reference = deck.InstanceTrackingEnabled
-                ? deck.HandInstanceIds[index].ToString()
-                : cardId;
+            var reference = cardInstanceId.ToString();
             if (!string.IsNullOrWhiteSpace(policy.EtherealTag) &&
                 tags.Contains(policy.EtherealTag, StringComparer.OrdinalIgnoreCase))
             {
