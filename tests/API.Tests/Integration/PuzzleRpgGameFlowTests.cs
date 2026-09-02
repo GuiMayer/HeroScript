@@ -128,7 +128,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task PowerAffordability_InsufficientMana_Validation()
+    public async Task EnergyRefresh_IsOwnedByTheSelectedGameMode()
     {
         var (runId, runState) = await SetupRunAsync();
         await Client.DrawCardsAsync(runId, 5);
@@ -141,12 +141,14 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var energy = resources.GetProperty("energy");
         var currentEnergy = GetJsonInt(energy, "current");
 
-        // Verify low energy
-        Assert.True(currentEnergy <= 1, "Should start with low energy for this test");
+        // START_ENCOUNTER cannot bypass the mode's ResetToMax policy with an
+        // arbitrary low value supplied by the adapter.
+        Assert.True(currentEnergy > 1);
+        Assert.Equal(GetJsonInt(energy, "maximum"), currentEnergy);
 
         var currentRun = await Client.GetRunStateAsync(runId);
         var fireballCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "fireball");
-        var expensivePowerResponse = await Client.PostRawAsync($"/api/v1/combats/{combatId}/commands", new
+        var fireballResponse = await Client.PostRawAsync($"/api/v1/combats/{combatId}/commands", new
         {
             commandId = Guid.NewGuid(),
             expectedSequence = GetJsonInt(currentRun, "sequence"),
@@ -161,8 +163,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
             }
         });
 
-        var responseText = await expensivePowerResponse.Content.ReadAsStringAsync();
-        Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, expensivePowerResponse.StatusCode);
-        Assert.Contains("energy", responseText, StringComparison.OrdinalIgnoreCase);
+        var responseText = await fireballResponse.Content.ReadAsStringAsync();
+        Assert.True(fireballResponse.IsSuccessStatusCode, responseText);
     }
 }

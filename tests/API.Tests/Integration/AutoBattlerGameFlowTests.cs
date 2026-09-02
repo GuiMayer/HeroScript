@@ -18,29 +18,6 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task AutoPlay_GambitDrivenCombat_AllUnitsAct()
-    {
-        // Setup: Create combat with multiple units on both sides
-        var combatId = await Client.StartCombatAsync("player_board",
-            new[] { "enemy_unit_1", "enemy_unit_2", "enemy_unit_3" },
-            initialEnergy: 0); // Auto-battlers typically don't use player energy
-
-        var initialState = await Client.GetCombatStateAsync(combatId);
-        AssertCombatStateValid(initialState);
-
-        // Auto-play entire combat (all units use gambits to decide actions)
-        var autoPlayResult = await Client.AutoPlayCombatAsync(combatId);
-
-        // Verify combat executed
-        AssertJsonPropertyExists(autoPlayResult, "combatId");
-
-        // Standalone combats are archived when auto-play completes, so the
-        // terminal summary returned by the command is the authoritative result.
-        AssertJsonPropertyExists(autoPlayResult, "status");
-        AssertJsonPropertyExists(autoPlayResult, "totalTurns");
-    }
-
-    [Fact]
     public async Task ShopRound_BuyUnits_TeamComposition()
     {
         // Simulate auto-battler shop round
@@ -99,24 +76,13 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task MultiRound_WaveProgression_GoldAccumulation()
+    public async Task PreparationRound_PreservesValidEconomyState()
     {
         // Simulate multiple combat rounds with income
         var (runId, runState) = await SetupRunAsync();
         var startGold = GetJsonInt(runState, "gold");
 
-        // Round 1: Combat
-        var playerEntityId = GetJsonString(runState, "playerEntityId");
-        var combatId1 = await Client.StartCombatAsync(playerEntityId,
-            new[] { "weak_enemy" }, initialEnergy: 0);
-        
-        var combat1State = await Client.GetCombatStateAsync(combatId1);
-        AssertCombatStateValid(combat1State);
-        
-        // Auto-play combat
-        await Client.AutoPlayCombatAsync(combatId1);
-
-        // Round 1: Income phase (simulated via preparation)
+        // Income/preparation phase
         var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
         
         var options = prepResponse.GetProperty("options");

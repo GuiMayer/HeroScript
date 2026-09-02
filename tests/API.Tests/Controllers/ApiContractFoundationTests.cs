@@ -549,18 +549,27 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var actionBody = await actionResponse.Content.ReadAsStringAsync();
         Assert.True(actionResponse.IsSuccessStatusCode, actionBody);
 
-        using var journalResponse = await _client.GetAsync($"/api/v1/runs/{runId}/journal?limit=10");
+        using var journalResponse = await _client.GetAsync($"/api/v1/runs/{runId}/journal?limit=100");
         var journal = await journalResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, journalResponse.StatusCode);
-        Assert.Equal(3, journal.GetProperty("returned").GetInt32());
-        Assert.Equal("run.start", journal.GetProperty("entries")[0].GetProperty("commandType").GetString());
-        Assert.Equal(RunCommandTypes.StartEncounter, journal.GetProperty("entries")[1].GetProperty("commandType").GetString());
-        Assert.Equal("END_TURN", journal.GetProperty("entries")[2].GetProperty("commandType").GetString());
+        var journalEntries = journal.GetProperty("entries").EnumerateArray().ToArray();
+        Assert.True(journalEntries.Length > 3);
+        Assert.Equal(journalEntries.Length, journal.GetProperty("returned").GetInt32());
+        Assert.Equal("run.start", journalEntries[0].GetProperty("commandType").GetString());
+        Assert.Contains(
+            journalEntries,
+            entry => entry.GetProperty("commandType").GetString() == RunCommandTypes.StartEncounter);
+        Assert.Contains(
+            journalEntries,
+            entry => entry.GetProperty("commandType").GetString() == "END_TURN");
+        Assert.Contains(
+            journalEntries,
+            entry => entry.GetProperty("commandType").GetString()!.StartsWith("combat.", StringComparison.Ordinal));
 
         using var checkpointsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/checkpoints");
         var checkpoints = await checkpointsResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, checkpointsResponse.StatusCode);
-        Assert.Equal(3, checkpoints.GetProperty("count").GetInt32());
+        Assert.Equal(journalEntries.Length, checkpoints.GetProperty("count").GetInt32());
 
         using var verifyResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var verificationBody = await verifyResponse.Content.ReadAsStringAsync();
@@ -568,7 +577,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var verification = JsonSerializer.Deserialize<JsonElement>(verificationBody);
         Assert.True(verification.GetProperty("isValid").GetBoolean(), verificationBody);
         Assert.True(verification.GetProperty("reexecuted").GetBoolean());
-        Assert.Equal(3, verification.GetProperty("commandsReplayed").GetInt32());
+        Assert.Equal(journalEntries.Length, verification.GetProperty("commandsReplayed").GetInt32());
         Assert.Equal(
             verification.GetProperty("expectedFinalHash").GetString(),
             verification.GetProperty("actualFinalHash").GetString());
@@ -584,18 +593,20 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.True(combatVerification.GetProperty("isValid").GetBoolean());
 
         using var eventsResponse = await _client.GetAsync(
-            $"/api/v1/runs/{runId}/events?afterSequence=1&limit=10");
+            $"/api/v1/runs/{runId}/events?afterSequence=1&limit=100");
         var events = await eventsResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
-        Assert.Equal(2, events.GetProperty("returned").GetInt32());
+        Assert.Equal(journalEntries.Length - 1, events.GetProperty("returned").GetInt32());
         Assert.Equal(2, events.GetProperty("events")[0].GetProperty("sequence").GetInt32());
-        Assert.Equal(3, events.GetProperty("events")[1].GetProperty("sequence").GetInt32());
+        Assert.Equal(
+            journalEntries.Length,
+            events.GetProperty("events")[journalEntries.Length - 2].GetProperty("sequence").GetInt32());
         Assert.All(
             events.GetProperty("events").EnumerateArray(),
             item => Assert.Equal("RUN_TRANSITION_COMMITTED", item.GetProperty("eventType").GetString()));
 
         using var repeatedEventsResponse = await _client.GetAsync(
-            $"/api/v1/runs/{runId}/events?afterSequence=1&limit=10");
+            $"/api/v1/runs/{runId}/events?afterSequence=1&limit=100");
         var repeatedEvents = await repeatedEventsResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(
             events.GetProperty("events")[0].GetProperty("eventId").GetGuid(),

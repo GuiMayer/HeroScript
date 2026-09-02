@@ -9,6 +9,10 @@
   `snapshotSequence`.
 - Os sandboxes iniciais agora exercitam os dois orçamentos de ação: energia
   configurada e quantidade fixa por ativação.
+- Foram removidas as mutações diretas de combate (`start`, `action`,
+  `end-turn`, `process-ai-turns`, `end` e `auto-play`). Toda partida passa a
+  pertencer a uma run e aos gateways canônicos; omitir `modeId` seleciona
+  `standard`.
 
 ## v1 — 2026-09-01
 

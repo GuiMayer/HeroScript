@@ -29,7 +29,7 @@ public sealed class RunControllerTests
     {
         var state = CreateRun();
         _runManager
-            .Setup(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null)))
+            .Setup(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null, "standard")))
             .Returns(Result<RunState>.Success(state));
 
         var result = _controller.StartRun(new StartRunRequest("test", "default_run", "hero"));
@@ -41,7 +41,9 @@ public sealed class RunControllerTests
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("stateHash").GetString()));
         Assert.Equal((ulong)0, json.GetProperty("step").GetUInt64());
-        _runManager.Verify(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null)), Times.Once);
+        _runManager.Verify(
+            m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null, "standard")),
+            Times.Once);
     }
 
     [Fact]

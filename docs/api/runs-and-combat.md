@@ -3,7 +3,8 @@
 ## Fluxo autoritativo
 
 1. Crie a run com `POST /api/v1/runs`, informando seed e revisão de conteúdo
-   quando o cliente precisar reproduzir uma partida externa.
+   quando o cliente precisar reproduzir uma partida externa. Omitir `modeId`
+   seleciona o modo canônico `standard`.
 2. Leia `GET /api/v1/runs/{runId}` e guarde `sequence`, `step`,
    `contentRevision` e hash retornados.
 3. Consulte mapa e comandos permitidos em `/map` e `/available-commands`.
@@ -13,6 +14,8 @@
 
 O contrato v1 é a única superfície HTTP exposta. Clientes que precisam de
 retry, reconexão ou replay devem usar os gateways de comando descritos aqui.
+Não existem rotas alternativas para criar combate, executar ação, avançar IA,
+encerrar turno ou forçar resultado fora da run.
 
 ## Exemplo: avançar uma run
 

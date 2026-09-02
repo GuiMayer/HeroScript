@@ -1,17 +1,13 @@
 using API.Controllers;
-using API.Models.Combat;
 using Core.Combat;
-using Core.Combat.Gambits;
 using Core.Combat.Models;
 using Core.Common;
-using Core.Entity.Controllers;
 using Core.Resources;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using Core.Determinism;
 
 namespace API.Tests.Controllers;
 
@@ -22,7 +18,6 @@ public sealed class CombatControllerTurnTests
     private readonly Mock<ICombatSystem> _combatSystem = new();
     private readonly Mock<IActionManager> _actionManager = new();
     private readonly Mock<IActionAffordabilityService> _affordabilityService = new();
-    private readonly Mock<IGambitEngine> _gambitEngine = new();
     private readonly Mock<ICombatRunCoordinator> _combatRunCoordinator = new();
     private readonly Mock<IRunManager> _runManager = new();
     private readonly CombatController _controller;
@@ -33,110 +28,9 @@ public sealed class CombatControllerTurnTests
             _combatSystem.Object,
             _actionManager.Object,
             _affordabilityService.Object,
-            _gambitEngine.Object,
             _combatRunCoordinator.Object,
             _runManager.Object,
             Mock.Of<ILogger<CombatController>>());
-    }
-
-    [Fact]
-    public void EndTurn_ExecutesEndTurnAction()
-    {
-        var state = CreateCombatState();
-        _combatSystem
-            .Setup(s => s.GetCombatState(state.CombatId))
-            .Returns(Result<CombatState>.Success(state));
-        _combatSystem
-            .Setup(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
-                c.ActorId == "hero" &&
-                c.ActionType == ActionType.END_TURN)))
-            .Returns(Result<CombatState>.Success(state with { CurrentTurn = 2 }));
-
-        var result = _controller.EndTurn(state.CombatId);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        var response = Assert.IsType<CombatStateResponse>(ok.Value);
-        Assert.Equal(state.Determinism.Seed, response.Seed);
-        Assert.Equal(state.Determinism.ContentRevision, response.ContentRevision);
-        Assert.Equal(CanonicalJson.ComputeHash(state with { CurrentTurn = 2 }), response.StateHash);
-        Assert.Equal(30, response.Hero.Resources["health"].Current);
-        Assert.Equal(100, response.Hero.Resources["health"].Maximum);
-        Assert.Equal(10, response.Enemies[0].Resources["health"].Current);
-        _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
-            c.ActorId == "hero" &&
-            c.ActionType == ActionType.END_TURN)), Times.Once);
-    }
-
-    [Fact]
-    public void ProcessAiTurns_ExecutesGambitDecisionsForAliveEnemies()
-    {
-        var state = CreateCombatState();
-        var updatedState = state with
-        {
-            Hero = state.Hero.TakeDamage(10),
-            ActionHistory = new[]
-            {
-                new CombatAction
-                {
-                    ActorId = "enemy_1",
-                    ActionType = ActionType.BASIC_ATTACK,
-                    TargetId = "hero",
-                    DamageDealt = 10
-                }
-            }
-        };
-        _combatSystem.Setup(s => s.GetCombatState(state.CombatId)).Returns(Result<CombatState>.Success(state));
-        _gambitEngine
-            .Setup(g => g.DecideAction(
-                It.Is<Core.Entity.Entity>(e => e.EntityId == "enemy_1"),
-                state,
-                It.IsAny<IEnumerable<string>>()))
-            .Returns(Result<EntityAction>.Success(new EntityAction
-            {
-                ActionType = ActionType.BASIC_ATTACK,
-                TargetId = "hero"
-            }));
-        _combatSystem
-            .Setup(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
-                c.ActorId == "enemy_1" &&
-                c.ActionType == ActionType.BASIC_ATTACK &&
-                c.TargetId == "hero")))
-            .Returns(Result<CombatState>.Success(updatedState));
-
-        var result = _controller.ProcessAiTurns(state.CombatId);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(ok.Value);
-        _gambitEngine.Verify(g => g.DecideAction(
-            It.Is<Core.Entity.Entity>(e => e.EntityId == "enemy_1"),
-            state,
-            It.IsAny<IEnumerable<string>>()), Times.Once);
-        _combatSystem.Verify(s => s.ExecuteAction(state.CombatId, It.Is<CombatActionCommand>(c =>
-            c.ActorId == "enemy_1" &&
-            c.ActionType == ActionType.BASIC_ATTACK &&
-            c.TargetId == "hero")), Times.Once);
-    }
-
-    [Fact]
-    public void ExecuteAction_WithRunId_IsRejectedOutsideCommandBoundary()
-    {
-        var state = CreateCombatState();
-        var runId = Guid.NewGuid();
-        _combatSystem.Setup(s => s.GetCombatState(state.CombatId))
-            .Returns(Result<CombatState>.Success(state));
-
-        var result = _controller.ExecuteAction(state.CombatId, new ExecuteActionRequest
-        {
-            ActorId = "hero",
-            ActionId = "fireball",
-            TargetId = "enemy_1",
-            RunId = runId,
-            CardId = "fireball"
-        });
-
-        Assert.IsType<ObjectResult>(result);
-        _combatRunCoordinator.Verify(c => c.ExecuteAction(state.CombatId, It.IsAny<CombatActionCommand>()), Times.Never);
-        _combatSystem.Verify(s => s.ExecuteAction(It.IsAny<Guid>(), It.IsAny<CombatActionCommand>()), Times.Never);
     }
 
     [Fact]

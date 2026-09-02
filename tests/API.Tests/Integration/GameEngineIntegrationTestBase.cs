@@ -140,7 +140,11 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
     {
         var (runId, runState) = await SetupRunAsync();
         var playerEntityId = GetJsonString(runState, "playerEntityId");
-        var (combatId, combatState) = await SetupCombatAsync(playerEntityId, new[] { "enemy_1", "enemy_2" });
+        var combatId = await Client.StartCombatAsync(
+            playerEntityId,
+            new[] { "enemy_1", "enemy_2" },
+            runId: runId);
+        var combatState = await Client.GetCombatStateAsync(combatId);
         return (runId, combatId, runState, combatState);
     }
 }

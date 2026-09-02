@@ -126,20 +126,22 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         Assert.Contains("422", exception.Message);
     }
 
-    [Fact]
-    public async Task StartCombat_RuntimeHeroId_IsSupportedByTheStandaloneCombatPrimitive()
+    [Theory]
+    [InlineData("/api/v1/combats/start")]
+    [InlineData("/api/v1/combats/00000000-0000-0000-0000-000000000001/action")]
+    [InlineData("/api/v1/combats/00000000-0000-0000-0000-000000000001/end-turn")]
+    [InlineData("/api/v1/combats/00000000-0000-0000-0000-000000000001/process-ai-turns")]
+    [InlineData("/api/v1/combats/00000000-0000-0000-0000-000000000001/end")]
+    [InlineData("/api/v1/combats/00000000-0000-0000-0000-000000000001/auto-play")]
+    public async Task DirectCombatMutationRoutes_AreNotExposed(string path)
     {
-        // Standalone combat is a simulation primitive and accepts runtime IDs.
-        var response = await Client.PostRawAsync("/api/v1/combats/start", new
-        {
-            heroId = "non_existent_hero_xyz",
-            enemies = new[] { "enemy_1" },
-            initialEnergy = 3
-        });
+        var response = await Client.PostRawAsync(path);
 
-        var created = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("non_existent_hero_xyz", created.GetProperty("hero").GetProperty("entityId").GetString());
+        Assert.Contains(response.StatusCode, new[]
+        {
+            HttpStatusCode.NotFound,
+            HttpStatusCode.MethodNotAllowed
+        });
     }
 
     [Fact]

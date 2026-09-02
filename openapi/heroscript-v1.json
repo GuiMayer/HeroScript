@@ -483,7 +483,7 @@
           "playerEntityId": { "type": "string" },
           "seed": { "type": "integer", "format": "uint64" },
           "contentRevision": { "type": "string" },
-          "modeId": { "type": "string" }
+          "modeId": { "type": "string", "default": "standard", "description": "Published game mode; omitted selects the canonical standard mode." }
         }
       },
       "CombatScenarioDefinition": {

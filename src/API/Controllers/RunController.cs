@@ -37,7 +37,7 @@ public sealed class RunController : BaseApiController
                 request?.PlayerEntityId ?? "player",
                 request?.Seed,
                 request?.ContentRevision,
-                request?.ModeId));
+                request?.ModeId ?? "standard"));
 
             return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapRun(result.Value));
         }
