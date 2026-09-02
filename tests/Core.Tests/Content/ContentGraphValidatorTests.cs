@@ -85,6 +85,51 @@ public sealed class ContentGraphValidatorTests
             result.Errors);
     }
 
+    [Fact]
+    public void Validate_RejectsResourceChangingEffectWithoutExplicitResource()
+    {
+        var bundle = Bundle(
+            ("actions", "actions/strike.json", new Dictionary<string, object>
+            {
+                ["strike"] = new
+                {
+                    actionId = "strike",
+                    effects = new[] { new { effectId = "strike.damage", type = "DAMAGE", flatValue = 5 } }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            "actions/strike effect strike.damage (DAMAGE) requires targetResource",
+            result.Errors);
+    }
+
+    [Fact]
+    public void Validate_RejectsInvalidResourceThresholdPolicy()
+    {
+        var bundle = Bundle(
+            ("resources", "resources/focus.json", new Dictionary<string, object>
+            {
+                ["focus"] = new
+                {
+                    resourceId = "focus",
+                    thresholdPolicies = new[]
+                    {
+                        new { policyId = "lose_focus", consequence = "DefeatOwner" }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            "resources/focus policy lose_focus requires boundary",
+            result.Errors);
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

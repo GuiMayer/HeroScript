@@ -2,6 +2,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
 using Core.Content;
+using Core.Effects;
 using Core.Logging;
 using Core.Resources;
 using System.Collections.Immutable;
@@ -206,8 +207,31 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
             if (cost.Amount < 0)
                 return Result.Failure($"Cost amount for {cost.ResourceId} cannot be negative");
         }
+
+        foreach (var effect in EnumerateEffects(definition.Effects))
+        {
+            if (effect.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE &&
+                string.IsNullOrWhiteSpace(effect.TargetResource))
+            {
+                return Result.Failure(
+                    $"Effect {effect.EffectId} ({effect.Type}) requires targetResource");
+            }
+        }
         
         return Result.Success();
+    }
+
+    private static IEnumerable<EffectDefinition> EnumerateEffects(
+        IEnumerable<EffectDefinition> effects)
+    {
+        foreach (var effect in effects)
+        {
+            yield return effect;
+            foreach (var nested in EnumerateEffects(effect.ChainedEffects ?? []))
+                yield return nested;
+            foreach (var nested in EnumerateEffects(effect.ConditionalEffects ?? []))
+                yield return nested;
+        }
     }
 
     private static JsonSerializerOptions CreateJsonOptions()

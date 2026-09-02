@@ -58,9 +58,10 @@ public record EffectDefinition
     // ===== RECURSOS (para DAMAGE, HEAL, MODIFY_RESOURCE) =====
     
     /// <summary>
-    /// Recurso alvo (health, energy, mana, etc.)
+    /// Recurso alvo. Obrigatório para qualquer efeito que altere um recurso;
+    /// não existe recurso implícito associado ao tipo do efeito.
     /// </summary>
-    public string? TargetResource { get; init; } = "health";
+    public string? TargetResource { get; init; }
     
     // ===== STATUS (para APPLY_STATUS, REMOVE_STATUS) =====
     

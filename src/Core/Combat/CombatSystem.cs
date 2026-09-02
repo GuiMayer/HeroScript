@@ -601,10 +601,13 @@ public class CombatSystem : ICombatSystem
             CalculateActionDamage(actionDefinition, actor, target, state, randomProvider),
             actionDefinition,
             runModifiers);
+        var damageResourceId = ResolveDamageResourceId(actionDefinition);
 
         // Processar status effects ON_DAMAGE_TAKEN por comportamento configurado.
         var (modifiedDamage, updatedActor) = ProcessOnDamageTakenEffects(target, actor, damageDealt, state.CurrentTurn);
-        var newTarget = ApplyDamageWithBufferCheck(target, modifiedDamage);
+        var newTarget = damageResourceId == null || modifiedDamage <= 0
+            ? target
+            : ApplyResourceReductionWithDefeatPrevention(target, damageResourceId, modifiedDamage);
 
         if (!ignoreConfiguredCosts)
         {
@@ -693,17 +696,51 @@ public class CombatSystem : ICombatSystem
                     applied.IsFailure ? applied.Error : applied.Value.ErrorMessage);
             }
 
-            if (effect.Type != EffectType.HEAL || applied.Value.EffectResult.ValueApplied is not { } healing)
+            if (effect.Type != EffectType.HEAL ||
+                applied.Value.EffectResult.ValueApplied is not { } increase)
                 continue;
+            var resourceId = applied.Value.EffectResult.ResourceAffected;
+            if (string.IsNullOrWhiteSpace(resourceId))
+                throw new InvalidOperationException($"HEAL effect {effect.EffectId} did not select a resource");
             foreach (var affectedId in applied.Value.EffectResult.AffectedEntityIds)
             {
                 var affected = current.GetEntity(affectedId);
-                var health = affected?.GetResource("health");
-                if (affected != null && health != null)
-                    current = current.ReplaceEntity(affected.UpdateResource("health", health.Gain(healing)));
+                var resource = affected?.GetResource(resourceId);
+                if (affected == null || resource == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Resource {resourceId} not found on effect target {affectedId}");
+                }
+                current = current.ReplaceEntity(
+                    affected.UpdateResource(resourceId, resource.Gain(increase)));
             }
         }
         return current;
+    }
+
+    private static string? ResolveDamageResourceId(ActionDefinition definition)
+    {
+        var damageEffects = definition.Effects
+            .Where(effect => effect.Type == EffectType.DAMAGE)
+            .ToArray();
+        if (damageEffects.Length == 0)
+            return null;
+        if (damageEffects.Any(effect => string.IsNullOrWhiteSpace(effect.TargetResource)))
+        {
+            throw new InvalidOperationException(
+                $"Action {definition.ActionId} has a DAMAGE effect without targetResource");
+        }
+
+        var resourceIds = damageEffects
+            .Select(effect => effect.TargetResource!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (resourceIds.Length != 1)
+        {
+            throw new InvalidOperationException(
+                $"Action {definition.ActionId} must use one targetResource for its aggregated DAMAGE effects");
+        }
+        return resourceIds[0];
     }
 
     private float CalculateActionDamage(
@@ -866,7 +903,7 @@ public class CombatSystem : ICombatSystem
 
     private static ResourcePool ApplyResourceDelta(ResourcePool pool, float value)
     {
-        return value >= 0 ? pool.Gain(value) : pool.Spend(-value);
+        return value >= 0 ? pool.Gain(value) : pool.Set(pool.Current + value);
     }
 
     private void PublishEnergyChange(CombatState state, string actorId, float oldEnergy, float newEnergy, int energyChange, string reason)
@@ -1030,21 +1067,26 @@ public class CombatSystem : ICombatSystem
             {
                 if (result.Value > 0)
                 {
-                    _logger.LogDebug($"Status effect {result.StatusId} dealt {result.Value} damage to {entity.EntityId}");
-                    updatedEntity = ApplyDamageWithBufferCheck(updatedEntity, result.Value);
+                    var resourceId = RequireStatusTargetResource(result);
+                    _logger.LogDebug(
+                        $"Status effect {result.StatusId} reduced {resourceId} by {result.Value} on {entity.EntityId}");
+                    updatedEntity = ApplyResourceReductionWithDefeatPrevention(
+                        updatedEntity,
+                        resourceId,
+                        result.Value);
                 }
             }
             else if (result.Behavior == StatusEffectBehavior.HEAL_OVER_TIME)
             {
                 if (result.Value > 0)
                 {
-                    _logger.LogDebug($"Status effect {result.StatusId} healed {result.Value} to {entity.EntityId}");
-                    var healthPool = updatedEntity.GetResource("health");
-                    if (healthPool != null)
-                    {
-                        var newHealthPool = healthPool.Gain(result.Value);
-                        updatedEntity = updatedEntity.UpdateResource("health", newHealthPool);
-                    }
+                    var resourceId = RequireStatusTargetResource(result);
+                    _logger.LogDebug(
+                        $"Status effect {result.StatusId} increased {resourceId} by {result.Value} on {entity.EntityId}");
+                    var pool = updatedEntity.GetResource(resourceId)
+                        ?? throw new InvalidOperationException(
+                            $"Resource {resourceId} not found on {entity.EntityId}");
+                    updatedEntity = updatedEntity.UpdateResource(resourceId, pool.Gain(result.Value));
                 }
             }
         }
@@ -1086,8 +1128,13 @@ public class CombatSystem : ICombatSystem
             }
             else if (result.Behavior == StatusEffectBehavior.REACTIVE && result.Value > 0)
             {
-                _logger.LogDebug($"Reactive status {result.StatusId} applied {result.Value} damage to {attacker.EntityId}");
-                updatedAttacker = ApplyDamageWithBufferCheck(updatedAttacker, result.Value);
+                var resourceId = RequireStatusTargetResource(result);
+                _logger.LogDebug(
+                    $"Reactive status {result.StatusId} reduced {resourceId} by {result.Value} on {attacker.EntityId}");
+                updatedAttacker = ApplyResourceReductionWithDefeatPrevention(
+                    updatedAttacker,
+                    resourceId,
+                    result.Value);
             }
             else if (result.Behavior == StatusEffectBehavior.DAMAGE_CAP && result.Value > 0)
             {
@@ -1104,28 +1151,26 @@ public class CombatSystem : ICombatSystem
     }
     
     /// <summary>
-    /// Aplica dano a uma entidade, verificando status de prevenção de morte
-    /// Retorna a entidade atualizada
+    /// Reduz o recurso selecionado e consulta suas políticas para determinar se
+    /// a alteração derrotaria o dono. Nome e categoria não têm semântica implícita.
     /// </summary>
-    private CombatEntity ApplyDamageWithBufferCheck(CombatEntity entity, float damage)
+    private CombatEntity ApplyResourceReductionWithDefeatPrevention(
+        CombatEntity entity,
+        string resourceId,
+        float amount)
     {
+        var pool = entity.GetResource(resourceId)
+            ?? throw new InvalidOperationException(
+                $"Resource {resourceId} not found on {entity.EntityId}");
+        var reducedPool = pool.Set(pool.Current - amount);
         if (_statusEffectManager == null)
-        {
-            return entity.TakeDamage(damage);
-        }
+            return entity.UpdateResource(resourceId, reducedPool);
+
+        var wouldDefeat = ResourceThresholdEvaluator.Evaluate(reducedPool)
+            .Any(fact => fact.Consequence == ResourceThresholdConsequence.DefeatOwner);
         
-        var healthPool = entity.GetResource("health");
-        if (healthPool == null)
+        if (wouldDefeat)
         {
-            return entity;
-        }
-        
-        // Verificar se o dano seria fatal
-        var wouldDie = (healthPool.Current - damage) <= 0;
-        
-        if (wouldDie)
-        {
-            // Verificar se há status ativo com comportamento de prevenção de morte
             var activeStatusResult = _statusEffectManager.GetActiveStatus(entity.EntityId);
             if (activeStatusResult.IsSuccess)
             {
@@ -1134,21 +1179,26 @@ public class CombatSystem : ICombatSystem
                 
                 if (bufferEffect != null)
                 {
-                    _logger.LogDebug($"Status effect {bufferEffect.StatusId} prevented death for {entity.EntityId}, leaving at 1 HP");
-                    
-                    // Consumir a prevenção de morte
-                    _statusEffectManager.RemoveStatus(entity.EntityId, bufferEffect.InstanceId);
-                    
-                    // Deixar a entidade com 1 HP
-                    var newHealthPool = healthPool.Set(1);
-                    return entity.UpdateResource("health", newHealthPool);
+                    var preservedValue = MathF.BitIncrement(pool.Minimum);
+                    if (preservedValue <= pool.Maximum)
+                    {
+                        _logger.LogDebug(
+                            $"Status effect {bufferEffect.StatusId} prevented defeat for {entity.EntityId} through resource {resourceId}");
+                        _statusEffectManager.RemoveStatus(entity.EntityId, bufferEffect.InstanceId);
+                        return entity.UpdateResource(resourceId, pool.Set(preservedValue));
+                    }
                 }
             }
         }
         
-        // Sem prevenção de morte ou dano não-fatal: aplicar dano normalmente
-        return entity.TakeDamage(damage);
+        return entity.UpdateResource(resourceId, reducedPool);
     }
+
+    private static string RequireStatusTargetResource(StatusEffectTickResult result) =>
+        !string.IsNullOrWhiteSpace(result.TargetResource)
+            ? result.TargetResource
+            : throw new InvalidOperationException(
+                $"Status {result.StatusId} requires targetResource for {result.Behavior}");
     
     /// <summary>
     /// Aplica custos de uma ação ao ator.

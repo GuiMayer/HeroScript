@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Math;
+using Core.Resources;
 using Core.StatusEffects;
 
 namespace Core.Combat.Flow;
@@ -16,6 +17,7 @@ public sealed record CombatStatusLifecycleEvent
     public Guid InstanceId { get; init; }
     public string StatusId { get; init; } = string.Empty;
     public StatusEffectBehavior Behavior { get; init; }
+    public string? TargetResource { get; init; }
     public float Value { get; init; }
     public int Priority { get; init; }
 }
@@ -74,7 +76,10 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                 var value = ResolveValue(status);
                 if (value.IsFailure)
                     return Result<CombatStatusLifecycleResult>.Failure(value.Error);
-                actor = Apply(actor, status.Definition.Behavior, value.Value);
+                var applied = Apply(actor, status.Definition, value.Value);
+                if (applied.IsFailure)
+                    return Result<CombatStatusLifecycleResult>.Failure(applied.Error);
+                actor = applied.Value;
                 events.Add(new CombatStatusLifecycleEvent
                 {
                     Kind = CombatStatusLifecycleEventKind.Triggered,
@@ -83,6 +88,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                     InstanceId = status.InstanceId,
                     StatusId = status.StatusId,
                     Behavior = status.Definition.Behavior,
+                    TargetResource = status.Definition.TargetResource,
                     Value = value.Value,
                     Priority = status.Definition.Priority
                 });
@@ -169,18 +175,36 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
             : _formulas.Evaluate(status.Definition.FormulaValue, variables);
     }
 
-    private static CombatEntity Apply(CombatEntity actor, StatusEffectBehavior behavior, float value)
+    private static Result<CombatEntity> Apply(
+        CombatEntity actor,
+        StatusEffectDefinition definition,
+        float value)
     {
         if (value <= 0)
-            return actor;
-        var health = actor.GetResource("health");
-        if (health == null)
-            return actor;
-        return behavior switch
+            return Result<CombatEntity>.Success(actor);
+        if (definition.Behavior is not
+            (StatusEffectBehavior.DAMAGE_OVER_TIME or StatusEffectBehavior.HEAL_OVER_TIME))
         {
-            StatusEffectBehavior.DAMAGE_OVER_TIME => actor.UpdateResource("health", health.Set(health.Current - value)),
-            StatusEffectBehavior.HEAL_OVER_TIME => actor.UpdateResource("health", health.Gain(value)),
-            _ => actor
+            return Result<CombatEntity>.Success(actor);
+        }
+        if (string.IsNullOrWhiteSpace(definition.TargetResource))
+        {
+            return Result<CombatEntity>.Failure(
+                $"Status behavior {definition.Behavior} requires targetResource");
+        }
+        var resource = actor.GetResource(definition.TargetResource);
+        if (resource == null)
+        {
+            return Result<CombatEntity>.Failure(
+                $"Resource {definition.TargetResource} not found on {actor.EntityId}");
+        }
+        var updated = definition.Behavior switch
+        {
+            StatusEffectBehavior.DAMAGE_OVER_TIME => resource.Set(resource.Current - value),
+            StatusEffectBehavior.HEAL_OVER_TIME => resource.Gain(value),
+            _ => resource
         };
+        return Result<CombatEntity>.Success(
+            actor.UpdateResource(definition.TargetResource, updated));
     }
 }

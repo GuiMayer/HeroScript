@@ -259,6 +259,22 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
         
         if (definition.DefaultCurrent > definition.DefaultMax && !definition.CanExceedMax)
             return Result.Failure("Default current cannot exceed default max");
+
+        var duplicatePolicyIds = definition.ThresholdPolicies
+            .Where(policy => !string.IsNullOrWhiteSpace(policy.PolicyId))
+            .GroupBy(policy => policy.PolicyId, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicatePolicyIds != null)
+            return Result.Failure($"Duplicate resource threshold policy id: {duplicatePolicyIds.Key}");
+        foreach (var policy in definition.ThresholdPolicies)
+        {
+            if (string.IsNullOrWhiteSpace(policy.PolicyId))
+                return Result.Failure("Resource threshold policy id cannot be empty");
+            if (policy.Boundary == ResourceThresholdBoundary.Unspecified)
+                return Result.Failure($"Resource threshold boundary is required: {policy.PolicyId}");
+            if (policy.Consequence == ResourceThresholdConsequence.Unspecified)
+                return Result.Failure($"Resource threshold consequence is required: {policy.PolicyId}");
+        }
         
         return Result.Success();
     }

@@ -114,7 +114,8 @@ public sealed class ContentRuntimeTests
                 {
                     EffectId = "strike.damage",
                     Type = EffectType.DAMAGE,
-                    FlatValue = damage
+                    FlatValue = damage,
+                    TargetResource = "health"
                 }
             ]
         };

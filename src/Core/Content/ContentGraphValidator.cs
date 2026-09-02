@@ -2,7 +2,10 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Combat.Flow;
+using Core.Combat.Models;
 using Core.Combat.TurnPhase;
+using Core.Effects;
+using Core.Resources;
 using Core.Run;
 using Core.StatusEffects;
 
@@ -44,6 +47,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateCombatRules(runtime, errors, warnings);
         ValidatePhaseSequences(runtime, errors);
         ValidateRuns(runtime, errors);
+        ValidateResources(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
         ValidateStatusEffects(runtime, errors);
@@ -237,6 +241,67 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 Require(runtime, errors, "actions", id, value, "resources");
             foreach (var value in FindStringProperties(definition, "statusId"))
                 Require(runtime, errors, "actions", id, value, "status-effects");
+
+            try
+            {
+                var action = definition.Deserialize<ActionDefinition>(CreateJsonOptions());
+                if (action == null)
+                {
+                    errors.Add($"actions/{id} is invalid");
+                    continue;
+                }
+                foreach (var effect in EnumerateEffects(action.Effects))
+                {
+                    if (effect.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE &&
+                        string.IsNullOrWhiteSpace(effect.TargetResource))
+                    {
+                        errors.Add(
+                            $"actions/{id} effect {effect.EffectId} ({effect.Type}) requires targetResource");
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"actions/{id} could not be parsed: {exception.Message}");
+            }
+        }
+    }
+
+    private static void ValidateResources(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        foreach (var (id, definition) in runtime.GetDefinitions("resources"))
+        {
+            try
+            {
+                var resource = definition.Deserialize<ResourceDefinition>(CreateJsonOptions());
+                if (resource == null)
+                {
+                    errors.Add($"resources/{id} is invalid");
+                    continue;
+                }
+
+                var duplicate = resource.ThresholdPolicies
+                    .Where(policy => !string.IsNullOrWhiteSpace(policy.PolicyId))
+                    .GroupBy(policy => policy.PolicyId, StringComparer.Ordinal)
+                    .FirstOrDefault(group => group.Count() > 1);
+                if (duplicate != null)
+                    errors.Add($"resources/{id} has duplicate threshold policy {duplicate.Key}");
+                foreach (var policy in resource.ThresholdPolicies)
+                {
+                    if (string.IsNullOrWhiteSpace(policy.PolicyId))
+                        errors.Add($"resources/{id} has threshold policy without policyId");
+                    if (policy.Boundary == ResourceThresholdBoundary.Unspecified)
+                        errors.Add($"resources/{id} policy {policy.PolicyId} requires boundary");
+                    if (policy.Consequence == ResourceThresholdConsequence.Unspecified)
+                        errors.Add($"resources/{id} policy {policy.PolicyId} requires consequence");
+                }
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"resources/{id} could not be parsed: {exception.Message}");
+            }
         }
     }
 
@@ -270,11 +335,34 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add(
                         $"status-effects/{id} requires triggerBoundary for turn timing");
                 }
+                if (status.Behavior is
+                        StatusEffectBehavior.DAMAGE_OVER_TIME or
+                        StatusEffectBehavior.HEAL_OVER_TIME or
+                        StatusEffectBehavior.REACTIVE)
+                {
+                    if (string.IsNullOrWhiteSpace(status.TargetResource))
+                        errors.Add($"status-effects/{id} requires targetResource for {status.Behavior}");
+                    else
+                        Require(runtime, errors, "status-effects", id, status.TargetResource, "resources");
+                }
             }
             catch (Exception exception)
             {
                 errors.Add($"status-effects/{id} could not be parsed: {exception.Message}");
             }
+        }
+    }
+
+    private static IEnumerable<EffectDefinition> EnumerateEffects(
+        IEnumerable<EffectDefinition> effects)
+    {
+        foreach (var effect in effects)
+        {
+            yield return effect;
+            foreach (var nested in EnumerateEffects(effect.ChainedEffects ?? []))
+                yield return nested;
+            foreach (var nested in EnumerateEffects(effect.ConditionalEffects ?? []))
+                yield return nested;
         }
     }
 
@@ -469,5 +557,12 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         }
         value = default;
         return false;
+    }
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 }

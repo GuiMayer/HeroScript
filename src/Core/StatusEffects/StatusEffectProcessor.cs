@@ -26,6 +26,16 @@ public class StatusEffectProcessor
         string targetId,
         int currentTurn)
     {
+        if (instance.Definition.Behavior is
+                StatusEffectBehavior.DAMAGE_OVER_TIME or
+                StatusEffectBehavior.HEAL_OVER_TIME or
+                StatusEffectBehavior.REACTIVE &&
+            string.IsNullOrWhiteSpace(instance.Definition.TargetResource))
+        {
+            return Result<StatusEffectTickResult>.Failure(
+                $"Status {instance.StatusId} requires targetResource for {instance.Definition.Behavior}");
+        }
+
         return instance.Definition.Behavior switch
         {
             StatusEffectBehavior.DAMAGE_OVER_TIME => ProcessDoT(instance, targetId),
@@ -61,6 +71,7 @@ public class StatusEffectProcessor
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
             Behavior = instance.Definition.Behavior,
+            TargetResource = instance.Definition.TargetResource,
             Value = damage,
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} dealt {damage} damage"
@@ -84,9 +95,10 @@ public class StatusEffectProcessor
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
             Behavior = instance.Definition.Behavior,
+            TargetResource = instance.Definition.TargetResource,
             Value = healing,
             WasBlocked = false,
-            Message = $"{instance.Definition.DisplayName} healed {healing} HP"
+            Message = $"{instance.Definition.DisplayName} increased {instance.Definition.TargetResource} by {healing}"
         };
         
         return Result<StatusEffectTickResult>.Success(result);
@@ -123,6 +135,7 @@ public class StatusEffectProcessor
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
             Behavior = instance.Definition.Behavior,
+            TargetResource = instance.Definition.TargetResource,
             Value = CalculateValue(instance),
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is protecting"
@@ -141,6 +154,7 @@ public class StatusEffectProcessor
             StatusId = instance.StatusId,
             Type = instance.Definition.Type,
             Behavior = instance.Definition.Behavior,
+            TargetResource = instance.Definition.TargetResource,
             Value = CalculateValue(instance),
             WasBlocked = false,
             Message = $"{instance.Definition.DisplayName} is ready"

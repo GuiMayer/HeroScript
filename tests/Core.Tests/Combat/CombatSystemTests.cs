@@ -44,7 +44,18 @@ public class CombatSystemTests
                     DefaultMin = 0,
                     DefaultMax = resourceId == "health" ? 100 : 10,
                     DefaultCurrent = current,
-                    CanBeNegative = false
+                    CanBeNegative = false,
+                    ThresholdPolicies = resourceId == "health"
+                        ?
+                        [
+                            new ResourceThresholdPolicy
+                            {
+                                PolicyId = "defeat_when_depleted",
+                                Boundary = ResourceThresholdBoundary.AtMinimum,
+                                Consequence = ResourceThresholdConsequence.DefeatOwner
+                            }
+                        ]
+                        : []
                 };
 
                 return new ResourcePool
@@ -410,7 +421,7 @@ public class CombatSystemTests
             },
             Effects = new List<EffectDefinition>
             {
-                new() { Type = EffectType.DAMAGE, FlatValue = 12, Target = EffectTarget.TARGET }
+                new() { Type = EffectType.DAMAGE, FlatValue = 12, Target = EffectTarget.TARGET, TargetResource = "health" }
             }
         });
         _formulaEvaluator
@@ -459,7 +470,7 @@ public class CombatSystemTests
             },
             Effects = new List<EffectDefinition>
             {
-                new() { Type = EffectType.DAMAGE, FlatValue = 12 }
+                new() { Type = EffectType.DAMAGE, FlatValue = 12, TargetResource = "health" }
             }
         });
         var combatSystem = new CombatSystem(
@@ -649,7 +660,7 @@ public class CombatSystemTests
             Tags = new List<string> { "physical", "melee", "can_crit" },
             Effects = new List<EffectDefinition>
             {
-                new() { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET },
+                new() { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET, TargetResource = "health" },
                 new() { Type = EffectType.MODIFY_RESOURCE, FlatValue = 1, TargetResource = "energy", Target = EffectTarget.SELF }
             }
         };
@@ -675,7 +686,7 @@ public class CombatSystemTests
             },
             Effects = new List<EffectDefinition>
             {
-                new() { Type = EffectType.DAMAGE, FlatValue = damage, Target = EffectTarget.TARGET }
+                new() { Type = EffectType.DAMAGE, FlatValue = damage, Target = EffectTarget.TARGET, TargetResource = "health" }
             }
         };
     }

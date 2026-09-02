@@ -74,6 +74,7 @@ public sealed class CombatStatusLifecycleTests
                 BaseValue = 1,
                 FormulaValue = formula,
                 ScalesWithStacks = false,
+                TargetResource = "health",
                 TriggerBoundary = StatusTriggerBoundary.EndActivation,
                 DurationTickBoundary = StatusTriggerBoundary.EndActivation,
                 Priority = priority

@@ -15,5 +15,13 @@
     "timing": "END_TURN"
   },
   "costMultiplier": 1.0,
-  "tags": ["vital", "primary"]
+  "tags": ["vital", "primary"],
+  "thresholdPolicies": [
+    {
+      "policyId": "defeat_when_depleted",
+      "boundary": "AtMinimum",
+      "consequence": "DefeatOwner",
+      "priority": 100
+    }
+  ]
 }

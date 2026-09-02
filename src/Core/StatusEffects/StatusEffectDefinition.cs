@@ -77,6 +77,12 @@ public record StatusEffectDefinition
     /// Se false, o valor é fixo independente de stacks
     /// </summary>
     public bool ScalesWithStacks { get; init; } = true;
+
+    /// <summary>
+    /// Recurso alterado por comportamentos que aumentam ou reduzem um pool.
+    /// Obrigatório para DAMAGE_OVER_TIME, HEAL_OVER_TIME e REACTIVE.
+    /// </summary>
+    public string? TargetResource { get; init; }
     
     // ===== INTEGRAÇÃO COM PIPELINE =====
     

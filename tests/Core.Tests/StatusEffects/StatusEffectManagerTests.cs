@@ -195,6 +195,7 @@ public sealed class StatusEffectManagerTests : IDisposable
         "BaseValue": 3.0,
         "FormulaValue": "stacks * 3",
         "ScalesWithStacks": true,
+        "TargetResource": "health",
         "Timing": "END_OF_TURN"
       },
       "strength": {

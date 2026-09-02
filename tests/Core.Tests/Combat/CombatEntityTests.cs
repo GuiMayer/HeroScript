@@ -6,30 +6,47 @@ namespace Core.Tests.Combat;
 
 public class CombatEntityTests
 {
-    private static CombatEntity CreateTestEntity(string entityId, float currentHp, float maxHp)
+    private static CombatEntity CreateTestEntity(
+        string entityId,
+        float currentValue,
+        float maximum,
+        string resourceId = "health",
+        bool defeatsAtMinimum = true)
     {
-        var healthDef = new ResourceDefinition
+        var resourceDefinition = new ResourceDefinition
         {
-            ResourceId = "health",
-            DisplayName = "Health",
+            ResourceId = resourceId,
+            DisplayName = resourceId,
             Category = ResourceCategory.VITAL,
             DefaultMin = 0,
-            DefaultMax = maxHp,
-            DefaultCurrent = currentHp,
-            CanBeNegative = false
+            DefaultMax = maximum,
+            DefaultCurrent = currentValue,
+            CanBeNegative = false,
+            ThresholdPolicies = defeatsAtMinimum
+                ?
+            [
+                new ResourceThresholdPolicy
+                {
+                    PolicyId = "defeat_when_depleted",
+                    Boundary = ResourceThresholdBoundary.AtMinimum,
+                    Consequence = ResourceThresholdConsequence.DefeatOwner
+                }
+            ]
+                : []
         };
 
-        var healthPool = new ResourcePool
+        var resourcePool = new ResourcePool
         {
-            Definition = healthDef,
-            Current = currentHp,
-            Maximum = maxHp,
+            ResourceId = resourceId,
+            Definition = resourceDefinition,
+            Current = currentValue,
+            Maximum = maximum,
             Minimum = 0
         };
 
         var resources = new Dictionary<string, ResourcePool>
         {
-            ["health"] = healthPool
+            [resourceId] = resourcePool
         };
 
         var resourceState = new EntityResourceState
@@ -48,13 +65,13 @@ public class CombatEntityTests
     }
 
     [Fact]
-    public void TakeDamage_ShouldReduceHp()
+    public void ReduceResource_ShouldReduceSelectedResource()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 100, 100);
 
         // Act
-        var newEntity = entity.TakeDamage(30);
+        var newEntity = entity.ReduceResource("health", 30);
 
         // Assert
         Assert.Equal(70, newEntity.GetResource("health")?.Current);
@@ -62,13 +79,13 @@ public class CombatEntityTests
     }
 
     [Fact]
-    public void TakeDamage_BelowZero_ShouldCapAtZero()
+    public void ReduceResource_BelowMinimum_ShouldCapAndApplyConfiguredDefeat()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 20, 100);
 
         // Act
-        var newEntity = entity.TakeDamage(50);
+        var newEntity = entity.ReduceResource("health", 50);
 
         // Assert
         Assert.Equal(0, newEntity.GetResource("health")?.Current);
@@ -76,26 +93,26 @@ public class CombatEntityTests
     }
 
     [Fact]
-    public void Heal_ShouldIncreaseHp()
+    public void IncreaseResource_ShouldIncreaseSelectedResource()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 50, 100);
 
         // Act
-        var newEntity = entity.Heal(30);
+        var newEntity = entity.IncreaseResource("health", 30);
 
         // Assert
         Assert.Equal(80, newEntity.GetResource("health")?.Current);
     }
 
     [Fact]
-    public void Heal_AboveMaximum_ShouldCapAtMaximum()
+    public void IncreaseResource_AboveMaximum_ShouldCapAtMaximum()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 90, 100);
 
         // Act
-        var newEntity = entity.Heal(50);
+        var newEntity = entity.IncreaseResource("health", 50);
 
         // Assert
         Assert.Equal(100, newEntity.GetResource("health")?.Current);
@@ -118,6 +135,32 @@ public class CombatEntityTests
         var entity = CreateTestEntity("test-1", 0, 100);
 
         // Assert
+        Assert.False(entity.IsAlive);
+    }
+
+    [Fact]
+    public void IsAlive_DoesNotInferDefeatFromHealthNameOrVitalCategory()
+    {
+        var entity = CreateTestEntity(
+            "test-1",
+            currentValue: 0,
+            maximum: 100,
+            resourceId: "health",
+            defeatsAtMinimum: false);
+
+        Assert.True(entity.IsAlive);
+    }
+
+    [Fact]
+    public void IsAlive_CanBeDefeatedByAnyConfiguredResource()
+    {
+        var entity = CreateTestEntity(
+            "test-1",
+            currentValue: 0,
+            maximum: 10,
+            resourceId: "mana",
+            defeatsAtMinimum: true);
+
         Assert.False(entity.IsAlive);
     }
 }

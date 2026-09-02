@@ -54,6 +54,11 @@ public class StatusEffectDefinitionDto
     /// Se true, o valor escala com número de stacks
     /// </summary>
     public bool ScalesWithStacks { get; set; } = true;
+
+    /// <summary>
+    /// Recurso explicitamente alterado por comportamentos de aumento/redução.
+    /// </summary>
+    public string? TargetResource { get; set; }
     
     /// <summary>
     /// Chave do modificador no damage pipeline

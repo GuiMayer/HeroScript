@@ -288,6 +288,11 @@ public record StatusEffectTickResult
     /// Usado pelo motor para aplicar semântica sem depender de tipos específicos.
     /// </summary>
     public StatusEffectBehavior Behavior { get; init; }
+
+    /// <summary>
+    /// Recurso explicitamente selecionado pela definição do status.
+    /// </summary>
+    public string? TargetResource { get; init; }
     
     /// <summary>
     /// Valor aplicado (dano causado, cura aplicada, etc.)

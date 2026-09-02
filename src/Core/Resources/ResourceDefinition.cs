@@ -9,6 +9,7 @@ namespace Core.Resources;
 public record ResourceDefinition
 {
     private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+    private ImmutableArray<ResourceThresholdPolicy> _thresholdPolicies = [];
 
     /// <summary>
     /// Identificador único do recurso (ex: "health", "energy", "mana").
@@ -74,5 +75,15 @@ public record ResourceDefinition
     {
         get => _tags;
         init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
+
+    /// <summary>
+    /// Consequences owned by this resource when it reaches a configured bound.
+    /// Neither ResourceId nor Category implies defeat or any other outcome.
+    /// </summary>
+    public IReadOnlyList<ResourceThresholdPolicy> ThresholdPolicies
+    {
+        get => _thresholdPolicies;
+        init => _thresholdPolicies = value?.ToImmutableArray() ?? [];
     }
 }

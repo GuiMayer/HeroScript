@@ -247,7 +247,7 @@ public class EffectsModelsTests
         Assert.Equal(EffectTarget.TARGET, definition.Target);
         Assert.Equal(EffectTiming.IMMEDIATE, definition.Timing);
         Assert.False(definition.IsPercentage);
-        Assert.Equal("health", definition.TargetResource);
+        Assert.Null(definition.TargetResource);
         Assert.Equal(1.0f, definition.Chance);
         Assert.Equal(1, definition.Repeat);
         Assert.Empty(definition.Tags);

@@ -16,16 +16,14 @@ public record CombatEntity
     public EntityResourceState ResourceState { get; init; } = null!;
     
     /// <summary>
-    /// Verifica se a entidade está viva.
-    /// Baseado no primeiro recurso vital (categoria VITAL).
+    /// Verifica se nenhuma política de recurso declarou o dono derrotado.
     /// </summary>
     public bool IsAlive
     {
         get
         {
-            var vital = ResourceState.GetVitalResource();
-            if (vital == null) return false;
-            return vital.Current > 0;
+            return !Resources.ResourceThresholdEvaluator.IsOwnerDefeated(
+                ResourceState.Resources.Values);
         }
     }
     
@@ -58,35 +56,24 @@ public record CombatEntity
     }
     
     /// <summary>
-    /// Aplica dano à entidade (conveniência para recurso "health").
+    /// Reduz um recurso explicitamente selecionado. O resultado da redução
+    /// (inclusive derrota) pertence às políticas da definição do recurso.
     /// </summary>
-    /// <param name="damage">Quantidade de dano</param>
-    /// <returns>Nova instância com HP reduzido</returns>
-    public CombatEntity TakeDamage(float damage)
+    public CombatEntity ReduceResource(string resourceId, float amount)
     {
-        var health = GetResource("health");
-        if (health == null) return this;
-        
-        // Calcula novo valor (pode ficar negativo ou abaixo do mínimo)
-        var newValue = health.Current - damage;
-        
-        // Usa Set() que respeita os limites da definição
-        var newHealth = health.Set(newValue);
-        return UpdateResource("health", newHealth);
+        var resource = GetResource(resourceId);
+        if (resource == null) return this;
+        return UpdateResource(resourceId, resource.Set(resource.Current - amount));
     }
     
     /// <summary>
-    /// Cura a entidade (conveniência para recurso "health").
+    /// Aumenta um recurso explicitamente selecionado.
     /// </summary>
-    /// <param name="amount">Quantidade de cura</param>
-    /// <returns>Nova instância com HP aumentado</returns>
-    public CombatEntity Heal(float amount)
+    public CombatEntity IncreaseResource(string resourceId, float amount)
     {
-        var health = GetResource("health");
-        if (health == null) return this;
-        
-        var newHealth = health.Gain(amount);
-        return UpdateResource("health", newHealth);
+        var resource = GetResource(resourceId);
+        if (resource == null) return this;
+        return UpdateResource(resourceId, resource.Gain(amount));
     }
     
     /// <summary>

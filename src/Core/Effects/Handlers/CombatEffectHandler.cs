@@ -33,8 +33,8 @@ public sealed class CombatEffectHandler : IEffectHandler
         request.Effect.Definition.Type switch
         {
             EffectType.DAMAGE => ExecuteDamage(request),
-            EffectType.HEAL => ExecuteValue(request, "health"),
-            EffectType.MODIFY_RESOURCE => ExecuteValue(request, "energy"),
+            EffectType.HEAL => ExecuteValue(request),
+            EffectType.MODIFY_RESOURCE => ExecuteValue(request),
             _ => EffectResult.CreateFailure("Unsupported combat effect")
         };
 
@@ -45,11 +45,13 @@ public sealed class CombatEffectHandler : IEffectHandler
 
         var effect = request.Effect;
         var value = _values.Calculate(effect, request.TargetId, request.Context);
-        var resourceId = effect.Definition.TargetResource ?? "health";
+        var resourceId = effect.Definition.TargetResource;
+        if (string.IsNullOrWhiteSpace(resourceId))
+            return EffectResult.CreateFailure("DAMAGE effect requires targetResource");
         var source = request.Context.CombatState.GetEntity(effect.SourceEntityId);
         var target = request.Context.CombatState.GetEntity(request.TargetId);
 
-        if (source != null && target != null && resourceId == "health")
+        if (source != null && target != null)
         {
             var action = new ActionDefinition
             {
@@ -70,10 +72,15 @@ public sealed class CombatEffectHandler : IEffectHandler
         };
     }
 
-    private EffectResult ExecuteValue(EffectExecutionRequest request, string defaultResource)
+    private EffectResult ExecuteValue(EffectExecutionRequest request)
     {
         var value = _values.Calculate(request.Effect, request.TargetId, request.Context);
-        var resourceId = request.Effect.Definition.TargetResource ?? defaultResource;
+        var resourceId = request.Effect.Definition.TargetResource;
+        if (string.IsNullOrWhiteSpace(resourceId))
+        {
+            return EffectResult.CreateFailure(
+                $"{request.Effect.Definition.Type} effect requires targetResource");
+        }
         _logger.LogDebug(
             $"Executing {request.Effect.Definition.Type} effect: {value} to {resourceId} on {request.TargetId}");
         return EffectResult.CreateSuccess(value, resourceId) with

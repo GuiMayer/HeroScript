@@ -163,7 +163,16 @@ public sealed class IntentResolverTests
                             ResourceId = "health",
                             Category = ResourceCategory.VITAL,
                             DefaultMax = 100,
-                            DefaultMin = 0
+                            DefaultMin = 0,
+                            ThresholdPolicies =
+                            [
+                                new ResourceThresholdPolicy
+                                {
+                                    PolicyId = "defeat_when_depleted",
+                                    Boundary = ResourceThresholdBoundary.AtMinimum,
+                                    Consequence = ResourceThresholdConsequence.DefeatOwner
+                                }
+                            ]
                         }
                     }
                 }

@@ -223,7 +223,7 @@ public class ActionManagerTests
             ActionId = "valid_action",
             DisplayName = "Valid Action",
             ActionType = ActionType.BASIC_ATTACK,
-            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET } },
+            Effects = new List<EffectDefinition> { new EffectDefinition { Type = EffectType.DAMAGE, FlatValue = 10, Target = EffectTarget.TARGET, TargetResource = "health" } },
             Cooldown = 0,
             Tags = new List<string> { "test" },
             Costs = new ActionCosts { Costs = new List<ResourceCost>() }
