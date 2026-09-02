@@ -119,6 +119,44 @@ public sealed class GameModeResolverTests
             Times.Once);
     }
 
+    [Fact]
+    public void Resolve_WarnsAndRejectsReservedOutcomeBoundary()
+    {
+        var logger = new Mock<ILogger>();
+        var combat = CreateCombatRules();
+        combat = combat with
+        {
+            Flow = combat.Flow with
+            {
+                Outcome = new OutcomePolicyDefinition
+                {
+                    EvaluationBoundary = OutcomeEvaluationBoundary.AfterResolutionStack,
+                    TieBreak = OutcomeTieBreak.Draw
+                }
+            }
+        };
+        var resolver = CreateResolver(
+            new GameModeDefinition
+            {
+                ModeId = "reserved",
+                FlowRulesId = "flow",
+                CombatRulesId = "combat",
+                ReplayPolicyId = "replay",
+                TimelinePolicyId = "timeline",
+                ContentBindingPolicyId = "binding",
+                CapabilityPolicyId = "capabilities"
+            },
+            combat: combat,
+            logger: logger.Object);
+
+        var result = resolver.Resolve("reserved", "test");
+
+        Assert.True(result.IsFailure);
+        logger.Verify(item => item.LogWarning(
+            It.Is<string>(message => message.Contains("only AfterCurrentAction is implemented", StringComparison.Ordinal))),
+            Times.Once);
+    }
+
     private static GameModeResolver CreateResolver(
         GameModeDefinition mode,
         ReplayPolicyDefinition? replay = null,

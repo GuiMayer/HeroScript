@@ -242,9 +242,10 @@ public static class CombatFlowPolicyValidator
             policies.StatusTiming.Boundaries.Contains(StatusTriggerBoundary.Unspecified) ||
             policies.StatusTiming.Ordering == StatusOrderingStrategy.Unspecified)
             return Result.Failure("Status timing boundaries and ordering are required");
-        if (policies.Outcome.EvaluationBoundary == OutcomeEvaluationBoundary.Unspecified ||
-            policies.Outcome.TieBreak == OutcomeTieBreak.Unspecified)
-            return Result.Failure("Outcome evaluation boundary and tieBreak are required");
+        if (policies.Outcome.EvaluationBoundary != OutcomeEvaluationBoundary.AfterCurrentAction)
+            return Result.Failure("Only outcome evaluation boundary 'AfterCurrentAction' is implemented");
+        if (policies.Outcome.TieBreak == OutcomeTieBreak.Unspecified)
+            return Result.Failure("Outcome tieBreak is required");
         if (policies.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
             return Result.Failure("Only encounter resolution strategy 'ManualAck' is implemented");
         if (policies.Animation.Mode == AnimationFrameMode.Unspecified)

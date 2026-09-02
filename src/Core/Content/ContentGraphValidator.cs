@@ -175,6 +175,12 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                         $"combat-rules/{id} selects encounter resolution strategy " +
                         $"'{combat.Flow.EncounterResolution.Strategy}', which is reserved but not implemented");
                 }
+                if (combat.Flow.Outcome.EvaluationBoundary != OutcomeEvaluationBoundary.AfterCurrentAction)
+                {
+                    warnings.Add(
+                        $"combat-rules/{id} selects outcome evaluation boundary " +
+                        $"'{combat.Flow.Outcome.EvaluationBoundary}', which is reserved but not implemented");
+                }
 
                 var implementedSubset = combat.Flow with
                 {
@@ -182,6 +188,10 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     EncounterResolution = new EncounterResolutionPolicyDefinition
                     {
                         Strategy = EncounterResolutionStrategy.ManualAck
+                    },
+                    Outcome = combat.Flow.Outcome with
+                    {
+                        EvaluationBoundary = OutcomeEvaluationBoundary.AfterCurrentAction
                     }
                 };
                 var validation = CombatFlowPolicyValidator.Validate(implementedSubset);

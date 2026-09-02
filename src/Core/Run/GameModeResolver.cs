@@ -270,6 +270,12 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
                 $"Combat rules '{combat.CombatRulesId}' requested encounter resolution strategy " +
                 $"'{combat.Flow.EncounterResolution.Strategy}', but only ManualAck is implemented");
         }
+        if (combat.Flow.Outcome.EvaluationBoundary != OutcomeEvaluationBoundary.AfterCurrentAction)
+        {
+            _logger?.LogWarning(
+                $"Combat rules '{combat.CombatRulesId}' requested outcome evaluation boundary " +
+                $"'{combat.Flow.Outcome.EvaluationBoundary}', but only AfterCurrentAction is implemented");
+        }
     }
 
     private static Result<T> GetRequired<T>(

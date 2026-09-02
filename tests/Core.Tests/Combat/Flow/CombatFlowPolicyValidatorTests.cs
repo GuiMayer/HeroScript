@@ -45,6 +45,26 @@ public sealed class CombatFlowPolicyValidatorTests
         Assert.Contains("ManualAck", result.Error, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(OutcomeEvaluationBoundary.Immediate)]
+    [InlineData(OutcomeEvaluationBoundary.AfterResolutionStack)]
+    public void Validate_RejectsReservedOutcomeBoundaries(OutcomeEvaluationBoundary boundary)
+    {
+        var policies = ValidPolicies() with
+        {
+            Outcome = new OutcomePolicyDefinition
+            {
+                EvaluationBoundary = boundary,
+                TieBreak = OutcomeTieBreak.Draw
+            }
+        };
+
+        var result = CombatFlowPolicyValidator.Validate(policies);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("AfterCurrentAction", result.Error, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Validate_AcceptsExplicitImplementedPolicyGraph()
     {
