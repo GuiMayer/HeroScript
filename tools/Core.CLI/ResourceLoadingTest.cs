@@ -19,7 +19,7 @@ namespace Core.CLI
 
             // Initialize resource loader
             var logger = new ConsoleLogger();
-            var providerFactory = new ResourceProviderFactory(configManager);
+            var providerFactory = new ResourceProviderFactory(configManager, logger);
             var resourceLoader = new ResourceLoader(logger, providerFactory);
 
             // Teste 2: Carregar recurso MathFormulas
