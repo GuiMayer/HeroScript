@@ -34,7 +34,13 @@ public record ResourcePool
     /// <summary>
     /// Verifica se há recurso suficiente para pagar um custo.
     /// </summary>
-    public bool CanAfford(float cost) => Current >= cost;
+    public bool CanAfford(float cost)
+    {
+        if (!IsFinite(cost) || cost < 0)
+            return false;
+
+        return Current - cost >= Minimum;
+    }
     
     /// <summary>
     /// Gasta recurso.
@@ -44,10 +50,11 @@ public record ResourcePool
     /// <exception cref="InvalidOperationException">Se não houver recurso suficiente</exception>
     public ResourcePool Spend(float amount)
     {
-        if (amount > Current)
+        ValidateNonNegativeFinite(amount, nameof(amount));
+        if (!CanAfford(amount))
             throw new InvalidOperationException(
                 $"Insufficient {Definition.DisplayName}: has {Current}, needs {amount}");
-        return this with { Current = Current - amount };
+        return Set(Current - amount);
     }
     
     /// <summary>
@@ -57,10 +64,8 @@ public record ResourcePool
     /// <returns>Nova instância com recurso aumentado</returns>
     public ResourcePool Gain(float amount)
     {
-        var newValue = Current + amount;
-        if (!Definition.CanExceedMax)
-            newValue = System.Math.Min(Maximum, newValue);
-        return this with { Current = newValue };
+        ValidateNonNegativeFinite(amount, nameof(amount));
+        return Set(Current + amount);
     }
     
     /// <summary>
@@ -70,6 +75,9 @@ public record ResourcePool
     /// <returns>Nova instância com valor definido</returns>
     public ResourcePool Set(float value)
     {
+        if (!IsFinite(value))
+            throw new ArgumentOutOfRangeException(nameof(value), "Resource value must be finite");
+
         var clamped = value;
         if (!Definition.CanBeNegative)
             clamped = System.Math.Max(Minimum, clamped);
@@ -90,5 +98,17 @@ public record ResourcePool
     /// <summary>
     /// Obtém porcentagem atual do recurso (0-100).
     /// </summary>
-    public float GetPercentage() => Maximum > 0 ? (Current / Maximum) * 100f : 0f;
+    public float GetPercentage()
+    {
+        var range = Maximum - Minimum;
+        return range > 0 ? ((Current - Minimum) / range) * 100f : 0f;
+    }
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+    private static void ValidateNonNegativeFinite(float value, string parameterName)
+    {
+        if (!IsFinite(value) || value < 0)
+            throw new ArgumentOutOfRangeException(parameterName, "Resource amount must be finite and non-negative");
+    }
 }

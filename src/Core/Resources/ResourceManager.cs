@@ -208,14 +208,20 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
         ResourceDefinition definition, 
         float? initialCurrent = null)
     {
-        return new ResourcePool
+        ArgumentNullException.ThrowIfNull(definition);
+        var validation = ValidateResourceDefinition(definition);
+        if (validation.IsFailure)
+            throw new InvalidOperationException(validation.Error);
+
+        var pool = new ResourcePool
         {
             ResourceId = definition.ResourceId,
-            Current = initialCurrent ?? definition.DefaultCurrent,
+            Current = definition.DefaultCurrent,
             Maximum = definition.DefaultMax,
             Minimum = definition.DefaultMin,
             Definition = definition
         };
+        return initialCurrent.HasValue ? pool.Set(initialCurrent.Value) : pool;
     }
     
     public Dictionary<string, ResourcePool> CreateDefaultPools()
@@ -245,12 +251,22 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     
     public Result ValidateResourceDefinition(ResourceDefinition definition)
     {
+        if (definition == null)
+            return Result.Failure("Resource definition cannot be null");
         if (string.IsNullOrWhiteSpace(definition.ResourceId))
             return Result.Failure("Resource ID cannot be empty");
         
         if (string.IsNullOrWhiteSpace(definition.DisplayName))
             return Result.Failure("Display name cannot be empty");
         
+        if (!IsFinite(definition.DefaultMin) ||
+            !IsFinite(definition.DefaultMax) ||
+            !IsFinite(definition.DefaultCurrent))
+            return Result.Failure("Resource defaults must be finite");
+
+        if (!IsFinite(definition.CostMultiplier) || definition.CostMultiplier < 0)
+            return Result.Failure("Resource cost multiplier must be finite and non-negative");
+
         if (definition.DefaultMax < definition.DefaultMin)
             return Result.Failure("Default max cannot be less than default min");
         
@@ -275,9 +291,20 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
             if (policy.Consequence == ResourceThresholdConsequence.Unspecified)
                 return Result.Failure($"Resource threshold consequence is required: {policy.PolicyId}");
         }
+
+        if (definition.Regeneration is { } regeneration)
+        {
+            if (!IsFinite(regeneration.AmountPerTurn))
+                return Result.Failure("Resource regeneration amount must be finite");
+            if (regeneration.Enabled &&
+                !Enum.IsDefined(regeneration.Timing))
+                return Result.Failure("Resource regeneration timing is invalid");
+        }
         
         return Result.Success();
     }
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     
     public Result<EntityResourceState> ProcessRegeneration(
         EntityResourceState entityResourceState,

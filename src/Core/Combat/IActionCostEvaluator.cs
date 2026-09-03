@@ -24,7 +24,9 @@ public sealed class ActionCostEvaluator : IActionCostEvaluator
     public Result<float> CalculateCost(ResourceCost cost, IReadOnlyDictionary<string, ResourcePool> resources, string? contentRevision = null)
     {
         if (string.IsNullOrWhiteSpace(cost.Formula))
-            return Result<float>.Success(cost.Amount);
+            return IsValidCost(cost.Amount)
+                ? Result<float>.Success(cost.Amount)
+                : Result<float>.Failure("Resource cost must be finite and non-negative");
 
         var variables = BuildVariables(resources);
         variables["amount"] = cost.Amount;
@@ -37,7 +39,9 @@ public sealed class ActionCostEvaluator : IActionCostEvaluator
         if (result.IsFailure)
             return Result<float>.Failure(result.Error);
 
-        return Result<float>.Success(result.Value);
+        return IsValidCost(result.Value)
+            ? Result<float>.Success(result.Value)
+            : Result<float>.Failure("Calculated resource cost must be finite and non-negative");
     }
 
     public Result<bool> CanAfford(ResourceCost cost, IReadOnlyDictionary<string, ResourcePool> resources, string? contentRevision = null)
@@ -83,4 +87,7 @@ public sealed class ActionCostEvaluator : IActionCostEvaluator
 
         return variables;
     }
+
+    private static bool IsValidCost(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0;
 }

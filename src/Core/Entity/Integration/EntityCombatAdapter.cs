@@ -99,6 +99,9 @@ public class EntityCombatAdapter
         {
             foreach (var (resourceId, resourceDef) in definition.Resources.Resources)
             {
+                if (float.IsNaN(resourceDef.Current) || float.IsInfinity(resourceDef.Current) ||
+                    float.IsNaN(resourceDef.Max) || float.IsInfinity(resourceDef.Max))
+                    throw new InvalidOperationException($"Entity resource values must be finite: {resourceId}");
                 var pool = !string.IsNullOrWhiteSpace(contentRevision) &&
                            _resourceManager is IRevisionedResourceManager revisionedResources
                     ? revisionedResources.CreatePool(
@@ -114,6 +117,7 @@ public class EntityCombatAdapter
                 {
                     pool = pool with { Maximum = resourceDef.Max };
                 }
+                pool = pool.Set(resourceDef.Current);
                 resources[resourceId] = pool;
             }
         }
