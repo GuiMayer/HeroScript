@@ -111,15 +111,8 @@ public interface ICombatSandboxSnapshotService
 public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 {
     private readonly IRunManager _runs;
-    private readonly IScriptModifierManager _modifiers;
 
-    public CombatSandboxSnapshotService(
-        IRunManager runs,
-        IScriptModifierManager modifiers)
-    {
-        _runs = runs;
-        _modifiers = modifiers;
-    }
+    public CombatSandboxSnapshotService(IRunManager runs) => _runs = runs;
 
     public Result<SandboxCombatSnapshot> Get(Guid runId)
     {
@@ -134,7 +127,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 
         var combat = encounter.Combat;
         var actors = combat.GetAllEntities()
-            .Select(entity => MapActor(entity, combat.StatusEffects))
+            .Select(entity => MapActor(entity, combat.StatusEffects, run.Value.Modifiers))
             .OrderBy(actor => actor.IsHero ? 0 : 1)
             .ThenBy(actor => actor.EntityId, StringComparer.Ordinal)
             .ToArray();
@@ -170,7 +163,8 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 
     private SandboxActorSnapshot MapActor(
         CombatEntity entity,
-        IReadOnlyDictionary<string, ImmutableArray<StatusEffectInstance>> statusEffects)
+        IReadOnlyDictionary<string, ImmutableArray<StatusEffectInstance>> statusEffects,
+        IReadOnlyList<ScriptModifierInstance> modifiers)
     {
         var statuses = statusEffects.TryGetValue(entity.EntityId, out var active) ? active : [];
         return new SandboxActorSnapshot
@@ -186,7 +180,8 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                     item => new SandboxResourceSnapshot(item.Value.Current, item.Value.Maximum, item.Value.Minimum),
                     StringComparer.Ordinal),
             Statuses = statuses,
-            Modifiers = _modifiers.GetActiveModifiers(entity.EntityId)
+            Modifiers = modifiers.Where(modifier =>
+                    modifier.IsActive && string.Equals(modifier.OwnerId, entity.EntityId, StringComparison.Ordinal))
                 .OrderBy(modifier => modifier.InstanceId)
                 .ToArray()
         };

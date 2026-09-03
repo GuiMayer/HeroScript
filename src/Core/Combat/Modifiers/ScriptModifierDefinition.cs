@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Calculations;
 
 namespace Core.Combat.Modifiers;
 
@@ -12,6 +13,7 @@ public record ScriptModifierDefinition
     private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
     private ImmutableDictionary<string, object> _metadata =
         ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
 
     public string ModifierId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
@@ -38,6 +40,12 @@ public record ScriptModifierDefinition
     {
         get => _tags;
         init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+    }
+
+    public IReadOnlyList<ContextualInfluenceDefinition> Influences
+    {
+        get => _influences;
+        init => _influences = value?.ToImmutableArray() ?? [];
     }
 
     public IReadOnlyDictionary<string, object> Metadata

@@ -1,7 +1,11 @@
 using Core.Calculations;
 using Core.Combat.Models;
+using Core.Combat.Modifiers;
+using Core.Math;
 using Core.Resources;
+using Core.Run;
 using Core.Run.Content;
+using Moq;
 using Xunit;
 
 namespace Core.Tests.Calculations;
@@ -137,6 +141,58 @@ public sealed class CalculationEngineTests
         Assert.Equal("increased", influence.Bucket);
         Assert.Equal(CalculationSourceKind.Card, influence.SourceKind);
         Assert.Equal(0.25f, influence.Value);
+    }
+
+    [Fact]
+    public void RunModifierProvider_ReadsPinnedRunStateAndFiltersEffectTags()
+    {
+        var runId = Guid.Parse("20000000-0000-8000-8000-000000000001");
+        var run = new RunState
+        {
+            RunId = runId,
+            Modifiers =
+            [
+                new ScriptModifierInstance
+                {
+                    InstanceId = Guid.Parse("20000000-0000-8000-8000-000000000002"),
+                    ModifierId = "glass_cannon",
+                    OwnerId = $"run:{runId}",
+                    Stacks = 2,
+                    Definition = new ScriptModifierDefinition
+                    {
+                        ModifierId = "glass_cannon",
+                        Influences =
+                        [
+                            new ContextualInfluenceDefinition
+                            {
+                                InfluenceId = "attack-increased",
+                                Channel = "effect_amount",
+                                Bucket = "increased",
+                                Value = 0.25f,
+                                RequiredTags = new HashSet<string> { "attack" }
+                            }
+                        ]
+                    }
+                }
+            ]
+        };
+        var provider = new RunModifierInfluenceProvider(
+            Mock.Of<IRuntimeFormulaEvaluator>());
+
+        var attack = provider.Collect(new CalculationSourceContext
+        {
+            Run = run,
+            Tags = new HashSet<string> { "attack" }
+        });
+        var skill = provider.Collect(new CalculationSourceContext
+        {
+            Run = run,
+            Tags = new HashSet<string> { "skill" }
+        });
+
+        Assert.True(attack.IsSuccess, attack.IsFailure ? attack.Error : null);
+        Assert.Equal(0.5f, Assert.Single(attack.Value).Value);
+        Assert.Empty(skill.Value);
     }
 
     private static CalculationPipelineDefinition Pipeline() => new()

@@ -709,15 +709,12 @@ public sealed class RunManagerTests
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
-        var instanceId = Guid.NewGuid();
         modifierManager
-            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
-            .Returns(Result<ScriptModifierInstance>.Success(new ScriptModifierInstance
+            .Setup(m => m.GetDefinition("flat_power_bonus"))
+            .Returns(Result<ScriptModifierDefinition>.Success(new ScriptModifierDefinition
             {
-                InstanceId = instanceId,
                 ModifierId = "flat_power_bonus",
-                OwnerId = $"run:{run.RunId}",
-                SourceId = "train_spell"
+                DefaultDuration = -1
             }));
 
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
@@ -728,8 +725,11 @@ public sealed class RunManagerTests
         Assert.True(option.Value.Applied);
         Assert.Equal(1, run.PowerPoints);
         Assert.Contains("fireball", run.Deck.DiscardPile);
-        Assert.Contains(instanceId, option.Value.AppliedModifierInstanceIds);
-        modifierManager.Verify(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"), Times.Once);
+        var modifier = Assert.Single(run.Modifiers);
+        Assert.Equal("flat_power_bonus", modifier.ModifierId);
+        Assert.Equal($"run:{run.RunId}", modifier.OwnerId);
+        Assert.Equal(modifier.InstanceId, Assert.Single(option.Value.AppliedModifierInstanceIds));
+        modifierManager.Verify(m => m.GetDefinition("flat_power_bonus"), Times.Once);
     }
 
     [Fact]
@@ -754,7 +754,7 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public void ApplyPreparationOption_WhenModifierApplyFails_RollsBackResourcesCardsAndAppliedState()
+    public void ApplyPreparationOption_WhenModifierDefinitionFails_LeavesRunUnchanged()
     {
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
@@ -764,8 +764,8 @@ public sealed class RunManagerTests
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
-            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "train_spell"))
-            .Returns(Result<ScriptModifierInstance>.Failure("modifier rejected"));
+            .Setup(m => m.GetDefinition("flat_power_bonus"))
+            .Returns(Result<ScriptModifierDefinition>.Failure("modifier rejected"));
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
         var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
@@ -781,31 +781,25 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public void ApplyPreparationOption_WhenSecondModifierFails_RemovesFirstModifierAndRollsBackRunState()
+    public void ApplyPreparationOption_WhenSecondDefinitionFails_DoesNotPublishPartialModifiers()
     {
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyEconomy(run.RunId, "pp", 3).Value;
-        var firstInstanceId = Guid.NewGuid();
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
-            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "flat_power_bonus", 1, -1, "double_train"))
-            .Returns(Result<ScriptModifierInstance>.Success(new ScriptModifierInstance
+            .Setup(m => m.GetDefinition("flat_power_bonus"))
+            .Returns(Result<ScriptModifierDefinition>.Success(new ScriptModifierDefinition
             {
-                InstanceId = firstInstanceId,
                 ModifierId = "flat_power_bonus",
-                OwnerId = $"run:{run.RunId}",
-                SourceId = "double_train"
+                DefaultDuration = -1
             }));
         modifierManager
-            .Setup(m => m.ApplyModifier(It.IsAny<Guid>(), $"run:{run.RunId}", "missing_modifier", 1, -1, "double_train"))
-            .Returns(Result<ScriptModifierInstance>.Failure("modifier missing"));
-        modifierManager
-            .Setup(m => m.RemoveModifier($"run:{run.RunId}", firstInstanceId))
-            .Returns(Result.Success());
+            .Setup(m => m.GetDefinition("missing_modifier"))
+            .Returns(Result<ScriptModifierDefinition>.Failure("modifier missing"));
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
         var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "double_train");
@@ -817,7 +811,7 @@ public sealed class RunManagerTests
         Assert.Equal(originalDiscard, run.Deck.DiscardPile);
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "double_train").Applied);
-        modifierManager.Verify(m => m.RemoveModifier($"run:{run.RunId}", firstInstanceId), Times.Once);
+        Assert.Empty(manager.GetRun(run.RunId).Value.Modifiers);
     }
 
     [Fact]

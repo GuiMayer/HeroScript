@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Core.Common;
 using Core.Determinism;
+using Core.Combat.Modifiers;
 
 namespace Core.Run;
 
@@ -98,13 +99,13 @@ public static class PreparationTransitions
     public static Result<RunStateTransition<PreparationOptionState>> CommitApply(
         RunState state,
         PreparationApplyPlan plan,
-        IReadOnlyList<Guid> appliedModifierIds)
+        IReadOnlyList<ScriptModifierInstance> modifiers)
     {
         if (state.Determinism != plan.SourceContext)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(
                 "Preparation plan is stale for the current deterministic context");
 
-        if (appliedModifierIds.Count != plan.ModifierGrants.Length)
+        if (modifiers.Count != plan.ModifierGrants.Length)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(
                 "Applied modifier count does not match the deterministic preparation plan");
 
@@ -124,10 +125,23 @@ public static class PreparationTransitions
         if (deck.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(deck.Error);
 
+        for (var index = 0; index < modifiers.Count; index++)
+        {
+            var modifier = modifiers[index];
+            var grant = plan.ModifierGrants[index];
+            if (modifier.InstanceId != grant.InstanceId ||
+                !string.Equals(modifier.ModifierId, grant.ModifierId, StringComparison.Ordinal) ||
+                !string.Equals(modifier.OwnerId, grant.OwnerId, StringComparison.Ordinal))
+            {
+                return Result<RunStateTransition<PreparationOptionState>>.Failure(
+                    $"Resolved modifier does not match preparation grant: {grant.ModifierId}");
+            }
+        }
+
         var updatedOption = option with
         {
             Applied = true,
-            AppliedModifierInstanceIds = appliedModifierIds
+            AppliedModifierInstanceIds = modifiers.Select(item => item.InstanceId).ToArray()
         };
         var updatedPreparation = preparation with
         {
@@ -140,6 +154,7 @@ public static class PreparationTransitions
             PowerPoints = state.PowerPoints - option.PowerPointCost,
             Deck = deck.Value.State,
             Preparations = state.Preparations.SetItem(preparationIndex, updatedPreparation),
+            Modifiers = state.Modifiers.AddRange(modifiers),
             Determinism = deck.Value.Context.AdvanceStep()
         };
         return Result<RunStateTransition<PreparationOptionState>>.Success(new(next, updatedOption));

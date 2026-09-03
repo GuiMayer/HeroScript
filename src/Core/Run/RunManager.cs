@@ -1637,79 +1637,44 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<PreparationOptionState>.Failure(
                     "Script modifier manager is not available for preparation modifier grants");
 
-            var appliedModifiers = new List<(string OwnerId, Guid InstanceId)>();
+            var resolvedModifiers = new List<ScriptModifierInstance>();
             foreach (var grant in plan.Value.ModifierGrants)
             {
-                var apply = _scriptModifierManager is IRevisionedScriptModifierManager revisionedModifiers
-                    ? revisionedModifiers.ApplyModifier(
-                        grant.InstanceId,
-                        grant.OwnerId,
+                var definition = _scriptModifierManager is IRevisionedScriptModifierManager revisionedModifiers
+                    ? revisionedModifiers.GetDefinition(
                         grant.ModifierId,
                         state.Determinism.ContentRevision,
-                        grant.Stacks,
-                        grant.Duration,
-                        grant.SourceId,
                         state.ConfigName)
-                    : _scriptModifierManager!.ApplyModifier(
-                        grant.InstanceId,
-                        grant.OwnerId,
-                        grant.ModifierId,
-                        grant.Stacks,
-                        grant.Duration,
-                        grant.SourceId);
-                if (apply.IsFailure)
+                    : _scriptModifierManager!.GetDefinition(grant.ModifierId);
+                if (definition.IsFailure)
+                    return Result<PreparationOptionState>.Failure(definition.Error);
+                if (grant.Stacks <= 0 || grant.Stacks > definition.Value.MaxStacks)
+                    return Result<PreparationOptionState>.Failure(
+                        $"Invalid stack count for modifier {grant.ModifierId}: {grant.Stacks}");
+                resolvedModifiers.Add(new ScriptModifierInstance
                 {
-                    var rollback = RollbackAppliedModifiers(appliedModifiers);
-                    return rollback.IsFailure
-                        ? Result<PreparationOptionState>.Failure($"{apply.Error}; modifier rollback failed: {rollback.Error}")
-                        : Result<PreparationOptionState>.Failure(apply.Error);
-                }
-
-                appliedModifiers.Add((grant.OwnerId, apply.Value.InstanceId));
+                    InstanceId = grant.InstanceId,
+                    ModifierId = definition.Value.ModifierId,
+                    Definition = definition.Value,
+                    OwnerId = grant.OwnerId,
+                    SourceId = grant.SourceId,
+                    Stacks = grant.Stacks,
+                    Duration = grant.Duration ?? definition.Value.DefaultDuration
+                });
             }
 
             var transition = PreparationTransitions.CommitApply(
                 state,
                 plan.Value,
-                appliedModifiers.Select(item => item.InstanceId).ToArray());
+                resolvedModifiers);
             if (transition.IsFailure)
-            {
-                var rollback = RollbackAppliedModifiers(appliedModifiers);
-                return rollback.IsFailure
-                    ? Result<PreparationOptionState>.Failure($"{transition.Error}; modifier rollback failed: {rollback.Error}")
-                    : Result<PreparationOptionState>.Failure(transition.Error);
-            }
+                return Result<PreparationOptionState>.Failure(transition.Error);
 
-            var committed = CommitTransition(
+            return CommitTransition(
                 transition.Value,
                 "run.preparation.apply",
                 new { preparationInstanceId, optionId });
-            if (committed.IsSuccess)
-                return committed;
-
-            var persistenceRollback = RollbackAppliedModifiers(appliedModifiers);
-            return persistenceRollback.IsFailure
-                ? Result<PreparationOptionState>.Failure(
-                    $"{committed.Error}; modifier rollback failed: {persistenceRollback.Error}")
-                : committed;
         }
-    }
-
-    private Result RollbackAppliedModifiers(IReadOnlyList<(string OwnerId, Guid InstanceId)> appliedModifiers)
-    {
-        if (_scriptModifierManager == null)
-            return appliedModifiers.Count == 0
-                ? Result.Success()
-                : Result.Failure("Script modifier manager is not available for modifier rollback");
-
-        foreach (var applied in appliedModifiers.AsEnumerable().Reverse())
-        {
-            var remove = _scriptModifierManager.RemoveModifier(applied.OwnerId, applied.InstanceId);
-            if (remove.IsFailure)
-                return Result.Failure(remove.Error);
-        }
-
-        return Result.Success();
     }
 
     private Result<T> CommitTransition<T>(

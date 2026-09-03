@@ -155,6 +155,8 @@ public sealed record CalculationSourceContext
 {
     private ImmutableDictionary<string, float> _variables =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableHashSet<string> _tags =
+        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
 
     public string ContentRevision { get; init; } = string.Empty;
     public EffectiveCardDefinition? Card { get; init; }
@@ -162,11 +164,49 @@ public sealed record CalculationSourceContext
     public CombatState? Combat { get; init; }
     public CombatEntity? Actor { get; init; }
     public CombatEntity? Target { get; init; }
+    public IReadOnlySet<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.ToImmutableHashSet(StringComparer.Ordinal)
+            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
     public IReadOnlyDictionary<string, float> Variables
     {
         get => _variables;
         init => _variables = value?.ToImmutableDictionary(StringComparer.Ordinal)
             ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    }
+}
+
+/// <summary>
+/// Reusable, data-authored contribution to a calculation pipeline. The owner
+/// (status, relic, modifier, etc.) supplies provenance and runtime variables.
+/// </summary>
+public sealed record ContextualInfluenceDefinition
+{
+    private ImmutableHashSet<string> _requiredTags =
+        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    private ImmutableHashSet<string> _excludedTags =
+        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+
+    public string InfluenceId { get; init; } = string.Empty;
+    public CalculationEntityScope Scope { get; init; } = CalculationEntityScope.Actor;
+    public string Channel { get; init; } = string.Empty;
+    public string Bucket { get; init; } = string.Empty;
+    public float? Value { get; init; }
+    public string? Formula { get; init; }
+    public int Priority { get; init; }
+    public IReadOnlySet<string> RequiredTags
+    {
+        get => _requiredTags;
+        init => _requiredTags = value?.ToImmutableHashSet(StringComparer.Ordinal)
+            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
+    public IReadOnlySet<string> ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = value?.ToImmutableHashSet(StringComparer.Ordinal)
+            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
     }
 }
 

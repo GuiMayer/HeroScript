@@ -399,6 +399,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
             Combat = combat,
             Actor = actor,
             Target = target,
+            Tags = effect.Tags.ToHashSet(StringComparer.Ordinal),
             Variables = variables
         });
         if (influences.IsFailure)

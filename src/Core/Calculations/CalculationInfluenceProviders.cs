@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Common;
 using Core.Math;
 using Core.Run.Content;
+using Core.Combat.Modifiers;
 
 namespace Core.Calculations;
 
@@ -147,5 +148,111 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
             });
         }
         return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());
+    }
+}
+
+/// <summary>
+/// Reads modifier instances exclusively from the immutable run snapshot. The
+/// definition pinned in each instance is used, so hot reload cannot rewrite an
+/// already-running timeline.
+/// </summary>
+public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
+{
+    private readonly IRuntimeFormulaEvaluator _formulas;
+
+    public RunModifierInfluenceProvider(IRuntimeFormulaEvaluator formulas) =>
+        _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
+
+    public string ProviderId => "run-modifiers";
+
+    public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
+    {
+        if (context.Run == null)
+            return Result<IReadOnlyList<CalculationInfluence>>.Success([]);
+
+        var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
+        foreach (var modifier in context.Run.Modifiers
+                     .Where(item => item.IsActive)
+                     .OrderBy(item => item.InstanceId))
+        {
+            foreach (var definition in modifier.Definition.Influences
+                         .OrderByDescending(item => item.Priority)
+                         .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
+            {
+                var validation = Validate(definition);
+                if (validation != null)
+                    return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                        $"Modifier {modifier.ModifierId}: {validation}");
+                if (!AppliesToOwner(modifier, definition, context) ||
+                    !TagsMatch(definition, context.Tags))
+                    continue;
+
+                var value = ResolveValue(modifier, definition, context);
+                if (value.IsFailure)
+                    return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                        $"Modifier {modifier.ModifierId}/{definition.InfluenceId}: {value.Error}");
+                result.Add(new CalculationInfluence
+                {
+                    InfluenceId = definition.InfluenceId,
+                    SourceKind = CalculationSourceKind.Modifier,
+                    SourceId = modifier.InstanceId.ToString(),
+                    Channel = definition.Channel,
+                    Bucket = definition.Bucket,
+                    Value = value.Value,
+                    Priority = definition.Priority
+                });
+            }
+        }
+        return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());
+    }
+
+    private Result<float> ResolveValue(
+        ScriptModifierInstance modifier,
+        ContextualInfluenceDefinition definition,
+        CalculationSourceContext context)
+    {
+        if (definition.Value.HasValue)
+            return Result<float>.Success(definition.Value.Value * modifier.Stacks);
+        var variables = context.Variables.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
+            StringComparer.Ordinal);
+        variables["stacks"] = modifier.Stacks;
+        variables["duration"] = modifier.Duration;
+        return !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+               _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
+            ? revisioned.EvaluateAtRevision(definition.Formula!, context.ContentRevision, variables)
+            : _formulas.Evaluate(definition.Formula!, variables);
+    }
+
+    private static bool AppliesToOwner(
+        ScriptModifierInstance modifier,
+        ContextualInfluenceDefinition definition,
+        CalculationSourceContext context)
+    {
+        var runOwner = $"run:{context.Run!.RunId}";
+        if (string.Equals(modifier.OwnerId, runOwner, StringComparison.Ordinal))
+            return true;
+        var scopedEntity = definition.Scope == CalculationEntityScope.Actor
+            ? context.Actor
+            : context.Target;
+        return string.Equals(modifier.OwnerId, scopedEntity?.EntityId, StringComparison.Ordinal);
+    }
+
+    private static bool TagsMatch(
+        ContextualInfluenceDefinition definition,
+        IReadOnlySet<string> tags) =>
+        definition.RequiredTags.All(tags.Contains) &&
+        !definition.ExcludedTags.Any(tags.Contains);
+
+    private static string? Validate(ContextualInfluenceDefinition definition)
+    {
+        if (string.IsNullOrWhiteSpace(definition.InfluenceId) ||
+            string.IsNullOrWhiteSpace(definition.Channel) ||
+            string.IsNullOrWhiteSpace(definition.Bucket))
+            return "influence is incomplete";
+        if (definition.Value.HasValue == !string.IsNullOrWhiteSpace(definition.Formula))
+            return $"influence {definition.InfluenceId} must define exactly one of value or formula";
+        return null;
     }
 }

@@ -531,8 +531,7 @@ builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxServ
     sp.GetRequiredService<ICombatRunCoordinator>(),
     sp.GetRequiredService<IRunStateRepository>()));
 builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
-    sp.GetRequiredService<IRunManager>(),
-    sp.GetRequiredService<IScriptModifierManager>()));
+    sp.GetRequiredService<IRunManager>()));
 builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new CombatTimelineProjectionService(
     sp.GetRequiredService<IRunManager>(),
     (IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
@@ -550,10 +549,13 @@ builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();
 builder.Services.AddSingleton<ICardPlayEvaluator, CardPlayEvaluator>();
 builder.Services.AddSingleton<CardComponentInfluenceProvider>(sp =>
     new CardComponentInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<RunModifierInfluenceProvider>(sp =>
+    new RunModifierInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     new CompositeCalculationInfluenceProvider(
     [
-        sp.GetRequiredService<CardComponentInfluenceProvider>()
+        sp.GetRequiredService<CardComponentInfluenceProvider>(),
+        sp.GetRequiredService<RunModifierInfluenceProvider>()
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();

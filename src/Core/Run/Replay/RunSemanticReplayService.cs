@@ -361,7 +361,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 new CalculationEngine(),
                 new CompositeCalculationInfluenceProvider(
                 [
-                    new CardComponentInfluenceProvider(_formulaEvaluator)
+                    new CardComponentInfluenceProvider(_formulaEvaluator),
+                    new RunModifierInfluenceProvider(_formulaEvaluator)
                 ]),
                 new ImmutableEffectProcessor(),
                 _formulaEvaluator);

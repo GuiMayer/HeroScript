@@ -1,5 +1,6 @@
 using Core.Determinism;
 using Core.Run;
+using Core.Combat.Modifiers;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -124,7 +125,16 @@ public sealed class RunSubmoduleTransitionsTests
         var committed = PreparationTransitions.CommitApply(
             state,
             first.Value,
-            new[] { first.Value.ModifierGrants[0].InstanceId });
+            new[]
+            {
+                new ScriptModifierInstance
+                {
+                    InstanceId = first.Value.ModifierGrants[0].InstanceId,
+                    ModifierId = "power",
+                    OwnerId = first.Value.ModifierGrants[0].OwnerId,
+                    Definition = new ScriptModifierDefinition { ModifierId = "power" }
+                }
+            });
 
         Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
         Assert.False(state.Preparations[0].Options[0].Applied);
@@ -158,7 +168,7 @@ public sealed class RunSubmoduleTransitionsTests
         var result = PreparationTransitions.CommitApply(
             state with { Determinism = state.Determinism.AdvanceStep() },
             plan,
-            Array.Empty<Guid>());
+            Array.Empty<ScriptModifierInstance>());
 
         Assert.True(result.IsFailure);
         Assert.Contains("stale", result.Error);

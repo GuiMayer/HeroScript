@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Content;
+using Core.Combat.Modifiers;
 using Core.Determinism;
 using Core.Run.Sandbox;
 
@@ -35,6 +36,7 @@ public sealed record RunState
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
     public ImmutableArray<RunRelicState> Relics { get; init; } = [];
+    public ImmutableArray<ScriptModifierInstance> Modifiers { get; init; } = [];
     public IReadOnlyDictionary<Guid, CombatResolutionRecord> CombatResolutions
     {
         get => _combatResolutions;
