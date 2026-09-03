@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Core.Combat.Flow;
 using Core.Determinism;
 using Core.Run;
 using Xunit;
@@ -38,6 +39,7 @@ public sealed class DeckTransitionsTests
         Assert.Equal(DeckState.CurrentTopologyVersion, json.GetProperty("topologyVersion").GetInt32());
         Assert.True(json.TryGetProperty("drawPileInstanceIds", out _));
         Assert.True(json.TryGetProperty("cardInstances", out _));
+        Assert.True(json.TryGetProperty("collectionInstanceIds", out _));
         Assert.False(json.TryGetProperty("drawPile", out _));
         Assert.False(json.TryGetProperty("hand", out _));
         Assert.False(json.TryGetProperty("discardPile", out _));
@@ -126,4 +128,141 @@ public sealed class DeckTransitionsTests
         Assert.Equal(new[] { "a" }, state.Hand);
         Assert.Empty(state.DiscardPile);
     }
+
+    [Fact]
+    public void BeginEncounter_ResetOrdered_RebuildsZonesAndDrawsConfiguredHand()
+    {
+        var context = DeterministicContext.Create(91, "test-content");
+        var created = DeckTransitions.Create(["a", "b", "c", "d"], context).Value;
+        var drawn = DeckTransitions.Draw(created.State, 2, created.Context).Value;
+        var discarded = DeckTransitions.MoveFromHand(
+            drawn.State,
+            [drawn.State.HandInstanceIds[0].ToString()],
+            CardConsumeDestination.Discard,
+            drawn.Context).Value;
+        var exhausted = DeckTransitions.MoveFromHand(
+            discarded.State,
+            [discarded.State.HandInstanceIds[0].ToString()],
+            CardConsumeDestination.Exhaust,
+            discarded.Context).Value;
+
+        var result = DeckTransitions.BeginEncounter(
+            exhausted.State,
+            Policy() with
+            {
+                EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
+                InitialHandSize = 2,
+                ExhaustPersistence = ExhaustPersistenceStrategy.Encounter
+            },
+            exhausted.Context);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(["a", "b"], result.Value.State.Hand);
+        Assert.Equal(["c", "d"], result.Value.State.DrawPile);
+        Assert.Empty(result.Value.State.DiscardPile);
+        Assert.Empty(result.Value.State.ExhaustPile);
+    }
+
+    [Fact]
+    public void BeginEncounter_ResetShuffled_IsStableForSameContext()
+    {
+        var created = DeckTransitions.Create(
+            ["a", "b", "c", "d", "e"],
+            DeterministicContext.Create(22, "test-content")).Value;
+        var policy = Policy() with
+        {
+            EncounterStart = EncounterDeckStartStrategy.ResetShuffled,
+            InitialHandSize = 3
+        };
+
+        var first = DeckTransitions.BeginEncounter(created.State, policy, created.Context);
+        var second = DeckTransitions.BeginEncounter(created.State, policy, created.Context);
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
+        Assert.Equal(first.Value.State.HandInstanceIds, second.Value.State.HandInstanceIds);
+        Assert.Equal(first.Value.State.DrawPileInstanceIds, second.Value.State.DrawPileInstanceIds);
+        Assert.Equal(first.Value.Context, second.Value.Context);
+        Assert.Equal(4UL, first.Value.Context.RandomState.DrawCount);
+    }
+
+    [Fact]
+    public void EndEncounter_RemovesEncounterCardsAndRestoresEncounterExhaust()
+    {
+        var created = DeckTransitions.Create(
+            ["owned"],
+            DeterministicContext.Create(30, "test-content")).Value;
+        var ownedId = Assert.Single(created.State.DrawPileInstanceIds);
+        var ownedInHand = DeckTransitions.Draw(created.State, 1, created.Context).Value;
+        var exhausted = DeckTransitions.MoveFromHand(
+            ownedInHand.State,
+            [ownedId.ToString()],
+            CardConsumeDestination.Exhaust,
+            ownedInHand.Context).Value;
+        var generated = DeckTransitions.AddGeneratedToHand(
+            exhausted.State,
+            ["temporary"],
+            exhausted.Context).Value;
+
+        var result = DeckTransitions.EndEncounter(generated.State, Policy(), generated.Context);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(["owned"], result.Value.State.DrawPile);
+        Assert.Empty(result.Value.State.Hand);
+        Assert.Empty(result.Value.State.DiscardPile);
+        Assert.Empty(result.Value.State.ExhaustPile);
+        Assert.Single(result.Value.State.CardInstances);
+        Assert.DoesNotContain(result.Value.State.CardInstances.Values, card => card.DefinitionId == "temporary");
+        Assert.True(DeckTransitions.ValidateTopology(result.Value.State).IsSuccess);
+    }
+
+    [Fact]
+    public void EndEncounter_CanPersistGeneratedCardsAndRunExhaust()
+    {
+        var created = DeckTransitions.Create(
+            ["owned"],
+            DeterministicContext.Create(31, "test-content")).Value;
+        var ownedId = Assert.Single(created.State.DrawPileInstanceIds);
+        var ownedInHand = DeckTransitions.Draw(created.State, 1, created.Context).Value;
+        var exhausted = DeckTransitions.MoveFromHand(
+            ownedInHand.State,
+            [ownedId.ToString()],
+            CardConsumeDestination.Exhaust,
+            ownedInHand.Context).Value;
+        var generated = DeckTransitions.AddGeneratedToHand(
+            exhausted.State,
+            ["generated"],
+            exhausted.Context).Value;
+
+        var result = DeckTransitions.EndEncounter(
+            generated.State,
+            Policy() with
+            {
+                ExhaustPersistence = ExhaustPersistenceStrategy.Run,
+                GeneratedCardPersistence = GeneratedCardPersistenceStrategy.Run
+            },
+            generated.Context);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(["generated"], result.Value.State.DrawPile);
+        Assert.Equal(["owned"], result.Value.State.ExhaustPile);
+        Assert.All(result.Value.State.CardInstances.Values, card =>
+            Assert.Equal(CardInstancePersistence.Run, card.Persistence));
+    }
+
+    private static DeckCyclePolicyDefinition Policy() => new()
+    {
+        DrawPerActivation = 5,
+        HandLimit = 10,
+        InitialHandSize = 5,
+        ActorScope = FlowActorScope.Player,
+        EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
+        EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,
+        ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,
+        GeneratedCardPersistence = GeneratedCardPersistenceStrategy.Encounter,
+        EndDiscard = DeckEndDiscardStrategy.NonRetain,
+        ShuffleDiscardWhenDrawEmpty = true,
+        AllowPartialDraw = true,
+        Fatigue = FatigueStrategy.None
+    };
 }

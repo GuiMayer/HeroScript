@@ -10,12 +10,13 @@ namespace Core.Run;
 /// </summary>
 public sealed record DeckState
 {
-    public const int CurrentTopologyVersion = 1;
+    public const int CurrentTopologyVersion = 2;
 
     private ImmutableList<Guid> _drawPile = [];
     private ImmutableList<Guid> _hand = [];
     private ImmutableList<Guid> _discardPile = [];
     private ImmutableList<Guid> _exhaustPile = [];
+    private ImmutableList<Guid> _collectionOrder = [];
     private ImmutableDictionary<Guid, CardInstanceState> _cardInstances =
         ImmutableDictionary<Guid, CardInstanceState>.Empty;
 
@@ -45,14 +46,25 @@ public sealed record DeckState
     public IReadOnlyDictionary<Guid, CardInstanceState> CardInstances
     {
         get => _cardInstances;
-        init => _cardInstances = value?.ToImmutableDictionary()
-            ?? ImmutableDictionary<Guid, CardInstanceState>.Empty;
+        init
+        {
+            _cardInstances = value?.ToImmutableDictionary()
+                ?? ImmutableDictionary<Guid, CardInstanceState>.Empty;
+            if (_collectionOrder.IsEmpty)
+                _collectionOrder = _cardInstances.Keys.OrderBy(id => id).ToImmutableList();
+        }
+    }
+    public IReadOnlyList<Guid> CollectionInstanceIds
+    {
+        get => _collectionOrder;
+        init => _collectionOrder = value?.ToImmutableList() ?? [];
     }
 
     internal ImmutableList<Guid> DrawPileItems => _drawPile;
     internal ImmutableList<Guid> HandItems => _hand;
     internal ImmutableList<Guid> DiscardPileItems => _discardPile;
     internal ImmutableList<Guid> ExhaustPileItems => _exhaustPile;
+    internal ImmutableList<Guid> CollectionItems => _collectionOrder;
     internal ImmutableDictionary<Guid, CardInstanceState> CardInstanceItems => _cardInstances;
 
     /// <summary>
@@ -112,6 +124,7 @@ public sealed record DeckState
                 index++,
                 $"deck-construction:{zoneName}:{definitionId}");
             ids.Add(instanceId);
+            _collectionOrder = _collectionOrder.Add(instanceId);
             _cardInstances = _cardInstances.SetItem(instanceId, new CardInstanceState
             {
                 CardInstanceId = instanceId,

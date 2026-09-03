@@ -220,7 +220,12 @@ public sealed class GameModeResolverTests
             DeckCycle = new()
             {
                 HandLimit = 10,
+                InitialHandSize = 5,
                 ActorScope = FlowActorScope.Player,
+                EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
+                EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,
+                ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,
+                GeneratedCardPersistence = GeneratedCardPersistenceStrategy.Encounter,
                 EndDiscard = DeckEndDiscardStrategy.NonRetain,
                 Fatigue = FatigueStrategy.None
             },

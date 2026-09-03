@@ -27,7 +27,12 @@
       "deckCycle": {
         "drawPerActivation": 5,
         "handLimit": 10,
+        "initialHandSize": 5,
         "actorScope": "Player",
+        "encounterStart": "PreserveZones",
+        "encounterCleanup": "ReturnToDrawPile",
+        "exhaustPersistence": "Encounter",
+        "generatedCardPersistence": "Encounter",
         "endDiscard": "NonRetain",
         "retainTags": ["retain"],
         "etherealTag": "ethereal",

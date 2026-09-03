@@ -874,11 +874,23 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 NodeId = currentNode.NodeId,
                 Combat = combatState
             };
+            var encounterDeck = Result<DeckTransition>.Success(
+                new DeckTransition(state.Deck, seed.Context, []));
+            if (state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
+            {
+                encounterDeck = DeckTransitions.BeginEncounter(
+                    state.Deck,
+                    deckPolicy,
+                    seed.Context);
+                if (encounterDeck.IsFailure)
+                    return Result<RunState>.Failure(encounterDeck.Error);
+            }
             var candidate = state with
             {
                 ActiveEncounterId = combatState.CombatId,
                 Encounters = state.Encounters.Add(encounter),
-                Determinism = seed.Context.AdvanceStep()
+                Deck = encounterDeck.Value.State,
+                Determinism = encounterDeck.Value.Context.AdvanceStep()
             };
             var initialEnergy = (int)(combatState.Hero.GetResource("energy")?.Current ?? 0f);
             var journalCommand = new RunEncounterStartCommand(
@@ -1141,7 +1153,23 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             if (!string.Equals(state.CurrentNodeId, encounter.NodeId, StringComparison.Ordinal))
                 return Result<RunState>.Failure("Encounter no longer belongs to the current map node");
 
-            var mapTransition = RunMapTransitions.Resolve(state, encounter.NodeId);
+            var cleanedState = state;
+            if (state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
+            {
+                var cleanup = DeckTransitions.EndEncounter(
+                    state.Deck,
+                    deckPolicy,
+                    state.Determinism);
+                if (cleanup.IsFailure)
+                    return Result<RunState>.Failure(cleanup.Error);
+                cleanedState = state with
+                {
+                    Deck = cleanup.Value.State,
+                    Determinism = cleanup.Value.Context
+                };
+            }
+
+            var mapTransition = RunMapTransitions.Resolve(cleanedState, encounter.NodeId);
             if (mapTransition.IsFailure)
                 return Result<RunState>.Failure(mapTransition.Error);
 

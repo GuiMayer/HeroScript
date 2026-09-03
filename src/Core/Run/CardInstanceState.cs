@@ -3,6 +3,12 @@ using Core.Run.Content;
 
 namespace Core.Run;
 
+public enum CardInstancePersistence
+{
+    Run,
+    Encounter
+}
+
 /// <summary>
 /// Immutable identity of one physical card owned by a run. Definition identity
 /// and instance identity intentionally never share the same field.
@@ -13,6 +19,7 @@ public sealed record CardInstanceState
 
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
+    public CardInstancePersistence Persistence { get; init; } = CardInstancePersistence.Run;
 
     public IReadOnlyList<CardUpgradeState> Upgrades
     {
