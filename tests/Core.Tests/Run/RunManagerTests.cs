@@ -499,6 +499,7 @@ public sealed class RunManagerTests
         Assert.True(selection.IsSuccess, selection.IsFailure ? selection.Error : null);
         Assert.Equal(2, selection.Value.Options.Count);
         Assert.Equal("basic_rewards", selection.Value.CardPoolId);
+        Assert.False(string.IsNullOrWhiteSpace(selection.Value.OfferFingerprint));
         Assert.Contains(selection.Value.Options, option => option.CardId == "heal" && option.Rarity == CardRarity.Common);
         Assert.Contains(selection.Value.Options, option => option.CardId == "fireball" && option.Rarity == CardRarity.Uncommon);
     }
@@ -517,6 +518,7 @@ public sealed class RunManagerTests
         Assert.Equal(1, reroll.Value.RerollsUsed);
         Assert.Equal(0, reroll.Value.FreeRerollsRemaining);
         Assert.Contains(reroll.Value.Options, option => option.CardId == "heal");
+        Assert.NotEqual(selection.OfferFingerprint, reroll.Value.OfferFingerprint);
     }
 
     [Fact]
@@ -615,6 +617,7 @@ public sealed class RunManagerTests
         Assert.True(shop.IsSuccess, shop.IsFailure ? shop.Error : null);
         Assert.Equal("basic_rewards", shop.Value.CardPoolId);
         Assert.Equal(2, shop.Value.Items.Count);
+        Assert.False(string.IsNullOrWhiteSpace(shop.Value.OfferFingerprint));
         Assert.Contains(shop.Value.Items, item => item.CardId == "heal" && item.GoldCost == 18);
         Assert.Contains(shop.Value.Items, item => item.CardId == "fireball" && item.GoldCost == 35);
         Assert.All(shop.Value.Items, item => Assert.True(item.PricingBreakdown.ContainsKey("final")));
@@ -634,6 +637,7 @@ public sealed class RunManagerTests
         Assert.Equal(15, run.Gold);
         Assert.Equal(1, reroll.Value.RerollsUsed);
         Assert.Equal(15, reroll.Value.RerollCostGold);
+        Assert.NotEqual(shop.OfferFingerprint, reroll.Value.OfferFingerprint);
         Assert.All(reroll.Value.Items, item => Assert.False(item.Purchased));
     }
 

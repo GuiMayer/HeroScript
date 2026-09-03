@@ -76,6 +76,7 @@ public sealed record ShopState
     public Guid RunId { get; init; }
     public string ShopId { get; init; } = string.Empty;
     public string? CardPoolId { get; init; }
+    public string OfferFingerprint { get; init; } = string.Empty;
     public int OfferCount { get; init; }
     public int RerollsUsed { get; init; }
     public int RerollCostGold { get; init; }

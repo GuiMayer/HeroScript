@@ -71,7 +71,8 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
         return Result<CardPoolResult>.Success(new CardPoolResult
         {
             PoolId = pool.PoolId,
-            Cards = cards
+            Cards = cards,
+            RarityWeights = pool.RarityWeights
         });
     }
 
@@ -194,7 +195,12 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
             .Where(card => pool.RarityWeights.Count == 0 || pool.RarityWeights.ContainsKey(card.Rarity))
             .OrderBy(card => card.CardId, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        return Result<CardPoolResult>.Success(new CardPoolResult { PoolId = pool.PoolId, Cards = cards });
+        return Result<CardPoolResult>.Success(new CardPoolResult
+        {
+            PoolId = pool.PoolId,
+            Cards = cards,
+            RarityWeights = pool.RarityWeights
+        });
     }
 
     private static string CacheKey(string configName, string poolId)

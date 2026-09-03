@@ -8,7 +8,8 @@ public static class CardSelectionTransitions
     public static RunStateTransition<CardSelectionState> Create(
         RunState state,
         CardSelectionDefinition definition,
-        IReadOnlyList<CardSelectionOptionState> options)
+        IReadOnlyList<CardSelectionOptionState> options,
+        string offerFingerprint = "")
     {
         var instanceId = state.Determinism.AllocateId("card-selection");
         var selection = new CardSelectionState
@@ -19,6 +20,7 @@ public static class CardSelectionTransitions
             PickCount = definition.PickCount,
             OfferCount = definition.OfferCount,
             CardPoolId = definition.CardPoolId,
+            OfferFingerprint = offerFingerprint,
             Reroll = definition.Reroll,
             Decompose = definition.Decompose,
             FreeRerollsRemaining = definition.Reroll.FreeRerolls,
@@ -86,7 +88,8 @@ public static class CardSelectionTransitions
     public static Result<RunStateTransition<CardSelectionState>> Reroll(
         RunState state,
         Guid selectionInstanceId,
-        IReadOnlyList<CardSelectionOptionState> options)
+        IReadOnlyList<CardSelectionOptionState> options,
+        string offerFingerprint = "")
     {
         var located = Locate(state, selectionInstanceId);
         if (located.IsFailure)
@@ -108,7 +111,8 @@ public static class CardSelectionTransitions
             RerollsUsed = rerollsUsed,
             FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1),
             RerollCostGold = CalculateRerollCost(selection.Reroll, rerollsUsed),
-            Options = options
+            Options = options,
+            OfferFingerprint = offerFingerprint
         };
         var next = state with
         {

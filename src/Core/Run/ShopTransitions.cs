@@ -8,7 +8,8 @@ public static class ShopTransitions
     public static RunStateTransition<ShopState> Create(
         RunState state,
         ShopDefinition definition,
-        IReadOnlyList<ShopItemState> items)
+        IReadOnlyList<ShopItemState> items,
+        string offerFingerprint = "")
     {
         var instanceId = state.Determinism.AllocateId("shop");
         var shop = new ShopState
@@ -18,6 +19,7 @@ public static class ShopTransitions
             ShopId = definition.ShopId,
             CardPoolId = definition.CardPoolId,
             OfferCount = definition.OfferCount,
+            OfferFingerprint = offerFingerprint,
             Pricing = definition.Pricing,
             Reroll = definition.Reroll,
             RerollCostGold = CalculateRerollCost(definition.Reroll, 0),
@@ -78,7 +80,8 @@ public static class ShopTransitions
     public static Result<RunStateTransition<ShopState>> Reroll(
         RunState state,
         Guid shopInstanceId,
-        IReadOnlyList<ShopItemState> items)
+        IReadOnlyList<ShopItemState> items,
+        string offerFingerprint = "")
     {
         var located = Locate(state, shopInstanceId);
         if (located.IsFailure)
@@ -93,7 +96,8 @@ public static class ShopTransitions
         {
             RerollsUsed = rerollsUsed,
             RerollCostGold = CalculateRerollCost(shop.Reroll, rerollsUsed),
-            Items = items
+            Items = items,
+            OfferFingerprint = offerFingerprint
         };
         var next = state with
         {

@@ -87,11 +87,19 @@ public sealed record CardPoolDefinition
 public sealed record CardPoolResult
 {
     private ImmutableList<CardContentDefinition> _cards = [];
+    private ImmutableDictionary<CardRarity, int> _rarityWeights =
+        ImmutableDictionary<CardRarity, int>.Empty;
 
     public string PoolId { get; init; } = string.Empty;
     public IReadOnlyList<CardContentDefinition> Cards
     {
         get => _cards;
         init => _cards = value?.ToImmutableList() ?? [];
+    }
+    public IReadOnlyDictionary<CardRarity, int> RarityWeights
+    {
+        get => _rarityWeights;
+        init => _rarityWeights = value?.ToImmutableDictionary()
+            ?? ImmutableDictionary<CardRarity, int>.Empty;
     }
 }

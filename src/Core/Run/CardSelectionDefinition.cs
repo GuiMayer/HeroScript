@@ -51,6 +51,7 @@ public sealed record CardSelectionState
     public int PickCount { get; init; }
     public int OfferCount { get; init; } = 3;
     public string? CardPoolId { get; init; }
+    public string OfferFingerprint { get; init; } = string.Empty;
     public IReadOnlyList<CardSelectionOptionState> Options
     {
         get => _options;

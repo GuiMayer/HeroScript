@@ -1403,11 +1403,17 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
-            var options = GenerateCardSelectionOptions(
+            var generated = GenerateCardSelectionOptions(
                 state,
                 definition,
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase));
-            var transition = CardSelectionTransitions.Create(state, definition, options);
+            if (generated.IsFailure)
+                return Result<CardSelectionState>.Failure(generated.Error);
+            var transition = CardSelectionTransitions.Create(
+                state with { Determinism = generated.Value.Context },
+                definition,
+                generated.Value.Options,
+                generated.Value.Fingerprint);
             return CommitTransition(
                 transition,
                 "run.card-selection.create",
@@ -1452,7 +1458,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
             var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
             var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
-            var transition = CardSelectionTransitions.Reroll(state, selectionInstanceId, generated);
+            if (generated.IsFailure)
+                return Result<CardSelectionState>.Failure(generated.Error);
+            var transition = CardSelectionTransitions.Reroll(
+                state with { Determinism = generated.Value.Context },
+                selectionInstanceId,
+                generated.Value.Options,
+                generated.Value.Fingerprint);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
@@ -1494,7 +1506,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<ShopState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
-            var transition = ShopTransitions.Create(state, definition, GenerateShopItems(state, definition));
+            var generated = GenerateShopItems(state, definition);
+            if (generated.IsFailure)
+                return Result<ShopState>.Failure(generated.Error);
+            var transition = ShopTransitions.Create(
+                state with { Determinism = generated.Value.Context },
+                definition,
+                generated.Value.Items,
+                generated.Value.Fingerprint);
             return CommitTransition(
                 transition,
                 "run.shop.create",
@@ -1537,8 +1556,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             if (definitionResult.IsFailure)
                 return Result<ShopState>.Failure(definitionResult.Error);
 
-            var items = GenerateShopItems(state, definitionResult.Value, checked(shop.RerollsUsed + 1));
-            var transition = ShopTransitions.Reroll(state, shopInstanceId, items);
+            var generated = GenerateShopItems(state, definitionResult.Value);
+            if (generated.IsFailure)
+                return Result<ShopState>.Failure(generated.Error);
+            var transition = ShopTransitions.Reroll(
+                state with { Determinism = generated.Value.Context },
+                shopInstanceId,
+                generated.Value.Items,
+                generated.Value.Fingerprint);
             return transition.IsFailure
                 ? Result<ShopState>.Failure(transition.Error)
                 : CommitTransition(
@@ -1670,46 +1695,58 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             : Result<T>.Failure(persisted.Error);
     }
 
-    private List<CardSelectionOptionState> GenerateCardSelectionOptions(RunState state, CardSelectionDefinition definition, IReadOnlySet<string> lockedCardIds)
+    private Result<CardSelectionOfferGeneration> GenerateCardSelectionOptions(
+        RunState state,
+        CardSelectionDefinition definition,
+        IReadOnlySet<string> lockedCardIds)
     {
         var lockedOptions = lockedCardIds
+            .OrderBy(cardId => cardId, StringComparer.Ordinal)
             .Select(cardId => CreateCardSelectionOption(state, cardId))
             .Where(option => option != null)
             .Cast<CardSelectionOptionState>()
             .ToList();
-
-        var candidates = ResolveCardSelectionCandidates(state, definition)
-            .Where(option => !lockedCardIds.Contains(option.CardId))
-            .Where(option => !lockedOptions.Any(locked => locked.CardId.Equals(option.CardId, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(option => RarityRank(option.Rarity))
-            .ThenBy(option => option.CardId, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
         var desiredCount = System.Math.Max(1, definition.OfferCount) - lockedOptions.Count;
-        lockedOptions.AddRange(candidates.Take(System.Math.Max(0, desiredCount)));
-        return lockedOptions;
-    }
-
-    private List<CardSelectionOptionState> ResolveCardSelectionCandidates(
-        RunState state,
-        CardSelectionDefinition definition)
-    {
-        if (!string.IsNullOrWhiteSpace(definition.CardPoolId) && _cardPoolResolver != null)
+        if (!string.IsNullOrWhiteSpace(definition.CardPoolId))
         {
+            if (_cardPoolResolver == null)
+            {
+                return Result<CardSelectionOfferGeneration>.Failure(
+                    $"Card pool resolver is unavailable for {definition.CardPoolId}");
+            }
             var poolResult = _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
                 ? revisionedPools.ResolvePool(
                     definition.CardPoolId,
                     state.Determinism.ContentRevision,
                     state.ConfigName)
                 : _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
-            if (poolResult.IsSuccess)
-                return poolResult.Value.Cards.Select(ToOption).ToList();
+            if (poolResult.IsFailure)
+                return Result<CardSelectionOfferGeneration>.Failure(poolResult.Error);
+            var offer = CardOfferResolver.Resolve(
+                poolResult.Value,
+                System.Math.Max(0, desiredCount),
+                state.Determinism,
+                lockedCardIds);
+            if (offer.IsFailure)
+                return Result<CardSelectionOfferGeneration>.Failure(offer.Error);
+            lockedOptions.AddRange(offer.Value.Cards.Select(ToOption));
+            return Result<CardSelectionOfferGeneration>.Success(new(
+                lockedOptions,
+                offer.Value.Context,
+                offer.Value.Fingerprint));
         }
 
-        return definition.CardPool
+        var candidates = definition.CardPool
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+            .Where(cardId => !lockedCardIds.Contains(cardId))
             .Select(cardId => CreateCardSelectionOption(state, cardId) ?? new CardSelectionOptionState { CardId = cardId })
+            .OrderBy(option => option.CardId, StringComparer.Ordinal)
             .ToList();
+        lockedOptions.AddRange(candidates.Take(System.Math.Max(0, desiredCount)));
+        return Result<CardSelectionOfferGeneration>.Success(new(
+            lockedOptions,
+            state.Determinism,
+            CanonicalJson.ComputeHash(lockedOptions.Select(option => option.CardId).ToArray())));
     }
 
     private CardSelectionOptionState? CreateCardSelectionOption(RunState state, string cardId)
@@ -1737,41 +1774,44 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         };
     }
 
-    private static int RarityRank(CardRarity rarity)
+    private Result<ShopOfferGeneration> GenerateShopItems(RunState state, ShopDefinition definition)
     {
-        return rarity switch
+        if (!string.IsNullOrWhiteSpace(definition.CardPoolId))
         {
-            CardRarity.Common => 0,
-            CardRarity.Uncommon => 1,
-            CardRarity.Rare => 2,
-            CardRarity.Legendary => 3,
-            _ => 99
-        };
-    }
-
-    private List<ShopItemState> GenerateShopItems(RunState state, ShopDefinition definition, int offset = 0)
-    {
-        if (!string.IsNullOrWhiteSpace(definition.CardPoolId) && _cardPoolResolver != null)
-        {
+            if (_cardPoolResolver == null)
+            {
+                return Result<ShopOfferGeneration>.Failure(
+                    $"Card pool resolver is unavailable for {definition.CardPoolId}");
+            }
             var poolResult = _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
                 ? revisionedPools.ResolvePool(
                     definition.CardPoolId,
                     state.Determinism.ContentRevision,
                     state.ConfigName)
                 : _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
-            if (poolResult.IsSuccess)
-            {
-                return poolResult.Value.Cards
-                    .OrderBy(card => RarityRank(card.Rarity))
-                    .ThenBy(card => card.CardId, StringComparer.OrdinalIgnoreCase)
-                    .Skip(offset)
-                    .Take(System.Math.Max(1, definition.OfferCount))
+            if (poolResult.IsFailure)
+                return Result<ShopOfferGeneration>.Failure(poolResult.Error);
+            var offer = CardOfferResolver.Resolve(
+                poolResult.Value,
+                System.Math.Max(1, definition.OfferCount),
+                state.Determinism);
+            if (offer.IsFailure)
+                return Result<ShopOfferGeneration>.Failure(offer.Error);
+            return Result<ShopOfferGeneration>.Success(new(
+                offer.Value.Cards
                     .Select((card, index) => ToShopItem(card, definition.Pricing, index))
-                    .ToList();
-            }
+                    .ToList(),
+                offer.Value.Context,
+                offer.Value.Fingerprint));
         }
 
-        return definition.Items.Select((item, index) => ToShopItem(state, item, definition.Pricing, index)).ToList();
+        var items = definition.Items
+            .Select((item, index) => ToShopItem(state, item, definition.Pricing, index))
+            .ToList();
+        return Result<ShopOfferGeneration>.Success(new(
+            items,
+            state.Determinism,
+            CanonicalJson.ComputeHash(items.Select(item => item.ItemId).ToArray())));
     }
 
     private ShopItemState ToShopItem(RunState state, ShopItemDefinition item, ShopPricingRules pricing, int index)
@@ -1813,6 +1853,16 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             PricingBreakdown = breakdown
         };
     }
+
+    private sealed record CardSelectionOfferGeneration(
+        IReadOnlyList<CardSelectionOptionState> Options,
+        DeterministicContext Context,
+        string Fingerprint);
+
+    private sealed record ShopOfferGeneration(
+        IReadOnlyList<ShopItemState> Items,
+        DeterministicContext Context,
+        string Fingerprint);
 
     private static Dictionary<string, double> CalculateShopPrice(CardContentDefinition card, ShopPricingRules pricing, int? explicitGoldCost)
     {
