@@ -253,6 +253,56 @@ public sealed class CalculationEngineTests
         Assert.Equal(0.5f, influence.Value);
     }
 
+    [Fact]
+    public void RelicProvider_AppliesOnlyToConfiguredHeroScope()
+    {
+        var hero = Entity("hero", "energy", 3) with { IsHero = true };
+        var enemy = Entity("enemy", "health", 20) with { IsHero = false };
+        var run = new RunState
+        {
+            Relics =
+            [
+                new RunRelicState
+                {
+                    RelicInstanceId = Guid.Parse("40000000-0000-8000-8000-000000000001"),
+                    DefinitionId = "ember",
+                    Stacks = 2,
+                    Influences =
+                    [
+                        new ContextualInfluenceDefinition
+                        {
+                            InfluenceId = "ember.damage",
+                            Scope = CalculationEntityScope.Actor,
+                            Channel = "effect_amount",
+                            Bucket = "flat",
+                            Value = 1,
+                            RequiredTags = ["fire"]
+                        }
+                    ]
+                }
+            ]
+        };
+        var provider = new RelicCalculationInfluenceProvider(Mock.Of<IRuntimeFormulaEvaluator>());
+
+        var heroResult = provider.Collect(new CalculationSourceContext
+        {
+            Run = run,
+            Actor = hero,
+            Target = enemy,
+            Tags = new HashSet<string> { "fire" }
+        });
+        var enemyResult = provider.Collect(new CalculationSourceContext
+        {
+            Run = run,
+            Actor = enemy,
+            Target = hero,
+            Tags = new HashSet<string> { "fire" }
+        });
+
+        Assert.Equal(2, Assert.Single(heroResult.Value).Value);
+        Assert.Empty(enemyResult.Value);
+    }
+
     private static CalculationPipelineDefinition Pipeline() => new()
     {
         PipelineId = "generic-resource-change",

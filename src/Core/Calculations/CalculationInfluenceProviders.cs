@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Common;
 using Core.Math;
 using Core.Run.Content;
+using Core.Run;
 using Core.Combat.Modifiers;
 using Core.StatusEffects;
 
@@ -335,6 +336,80 @@ public sealed class StatusCalculationInfluenceProvider : ICalculationInfluencePr
         return !string.IsNullOrWhiteSpace(status.ContentRevision) &&
                _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
             ? revisioned.EvaluateAtRevision(definition.Formula!, status.ContentRevision, variables)
+            : _formulas.Evaluate(definition.Formula!, variables);
+    }
+}
+
+/// <summary>Projects relic components pinned at acquisition into calculations.</summary>
+public sealed class RelicCalculationInfluenceProvider : ICalculationInfluenceProvider
+{
+    private readonly IRuntimeFormulaEvaluator _formulas;
+
+    public RelicCalculationInfluenceProvider(IRuntimeFormulaEvaluator formulas) =>
+        _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
+
+    public string ProviderId => "run-relics";
+
+    public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
+    {
+        if (context.Run == null)
+            return Result<IReadOnlyList<CalculationInfluence>>.Success([]);
+        var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
+        foreach (var relic in context.Run.Relics.OrderBy(item => item.RelicInstanceId))
+        {
+            foreach (var definition in relic.Influences
+                         .OrderByDescending(item => item.Priority)
+                         .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
+            {
+                var scoped = definition.Scope == CalculationEntityScope.Actor
+                    ? context.Actor
+                    : context.Target;
+                if (scoped?.IsHero != true ||
+                    !definition.RequiredTags.All(context.Tags.Contains) ||
+                    definition.ExcludedTags.Any(context.Tags.Contains))
+                    continue;
+                if (string.IsNullOrWhiteSpace(definition.InfluenceId) ||
+                    string.IsNullOrWhiteSpace(definition.Channel) ||
+                    string.IsNullOrWhiteSpace(definition.Bucket) ||
+                    definition.Value.HasValue == !string.IsNullOrWhiteSpace(definition.Formula))
+                {
+                    return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                        $"Relic {relic.DefinitionId} contains an invalid influence component");
+                }
+                var value = ResolveValue(relic, definition, context);
+                if (value.IsFailure)
+                    return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                        $"Relic {relic.DefinitionId}/{definition.InfluenceId}: {value.Error}");
+                result.Add(new CalculationInfluence
+                {
+                    InfluenceId = definition.InfluenceId,
+                    SourceKind = CalculationSourceKind.Relic,
+                    SourceId = relic.RelicInstanceId.ToString(),
+                    Channel = definition.Channel,
+                    Bucket = definition.Bucket,
+                    Value = value.Value,
+                    Priority = definition.Priority
+                });
+            }
+        }
+        return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());
+    }
+
+    private Result<float> ResolveValue(
+        RunRelicState relic,
+        ContextualInfluenceDefinition definition,
+        CalculationSourceContext context)
+    {
+        if (definition.Value.HasValue)
+            return Result<float>.Success(definition.Value.Value * relic.Stacks);
+        var variables = context.Variables.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
+            StringComparer.Ordinal);
+        variables["stacks"] = relic.Stacks;
+        return !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+               _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
+            ? revisioned.EvaluateAtRevision(definition.Formula!, context.ContentRevision, variables)
             : _formulas.Evaluate(definition.Formula!, variables);
     }
 }

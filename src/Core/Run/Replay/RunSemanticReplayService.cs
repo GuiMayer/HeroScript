@@ -350,10 +350,14 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 contentRuntimes,
                 _actionManager,
                 new IntentResolver(gambits, _actionManager),
-                new CombatStatusLifecycle(
+                new CombatStatusLifecycle(new EffectTriggerExecutor(
                     _formulaEvaluator,
                     new ImmutableEffectProcessor(),
-                    contentRuntimes));
+                    contentRuntimes)),
+                new CombatRelicLifecycle(new EffectTriggerExecutor(
+                    _formulaEvaluator,
+                    new ImmutableEffectProcessor(),
+                    contentRuntimes)));
         var cardPlay = contentRuntimes == null
             ? null
             : new CardPlayExecutor(
@@ -366,7 +370,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 [
                     new CardComponentInfluenceProvider(_formulaEvaluator),
                     new RunModifierInfluenceProvider(_formulaEvaluator),
-                    new StatusCalculationInfluenceProvider(_formulaEvaluator)
+                    new StatusCalculationInfluenceProvider(_formulaEvaluator),
+                    new RelicCalculationInfluenceProvider(_formulaEvaluator)
                 ]),
                 new ImmutableEffectProcessor(),
                 _formulaEvaluator);

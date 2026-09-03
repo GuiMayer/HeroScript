@@ -54,6 +54,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
         ValidateStatusEffects(runtime, errors);
+        ValidateRelics(runtime, errors);
         ValidateEnemyPools(runtime, errors);
         ValidateCardPools(runtime, errors);
         ValidateCardUpgrades(runtime, errors);
@@ -429,6 +430,61 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 yield return nested;
             foreach (var nested in EnumerateEffects(effect.ConditionalEffects ?? []))
                 yield return nested;
+        }
+    }
+
+    private static void ValidateRelics(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        foreach (var (id, element) in runtime.GetDefinitions("relics"))
+        {
+            try
+            {
+                var relic = element.Deserialize<RelicDefinition>(CreateJsonOptions());
+                if (relic == null)
+                {
+                    errors.Add($"relics/{id} is invalid");
+                    continue;
+                }
+                if (relic.StackLimit < 1)
+                    errors.Add($"relics/{id} has invalid stackLimit");
+                foreach (var trigger in relic.Triggers)
+                {
+                    if (string.IsNullOrWhiteSpace(trigger.TriggerId) ||
+                        string.IsNullOrWhiteSpace(trigger.Boundary) ||
+                        trigger.Effects.Count == 0)
+                    {
+                        errors.Add($"relics/{id} has invalid trigger {trigger.TriggerId}");
+                        continue;
+                    }
+                    foreach (var effect in EnumerateEffects(trigger.Effects))
+                    {
+                        if (effect.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE)
+                        {
+                            if (string.IsNullOrWhiteSpace(effect.TargetResource))
+                                errors.Add($"relics/{id} effect {effect.EffectId} requires targetResource");
+                            else
+                                Require(runtime, errors, "relics", id, effect.TargetResource, "resources");
+                        }
+                        if (effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS &&
+                            !string.IsNullOrWhiteSpace(effect.StatusId))
+                            Require(runtime, errors, "relics", id, effect.StatusId, "status-effects");
+                    }
+                }
+                foreach (var influence in relic.Influences)
+                {
+                    if (string.IsNullOrWhiteSpace(influence.InfluenceId) ||
+                        string.IsNullOrWhiteSpace(influence.Channel) ||
+                        string.IsNullOrWhiteSpace(influence.Bucket) ||
+                        influence.Value.HasValue == !string.IsNullOrWhiteSpace(influence.Formula))
+                        errors.Add($"relics/{id} has invalid influence {influence.InfluenceId}");
+                }
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"relics/{id} could not be parsed: {exception.Message}");
+            }
         }
     }
 

@@ -20,7 +20,9 @@ public sealed class CombatStatusLifecycleTests
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
         formulas.Setup(item => item.Evaluate("stacks * 2", It.IsAny<Dictionary<string, float>>(), 0f))
             .Returns(Core.Common.Result<float>.Success(4));
-        var lifecycle = new CombatStatusLifecycle(formulas.Object);
+        var lifecycle = new CombatStatusLifecycle(new EffectTriggerExecutor(
+            formulas.Object,
+            new ImmutableEffectProcessor()));
         var combat = CombatTransitions.Create(
             Entity("hero", true, 50),
             [Entity("enemy", false, 50)],

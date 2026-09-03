@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Core.Determinism;
 using Core.Run;
+using Core.Calculations;
+using Core.Effects;
 using Core.Run.Content;
 using Xunit;
 
@@ -76,6 +78,33 @@ public sealed class RunCollectibleTransitionsTests
         {
             RelicId = "ember_core",
             StackLimit = 2,
+            Influences =
+            [
+                new ContextualInfluenceDefinition
+                {
+                    InfluenceId = "ember.power",
+                    Channel = "effect_amount",
+                    Bucket = "flat",
+                    Value = 1
+                }
+            ],
+            Triggers =
+            [
+                new EffectTriggerDefinition
+                {
+                    TriggerId = "ember.start",
+                    Boundary = "CombatStart",
+                    Effects =
+                    [
+                        new EffectDefinition
+                        {
+                            EffectId = "ember.energy",
+                            Type = EffectType.MODIFY_RESOURCE,
+                            TargetResource = "energy"
+                        }
+                    ]
+                }
+            ],
             Properties = new Dictionary<string, JsonElement>
             {
                 ["amount"] = JsonSerializer.SerializeToElement(1)
@@ -95,6 +124,8 @@ public sealed class RunCollectibleTransitionsTests
         Assert.Equal(first.Relic.RelicInstanceId, repeated.Relic.RelicInstanceId);
         Assert.Equal(2, stacked.Relic.Stacks);
         Assert.Equal(first.Relic.RelicInstanceId, stacked.Relic.RelicInstanceId);
+        Assert.Equal("ember.power", Assert.Single(first.Relic.Influences).InfluenceId);
+        Assert.Equal("ember.start", Assert.Single(first.Relic.Triggers).TriggerId);
         Assert.True(RelicsEqual(first.State, repeated.State));
     }
 

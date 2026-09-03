@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Common;
 using Core.Determinism;
+using Core.Calculations;
+using Core.Effects;
 
 namespace Core.Run;
 
@@ -9,9 +11,21 @@ public sealed record RelicDefinition
 {
     private ImmutableDictionary<string, JsonElement> _properties =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
+    private ImmutableArray<EffectTriggerDefinition> _triggers = [];
 
     public string RelicId { get; init; } = string.Empty;
     public int StackLimit { get; init; } = 1;
+    public IReadOnlyList<ContextualInfluenceDefinition> Influences
+    {
+        get => _influences;
+        init => _influences = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectTriggerDefinition> Triggers
+    {
+        get => _triggers;
+        init => _triggers = value?.ToImmutableArray() ?? [];
+    }
 
     public IReadOnlyDictionary<string, JsonElement> Properties
     {
@@ -25,11 +39,23 @@ public sealed record RunRelicState
 {
     private ImmutableDictionary<string, JsonElement> _properties =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
+    private ImmutableArray<EffectTriggerDefinition> _triggers = [];
 
     public Guid RelicInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     public int Stacks { get; init; } = 1;
     public ulong AcquiredAtStep { get; init; }
+    public IReadOnlyList<ContextualInfluenceDefinition> Influences
+    {
+        get => _influences;
+        init => _influences = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectTriggerDefinition> Triggers
+    {
+        get => _triggers;
+        init => _triggers = value?.ToImmutableArray() ?? [];
+    }
 
     /// <summary>Immutable copy of the gameplay properties pinned at acquisition.</summary>
     public IReadOnlyDictionary<string, JsonElement> Properties
@@ -76,6 +102,8 @@ public static class RelicTransitions
             RelicInstanceId = allocated.Value,
             DefinitionId = definition.RelicId,
             AcquiredAtStep = state.Determinism.Step,
+            Influences = definition.Influences,
+            Triggers = definition.Triggers,
             Properties = definition.Properties
         };
         return Result<RelicTransition>.Success(new RelicTransition(

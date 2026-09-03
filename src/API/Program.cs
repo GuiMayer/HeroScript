@@ -264,9 +264,9 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 builder.Services.AddSingleton<ICombatStatusLifecycle>(sp => new CombatStatusLifecycle(
-    sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
-    sp.GetRequiredService<IImmutableEffectProcessor>(),
-    sp.GetRequiredService<IContentRuntimeResolver>()));
+    sp.GetRequiredService<IEffectTriggerExecutor>()));
+builder.Services.AddSingleton<ICombatRelicLifecycle>(sp => new CombatRelicLifecycle(
+    sp.GetRequiredService<IEffectTriggerExecutor>()));
 
 // Register persistence services
 var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
@@ -304,6 +304,10 @@ builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
 builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
 builder.Services.AddSingleton<ICalculationEngine, CalculationEngine>();
 builder.Services.AddSingleton<IImmutableEffectProcessor, ImmutableEffectProcessor>();
+builder.Services.AddSingleton<IEffectTriggerExecutor>(sp => new EffectTriggerExecutor(
+    sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
+    sp.GetRequiredService<IImmutableEffectProcessor>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
     new ResourceCatalog<RelicDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -509,7 +513,8 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<IActionManager>(),
     sp.GetRequiredService<IIntentResolver>(),
-    sp.GetRequiredService<ICombatStatusLifecycle>()));
+    sp.GetRequiredService<ICombatStatusLifecycle>(),
+    sp.GetRequiredService<ICombatRelicLifecycle>()));
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
     sp.GetRequiredService<ICombatSystem>(),
     sp.GetRequiredService<IRunManager>(),
@@ -556,12 +561,15 @@ builder.Services.AddSingleton<RunModifierInfluenceProvider>(sp =>
     new RunModifierInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<StatusCalculationInfluenceProvider>(sp =>
     new StatusCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<RelicCalculationInfluenceProvider>(sp =>
+    new RelicCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     new CompositeCalculationInfluenceProvider(
     [
         sp.GetRequiredService<CardComponentInfluenceProvider>(),
         sp.GetRequiredService<RunModifierInfluenceProvider>(),
-        sp.GetRequiredService<StatusCalculationInfluenceProvider>()
+        sp.GetRequiredService<StatusCalculationInfluenceProvider>(),
+        sp.GetRequiredService<RelicCalculationInfluenceProvider>()
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();

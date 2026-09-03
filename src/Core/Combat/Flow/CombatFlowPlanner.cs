@@ -47,17 +47,20 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     private readonly IActionManager _actions;
     private readonly IIntentResolver _intents;
     private readonly ICombatStatusLifecycle _statusLifecycle;
+    private readonly ICombatRelicLifecycle _relicLifecycle;
 
     public CombatFlowPlanner(
         IContentRuntimeResolver contentRuntimes,
         IActionManager actions,
         IIntentResolver intents,
-        ICombatStatusLifecycle statusLifecycle)
+        ICombatStatusLifecycle statusLifecycle,
+        ICombatRelicLifecycle relicLifecycle)
     {
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _intents = intents ?? throw new ArgumentNullException(nameof(intents));
         _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
+        _relicLifecycle = relicLifecycle ?? throw new ArgumentNullException(nameof(relicLifecycle));
     }
 
     public Result<CombatState> Initialize(RunState run, CombatState combat)
@@ -70,7 +73,17 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var initialized = Initialize(run, combat, context.Value.Sequence, context.Value.Policies);
         if (initialized.IsFailure)
             return initialized;
-        var withLifecycle = ApplyInitialLifecycle(initialized.Value, context.Value.Policies);
+        var relics = _relicLifecycle.Process(
+            run,
+            initialized.Value,
+            CombatTriggerBoundaries.CombatStart);
+        if (relics.IsFailure)
+            return Result<CombatState>.Failure(relics.Error);
+        var afterRelics = CombatFlowTransitions.EvaluateOutcome(
+            relics.Value.Combat,
+            context.Value.Policies.Outcome,
+            initialized.Value.ActivationState?.ActiveActorId);
+        var withLifecycle = ApplyInitialLifecycle(afterRelics, context.Value.Policies);
         return withLifecycle.IsFailure
             ? withLifecycle
             : PublishIntents(run, withLifecycle.Value, context.Value.Policies);

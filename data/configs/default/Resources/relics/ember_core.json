@@ -2,10 +2,22 @@
   "ember_core": {
     "relicId": "ember_core",
     "stackLimit": 1,
-    "properties": {
-      "trigger": "combat.start",
-      "effect": "energy.add",
-      "amount": 1
-    }
+    "triggers": [
+      {
+        "triggerId": "ember_core.combat-start",
+        "boundary": "CombatStart",
+        "effects": [
+          {
+            "effectId": "ember_core.energy",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "flatValue": 1,
+            "targetResource": "energy",
+            "operation": "ADD",
+            "tags": ["resource", "energy"]
+          }
+        ]
+      }
+    ]
   }
 }
