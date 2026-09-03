@@ -222,6 +222,7 @@ public sealed class CombatRunCoordinatorTests
     {
         var flowPlanner = new Mock<ICombatFlowPlanner>();
         var gambits = new Mock<IGambitEngine>();
+        var abilities = new Mock<IAbilityExecutor>();
         var committer = _runManager.As<IRunCombatResolutionCommitter>();
         var run = CreateRunState(Guid.NewGuid(), []) with
         {
@@ -255,8 +256,24 @@ public sealed class CombatRunCoordinatorTests
                 previous.CombatId,
                 It.IsAny<CombatActionCommand>()))
             .Returns(Result<CombatState>.Success(rootState))
-            .Returns(Result<CombatState>.Success(attackedState))
             .Returns(Result<CombatState>.Success(endedState));
+        abilities.Setup(executor => executor.Execute(It.IsAny<AbilityExecutionRequest>()))
+            .Returns(Result<AbilityExecutionResult>.Success(new AbilityExecutionResult
+            {
+                Combat = attackedState,
+                Definition = new ActionDefinition
+                {
+                    ActionId = "basic_attack",
+                    ActionType = ActionType.BASIC_ATTACK
+                },
+                Evaluation = new CardPlayEvaluation
+                {
+                    IsLegal = true,
+                    ActorId = "enemy",
+                    ResolvedTargetIds = ["hero"]
+                },
+                ResolutionFingerprint = "ability-resolution"
+            }));
         flowPlanner.SetupSequence(planner => planner.AdvanceActivation(
                 run,
                 It.IsAny<CombatState>(),
@@ -294,7 +311,8 @@ public sealed class CombatRunCoordinatorTests
             _runManager.Object,
             _cardPlayExecutor.Object,
             flowPlanner.Object,
-            gambits.Object);
+            gambits.Object,
+            abilityExecutor: abilities.Object);
         var result = coordinator.ExecuteAction(previous.CombatId, command, identity);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);

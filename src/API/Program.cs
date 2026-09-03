@@ -307,7 +307,9 @@ builder.Services.AddSingleton<IImmutableEffectProcessor, ImmutableEffectProcesso
 builder.Services.AddSingleton<IEffectTriggerExecutor>(sp => new EffectTriggerExecutor(
     sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
     sp.GetRequiredService<IImmutableEffectProcessor>(),
-    sp.GetRequiredService<IContentRuntimeResolver>()));
+    sp.GetRequiredService<IContentRuntimeResolver>(),
+    sp.GetRequiredService<ICalculationEngine>(),
+    sp.GetRequiredService<ICalculationInfluenceProvider>()));
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
     new ResourceCatalog<RelicDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -521,7 +523,8 @@ builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordina
     sp.GetRequiredService<ICardPlayExecutor>(),
     sp.GetRequiredService<ICombatFlowPlanner>(),
     sp.GetRequiredService<IGambitEngine>(),
-    sp.GetRequiredService<IEventBus>()));
+    sp.GetRequiredService<IEventBus>(),
+    sp.GetRequiredService<IAbilityExecutor>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IGameModeResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),
@@ -572,6 +575,7 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
         sp.GetRequiredService<RelicCalculationInfluenceProvider>()
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
+builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 
 // Register ExpressionEvaluator

@@ -83,7 +83,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             relics.Value.Combat,
             context.Value.Policies.Outcome,
             initialized.Value.ActivationState?.ActiveActorId);
-        var withLifecycle = ApplyInitialLifecycle(afterRelics, context.Value.Policies);
+        var withLifecycle = ApplyInitialLifecycle(run, afterRelics, context.Value.Policies);
         return withLifecycle.IsFailure
             ? withLifecycle
             : PublishIntents(run, withLifecycle.Value, context.Value.Policies);
@@ -145,6 +145,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var endedDeck = planned.Value.Steps[0].Deck;
         var endedActorId = combat.ActivationState!.ActiveActorId!;
         var endActivation = AppendBoundary(
+            run,
             steps,
             current,
             endedDeck,
@@ -161,6 +162,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (startsNewRound)
         {
             var endRound = AppendBoundary(
+                run,
                 steps,
                 current,
                 endedDeck,
@@ -193,6 +195,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (startsNewRound)
         {
             var startRound = AppendBoundary(
+                run,
                 steps,
                 current,
                 startedStep.Deck,
@@ -216,6 +219,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         });
 
         var startActivation = AppendBoundary(
+            run,
             steps,
             current,
             startedStep.Deck,
@@ -405,6 +409,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     }
 
     private Result<CombatState> ApplyInitialLifecycle(
+        RunState run,
         CombatState combat,
         CombatFlowPoliciesDefinition policies)
     {
@@ -418,6 +423,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             if (!policies.StatusTiming.Boundaries.Contains(boundary))
                 continue;
             var processed = _statusLifecycle.Process(
+                run,
                 current,
                 boundary,
                 current.ActivationState?.ActiveActorId);
@@ -434,6 +440,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     }
 
     private Result<CombatState> AppendBoundary(
+        RunState run,
         ICollection<CombatResolutionStep> steps,
         CombatState combat,
         DeckState deck,
@@ -443,7 +450,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     {
         if (!policies.StatusTiming.Boundaries.Contains(boundary))
             return Result<CombatState>.Success(combat);
-        var processed = _statusLifecycle.Process(combat, boundary, activeActorId);
+        var processed = _statusLifecycle.Process(run, combat, boundary, activeActorId);
         if (processed.IsFailure)
             return Result<CombatState>.Failure(processed.Error);
         var evaluated = CombatFlowTransitions.EvaluateOutcome(

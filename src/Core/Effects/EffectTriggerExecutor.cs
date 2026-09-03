@@ -5,6 +5,8 @@ using Core.Content;
 using Core.Determinism;
 using Core.Math;
 using Core.StatusEffects;
+using Core.Calculations;
+using Core.Run;
 
 namespace Core.Effects;
 
@@ -12,6 +14,7 @@ public sealed record EffectTriggerExecutionRequest
 {
     private ImmutableDictionary<string, float> _variables =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<string> _selectedTargetEntityIds = [];
 
     public CombatState Combat { get; init; } = null!;
     public EffectTriggerDefinition Trigger { get; init; } = null!;
@@ -19,6 +22,12 @@ public sealed record EffectTriggerExecutionRequest
     public string SourceEntityId { get; init; } = string.Empty;
     public string ContentRevision { get; init; } = string.Empty;
     public EffectProvenance Provenance { get; init; } = new();
+    public RunState? Run { get; init; }
+    public IReadOnlyList<string> SelectedTargetEntityIds
+    {
+        get => _selectedTargetEntityIds;
+        init => _selectedTargetEntityIds = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyDictionary<string, float> Variables
     {
         get => _variables;
@@ -42,15 +51,21 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     private readonly IRuntimeFormulaEvaluator _formulas;
     private readonly IImmutableEffectProcessor _effects;
     private readonly IContentRuntimeResolver? _contentRuntimes;
+    private readonly ICalculationEngine? _calculations;
+    private readonly ICalculationInfluenceProvider? _influences;
 
     public EffectTriggerExecutor(
         IRuntimeFormulaEvaluator formulas,
         IImmutableEffectProcessor effects,
-        IContentRuntimeResolver? contentRuntimes = null)
+        IContentRuntimeResolver? contentRuntimes = null,
+        ICalculationEngine? calculations = null,
+        ICalculationInfluenceProvider? influences = null)
     {
         _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
         _contentRuntimes = contentRuntimes;
+        _calculations = calculations;
+        _influences = influences;
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
@@ -66,13 +81,25 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var expanded = ExpandEffects(request);
         if (expanded.IsFailure)
             return Result<EffectBatchResult>.Failure(expanded.Error);
-        return _effects.Apply(expanded.Value.Combat, expanded.Value.Commands);
+        var applied = _effects.Apply(expanded.Value.Combat, expanded.Value.Commands);
+        return applied.IsFailure
+            ? applied
+            : Result<EffectBatchResult>.Success(applied.Value with
+            {
+                Calculations = expanded.Value.Calculations,
+                Fingerprint = CanonicalJson.ComputeHash(new
+                {
+                    effects = applied.Value.Fingerprint,
+                    calculations = expanded.Value.Calculations
+                })
+            });
     }
 
     private Result<ExpandedTrigger> ExpandEffects(EffectTriggerExecutionRequest request)
     {
         var current = request.Combat;
         var commands = ImmutableArray.CreateBuilder<ResolvedEffectCommand>();
+        var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         foreach (var (effect, index) in request.Trigger.Effects.Select((item, index) => (item, index)))
         {
             var expanded = ExpandEffect(request with { Combat = current }, effect, $"{index}");
@@ -80,8 +107,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 return expanded;
             current = expanded.Value.Combat;
             commands.AddRange(expanded.Value.Commands);
+            calculations.AddRange(expanded.Value.Calculations);
         }
-        return Result<ExpandedTrigger>.Success(new(current, commands.ToImmutable()));
+        return Result<ExpandedTrigger>.Success(new(
+            current,
+            commands.ToImmutable(),
+            calculations.ToImmutable()));
     }
 
     private Result<ExpandedTrigger> ExpandEffect(
@@ -97,6 +128,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var current = request.Combat;
         var context = current.Determinism;
         var commands = ImmutableArray.CreateBuilder<ResolvedEffectCommand>();
+        var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         for (var repeat = 0; repeat < effect.Repeat; repeat++)
         {
             if (effect.Chance < 1)
@@ -108,7 +140,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 if (chance.Value >= effect.Chance)
                     continue;
             }
-            var targets = ResolveTargets(current, request.OwnerEntityId, effect.Target, context);
+            var targets = ResolveTargets(
+                current,
+                request.OwnerEntityId,
+                request.SelectedTargetEntityIds,
+                effect.Target,
+                context);
             if (targets.IsFailure)
                 return Result<ExpandedTrigger>.Failure(targets.Error);
             context = targets.Value.Context;
@@ -120,9 +157,11 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     return Result<ExpandedTrigger>.Failure(condition.Error);
                 if (!condition.Value)
                     continue;
-                var value = ResolveValue(effect, request.ContentRevision, variables);
+                var value = ResolveValue(request, effect, targetId, variables, $"{path}:{repeat}:{targetId}");
                 if (value.IsFailure)
                     return Result<ExpandedTrigger>.Failure(value.Error);
+                if (value.Value.Calculation != null)
+                    calculations.Add(value.Value.Calculation);
                 var status = ResolveAppliedStatus(effect, request.ContentRevision);
                 if (status.IsFailure)
                     return Result<ExpandedTrigger>.Failure(status.Error);
@@ -132,7 +171,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     Definition = effect,
                     SourceEntityId = request.SourceEntityId,
                     TargetEntityIds = [targetId],
-                    ResolvedValue = value.Value,
+                    ResolvedValue = value.Value.Value,
                     StatusDefinition = status.Value,
                     Provenance = request.Provenance with { ComponentId = request.Trigger.TriggerId }
                 });
@@ -148,8 +187,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 return child;
             current = child.Value.Combat;
             commands.AddRange(child.Value.Commands);
+            calculations.AddRange(child.Value.Calculations);
         }
-        return Result<ExpandedTrigger>.Success(new(current, commands.ToImmutable()));
+        return Result<ExpandedTrigger>.Success(new(
+            current,
+            commands.ToImmutable(),
+            calculations.ToImmutable()));
     }
 
     private Result<StatusEffectDefinition?> ResolveAppliedStatus(
@@ -172,18 +215,98 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             : Result<StatusEffectDefinition?>.Success(definition.Value);
     }
 
-    private Result<float> ResolveValue(
+    private Result<ResolvedAmount> ResolveValue(
+        EffectTriggerExecutionRequest request,
         EffectDefinition effect,
-        string revision,
-        Dictionary<string, float> variables)
+        string targetId,
+        Dictionary<string, float> variables,
+        string calculationSuffix)
     {
         if (effect.Type is not (EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE))
-            return Result<float>.Success(0);
+            return Result<ResolvedAmount>.Success(new(0, null));
         var value = effect.FlatValue ?? 0;
         if (string.IsNullOrWhiteSpace(effect.FormulaValue))
-            return Result<float>.Success(value);
-        var evaluated = Evaluate(effect.FormulaValue, revision, variables);
-        return evaluated.IsFailure ? evaluated : Result<float>.Success(value + evaluated.Value);
+        {
+            // Keep the authored flat value and continue through the optional
+            // calculation pipeline below.
+        }
+        else
+        {
+            var evaluated = Evaluate(effect.FormulaValue, request.ContentRevision, variables);
+            if (evaluated.IsFailure)
+                return Result<ResolvedAmount>.Failure(evaluated.Error);
+            value += evaluated.Value;
+        }
+        if (request.Run?.ResolvedMode == null)
+            return Result<ResolvedAmount>.Success(new(value, null));
+        if (_contentRuntimes == null || _calculations == null || _influences == null)
+            return Result<ResolvedAmount>.Failure("Trigger calculation services are unavailable");
+        var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
+        if (runtime.IsFailure)
+            return Result<ResolvedAmount>.Failure(runtime.Error);
+        var pipeline = ResolvePipeline(effect, request.Run, runtime.Value);
+        if (pipeline.IsFailure)
+            return Result<ResolvedAmount>.Failure(pipeline.Error);
+        var actor = request.Combat.GetEntity(request.SourceEntityId)
+            ?? request.Combat.GetEntity(request.OwnerEntityId)!;
+        var target = request.Combat.GetEntity(targetId)!;
+        var influences = _influences.Collect(new CalculationSourceContext
+        {
+            ContentRevision = request.ContentRevision,
+            Run = request.Run,
+            Combat = request.Combat,
+            Actor = actor,
+            Target = target,
+            Tags = effect.Tags.ToHashSet(StringComparer.Ordinal),
+            Variables = variables
+        });
+        if (influences.IsFailure)
+            return Result<ResolvedAmount>.Failure(influences.Error);
+        var calculated = _calculations.Calculate(new CalculationRequest
+        {
+            CalculationId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}",
+            Channel = effect.CalculationChannel,
+            BaseValue = value,
+            Influences = influences.Value
+                .Where(item => string.Equals(item.Channel, effect.CalculationChannel, StringComparison.Ordinal))
+                .ToArray(),
+            Tags = effect.Tags.ToHashSet(StringComparer.Ordinal)
+        }, pipeline.Value);
+        return calculated.IsFailure
+            ? Result<ResolvedAmount>.Failure(calculated.Error)
+            : Result<ResolvedAmount>.Success(new(calculated.Value.Value, calculated.Value));
+    }
+
+    private static Result<CalculationPipelineDefinition> ResolvePipeline(
+        EffectDefinition effect,
+        RunState run,
+        ContentRuntime runtime)
+    {
+        var enabled = run.ResolvedMode?.Definition.CalculationPipelineIds ?? [];
+        if (!string.IsNullOrWhiteSpace(effect.CalculationPipelineId))
+        {
+            if (!enabled.Contains(effect.CalculationPipelineId, StringComparer.Ordinal))
+                return Result<CalculationPipelineDefinition>.Failure(
+                    $"Calculation pipeline is not enabled by mode: {effect.CalculationPipelineId}");
+            return runtime.GetDefinition<CalculationPipelineDefinition>(
+                "calculation-pipelines",
+                effect.CalculationPipelineId);
+        }
+        var compatible = new List<CalculationPipelineDefinition>();
+        foreach (var pipelineId in enabled.OrderBy(id => id, StringComparer.Ordinal))
+        {
+            var pipeline = runtime.GetDefinition<CalculationPipelineDefinition>(
+                "calculation-pipelines",
+                pipelineId);
+            if (pipeline.IsFailure)
+                return Result<CalculationPipelineDefinition>.Failure(pipeline.Error);
+            if (string.Equals(pipeline.Value.Channel, effect.CalculationChannel, StringComparison.Ordinal))
+                compatible.Add(pipeline.Value);
+        }
+        return compatible.Count == 1
+            ? Result<CalculationPipelineDefinition>.Success(compatible[0])
+            : Result<CalculationPipelineDefinition>.Failure(
+                $"Effect channel {effect.CalculationChannel} requires exactly one enabled pipeline; found {compatible.Count}");
     }
 
     private Result<bool> EvaluateCondition(
@@ -239,13 +362,20 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     private static Result<ResolvedTargets> ResolveTargets(
         CombatState combat,
         string ownerId,
+        IReadOnlyList<string> selectedTargetIds,
         EffectTarget target,
         DeterministicContext context)
     {
         var owner = combat.GetEntity(ownerId)!;
         var candidates = target switch
         {
-            EffectTarget.SELF or EffectTarget.TARGET => [ownerId],
+            EffectTarget.SELF => [ownerId],
+            EffectTarget.TARGET => selectedTargetIds.Count == 0
+                ? [ownerId]
+                : selectedTargetIds
+                    .Distinct(StringComparer.Ordinal)
+                    .Where(id => combat.GetEntity(id)?.IsAlive == true)
+                    .ToArray(),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY => combat.GetAllEntities()
                 .Where(entity => entity.IsAlive && entity.IsHero != owner.IsHero)
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
@@ -268,9 +398,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
     private sealed record ExpandedTrigger(
         CombatState Combat,
-        ImmutableArray<ResolvedEffectCommand> Commands);
+        ImmutableArray<ResolvedEffectCommand> Commands,
+        ImmutableArray<CalculationResult> Calculations);
 
     private sealed record ResolvedTargets(
         IReadOnlyList<string> TargetIds,
         DeterministicContext Context);
+
+    private sealed record ResolvedAmount(float Value, CalculationResult? Calculation);
 }

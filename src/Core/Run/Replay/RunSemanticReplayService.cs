@@ -353,11 +353,27 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 new CombatStatusLifecycle(new EffectTriggerExecutor(
                     _formulaEvaluator,
                     new ImmutableEffectProcessor(),
-                    contentRuntimes)),
+                    contentRuntimes,
+                    new CalculationEngine(),
+                    new CompositeCalculationInfluenceProvider(
+                    [
+                        new CardComponentInfluenceProvider(_formulaEvaluator),
+                        new RunModifierInfluenceProvider(_formulaEvaluator),
+                        new StatusCalculationInfluenceProvider(_formulaEvaluator),
+                        new RelicCalculationInfluenceProvider(_formulaEvaluator)
+                    ]))),
                 new CombatRelicLifecycle(new EffectTriggerExecutor(
                     _formulaEvaluator,
                     new ImmutableEffectProcessor(),
-                    contentRuntimes)));
+                    contentRuntimes,
+                    new CalculationEngine(),
+                    new CompositeCalculationInfluenceProvider(
+                    [
+                        new CardComponentInfluenceProvider(_formulaEvaluator),
+                        new RunModifierInfluenceProvider(_formulaEvaluator),
+                        new StatusCalculationInfluenceProvider(_formulaEvaluator),
+                        new RelicCalculationInfluenceProvider(_formulaEvaluator)
+                    ]))));
         var cardPlay = contentRuntimes == null
             ? null
             : new CardPlayExecutor(
@@ -375,12 +391,31 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 ]),
                 new ImmutableEffectProcessor(),
                 _formulaEvaluator);
+        var ability = contentRuntimes == null
+            ? null
+            : new AbilityExecutor(
+                _actionManager,
+                new CardPlayEvaluator(_actionCostEvaluator, _formulaEvaluator),
+                new ImmutableEffectProcessor(),
+                new EffectTriggerExecutor(
+                    _formulaEvaluator,
+                    new ImmutableEffectProcessor(),
+                    contentRuntimes,
+                    new CalculationEngine(),
+                    new CompositeCalculationInfluenceProvider(
+                    [
+                        new CardComponentInfluenceProvider(_formulaEvaluator),
+                        new RunModifierInfluenceProvider(_formulaEvaluator),
+                        new StatusCalculationInfluenceProvider(_formulaEvaluator),
+                        new RelicCalculationInfluenceProvider(_formulaEvaluator)
+                    ])));
         var combats = new CombatRunCoordinator(
             combatSystem,
             runs,
             cardPlay,
             flowPlanner,
-            gambits);
+            gambits,
+            abilityExecutor: ability);
         return new ReplayRuntime(runs, combats);
     }
 

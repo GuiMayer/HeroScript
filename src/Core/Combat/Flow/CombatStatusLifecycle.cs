@@ -3,6 +3,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
 using Core.StatusEffects;
+using Core.Run;
 
 namespace Core.Combat.Flow;
 
@@ -33,6 +34,7 @@ public sealed record CombatStatusLifecycleResult(
 public interface ICombatStatusLifecycle
 {
     Result<CombatStatusLifecycleResult> Process(
+        RunState run,
         CombatState combat,
         StatusTriggerBoundary boundary,
         string? activeActorId = null);
@@ -50,11 +52,13 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         _triggers = triggers ?? throw new ArgumentNullException(nameof(triggers));
 
     public Result<CombatStatusLifecycleResult> Process(
+        RunState run,
         CombatState combat,
         StatusTriggerBoundary boundary,
         string? activeActorId = null)
     {
         ArgumentNullException.ThrowIfNull(combat);
+        ArgumentNullException.ThrowIfNull(run);
         if (boundary == StatusTriggerBoundary.Unspecified)
             return Result<CombatStatusLifecycleResult>.Failure("Status boundary is required");
         var targets = ResolveLifecycleTargets(combat, boundary, activeActorId);
@@ -83,6 +87,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                     var executed = _triggers.Execute(new EffectTriggerExecutionRequest
                     {
                         Combat = current,
+                        Run = run,
                         Trigger = trigger,
                         OwnerEntityId = status.TargetId,
                         SourceEntityId = status.SourceId ?? status.TargetId,

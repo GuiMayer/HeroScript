@@ -69,6 +69,7 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                 var executed = _triggers.Execute(new EffectTriggerExecutionRequest
                 {
                     Combat = current,
+                    Run = run,
                     Trigger = trigger,
                     OwnerEntityId = current.Hero.EntityId,
                     SourceEntityId = current.Hero.EntityId,

@@ -19,7 +19,7 @@
         "timing": "IMMEDIATE",
         "flatValue": 10,
         "targetResource": "health",
-        "tags": ["fire", "magic", "spell"]
+        "tags": ["fire", "magic", "spell", "damage"]
       },
       {
         "type": "APPLY_STATUS",

@@ -44,7 +44,11 @@ public sealed class CombatStatusLifecycleTests
             }.ToImmutableDictionary(StringComparer.Ordinal)
         };
 
-        var result = lifecycle.Process(combat, StatusTriggerBoundary.EndActivation, "enemy");
+        var result = lifecycle.Process(
+            new Core.Run.RunState(),
+            combat,
+            StatusTriggerBoundary.EndActivation,
+            "enemy");
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(45, result.Value.Combat.Enemies.Single().GetResource("health")!.Current);

@@ -14,7 +14,7 @@
         "timing": "IMMEDIATE",
         "flatValue": 6,
         "targetResource": "health",
-        "tags": ["physical", "attack", "enemy"]
+        "tags": ["physical", "attack", "enemy", "damage"]
       }
     ],
     "requiresTarget": true,

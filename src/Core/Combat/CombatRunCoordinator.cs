@@ -18,6 +18,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     private readonly ICombatSystem _combatSystem;
     private readonly IRunManager _runManager;
     private readonly ICardPlayExecutor? _cardPlayExecutor;
+    private readonly IAbilityExecutor? _abilityExecutor;
     private readonly IEventBus? _eventBus;
     private readonly ICombatFlowPlanner? _flowPlanner;
     private readonly IGambitEngine? _gambitEngine;
@@ -30,11 +31,13 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         ICardPlayExecutor? cardPlayExecutor = null,
         ICombatFlowPlanner? flowPlanner = null,
         IGambitEngine? gambitEngine = null,
-        IEventBus? eventBus = null)
+        IEventBus? eventBus = null,
+        IAbilityExecutor? abilityExecutor = null)
     {
         _combatSystem = combatSystem;
         _runManager = runManager;
         _cardPlayExecutor = cardPlayExecutor;
+        _abilityExecutor = abilityExecutor;
         _eventBus = eventBus;
         _flowPlanner = flowPlanner;
         _gambitEngine = gambitEngine;
@@ -325,6 +328,49 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 played.Value);
         }
 
+        if (run.ResolvedMode != null && command.ActionType is
+            ActionType.BASIC_ATTACK or ActionType.POWER or ActionType.ACTIVATE_ABILITY)
+        {
+            if (_abilityExecutor == null)
+                return Result<CombatRunActionResult>.Failure("Ability executor is unavailable");
+            var actionId = command.ActionType == ActionType.BASIC_ATTACK
+                ? "basic_attack"
+                : command.PowerId;
+            if (string.IsNullOrWhiteSpace(actionId))
+                return Result<CombatRunActionResult>.Failure("PowerId is required for this ability action");
+            var selectedTargets = command.TargetIds.Count > 0
+                ? command.TargetIds
+                : string.IsNullOrWhiteSpace(command.TargetId) ? [] : new[] { command.TargetId! };
+            var ability = _abilityExecutor.Execute(new AbilityExecutionRequest
+            {
+                Run = run,
+                Combat = encounter.Combat,
+                ActionId = actionId,
+                ActorId = command.ActorId,
+                SelectedTargetIds = selectedTargets,
+                CostOptionId = command.CostOptionId,
+                IgnoreConfiguredCosts = run.ResolvedMode.CombatRules.Flow.ActionBudget.ActionCosts ==
+                    ActionCostStrategy.Ignore
+            });
+            if (ability.IsFailure)
+                return Result<CombatRunActionResult>.Failure(ability.Error);
+            if (ability.Value.Definition.ActionType != command.ActionType &&
+                command.ActionType != ActionType.ACTIVATE_ABILITY)
+            {
+                return Result<CombatRunActionResult>.Failure(
+                    $"Action {actionId} is configured as {ability.Value.Definition.ActionType}, not {command.ActionType}");
+            }
+            return ExecuteAndCommit(
+                combatId,
+                run,
+                encounter.Combat,
+                command with { DeferTurnLifecycle = true },
+                consumedCardId: null,
+                CardConsumeDestination.None,
+                commandIdentity,
+                ability: ability.Value);
+        }
+
         return ExecuteAndCommit(
             combatId,
             run,
@@ -343,7 +389,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         string? consumedCardId,
         CardConsumeDestination destination,
         RunCommandIdentity? commandIdentity,
-        CardPlayExecutionResult? cardPlay = null)
+        CardPlayExecutionResult? cardPlay = null,
+        AbilityExecutionResult? ability = null)
     {
         if (run.ResolvedMode != null)
             return ExecuteCanonicalAndCommit(
@@ -354,7 +401,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 consumedCardId,
                 destination,
                 commandIdentity,
-                cardPlay);
+                cardPlay,
+                ability);
 
         var actionBudget = run.ResolvedMode?.CombatRules.Flow.ActionBudget;
         var effectiveCommandType = commandIdentity?.Type ?? "COMBAT_ACTION";
@@ -372,9 +420,11 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var effectiveCommand = commandIdentity == null
             ? command
             : command with { ExpectedStep = commandIdentity.ExpectedStep };
-        var combatResult = cardPlay == null
-            ? _combatSystem.ExecuteAction(combatId, effectiveCommand)
-            : Result<CombatState>.Success(cardPlay.Combat);
+        var combatResult = cardPlay != null
+            ? Result<CombatState>.Success(cardPlay.Combat)
+            : ability != null
+                ? Result<CombatState>.Success(ability.Combat)
+                : _combatSystem.ExecuteAction(combatId, effectiveCommand);
         if (combatResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(combatResult.Error);
         var nextCombat = actionBudget == null
@@ -425,7 +475,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         string? consumedCardId,
         CardConsumeDestination destination,
         RunCommandIdentity? commandIdentity,
-        CardPlayExecutionResult? cardPlay)
+        CardPlayExecutionResult? cardPlay,
+        AbilityExecutionResult? ability)
     {
         if (_flowPlanner == null || _gambitEngine == null || _resolutionCommitter == null)
             return Result<CombatRunActionResult>.Failure(
@@ -465,9 +516,11 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
             DeferTurnLifecycle = true
         };
-        var executed = cardPlay == null
-            ? _combatSystem.ExecuteAction(combatId, effectiveCommand)
-            : Result<CombatState>.Success(cardPlay.Combat);
+        var executed = cardPlay != null
+            ? Result<CombatState>.Success(cardPlay.Combat)
+            : ability != null
+                ? Result<CombatState>.Success(ability.Combat)
+                : _combatSystem.ExecuteAction(combatId, effectiveCommand);
         if (executed.IsFailure)
             return Result<CombatRunActionResult>.Failure(executed.Error);
 
@@ -495,6 +548,13 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 cardPlay.ResolutionFingerprint,
                 cardPlay.Calculations,
                 cardPlay.Applications
+            },
+            abilityResolution = ability == null ? null : new
+            {
+                ability.Definition.ActionId,
+                ability.ResolutionFingerprint,
+                ability.Calculations,
+                ability.Applications
             }
         });
         var steps = new List<CombatResolutionStep>
@@ -705,7 +765,40 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
             DeferTurnLifecycle = true
         };
-        var executed = _combatSystem.ExecuteAction(combatId, command);
+        AbilityExecutionResult? ability = null;
+        Result<CombatState> executed;
+        if (command.ActionType is ActionType.BASIC_ATTACK or ActionType.POWER or ActionType.ACTIVATE_ABILITY)
+        {
+            if (_abilityExecutor == null)
+                return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(
+                    "Ability executor is unavailable");
+            var actionId = command.ActionType == ActionType.BASIC_ATTACK ? "basic_attack" : command.PowerId;
+            if (string.IsNullOrWhiteSpace(actionId))
+                return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(
+                    "Automatic ability has no action id");
+            var selectedTargets = command.TargetIds.Count > 0
+                ? command.TargetIds
+                : string.IsNullOrWhiteSpace(command.TargetId) ? [] : new[] { command.TargetId! };
+            var resolved = _abilityExecutor.Execute(new AbilityExecutionRequest
+            {
+                Run = run,
+                Combat = combat,
+                ActionId = actionId,
+                ActorId = command.ActorId,
+                SelectedTargetIds = selectedTargets,
+                CostOptionId = command.CostOptionId,
+                IgnoreConfiguredCosts = command.IgnoreConfiguredCosts
+            });
+            if (resolved.IsFailure)
+                return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(
+                    resolved.Error);
+            ability = resolved.Value;
+            executed = Result<CombatState>.Success(resolved.Value.Combat);
+        }
+        else
+        {
+            executed = _combatSystem.ExecuteAction(combatId, command);
+        }
         if (executed.IsFailure)
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(executed.Error);
         var next = CombatFlowTransitions.ConsumeActionBudget(
@@ -720,7 +813,18 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             Combat = next,
             Deck = deck,
             RunDeterminism = determinism,
-            Payload = JsonSerializer.SerializeToElement(new { command, gambitId })
+            Payload = JsonSerializer.SerializeToElement(new
+            {
+                command,
+                gambitId,
+                abilityResolution = ability == null ? null : new
+                {
+                    ability.Definition.ActionId,
+                    ability.ResolutionFingerprint,
+                    ability.Calculations,
+                    ability.Applications
+                }
+            })
         };
         return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Success(
             (step, (next, deck, determinism.AdvanceStep())));

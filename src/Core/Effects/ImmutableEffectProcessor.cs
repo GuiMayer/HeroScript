@@ -3,6 +3,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Determinism;
 using Core.StatusEffects;
+using Core.Calculations;
 
 namespace Core.Effects;
 
@@ -65,6 +66,7 @@ public sealed record EffectApplicationRecord
 public sealed record EffectBatchResult
 {
     private ImmutableArray<EffectApplicationRecord> _records = [];
+    private ImmutableArray<CalculationResult> _calculations = [];
 
     public CombatState State { get; init; } = null!;
     public IReadOnlyList<EffectApplicationRecord> Records
@@ -73,6 +75,11 @@ public sealed record EffectBatchResult
         init => _records = value?.ToImmutableArray() ?? [];
     }
     public string Fingerprint { get; init; } = string.Empty;
+    public IReadOnlyList<CalculationResult> Calculations
+    {
+        get => _calculations;
+        init => _calculations = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public interface IImmutableEffectProcessor
