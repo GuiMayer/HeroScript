@@ -542,19 +542,19 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             destination = destination.ToString(),
             cardResolution = cardPlay == null ? null : new
             {
-                cardPlay.Card.CardInstanceId,
-                cardPlay.Card.DefinitionId,
-                cardPlay.Card.Fingerprint,
-                cardPlay.ResolutionFingerprint,
-                cardPlay.Calculations,
-                cardPlay.Applications
+                cardInstanceId = cardPlay.Card.CardInstanceId,
+                definitionId = cardPlay.Card.DefinitionId,
+                fingerprint = cardPlay.Card.Fingerprint,
+                resolutionFingerprint = cardPlay.ResolutionFingerprint,
+                calculations = cardPlay.Calculations,
+                applications = cardPlay.Applications
             },
             abilityResolution = ability == null ? null : new
             {
-                ability.Definition.ActionId,
-                ability.ResolutionFingerprint,
-                ability.Calculations,
-                ability.Applications
+                actionId = ability.Definition.ActionId,
+                resolutionFingerprint = ability.ResolutionFingerprint,
+                calculations = ability.Calculations,
+                applications = ability.Applications
             }
         });
         var steps = new List<CombatResolutionStep>

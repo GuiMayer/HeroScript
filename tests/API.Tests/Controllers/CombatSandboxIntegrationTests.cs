@@ -54,6 +54,79 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(
             before.GetProperty("run").GetProperty("stateHash").GetString(),
             after.GetProperty("run").GetProperty("stateHash").GetString());
+
+        var previewFingerprint = evaluation.GetProperty("resolutionFingerprint").GetString();
+        var commandId = Guid.Parse("40000000-0000-8000-8000-000000000001");
+        var command = new
+        {
+            commandId,
+            expectedSequence = before.GetProperty("run").GetProperty("sequence").GetInt32(),
+            expectedStep = before.GetProperty("combat").GetProperty("step").GetUInt64(),
+            type = "PLAY_CARD",
+            payload = new
+            {
+                actorId = "hero",
+                cardInstanceId,
+                targetIds = new[] { "goblin_a" }
+            }
+        };
+        using var commandResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            command);
+        var committed = await commandResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(commandResponse.StatusCode == HttpStatusCode.OK, committed.GetRawText());
+        Assert.False(committed.GetProperty("duplicate").GetBoolean());
+        var committedStateHash = committed.GetProperty("stateHash").GetString();
+        var embeddedResolution = committed.GetProperty("state").GetProperty("resolution");
+        var appliedFrame = embeddedResolution.GetProperty("frames").EnumerateArray()
+            .Single(frame => frame.GetProperty("transitionType").GetString() == "combat.action.applied");
+        Assert.Equal(
+            previewFingerprint,
+            appliedFrame.GetProperty("payload").GetProperty("cardResolution")
+                .GetProperty("resolutionFingerprint").GetString());
+
+        using var durableResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/resolutions/{commandId}");
+        var durable = await durableResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, durableResponse.StatusCode);
+        Assert.Equal(commandId, durable.GetProperty("commandId").GetGuid());
+        Assert.Equal(
+            previewFingerprint,
+            durable.GetProperty("frames")[0].GetProperty("payload").GetProperty("cardResolution")
+                .GetProperty("resolutionFingerprint").GetString());
+
+        using var retryResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            command);
+        var retried = await retryResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(retryResponse.StatusCode == HttpStatusCode.OK, retried.GetRawText());
+        Assert.True(retried.GetProperty("duplicate").GetBoolean());
+        Assert.Equal(committedStateHash, retried.GetProperty("stateHash").GetString());
+
+        using var timelineResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/timeline?limit=20");
+        var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, timelineResponse.StatusCode);
+        var timelineItem = timeline.GetProperty("items").EnumerateArray()
+            .Single(item => item.GetProperty("commandId").ValueKind == JsonValueKind.String &&
+                            item.GetProperty("commandId").GetGuid() == commandId);
+        Assert.Equal(committedStateHash, timelineItem.GetProperty("stateHash").GetString());
+
+        var committedSequence = timelineItem.GetProperty("runSequence").GetInt32();
+        using var historicalResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/timeline/{committedSequence}/state");
+        var historical = await historicalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, historicalResponse.StatusCode);
+        Assert.Equal(committedStateHash, historical.GetProperty("runStateHash").GetString());
+
+        using var replayResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await replayResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, replayResponse.StatusCode);
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+        Assert.Equal(
+            replay.GetProperty("expectedFinalHash").GetString(),
+            replay.GetProperty("actualFinalHash").GetString());
+        Assert.Equal(committedStateHash, replay.GetProperty("actualFinalHash").GetString());
     }
 
     [Fact]
