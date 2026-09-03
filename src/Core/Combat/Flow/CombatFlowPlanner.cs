@@ -7,6 +7,8 @@ using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
+using Core.Effects;
+using Core.Resources;
 using Core.Run;
 
 namespace Core.Combat.Flow;
@@ -48,19 +50,22 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     private readonly IIntentResolver _intents;
     private readonly ICombatStatusLifecycle _statusLifecycle;
     private readonly ICombatRelicLifecycle _relicLifecycle;
+    private readonly ICombatResourceLifecycle _resourceLifecycle;
 
     public CombatFlowPlanner(
         IContentRuntimeResolver contentRuntimes,
         IActionManager actions,
         IIntentResolver intents,
         ICombatStatusLifecycle statusLifecycle,
-        ICombatRelicLifecycle relicLifecycle)
+        ICombatRelicLifecycle relicLifecycle,
+        ICombatResourceLifecycle resourceLifecycle)
     {
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _intents = intents ?? throw new ArgumentNullException(nameof(intents));
         _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
         _relicLifecycle = relicLifecycle ?? throw new ArgumentNullException(nameof(relicLifecycle));
+        _resourceLifecycle = resourceLifecycle ?? throw new ArgumentNullException(nameof(resourceLifecycle));
     }
 
     public Result<CombatState> Initialize(RunState run, CombatState combat)
@@ -73,9 +78,17 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var initialized = Initialize(run, combat, context.Value.Sequence, context.Value.Policies);
         if (initialized.IsFailure)
             return initialized;
-        var relics = _relicLifecycle.Process(
+        var regenerated = ApplyResourceLifecycle(
             run,
             initialized.Value,
+            initialized.Value.ActivationState!.ActiveActorId!,
+            RegenerationTiming.START_TURN,
+            context.Value.Policies);
+        if (regenerated.IsFailure)
+            return Result<CombatState>.Failure(regenerated.Error);
+        var relics = _relicLifecycle.Process(
+            run,
+            regenerated.Value.Combat,
             CombatTriggerBoundaries.CombatStart);
         if (relics.IsFailure)
             return Result<CombatState>.Failure(relics.Error);
@@ -158,6 +171,20 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (!current.IsActive)
             return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
 
+        var endResources = AppendResourceBoundary(
+            run,
+            steps,
+            current,
+            endedDeck,
+            endedActorId,
+            RegenerationTiming.END_TURN,
+            policies);
+        if (endResources.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(endResources.Error);
+        current = endResources.Value;
+        if (!current.IsActive)
+            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+
         var startsNewRound = StartsNewRound(current);
         if (startsNewRound)
         {
@@ -218,6 +245,20 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             RunDeterminism = adjustedStartContext
         });
 
+        var startResources = AppendResourceBoundary(
+            run,
+            steps,
+            current,
+            startedStep.Deck,
+            current.ActivationState!.ActiveActorId!,
+            RegenerationTiming.START_TURN,
+            policies);
+        if (startResources.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(startResources.Error);
+        current = startResources.Value;
+        if (!current.IsActive)
+            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+
         var startActivation = AppendBoundary(
             run,
             steps,
@@ -230,6 +271,60 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             return Result<CombatFlowAdvanceResult>.Failure(startActivation.Error);
 
         return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
+    }
+
+    private Result<CombatState> AppendResourceBoundary(
+        RunState run,
+        ICollection<CombatResolutionStep> steps,
+        CombatState combat,
+        DeckState deck,
+        string actorId,
+        RegenerationTiming timing,
+        CombatFlowPoliciesDefinition policies)
+    {
+        var processed = ApplyResourceLifecycle(run, combat, actorId, timing, policies);
+        if (processed.IsFailure)
+            return Result<CombatState>.Failure(processed.Error);
+        if (processed.Value.Records.Count == 0)
+            return Result<CombatState>.Success(processed.Value.Combat);
+
+        var evaluated = CombatFlowTransitions.EvaluateOutcome(
+            processed.Value.Combat,
+            policies.Outcome,
+            actorId);
+        steps.Add(new CombatResolutionStep
+        {
+            TransitionType = $"combat.resources.{ToSnakeCase(timing)}",
+            Combat = evaluated,
+            Deck = deck,
+            Payload = JsonSerializer.SerializeToElement(new
+            {
+                timing = timing.ToString(),
+                actorId,
+                effects = processed.Value.Records,
+                processed.Value.Fingerprint
+            })
+        });
+        return Result<CombatState>.Success(evaluated);
+    }
+
+    private Result<CombatResourceLifecycleResult> ApplyResourceLifecycle(
+        RunState run,
+        CombatState combat,
+        string actorId,
+        RegenerationTiming timing,
+        CombatFlowPoliciesDefinition policies)
+    {
+        IReadOnlySet<string>? exclusions = null;
+        if (timing == RegenerationTiming.START_TURN &&
+            ScopeApplies(policies.ResourceCycle.ActorScope, combat, run, actorId))
+        {
+            exclusions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                policies.ResourceCycle.ResourceId
+            };
+        }
+        return _resourceLifecycle.Process(run, combat, actorId, timing, exclusions);
     }
 
     public static Result<CombatState> Initialize(
@@ -489,6 +584,14 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         _ => "unknown"
     };
 
+    private static string ToSnakeCase(RegenerationTiming timing) => timing switch
+    {
+        RegenerationTiming.START_TURN => "start_activation",
+        RegenerationTiming.END_TURN => "end_activation",
+        RegenerationTiming.OUT_OF_COMBAT => "out_of_combat",
+        _ => "unknown"
+    };
+
     private Result<(PhaseSequenceDefinition Sequence, CombatFlowPoliciesDefinition Policies)> ResolveContext(
         RunState run)
     {
@@ -668,14 +771,26 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (resource == null)
             return Result<CombatState>.Failure(
                 $"Activation resource '{policy.ResourceId}' was not found on actor '{actorId}'");
-        var refreshed = policy.StartActivation switch
+        var value = policy.StartActivation switch
         {
-            ResourceRefreshStrategy.ResetToMax => resource.Reset(),
-            ResourceRefreshStrategy.Add => resource.Gain(policy.Amount!.Value),
-            ResourceRefreshStrategy.Set => resource.Set(policy.Amount!.Value),
-            _ => resource
+            ResourceRefreshStrategy.ResetToMax => resource.Maximum,
+            ResourceRefreshStrategy.Add => resource.Current + policy.Amount!.Value,
+            ResourceRefreshStrategy.Set => policy.Amount!.Value,
+            _ => resource.Current
         };
-        return Result<CombatState>.Success(combat.ReplaceEntity(actor.UpdateResource(policy.ResourceId, refreshed)));
+        var reduced = new ResourceMutationReducer().Apply(
+            actor.ResourceState.Resources,
+            [new ResolvedResourceMutation
+            {
+                MutationId = $"resource-cycle:start-activation:{actorId}:{policy.ResourceId}",
+                ResourceId = policy.ResourceId,
+                Operation = ResourceMutationOperation.Set,
+                Value = value
+            }]);
+        if (reduced.IsFailure)
+            return Result<CombatState>.Failure(reduced.Error);
+        var resources = actor.ResourceState with { Resources = reduced.Value.Resources };
+        return Result<CombatState>.Success(combat.ReplaceEntity(actor with { ResourceState = resources }));
     }
 
     private static PhaseState CreatePhaseState(

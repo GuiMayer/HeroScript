@@ -304,6 +304,7 @@ builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
 builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
 builder.Services.AddSingleton<ICalculationEngine, CalculationEngine>();
 builder.Services.AddSingleton<IImmutableEffectProcessor, ImmutableEffectProcessor>();
+builder.Services.AddSingleton<ICombatResourceLifecycle, CombatResourceLifecycle>();
 builder.Services.AddSingleton<IEffectTriggerExecutor>(sp => new EffectTriggerExecutor(
     sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
     sp.GetRequiredService<IImmutableEffectProcessor>(),
@@ -516,7 +517,8 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IActionManager>(),
     sp.GetRequiredService<IIntentResolver>(),
     sp.GetRequiredService<ICombatStatusLifecycle>(),
-    sp.GetRequiredService<ICombatRelicLifecycle>()));
+    sp.GetRequiredService<ICombatRelicLifecycle>(),
+    sp.GetRequiredService<ICombatResourceLifecycle>()));
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
     sp.GetRequiredService<ICombatSystem>(),
     sp.GetRequiredService<IRunManager>(),

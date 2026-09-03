@@ -373,7 +373,10 @@ public sealed class RunSemanticReplayService : IRunReplayService
                         new RunModifierInfluenceProvider(_formulaEvaluator),
                         new StatusCalculationInfluenceProvider(_formulaEvaluator),
                         new RelicCalculationInfluenceProvider(_formulaEvaluator)
-                    ]))));
+                    ]))),
+                new CombatResourceLifecycle(
+                    _formulaEvaluator,
+                    new ImmutableEffectProcessor()));
         var cardPlay = contentRuntimes == null
             ? null
             : new CardPlayExecutor(
