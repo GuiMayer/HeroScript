@@ -332,6 +332,41 @@
         "responses": { "200": { "description": "Combat actions with cost, hand and affordability metadata" } }
       }
     },
+    "/api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "evaluateCombatCard",
+        "x-heroscript-stability": "experimental",
+        "parameters": [
+          { "$ref": "#/components/parameters/CombatId" },
+          { "name": "cardInstanceId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "actorId", "in": "query", "schema": { "type": "string" } },
+          { "name": "targetIds", "in": "query", "schema": { "type": "array", "items": { "type": "string" } } },
+          { "name": "costOptionId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Pinned card container, legal-play evaluation and deterministic resolution preview", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CardInspectionResult" } } } },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/combats/{combatId}/cards/evaluations": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "evaluateCombatHand",
+        "x-heroscript-stability": "experimental",
+        "parameters": [
+          { "$ref": "#/components/parameters/CombatId" },
+          { "name": "actorId", "in": "query", "schema": { "type": "string" } },
+          { "name": "targetIds", "in": "query", "schema": { "type": "array", "items": { "type": "string" } } },
+          { "name": "costOptionId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "One card evaluation for every hand instance", "content": { "application/json": { "schema": { "type": "object", "properties": { "combatId": { "type": "string", "format": "uuid" }, "cards": { "type": "array", "items": { "$ref": "#/components/schemas/CardInspectionResult" } } } } } } },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/api/v1/combats/{combatId}/history": {
       "get": {
         "tags": ["Combats"],
@@ -585,6 +620,27 @@
             "minimum": 1,
             "description": "Sequence accepted by GET /timeline/{sequence}/state for compact frame lookup."
           }
+        }
+      },
+      "CardInspectionResult": {
+        "type": "object",
+        "required": ["version", "detail", "zone", "isInHand", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewApplications", "disposition", "resolutionFingerprint"],
+        "properties": {
+          "version": { "type": "object", "description": "Run, combat, engine and content-revision coordinates used by this projection", "additionalProperties": true },
+          "detail": { "type": "string", "enum": ["Resolved", "Full"] },
+          "zone": { "type": "string", "enum": ["hand", "draw", "discard", "exhaust", "collection"] },
+          "isInHand": { "type": "boolean" },
+          "isPlayable": { "type": "boolean", "description": "Includes card conditions, costs, targeting, active actor, phase and action budget." },
+          "baseContainer": { "type": "object", "additionalProperties": true },
+          "compiledContainer": { "type": "object", "additionalProperties": true },
+          "appliedUpgrades": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "effectiveBase": { "type": "object", "additionalProperties": true },
+          "contextSources": { "type": "object", "nullable": true, "description": "Pinned actor, targets, statuses, relics, modifiers and mode policies; present only at Full detail.", "additionalProperties": true },
+          "evaluation": { "type": "object", "additionalProperties": true },
+          "calculations": { "type": "array", "description": "Configured bucket traces and influence provenance", "items": { "type": "object", "additionalProperties": true } },
+          "previewApplications": { "type": "array", "description": "Exact immutable effect preview from the current deterministic snapshot", "items": { "type": "object", "additionalProperties": true } },
+          "disposition": { "type": "string" },
+          "resolutionFingerprint": { "type": "string" }
         }
       },
       "ProblemDetails": {

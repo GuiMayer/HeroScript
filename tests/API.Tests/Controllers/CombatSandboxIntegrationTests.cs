@@ -13,6 +13,50 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     public CombatSandboxIntegrationTests(TestWebApplicationFactory factory) => _client = factory.CreateClient();
 
     [Fact]
+    public async Task CardEvaluation_ExplainsExactPreviewWithoutMutatingCombat()
+    {
+        using var launch = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario($"card-evaluation-{Guid.NewGuid():N}"));
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+        var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+
+        using var beforeResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var before = await beforeResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var card = before.GetProperty("hand").EnumerateArray()
+            .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
+        var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
+
+        using var evaluationResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation?actorId=hero&targetIds=goblin_a");
+        var evaluation = await evaluationResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(evaluationResponse.StatusCode == HttpStatusCode.OK, evaluation.GetRawText());
+        Assert.Equal("Full", evaluation.GetProperty("detail").GetString());
+        Assert.True(evaluation.GetProperty("isPlayable").GetBoolean());
+        Assert.Equal("basic_attack", evaluation.GetProperty("baseContainer").GetProperty("cardId").GetString());
+        Assert.Equal(cardInstanceId, evaluation.GetProperty("effectiveBase").GetProperty("cardInstanceId").GetGuid());
+        Assert.Equal("hero", evaluation.GetProperty("contextSources").GetProperty("actor").GetProperty("entityId").GetString());
+        Assert.NotEmpty(evaluation.GetProperty("calculations").EnumerateArray());
+        Assert.Equal(2, evaluation.GetProperty("previewApplications").GetArrayLength());
+        Assert.Equal(64, evaluation.GetProperty("resolutionFingerprint").GetString()!.Length);
+
+        using var handResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/cards/evaluations?actorId=hero&targetIds=goblin_a");
+        var hand = await handResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(handResponse.StatusCode == HttpStatusCode.OK, hand.GetRawText());
+        Assert.Equal(5, hand.GetProperty("cards").GetArrayLength());
+
+        using var afterResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var after = await afterResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(
+            before.GetProperty("run").GetProperty("stateHash").GetString(),
+            after.GetProperty("run").GetProperty("stateHash").GetString());
+    }
+
+    [Fact]
     public async Task SandboxScenario_IsValidatedLaunchedAndIdempotentlyReopened()
     {
         var attemptKey = $"api-sandbox-{Guid.NewGuid():N}";

@@ -42,14 +42,32 @@ vencido a corrida, a resposta é `409` e informa a sequência e o step atuais.
 simultaneamente a progressão. Dentro do encontro, use:
 
 - `GET /api/v1/combats/{combatId}` para o read model;
-- `GET /legal-actions` e `/legal-targets` para não duplicar regras no cliente;
-- `POST /commands` com `EXECUTE_ACTION` ou `END_TURN`;
+- `GET /cards/evaluations` para projetar toda a mão sem N+1;
+- `GET /cards/{cardInstanceId}/evaluation` para custos, alvos, upgrades,
+  cálculos e fontes contextuais de uma carta;
+- `POST /commands` com `PLAY_CARD`, `EXECUTE_ACTION` ou `END_TURN`;
 - `GET /resolutions/{commandId}` para retomar a fila visual durável;
 - `GET /stack` para sistemas TCG que exibem prioridade e pilha.
 
-O payload de `EXECUTE_ACTION` aceita `actionId` (preferível), `actorId`,
-`targetId`, `costOptionId` e `cardId` quando aplicável. A API resolve o tipo da
-ação a partir do conteúdo fixado na run.
+O payload de `PLAY_CARD` aceita `cardInstanceId`, `actorId`, `targetIds` e
+`costOptionId` opcional. A definição da carta nunca é enviada pelo cliente: a
+engine compila o container e aplica seus upgrades a partir da revisão fixada
+na run. `EXECUTE_ACTION` fica reservado às habilidades configuradas do ator.
+
+### Inspeção de cartas
+
+A avaliação individual e a avaliação em lote usam os mesmos compiladores,
+resolvedores de upgrade, verificação de legalidade e executor puro empregados
+por `PLAY_CARD`. `isPlayable` considera condição, custo, alvo, ator ativo, fase
+e orçamento de ações. Quando os alvos selecionados tornam a jogada legal, a
+resposta também inclui a prévia determinística exata dos efeitos sem alterar a
+run.
+
+O nível é uma regra fixada no game mode. `Resolved` expõe legalidade, valores e
+traces de buckets; `Full`, usado pelo sandbox, acrescenta ator, candidatos a
+alvo, status, relíquias, modificadores e políticas que podem influenciar a
+carta. `Disabled` bloqueia a projeção. A Godot deve tratar essa resposta como o
+único read model de regras de carta e limitar-se a apresentação e input.
 
 ## Comandos de economia e recompensas
 

@@ -575,6 +575,7 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
         sp.GetRequiredService<RelicCalculationInfluenceProvider>()
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
+builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 

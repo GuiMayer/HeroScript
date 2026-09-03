@@ -1,5 +1,15 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-03
+
+- Adicionada avaliação determinística de uma carta e projeção em lote da mão,
+  incluindo container base/compilado, upgrades, legalidade, buckets, efeitos
+  previstos e fingerprint da resolução.
+- O game mode agora controla o detalhe da inspeção entre `Disabled`, `Resolved`
+  e `Full`; o sandbox expõe as fontes contextuais completas para theorycraft.
+- `isPlayable` compartilha as regras canônicas de ator ativo, fase e orçamento
+  usadas pelo gateway de comandos.
+
 ## v1 — 2026-09-02
 
 - Comandos de combate passaram a expor uma resolução visual durável, composta

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Combat.Flow;
 
 namespace Core.Run;
@@ -106,10 +107,19 @@ public sealed record CapabilityPolicyDefinition
     public bool AllowTimelineFork { get; init; }
     public bool AllowCombatSimulation { get; init; }
     public bool AllowHotReloadActivation { get; init; }
+    public InspectionDetailLevel CardInspectionDetail { get; init; } = InspectionDetailLevel.Resolved;
     public int MaxCards { get; init; } = 100;
     public int MaxEnemies { get; init; } = 5;
     public int MaxBranchesPerRoot { get; init; } = 50;
     public int MaxSimulationCommands { get; init; } = 100;
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum InspectionDetailLevel
+{
+    Disabled,
+    Resolved,
+    Full
 }
 
 public sealed record EnemyPoolDefinition

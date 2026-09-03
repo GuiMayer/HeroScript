@@ -7,6 +7,28 @@ namespace Core.Combat.Flow;
 /// <summary>Pure deterministic transitions shared by every combat adapter.</summary>
 public static class CombatFlowTransitions
 {
+    public static Result ValidateCommandInput(
+        CombatState combat,
+        CombatActionCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(combat);
+        ArgumentNullException.ThrowIfNull(command);
+        var activation = combat.ActivationState;
+        if (activation == null)
+            return Result.Failure("Combat activation has not been initialized");
+        if (!activation.WaitingForInput)
+            return Result.Failure("Combat is resolving automatic actions");
+        if (!string.Equals(activation.ActiveActorId, command.ActorId, StringComparison.Ordinal))
+            return Result.Failure($"Actor '{command.ActorId}' is not the active actor");
+        var phase = combat.PhaseState?.PhaseSequence.Find(combat.PhaseState.CurrentPhaseId);
+        if (phase == null)
+            return Result.Failure("Combat phase has not been initialized");
+        return phase.AllowedActions.Contains(command.ActionType)
+            ? Result.Success()
+            : Result.Failure(
+                $"Action '{command.ActionType}' is not allowed in phase '{phase.PhaseId}'");
+    }
+
     public static Result ValidateActionBudget(
         CombatState combat,
         CombatActionCommand command,

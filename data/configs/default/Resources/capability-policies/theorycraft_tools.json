@@ -8,6 +8,7 @@
     "allowTimelineFork": true,
     "allowCombatSimulation": true,
     "allowHotReloadActivation": true,
+    "cardInspectionDetail": "Full",
     "maxCards": 100,
     "maxEnemies": 5,
     "maxBranchesPerRoot": 50,

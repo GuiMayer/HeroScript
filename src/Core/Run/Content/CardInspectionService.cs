@@ -1,0 +1,395 @@
+using System.Collections.Immutable;
+using Core.Calculations;
+using Core.Combat;
+using Core.Combat.Flow;
+using Core.Combat.Models;
+using Core.Combat.Modifiers;
+using Core.Combat.TurnPhase;
+using Core.Common;
+using Core.Content;
+using Core.Determinism;
+using Core.Effects;
+using Core.StatusEffects;
+
+namespace Core.Run.Content;
+
+public sealed record CardInspectionRequest
+{
+    private ImmutableArray<string> _selectedTargetIds = [];
+
+    public Guid CombatId { get; init; }
+    public Guid CardInstanceId { get; init; }
+    public string? ActorId { get; init; }
+    public IReadOnlyList<string> SelectedTargetIds
+    {
+        get => _selectedTargetIds;
+        init => _selectedTargetIds = value?.ToImmutableArray() ?? [];
+    }
+    public string? CostOptionId { get; init; }
+}
+
+public sealed record CardInspectionVersion
+{
+    public Guid RunId { get; init; }
+    public Guid CombatId { get; init; }
+    public int RunSequence { get; init; }
+    public ulong RunStep { get; init; }
+    public ulong CombatStep { get; init; }
+    public string ConfigName { get; init; } = string.Empty;
+    public string? ModeId { get; init; }
+    public string ContentRevision { get; init; } = string.Empty;
+    public string EngineVersion { get; init; } = string.Empty;
+}
+
+public sealed record CardInspectionContext
+{
+    private ImmutableArray<CombatEntity> _candidateTargets = [];
+    private ImmutableArray<RunRelicState> _relics = [];
+    private ImmutableArray<ScriptModifierInstance> _modifiers = [];
+    private ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>> _statuses =
+        ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<string> _calculationPipelineIds = [];
+
+    public CombatEntity Actor { get; init; } = null!;
+    public IReadOnlyList<CombatEntity> CandidateTargets
+    {
+        get => _candidateTargets;
+        init => _candidateTargets = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<RunRelicState> Relics
+    {
+        get => _relics;
+        init => _relics = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ScriptModifierInstance> Modifiers
+    {
+        get => _modifiers;
+        init => _modifiers = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyDictionary<string, ImmutableArray<StatusEffectInstance>> Statuses
+    {
+        get => _statuses;
+        init => _statuses = value?.ToImmutableDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
+            StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
+    }
+    public IReadOnlyList<string> CalculationPipelineIds
+    {
+        get => _calculationPipelineIds;
+        init => _calculationPipelineIds = value?.ToImmutableArray() ?? [];
+    }
+    public ResolvedGameMode? GameMode { get; init; }
+}
+
+public sealed record CardInspectionResult
+{
+    private ImmutableArray<CardUpgradeState> _appliedUpgrades = [];
+    private ImmutableArray<CalculationResult> _calculations = [];
+    private ImmutableArray<EffectApplicationRecord> _previewApplications = [];
+
+    public CardInspectionVersion Version { get; init; } = new();
+    public InspectionDetailLevel Detail { get; init; }
+    public string Zone { get; init; } = string.Empty;
+    public bool IsInHand { get; init; }
+    public bool IsPlayable { get; init; }
+    public CardContentDefinition BaseContainer { get; init; } = null!;
+    public CompiledCardDefinition CompiledContainer { get; init; } = null!;
+    public IReadOnlyList<CardUpgradeState> AppliedUpgrades
+    {
+        get => _appliedUpgrades;
+        init => _appliedUpgrades = value?.ToImmutableArray() ?? [];
+    }
+    public EffectiveCardDefinition EffectiveBase { get; init; } = null!;
+    public CardInspectionContext? ContextSources { get; init; }
+    public CardPlayEvaluation Evaluation { get; init; } = null!;
+    public IReadOnlyList<CalculationResult> Calculations
+    {
+        get => _calculations;
+        init => _calculations = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectApplicationRecord> PreviewApplications
+    {
+        get => _previewApplications;
+        init => _previewApplications = value?.ToImmutableArray() ?? [];
+    }
+    public CardConsumeDestination Disposition { get; init; }
+    public string ResolutionFingerprint { get; init; } = string.Empty;
+}
+
+public interface ICardInspectionService
+{
+    Result<CardInspectionResult> Inspect(CardInspectionRequest request);
+    Result<IReadOnlyList<CardInspectionResult>> InspectHand(
+        Guid combatId,
+        string? actorId = null,
+        IReadOnlyList<string>? selectedTargetIds = null,
+        string? costOptionId = null);
+}
+
+/// <summary>
+/// Read-only card projection. Compilation, upgrade resolution, legality and
+/// preview execution are delegated to the same services used by PLAY_CARD.
+/// </summary>
+public sealed class CardInspectionService : ICardInspectionService
+{
+    private readonly IRunManager _runs;
+    private readonly IContentRuntimeResolver _runtimes;
+    private readonly ICardContentCompiler _compiler;
+    private readonly IEffectiveCardResolver _effectiveCards;
+    private readonly ICardPlayEvaluator _legality;
+    private readonly ICardPlayExecutor _executor;
+
+    public CardInspectionService(
+        IRunManager runs,
+        IContentRuntimeResolver runtimes,
+        ICardContentCompiler compiler,
+        IEffectiveCardResolver effectiveCards,
+        ICardPlayEvaluator legality,
+        ICardPlayExecutor executor)
+    {
+        _runs = runs ?? throw new ArgumentNullException(nameof(runs));
+        _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
+        _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
+        _effectiveCards = effectiveCards ?? throw new ArgumentNullException(nameof(effectiveCards));
+        _legality = legality ?? throw new ArgumentNullException(nameof(legality));
+        _executor = executor ?? throw new ArgumentNullException(nameof(executor));
+    }
+
+    public Result<CardInspectionResult> Inspect(CardInspectionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var resolved = ResolveCombat(request.CombatId);
+        return resolved.IsFailure
+            ? Result<CardInspectionResult>.Failure(resolved.Error)
+            : Inspect(resolved.Value.Run, resolved.Value.Combat, request);
+    }
+
+    public Result<IReadOnlyList<CardInspectionResult>> InspectHand(
+        Guid combatId,
+        string? actorId = null,
+        IReadOnlyList<string>? selectedTargetIds = null,
+        string? costOptionId = null)
+    {
+        var resolved = ResolveCombat(combatId);
+        if (resolved.IsFailure)
+            return Result<IReadOnlyList<CardInspectionResult>>.Failure(resolved.Error);
+        var results = ImmutableArray.CreateBuilder<CardInspectionResult>();
+        foreach (var cardInstanceId in resolved.Value.Run.Deck.HandInstanceIds)
+        {
+            var inspected = Inspect(resolved.Value.Run, resolved.Value.Combat, new CardInspectionRequest
+            {
+                CombatId = combatId,
+                CardInstanceId = cardInstanceId,
+                ActorId = actorId,
+                SelectedTargetIds = selectedTargetIds ?? [],
+                CostOptionId = costOptionId
+            });
+            if (inspected.IsFailure)
+                return Result<IReadOnlyList<CardInspectionResult>>.Failure(inspected.Error);
+            results.Add(inspected.Value);
+        }
+        return Result<IReadOnlyList<CardInspectionResult>>.Success(results.ToImmutable());
+    }
+
+    private Result<CardInspectionResult> Inspect(
+        RunState run,
+        CombatState combat,
+        CardInspectionRequest request)
+    {
+        var detail = run.ResolvedMode?.CapabilityPolicy.CardInspectionDetail
+            ?? InspectionDetailLevel.Full;
+        if (detail == InspectionDetailLevel.Disabled)
+            return Result<CardInspectionResult>.Failure("Card inspection is disabled by the game mode");
+        var instance = run.Deck.GetCard(request.CardInstanceId);
+        if (instance == null)
+            return Result<CardInspectionResult>.Failure($"Card instance not found: {request.CardInstanceId}");
+        var actorId = string.IsNullOrWhiteSpace(request.ActorId)
+            ? combat.ActivationState?.ActiveActorId ?? combat.GetCurrentPriorityPlayer() ?? combat.Hero.EntityId
+            : request.ActorId;
+        var actor = combat.GetEntity(actorId);
+        if (actor == null)
+            return Result<CardInspectionResult>.Failure($"Actor not found: {actorId}");
+
+        var runtime = _runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure)
+            return Result<CardInspectionResult>.Failure(runtime.Error);
+        var authored = runtime.Value.GetDefinition<CardContentDefinition>("cards", instance.DefinitionId);
+        if (authored.IsFailure)
+            return Result<CardInspectionResult>.Failure(authored.Error);
+        var compiled = _compiler.Compile(instance.DefinitionId, runtime.Value);
+        if (compiled.IsFailure)
+            return Result<CardInspectionResult>.Failure(compiled.Error);
+        var effective = _effectiveCards.Resolve(compiled.Value, instance);
+        if (effective.IsFailure)
+            return Result<CardInspectionResult>.Failure(effective.Error);
+        var evaluation = _legality.Evaluate(effective.Value, combat, new CardPlayRequest
+        {
+            ActorId = actorId,
+            SelectedTargetIds = request.SelectedTargetIds,
+            CostOptionId = request.CostOptionId,
+            ContentRevision = run.Determinism.ContentRevision
+        });
+        if (evaluation.IsFailure)
+            return Result<CardInspectionResult>.Failure(evaluation.Error);
+
+        var resolvedEvaluation = evaluation.Value;
+        if (run.ResolvedMode != null)
+        {
+            var command = new CombatActionCommand
+            {
+                RunId = run.RunId,
+                ActorId = actorId,
+                ActionType = ActionType.PLAY_CARD,
+                CardInstanceId = request.CardInstanceId,
+                TargetIds = request.SelectedTargetIds,
+                CostOptionId = request.CostOptionId
+            };
+            var flowFailures = new[]
+            {
+                CombatFlowTransitions.ValidateCommandInput(combat, command),
+                CombatFlowTransitions.ValidateActionBudget(
+                    combat,
+                    command,
+                    run.ResolvedMode.CombatRules.Flow.ActionBudget,
+                    GameplayCommandTypes.PlayCard)
+            }
+                .Where(result => result.IsFailure)
+                .Select(result => result.Error)
+                .ToArray();
+            if (flowFailures.Length > 0)
+            {
+                resolvedEvaluation = resolvedEvaluation with
+                {
+                    IsLegal = false,
+                    FailureReasons = resolvedEvaluation.FailureReasons
+                        .Concat(flowFailures)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToArray()
+                };
+            }
+        }
+
+        var isInHand = run.Deck.HandInstanceIds.Contains(request.CardInstanceId);
+        CardPlayExecutionResult? preview = null;
+        if (isInHand && resolvedEvaluation.IsLegal)
+        {
+            var executed = _executor.Execute(new CardPlayExecutionRequest
+            {
+                Run = run,
+                Combat = combat,
+                CardInstanceId = request.CardInstanceId,
+                ActorId = actorId,
+                SelectedTargetIds = request.SelectedTargetIds,
+                CostOptionId = request.CostOptionId
+            });
+            if (executed.IsFailure)
+                return Result<CardInspectionResult>.Failure(executed.Error);
+            preview = executed.Value;
+        }
+
+        var context = detail == InspectionDetailLevel.Full
+            ? BuildContext(run, combat, actor, resolvedEvaluation)
+            : null;
+        var fingerprint = preview?.ResolutionFingerprint ?? CanonicalJson.ComputeHash(new
+        {
+            version = new
+            {
+                run.RunId,
+                request.CombatId,
+                run.Sequence,
+                runStep = run.Determinism.Step,
+                combatStep = combat.Determinism.Step,
+                run.Determinism.ContentRevision,
+                run.Determinism.EngineVersion
+            },
+            effective = effective.Value.Fingerprint,
+            evaluation = resolvedEvaluation,
+            isInHand,
+            context
+        });
+        return Result<CardInspectionResult>.Success(new CardInspectionResult
+        {
+            Version = new CardInspectionVersion
+            {
+                RunId = run.RunId,
+                CombatId = combat.CombatId,
+                RunSequence = run.Sequence,
+                RunStep = run.Determinism.Step,
+                CombatStep = combat.Determinism.Step,
+                ConfigName = run.ConfigName,
+                ModeId = run.ModeId,
+                ContentRevision = run.Determinism.ContentRevision,
+                EngineVersion = run.Determinism.EngineVersion
+            },
+            Detail = detail,
+            Zone = ResolveZone(run.Deck, request.CardInstanceId),
+            IsInHand = isInHand,
+            IsPlayable = isInHand && resolvedEvaluation.IsLegal,
+            BaseContainer = authored.Value,
+            CompiledContainer = compiled.Value,
+            AppliedUpgrades = effective.Value.AppliedUpgrades,
+            EffectiveBase = effective.Value,
+            ContextSources = context,
+            Evaluation = resolvedEvaluation,
+            Calculations = preview?.Calculations ?? [],
+            PreviewApplications = preview?.Applications ?? [],
+            Disposition = resolvedEvaluation.Destination,
+            ResolutionFingerprint = fingerprint
+        });
+    }
+
+    private Result<(RunState Run, CombatState Combat)> ResolveCombat(Guid combatId)
+    {
+        var run = _runs.GetRunByCombat(combatId);
+        if (run.IsFailure)
+            return Result<(RunState, CombatState)>.Failure(run.Error);
+        var encounter = run.Value.GetEncounter(combatId);
+        return encounter == null
+            ? Result<(RunState, CombatState)>.Failure($"Combat not found in run: {combatId}")
+            : Result<(RunState, CombatState)>.Success((run.Value, encounter.Combat));
+    }
+
+    private static CardInspectionContext BuildContext(
+        RunState run,
+        CombatState combat,
+        CombatEntity actor,
+        CardPlayEvaluation evaluation)
+    {
+        var targetIds = evaluation.ResolvedTargetIds.Count > 0
+            ? evaluation.ResolvedTargetIds
+            : evaluation.LegalTargetIds;
+        return new CardInspectionContext
+        {
+            Actor = actor,
+            CandidateTargets = targetIds
+                .Distinct(StringComparer.Ordinal)
+                .Select(combat.GetEntity)
+                .Where(entity => entity != null)
+                .Cast<CombatEntity>()
+                .ToArray(),
+            Relics = run.Relics.OrderBy(relic => relic.RelicInstanceId).ToArray(),
+            Modifiers = run.Modifiers.OrderBy(modifier => modifier.InstanceId).ToArray(),
+            Statuses = combat.StatusEffects
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToImmutableDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value.Where(status => status.IsActive)
+                        .OrderBy(status => status.InstanceId)
+                        .ToImmutableArray(),
+                    StringComparer.Ordinal),
+            CalculationPipelineIds = run.ResolvedMode?.Definition.CalculationPipelineIds ?? [],
+            GameMode = run.ResolvedMode
+        };
+    }
+
+    private static string ResolveZone(DeckState deck, Guid cardInstanceId)
+    {
+        if (deck.HandInstanceIds.Contains(cardInstanceId)) return "hand";
+        if (deck.DrawPileInstanceIds.Contains(cardInstanceId)) return "draw";
+        if (deck.DiscardPileInstanceIds.Contains(cardInstanceId)) return "discard";
+        if (deck.ExhaustPileInstanceIds.Contains(cardInstanceId)) return "exhaust";
+        return "collection";
+    }
+}
