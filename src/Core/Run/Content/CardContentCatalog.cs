@@ -166,7 +166,6 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
     private static CardContentDefinition Normalize(CardContentDefinition definition, string fallbackId)
     {
         var cardId = string.IsNullOrWhiteSpace(definition.CardId) ? fallbackId : definition.CardId;
-        var actionId = string.IsNullOrWhiteSpace(definition.ActionId) ? cardId : definition.ActionId;
-        return definition with { CardId = cardId, ActionId = actionId };
+        return definition with { CardId = cardId };
     }
 }

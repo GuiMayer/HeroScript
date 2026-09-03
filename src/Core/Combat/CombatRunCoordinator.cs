@@ -1,10 +1,12 @@
 using Core.Combat.Models;
 using Core.Combat.Flow;
 using Core.Combat.Gambits;
-using Core.Combat.Modifiers;
 using Core.Common;
 using Core.Determinism;
+using Core.Events;
+using Core.Events.Domain;
 using Core.Run;
+using Core.Run.Content;
 using Core.StatusEffects;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -13,12 +15,10 @@ namespace Core.Combat;
 
 public sealed class CombatRunCoordinator : ICombatRunCoordinator
 {
-    private const string BasicAttackActionId = "basic_attack";
-
     private readonly ICombatSystem _combatSystem;
     private readonly IRunManager _runManager;
-    private readonly IActionManager _actionManager;
-    private readonly IScriptModifierManager? _scriptModifierManager;
+    private readonly ICardPlayExecutor? _cardPlayExecutor;
+    private readonly IEventBus? _eventBus;
     private readonly ICombatFlowPlanner? _flowPlanner;
     private readonly IGambitEngine? _gambitEngine;
     private readonly IRunCombatResolutionCommitter? _resolutionCommitter;
@@ -27,15 +27,15 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     public CombatRunCoordinator(
         ICombatSystem combatSystem,
         IRunManager runManager,
-        IActionManager actionManager,
-        IScriptModifierManager? scriptModifierManager = null,
+        ICardPlayExecutor? cardPlayExecutor = null,
         ICombatFlowPlanner? flowPlanner = null,
-        IGambitEngine? gambitEngine = null)
+        IGambitEngine? gambitEngine = null,
+        IEventBus? eventBus = null)
     {
         _combatSystem = combatSystem;
         _runManager = runManager;
-        _actionManager = actionManager;
-        _scriptModifierManager = scriptModifierManager;
+        _cardPlayExecutor = cardPlayExecutor;
+        _eventBus = eventBus;
         _flowPlanner = flowPlanner;
         _gambitEngine = gambitEngine;
         _resolutionCommitter = runManager as IRunCombatResolutionCommitter;
@@ -286,51 +286,52 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (actor == null)
             return Result<CombatRunActionResult>.Failure($"Actor not found: {command.ActorId}");
 
-        if (!actor.IsHero || command.ActionType is ActionType.PASS or ActionType.END_TURN)
+        if (command.ActionType == ActionType.PLAY_CARD)
         {
+            if (!actor.IsHero)
+                return Result<CombatRunActionResult>.Failure("Only the run player can play cards from its deck");
+            if (_cardPlayExecutor == null)
+                return Result<CombatRunActionResult>.Failure("Card play executor is unavailable");
+            if (!command.CardInstanceId.HasValue || command.CardInstanceId == Guid.Empty)
+                return Result<CombatRunActionResult>.Failure("CardInstanceId is required for PLAY_CARD");
+
+            var ignoreCosts = run.ResolvedMode?.CombatRules.Flow.ActionBudget.ActionCosts ==
+                ActionCostStrategy.Ignore;
+            var effectiveCommand = command with
+            {
+                IgnoreConfiguredCosts = ignoreCosts,
+                DeferTurnLifecycle = true
+            };
+            var played = _cardPlayExecutor.Execute(new CardPlayExecutionRequest
+            {
+                Run = run,
+                Combat = encounter.Combat,
+                CardInstanceId = command.CardInstanceId.Value,
+                ActorId = command.ActorId,
+                SelectedTargetIds = command.TargetIds,
+                CostOptionId = command.CostOptionId,
+                IgnoreConfiguredCosts = ignoreCosts
+            });
+            if (played.IsFailure)
+                return Result<CombatRunActionResult>.Failure(played.Error);
             return ExecuteAndCommit(
                 combatId,
                 run,
                 encounter.Combat,
-                command,
-                consumedCardId: null,
-                CardConsumeDestination.None,
-                commandIdentity);
+                effectiveCommand,
+                command.CardInstanceId.Value.ToString(),
+                played.Value.Destination,
+                commandIdentity,
+                played.Value);
         }
 
-        var cardId = ResolveCardId(command);
-        if (string.IsNullOrWhiteSpace(cardId))
-            return Result<CombatRunActionResult>.Failure("CardId is required for run-coordinated combat actions");
-
-        if (!IsCardInHand(run.Deck, cardId))
-            return Result<CombatRunActionResult>.Failure($"Card '{cardId}' is not in run hand");
-
-        var actionId = ResolveActionId(command, run.Deck, cardId);
-        var actionResult = _actionManager is IRevisionedActionCatalog revisionedActions
-            ? revisionedActions.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
-            : _actionManager.GetDefinition(actionId);
-        if (actionResult.IsFailure)
-            return Result<CombatRunActionResult>.Failure(actionResult.Error);
-
-        var actionDefinition = actionResult.Value;
-        var destination = ResolveDestination(actionDefinition);
-        var commandWithModifiers = command with
-        {
-            ActionType = actionDefinition.ActionType == ActionType.BASIC_ATTACK
-                ? ActionType.BASIC_ATTACK
-                : ActionType.POWER,
-            PowerId = actionDefinition.ActionType == ActionType.BASIC_ATTACK
-                ? null
-                : actionId,
-            RunModifiers = ResolveRunModifiers(runId, actionDefinition.Tags)
-        };
         return ExecuteAndCommit(
             combatId,
             run,
             encounter.Combat,
-            commandWithModifiers,
-            destination == CardConsumeDestination.None ? null : cardId,
-            destination,
+            command,
+            consumedCardId: null,
+            CardConsumeDestination.None,
             commandIdentity);
     }
 
@@ -341,7 +342,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CombatActionCommand command,
         string? consumedCardId,
         CardConsumeDestination destination,
-        RunCommandIdentity? commandIdentity)
+        RunCommandIdentity? commandIdentity,
+        CardPlayExecutionResult? cardPlay = null)
     {
         if (run.ResolvedMode != null)
             return ExecuteCanonicalAndCommit(
@@ -351,7 +353,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 command,
                 consumedCardId,
                 destination,
-                commandIdentity);
+                commandIdentity,
+                cardPlay);
 
         var actionBudget = run.ResolvedMode?.CombatRules.Flow.ActionBudget;
         var effectiveCommandType = commandIdentity?.Type ?? "COMBAT_ACTION";
@@ -369,7 +372,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var effectiveCommand = commandIdentity == null
             ? command
             : command with { ExpectedStep = commandIdentity.ExpectedStep };
-        var combatResult = _combatSystem.ExecuteAction(combatId, effectiveCommand);
+        var combatResult = cardPlay == null
+            ? _combatSystem.ExecuteAction(combatId, effectiveCommand)
+            : Result<CombatState>.Success(cardPlay.Combat);
         if (combatResult.IsFailure)
             return Result<CombatRunActionResult>.Failure(combatResult.Error);
         var nextCombat = actionBudget == null
@@ -395,6 +400,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure(committed.Error);
         }
 
+        if (cardPlay != null)
+        {
+            var restoredCardState = _combatSystem.RestoreCombatState(nextCombat);
+            if (restoredCardState.IsFailure)
+                return Result<CombatRunActionResult>.Failure(restoredCardState.Error);
+            PublishCardAction(cardPlay);
+        }
+
         return Result<CombatRunActionResult>.Success(new CombatRunActionResult
         {
             CombatState = nextCombat,
@@ -411,7 +424,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CombatActionCommand command,
         string? consumedCardId,
         CardConsumeDestination destination,
-        RunCommandIdentity? commandIdentity)
+        RunCommandIdentity? commandIdentity,
+        CardPlayExecutionResult? cardPlay)
     {
         if (_flowPlanner == null || _gambitEngine == null || _resolutionCommitter == null)
             return Result<CombatRunActionResult>.Failure(
@@ -451,7 +465,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
             DeferTurnLifecycle = true
         };
-        var executed = _combatSystem.ExecuteAction(combatId, effectiveCommand);
+        var executed = cardPlay == null
+            ? _combatSystem.ExecuteAction(combatId, effectiveCommand)
+            : Result<CombatState>.Success(cardPlay.Combat);
         if (executed.IsFailure)
             return Result<CombatRunActionResult>.Failure(executed.Error);
 
@@ -470,7 +486,16 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             combatId,
             command = effectiveCommand,
             consumedCardId,
-            destination = destination.ToString()
+            destination = destination.ToString(),
+            cardResolution = cardPlay == null ? null : new
+            {
+                cardPlay.Card.CardInstanceId,
+                cardPlay.Card.DefinitionId,
+                cardPlay.Card.Fingerprint,
+                cardPlay.ResolutionFingerprint,
+                cardPlay.Calculations,
+                cardPlay.Applications
+            }
         });
         var steps = new List<CombatResolutionStep>
         {
@@ -614,6 +639,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var restored = _combatSystem.RestoreCombatState(currentCombat);
         if (restored.IsFailure)
             return Result<CombatRunActionResult>.Failure(restored.Error);
+        if (cardPlay != null)
+            PublishCardAction(cardPlay);
         return Result<CombatRunActionResult>.Success(new CombatRunActionResult
         {
             CombatState = currentCombat,
@@ -891,50 +918,29 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 string.Equals(entry.CommandPayloadHash, identity.PayloadHash, StringComparison.Ordinal));
     }
 
-    private static string ResolveCardId(CombatActionCommand command)
+    private void PublishCardAction(CardPlayExecutionResult result)
     {
-        if (!string.IsNullOrWhiteSpace(command.CardId))
-            return command.CardId;
+        if (_eventBus == null)
+            return;
 
-        return command.ActionType == ActionType.BASIC_ATTACK
-            ? BasicAttackActionId
-            : command.PowerId ?? string.Empty;
+        var action = result.Combat.ActionHistory.Last();
+        _eventBus.Publish(new ActionExecutedEvent
+        {
+            CombatId = result.Combat.CombatId,
+            ActionId = action.ActionId,
+            ActorId = action.ActorId,
+            ActionTypeName = ActionType.PLAY_CARD.ToString(),
+            TargetId = action.TargetId,
+            Turn = action.Turn,
+            Subject = action.ActorId,
+            Target = action.TargetId ?? "none",
+            Payload = new Dictionary<string, object>
+            {
+                ["cardInstanceId"] = result.Card.CardInstanceId,
+                ["cardDefinitionId"] = result.Card.DefinitionId,
+                ["resolutionFingerprint"] = result.ResolutionFingerprint
+            }
+        });
     }
 
-    private static bool IsCardInHand(DeckState deck, string cardReference)
-    {
-        return Guid.TryParse(cardReference, out var instanceId) &&
-               deck.HandInstanceIds.Contains(instanceId);
-    }
-
-    private static string ResolveActionId(
-        CombatActionCommand command,
-        DeckState deck,
-        string cardInstanceId)
-    {
-        if (command.ActionType == ActionType.BASIC_ATTACK)
-            return BasicAttackActionId;
-        if (!string.IsNullOrWhiteSpace(command.PowerId))
-            return command.PowerId;
-        return Guid.TryParse(cardInstanceId, out var instanceId)
-            ? deck.GetDefinitionId(instanceId) ?? cardInstanceId
-            : cardInstanceId;
-    }
-
-    private static CardConsumeDestination ResolveDestination(ActionDefinition actionDefinition)
-    {
-        if (actionDefinition.Tags.Any(tag => string.Equals(tag, "retain", StringComparison.OrdinalIgnoreCase)))
-            return CardConsumeDestination.None;
-
-        if (actionDefinition.Tags.Any(tag => string.Equals(tag, "exhaust", StringComparison.OrdinalIgnoreCase)))
-            return CardConsumeDestination.Exhaust;
-
-        return CardConsumeDestination.Discard;
-    }
-
-    private IReadOnlyDictionary<string, float> ResolveRunModifiers(Guid runId, IEnumerable<string> tags)
-    {
-        return _scriptModifierManager?.GetPipelineModifiers($"run:{runId}", tags)
-            ?? new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-    }
 }

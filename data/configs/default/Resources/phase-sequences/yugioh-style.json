@@ -8,9 +8,9 @@
     "phases": [
       { "phaseId": "draw", "role": "Start", "order": 10, "name": "Draw", "allowedActions": [], "validNextPhaseIds": ["standby"], "autoTransition": true, "allowPriority": false },
       { "phaseId": "standby", "role": "Start", "order": 20, "name": "Standby", "allowedActions": ["PASS"], "validNextPhaseIds": ["main_1"], "autoTransition": false, "allowPriority": true },
-      { "phaseId": "main_1", "role": "Middle", "order": 30, "name": "Main 1", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS"], "validNextPhaseIds": ["battle", "main_2", "end"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "main_1", "role": "Middle", "order": 30, "name": "Main 1", "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "PASS"], "validNextPhaseIds": ["battle", "main_2", "end"], "autoTransition": false, "allowPriority": true },
       { "phaseId": "battle", "role": "Middle", "order": 40, "name": "Battle", "allowedActions": ["BASIC_ATTACK", "PASS"], "validNextPhaseIds": ["main_2", "end"], "autoTransition": false, "allowPriority": true },
-      { "phaseId": "main_2", "role": "Middle", "order": 50, "name": "Main 2", "allowedActions": ["POWER", "PASS"], "validNextPhaseIds": ["end"], "autoTransition": false, "allowPriority": true },
+      { "phaseId": "main_2", "role": "Middle", "order": 50, "name": "Main 2", "allowedActions": ["PLAY_CARD", "POWER", "PASS"], "validNextPhaseIds": ["end"], "autoTransition": false, "allowPriority": true },
       { "phaseId": "end", "role": "End", "order": 60, "name": "End", "allowedActions": ["PASS", "END_TURN"], "validNextPhaseIds": ["draw"], "autoTransition": false, "allowPriority": false }
     ]
   }

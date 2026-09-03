@@ -510,10 +510,10 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
     sp.GetRequiredService<ICombatSystem>(),
     sp.GetRequiredService<IRunManager>(),
-    sp.GetRequiredService<IActionManager>(),
-    sp.GetRequiredService<IScriptModifierManager>(),
+    sp.GetRequiredService<ICardPlayExecutor>(),
     sp.GetRequiredService<ICombatFlowPlanner>(),
-    sp.GetRequiredService<IGambitEngine>()));
+    sp.GetRequiredService<IGambitEngine>(),
+    sp.GetRequiredService<IEventBus>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IGameModeResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),
@@ -532,7 +532,6 @@ builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxServ
     sp.GetRequiredService<IRunStateRepository>()));
 builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
     sp.GetRequiredService<IRunManager>(),
-    sp.GetRequiredService<ICardContentCatalog>(),
     sp.GetRequiredService<IScriptModifierManager>()));
 builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new CombatTimelineProjectionService(
     sp.GetRequiredService<IRunManager>(),
@@ -549,6 +548,14 @@ builder.Services.AddSingleton<API.Services.DailyChallengeService>();
 // Register ActionAffordabilityService
 builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();
 builder.Services.AddSingleton<ICardPlayEvaluator, CardPlayEvaluator>();
+builder.Services.AddSingleton<CardComponentInfluenceProvider>(sp =>
+    new CardComponentInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
+    new CompositeCalculationInfluenceProvider(
+    [
+        sp.GetRequiredService<CardComponentInfluenceProvider>()
+    ]));
+builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 
 // Register ExpressionEvaluator

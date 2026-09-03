@@ -9,6 +9,7 @@ public sealed record CombatActionCommand
 {
     private ImmutableDictionary<string, float> _runModifiers =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    private ImmutableArray<string> _targetIds = [];
 
     public string ActorId { get; init; } = string.Empty;
     public ActionType ActionType { get; init; }
@@ -16,7 +17,12 @@ public sealed record CombatActionCommand
     public string? TargetId { get; init; }
     public string? CostOptionId { get; init; }
     public Guid? RunId { get; init; }
-    public string? CardId { get; init; }
+    public Guid? CardInstanceId { get; init; }
+    public IReadOnlyList<string> TargetIds
+    {
+        get => _targetIds;
+        init => _targetIds = value?.ToImmutableArray() ?? [];
+    }
     public bool IgnoreConfiguredCosts { get; init; }
     public bool DeferTurnLifecycle { get; init; }
     public IReadOnlyDictionary<string, float> RunModifiers

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Abstractions.Persistence;
+using Core.Calculations;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Flow;
@@ -350,11 +351,24 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 _actionManager,
                 new IntentResolver(gambits, _actionManager),
                 new CombatStatusLifecycle(_formulaEvaluator));
+        var cardPlay = contentRuntimes == null
+            ? null
+            : new CardPlayExecutor(
+                contentRuntimes,
+                new CardContentCompiler(),
+                new EffectiveCardResolver(),
+                new CardPlayEvaluator(_actionCostEvaluator, _formulaEvaluator),
+                new CalculationEngine(),
+                new CompositeCalculationInfluenceProvider(
+                [
+                    new CardComponentInfluenceProvider(_formulaEvaluator)
+                ]),
+                new ImmutableEffectProcessor(),
+                _formulaEvaluator);
         var combats = new CombatRunCoordinator(
             combatSystem,
             runs,
-            _actionManager,
-            modifiers,
+            cardPlay,
             flowPlanner,
             gambits);
         return new ReplayRuntime(runs, combats);
@@ -373,7 +387,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 RunCommandTypes.ResolveCombat => ReplayResolveCombat(runtime, entry),
                 RunCommandTypes.ResolveNode => ReplayResolveNode(runtime, entry),
                 RunCommandTypes.AdvanceNode => ReplayAdvanceNode(runtime, entry),
-                "COMBAT_ACTION" or "EXECUTE_ACTION" or "END_TURN" =>
+                "COMBAT_ACTION" or "PLAY_CARD" or "EXECUTE_ACTION" or "END_TURN" =>
                     ReplayCombatAction(runtime, entry),
                 "run.economy.apply" => ReplayEconomy(runtime, entry),
                 "run.deck.draw" => ReplayDraw(runtime, entry),

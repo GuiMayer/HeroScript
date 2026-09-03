@@ -91,7 +91,6 @@ public sealed record SandboxCardSnapshot
 
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
-    public string ActionId { get; init; } = string.Empty;
     public int HandIndex { get; init; }
     public IReadOnlyList<CardUpgradeState> Upgrades
     {
@@ -112,16 +111,13 @@ public interface ICombatSandboxSnapshotService
 public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 {
     private readonly IRunManager _runs;
-    private readonly ICardContentCatalog _cards;
     private readonly IScriptModifierManager _modifiers;
 
     public CombatSandboxSnapshotService(
         IRunManager runs,
-        ICardContentCatalog cards,
         IScriptModifierManager modifiers)
     {
         _runs = runs;
-        _cards = cards;
         _modifiers = modifiers;
     }
 
@@ -168,10 +164,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                 Board = combat.Board,
                 Actors = actors
             },
-            Hand = MapHand(
-                run.Value.Deck,
-                run.Value.ConfigName,
-                run.Value.Determinism.ContentRevision)
+            Hand = MapHand(run.Value.Deck)
         });
     }
 
@@ -199,10 +192,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
         };
     }
 
-    private IReadOnlyList<SandboxCardSnapshot> MapHand(
-        DeckState deck,
-        string configName,
-        string contentRevision)
+    private static IReadOnlyList<SandboxCardSnapshot> MapHand(DeckState deck)
     {
         var cards = new List<SandboxCardSnapshot>();
         for (var index = 0; index < deck.Hand.Count; index++)
@@ -211,14 +201,10 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
             var instance = deck.GetCard(instanceId)
                 ?? throw new InvalidOperationException($"Card instance not found: {instanceId}");
             var definitionId = instance.DefinitionId;
-            var content = _cards is IRevisionedCardContentCatalog revisionedCards
-                ? revisionedCards.GetCard(definitionId, contentRevision, configName)
-                : _cards.GetCard(definitionId, configName);
             cards.Add(new SandboxCardSnapshot
             {
                 CardInstanceId = instanceId,
                 DefinitionId = definitionId,
-                ActionId = content.IsSuccess ? content.Value.ActionId : definitionId,
                 HandIndex = index,
                 Upgrades = instance.Upgrades
             });

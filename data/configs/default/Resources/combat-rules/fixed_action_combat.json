@@ -16,7 +16,7 @@
         "actionCosts": "Ignore",
         "actorScope": "Player",
         "maxActionsPerActivation": 2,
-        "consumingCommands": ["EXECUTE_ACTION"]
+        "consumingCommands": ["PLAY_CARD"]
       },
       "ai": {
         "enabled": true,

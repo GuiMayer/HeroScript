@@ -16,7 +16,7 @@
         "actionCosts": "Configured",
         "actorScope": "Player",
         "resourceId": "energy",
-        "consumingCommands": ["EXECUTE_ACTION"]
+        "consumingCommands": ["PLAY_CARD"]
       },
       "ai": {
         "enabled": true,

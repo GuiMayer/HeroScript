@@ -49,7 +49,9 @@ public sealed class CombatCommandController : BaseApiController
             return ApiNotFound(runResult.Error);
 
         var type = envelope.Type.Trim().ToUpperInvariant();
-        if (type is not GameplayCommandTypes.ExecuteAction and not GameplayCommandTypes.EndTurn)
+        if (type is not GameplayCommandTypes.PlayCard and
+            not GameplayCommandTypes.ExecuteAction and
+            not GameplayCommandTypes.EndTurn)
         {
             return ApiProblem(
                 StatusCodes.Status422UnprocessableEntity,

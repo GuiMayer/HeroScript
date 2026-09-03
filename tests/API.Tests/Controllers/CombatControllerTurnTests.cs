@@ -3,7 +3,6 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Resources;
-using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,7 +18,6 @@ public sealed class CombatControllerTurnTests
     private readonly Mock<IActionManager> _actionManager = new();
     private readonly Mock<IActionAffordabilityService> _affordabilityService = new();
     private readonly Mock<ICombatRunCoordinator> _combatRunCoordinator = new();
-    private readonly Mock<IRunManager> _runManager = new();
     private readonly CombatController _controller;
 
     public CombatControllerTurnTests()
@@ -29,15 +27,13 @@ public sealed class CombatControllerTurnTests
             _actionManager.Object,
             _affordabilityService.Object,
             _combatRunCoordinator.Object,
-            _runManager.Object,
             Mock.Of<ILogger<CombatController>>());
     }
 
     [Fact]
-    public void GetAvailableActions_WithActorAndRun_FiltersByHandAndUsesActorResources()
+    public void GetAvailableActions_UsesActorResourcesWithoutTreatingActionsAsCards()
     {
         var state = CreateCombatState();
-        var runId = Guid.NewGuid();
         var fireball = new ActionDefinition
         {
             ActionId = "fireball",
@@ -55,17 +51,11 @@ public sealed class CombatControllerTurnTests
             .Returns(Result<CombatState>.Success(state));
         _actionManager.Setup(m => m.GetAllDefinitions())
             .Returns(new[] { fireball, heal });
-        _runManager.Setup(m => m.GetRun(runId))
-            .Returns(Result<RunState>.Success(new RunState
-            {
-                RunId = runId,
-                Deck = new DeckState { Hand = new List<string> { "fireball" } }
-            }));
         _affordabilityService.Setup(s => s.CanAfford(It.IsAny<ActionDefinition>(), state.Hero.ResourceState.Resources))
             .Returns((ActionDefinition action, IReadOnlyDictionary<string, ResourcePool> _) =>
                 Result<AffordabilityResult>.Success(new AffordabilityResult { ActionId = action.ActionId, CanAfford = true }));
 
-        var result = _controller.GetAvailableActions(state.CombatId, "hero", runId);
+        var result = _controller.GetAvailableActions(state.CombatId, "hero");
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
@@ -74,10 +64,9 @@ public sealed class CombatControllerTurnTests
     }
 
     [Fact]
-    public void CanAffordAction_WithActorAndRun_ReturnsAffordabilityForActor()
+    public void CanAffordAction_ReturnsAffordabilityForActor()
     {
         var state = CreateCombatState();
-        var runId = Guid.NewGuid();
         var fireball = new ActionDefinition
         {
             ActionId = "fireball",
@@ -89,12 +78,6 @@ public sealed class CombatControllerTurnTests
             .Returns(Result<CombatState>.Success(state));
         _actionManager.Setup(m => m.GetDefinition("fireball"))
             .Returns(Result<ActionDefinition>.Success(fireball));
-        _runManager.Setup(m => m.GetRun(runId))
-            .Returns(Result<RunState>.Success(new RunState
-            {
-                RunId = runId,
-                Deck = new DeckState { Hand = new List<string> { "fireball" } }
-            }));
         _affordabilityService.Setup(s => s.CanAfford(fireball, state.Hero.ResourceState.Resources))
             .Returns(Result<AffordabilityResult>.Success(new AffordabilityResult
             {
@@ -102,7 +85,7 @@ public sealed class CombatControllerTurnTests
                 CanAfford = true
             }));
 
-        var result = _controller.CanAffordAction(state.CombatId, "fireball", "hero", runId);
+        var result = _controller.CanAffordAction(state.CombatId, "fireball", "hero");
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);

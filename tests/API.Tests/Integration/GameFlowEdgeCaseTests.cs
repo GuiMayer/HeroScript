@@ -73,13 +73,12 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             commandId = Guid.NewGuid(),
             expectedSequence = GetJsonInt((await Client.GetRunStateAsync(runId)), "sequence"),
             expectedStep = combatState.GetProperty("step").GetUInt64(),
-            type = "EXECUTE_ACTION",
+            type = "PLAY_CARD",
             payload = new
             {
                 actorId = playerEntityId,
-                targetId = "non_existent_enemy",
-                cardId = cardInstanceId,
-                actionId = "basic_attack"
+                targetIds = new[] { "non_existent_enemy" },
+                cardInstanceId
             }
         });
 

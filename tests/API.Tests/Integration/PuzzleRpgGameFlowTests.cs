@@ -153,13 +153,12 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
             commandId = Guid.NewGuid(),
             expectedSequence = GetJsonInt(currentRun, "sequence"),
             expectedStep = combatState.GetProperty("step").GetUInt64(),
-            type = "EXECUTE_ACTION",
+            type = "PLAY_CARD",
             payload = new
             {
                 actorId = playerEntityId,
-                targetId = "enemy_1",
-                cardId = fireballCard,
-                actionId = "fireball"
+                targetIds = new[] { "enemy_1" },
+                cardInstanceId = fireballCard
             }
         });
 

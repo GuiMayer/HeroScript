@@ -77,13 +77,12 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             {
                 new
                 {
-                    type = "EXECUTE_ACTION",
+                    type = "PLAY_CARD",
                     payload = new
                     {
                         actorId = "hero",
-                        actionType = 0,
-                        targetId = "goblin_a",
-                        cardId = basicAttack.GetProperty("cardInstanceId").GetGuid()
+                        targetIds = new[] { "goblin_a" },
+                        cardInstanceId = basicAttack.GetProperty("cardInstanceId").GetGuid()
                     }
                 },
                 new { type = "END_TURN", payload = new { actorId = "hero" } }
@@ -154,13 +153,12 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
                 commandId = Guid.NewGuid(),
                 expectedSequence = branchSnapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
                 expectedStep = branchSnapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
-                type = "EXECUTE_ACTION",
+                type = "PLAY_CARD",
                 payload = new
                 {
                     actorId = "hero",
-                    actionId = branchAttack.GetProperty("actionId").GetString(),
-                    cardId = branchAttack.GetProperty("cardInstanceId").GetGuid(),
-                    targetId = "goblin_a"
+                    cardInstanceId = branchAttack.GetProperty("cardInstanceId").GetGuid(),
+                    targetIds = new[] { "goblin_a" }
                 }
             });
         var branchAction = await branchActionResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -365,13 +363,12 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
                 commandId,
                 expectedSequence = snapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
                 expectedStep = snapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
-                type = "EXECUTE_ACTION",
+                type = "PLAY_CARD",
                 payload = new
                 {
                     actorId = "hero",
-                    actionId = card.GetProperty("actionId").GetString(),
-                    cardId = card.GetProperty("cardInstanceId").GetGuid(),
-                    targetId
+                    cardInstanceId = card.GetProperty("cardInstanceId").GetGuid(),
+                    targetIds = new[] { targetId }
                 }
             });
         var result = await response.Content.ReadFromJsonAsync<JsonElement>();

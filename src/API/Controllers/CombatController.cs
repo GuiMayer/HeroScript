@@ -4,7 +4,6 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
 using API.Models.Combat;
-using Core.Run;
 using Core.Determinism;
 using Core.Combat.TurnPhase;
 
@@ -22,14 +21,12 @@ public class CombatController : BaseApiController
     private readonly IActionManager _actionManager;
     private readonly IActionAffordabilityService _affordabilityService;
     private readonly ICombatRunCoordinator _combatRunCoordinator;
-    private readonly IRunManager _runManager;
 
     public CombatController(
         ICombatSystem combatSystem, 
         IActionManager actionManager,
         IActionAffordabilityService affordabilityService,
         ICombatRunCoordinator combatRunCoordinator,
-        IRunManager runManager,
         ILogger<CombatController> logger)
         : base(logger)
     {
@@ -37,7 +34,6 @@ public class CombatController : BaseApiController
         _actionManager = actionManager ?? throw new ArgumentNullException(nameof(actionManager));
         _affordabilityService = affordabilityService ?? throw new ArgumentNullException(nameof(affordabilityService));
         _combatRunCoordinator = combatRunCoordinator ?? throw new ArgumentNullException(nameof(combatRunCoordinator));
-        _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
     }
 
     [HttpGet("/api/v1/runs/{runId:guid}/encounters/current")]
@@ -166,7 +162,7 @@ public class CombatController : BaseApiController
     /// Lista ações disponíveis para um ator no combate atual.
     /// </summary>
     [HttpGet("{combatId}/available-actions")]
-    public IActionResult GetAvailableActions(Guid combatId, [FromQuery] string? actorId = null, [FromQuery] Guid? runId = null)
+    public IActionResult GetAvailableActions(Guid combatId, [FromQuery] string? actorId = null)
     {
         try
         {
@@ -180,10 +176,6 @@ public class CombatController : BaseApiController
                 return NotFound(new { error = $"Actor {actorId} not found" });
 
             var allActions = _actionManager.GetAllDefinitions();
-            var hand = GetRunHand(runId, out var runError);
-            if (runError != null)
-                return runError;
-            var handCounts = hand?.GroupBy(cardId => cardId).ToDictionary(g => g.Key, g => g.Count()) ?? new Dictionary<string, int>();
             
             var availableActions = allActions.Select(action =>
             {
@@ -191,9 +183,7 @@ public class CombatController : BaseApiController
                 var affordability = affordabilityResult.IsSuccess 
                     ? affordabilityResult.Value 
                     : new AffordabilityResult { ActionId = action.ActionId, CanAfford = false };
-                var cardCountInHand = handCounts.GetValueOrDefault(action.ActionId);
-                var inHand = hand == null || cardCountInHand > 0;
-                
+
                 return new
                 {
                     actionId = action.ActionId,
@@ -215,18 +205,14 @@ public class CombatController : BaseApiController
                     }).ToList(),
                     tags = action.Tags,
                     canAfford = affordability.CanAfford,
-                    affordableOptions = affordability.AffordableOptionIds,
-                    inHand,
-                    cardCountInHand,
-                    willConsumeTo = ResolveConsumeDestination(action).ToString()
+                    affordableOptions = affordability.AffordableOptionIds
                 };
-            }).Where(action => hand == null || action.inHand).ToList();
+            }).ToList();
 
             return Ok(new
             {
                 combatId = combatId,
                 actorId = actor.EntityId,
-                runId,
                 totalActions = availableActions.Count,
                 affordableActions = availableActions.Count(a => a.canAfford || a.affordableOptions.Any()),
                 actions = availableActions
@@ -249,18 +235,8 @@ public class CombatController : BaseApiController
         var actor = ResolveActor(state, actorId);
         if (actor == null)
             return ApiNotFound($"Actor {actorId} not found");
-        IReadOnlyList<string>? hand = null;
-        if (state.RunId is { } runId)
-        {
-            var run = _runManager.GetRun(runId);
-            if (run.IsFailure)
-                return ApiNotFound(run.Error);
-            hand = run.Value.Deck.Hand;
-        }
-
         var legal = _actionManager.GetAllDefinitions()
             .Where(action => state.IsActionAllowedInCurrentPhase(action.ActionType))
-            .Where(action => hand == null || hand.Contains(action.ActionId, StringComparer.Ordinal))
             .Select(action => new
             {
                 definition = action,
@@ -347,7 +323,7 @@ public class CombatController : BaseApiController
     /// Verifica se um ator pode pagar por uma ação específica.
     /// </summary>
     [HttpPost("{combatId}/actions/{actionId}/can-afford")]
-    public IActionResult CanAffordAction(Guid combatId, string actionId, [FromQuery] string? actorId = null, [FromQuery] Guid? runId = null)
+    public IActionResult CanAffordAction(Guid combatId, string actionId, [FromQuery] string? actorId = null)
     {
         try
         {
@@ -365,11 +341,7 @@ public class CombatController : BaseApiController
                 return NotFound(new { error = $"Actor {actorId} not found" });
 
             var actionDef = actionDefResult.Value;
-            var hand = GetRunHand(runId, out var runError);
-            if (runError != null)
-                return runError;
-            var cardCountInHand = hand?.Count(cardId => cardId == actionId) ?? 0;
-            
+
             var affordabilityResult = _affordabilityService.CanAfford(actionDef, actor.ResourceState.Resources);
             
             if (affordabilityResult.IsFailure)
@@ -381,12 +353,8 @@ public class CombatController : BaseApiController
             {
                 actionId = affordability.ActionId,
                 actorId = actor.EntityId,
-                runId,
                 canAfford = affordability.CanAfford,
                 affordableOptionIds = affordability.AffordableOptionIds,
-                inHand = hand == null || cardCountInHand > 0,
-                cardCountInHand,
-                willConsumeTo = ResolveConsumeDestination(actionDef).ToString(),
                 error = affordability.Error
             });
         }
@@ -475,33 +443,6 @@ public class CombatController : BaseApiController
         return string.IsNullOrWhiteSpace(actorId)
             ? state.Hero
             : state.GetEntity(actorId);
-    }
-
-    private IReadOnlyList<string>? GetRunHand(Guid? runId, out IActionResult? error)
-    {
-        error = null;
-        if (!runId.HasValue)
-            return null;
-
-        var runResult = _runManager.GetRun(runId.Value);
-        if (runResult.IsFailure)
-        {
-            error = NotFound(new { error = runResult.Error });
-            return null;
-        }
-
-        return runResult.Value.Deck.Hand;
-    }
-
-    private static CardConsumeDestination ResolveConsumeDestination(ActionDefinition actionDefinition)
-    {
-        if (actionDefinition.Tags.Any(tag => string.Equals(tag, "retain", StringComparison.OrdinalIgnoreCase)))
-            return CardConsumeDestination.None;
-
-        if (actionDefinition.Tags.Any(tag => string.Equals(tag, "exhaust", StringComparison.OrdinalIgnoreCase)))
-            return CardConsumeDestination.Exhaust;
-
-        return CardConsumeDestination.Discard;
     }
 
     private ActionDto MapToActionDto(CombatAction action)

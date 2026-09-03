@@ -20,7 +20,6 @@ public sealed record CardContentDefinition
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
 
     public string CardId { get; init; } = string.Empty;
-    public string ActionId { get; init; } = string.Empty;
     public CardRarity Rarity { get; init; } = CardRarity.Common;
     public int BaseGoldPrice { get; init; }
     public int DecomposePowerPoints { get; init; } = 1;

@@ -7,7 +7,7 @@
     "allowPhaseSkipping": false,
     "phases": [
       { "phaseId": "activation_start", "role": "Start", "order": 10, "name": "Activation Start", "allowedActions": [], "validNextPhaseIds": ["action"], "autoTransition": true, "allowPriority": false },
-      { "phaseId": "action", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["BASIC_ATTACK", "POWER", "PASS", "END_TURN"], "validNextPhaseIds": ["activation_end"], "autoTransition": false, "allowPriority": false },
+      { "phaseId": "action", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "PASS", "END_TURN"], "validNextPhaseIds": ["activation_end"], "autoTransition": false, "allowPriority": false },
       { "phaseId": "activation_end", "role": "End", "order": 30, "name": "Activation End", "allowedActions": [], "validNextPhaseIds": ["activation_start"], "autoTransition": true, "allowPriority": false }
     ]
   }

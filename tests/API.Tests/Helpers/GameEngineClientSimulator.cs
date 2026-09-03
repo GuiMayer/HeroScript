@@ -132,18 +132,14 @@ public class GameEngineClientSimulator
         string? powerId = null, string? cardId = null, Guid? runId = null)
     {
         var ownerRunId = ResolveRunId(combatId, runId);
-        var cardInstanceId = cardId;
-        string? cardDefinitionId = null;
+        Guid? cardInstanceId = null;
         if (!string.IsNullOrWhiteSpace(cardId) && !Guid.TryParse(cardId, out _))
         {
-            cardDefinitionId = cardId;
-            cardInstanceId = (await GetHandCardInstanceIdAsync(ownerRunId, cardId)).ToString();
+            cardInstanceId = await GetHandCardInstanceIdAsync(ownerRunId, cardId);
         }
         else if (Guid.TryParse(cardId, out var parsedCardInstanceId))
         {
-            cardDefinitionId = (await GetHandCardsAsync(ownerRunId))
-                .First(card => card.CardInstanceId == parsedCardInstanceId)
-                .DefinitionId;
+            cardInstanceId = parsedCardInstanceId;
         }
         var run = await GetRunStateAsync(ownerRunId);
         var combat = await GetCombatStateAsync(combatId);
@@ -152,16 +148,21 @@ public class GameEngineClientSimulator
             commandId = Guid.NewGuid(),
             expectedSequence = run.GetProperty("sequence").GetInt32(),
             expectedStep = combat.GetProperty("step").GetUInt64(),
-            type = "EXECUTE_ACTION",
-            payload = new
-            {
-                actorId,
-                targetId,
-                actionId = powerId ?? cardDefinitionId,
-                powerId,
-                cardId = cardInstanceId,
-                actionType = (int?)(powerId != null || cardId != null ? null : 0)
-            }
+            type = cardInstanceId.HasValue ? "PLAY_CARD" : "EXECUTE_ACTION",
+            payload = cardInstanceId.HasValue
+                ? (object)new
+                {
+                    actorId,
+                    cardInstanceId,
+                    targetIds = targetId == null ? Array.Empty<string>() : new[] { targetId }
+                }
+                : new
+                {
+                    actorId,
+                    targetId,
+                    powerId,
+                    actionType = powerId == null ? 0 : 1
+                }
         });
         if (!commandResponse.IsSuccessStatusCode)
         {

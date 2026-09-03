@@ -522,10 +522,12 @@ public class CombatSystem : ICombatSystem
 
         var heroHealthPool = _resourceManager.CreatePool("health", 100);
         var heroEnergyPool = _resourceManager.CreatePool("energy", initialEnergy);
+        var heroBlockPool = _resourceManager.CreatePool("block", 0);
         var heroResources = new Dictionary<string, ResourcePool>
         {
             ["health"] = heroHealthPool,
-            ["energy"] = heroEnergyPool
+            ["energy"] = heroEnergyPool,
+            ["block"] = heroBlockPool
         };
 
         return new CombatEntity

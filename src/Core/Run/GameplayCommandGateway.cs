@@ -9,6 +9,7 @@ namespace Core.Run;
 
 public static class GameplayCommandTypes
 {
+    public const string PlayCard = "PLAY_CARD";
     public const string ExecuteAction = "EXECUTE_ACTION";
     public const string EndTurn = "END_TURN";
 }
@@ -36,7 +37,6 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
     private readonly IRunCommandProcessor _commands;
     private readonly IRunManager _runs;
     private readonly ICombatRunCoordinator _combats;
-    private readonly IActionManager _actions;
     private readonly IGameEventContextAccessor _eventContext;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -44,13 +44,11 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         IRunCommandProcessor commands,
         IRunManager runs,
         ICombatRunCoordinator combats,
-        IActionManager actions,
         IGameEventContextAccessor eventContext)
     {
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
         _runs = runs ?? throw new ArgumentNullException(nameof(runs));
         _combats = combats ?? throw new ArgumentNullException(nameof(combats));
-        _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
     }
 
@@ -88,7 +86,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             {
                 RunCommandTypes.StartEncounter => StartEncounter(runId, command),
                 RunCommandTypes.ResolveCombat => ResolveEncounter(runId, combatId, command),
-                GameplayCommandTypes.ExecuteAction or GameplayCommandTypes.EndTurn =>
+                GameplayCommandTypes.PlayCard or GameplayCommandTypes.ExecuteAction or GameplayCommandTypes.EndTurn =>
                     ExecuteCombatAction(runId, combatId, command),
                 _ => ExecuteRunCommand(runId, command)
             };
@@ -199,25 +197,25 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             });
         }
 
+        if (type == GameplayCommandTypes.PlayCard)
+        {
+            if (!request.CardInstanceId.HasValue || request.CardInstanceId == Guid.Empty)
+                return Result<CombatActionCommand>.Failure("CardInstanceId is required for PLAY_CARD");
+            return Result<CombatActionCommand>.Success(new CombatActionCommand
+            {
+                ActorId = request.ActorId ?? combat.Hero.EntityId,
+                ActionType = ActionType.PLAY_CARD,
+                CardInstanceId = request.CardInstanceId,
+                TargetIds = request.TargetIds ?? [],
+                CostOptionId = request.CostOptionId,
+                RunId = run.RunId
+            });
+        }
+
         var actionType = request.ActionType;
         var powerId = request.PowerId;
-        if (!string.IsNullOrWhiteSpace(request.ActionId))
-        {
-            var definition = _actions is IRevisionedActionCatalog revisioned
-                ? revisioned.GetDefinition(
-                    request.ActionId,
-                    run.Determinism.ContentRevision,
-                    run.ConfigName)
-                : _actions.GetDefinition(request.ActionId);
-            if (definition.IsFailure)
-                return Result<CombatActionCommand>.Failure(definition.Error);
-            actionType = definition.Value.ActionType == ActionType.BASIC_ATTACK
-                ? ActionType.BASIC_ATTACK
-                : ActionType.POWER;
-            powerId = actionType == ActionType.POWER ? definition.Value.ActionId : null;
-        }
         if (!actionType.HasValue)
-            return Result<CombatActionCommand>.Failure("ActionId or ActionType is required");
+            return Result<CombatActionCommand>.Failure("ActionType is required for EXECUTE_ACTION");
 
         return Result<CombatActionCommand>.Success(new CombatActionCommand
         {
@@ -226,7 +224,6 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             PowerId = powerId,
             TargetId = request.TargetId,
             CostOptionId = request.CostOptionId,
-            CardId = request.CardId,
             RunId = run.RunId
         });
     }
@@ -283,10 +280,10 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
 
     private sealed record CombatGameplayCommandPayload(
         string? ActorId = null,
-        string? ActionId = null,
         ActionType? ActionType = null,
         string? PowerId = null,
         string? TargetId = null,
+        IReadOnlyList<string>? TargetIds = null,
         string? CostOptionId = null,
-        string? CardId = null);
+        Guid? CardInstanceId = null);
 }

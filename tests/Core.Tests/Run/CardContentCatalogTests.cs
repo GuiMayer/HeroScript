@@ -20,7 +20,6 @@ public sealed class CardContentCatalogTests
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal("fireball", result.Value.CardId);
-        Assert.Equal("fireball", result.Value.ActionId);
         Assert.Equal(CardRarity.Uncommon, result.Value.Rarity);
         Assert.Equal(25, result.Value.BaseGoldPrice);
         Assert.Equal(2, result.Value.DecomposePowerPoints);
@@ -28,14 +27,14 @@ public sealed class CardContentCatalogTests
     }
 
     [Fact]
-    public void GetCard_DefaultsActionIdToCardId()
+    public void GetCard_UsesCardIdAsTheOnlyBehaviorDefinitionIdentity()
     {
         var catalog = CreateCatalog();
 
         var result = catalog.GetCard("heal", "test");
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal("heal", result.Value.ActionId);
+        Assert.Equal("heal", result.Value.CardId);
     }
 
     [Fact]

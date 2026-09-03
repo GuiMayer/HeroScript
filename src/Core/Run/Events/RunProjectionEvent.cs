@@ -151,6 +151,7 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
         RunCommandTypes.StartEncounter or
         RunCommandTypes.ResolveCombat or
         "COMBAT_ACTION" or
+        "PLAY_CARD" or
         "EXECUTE_ACTION" or
         "END_TURN";
 

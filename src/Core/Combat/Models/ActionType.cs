@@ -6,11 +6,6 @@ namespace Core.Combat.Models;
 public enum ActionType
 {
     /// <summary>
-    /// Resolve one immutable card instance through its component container.
-    /// </summary>
-    PLAY_CARD,
-
-    /// <summary>
     /// Ataque básico (gera energia).
     /// </summary>
     BASIC_ATTACK,
@@ -66,5 +61,11 @@ public enum ActionType
     /// Ativar uma habilidade de uma entidade ou permanente.
     /// Usado em TCGs com habilidades ativadas (Magic: Activated Abilities, etc.)
     /// </summary>
-    ACTIVATE_ABILITY
+    ACTIVATE_ABILITY,
+
+    /// <summary>
+    /// Resolve one immutable card instance through its component container.
+    /// Kept last so the default enum value remains the basic action.
+    /// </summary>
+    PLAY_CARD
 }

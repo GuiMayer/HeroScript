@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Core.Combat;
+using Core.Combat.Models;
 using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Determinism;
@@ -100,15 +101,75 @@ public sealed class GameplayCommandGatewayTests
             It.IsAny<Guid>(), It.IsAny<RunCommand>()), Times.Never);
     }
 
+    [Fact]
+    public void Execute_PlayCard_RoutesImmutableInstanceAndTargetsThroughCoordinator()
+    {
+        var runId = Guid.NewGuid();
+        var commandId = Guid.NewGuid();
+        var combatId = Guid.NewGuid();
+        var cardInstanceId = Guid.NewGuid();
+        var combat = new CombatState
+        {
+            CombatId = combatId,
+            Hero = new CombatEntity { EntityId = "hero" }
+        };
+        var run = new RunState
+        {
+            RunId = runId,
+            ActiveEncounterId = combatId,
+            Encounters = [new RunEncounterState { NodeId = "combat", Combat = combat }]
+        };
+        var receipt = Receipt(runId, commandId, GameplayCommandTypes.PlayCard) with { State = run };
+        var processor = new Mock<IRunCommandProcessor>();
+        processor.SetupSequence(service => service.FindReceipt(runId, commandId))
+            .Returns(Result<RunCommandReceipt?>.Success(null))
+            .Returns(Result<RunCommandReceipt?>.Success(receipt));
+        var runs = new Mock<IRunManager>();
+        runs.Setup(service => service.GetRun(runId))
+            .Returns(Result<RunState>.Success(run));
+        var combats = new Mock<ICombatRunCoordinator>();
+        combats.Setup(service => service.ExecuteAction(
+                combatId,
+                It.Is<CombatActionCommand>(action =>
+                    action.ActionType == ActionType.PLAY_CARD &&
+                    action.CardInstanceId == cardInstanceId &&
+                    action.ActorId == "hero" &&
+                    action.TargetIds.SequenceEqual(new[] { "enemy_2", "enemy_1" }) &&
+                    action.RunId == runId),
+                It.Is<RunCommandIdentity>(identity => identity.CommandId == commandId)))
+            .Returns(Result<CombatRunActionResult>.Success(new CombatRunActionResult
+            {
+                RunState = run,
+                CombatState = combat
+            }));
+        var gateway = Create(processor.Object, combats.Object, runs.Object);
+
+        var result = gateway.Execute(
+            runId,
+            new RunCommand(
+                new RunCommandIdentity(commandId, GameplayCommandTypes.PlayCard, 1, 0),
+                JsonSerializer.SerializeToElement(new
+                {
+                    actorId = "hero",
+                    cardInstanceId,
+                    targetIds = new[] { "enemy_2", "enemy_1" }
+                })),
+            combatId);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(receipt, result.Value.Receipt);
+        combats.VerifyAll();
+    }
+
     private static GameplayCommandGateway Create(
         IRunCommandProcessor processor,
-        ICombatRunCoordinator? combats = null)
+        ICombatRunCoordinator? combats = null,
+        IRunManager? runs = null)
     {
         return new GameplayCommandGateway(
             processor,
-            Mock.Of<IRunManager>(),
+            runs ?? Mock.Of<IRunManager>(),
             combats ?? Mock.Of<ICombatRunCoordinator>(),
-            Mock.Of<IActionManager>(),
             new GameEventContextAccessor());
     }
 

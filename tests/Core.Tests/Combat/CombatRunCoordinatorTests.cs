@@ -1,6 +1,5 @@
 using Core.Combat;
 using Core.Combat.Models;
-using Core.Combat.Modifiers;
 using Core.Combat.Flow;
 using Core.Combat.Gambits;
 using Core.Combat.Activation;
@@ -10,6 +9,7 @@ using Core.Determinism;
 using Core.Entity.Controllers;
 using Core.Resources;
 using Core.Run;
+using Core.Run.Content;
 using Moq;
 using Xunit;
 
@@ -19,8 +19,7 @@ public sealed class CombatRunCoordinatorTests
 {
     private readonly Mock<ICombatSystem> _combatSystem = new();
     private readonly Mock<IRunManager> _runManager = new();
-    private readonly Mock<IActionManager> _actionManager = new();
-    private readonly Mock<IScriptModifierManager> _scriptModifierManager = new();
+    private readonly Mock<ICardPlayExecutor> _cardPlayExecutor = new();
 
     public CombatRunCoordinatorTests()
     {
@@ -86,10 +85,7 @@ public sealed class CombatRunCoordinatorTests
         };
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
-        _actionManager.Setup(manager => manager.GetDefinition("fireball"))
-            .Returns(Result<ActionDefinition>.Success(new ActionDefinition { ActionId = "fireball" }));
-        _combatSystem.Setup(system => system.ExecuteAction(previous.CombatId, It.IsAny<CombatActionCommand>()))
-            .Returns(Result<CombatState>.Success(next));
+        SetupCardPlay(next, CardConsumeDestination.Discard);
         _runManager.Setup(manager => manager.CommitCombatAction(
                 run.RunId,
                 run.Sequence,
@@ -113,36 +109,22 @@ public sealed class CombatRunCoordinatorTests
     }
 
     [Fact]
-    public void ExecuteAction_WithExhaustAndModifiers_CommitsExactCommand()
+    public void ExecuteAction_WithExhaust_UsesComponentDisposition()
     {
         var run = CreateRunState(Guid.NewGuid(), ["fireball"]);
         var previous = run.GetActiveEncounter()!.Combat;
         var next = previous with { Determinism = previous.Determinism.AdvanceStep() };
         var cardInstanceId = Assert.Single(run.Deck.HandInstanceIds);
         var command = Command(run.RunId, "fireball", cardInstanceId);
-        var definition = new ActionDefinition
-        {
-            ActionId = "fireball",
-            Tags = ["spell", "exhaust"]
-        };
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
-        _actionManager.Setup(manager => manager.GetDefinition("fireball"))
-            .Returns(Result<ActionDefinition>.Success(definition));
-        _scriptModifierManager.Setup(manager => manager.GetPipelineModifiers(
-                $"run:{run.RunId}",
-                definition.Tags))
-            .Returns(new Dictionary<string, float> { ["added_damage"] = 3 });
-        _combatSystem.Setup(system => system.ExecuteAction(
-                previous.CombatId,
-                It.Is<CombatActionCommand>(actual => actual.RunModifiers["added_damage"] == 3)))
-            .Returns(Result<CombatState>.Success(next));
+        SetupCardPlay(next, CardConsumeDestination.Exhaust);
         _runManager.Setup(manager => manager.CommitCombatAction(
                 run.RunId,
                 run.Sequence,
                 previous,
                 next,
-                It.Is<CombatActionCommand>(actual => actual.RunModifiers["added_damage"] == 3),
+                It.Is<CombatActionCommand>(actual => actual.CardInstanceId == cardInstanceId),
                 cardInstanceId.ToString(),
                 CardConsumeDestination.Exhaust))
             .Returns(Result<RunState>.Success(run));
@@ -162,10 +144,7 @@ public sealed class CombatRunCoordinatorTests
         var cardInstanceId = Assert.Single(run.Deck.HandInstanceIds);
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
-        _actionManager.Setup(manager => manager.GetDefinition("fireball"))
-            .Returns(Result<ActionDefinition>.Success(new ActionDefinition { ActionId = "fireball" }));
-        _combatSystem.Setup(system => system.ExecuteAction(previous.CombatId, It.IsAny<CombatActionCommand>()))
-            .Returns(Result<CombatState>.Success(next));
+        SetupCardPlay(next, CardConsumeDestination.Discard);
         _runManager.Setup(manager => manager.CommitCombatAction(
                 run.RunId,
                 run.Sequence,
@@ -192,6 +171,8 @@ public sealed class CombatRunCoordinatorTests
         var combatId = run.ActiveEncounterId!.Value;
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
+        _cardPlayExecutor.Setup(executor => executor.Execute(It.IsAny<CardPlayExecutionRequest>()))
+            .Returns(Result<CardPlayExecutionResult>.Failure("Card instance is not in run hand"));
 
         var result = CreateCoordinator().ExecuteAction(
             combatId,
@@ -311,8 +292,7 @@ public sealed class CombatRunCoordinatorTests
         var coordinator = new CombatRunCoordinator(
             _combatSystem.Object,
             _runManager.Object,
-            _actionManager.Object,
-            _scriptModifierManager.Object,
+            _cardPlayExecutor.Object,
             flowPlanner.Object,
             gambits.Object);
         var result = coordinator.ExecuteAction(previous.CombatId, command, identity);
@@ -371,17 +351,40 @@ public sealed class CombatRunCoordinatorTests
     }
 
     private CombatRunCoordinator CreateCoordinator() =>
-        new(_combatSystem.Object, _runManager.Object, _actionManager.Object, _scriptModifierManager.Object);
+        new(_combatSystem.Object, _runManager.Object, _cardPlayExecutor.Object);
 
     private static CombatActionCommand Command(Guid runId, string actionId, Guid cardInstanceId) => new()
     {
         RunId = runId,
-        CardId = cardInstanceId.ToString(),
+        CardInstanceId = cardInstanceId,
         ActorId = "hero",
-        ActionType = ActionType.POWER,
-        PowerId = actionId,
-        TargetId = "enemy"
+        ActionType = ActionType.PLAY_CARD,
+        TargetIds = ["enemy"]
     };
+
+    private void SetupCardPlay(CombatState next, CardConsumeDestination destination)
+    {
+        _cardPlayExecutor.Setup(executor => executor.Execute(It.IsAny<CardPlayExecutionRequest>()))
+            .Returns((CardPlayExecutionRequest request) =>
+                Result<CardPlayExecutionResult>.Success(new CardPlayExecutionResult
+                {
+                    Combat = next,
+                    Card = new EffectiveCardDefinition
+                    {
+                        CardInstanceId = request.CardInstanceId,
+                        DefinitionId = request.Run.Deck.GetDefinitionId(request.CardInstanceId) ?? string.Empty
+                    },
+                    Evaluation = new CardPlayEvaluation
+                    {
+                        CardInstanceId = request.CardInstanceId,
+                        ActorId = request.ActorId,
+                        IsLegal = true,
+                        Destination = destination
+                    },
+                    Destination = destination,
+                    ResolutionFingerprint = "test"
+                }));
+    }
 
     private static CombatState CreateCombatState(Guid runId, string nodeId, ulong seed) => new()
     {

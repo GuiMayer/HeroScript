@@ -191,7 +191,10 @@ public sealed class RunSimulationService : IRunSimulationService
         JsonElement payload,
         RunCommandIdentity identity)
     {
-        var combatId = type is GameplayCommandTypes.ExecuteAction or GameplayCommandTypes.EndTurn or RunCommandTypes.ResolveCombat
+        var combatId = type is GameplayCommandTypes.PlayCard or
+            GameplayCommandTypes.ExecuteAction or
+            GameplayCommandTypes.EndTurn or
+            RunCommandTypes.ResolveCombat
             ? current.GetActiveEncounter()?.Combat.CombatId
             : null;
         var executed = _commands.Execute(

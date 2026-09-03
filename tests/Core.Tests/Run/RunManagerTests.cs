@@ -270,7 +270,7 @@ public sealed class RunManagerTests
                 ActorId = "hero",
                 ActionType = ActionType.POWER,
                 PowerId = cardDefinitionId,
-                CardId = cardInstanceId,
+                CardInstanceId = Guid.Parse(cardInstanceId),
                 TargetId = "enemy"
             },
             cardInstanceId,
