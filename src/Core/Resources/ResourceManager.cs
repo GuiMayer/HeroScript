@@ -286,8 +286,15 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
         {
             if (string.IsNullOrWhiteSpace(policy.PolicyId))
                 return Result.Failure("Resource threshold policy id cannot be empty");
-            if (policy.Boundary == ResourceThresholdBoundary.Unspecified)
-                return Result.Failure($"Resource threshold boundary is required: {policy.PolicyId}");
+            if (policy.Comparison == ResourceThresholdComparison.Unspecified)
+                return Result.Failure($"Resource threshold comparison is required: {policy.PolicyId}");
+            if (policy.ThresholdSource == ResourceThresholdSource.Unspecified)
+                return Result.Failure($"Resource threshold source is required: {policy.PolicyId}");
+            if (policy.ThresholdSource == ResourceThresholdSource.Constant &&
+                (!policy.ThresholdValue.HasValue || !IsFinite(policy.ThresholdValue.Value)))
+                return Result.Failure($"Resource threshold constant must be finite: {policy.PolicyId}");
+            if (!IsFinite(policy.Tolerance) || policy.Tolerance < 0)
+                return Result.Failure($"Resource threshold tolerance must be finite and non-negative: {policy.PolicyId}");
             if (policy.Consequence == ResourceThresholdConsequence.Unspecified)
                 return Result.Failure($"Resource threshold consequence is required: {policy.PolicyId}");
         }

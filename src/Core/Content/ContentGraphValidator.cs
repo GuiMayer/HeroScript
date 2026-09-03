@@ -338,8 +338,18 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 {
                     if (string.IsNullOrWhiteSpace(policy.PolicyId))
                         errors.Add($"resources/{id} has threshold policy without policyId");
-                    if (policy.Boundary == ResourceThresholdBoundary.Unspecified)
-                        errors.Add($"resources/{id} policy {policy.PolicyId} requires boundary");
+                    if (policy.Comparison == ResourceThresholdComparison.Unspecified)
+                        errors.Add($"resources/{id} policy {policy.PolicyId} requires comparison");
+                    if (policy.ThresholdSource == ResourceThresholdSource.Unspecified)
+                        errors.Add($"resources/{id} policy {policy.PolicyId} requires thresholdSource");
+                    if (policy.ThresholdSource == ResourceThresholdSource.Constant &&
+                        (!policy.ThresholdValue.HasValue || !IsFinite(policy.ThresholdValue.Value)))
+                    {
+                        errors.Add(
+                            $"resources/{id} policy {policy.PolicyId} requires a finite thresholdValue");
+                    }
+                    if (!IsFinite(policy.Tolerance) || policy.Tolerance < 0)
+                        errors.Add($"resources/{id} policy {policy.PolicyId} has invalid tolerance");
                     if (policy.Consequence == ResourceThresholdConsequence.Unspecified)
                         errors.Add($"resources/{id} policy {policy.PolicyId} requires consequence");
                 }
@@ -758,4 +768,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }
+
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 }

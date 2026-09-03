@@ -126,7 +126,7 @@ public sealed class ContentGraphValidatorTests
 
         Assert.False(result.IsValid);
         Assert.Contains(
-            "resources/focus policy lose_focus requires boundary",
+            "resources/focus policy lose_focus requires comparison",
             result.Errors);
     }
 

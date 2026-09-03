@@ -51,7 +51,8 @@ public class CombatSystemTests
                             new ResourceThresholdPolicy
                             {
                                 PolicyId = "defeat_when_depleted",
-                                Boundary = ResourceThresholdBoundary.AtMinimum,
+                                Comparison = ResourceThresholdComparison.LessThanOrEqual,
+                                ThresholdSource = ResourceThresholdSource.Minimum,
                                 Consequence = ResourceThresholdConsequence.DefeatOwner
                             }
                         ]

@@ -28,7 +28,8 @@ public class CombatEntityTests
                 new ResourceThresholdPolicy
                 {
                     PolicyId = "defeat_when_depleted",
-                    Boundary = ResourceThresholdBoundary.AtMinimum,
+                    Comparison = ResourceThresholdComparison.LessThanOrEqual,
+                    ThresholdSource = ResourceThresholdSource.Minimum,
                     Consequence = ResourceThresholdConsequence.DefeatOwner
                 }
             ]
@@ -162,5 +163,106 @@ public class CombatEntityTests
             defeatsAtMinimum: true);
 
         Assert.False(entity.IsAlive);
+    }
+
+    [Fact]
+    public void IsAlive_SupportsAConstantThresholdIndependentOfPoolBounds()
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "morale",
+            DisplayName = "Morale",
+            DefaultMin = 0,
+            DefaultMax = 100,
+            ThresholdPolicies =
+            [
+                new ResourceThresholdPolicy
+                {
+                    PolicyId = "retreat_below_three",
+                    Comparison = ResourceThresholdComparison.LessThan,
+                    ThresholdSource = ResourceThresholdSource.Constant,
+                    ThresholdValue = 3,
+                    Consequence = ResourceThresholdConsequence.DefeatOwner
+                }
+            ]
+        };
+        var entity = new CombatEntity
+        {
+            EntityId = "test-1",
+            Name = "Test Entity",
+            ResourceState = new EntityResourceState
+            {
+                EntityId = "test-1",
+                Resources = new Dictionary<string, ResourcePool>
+                {
+                    ["morale"] = new()
+                    {
+                        ResourceId = "morale",
+                        Definition = definition,
+                        Current = 2,
+                        Minimum = 0,
+                        Maximum = 100
+                    }
+                }
+            }
+        };
+
+        Assert.False(entity.IsAlive);
+    }
+
+    [Fact]
+    public void IsAlive_UsesPriorityAndStablePolicyIdToResolveConflicts()
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "focus",
+            DisplayName = "Focus",
+            DefaultMin = 0,
+            DefaultMax = 10,
+            ThresholdPolicies =
+            [
+                new ResourceThresholdPolicy
+                {
+                    PolicyId = "low_priority_defeat",
+                    Comparison = ResourceThresholdComparison.LessThanOrEqual,
+                    ThresholdSource = ResourceThresholdSource.Constant,
+                    ThresholdValue = 5,
+                    Consequence = ResourceThresholdConsequence.DefeatOwner,
+                    Priority = 10
+                },
+                new ResourceThresholdPolicy
+                {
+                    PolicyId = "high_priority_override",
+                    Comparison = ResourceThresholdComparison.Equal,
+                    ThresholdSource = ResourceThresholdSource.Constant,
+                    ThresholdValue = 5,
+                    Consequence = ResourceThresholdConsequence.None,
+                    Priority = 100
+                }
+            ]
+        };
+        var pool = new ResourcePool
+        {
+            ResourceId = "focus",
+            Definition = definition,
+            Current = 5,
+            Minimum = 0,
+            Maximum = 10
+        };
+        var entity = new CombatEntity
+        {
+            EntityId = "test-1",
+            Name = "Test Entity",
+            ResourceState = new EntityResourceState
+            {
+                EntityId = "test-1",
+                Resources = new Dictionary<string, ResourcePool> { ["focus"] = pool }
+            }
+        };
+
+        var facts = ResourceThresholdEvaluator.Evaluate(pool);
+
+        Assert.Equal(["high_priority_override", "low_priority_defeat"], facts.Select(fact => fact.PolicyId));
+        Assert.True(entity.IsAlive);
     }
 }

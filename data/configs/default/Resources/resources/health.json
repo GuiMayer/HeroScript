@@ -19,7 +19,8 @@
   "thresholdPolicies": [
     {
       "policyId": "defeat_when_depleted",
-      "boundary": "AtMinimum",
+      "comparison": "LessThanOrEqual",
+      "thresholdSource": "Minimum",
       "consequence": "DefeatOwner",
       "priority": 100
     }
