@@ -1,0 +1,359 @@
+using System.Collections.Immutable;
+using System.Text.Json;
+using Core.Calculations;
+using Core.Combat;
+using Core.Combat.Models;
+using Core.Common;
+using Core.Content;
+using Core.Determinism;
+using Core.Effects;
+using Core.Math;
+using Core.Resources;
+using Core.Run;
+using Core.Run.Content;
+using Core.StatusEffects;
+using Moq;
+using Xunit;
+
+namespace Core.Tests.Run;
+
+public sealed class CardPlayExecutorTests
+{
+    private const string Revision = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+
+    [Fact]
+    public void Execute_UsesUpgradedBaseContextPipelineAndExplicitResourceAtomically()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000001");
+        var card = Card(
+        [
+            new CardCostComponentDefinition
+            {
+                ComponentId = "cost.energy",
+                Order = 10,
+                Costs = new ActionCosts
+                {
+                    Costs = [new ResourceCost { ResourceId = "energy", Amount = 2 }]
+                }
+            },
+            new CardEffectComponentDefinition
+            {
+                ComponentId = "effect.drain",
+                Order = 20,
+                Effect = new EffectDefinition
+                {
+                    EffectId = "arcane_drain.mana",
+                    Type = EffectType.DAMAGE,
+                    Target = EffectTarget.TARGET,
+                    TargetResource = "mana",
+                    FlatValue = 5
+                }
+            },
+            new CardInfluenceComponentDefinition
+            {
+                ComponentId = "influence.flat",
+                Order = 30,
+                Channel = "effect_amount",
+                Bucket = "flat",
+                Value = 3
+            },
+            Targeting(),
+            Disposition()
+        ]);
+        var pipeline = Pipeline();
+        var runtime = Runtime(card, pipeline);
+        var run = Run(instanceId, new CardUpgradeState
+        {
+            UpgradeId = "empowered",
+            Patches =
+            [
+                new CardEffectNumericPatchDefinition
+                {
+                    ComponentId = "effect.drain",
+                    Attribute = CardEffectNumericAttribute.FlatValue,
+                    Operation = CardNumericPatchOperation.Add,
+                    Value = 2
+                }
+            ]
+        });
+        var combat = Combat();
+        var executor = Executor(runtime);
+
+        var result = executor.Execute(new CardPlayExecutionRequest
+        {
+            Run = run,
+            Combat = combat,
+            CardInstanceId = instanceId,
+            ActorId = "hero",
+            SelectedTargetIds = ["enemy"]
+        });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(1, result.Value.Combat.GetEntity("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(10, result.Value.Combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(3, combat.GetEntity("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(20, combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(7, Assert.Single(result.Value.Calculations).BaseValue);
+        Assert.Equal(10, result.Value.Calculations[0].Value);
+        Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
+        var action = Assert.Single(result.Value.Combat.ActionHistory);
+        Assert.Equal(ActionType.PLAY_CARD, action.ActionType);
+        Assert.Equal(instanceId, action.CardInstanceId);
+        Assert.Equal("arcane_drain", action.CardDefinitionId);
+    }
+
+    [Fact]
+    public void Execute_SameSnapshotProducesSameFingerprintAndState()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000002");
+        var runtime = Runtime(Card(
+        [
+            new CardEffectComponentDefinition
+            {
+                ComponentId = "effect.drain",
+                Effect = new EffectDefinition
+                {
+                    EffectId = "arcane_drain.mana",
+                    Type = EffectType.DAMAGE,
+                    Target = EffectTarget.TARGET,
+                    TargetResource = "mana",
+                    FlatValue = 4,
+                    Chance = .75f,
+                    Repeat = 2
+                }
+            },
+            Targeting(),
+            Disposition()
+        ]), Pipeline());
+        var run = Run(instanceId);
+        var combat = Combat();
+        var executor = Executor(runtime);
+        var request = new CardPlayExecutionRequest
+        {
+            Run = run,
+            Combat = combat,
+            CardInstanceId = instanceId,
+            ActorId = "hero",
+            SelectedTargetIds = ["enemy"]
+        };
+
+        var first = executor.Execute(request);
+        var second = executor.Execute(request);
+
+        Assert.True(first.IsSuccess && second.IsSuccess);
+        Assert.Equal(first.Value.ResolutionFingerprint, second.Value.ResolutionFingerprint);
+        Assert.Equal(
+            CanonicalJson.ComputeHash(first.Value.Combat),
+            CanonicalJson.ComputeHash(second.Value.Combat));
+    }
+
+    [Fact]
+    public void Execute_InvalidLaterEffectDoesNotMutateInputOrSpendCost()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000003");
+        var runtime = Runtime(Card(
+        [
+            new CardCostComponentDefinition
+            {
+                ComponentId = "cost.energy",
+                Costs = new ActionCosts
+                {
+                    Costs = [new ResourceCost { ResourceId = "energy", Amount = 2 }]
+                }
+            },
+            new CardEffectComponentDefinition
+            {
+                ComponentId = "effect.invalid",
+                Effect = new EffectDefinition
+                {
+                    EffectId = "invalid",
+                    Type = EffectType.DAMAGE,
+                    Target = EffectTarget.TARGET,
+                    TargetResource = "missing",
+                    FlatValue = 4
+                }
+            },
+            Targeting(),
+            Disposition()
+        ]), Pipeline());
+        var run = Run(instanceId);
+        var combat = Combat();
+
+        var result = Executor(runtime).Execute(new CardPlayExecutionRequest
+        {
+            Run = run,
+            Combat = combat,
+            CardInstanceId = instanceId,
+            ActorId = "hero",
+            SelectedTargetIds = ["enemy"]
+        });
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("missing", result.Error);
+        Assert.Equal(3, combat.GetEntity("hero")!.GetResource("energy")!.Current);
+        Assert.Empty(combat.ActionHistory);
+    }
+
+    private static CardPlayExecutor Executor(ContentRuntime runtime)
+    {
+        var runtimes = new Mock<IContentRuntimeResolver>();
+        runtimes.Setup(item => item.Resolve(Revision, "default"))
+            .Returns(Result<ContentRuntime>.Success(runtime));
+        var formulas = new Mock<IRuntimeFormulaEvaluator>();
+        var influences = new CompositeCalculationInfluenceProvider(
+        [
+            new CardComponentInfluenceProvider(formulas.Object)
+        ]);
+        return new CardPlayExecutor(
+            runtimes.Object,
+            new CardContentCompiler(),
+            new EffectiveCardResolver(),
+            new CardPlayEvaluator(new ActionCostEvaluator(formulas.Object), formulas.Object),
+            new CalculationEngine(),
+            influences,
+            new ImmutableEffectProcessor(),
+            formulas.Object);
+    }
+
+    private static ContentRuntime Runtime(
+        CardContentDefinition card,
+        CalculationPipelineDefinition pipeline)
+    {
+        var definitions = new (string Kind, string Path, object Value)[]
+        {
+            ("cards", "cards/catalog.json", new Dictionary<string, CardContentDefinition>
+            {
+                [card.CardId] = card
+            }),
+            ("calculation-pipelines", "calculation-pipelines/default.json",
+                new Dictionary<string, CalculationPipelineDefinition>
+                {
+                    [pipeline.PipelineId] = pipeline
+                })
+        };
+        var artifacts = definitions.ToImmutableDictionary(
+            item => item.Path,
+            item => JsonSerializer.SerializeToElement(item.Value),
+            StringComparer.Ordinal);
+        var manifest = new ContentManifest
+        {
+            ConfigName = "default",
+            Revision = Revision,
+            Artifacts = definitions.Select(item => new ContentArtifactManifest
+            {
+                Kind = item.Kind,
+                Path = item.Path,
+                DefinitionCount = 1
+            }).ToArray()
+        };
+        var result = ContentRuntime.Create(new ContentBundle
+        {
+            Manifest = manifest,
+            Artifacts = artifacts
+        });
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        return result.Value;
+    }
+
+    private static CardContentDefinition Card(IReadOnlyList<CardComponentDefinition> components) => new()
+    {
+        CardId = "arcane_drain",
+        Components = components
+    };
+
+    private static CardTargetingComponentDefinition Targeting() => new()
+    {
+        ComponentId = "targeting.primary",
+        Order = 80,
+        Target = EffectTarget.TARGET,
+        MinimumTargets = 1,
+        MaximumTargets = 1
+    };
+
+    private static CardDispositionComponentDefinition Disposition() => new()
+    {
+        ComponentId = "disposition.default",
+        Order = 90,
+        Destination = CardConsumeDestination.Discard
+    };
+
+    private static CalculationPipelineDefinition Pipeline() => new()
+    {
+        PipelineId = "default_effect_amount",
+        Channel = "effect_amount",
+        Buckets =
+        [
+            new CalculationBucketDefinition
+            {
+                BucketId = "flat",
+                Order = 10,
+                Operation = CalculationBucketOperation.Add
+            }
+        ]
+    };
+
+    private static RunState Run(Guid cardInstanceId, params CardUpgradeState[] upgrades)
+    {
+        var instance = new CardInstanceState
+        {
+            CardInstanceId = cardInstanceId,
+            DefinitionId = "arcane_drain",
+            Upgrades = upgrades
+        };
+        return new RunState
+        {
+            RunId = Guid.Parse("20000000-0000-8000-8000-000000000001"),
+            ConfigName = "default",
+            Deck = new DeckState
+            {
+                CardInstances = new Dictionary<Guid, CardInstanceState> { [cardInstanceId] = instance },
+                HandInstanceIds = [cardInstanceId]
+            },
+            ResolvedMode = new ResolvedGameMode
+            {
+                Definition = new GameModeDefinition
+                {
+                    ModeId = "test",
+                    CalculationPipelineIds = ["default_effect_amount"]
+                }
+            },
+            Determinism = DeterministicContext.Create(42, Revision)
+        };
+    }
+
+    private static CombatState Combat() => new()
+    {
+        CombatId = Guid.Parse("30000000-0000-8000-8000-000000000001"),
+        Hero = Entity("hero", true, ("energy", 3), ("mana", 10)),
+        Enemies = [Entity("enemy", false, ("mana", 20))],
+        Determinism = DeterministicContext.Create(77, Revision)
+    };
+
+    private static CombatEntity Entity(
+        string id,
+        bool hero,
+        params (string Id, float Current)[] resources) => new()
+    {
+        EntityId = id,
+        IsHero = hero,
+        ResourceState = new EntityResourceState
+        {
+            EntityId = id,
+            Resources = resources.ToDictionary(
+                item => item.Id,
+                item => new ResourcePool
+                {
+                    ResourceId = item.Id,
+                    Current = item.Current,
+                    Minimum = 0,
+                    Maximum = 100,
+                    Definition = new ResourceDefinition
+                    {
+                        ResourceId = item.Id,
+                        DisplayName = item.Id
+                    }
+                },
+                StringComparer.Ordinal)
+        }
+    };
+}

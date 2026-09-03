@@ -6,6 +6,11 @@ namespace Core.Combat.Models;
 public enum ActionType
 {
     /// <summary>
+    /// Resolve one immutable card instance through its component container.
+    /// </summary>
+    PLAY_CARD,
+
+    /// <summary>
     /// Ataque básico (gera energia).
     /// </summary>
     BASIC_ATTACK,

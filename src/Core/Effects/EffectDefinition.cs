@@ -67,6 +67,18 @@ public record EffectDefinition
     /// aliases for SUBTRACT and ADD; none of them selects a resource by name.
     /// </summary>
     public ResourceEffectOperation Operation { get; init; } = ResourceEffectOperation.ADD;
+
+    /// <summary>
+    /// Calculation channel used to resolve the numeric value. The game mode
+    /// selects the compatible pipeline; effect type does not select one.
+    /// </summary>
+    public string CalculationChannel { get; init; } = "effect_amount";
+
+    /// <summary>
+    /// Optional explicit pipeline. When omitted, exactly one compatible
+    /// pipeline must be enabled by the game mode.
+    /// </summary>
+    public string? CalculationPipelineId { get; init; }
     
     // ===== STATUS (para APPLY_STATUS, REMOVE_STATUS) =====
     

@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace Core.Combat.Models;
 
 /// <summary>
@@ -6,6 +8,8 @@ namespace Core.Combat.Models;
 /// </summary>
 public record CombatAction
 {
+    private ImmutableArray<string> _targetIds = [];
+
     public Guid ActionId { get; init; } = Guid.Empty;
     public DateTime Timestamp { get; init; } = DateTime.UnixEpoch;
     public int Turn { get; init; }
@@ -13,6 +17,13 @@ public record CombatAction
     public ActionType ActionType { get; init; }
     public string? PowerId { get; init; }  // Null para BASIC_ATTACK, PASS, END_TURN
     public string? TargetId { get; init; }  // Null para PASS, END_TURN
+    public Guid? CardInstanceId { get; init; }
+    public string? CardDefinitionId { get; init; }
+    public IReadOnlyList<string> TargetIds
+    {
+        get => _targetIds;
+        init => _targetIds = value?.ToImmutableArray() ?? [];
+    }
     public int? DamageDealt { get; init; }  // Resultado da ação
     public int? EnergyChange { get; init; }  // +1 para BASIC_ATTACK, -X para POWER
 }

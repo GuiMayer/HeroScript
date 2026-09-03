@@ -20,6 +20,7 @@ public sealed record CardPlayRequest
         init => _selectedTargetIds = value?.ToImmutableArray() ?? [];
     }
     public string? CostOptionId { get; init; }
+    public bool IgnoreConfiguredCosts { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
     public IReadOnlyDictionary<string, float> Variables
     {
@@ -174,7 +175,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             if (normal.IsFailure)
                 return Result<CardPlayEvaluation>.Failure(normal.Error);
             resolvedCosts.AddRange(normal.Value);
-            if (normal.Value.Any(cost => !cost.Affordable))
+            if (!request.IgnoreConfiguredCosts && normal.Value.Any(cost => !cost.Affordable))
                 failures.Add($"Costs for {component.ComponentId} cannot be paid");
 
             if (component.Costs.AlternativeCosts.Count == 0)
@@ -195,6 +196,8 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 if (string.Equals(option.OptionId, request.CostOptionId, StringComparison.Ordinal))
                     resolvedCosts.AddRange(quote.Value);
             }
+            if (request.IgnoreConfiguredCosts)
+                continue;
             if (string.IsNullOrWhiteSpace(request.CostOptionId))
                 failures.Add($"Cost option is required for {component.ComponentId}");
             else if (!affordableOptions.Contains(request.CostOptionId))
