@@ -2,6 +2,24 @@ using System.Collections.Immutable;
 namespace Core.Effects;
 
 /// <summary>
+/// Reusable component that binds source-agnostic effects to a named gameplay
+/// boundary. Owners such as statuses and relics decide which boundaries exist.
+/// </summary>
+public sealed record EffectTriggerDefinition
+{
+    private ImmutableArray<EffectDefinition> _effects = [];
+
+    public string TriggerId { get; init; } = string.Empty;
+    public string Boundary { get; init; } = string.Empty;
+    public int Priority { get; init; }
+    public IReadOnlyList<EffectDefinition> Effects
+    {
+        get => _effects;
+        init => _effects = value?.ToImmutableArray() ?? [];
+    }
+}
+
+/// <summary>
 /// Definição de um efeito configurável via JSON.
 /// Effect é a unidade fundamental de todas as ações em combate.
 /// Carregada de JSON, permite criar efeitos customizados.

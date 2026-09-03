@@ -184,10 +184,8 @@ public sealed record CalculationSourceContext
 /// </summary>
 public sealed record ContextualInfluenceDefinition
 {
-    private ImmutableHashSet<string> _requiredTags =
-        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
-    private ImmutableHashSet<string> _excludedTags =
-        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    private ImmutableArray<string> _requiredTags = [];
+    private ImmutableArray<string> _excludedTags = [];
 
     public string InfluenceId { get; init; } = string.Empty;
     public CalculationEntityScope Scope { get; init; } = CalculationEntityScope.Actor;
@@ -196,17 +194,15 @@ public sealed record ContextualInfluenceDefinition
     public float? Value { get; init; }
     public string? Formula { get; init; }
     public int Priority { get; init; }
-    public IReadOnlySet<string> RequiredTags
+    public IReadOnlyList<string> RequiredTags
     {
         get => _requiredTags;
-        init => _requiredTags = value?.ToImmutableHashSet(StringComparer.Ordinal)
-            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+        init => _requiredTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
     }
-    public IReadOnlySet<string> ExcludedTags
+    public IReadOnlyList<string> ExcludedTags
     {
         get => _excludedTags;
-        init => _excludedTags = value?.ToImmutableHashSet(StringComparer.Ordinal)
-            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+        init => _excludedTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
     }
 }
 

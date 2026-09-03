@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Math;
 using Core.Run.Content;
 using Core.Combat.Modifiers;
+using Core.StatusEffects;
 
 namespace Core.Calculations;
 
@@ -254,5 +255,86 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
         if (definition.Value.HasValue == !string.IsNullOrWhiteSpace(definition.Formula))
             return $"influence {definition.InfluenceId} must define exactly one of value or formula";
         return null;
+    }
+}
+
+/// <summary>Projects passive status components from the combat snapshot.</summary>
+public sealed class StatusCalculationInfluenceProvider : ICalculationInfluenceProvider
+{
+    private readonly IRuntimeFormulaEvaluator _formulas;
+
+    public StatusCalculationInfluenceProvider(IRuntimeFormulaEvaluator formulas) =>
+        _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
+
+    public string ProviderId => "combat-statuses";
+
+    public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
+    {
+        if (context.Combat == null)
+            return Result<IReadOnlyList<CalculationInfluence>>.Success([]);
+        var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
+        foreach (var (ownerId, statuses) in context.Combat.StatusEffects
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            foreach (var status in statuses
+                         .Where(item => item.IsActive)
+                         .OrderBy(item => item.InstanceId))
+            {
+                foreach (var definition in status.Definition.Influences
+                             .OrderByDescending(item => item.Priority)
+                             .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
+                {
+                    var scoped = definition.Scope == CalculationEntityScope.Actor
+                        ? context.Actor
+                        : context.Target;
+                    if (!string.Equals(ownerId, scoped?.EntityId, StringComparison.Ordinal) ||
+                        !definition.RequiredTags.All(context.Tags.Contains) ||
+                        definition.ExcludedTags.Any(context.Tags.Contains))
+                        continue;
+                    if (string.IsNullOrWhiteSpace(definition.InfluenceId) ||
+                        string.IsNullOrWhiteSpace(definition.Channel) ||
+                        string.IsNullOrWhiteSpace(definition.Bucket) ||
+                        definition.Value.HasValue == !string.IsNullOrWhiteSpace(definition.Formula))
+                    {
+                        return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                            $"Status {status.StatusId} contains an invalid influence component");
+                    }
+                    var value = ResolveValue(status, definition, context);
+                    if (value.IsFailure)
+                        return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                            $"Status {status.StatusId}/{definition.InfluenceId}: {value.Error}");
+                    result.Add(new CalculationInfluence
+                    {
+                        InfluenceId = definition.InfluenceId,
+                        SourceKind = CalculationSourceKind.Status,
+                        SourceId = status.InstanceId.ToString(),
+                        Channel = definition.Channel,
+                        Bucket = definition.Bucket,
+                        Value = value.Value,
+                        Priority = definition.Priority
+                    });
+                }
+            }
+        }
+        return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());
+    }
+
+    private Result<float> ResolveValue(
+        StatusEffectInstance status,
+        ContextualInfluenceDefinition definition,
+        CalculationSourceContext context)
+    {
+        if (definition.Value.HasValue)
+            return Result<float>.Success(definition.Value.Value * status.Stacks);
+        var variables = context.Variables.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
+            StringComparer.Ordinal);
+        variables["stacks"] = status.Stacks;
+        variables["duration"] = status.Duration;
+        return !string.IsNullOrWhiteSpace(status.ContentRevision) &&
+               _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
+            ? revisioned.EvaluateAtRevision(definition.Formula!, status.ContentRevision, variables)
+            : _formulas.Evaluate(definition.Formula!, variables);
     }
 }

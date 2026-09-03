@@ -374,21 +374,42 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add(
                         $"status-effects/{id} requires durationTickBoundary for finite duration");
                 }
-                if (status.Timing is StatusEffectTiming.START_OF_TURN or StatusEffectTiming.END_OF_TURN &&
-                    status.TriggerBoundary == StatusTriggerBoundary.Unspecified)
+                var duplicateTrigger = status.Triggers
+                    .Where(trigger => !string.IsNullOrWhiteSpace(trigger.TriggerId))
+                    .GroupBy(trigger => trigger.TriggerId, StringComparer.Ordinal)
+                    .FirstOrDefault(group => group.Count() > 1);
+                if (duplicateTrigger != null)
+                    errors.Add($"status-effects/{id} has duplicate trigger {duplicateTrigger.Key}");
+                foreach (var trigger in status.Triggers)
                 {
-                    errors.Add(
-                        $"status-effects/{id} requires triggerBoundary for turn timing");
+                    if (string.IsNullOrWhiteSpace(trigger.TriggerId))
+                        errors.Add($"status-effects/{id} has trigger without triggerId");
+                    if (!Enum.TryParse<StatusTriggerBoundary>(trigger.Boundary, false, out var boundary) ||
+                        boundary == StatusTriggerBoundary.Unspecified)
+                        errors.Add($"status-effects/{id} trigger {trigger.TriggerId} has invalid boundary");
+                    if (trigger.Effects.Count == 0)
+                        errors.Add($"status-effects/{id} trigger {trigger.TriggerId} has no effects");
+                    foreach (var effect in EnumerateEffects(trigger.Effects))
+                    {
+                        if (effect.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE)
+                        {
+                            if (string.IsNullOrWhiteSpace(effect.TargetResource))
+                                errors.Add($"status-effects/{id} effect {effect.EffectId} requires targetResource");
+                            else
+                                Require(runtime, errors, "status-effects", id, effect.TargetResource, "resources");
+                        }
+                        if (effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS &&
+                            !string.IsNullOrWhiteSpace(effect.StatusId))
+                            Require(runtime, errors, "status-effects", id, effect.StatusId, "status-effects");
+                    }
                 }
-                if (status.Behavior is
-                        StatusEffectBehavior.DAMAGE_OVER_TIME or
-                        StatusEffectBehavior.HEAL_OVER_TIME or
-                        StatusEffectBehavior.REACTIVE)
+                foreach (var influence in status.Influences)
                 {
-                    if (string.IsNullOrWhiteSpace(status.TargetResource))
-                        errors.Add($"status-effects/{id} requires targetResource for {status.Behavior}");
-                    else
-                        Require(runtime, errors, "status-effects", id, status.TargetResource, "resources");
+                    if (string.IsNullOrWhiteSpace(influence.InfluenceId) ||
+                        string.IsNullOrWhiteSpace(influence.Channel) ||
+                        string.IsNullOrWhiteSpace(influence.Bucket) ||
+                        influence.Value.HasValue == !string.IsNullOrWhiteSpace(influence.Formula))
+                        errors.Add($"status-effects/{id} has invalid influence {influence.InfluenceId}");
                 }
             }
             catch (Exception exception)

@@ -3,6 +3,7 @@ using Core.Combat;
 using Core.Combat.Flow;
 using Core.Combat.Models;
 using Core.Determinism;
+using Core.Effects;
 using Core.Math;
 using Core.Resources;
 using Core.StatusEffects;
@@ -49,6 +50,13 @@ public sealed class CombatStatusLifecycleTests
         Assert.Equal(["high", "low"], result.Value.Events
             .Where(item => item.Kind == CombatStatusLifecycleEventKind.Triggered)
             .Select(item => item.StatusId));
+        var firstApplication = Assert.Single(result.Value.Events
+            .First(item => item.StatusId == "high" && item.Kind == CombatStatusLifecycleEventKind.Triggered)
+            .Applications);
+        Assert.Equal(EffectType.DAMAGE, firstApplication.EffectType);
+        Assert.Equal("health", firstApplication.ResourceId);
+        Assert.Equal(50, firstApplication.PreviousValue);
+        Assert.Equal(46, firstApplication.CurrentValue);
         Assert.Equal(["high"], result.Value.Events
             .Where(item => item.Kind == CombatStatusLifecycleEventKind.Expired)
             .Select(item => item.StatusId));
@@ -70,14 +78,28 @@ public sealed class CombatStatusLifecycleTests
             Definition = new StatusEffectDefinition
             {
                 StatusId = statusId,
-                Behavior = StatusEffectBehavior.DAMAGE_OVER_TIME,
-                BaseValue = 1,
-                FormulaValue = formula,
-                ScalesWithStacks = false,
-                TargetResource = "health",
-                TriggerBoundary = StatusTriggerBoundary.EndActivation,
                 DurationTickBoundary = StatusTriggerBoundary.EndActivation,
-                Priority = priority
+                Priority = priority,
+                Triggers =
+                [
+                    new EffectTriggerDefinition
+                    {
+                        TriggerId = $"{statusId}.tick",
+                        Boundary = "EndActivation",
+                        Effects =
+                        [
+                            new EffectDefinition
+                            {
+                                EffectId = $"{statusId}.damage",
+                                Type = EffectType.DAMAGE,
+                                Target = EffectTarget.SELF,
+                                FlatValue = formula == null ? 1 : null,
+                                FormulaValue = formula,
+                                TargetResource = "health"
+                            }
+                        ]
+                    }
+                ]
             },
             Stacks = 2
         };

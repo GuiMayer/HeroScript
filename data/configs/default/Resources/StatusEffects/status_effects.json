@@ -4,18 +4,28 @@
     "Type": "BURNING",
     "DisplayName": "Burning",
     "Description": "Takes fire damage at the end of each turn",
-    "Behavior": "DAMAGE_OVER_TIME",
     "DefaultDuration": 3,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "BaseValue": 3.0,
-    "FormulaValue": "stacks * 3",
-    "ScalesWithStacks": true,
-    "TargetResource": "health",
     "Timing": "END_OF_TURN",
-    "TriggerBoundary": "EndActivation",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
+    "Triggers": [
+      {
+        "TriggerId": "burning.tick",
+        "Boundary": "EndActivation",
+        "Effects": [
+          {
+            "EffectId": "burning.resource-reduction",
+            "Type": "DAMAGE",
+            "Target": "SELF",
+            "FormulaValue": "stacks * 3",
+            "TargetResource": "health",
+            "Tags": ["damage", "fire", "dot"]
+          }
+        ]
+      }
+    ],
     "Tags": ["fire", "dot", "debuff"]
   },
   "poison": {
@@ -23,18 +33,28 @@
     "Type": "POISON",
     "DisplayName": "Poison",
     "Description": "Takes poison damage at the end of each turn",
-    "Behavior": "DAMAGE_OVER_TIME",
     "DefaultDuration": 3,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "BaseValue": 2.0,
-    "FormulaValue": "stacks * 2",
-    "ScalesWithStacks": true,
-    "TargetResource": "health",
     "Timing": "END_OF_TURN",
-    "TriggerBoundary": "EndActivation",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
+    "Triggers": [
+      {
+        "TriggerId": "poison.tick",
+        "Boundary": "EndActivation",
+        "Effects": [
+          {
+            "EffectId": "poison.resource-reduction",
+            "Type": "DAMAGE",
+            "Target": "SELF",
+            "FormulaValue": "stacks * 2",
+            "TargetResource": "health",
+            "Tags": ["damage", "poison", "dot"]
+          }
+        ]
+      }
+    ],
     "Tags": ["poison", "dot", "debuff"]
   },
   "strength": {
@@ -42,18 +62,22 @@
     "Type": "STRENGTH",
     "DisplayName": "Strength",
     "Description": "Increases damage dealt by 25% per stack",
-    "Behavior": "STAT_MODIFIER",
     "DefaultDuration": -1,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "BaseValue": 0.25,
-    "ModifierKey": "increased_damage_total",
-    "ModifierFormula": "stacks * 0.25",
-    "ScalesWithStacks": true,
     "Timing": "PERMANENT",
-    "TriggerBoundary": "Unspecified",
     "DurationTickBoundary": "Unspecified",
     "Priority": 0,
+    "Influences": [
+      {
+        "InfluenceId": "strength.damage-increased",
+        "Scope": "Actor",
+        "Channel": "effect_amount",
+        "Bucket": "increased",
+        "Formula": "stacks * 0.25",
+        "RequiredTags": ["damage"]
+      }
+    ],
     "Tags": ["buff", "damage"]
   },
   "weakness": {
@@ -61,18 +85,22 @@
     "Type": "WEAKNESS",
     "DisplayName": "Weakness",
     "Description": "Reduces damage dealt by 25% per stack",
-    "Behavior": "STAT_MODIFIER",
     "DefaultDuration": 3,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "BaseValue": -0.25,
-    "ModifierKey": "increased_damage_total",
-    "ModifierFormula": "stacks * -0.25",
-    "ScalesWithStacks": true,
     "Timing": "PERMANENT",
-    "TriggerBoundary": "Unspecified",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
+    "Influences": [
+      {
+        "InfluenceId": "weakness.damage-increased",
+        "Scope": "Actor",
+        "Channel": "effect_amount",
+        "Bucket": "increased",
+        "Formula": "stacks * -0.25",
+        "RequiredTags": ["damage"]
+      }
+    ],
     "Tags": ["debuff", "damage"]
   },
   "stunned": {
@@ -80,14 +108,10 @@
     "Type": "STUNNED",
     "DisplayName": "Stunned",
     "Description": "Cannot act",
-    "Behavior": "CONTROL",
     "DefaultDuration": 1,
     "DefaultStacks": 1,
     "MaxStacks": 1,
-    "BaseValue": 0.0,
-    "ScalesWithStacks": false,
     "Timing": "PERMANENT",
-    "TriggerBoundary": "Unspecified",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
     "Tags": ["debuff", "control"]

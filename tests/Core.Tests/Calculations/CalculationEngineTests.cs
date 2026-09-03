@@ -1,10 +1,13 @@
+using System.Collections.Immutable;
 using Core.Calculations;
+using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Math;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
+using Core.StatusEffects;
 using Moq;
 using Xunit;
 
@@ -169,7 +172,7 @@ public sealed class CalculationEngineTests
                                 Channel = "effect_amount",
                                 Bucket = "increased",
                                 Value = 0.25f,
-                                RequiredTags = new HashSet<string> { "attack" }
+                                RequiredTags = ["attack"]
                             }
                         ]
                     }
@@ -193,6 +196,61 @@ public sealed class CalculationEngineTests
         Assert.True(attack.IsSuccess, attack.IsFailure ? attack.Error : null);
         Assert.Equal(0.5f, Assert.Single(attack.Value).Value);
         Assert.Empty(skill.Value);
+    }
+
+    [Fact]
+    public void StatusProvider_UsesOwnerScopeAndPinnedStacks()
+    {
+        var actor = Entity("hero", "energy", 3);
+        var target = Entity("enemy", "health", 20);
+        var status = new StatusEffectInstance
+        {
+            InstanceId = Guid.Parse("30000000-0000-8000-8000-000000000001"),
+            StatusId = "strength",
+            TargetId = actor.EntityId,
+            Stacks = 2,
+            IsActive = true,
+            Definition = new StatusEffectDefinition
+            {
+                StatusId = "strength",
+                Influences =
+                [
+                    new ContextualInfluenceDefinition
+                    {
+                        InfluenceId = "strength.damage",
+                        Scope = CalculationEntityScope.Actor,
+                        Channel = "effect_amount",
+                        Bucket = "increased",
+                        Value = 0.25f,
+                        RequiredTags = ["damage"]
+                    }
+                ]
+            }
+        };
+        var combat = CombatTransitions.Create(
+            actor,
+            [target],
+            Core.Determinism.DeterministicContext.Create(1, "revision")) with
+        {
+            StatusEffects = new Dictionary<string, System.Collections.Immutable.ImmutableArray<StatusEffectInstance>>
+            {
+                [actor.EntityId] = [status]
+            }.ToImmutableDictionary(StringComparer.Ordinal)
+        };
+        var provider = new StatusCalculationInfluenceProvider(Mock.Of<IRuntimeFormulaEvaluator>());
+
+        var result = provider.Collect(new CalculationSourceContext
+        {
+            Combat = combat,
+            Actor = actor,
+            Target = target,
+            Tags = new HashSet<string> { "damage" }
+        });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var influence = Assert.Single(result.Value);
+        Assert.Equal(CalculationSourceKind.Status, influence.SourceKind);
+        Assert.Equal(0.5f, influence.Value);
     }
 
     private static CalculationPipelineDefinition Pipeline() => new()

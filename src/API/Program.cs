@@ -263,7 +263,10 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
         sp.GetRequiredService<IContentRuntimeResolver>());
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
-builder.Services.AddSingleton<ICombatStatusLifecycle, CombatStatusLifecycle>();
+builder.Services.AddSingleton<ICombatStatusLifecycle>(sp => new CombatStatusLifecycle(
+    sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
+    sp.GetRequiredService<IImmutableEffectProcessor>(),
+    sp.GetRequiredService<IContentRuntimeResolver>()));
 
 // Register persistence services
 var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
@@ -551,11 +554,14 @@ builder.Services.AddSingleton<CardComponentInfluenceProvider>(sp =>
     new CardComponentInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<RunModifierInfluenceProvider>(sp =>
     new RunModifierInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<StatusCalculationInfluenceProvider>(sp =>
+    new StatusCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     new CompositeCalculationInfluenceProvider(
     [
         sp.GetRequiredService<CardComponentInfluenceProvider>(),
-        sp.GetRequiredService<RunModifierInfluenceProvider>()
+        sp.GetRequiredService<RunModifierInfluenceProvider>(),
+        sp.GetRequiredService<StatusCalculationInfluenceProvider>()
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();

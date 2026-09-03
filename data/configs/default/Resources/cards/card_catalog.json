@@ -23,7 +23,7 @@
           "timing": "IMMEDIATE",
           "flatValue": 6,
           "targetResource": "health",
-          "tags": ["physical", "attack"]
+          "tags": ["damage", "physical", "attack"]
         }
       },
       {
@@ -111,7 +111,7 @@
           "timing": "IMMEDIATE",
           "flatValue": 10,
           "targetResource": "health",
-          "tags": ["fire", "magic", "spell"]
+          "tags": ["damage", "fire", "magic", "spell"]
         }
       },
       {

@@ -283,7 +283,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             .GetProperty("statuses")[0];
         Assert.Equal(
             "EndActivation",
-            appliedBurning.GetProperty("definition").GetProperty("triggerBoundary").GetString());
+            appliedBurning.GetProperty("definition").GetProperty("triggers")[0]
+                .GetProperty("boundary").GetString());
         var firstActivation = afterFirst.GetProperty("activationState").GetProperty("activationNumber").GetInt32();
 
         var afterSecond = await ExecuteCardCommand(runId, combatId, basicAttack, "goblin_a");

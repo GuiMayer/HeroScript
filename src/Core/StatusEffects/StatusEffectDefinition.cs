@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
 using Core.Combat.Flow;
+using Core.Calculations;
+using Core.Effects;
 
 namespace Core.StatusEffects;
 
@@ -13,6 +15,8 @@ public record StatusEffectDefinition
     private ImmutableList<string> _tags = [];
     private ImmutableDictionary<string, object> _customData =
         ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
+    private ImmutableArray<EffectTriggerDefinition> _triggers = [];
 
     /// <summary>
     /// ID único do status effect
@@ -126,6 +130,20 @@ public record StatusEffectDefinition
     /// Higher values resolve first; instance id is the deterministic tie-break.
     /// </summary>
     public int Priority { get; init; }
+
+    /// <summary>Passive contributions evaluated from the combat snapshot.</summary>
+    public IReadOnlyList<ContextualInfluenceDefinition> Influences
+    {
+        get => _influences;
+        init => _influences = value?.ToImmutableArray() ?? [];
+    }
+
+    /// <summary>Effects resolved at configured combat boundaries.</summary>
+    public IReadOnlyList<EffectTriggerDefinition> Triggers
+    {
+        get => _triggers;
+        init => _triggers = value?.ToImmutableArray() ?? [];
+    }
     
     // ===== VISUAL =====
     

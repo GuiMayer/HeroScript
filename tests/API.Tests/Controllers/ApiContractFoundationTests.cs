@@ -687,7 +687,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         using var validateResponse = await _client.SendAsync(validateRequest);
         var validation = await validateResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, validateResponse.StatusCode);
-        Assert.True(validation.GetProperty("isValid").GetBoolean());
+        Assert.True(validation.GetProperty("isValid").GetBoolean(), validation.ToString());
 
         using var publishRequest = new HttpRequestMessage(
             HttpMethod.Post,
