@@ -115,6 +115,11 @@ public sealed class ContentGraphValidatorTests
                 ["focus"] = new
                 {
                     resourceId = "focus",
+                    displayName = "Focus",
+                    defaultMin = 0,
+                    defaultMax = 10,
+                    defaultCurrent = 10,
+                    costMultiplier = 1,
                     thresholdPolicies = new[]
                     {
                         new { policyId = "lose_focus", consequence = "DefeatOwner" }
@@ -126,7 +131,36 @@ public sealed class ContentGraphValidatorTests
 
         Assert.False(result.IsValid);
         Assert.Contains(
-            "resources/focus policy lose_focus requires comparison",
+            "resources/focus: Resource threshold comparison is required: lose_focus",
+            result.Errors);
+    }
+
+    [Fact]
+    public void Validate_RejectsEntityResourceOutsidePublishedGraph()
+    {
+        var bundle = Bundle(
+            ("entities", "entities/mage.json", new Dictionary<string, object>
+            {
+                ["mage"] = new
+                {
+                    definitionId = "mage",
+                    type = "PLAYER",
+                    displayName = "Mage",
+                    resources = new
+                    {
+                        resources = new Dictionary<string, object>
+                        {
+                            ["arcane_charge"] = new { current = 2, max = 3 }
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            "entities/mage references missing resources/arcane_charge",
             result.Errors);
     }
 

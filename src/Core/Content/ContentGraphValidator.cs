@@ -6,6 +6,7 @@ using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Calculations;
 using Core.Effects;
+using Core.Entity.Definitions;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
@@ -50,6 +51,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidatePhaseSequences(runtime, errors);
         ValidateRuns(runtime, errors);
         ValidateResources(runtime, errors);
+        ValidateEntities(runtime, errors);
         ValidateCardComponentBundles(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
@@ -225,6 +227,23 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 var validation = CombatFlowPolicyValidator.Validate(implementedSubset);
                 if (validation.IsFailure)
                     errors.Add($"combat-rules/{id}: {validation.Error}");
+                Require(
+                    runtime,
+                    errors,
+                    "combat-rules",
+                    id,
+                    combat.Flow.ResourceCycle.ResourceId,
+                    "resources");
+                if (!string.IsNullOrWhiteSpace(combat.Flow.ActionBudget.ResourceId))
+                {
+                    Require(
+                        runtime,
+                        errors,
+                        "combat-rules",
+                        id,
+                        combat.Flow.ActionBudget.ResourceId,
+                        "resources");
+                }
             }
             catch (Exception exception)
             {
@@ -328,35 +347,50 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     continue;
                 }
 
-                var duplicate = resource.ThresholdPolicies
-                    .Where(policy => !string.IsNullOrWhiteSpace(policy.PolicyId))
-                    .GroupBy(policy => policy.PolicyId, StringComparer.Ordinal)
-                    .FirstOrDefault(group => group.Count() > 1);
-                if (duplicate != null)
-                    errors.Add($"resources/{id} has duplicate threshold policy {duplicate.Key}");
-                foreach (var policy in resource.ThresholdPolicies)
-                {
-                    if (string.IsNullOrWhiteSpace(policy.PolicyId))
-                        errors.Add($"resources/{id} has threshold policy without policyId");
-                    if (policy.Comparison == ResourceThresholdComparison.Unspecified)
-                        errors.Add($"resources/{id} policy {policy.PolicyId} requires comparison");
-                    if (policy.ThresholdSource == ResourceThresholdSource.Unspecified)
-                        errors.Add($"resources/{id} policy {policy.PolicyId} requires thresholdSource");
-                    if (policy.ThresholdSource == ResourceThresholdSource.Constant &&
-                        (!policy.ThresholdValue.HasValue || !IsFinite(policy.ThresholdValue.Value)))
-                    {
-                        errors.Add(
-                            $"resources/{id} policy {policy.PolicyId} requires a finite thresholdValue");
-                    }
-                    if (!IsFinite(policy.Tolerance) || policy.Tolerance < 0)
-                        errors.Add($"resources/{id} policy {policy.PolicyId} has invalid tolerance");
-                    if (policy.Consequence == ResourceThresholdConsequence.Unspecified)
-                        errors.Add($"resources/{id} policy {policy.PolicyId} requires consequence");
-                }
+                var validation = ResourceDefinitionValidator.Validate(resource, id);
+                if (validation.IsFailure)
+                    errors.Add($"resources/{id}: {validation.Error}");
             }
             catch (Exception exception)
             {
                 errors.Add($"resources/{id} could not be parsed: {exception.Message}");
+            }
+        }
+    }
+
+    private static void ValidateEntities(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        foreach (var (id, definition) in runtime.GetDefinitions("entities"))
+        {
+            try
+            {
+                var entity = definition.Deserialize<EntityDefinition>(CreateJsonOptions());
+                if (entity == null)
+                {
+                    errors.Add($"entities/{id} is invalid");
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(entity.DefinitionId))
+                    errors.Add($"entities/{id} requires definitionId");
+                else if (!string.Equals(entity.DefinitionId, id, StringComparison.Ordinal))
+                    errors.Add($"entities/{id} definitionId does not match its content key");
+                if (!string.IsNullOrWhiteSpace(entity.BaseDefinitionId))
+                    Require(runtime, errors, "entities", id, entity.BaseDefinitionId, "entities");
+                foreach (var (resourceId, pool) in entity.Resources?.Resources ??
+                         new Dictionary<string, ResourcePoolDefinition>())
+                {
+                    Require(runtime, errors, "entities", id, resourceId, "resources");
+                    if (!IsFinite(pool.Current) || !IsFinite(pool.Max) || pool.Max < 0)
+                        errors.Add($"entities/{id} resource {resourceId} has invalid current/max values");
+                }
+                foreach (var actionId in entity.AI?.Actions ?? [])
+                    Require(runtime, errors, "entities", id, actionId, "actions");
+            }
+            catch (Exception exception)
+            {
+                errors.Add($"entities/{id} could not be parsed: {exception.Message}");
             }
         }
     }
