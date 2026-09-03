@@ -796,27 +796,29 @@ Error: Formula 'base * atk +' is invalid
 }
 ```
 
-### Validation Endpoints
+### Validation and publication endpoints
 
-Use these endpoints to validate configurations:
+Gameplay definitions are read from immutable content revisions. Validate a
+complete candidate bundle (or an already published revision) through the
+content API:
 
 ```bash
-# Validate entity definitions
-POST /api/v1/entities/definitions/validate
+# Validate one candidate bundle
+POST /api/v1/content/validate
 {
-  "definitionId": "hero"
+  "bundle": { ... }
 }
 
-# Validate action definitions
-POST /api/v1/actions/validate
+# Validate one published revision
+POST /api/v1/content/validate
 {
-  "actionId": "fireball"
+  "revision": "<sha256>"
 }
 
-# List all loaded definitions
-GET /api/v1/entities/definitions
-GET /api/v1/actions
-GET /api/v1/simulations/formulas
+# Query definitions pinned to that revision
+GET /api/v1/content/entities?revision=<sha256>
+GET /api/v1/content/actions?revision=<sha256>
+GET /api/v1/content/formulas?revision=<sha256>
 ```
 
 ### Configuration Debugging
@@ -839,12 +841,17 @@ GET /api/v1/admin/config/current
 # Returns currently active configuration name and loaded files
 ```
 
-**Reload configuration without restart:**
+**Change content without restarting in development:**
 ```bash
-POST /api/v1/simulations/formulas/reload
-POST /api/v1/actions/reload
-POST /api/v1/gambits/reload
+POST /api/v1/admin/content/drafts
+PUT  /api/v1/admin/content/drafts/{draftId}/artifacts/{kind}/{definitionId}
+POST /api/v1/admin/content/drafts/{draftId}/validate
+POST /api/v1/admin/content/drafts/{draftId}/publish
 ```
+
+Publishing creates a new immutable revision. A development run only adopts it
+through `ACTIVATE_CONTENT_REVISION`; the engine rejects activation when a
+pinned card upgrade is incompatible with the new base container.
 
 ---
 

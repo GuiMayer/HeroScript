@@ -324,7 +324,7 @@ AllowedOrigins__0=https://yourgame.com
 ### Post-Deployment
 
 - [ ] **Health endpoint responding** (`GET /api/v1/health/live`)
-- [ ] **Admin endpoints require X-Admin-Key** (`POST /api/v1/actions/reload` returns 401 without header)
+- [ ] **Admin endpoints require X-Admin-Key** (`POST /api/v1/admin/content/drafts` returns 401 without header)
 - [ ] **CORS working** (frontend can access API)
 - [ ] **Logs are structured** (check `journalctl` or `docker logs`)
 - [ ] **Backup configured** for `data/events/` and `data/runs/`
@@ -489,7 +489,7 @@ sudo systemctl restart heroscript
 
 ### 401 Unauthorized on Admin Endpoints
 
-**Symptom:** `POST /api/v1/actions/reload` returns `401 Unauthorized`
+**Symptom:** `POST /api/v1/admin/content/drafts` returns `401 Unauthorized`
 
 **Cause:** Missing or incorrect `X-Admin-Key` header
 
@@ -499,7 +499,9 @@ sudo systemctl restart heroscript
 sudo systemctl show heroscript | grep HERESCRIPT_ADMIN_KEY
 
 # Test with correct key
-curl -X POST http://localhost:5260/api/v1/actions/reload \
+curl -X POST http://localhost:5260/api/v1/admin/content/drafts \
+  -H "Content-Type: application/json" \
+  -d '{"configName":"default"}' \
   -H "X-Admin-Key: your-secret-key-here"
 ```
 
@@ -526,7 +528,7 @@ sudo systemctl restart heroscript
 curl -H "Origin: https://yourgame.com" \
   -H "Access-Control-Request-Method: GET" \
   -X OPTIONS \
-  http://localhost:5260/api/v1/actions -v
+  http://localhost:5260/api/v1/content/actions -v
 ```
 
 ---
@@ -630,7 +632,7 @@ Cache static responses to reduce load:
 # Add to nginx config
 proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=heroscript_cache:10m inactive=60m;
 
-location /api/v1/actions {
+location /api/v1/content {
     proxy_cache heroscript_cache;
     proxy_cache_valid 200 5m;
     proxy_cache_key "$request_uri";

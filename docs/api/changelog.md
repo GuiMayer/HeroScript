@@ -2,6 +2,12 @@
 
 ## v1 — 2026-09-03
 
+- Removidas as APIs paralelas baseadas em estado global para ações, dano,
+  efeitos, status, modificadores e gambits. Definições agora vêm de
+  `/api/v1/content`; mutações passam exclusivamente pelos gateways de comando.
+- Removidas as projeções duplicadas `legal-actions`, `legal-targets`,
+  `available-actions`, `cost-options` e `can-afford`. Clientes usam as
+  avaliações de instâncias de carta, que compartilham as regras de `PLAY_CARD`.
 - Adicionada avaliação determinística de uma carta e projeção em lote da mão,
   incluindo container base/compilado, upgrades, legalidade, buckets, efeitos
   previstos e fingerprint da resolução.

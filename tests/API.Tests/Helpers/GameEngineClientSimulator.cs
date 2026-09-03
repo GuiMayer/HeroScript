@@ -318,15 +318,6 @@ public class GameEngineClientSimulator
             : throw new InvalidOperationException($"Run ownership is unknown for combat {combatId}");
     }
 
-    // ==================== STATUS EFFECTS ====================
-    public async Task<List<JsonElement>> GetStatusEffectsAsync(string targetId)
-    {
-        var response = await _client.GetAsync($"/api/v1/statuses/{targetId}");
-        response.EnsureSuccessStatusCode();
-        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return json.EnumerateArray().ToList();
-    }
-
     // ==================== EVENTS ====================
 
     public async Task<List<JsonElement>> GetEventsAsync(string? category = null, Guid? runId = null, 

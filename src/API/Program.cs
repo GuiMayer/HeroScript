@@ -555,7 +555,6 @@ builder.Services.AddSingleton<Core.Entity.Definitions.EntityFactory>(sp => new C
     new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("EntityDefinitionFactory"))));
 builder.Services.AddSingleton<API.Services.DailyChallengeService>();
 
-// Register ActionAffordabilityService
 builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();
 builder.Services.AddSingleton<ICardPlayEvaluator, CardPlayEvaluator>();
 builder.Services.AddSingleton<CardComponentInfluenceProvider>(sp =>
@@ -577,7 +576,6 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
-builder.Services.AddSingleton<IActionAffordabilityService, ActionAffordabilityService>();
 
 // Register ExpressionEvaluator
 builder.Services.AddSingleton<IExpressionEvaluator, ExpressionEvaluator>();

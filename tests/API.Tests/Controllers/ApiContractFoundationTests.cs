@@ -40,12 +40,11 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     public async Task InvalidModel_ReturnsProblemDetailsWithCorrelationId()
     {
         const string correlationId = "contract-test-correlation";
-        using var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/statuses/remove")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/runs")
         {
-            Content = JsonContent.Create(new { targetId = "enemy_1", instanceId = "not-a-guid" })
+            Content = JsonContent.Create(new { seed = "not-an-unsigned-integer" })
         };
         request.Headers.Add("X-Correlation-ID", correlationId);
-        request.Headers.Add("X-Admin-Key", "dev-admin-key");
 
         using var response = await _client.SendAsync(request);
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
@@ -57,12 +56,12 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
-    public async Task LegacyControllerError_IsNormalizedToProblemDetails()
+    public async Task ContentLookupError_IsNormalizedToProblemDetails()
     {
-        const string correlationId = "legacy-error-contract";
+        const string correlationId = "content-error-contract";
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            "/api/v1/actions/does_not_exist");
+            "/api/v1/content/actions/does_not_exist");
         request.Headers.Add("X-Correlation-ID", correlationId);
 
         using var response = await _client.SendAsync(request);
@@ -240,18 +239,15 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.True(combat.TryGetProperty("board", out _));
         var combatId = combat.GetProperty("combatId").GetGuid();
 
-        using var legalActionsResponse = await _client.GetAsync(
-            $"/api/v1/combats/{combatId}/legal-actions?actorId={playerEntityId}");
-        var legalActions = await legalActionsResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, legalActionsResponse.StatusCode);
-        Assert.NotEmpty(legalActions.GetProperty("actions").EnumerateArray());
-
-        using var legalTargetsResponse = await _client.GetAsync(
-            $"/api/v1/combats/{combatId}/legal-targets?actionId=basic_attack&actorId={playerEntityId}");
-        var legalTargets = await legalTargetsResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, legalTargetsResponse.StatusCode);
+        using var evaluationsResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/cards/evaluations?actorId={playerEntityId}&targetIds=enemy_1");
+        var evaluations = await evaluationsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, evaluationsResponse.StatusCode);
+        var cards = evaluations.GetProperty("cards").EnumerateArray().ToArray();
+        Assert.NotEmpty(cards);
+        Assert.Contains(cards, card => card.GetProperty("isPlayable").GetBoolean());
         Assert.Contains(
-            legalTargets.GetProperty("targetIds").EnumerateArray(),
+            cards.SelectMany(card => card.GetProperty("evaluation").GetProperty("legalTargetIds").EnumerateArray()),
             target => target.GetString() == "enemy_1");
 
         using var stackResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/stack");
@@ -626,14 +622,32 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [InlineData("/api/v1/statuses/apply")]
     [InlineData("/api/v1/modifiers/apply")]
     [InlineData("/api/v1/simulations/effects/apply")]
+    [InlineData("/api/v1/simulations/damage/calculate")]
     [InlineData("/api/v1/gambits/reload")]
-    [InlineData("/api/v1/resources/reload")]
-    [InlineData("/api/v1/admin/resources/reload")]
-    public async Task DirectGlobalMutationEndpoints_RequireAdminAuthority(string path)
+    [InlineData("/api/v1/actions/reload")]
+    public async Task ParallelRuleMutationEndpoints_AreNotExposed(string path)
     {
         using var response = await _client.PostAsJsonAsync(path, new { });
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Contains(response.StatusCode, new[]
+        {
+            HttpStatusCode.NotFound,
+            HttpStatusCode.MethodNotAllowed
+        });
+    }
+
+    [Theory]
+    [InlineData("/api/v1/actions")]
+    [InlineData("/api/v1/statuses/definitions")]
+    [InlineData("/api/v1/modifiers")]
+    [InlineData("/api/v1/gambits")]
+    [InlineData("/api/v1/simulations/effects/types")]
+    [InlineData("/api/v1/simulations/damage/pipeline/config")]
+    public async Task ParallelRuleReadEndpoints_AreNotExposed(string path)
+    {
+        using var response = await _client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     private async Task<JsonElement> StartRunEncounterAsync(

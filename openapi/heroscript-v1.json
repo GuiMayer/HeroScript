@@ -314,24 +314,6 @@
         "responses": { "200": { "description": "Semantic replay verification result" } }
       }
     },
-    "/api/v1/combats/{combatId}/legal-actions": {
-      "get": {
-        "tags": ["Combats"],
-        "operationId": "getLegalCombatActions",
-        "x-heroscript-stability": "experimental",
-        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
-        "responses": { "200": { "description": "Actions legal in the current deterministic phase" } }
-      }
-    },
-    "/api/v1/combats/{combatId}/available-actions": {
-      "get": {
-        "tags": ["Combats"],
-        "operationId": "getAvailableCombatActions",
-        "x-heroscript-stability": "experimental",
-        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
-        "responses": { "200": { "description": "Combat actions with cost, hand and affordability metadata" } }
-      }
-    },
     "/api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation": {
       "get": {
         "tags": ["Combats"],
@@ -410,15 +392,6 @@
         "x-heroscript-stability": "experimental",
         "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
         "responses": { "200": { "description": "Independent child run and combat anchored at a historical combat state" }, "422": { "$ref": "#/components/responses/Problem" } }
-      }
-    },
-    "/api/v1/combats/{combatId}/legal-targets": {
-      "get": {
-        "tags": ["Combats"],
-        "operationId": "getLegalCombatTargets",
-        "x-heroscript-stability": "experimental",
-        "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "actionId", "in": "query", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Targets legal for an action" } }
       }
     },
     "/api/v1/combats/{combatId}/stack": {

@@ -256,7 +256,8 @@ Os `POST .../start` atuais devem deixar de criar recursos arbitrariamente em pro
 | POST | `/api/v1/runs/{runId}/encounters` | criar combate a partir do nó atual, seed derivada da run |
 | GET | `/api/v1/runs/{runId}/encounters/current` | localizar encontro ativo após reconexão |
 | GET | `/api/v1/combats/{combatId}` | estado completo, incluindo step, hash, recursos, fases e atores |
-| GET | `/api/v1/combats/{combatId}/available-actions` | ações e alvos legais para um ator |
+| GET | `/api/v1/combats/{combatId}/cards/evaluations` | mão, custos, alvos e prévias legais pelo fluxo canônico |
+| GET | `/api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation` | inspeção detalhada de uma instância de carta |
 | POST | `/api/v1/combats/{combatId}/commands` | executar ação, encerrar ativação, passar ou processar IA |
 | GET | `/api/v1/combats/{combatId}/intents` | intents materializados no step atual |
 | GET | `/api/v1/combats/{combatId}/history` | histórico de comandos/ações do combate |
@@ -430,9 +431,13 @@ Permanentes, zonas, fases, mulligan e reação não precisam de dezenas de endpo
 
 Consultas adicionais:
 
-- `GET /api/v1/combats/{combatId}/legal-actions`
-- `GET /api/v1/combats/{combatId}/legal-targets?actionId=...`
+- `GET /api/v1/combats/{combatId}/cards/evaluations`
+- `GET /api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation`
 - `GET /api/v1/combats/{combatId}/stack`
+
+Legalidade, custo e alvos não possuem projeções paralelas por `actionId`: são
+resultado da avaliação da instância de carta, usando a revisão fixada na run e
+o mesmo compilador/executor de `PLAY_CARD`.
 
 Comandos futuros:
 
@@ -500,9 +505,6 @@ Legenda: **[admin]** exige `X-Admin-Key`; **[diagnóstico]** não deve ser usada
 - `POST /api/combat/{combatId}/process-ai-turns`
 - `GET /api/combat/{combatId}/state`
 - `GET /api/combat/{combatId}/history`
-- `GET /api/combat/{combatId}/actions/{actionId}/cost-options`
-- `GET /api/combat/{combatId}/available-actions`
-- `POST /api/combat/{combatId}/actions/{actionId}/can-afford`
 - `POST /api/combat/{combatId}/end`
 - `POST /api/combat/{combatId}/auto-play` **[diagnóstico]**
 

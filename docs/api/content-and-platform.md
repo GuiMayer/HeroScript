@@ -36,7 +36,8 @@ Diagnósticos e reload são administração, não parte do fluxo de gameplay.
 | Daily challenge | `/api/v1/challenges/daily/current` | Tentativa, prova e ranking verificados por replay. |
 | Branches | `/api/v1/runs/{runId}/branches` | Branch a partir de checkpoint; experimental. |
 | Simulações | `/api/v1/simulations` | Isoladas da run de origem; experimental. |
-| TCG | `/legal-actions`, `/legal-targets`, `/stack` | Leituras de legalidade; experimental. |
+| Cartas | `/cards/evaluations`, `/cards/{cardInstanceId}/evaluation` | Legalidade e prévia pelo mesmo fluxo de `PLAY_CARD`; experimental. |
+| TCG | `/stack` | Leitura de prioridade e pilha; experimental. |
 
 Essas superfícies não devem ser usadas para inferir que a engine oferece
 multiplayer, economia permanente ou regras completas de TCG. Cada capacidade

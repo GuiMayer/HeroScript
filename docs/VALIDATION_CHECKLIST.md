@@ -61,9 +61,9 @@ curl -X POST http://localhost:5000/api/run/start \
 - [ ] POST `/api/combat/{combatId}/auto-play` completes combat automatically
 - [ ] POST `/api/combat/{combatId}/end` finalizes combat
 - [ ] GET `/api/combat/{combatId}/history` returns action log
-- [ ] GET `/api/combat/{combatId}/available-actions` lists valid actions
-- [ ] POST `/api/combat/{combatId}/actions/{actionId}/can-afford` checks affordability
-- [ ] GET `/api/combat/{combatId}/actions/{actionId}/cost-options` returns cost choices
+- [ ] GET `/api/v1/combats/{combatId}/cards/evaluations` lists the hand with legality
+- [ ] GET `/api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation` explains costs and targets
+- [ ] POST `/api/v1/combats/{combatId}/commands` executes `PLAY_CARD` with optimistic versions
 
 **Validation Script:**
 ```bash

@@ -321,9 +321,9 @@
       },
       {
         "step": 2,
-        "action": "Get Available Cost Options (Future)",
-        "endpoint": "GET /api/combat/{combatId}/actions/powerful_spell/cost-options",
-        "note": "Currently returns placeholder. Will be populated when ActionManager is integrated.",
+        "action": "Evaluate Card Cost Options",
+        "endpoint": "GET /api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation",
+        "note": "Use evaluation.costOptions from the same pinned rules used by PLAY_CARD.",
         "futureResponse": {
           "actionId": "powerful_spell",
           "normalCosts": [],
