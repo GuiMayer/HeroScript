@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Determinism;
+using Core.Resources;
 using Core.StatusEffects;
 using Core.Calculations;
 
@@ -95,6 +96,13 @@ public interface IImmutableEffectProcessor
 /// </summary>
 public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
 {
+    private readonly IResourceMutationReducer _resources;
+
+    public ImmutableEffectProcessor(IResourceMutationReducer? resources = null)
+    {
+        _resources = resources ?? new ResourceMutationReducer();
+    }
+
     public Result<EffectBatchResult> Apply(
         CombatState state,
         IReadOnlyList<ResolvedEffectCommand> effects)
@@ -149,7 +157,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         return Result.Success();
     }
 
-    private static Result<EffectTargetApplication> ApplyToTarget(
+    private Result<EffectTargetApplication> ApplyToTarget(
         CombatState state,
         ResolvedEffectCommand effect,
         string targetId)
@@ -182,7 +190,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         };
     }
 
-    private static Result<EffectTargetApplication> ApplyResource(
+    private Result<EffectTargetApplication> ApplyResource(
         CombatState state,
         CombatEntity target,
         ResolvedEffectCommand effect,
@@ -193,15 +201,26 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         if (resource == null)
             return Result<EffectTargetApplication>.Failure(
                 $"Resource {resourceId} not found on effect target {target.EntityId}");
-        var magnitude = MathF.Abs(effect.ResolvedValue);
-        var nextValue = operation switch
+        var mutationOperation = operation switch
         {
-            ResourceEffectOperation.ADD => resource.Current + magnitude,
-            ResourceEffectOperation.SUBTRACT => resource.Current - magnitude,
-            ResourceEffectOperation.SET => effect.ResolvedValue,
-            _ => resource.Current
+            ResourceEffectOperation.ADD => ResourceMutationOperation.Add,
+            ResourceEffectOperation.SUBTRACT => ResourceMutationOperation.Subtract,
+            ResourceEffectOperation.SET => ResourceMutationOperation.Set,
+            _ => throw new InvalidOperationException($"Unsupported resource operation: {operation}")
         };
-        var updatedPool = resource.Set(nextValue);
+        var reduced = _resources.Apply(
+            target.ResourceState.Resources,
+            [new ResolvedResourceMutation
+            {
+                MutationId = effect.EffectInstanceId,
+                ResourceId = resourceId,
+                Field = effect.Definition.ResourceField,
+                Operation = mutationOperation,
+                Value = effect.ResolvedValue
+            }]);
+        if (reduced.IsFailure)
+            return Result<EffectTargetApplication>.Failure(reduced.Error);
+        var updatedPool = reduced.Value.Resources[resourceId];
         var updated = state.ReplaceEntity(target.UpdateResource(resourceId, updatedPool));
         return Result<EffectTargetApplication>.Success(new EffectTargetApplication(
             updated,
@@ -211,8 +230,8 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 EffectType = effect.Definition.Type,
                 TargetEntityId = target.EntityId,
                 ResourceId = resourceId,
-                PreviousValue = resource.Current,
-                CurrentValue = updatedPool.Current,
+                PreviousValue = reduced.Value.Records[0].PreviousValue,
+                CurrentValue = reduced.Value.Records[0].CurrentValue,
                 Provenance = effect.Provenance
             }));
     }

@@ -87,6 +87,12 @@ public record EffectDefinition
     public ResourceEffectOperation Operation { get; init; } = ResourceEffectOperation.ADD;
 
     /// <summary>
+    /// Numeric field changed by a resource effect. Current remains the default;
+    /// minimum and maximum use the same mutation reducer and journal semantics.
+    /// </summary>
+    public Resources.ResourceValueField ResourceField { get; init; } = Resources.ResourceValueField.Current;
+
+    /// <summary>
     /// Calculation channel used to resolve the numeric value. The game mode
     /// selects the compatible pipeline; effect type does not select one.
     /// </summary>
