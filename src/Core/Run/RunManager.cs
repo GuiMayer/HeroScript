@@ -681,6 +681,18 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (string.Equals(state.Determinism.ContentRevision, manifest.Value.Revision, StringComparison.Ordinal))
             return Result.Success();
 
+        if (_contentRuntimes != null)
+        {
+            var targetRuntime = _contentRuntimes.Resolve(manifest.Value.Revision, state.ConfigName);
+            if (targetRuntime.IsFailure)
+                return Result.Failure($"Target content revision is unavailable: {targetRuntime.Error}");
+            var compatibility = RunContentCompatibilityValidator.ValidateForActivation(
+                state,
+                targetRuntime.Value);
+            if (compatibility.IsFailure)
+                return Result.Failure(compatibility.Error);
+        }
+
         var activatedMode = state.ResolvedMode;
         if (!string.IsNullOrWhiteSpace(state.ModeId) &&
             _gameModeResolver is IRevisionedGameModeResolver revisionedModes)

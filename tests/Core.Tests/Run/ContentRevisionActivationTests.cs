@@ -1,11 +1,14 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Config;
 using Core.Content;
 using Core.Determinism;
+using Core.Effects;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
 using Core.Run;
+using Core.Run.Content;
 using Moq;
 using Xunit;
 
@@ -90,6 +93,54 @@ public sealed class ContentRevisionActivationTests
     }
 
     [Fact]
+    public void ActivateContentRevision_RejectsPinnedUpgradeIncompatibleWithNewBase()
+    {
+        var revisionA = new string('a', 64);
+        var revisionB = new string('b', 64);
+        var runtime = Runtime(revisionB, "effect.new");
+        var manager = CreateManagerWithRuntime(revisionA, revisionB, runtime);
+        var cardId = Guid.Parse("10000000-0000-8000-8000-000000000001");
+        var state = CreateState(revisionA) with
+        {
+            Deck = new DeckState
+            {
+                CardInstances = new Dictionary<Guid, CardInstanceState>
+                {
+                    [cardId] = new()
+                    {
+                        CardInstanceId = cardId,
+                        DefinitionId = "strike",
+                        Upgrades =
+                        [
+                            new CardUpgradeState
+                            {
+                                UpgradeId = "old-upgrade",
+                                Patches =
+                                [
+                                    new CardEffectNumericPatchDefinition
+                                    {
+                                        ComponentId = "effect.old",
+                                        Attribute = CardEffectNumericAttribute.FlatValue,
+                                        Value = 2
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                HandInstanceIds = [cardId]
+            }
+        };
+        state = manager.RestoreState(state).Value;
+
+        var result = Activate(manager, state, revisionB);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Component not found: effect.old", result.Error);
+        Assert.Equal(revisionA, manager.GetRun(state.RunId).Value.Determinism.ContentRevision);
+    }
+
+    [Fact]
     public async Task ActivateContentRevision_PreservesEveryRevisionAcrossSequentialTransitions()
     {
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-content-activation-{Guid.NewGuid():N}");
@@ -146,6 +197,86 @@ public sealed class ContentRevisionActivationTests
             resources.Object,
             repository: repository,
             contentManifestProvider: manifests.Object);
+    }
+
+    private static RunManager CreateManagerWithRuntime(
+        string revisionA,
+        string revisionB,
+        ContentRuntime targetRuntime)
+    {
+        var config = new Mock<IConfigManager>();
+        var resources = new Mock<IResourceLoader>();
+        var manifests = new Mock<IContentManifestProvider>();
+        var manifestA = new ContentManifest { ConfigName = "test", Revision = revisionA };
+        var manifestB = new ContentManifest { ConfigName = "test", Revision = revisionB };
+        manifests.Setup(item => item.GetManifest("test"))
+            .Returns(Core.Common.Result<ContentManifest>.Success(manifestA));
+        manifests.Setup(item => item.GetByRevision(revisionA))
+            .Returns(Core.Common.Result<ContentManifest>.Success(manifestA));
+        manifests.Setup(item => item.GetByRevision(revisionB))
+            .Returns(Core.Common.Result<ContentManifest>.Success(manifestB));
+        var runtimes = new Mock<IContentRuntimeResolver>();
+        runtimes.Setup(item => item.Resolve(revisionB, "test"))
+            .Returns(Core.Common.Result<ContentRuntime>.Success(targetRuntime));
+        return new RunManager(
+            config.Object,
+            resources.Object,
+            contentManifestProvider: manifests.Object,
+            contentRuntimes: runtimes.Object);
+    }
+
+    private static ContentRuntime Runtime(string revision, string componentId)
+    {
+        const string path = "cards/catalog.json";
+        var artifacts = new Dictionary<string, JsonElement>
+        {
+            [path] = JsonSerializer.SerializeToElement(new Dictionary<string, CardContentDefinition>
+            {
+                ["strike"] = new()
+                {
+                    CardId = "strike",
+                    Components =
+                    [
+                        new CardEffectComponentDefinition
+                        {
+                            ComponentId = componentId,
+                            Effect = new EffectDefinition
+                            {
+                                EffectId = "strike.damage",
+                                Type = EffectType.DAMAGE,
+                                TargetResource = "health",
+                                FlatValue = 5
+                            }
+                        },
+                        new CardDispositionComponentDefinition
+                        {
+                            ComponentId = "disposition",
+                            Destination = CardConsumeDestination.Discard
+                        }
+                    ]
+                }
+            })
+        }.ToImmutableDictionary(StringComparer.Ordinal);
+        var created = ContentRuntime.Create(new ContentBundle
+        {
+            Manifest = new ContentManifest
+            {
+                ConfigName = "test",
+                Revision = revision,
+                Artifacts =
+                [
+                    new ContentArtifactManifest
+                    {
+                        Kind = "cards",
+                        Path = path,
+                        DefinitionCount = 1
+                    }
+                ]
+            },
+            Artifacts = artifacts
+        });
+        Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
+        return created.Value;
     }
 
     private static RunState CreateState(string revision) => new()
