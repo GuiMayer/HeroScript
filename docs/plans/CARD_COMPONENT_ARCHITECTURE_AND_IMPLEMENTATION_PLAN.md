@@ -2,10 +2,23 @@
 
 ## Status
 
-Accepted architecture for the canonical card runtime. This plan intentionally
-contains breaking changes: HeroScript has not been published and the runtime
-must not preserve the definition-only deck or client-selected card/action
-compatibility paths.
+Implemented on 2026-09-03. This architecture intentionally contains breaking
+changes: HeroScript has not been published and the runtime does not preserve
+the definition-only deck or client-selected card/action compatibility paths.
+
+| Delivery | Commits |
+| --- | --- |
+| Architecture and generic resource outcomes | `d810fa1`, `cb3c5fa` |
+| Component compiler and instance-only card topology | `13da721`, `cb3cfa9` |
+| Permanent upgrades and contextual calculation pipelines | `c1a758d`, `9698f32` |
+| Shared legality and immutable effect processing | `6b731af`, `982a208` |
+| Atomic card execution and canonical `PLAY_CARD` | `e02b9e2`, `c676ed4` |
+| Weighted offers and encounter deck lifecycle | `eccb8b9`, `e68cf2f` |
+| Pinned modifiers, statuses, relics and abilities | `43cdff7`, `81d04c3`, `c581421`, `23674da` |
+| Card inspection and Godot projections | `2f2537e` |
+| Hot reload, API authority cleanup and end-to-end replay | `01fcda2`, `011627b`, `89fa06f` |
+
+Final verification baseline: 1,333 Core tests and 192 API tests passing.
 
 ## Invariants
 
