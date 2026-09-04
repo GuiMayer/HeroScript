@@ -71,14 +71,15 @@ public record AIDefinition
 {
     private ImmutableArray<string> _actions = ImmutableArray<string>.Empty;
 
-    public string BehaviorTree { get; init; } = "balanced";
+    public string BehaviorTree { get; init; } = string.Empty;
+    public string DecisionResourceId { get; init; } = string.Empty;
     public IReadOnlyList<string> Actions
     {
         get => _actions;
         init => _actions = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
     }
-    public float LowHealthThreshold { get; init; } = 0.5f;
-    public float FleeHealthThreshold { get; init; } = 0.3f;
+    public float LowResourceThreshold { get; init; } = 0.5f;
+    public float FleeResourceThreshold { get; init; } = 0.3f;
 }
 
 /// <summary>

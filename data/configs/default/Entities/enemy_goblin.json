@@ -21,9 +21,10 @@
   },
   "ai": {
     "behaviorTree": "aggressive",
+    "decisionResourceId": "health",
     "actions": ["basic_attack"],
-    "lowHealthThreshold": 0.3,
-    "fleeHealthThreshold": 0.2
+    "lowResourceThreshold": 0.3,
+    "fleeResourceThreshold": 0.2
   },
   "iconPath": "icons/goblin.png",
   "spritePath": "sprites/goblin.png"

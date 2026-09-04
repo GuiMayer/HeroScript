@@ -16,7 +16,7 @@ public enum AIBehaviorType
     AGGRESSIVE,
     
     /// <summary>
-    /// Foge quando HP baixo, ataca quando seguro
+    /// Foge quando o recurso de decisão está baixo, ataca quando seguro
     /// </summary>
     DEFENSIVE,
     
@@ -39,21 +39,27 @@ public class AIController : IEntityController
     private readonly ILogger _logger;
     
     // Thresholds configuráveis
-    private readonly float _lowHealthThreshold;
-    private readonly float _fleeHealthThreshold;
+    private readonly string _decisionResourceId;
+    private readonly float _lowResourceThreshold;
+    private readonly float _fleeResourceThreshold;
     
     public AIController(
+        string decisionResourceId,
         AIBehaviorType behaviorType = AIBehaviorType.BALANCED,
         ILogger? logger = null,
         string controllerId = "ai_controller",
-        float lowHealthThreshold = 0.5f,
-        float fleeHealthThreshold = 0.3f)
+        float lowResourceThreshold = 0.5f,
+        float fleeResourceThreshold = 0.3f)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(decisionResourceId);
+        ValidateThreshold(lowResourceThreshold, nameof(lowResourceThreshold));
+        ValidateThreshold(fleeResourceThreshold, nameof(fleeResourceThreshold));
         ControllerId = controllerId;
+        _decisionResourceId = decisionResourceId;
         _behaviorType = behaviorType;
         _logger = logger ?? NullLogger.Instance;
-        _lowHealthThreshold = lowHealthThreshold;
-        _fleeHealthThreshold = fleeHealthThreshold;
+        _lowResourceThreshold = lowResourceThreshold;
+        _fleeResourceThreshold = fleeResourceThreshold;
     }
     
     public Task<Result<EntityAction>> DecideAction(
@@ -72,26 +78,27 @@ public class AIController : IEntityController
                     Result<EntityAction>.Failure("Entity has no ResourceComponent"));
             }
             
-            // Calcular HP percentage
-            var health = resourceComp.GetResource("health");
-            if (health == null)
+            var decisionResource = resourceComp.GetResource(_decisionResourceId);
+            if (decisionResource == null)
             {
                 return Task.FromResult(
-                    Result<EntityAction>.Failure("Entity has no health resource"));
+                    Result<EntityAction>.Failure(
+                        $"Entity has no configured AI decision resource: {_decisionResourceId}"));
             }
-            
-            float hpPercent = health.Current / health.Maximum;
+
+            var resourcePercent = decisionResource.GetPercentage() / 100f;
             
             // Decidir ação baseada no behavior type
             var action = _behaviorType switch
             {
-                AIBehaviorType.AGGRESSIVE => DecideAggressive(controlledEntity, combatState, hpPercent),
-                AIBehaviorType.DEFENSIVE => DecideDefensive(controlledEntity, combatState, hpPercent),
-                AIBehaviorType.BALANCED => DecideBalanced(controlledEntity, combatState, hpPercent),
+                AIBehaviorType.AGGRESSIVE => DecideAggressive(controlledEntity, combatState, resourcePercent),
+                AIBehaviorType.DEFENSIVE => DecideDefensive(controlledEntity, combatState, resourcePercent),
+                AIBehaviorType.BALANCED => DecideBalanced(controlledEntity, combatState, resourcePercent),
                 _ => new EntityAction { ActionType = ActionType.PASS }
             };
             
-            _logger.LogDebug($"AI decided: {action.ActionType} (HP: {hpPercent:P0})");
+            _logger.LogDebug(
+                $"AI decided: {action.ActionType} ({_decisionResourceId}: {resourcePercent:P0})");
             
             return Task.FromResult(Result<EntityAction>.Success(action));
         }
@@ -103,7 +110,7 @@ public class AIController : IEntityController
         }
     }
     
-    private EntityAction DecideAggressive(Entity entity, CombatState state, float hpPercent)
+    private EntityAction DecideAggressive(Entity entity, CombatState state, float resourcePercent)
     {
         // Sempre ataca o alvo mais fraco
         var target = FindWeakestTarget(state);
@@ -120,12 +127,12 @@ public class AIController : IEntityController
         };
     }
     
-    private EntityAction DecideDefensive(Entity entity, CombatState state, float hpPercent)
+    private EntityAction DecideDefensive(Entity entity, CombatState state, float resourcePercent)
     {
-        // Foge se HP baixo
-        if (hpPercent < _fleeHealthThreshold)
+        if (resourcePercent < _fleeResourceThreshold)
         {
-            _logger.LogDebug($"HP too low ({hpPercent:P0}), passing turn");
+            _logger.LogDebug(
+                $"{_decisionResourceId} too low ({resourcePercent:P0}), passing turn");
             return new EntityAction { ActionType = ActionType.PASS };
         }
         
@@ -143,18 +150,17 @@ public class AIController : IEntityController
         };
     }
     
-    private EntityAction DecideBalanced(Entity entity, CombatState state, float hpPercent)
+    private EntityAction DecideBalanced(Entity entity, CombatState state, float resourcePercent)
     {
-        // Comportamento misto baseado em HP
-        if (hpPercent < _lowHealthThreshold)
+        if (resourcePercent < _lowResourceThreshold)
         {
             // HP baixo: comportamento defensivo
-            return DecideDefensive(entity, state, hpPercent);
+            return DecideDefensive(entity, state, resourcePercent);
         }
         else
         {
             // HP alto: comportamento agressivo
-            return DecideAggressive(entity, state, hpPercent);
+            return DecideAggressive(entity, state, resourcePercent);
         }
     }
     
@@ -189,5 +195,11 @@ public class AIController : IEntityController
     public void OnDamageDealt(Entity entity, float damage)
     {
         _logger.LogDebug($"AI {ControllerId} dealt {damage} damage");
+    }
+
+    private static void ValidateThreshold(float value, string parameterName)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value) || value is < 0f or > 1f)
+            throw new ArgumentOutOfRangeException(parameterName, "AI threshold must be between 0 and 1");
     }
 }

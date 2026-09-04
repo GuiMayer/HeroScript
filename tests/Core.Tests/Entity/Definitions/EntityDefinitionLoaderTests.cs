@@ -84,8 +84,9 @@ public class EntityDefinitionLoaderTests
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value!.AI);
         Assert.Equal("aggressive", result.Value.AI.BehaviorTree);
-        Assert.Equal(0.3f, result.Value.AI.LowHealthThreshold);
-        Assert.Equal(0.2f, result.Value.AI.FleeHealthThreshold);
+        Assert.Equal("health", result.Value.AI.DecisionResourceId);
+        Assert.Equal(0.3f, result.Value.AI.LowResourceThreshold);
+        Assert.Equal(0.2f, result.Value.AI.FleeResourceThreshold);
     }
     
     [Fact]

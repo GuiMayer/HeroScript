@@ -378,10 +378,35 @@ public class EntityDefinitionLoader : ICacheService
             return Result.Failure("DisplayName is required");
         }
         
-        // Validar que inimigos têm AI
         if (definition.Type == EntityType.ENEMY && definition.AI == null)
         {
-            _logger.LogWarning($"Enemy {definition.DefinitionId} has no AI definition");
+            return Result.Failure($"Enemy {definition.DefinitionId} requires an AI definition");
+        }
+        if (definition.AI != null)
+        {
+            if (definition.AI.BehaviorTree is not ("aggressive" or "defensive" or "balanced"))
+            {
+                return Result.Failure(
+                    $"AI for {definition.DefinitionId} has an unsupported behaviorTree: " +
+                    definition.AI.BehaviorTree);
+            }
+            if (string.IsNullOrWhiteSpace(definition.AI.DecisionResourceId))
+            {
+                return Result.Failure(
+                    $"AI for {definition.DefinitionId} requires decisionResourceId");
+            }
+            if (definition.Resources?.Resources.ContainsKey(definition.AI.DecisionResourceId) != true)
+            {
+                return Result.Failure(
+                    $"AI decision resource for {definition.DefinitionId} is not defined on the entity: " +
+                    definition.AI.DecisionResourceId);
+            }
+            if (!IsNormalizedThreshold(definition.AI.LowResourceThreshold) ||
+                !IsNormalizedThreshold(definition.AI.FleeResourceThreshold))
+            {
+                return Result.Failure(
+                    $"AI resource thresholds for {definition.DefinitionId} must be finite values between 0 and 1");
+            }
         }
         
         // Validar que companions têm Gambits
@@ -392,6 +417,9 @@ public class EntityDefinitionLoader : ICacheService
         
         return Result.Success();
     }
+
+    private static bool IsNormalizedThreshold(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value is >= 0f and <= 1f;
 
     /// <summary>
     /// Salva uma nova definição de entidade.

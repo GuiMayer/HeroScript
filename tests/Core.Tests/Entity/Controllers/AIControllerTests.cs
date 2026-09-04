@@ -15,7 +15,7 @@ public class AIControllerTests
     public async Task DecideAction_Aggressive_ShouldAlwaysAttack()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var entity = CreateEntityWithHealth(100);
         var combatState = CreateCombatState();
         
@@ -33,9 +33,10 @@ public class AIControllerTests
     {
         // Arrange
         var controller = new AIController(
+            "health",
             AIBehaviorType.DEFENSIVE, 
             new ConsoleLogger("Test"),
-            fleeHealthThreshold: 0.5f);
+            fleeResourceThreshold: 0.5f);
         var entity = CreateEntityWithHealth(30); // 30% health
         var combatState = CreateCombatState();
         
@@ -52,9 +53,10 @@ public class AIControllerTests
     {
         // Arrange
         var controller = new AIController(
+            "health",
             AIBehaviorType.DEFENSIVE,
             new ConsoleLogger("Test"),
-            fleeHealthThreshold: 0.3f);
+            fleeResourceThreshold: 0.3f);
         var entity = CreateEntityWithHealth(80); // 80% health
         var combatState = CreateCombatState();
         
@@ -71,9 +73,10 @@ public class AIControllerTests
     {
         // Arrange
         var controller = new AIController(
+            "health",
             AIBehaviorType.BALANCED,
             new ConsoleLogger("Test"),
-            lowHealthThreshold: 0.5f);
+            lowResourceThreshold: 0.5f);
         var entity = CreateEntityWithHealth(80);
         var combatState = CreateCombatState();
         
@@ -90,10 +93,11 @@ public class AIControllerTests
     {
         // Arrange
         var controller = new AIController(
+            "health",
             AIBehaviorType.BALANCED,
             new ConsoleLogger("Test"),
-            lowHealthThreshold: 0.5f,
-            fleeHealthThreshold: 0.3f);
+            lowResourceThreshold: 0.5f,
+            fleeResourceThreshold: 0.3f);
         var entity = CreateEntityWithHealth(20); // 20% health
         var combatState = CreateCombatState();
         
@@ -109,7 +113,7 @@ public class AIControllerTests
     public async Task DecideAction_ShouldFail_WhenNoResourceComponent()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var entity = new Core.Entity.Entity { EntityId = "test" };
         var combatState = CreateCombatState();
         
@@ -122,10 +126,10 @@ public class AIControllerTests
     }
     
     [Fact]
-    public async Task DecideAction_ShouldFail_WhenNoHealthResource()
+    public async Task DecideAction_ShouldFail_WhenConfiguredResourceIsMissing()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("morale", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var resourceState = new ResourceSet
         {
             OwnerId = "test",
@@ -140,14 +144,30 @@ public class AIControllerTests
         
         // Assert
         Assert.False(result.IsSuccess);
-        Assert.Contains("no health resource", result.Error);
+        Assert.Contains("morale", result.Error);
+    }
+
+    [Fact]
+    public async Task DecideAction_UsesConfiguredResourceInsteadOfHealth()
+    {
+        var controller = new AIController(
+            "morale",
+            AIBehaviorType.DEFENSIVE,
+            new ConsoleLogger("Test"),
+            fleeResourceThreshold: 0.5f);
+        var entity = CreateEntityWithResource("morale", 25);
+
+        var result = await controller.DecideAction(entity, CreateCombatState());
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(ActionType.PASS, result.Value.ActionType);
     }
     
     [Fact]
     public void OnTurnStart_ShouldNotThrow()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var entity = CreateEntityWithHealth(100);
         var combatState = CreateCombatState();
         
@@ -159,7 +179,7 @@ public class AIControllerTests
     public void OnTurnEnd_ShouldNotThrow()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var entity = CreateEntityWithHealth(100);
         var combatState = CreateCombatState();
         
@@ -171,7 +191,7 @@ public class AIControllerTests
     public void OnDamageTaken_ShouldNotThrow()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var entity = CreateEntityWithHealth(100);
         
         // Act & Assert
@@ -182,7 +202,7 @@ public class AIControllerTests
     public void OnDamageDealt_ShouldNotThrow()
     {
         // Arrange
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         var entity = CreateEntityWithHealth(100);
         
         // Act & Assert
@@ -193,17 +213,20 @@ public class AIControllerTests
     public void AIController_ShouldHaveCorrectType()
     {
         // Arrange & Act
-        var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
+        var controller = new AIController("health", AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
         
         // Assert
         Assert.Equal(EntityControllerType.AI_BEHAVIOR_TREE, controller.Type);
     }
     
     private Core.Entity.Entity CreateEntityWithHealth(float healthPercent)
+        => CreateEntityWithResource("health", healthPercent);
+
+    private static Core.Entity.Entity CreateEntityWithResource(string resourceId, float resourcePercent)
     {
         var healthDef = new ResourceDefinition
         {
-            ResourceId = "health",
+            ResourceId = resourceId,
             Category = ResourceCategory.VITAL,
             DefaultCurrent = 100,
             DefaultMax = 100
@@ -211,8 +234,8 @@ public class AIControllerTests
         
         var healthPool = new ResourcePool
         {
-            ResourceId = "health",
-            Current = healthPercent,
+            ResourceId = resourceId,
+            Current = resourcePercent,
             Maximum = 100,
             Definition = healthDef
         };
@@ -220,7 +243,7 @@ public class AIControllerTests
         var resourceState = new ResourceSet
         {
             OwnerId = "test",
-            Resources = new Dictionary<string, ResourcePool> { ["health"] = healthPool }
+            Resources = new Dictionary<string, ResourcePool> { [resourceId] = healthPool }
         };
         
         return new Core.Entity.Entity { EntityId = "test" }

@@ -204,22 +204,26 @@ public class EntityFactory
     /// </summary>
     private AIController CreateAIController(EntityDefinition definition)
     {
-        var aiDef = definition.AI ?? new AIDefinition();
+        var aiDef = definition.AI
+            ?? throw new InvalidOperationException(
+                $"Enemy {definition.DefinitionId} requires an AI definition");
         
         var behaviorType = aiDef.BehaviorTree.ToLowerInvariant() switch
         {
             "aggressive" => AIBehaviorType.AGGRESSIVE,
             "defensive" => AIBehaviorType.DEFENSIVE,
             "balanced" => AIBehaviorType.BALANCED,
-            _ => AIBehaviorType.BALANCED
+            _ => throw new InvalidOperationException(
+                $"Unsupported AI behavior tree for {definition.DefinitionId}: {aiDef.BehaviorTree}")
         };
         
         return new AIController(
+            decisionResourceId: aiDef.DecisionResourceId,
             behaviorType: behaviorType,
             logger: _logger,
             controllerId: $"ai_{definition.DefinitionId}",
-            lowHealthThreshold: aiDef.LowHealthThreshold,
-            fleeHealthThreshold: aiDef.FleeHealthThreshold
+            lowResourceThreshold: aiDef.LowResourceThreshold,
+            fleeResourceThreshold: aiDef.FleeResourceThreshold
         );
     }
 }

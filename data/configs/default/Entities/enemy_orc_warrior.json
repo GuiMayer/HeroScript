@@ -18,8 +18,9 @@
   },
   "ai": {
     "behaviorTree": "balanced",
-    "lowHealthThreshold": 0.5,
-    "fleeHealthThreshold": 0.3
+    "decisionResourceId": "health",
+    "lowResourceThreshold": 0.5,
+    "fleeResourceThreshold": 0.3
   },
   "iconPath": "icons/orc.png",
   "spritePath": "sprites/orc.png"
