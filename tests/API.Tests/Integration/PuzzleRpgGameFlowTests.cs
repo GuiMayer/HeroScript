@@ -133,7 +133,11 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
         await Client.DrawCardsAsync(runId, 5);
         var playerEntityId = GetJsonString(runState, "playerEntityId");
-        var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1" }, initialEnergy: 1, runId: runId);
+        var combatId = await Client.StartCombatAsync(
+            playerEntityId,
+            new[] { "enemy_1" },
+            initialHeroResourceValues: new Dictionary<string, float> { ["energy"] = 1 },
+            runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
 
         var hero = combatState.GetProperty("hero");

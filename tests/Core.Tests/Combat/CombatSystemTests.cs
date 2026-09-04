@@ -77,6 +77,7 @@ public class CombatSystemTests
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: _mockActionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object),
             actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
     }
 
@@ -89,7 +90,10 @@ public class CombatSystemTests
         var initialEnergy = 3;
 
         // Act
-        var result = _combatSystem.StartCombat(heroId, enemies, initialEnergy);
+        var result = _combatSystem.StartCombat(
+            heroId,
+            enemies,
+            CombatParticipantTestFixture.WithEnergy(heroId, initialEnergy));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -100,12 +104,94 @@ public class CombatSystemTests
     }
 
     [Fact]
+    public void StartCombat_SeparatesRuntimeAliasesFromSharedDefinitions()
+    {
+        var result = _combatSystem.StartCombat(
+            new CombatParticipantReference("player-instance", "hero-template"),
+            new[]
+            {
+                new CombatParticipantReference("enemy-a", "enemy-template"),
+                new CombatParticipantReference("enemy-b", "enemy-template")
+            },
+            new CombatStartOptions(Seed: 123UL, ContentRevision: "test-content"));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal("player-instance", result.Value.Hero.EntityId);
+        Assert.Equal("player-instance", result.Value.Hero.ResourceState.OwnerId);
+        Assert.Equal(new[] { "enemy-a", "enemy-b" },
+            result.Value.Enemies.Select(enemy => enemy.EntityId));
+        Assert.All(result.Value.Enemies, enemy =>
+        {
+            Assert.Equal("enemy-template", enemy.Name);
+            Assert.Equal(enemy.EntityId, enemy.ResourceState.OwnerId);
+        });
+    }
+
+    [Fact]
+    public void StartCombat_AppliesGenericResourceOverridesPerRuntimeEntity()
+    {
+        var result = _combatSystem.StartCombat(
+            new CombatParticipantReference("hero-instance", "hero-template"),
+            new[] { new CombatParticipantReference("enemy-instance", "enemy-template") },
+            new CombatStartOptions(
+                Seed: 456UL,
+                ContentRevision: "test-content",
+                InitialResourceValues: new Dictionary<string, IReadOnlyDictionary<string, float>>
+                {
+                    ["hero-instance"] = new Dictionary<string, float> { ["block"] = 7 },
+                    ["enemy-instance"] = new Dictionary<string, float> { ["health"] = 23 }
+                }));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(7, result.Value.Hero.GetResource("block")?.Current);
+        Assert.Equal(23, result.Value.Enemies[0].GetResource("health")?.Current);
+    }
+
+    [Fact]
+    public void StartCombat_RejectsUnknownInitialResourceOverride()
+    {
+        var result = _combatSystem.StartCombat(
+            new CombatParticipantReference("hero-instance", "hero-template"),
+            new[] { new CombatParticipantReference("enemy-instance", "enemy-template") },
+            new CombatStartOptions(
+                Seed: 789UL,
+                ContentRevision: "test-content",
+                InitialResourceValues: new Dictionary<string, IReadOnlyDictionary<string, float>>
+                {
+                    ["hero-instance"] = new Dictionary<string, float> { ["rage"] = 4 }
+                }));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("unknown resource", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void StartCombat_RejectsInitialOverrideForUnknownParticipant()
+    {
+        var result = _combatSystem.StartCombat(
+            new CombatParticipantReference("hero-instance", "hero-template"),
+            new[] { new CombatParticipantReference("enemy-instance", "enemy-template") },
+            new CombatStartOptions(
+                Seed: 790UL,
+                ContentRevision: "test-content",
+                InitialResourceValues: new Dictionary<string, IReadOnlyDictionary<string, float>>
+                {
+                    ["typo-enemy"] = new Dictionary<string, float> { ["health"] = 4 }
+                }));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("unknown combat participant", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Combat_WithSameInputs_ReproducesIdsTimeAndState()
     {
         var options = new CombatStartOptions(Seed: 123456UL, ContentRevision: "test-content");
 
         var firstStart = _combatSystem.StartCombat(
-            "hero-1", new List<string> { "enemy-1" }, 3, options);
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3, options));
         Assert.True(firstStart.IsSuccess);
         var firstAction = _combatSystem.ExecuteAction(
             firstStart.Value.CombatId,
@@ -114,7 +200,9 @@ public class CombatSystemTests
         _combatSystem.EndCombat(firstStart.Value.CombatId);
 
         var secondStart = _combatSystem.StartCombat(
-            "hero-1", new List<string> { "enemy-1" }, 3, options);
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3, options));
         Assert.True(secondStart.IsSuccess);
         var secondAction = _combatSystem.ExecuteAction(
             secondStart.Value.CombatId,
@@ -135,8 +223,10 @@ public class CombatSystemTests
         var start = _combatSystem.StartCombat(
             "hero-1",
             new List<string> { "enemy-1" },
-            3,
-            new CombatStartOptions(Seed: 99UL));
+            CombatParticipantTestFixture.WithEnergy(
+                "hero-1",
+                3,
+                new CombatStartOptions(Seed: 99UL)));
         Assert.True(start.IsSuccess);
 
         var first = _combatSystem.ExecuteAction(start.Value.CombatId, new CombatActionCommand
@@ -187,7 +277,10 @@ public class CombatSystemTests
             entityDefinitionLoader: loader);
 
         // Act
-        var result = combatSystem.StartCombat("player_warrior", new List<string> { "enemy_orc_warrior" }, 4);
+        var result = combatSystem.StartCombat(
+            "player_warrior",
+            new List<string> { "enemy_orc_warrior" },
+            CombatParticipantTestFixture.WithEnergy("player_warrior", 4));
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -223,7 +316,7 @@ public class CombatSystemTests
 
         // Assert
         Assert.True(result.IsFailure);
-        Assert.Contains("Hero ID cannot be empty", result.Error);
+        Assert.Contains("Hero entity ID cannot be empty", result.Error);
     }
 
     [Fact]
@@ -245,7 +338,10 @@ public class CombatSystemTests
     public void ExecuteAction_BasicAttack_ShouldDealDamageAndGainEnergy()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 0));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -263,7 +359,10 @@ public class CombatSystemTests
     public void ExecuteAction_Power_ShouldConsumeEnergyAndDealDamage()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -281,7 +380,10 @@ public class CombatSystemTests
     public void ExecuteAction_PowerWithoutEnergy_ShouldFail()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 0));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -296,7 +398,10 @@ public class CombatSystemTests
     [Fact]
     public void ExecuteAction_WhenConfiguredCostsAreIgnored_ShouldNotValidateOrSpendEnergy()
     {
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 0));
         var command = Command(
             "hero-1",
             ActionType.POWER,
@@ -332,8 +437,12 @@ public class CombatSystemTests
             _mockResourceManager.Object,
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
-            actionManager: actionManager.Object);
-        var start = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+            actionManager: actionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object));
+        var start = combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
 
         var result = combatSystem.ExecuteAction(
             start.Value.CombatId,
@@ -370,7 +479,8 @@ public class CombatSystemTests
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             statusEffectManager: statusManager.Object,
-            actionManager: _mockActionManager.Object);
+            actionManager: _mockActionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object));
         var start = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" });
 
         var result = combatSystem.ExecuteAction(
@@ -393,8 +503,12 @@ public class CombatSystemTests
             _mockResourceManager.Object,
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
-            actionManager: actionManager.Object);
-        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+            actionManager: actionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object));
+        var startResult = combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -441,8 +555,12 @@ public class CombatSystemTests
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: actionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object),
             actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
-        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var startResult = combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -468,8 +586,12 @@ public class CombatSystemTests
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: actionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object),
             actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
-        var start = combatSystem.StartCombat("hero-1", ["enemy-1"], 3);
+        var start = combatSystem.StartCombat(
+            "hero-1",
+            ["enemy-1"],
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
 
         var result = combatSystem.ExecuteAction(
             start.Value.CombatId,
@@ -491,8 +613,12 @@ public class CombatSystemTests
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
             actionManager: actionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object),
             actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
-        var start = combatSystem.StartCombat("hero-1", ["enemy-1"], 3);
+        var start = combatSystem.StartCombat(
+            "hero-1",
+            ["enemy-1"],
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
 
         var result = combatSystem.ExecuteAction(
             start.Value.CombatId,
@@ -535,8 +661,12 @@ public class CombatSystemTests
             _mockResourceManager.Object,
             new FixedTurnOrderCalculator(_mockLogger.Object),
             _mockEventBus.Object,
-            actionManager: actionManager.Object);
-        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+            actionManager: actionManager.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_mockLogger.Object));
+        var startResult = combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -552,7 +682,10 @@ public class CombatSystemTests
     public void ExecuteAction_KillAllEnemies_ShouldSetStatusToVictory()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -571,7 +704,10 @@ public class CombatSystemTests
     public void ExecuteAction_Pass_ShouldNotChangeState()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var initialEnergy = startResult.Value.GetHeroResource("energy")?.Current ?? 0;
         var initialEnemyHp = startResult.Value.Enemies[0].GetResource("health")?.Current;
@@ -606,7 +742,10 @@ public class CombatSystemTests
     public void ExecuteAction_EnemyBasicAttack_ShouldDamageHeroAndRecordEnemyActor()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 0));
         var combatId = startResult.Value.CombatId;
 
         // Act
@@ -623,7 +762,10 @@ public class CombatSystemTests
     public void ExecuteAction_EnemyPass_ShouldRecordEnemyActor()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 0);
+        var startResult = _combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 0));
         var combatId = startResult.Value.CombatId;
 
         // Act

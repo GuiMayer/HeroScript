@@ -80,7 +80,13 @@ public class CombatIntegrationTests
         var logger = NullLogger.Instance;
         var eventBus = new EventBus(logger);
         var resourceManager = CreateMockResourceManager();
-        var combatSystem = new CombatSystem(logger, resourceManager, new FixedTurnOrderCalculator(logger), eventBus, actionManager: CreateActionManager());
+        var combatSystem = new CombatSystem(
+            logger,
+            resourceManager,
+            new FixedTurnOrderCalculator(logger),
+            eventBus,
+            actionManager: CreateActionManager(),
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(logger));
 
         var eventsPublished = new List<string>();
         eventBus.Subscribe<CombatStartedEvent>(e => eventsPublished.Add("CombatStarted"));
@@ -89,7 +95,10 @@ public class CombatIntegrationTests
         eventBus.Subscribe<CombatEndedEvent>(e => eventsPublished.Add("CombatEnded"));
 
         // Act
-        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var startResult = combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 
@@ -110,10 +119,18 @@ public class CombatIntegrationTests
         // Arrange
         var logger = NullLogger.Instance;
         var resourceManager = CreateMockResourceManager();
-        var combatSystem = new CombatSystem(logger, resourceManager, new FixedTurnOrderCalculator(logger), actionManager: CreateActionManager());
+        var combatSystem = new CombatSystem(
+            logger,
+            resourceManager,
+            new FixedTurnOrderCalculator(logger),
+            actionManager: CreateActionManager(),
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(logger));
 
         // Act
-        var startResult = combatSystem.StartCombat("hero-1", new List<string> { "enemy-1" }, 3);
+        var startResult = combatSystem.StartCombat(
+            "hero-1",
+            new List<string> { "enemy-1" },
+            CombatParticipantTestFixture.WithEnergy("hero-1", 3));
         var combatId = startResult.Value.CombatId;
         var targetId = startResult.Value.Enemies[0].EntityId;
 

@@ -12,19 +12,19 @@ public interface ICombatSystem
     /// <summary>
     /// Inicia novo combate.
     /// </summary>
-    /// <param name="heroId">ID do herói</param>
-    /// <param name="enemyIds">Lista de IDs dos inimigos</param>
-    /// <param name="initialEnergy">Energia inicial (padrão: 3)</param>
+    /// <param name="hero">Identidade da instância e definição do herói</param>
+    /// <param name="enemies">Identidades das instâncias e definições dos inimigos</param>
     /// <returns>Result com o estado inicial do combate</returns>
-    Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3);
+    Result<CombatState> StartCombat(
+        CombatParticipantReference hero,
+        IReadOnlyList<CombatParticipantReference> enemies);
 
     /// <summary>
     /// Inicia um combate com entradas reproduzíveis explícitas.
     /// </summary>
     Result<CombatState> StartCombat(
-        string heroId,
-        List<string> enemyIds,
-        int initialEnergy,
+        CombatParticipantReference hero,
+        IReadOnlyList<CombatParticipantReference> enemies,
         CombatStartOptions options);
     
     /// <summary>

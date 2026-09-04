@@ -9,9 +9,9 @@ public interface ICombatRunCoordinator
 {
     Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,
-        string heroId,
-        IReadOnlyList<string> enemyIds,
-        int initialEnergy = 3,
+        CombatParticipantReference hero,
+        IReadOnlyList<CombatParticipantReference> enemies,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? initialResourceValues = null,
         RunCommandIdentity? commandIdentity = null);
     Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,

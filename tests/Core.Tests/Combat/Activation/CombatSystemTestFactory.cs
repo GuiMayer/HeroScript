@@ -10,7 +10,12 @@ internal static class CombatSystemTestFactory
 {
     public static CombatSystem Create()
     {
-        return new CombatSystem(new NullLogger(), new StubResourceManager(), new FixedTurnOrderCalculator(new NullLogger()));
+        var logger = new NullLogger();
+        return new CombatSystem(
+            logger,
+            new StubResourceManager(),
+            new FixedTurnOrderCalculator(logger),
+            entityDefinitionLoader: Core.Tests.Combat.CombatParticipantTestFixture.CreateDefinitionLoader(logger));
     }
 
     private sealed class NullLogger : ILogger
@@ -29,7 +34,19 @@ internal static class CombatSystemTestFactory
         public IReadOnlyList<ResourceDefinition> GetAllDefinitions() => Array.Empty<ResourceDefinition>();
         public IReadOnlyList<ResourceDefinition> GetDefinitionsByCategory(ResourceCategory category) => Array.Empty<ResourceDefinition>();
         public IReadOnlyList<ResourceDefinition> GetDefinitionsByTag(string tag) => Array.Empty<ResourceDefinition>();
-        public ResourcePool CreatePool(string resourceId, float? initialCurrent = null) => new() { ResourceId = resourceId, Current = initialCurrent ?? 0, Maximum = initialCurrent ?? 0 };
+        public ResourcePool CreatePool(string resourceId, float? initialCurrent = null) => new()
+        {
+            ResourceId = resourceId,
+            Current = initialCurrent ?? 0,
+            Maximum = initialCurrent ?? 0,
+            Definition = new ResourceDefinition
+            {
+                ResourceId = resourceId,
+                DisplayName = resourceId,
+                DefaultCurrent = initialCurrent ?? 0,
+                DefaultMax = initialCurrent ?? 0
+            }
+        };
         public ResourcePool CreatePoolFromDefinition(ResourceDefinition definition, float? initialCurrent = null) => new() { ResourceId = definition.ResourceId, Current = initialCurrent ?? definition.DefaultCurrent, Maximum = definition.DefaultMax, Minimum = definition.DefaultMin, Definition = definition };
         public Dictionary<string, ResourcePool> CreateDefaultPools() => new();
         public bool ValidateResourceExists(string resourceId) => false;

@@ -115,9 +115,9 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             ?? throw new JsonException("START_ENCOUNTER payload is required");
         var started = _combats.StartEncounter(
             runId,
-            payload.HeroId,
-            payload.EnemyIds,
-            payload.InitialEnergy,
+            payload.Hero,
+            payload.Enemies,
+            payload.InitialResourceValues,
             command.Identity);
         if (started.IsFailure)
             return Result<GameplayCommandResult>.Failure(started.Error);
@@ -272,9 +272,9 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
     }
 
     private sealed record StartEncounterCommandPayload(
-        string HeroId,
-        IReadOnlyList<string> EnemyIds,
-        int InitialEnergy = 3);
+        CombatParticipantReference Hero,
+        IReadOnlyList<CombatParticipantReference> Enemies,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? InitialResourceValues = null);
 
     private sealed record ResolveCombatCommandPayload(Guid CombatId);
 

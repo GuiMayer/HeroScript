@@ -72,9 +72,14 @@ public sealed class GameplayCommandGatewayTests
         var combats = new Mock<ICombatRunCoordinator>();
         combats.Setup(service => service.StartEncounter(
                 runId,
-                "hero",
-                It.Is<IReadOnlyList<string>>(enemies => enemies.SequenceEqual(new[] { "enemy" })),
-                3,
+                new CombatParticipantReference("hero", "player_warrior"),
+                It.Is<IReadOnlyList<CombatParticipantReference>>(enemies =>
+                    enemies.SequenceEqual(new[]
+                    {
+                        new CombatParticipantReference("enemy", "enemy_goblin")
+                    })),
+                It.Is<IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>>(values =>
+                    values["hero"]["energy"] == 3),
                 It.Is<RunCommandIdentity>(identity => identity.CommandId == commandId)))
             .Returns(Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
             {
@@ -89,9 +94,15 @@ public sealed class GameplayCommandGatewayTests
                 new RunCommandIdentity(commandId, RunCommandTypes.StartEncounter, 1, 0),
                 JsonSerializer.SerializeToElement(new
                 {
-                    heroId = "hero",
-                    enemyIds = new[] { "enemy" },
-                    initialEnergy = 3
+                    hero = new { entityId = "hero", definitionId = "player_warrior" },
+                    enemies = new[]
+                    {
+                        new { entityId = "enemy", definitionId = "enemy_goblin" }
+                    },
+                    initialResourceValues = new Dictionary<string, IReadOnlyDictionary<string, float>>
+                    {
+                        ["hero"] = new Dictionary<string, float> { ["energy"] = 3 }
+                    }
                 })));
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);

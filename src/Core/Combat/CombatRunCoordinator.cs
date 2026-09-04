@@ -46,9 +46,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
     public Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,
-        string heroId,
-        IReadOnlyList<string> enemyIds,
-        int initialEnergy = 3,
+        CombatParticipantReference hero,
+        IReadOnlyList<CombatParticipantReference> enemies,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? initialResourceValues = null,
         RunCommandIdentity? commandIdentity = null)
     {
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
@@ -83,15 +83,15 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var seed = run.Determinism.DrawUInt64();
             var combatResult = _combatSystem.StartCombat(
-                heroId,
-                enemyIds.ToList(),
-                initialEnergy,
+                hero,
+                enemies,
                 new CombatStartOptions(
                     seed.Value,
                     run.Determinism.ContentRevision,
                     runId,
                     node.NodeId,
-                    $"run-combat:{runId:N}:{node.NodeId}"));
+                    $"run-combat:{runId:N}:{node.NodeId}",
+                    InitialResourceValues: initialResourceValues));
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 

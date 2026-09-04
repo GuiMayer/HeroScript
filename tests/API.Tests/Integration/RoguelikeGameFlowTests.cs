@@ -63,7 +63,11 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         var playerEntityId = GetJsonString(runState, "playerEntityId");
 
         // Start combat with 2 enemies
-        var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1", "enemy_2" }, initialEnergy: 3, runId: runId);
+        var combatId = await Client.StartCombatAsync(
+            playerEntityId,
+            new[] { "enemy_1", "enemy_2" },
+            initialHeroResourceValues: new Dictionary<string, float> { ["energy"] = 3 },
+            runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
 
         // Verify combat started

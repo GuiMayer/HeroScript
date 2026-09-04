@@ -927,11 +927,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 Deck = encounterDeck.Value.State,
                 Determinism = encounterDeck.Value.Context.AdvanceStep()
             };
-            var initialEnergy = (int)(combatState.Hero.GetResource("energy")?.Current ?? 0f);
             var journalCommand = new RunEncounterStartCommand(
-                combatState.Hero.EntityId,
-                combatState.Enemies.Select(enemy => enemy.EntityId).ToArray(),
-                initialEnergy,
                 combatState.Hero,
                 combatState.Enemies.ToArray(),
                 combatState.StatusEffects.ToDictionary(

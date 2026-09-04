@@ -107,14 +107,30 @@ public class GameEngineClientSimulator
 
     // ==================== COMBAT MANAGEMENT ====================
 
-    public async Task<Guid> StartCombatAsync(string heroId, IEnumerable<string> enemies, int initialEnergy = 3, Guid? runId = null)
+    public async Task<Guid> StartCombatAsync(
+        string heroId,
+        IEnumerable<string> enemies,
+        IReadOnlyDictionary<string, float>? initialHeroResourceValues = null,
+        Guid? runId = null,
+        string heroDefinitionId = "player_warrior",
+        string enemyDefinitionId = "enemy_goblin")
     {
+        var enemyIds = enemies.ToArray();
         var ownerRunId = runId ?? await StartRunAsync(playerEntityId: heroId);
         var state = await ExecuteRunCommandStateAsync(ownerRunId, "START_ENCOUNTER", new
         {
-            heroId,
-            enemyIds = enemies,
-            initialEnergy
+            hero = new { entityId = heroId, definitionId = heroDefinitionId },
+            enemies = enemyIds.Select(entityId => new
+            {
+                entityId,
+                definitionId = enemyDefinitionId
+            }),
+            initialResourceValues = initialHeroResourceValues == null
+                ? null
+                : new Dictionary<string, IReadOnlyDictionary<string, float>>(StringComparer.Ordinal)
+                {
+                    [heroId] = initialHeroResourceValues
+                }
         });
         var combatId = state.GetProperty("activeEncounterId").GetGuid();
         _combatRuns[combatId] = ownerRunId;

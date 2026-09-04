@@ -1,3 +1,4 @@
+using Core.Combat;
 using Core.Combat.Activation;
 using Core.Combat.Models;
 using Core.Resources;

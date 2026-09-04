@@ -477,19 +477,12 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private Result<RunState> ReplayStartEncounter(ReplayRuntime runtime, RunJournalEntry entry)
     {
         var payload = Deserialize<RunEncounterStartCommand>(entry.Command);
-        var result = payload.InitialHero != null && payload.InitialEnemies != null
-            ? runtime.Combats.StartEncounter(
-                entry.RunId,
-                payload.InitialHero,
-                payload.InitialEnemies,
-                entry.CommandId.HasValue ? CreateIdentity(entry) : null,
-                payload.InitialStatusEffects)
-            : runtime.Combats.StartEncounter(
-                entry.RunId,
-                payload.HeroId,
-                payload.EnemyIds,
-                payload.InitialEnergy,
-                entry.CommandId.HasValue ? CreateIdentity(entry) : null);
+        var result = runtime.Combats.StartEncounter(
+            entry.RunId,
+            payload.InitialHero,
+            payload.InitialEnemies,
+            entry.CommandId.HasValue ? CreateIdentity(entry) : null,
+            payload.InitialStatusEffects);
         return result.IsSuccess
             ? Result<RunState>.Success(result.Value.RunState)
             : Result<RunState>.Failure(result.Error);

@@ -8,6 +8,7 @@ using Core.Events.Domain;
 using Core.Logging;
 using Core.Math;
 using Core.Resources;
+using Core.Tests.Combat;
 using Moq;
 using Xunit;
 
@@ -106,14 +107,23 @@ public class ResourceRegenerationCombatTests
                     timing));
             });
         
-        _combatSystem = new CombatSystem(_logger, _resourceManager, new FixedTurnOrderCalculator(_logger), _eventBus, regenerationProcessor: _regenerationProcessor);
+        _combatSystem = new CombatSystem(
+            _logger,
+            _resourceManager,
+            new FixedTurnOrderCalculator(_logger),
+            _eventBus,
+            regenerationProcessor: _regenerationProcessor,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
     }
 
     [Fact]
     public void EndTurn_ShouldRegenerateEnergyAtStartOfTurn()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 1);
+        var startResult = _combatSystem.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 1));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 
@@ -141,7 +151,10 @@ public class ResourceRegenerationCombatTests
     public void EndTurn_ShouldRegenerateMultipleResources()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 1);
+        var startResult = _combatSystem.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 1));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 
@@ -171,7 +184,10 @@ public class ResourceRegenerationCombatTests
     public void EndTurn_ShouldRegenerateEnemyResources()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 3);
+        var startResult = _combatSystem.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 3));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 
@@ -272,9 +288,18 @@ public class ResourceRegenerationCombatTests
                     timing));
             });
         
-        var combatSystem = new CombatSystem(mockLogger.Object, mockResourceManager.Object, new FixedTurnOrderCalculator(mockLogger.Object), realEventBus, regenerationProcessor: mockRegenerationProcessor.Object);
+        var combatSystem = new CombatSystem(
+            mockLogger.Object,
+            mockResourceManager.Object,
+            new FixedTurnOrderCalculator(mockLogger.Object),
+            realEventBus,
+            regenerationProcessor: mockRegenerationProcessor.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(mockLogger.Object));
 
-        var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 1);
+        var startResult = combatSystem.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 1));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 
@@ -334,8 +359,12 @@ public class ResourceRegenerationCombatTests
             _resourceManager,
             new FixedTurnOrderCalculator(_logger),
             eventBus,
-            regenerationProcessor: regeneration.Object);
-        var started = system.StartCombat("a-hero", ["z-enemy"], initialEnergy: 1);
+            regenerationProcessor: regeneration.Object,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
+        var started = system.StartCombat(
+            "a-hero",
+            ["z-enemy"],
+            CombatParticipantTestFixture.WithEnergy("a-hero", 1));
         Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
 
         var result = system.ExecuteAction(
@@ -354,9 +383,17 @@ public class ResourceRegenerationCombatTests
     public void EndTurn_WithoutRegenerationProcessor_ShouldStillWork()
     {
          // Arrange - Criar CombatSystem sem regenerationProcessor
-         var combatSystemWithoutRegen = new CombatSystem(_logger, _resourceManager, new FixedTurnOrderCalculator(_logger), _eventBus);
+         var combatSystemWithoutRegen = new CombatSystem(
+             _logger,
+             _resourceManager,
+             new FixedTurnOrderCalculator(_logger),
+             _eventBus,
+             entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
-        var startResult = combatSystemWithoutRegen.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 3);
+        var startResult = combatSystemWithoutRegen.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 3));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 
@@ -380,7 +417,10 @@ public class ResourceRegenerationCombatTests
     public void MultipleEndTurns_ShouldRegenerateEachTurn()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 0);
+        var startResult = _combatSystem.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 0));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 
@@ -414,7 +454,10 @@ public class ResourceRegenerationCombatTests
     public void EndTurn_ShouldNotExceedMaximumResource()
     {
         // Arrange
-        var startResult = _combatSystem.StartCombat("hero1", new List<string> { "enemy1" }, initialEnergy: 3);
+        var startResult = _combatSystem.StartCombat(
+            "hero1",
+            new List<string> { "enemy1" },
+            CombatParticipantTestFixture.WithEnergy("hero1", 3));
         Assert.True(startResult.IsSuccess);
         var combatId = startResult.Value.CombatId;
 

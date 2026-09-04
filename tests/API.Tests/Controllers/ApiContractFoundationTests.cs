@@ -418,9 +418,15 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             type = RunCommandTypes.StartEncounter,
             payload = new
             {
-                heroId = player,
-                enemyIds = new[] { "enemy_1" },
-                initialEnergy = 3
+                hero = new { entityId = player, definitionId = "player_warrior" },
+                enemies = new[]
+                {
+                    new { entityId = "enemy_1", definitionId = "enemy_goblin" }
+                },
+                initialResourceValues = new Dictionary<string, IReadOnlyDictionary<string, float>>
+                {
+                    [player] = new Dictionary<string, float> { ["energy"] = 3 }
+                }
             }
         };
 
@@ -654,7 +660,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Guid runId,
         string heroId,
         IReadOnlyList<string> enemyIds,
-        int initialEnergy = 3)
+        IReadOnlyDictionary<string, float>? initialHeroResourceValues = null)
     {
         using var runResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
         var run = await runResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -666,7 +672,21 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             expectedSequence = run.GetProperty("sequence").GetInt32(),
             expectedStep = run.GetProperty("step").GetUInt64(),
             type = RunCommandTypes.StartEncounter,
-            payload = new { heroId, enemyIds, initialEnergy }
+            payload = new
+            {
+                hero = new { entityId = heroId, definitionId = "player_warrior" },
+                enemies = enemyIds.Select(entityId => new
+                {
+                    entityId,
+                    definitionId = "enemy_goblin"
+                }),
+                initialResourceValues = initialHeroResourceValues == null
+                    ? null
+                    : new Dictionary<string, IReadOnlyDictionary<string, float>>
+                    {
+                        [heroId] = initialHeroResourceValues
+                    }
+            }
         });
         var receiptBody = await commandResponse.Content.ReadAsStringAsync();
         Assert.True(commandResponse.IsSuccessStatusCode, receiptBody);

@@ -12,4 +12,5 @@ public sealed record CombatStartOptions(
     Guid? RunId = null,
     string? RunNodeId = null,
     string? IdScope = null,
-    IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? InitialStatusEffects = null);
+    IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? InitialStatusEffects = null,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? InitialResourceValues = null);

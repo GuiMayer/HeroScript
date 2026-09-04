@@ -42,10 +42,12 @@ public sealed class CombatRunCoordinatorTests
         };
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
+        var hero = new CombatParticipantReference("hero", "hero_definition");
+        var enemies = new[] { new CombatParticipantReference("enemy", "enemy_definition") };
         _combatSystem.Setup(system => system.StartCombat(
-                "hero",
-                It.Is<List<string>>(enemies => enemies.SequenceEqual(new[] { "enemy" })),
-                3,
+                hero,
+                It.Is<IReadOnlyList<CombatParticipantReference>>(actual =>
+                    actual.SequenceEqual(enemies)),
                 It.Is<CombatStartOptions>(options =>
                     options.Seed == expectedSeed &&
                     options.ContentRevision == run.Determinism.ContentRevision &&
@@ -59,7 +61,7 @@ public sealed class CombatRunCoordinatorTests
                 combat))
             .Returns(Result<RunState>.Success(attached));
 
-        var result = CreateCoordinator().StartEncounter(run.RunId, "hero", ["enemy"]);
+        var result = CreateCoordinator().StartEncounter(run.RunId, hero, enemies);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(combat.CombatId, result.Value.RunState.ActiveEncounterId);

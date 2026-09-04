@@ -151,10 +151,13 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
     protected async Task<(Guid combatId, JsonElement combatState)> SetupCombatAsync(
         string heroId = "hero", 
         string[] enemies = null!, 
-        int initialEnergy = 3)
+        IReadOnlyDictionary<string, float>? initialHeroResourceValues = null)
     {
         enemies ??= new[] { "enemy_1" };
-        var combatId = await Client.StartCombatAsync(heroId, enemies, initialEnergy);
+        var combatId = await Client.StartCombatAsync(
+            heroId,
+            enemies,
+            initialHeroResourceValues);
         var combatState = await Client.GetCombatStateAsync(combatId);
         return (combatId, combatState);
     }

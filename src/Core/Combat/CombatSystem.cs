@@ -69,42 +69,98 @@ public class CombatSystem : ICombatSystem
         _entityAdapter = new EntityCombatAdapter(_resourceManager);
     }
     
-    public Result<CombatState> StartCombat(string heroId, List<string> enemyIds, int initialEnergy = 3)
-        => StartCombat(heroId, enemyIds, initialEnergy, new CombatStartOptions(Seed: CreateSeed()));
+    public Result<CombatState> StartCombat(
+        CombatParticipantReference hero,
+        IReadOnlyList<CombatParticipantReference> enemies)
+        => StartCombat(hero, enemies, new CombatStartOptions(Seed: CreateSeed()));
 
     public Result<CombatState> StartCombat(
-        string heroId,
-        List<string> enemyIds,
-        int initialEnergy,
+        CombatParticipantReference hero,
+        IReadOnlyList<CombatParticipantReference> enemies,
         CombatStartOptions options)
     {
         try
         {
             // Validações
-            if (string.IsNullOrWhiteSpace(heroId))
-                return Result<CombatState>.Failure("Hero ID cannot be empty");
+            if (hero == null || string.IsNullOrWhiteSpace(hero.EntityId))
+                return Result<CombatState>.Failure("Hero entity ID cannot be empty");
+            if (string.IsNullOrWhiteSpace(hero.DefinitionId))
+                return Result<CombatState>.Failure("Hero definition ID cannot be empty");
             
-            if (enemyIds == null || enemyIds.Count == 0)
+            if (enemies == null || enemies.Count == 0)
                 return Result<CombatState>.Failure("At least one enemy is required");
+            if (enemies.Any(enemy =>
+                    enemy == null ||
+                    string.IsNullOrWhiteSpace(enemy.EntityId) ||
+                    string.IsNullOrWhiteSpace(enemy.DefinitionId)))
+            {
+                return Result<CombatState>.Failure(
+                    "Every enemy requires an entity ID and definition ID");
+            }
+            var duplicateIds = enemies
+                .Select(enemy => enemy.EntityId)
+                .Append(hero.EntityId)
+                .GroupBy(id => id, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray();
+            if (duplicateIds.Length > 0)
+            {
+                return Result<CombatState>.Failure(
+                    $"Combat participant entity IDs must be unique: {string.Join(", ", duplicateIds)}");
+            }
             
-            if (initialEnergy < 0 || initialEnergy > 10)
-                return Result<CombatState>.Failure("Initial energy must be between 0 and 10");
-
             if (options == null)
                 return Result<CombatState>.Failure("Combat start options are required");
 
             if (string.IsNullOrWhiteSpace(options.ContentRevision))
                 return Result<CombatState>.Failure("Content revision cannot be empty");
+
+            var overrideValidation = ValidateInitialResourceValueOwners(
+                options.InitialResourceValues,
+                enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
+            if (overrideValidation.IsFailure)
+                return Result<CombatState>.Failure(overrideValidation.Error);
             
-            var hero = CreateHeroCombatEntity(heroId, initialEnergy, options.ContentRevision);
-            var enemies = enemyIds
-                .Select(enemyId => CreateEnemyCombatEntity(enemyId, options.ContentRevision))
-                .ToList();
+            var heroResult = CreateConfiguredCombatEntity(
+                hero.EntityId,
+                hero.DefinitionId,
+                expectHero: true,
+                options.ContentRevision);
+            if (heroResult.IsFailure)
+                return Result<CombatState>.Failure(heroResult.Error);
+            var heroOverride = ApplyInitialResourceValues(heroResult.Value, options.InitialResourceValues);
+            if (heroOverride.IsFailure)
+                return Result<CombatState>.Failure(heroOverride.Error);
+
+            var materializedEnemies = new List<CombatEntity>(enemies.Count);
+            foreach (var enemy in enemies)
+            {
+                var enemyResult = CreateConfiguredCombatEntity(
+                    enemy.EntityId,
+                    enemy.DefinitionId,
+                    expectHero: false,
+                    options.ContentRevision);
+                if (enemyResult.IsFailure)
+                    return Result<CombatState>.Failure(enemyResult.Error);
+                var enemyOverride = ApplyInitialResourceValues(
+                    enemyResult.Value,
+                    options.InitialResourceValues);
+                if (enemyOverride.IsFailure)
+                    return Result<CombatState>.Failure(enemyOverride.Error);
+                materializedEnemies.Add(enemyOverride.Value);
+            }
+            var materializedHero = heroOverride.Value;
             
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(hero, enemies, context, options.IdScope ?? "combat") with
+            var combatState = CombatTransitions.Create(
+                materializedHero,
+                materializedEnemies,
+                context,
+                options.IdScope ?? "combat") with
             {
                 RunId = options.RunId,
                 RunNodeId = options.RunNodeId
@@ -124,8 +180,8 @@ public class CombatSystem : ICombatSystem
             _eventBus?.Publish(new CombatStartedEvent
             {
                 CombatId = combatState.CombatId,
-                HeroId = heroId,
-                EnemyIds = enemyIds,
+                HeroId = materializedHero.EntityId,
+                EnemyIds = materializedEnemies.Select(enemy => enemy.EntityId).ToArray(),
                 Target = combatState.CombatId.ToString()
             });
             
@@ -155,16 +211,36 @@ public class CombatSystem : ICombatSystem
             
             if (enemies == null || enemies.Count == 0)
                 return Result<CombatState>.Failure("At least one enemy is required");
+            if (enemies.Any(enemy => enemy == null))
+                return Result<CombatState>.Failure("Enemy entity cannot be null");
 
             if (options == null)
                 return Result<CombatState>.Failure("Combat start options are required");
 
             if (string.IsNullOrWhiteSpace(options.ContentRevision))
                 return Result<CombatState>.Failure("Content revision cannot be empty");
+
+            var overrideValidation = ValidateInitialResourceValueOwners(
+                options.InitialResourceValues,
+                enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
+            if (overrideValidation.IsFailure)
+                return Result<CombatState>.Failure(overrideValidation.Error);
             
             // Converter entidades para CombatEntity usando o adapter
-            var heroCombat = _entityAdapter.ToCombatEntity(hero);
-            var enemiesCombat = _entityAdapter.ToCombatEntities(enemies);
+            var heroResult = ApplyInitialResourceValues(
+                _entityAdapter.ToCombatEntity(hero),
+                options.InitialResourceValues);
+            if (heroResult.IsFailure)
+                return Result<CombatState>.Failure(heroResult.Error);
+            var enemiesCombat = new List<CombatEntity>(enemies.Count);
+            foreach (var enemy in _entityAdapter.ToCombatEntities(enemies))
+            {
+                var overridden = ApplyInitialResourceValues(enemy, options.InitialResourceValues);
+                if (overridden.IsFailure)
+                    return Result<CombatState>.Failure(overridden.Error);
+                enemiesCombat.Add(overridden.Value);
+            }
+            var heroCombat = heroResult.Value;
             
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
@@ -237,10 +313,32 @@ public class CombatSystem : ICombatSystem
             if (options == null || string.IsNullOrWhiteSpace(options.ContentRevision))
                 return Result<CombatState>.Failure("Content revision cannot be empty");
 
+            var overrideValidation = ValidateInitialResourceValueOwners(
+                options.InitialResourceValues,
+                enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
+            if (overrideValidation.IsFailure)
+                return Result<CombatState>.Failure(overrideValidation.Error);
+
+            var heroOverride = ApplyInitialResourceValues(hero, options.InitialResourceValues);
+            if (heroOverride.IsFailure)
+                return Result<CombatState>.Failure(heroOverride.Error);
+            var overriddenEnemies = new List<CombatEntity>(enemies.Count);
+            foreach (var enemy in enemies)
+            {
+                var overridden = ApplyInitialResourceValues(enemy, options.InitialResourceValues);
+                if (overridden.IsFailure)
+                    return Result<CombatState>.Failure(overridden.Error);
+                overriddenEnemies.Add(overridden.Value);
+            }
+
             var context = DeterministicContext.Create(
                 options.Seed ?? CreateSeed(),
                 options.ContentRevision);
-            var combatState = CombatTransitions.Create(hero, enemies, context, options.IdScope ?? "combat") with
+            var combatState = CombatTransitions.Create(
+                heroOverride.Value,
+                overriddenEnemies,
+                context,
+                options.IdScope ?? "combat") with
             {
                 RunId = options.RunId,
                 RunNodeId = options.RunNodeId
@@ -256,8 +354,8 @@ public class CombatSystem : ICombatSystem
             _eventBus?.Publish(new CombatStartedEvent
             {
                 CombatId = initialized.Value.CombatId,
-                HeroId = hero.EntityId,
-                EnemyIds = enemies.Select(enemy => enemy.EntityId).ToList(),
+                HeroId = heroOverride.Value.EntityId,
+                EnemyIds = overriddenEnemies.Select(enemy => enemy.EntityId).ToList(),
                 Target = initialized.Value.CombatId.ToString()
             });
             return initialized;
@@ -471,91 +569,92 @@ public class CombatSystem : ICombatSystem
         return Result<bool>.Success(true);
     }
 
-    private CombatEntity CreateHeroCombatEntity(
-        string heroId,
-        int initialEnergy,
+    private Result<CombatEntity> CreateConfiguredCombatEntity(
+        string entityId,
+        string definitionId,
+        bool expectHero,
         string contentRevision)
     {
-        var definition = TryLoadEntityDefinition(heroId, contentRevision);
-        if (definition != null)
+        if (_entityDefinitionLoader == null)
         {
-            var hero = _entityAdapter.CreateCombatEntityFromDefinition(
-                heroId,
-                definition,
-                contentRevision);
-            var energyPool = hero.GetResource("energy");
-            return energyPool == null
-                ? hero
-                : ApplyResourceMutation(
-                    hero,
-                    "combat-start:initial-energy",
-                    "energy",
-                    ResourceMutationOperation.Set,
-                    initialEnergy);
+            return Result<CombatEntity>.Failure(
+                "Entity definitions are required to start combat from participant IDs");
         }
 
-        var heroHealthPool = _resourceManager.CreatePool("health", 100);
-        var heroEnergyPool = _resourceManager.CreatePool("energy", initialEnergy);
-        var heroBlockPool = _resourceManager.CreatePool("block", 0);
-        var heroResources = new Dictionary<string, ResourcePool>
-        {
-            ["health"] = heroHealthPool,
-            ["energy"] = heroEnergyPool,
-            ["block"] = heroBlockPool
-        };
+        var definition = _entityDefinitionLoader.LoadDefinition(definitionId, contentRevision);
+        if (definition.IsFailure)
+            return Result<CombatEntity>.Failure(definition.Error);
 
-        return new CombatEntity
+        var entity = _entityAdapter.CreateCombatEntityFromDefinition(
+            entityId,
+            definition.Value,
+            contentRevision);
+        if (entity.IsHero != expectHero)
         {
-            EntityId = heroId,
-            Name = "Hero",
-            IsHero = true,
-            ResourceState = new ResourceSet
-            {
-                OwnerId = heroId,
-                Resources = heroResources
-            }
-        };
+            return Result<CombatEntity>.Failure(
+                $"Entity {entityId} is not a valid {(expectHero ? "hero" : "enemy")} participant");
+        }
+
+        return Result<CombatEntity>.Success(entity);
     }
 
-    private CombatEntity CreateEnemyCombatEntity(string enemyId, string contentRevision)
+    private static Result<CombatEntity> ApplyInitialResourceValues(
+        CombatEntity entity,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? valuesByEntity)
     {
-        var definition = TryLoadEntityDefinition(enemyId, contentRevision);
-        if (definition != null)
-            return _entityAdapter.CreateCombatEntityFromDefinition(
-                enemyId,
-                definition,
-                contentRevision);
+        if (valuesByEntity == null || !valuesByEntity.TryGetValue(entity.EntityId, out var values))
+            return Result<CombatEntity>.Success(entity);
 
-        var enemyHealthPool = _resourceManager.CreatePool("health", 50);
-        var enemyResources = new Dictionary<string, ResourcePool>
+        var current = entity;
+        foreach (var (resourceId, value) in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
-            ["health"] = enemyHealthPool
-        };
-
-        return new CombatEntity
-        {
-            EntityId = enemyId,
-            Name = enemyId,
-            IsHero = false,
-            ResourceState = new ResourceSet
+            if (!float.IsFinite(value))
             {
-                OwnerId = enemyId,
-                Resources = enemyResources
+                return Result<CombatEntity>.Failure(
+                    $"Initial resource value must be finite: {entity.EntityId}/{resourceId}");
             }
-        };
+            if (current.GetResource(resourceId) == null)
+            {
+                return Result<CombatEntity>.Failure(
+                    $"Initial resource override references an unknown resource: {entity.EntityId}/{resourceId}");
+            }
+
+            var applied = current.ApplyResourceMutation(
+                $"combat-start:{entity.EntityId}:{resourceId}",
+                resourceId,
+                ResourceMutationOperation.Set,
+                value);
+            if (applied.IsFailure)
+                return Result<CombatEntity>.Failure(applied.Error);
+            current = applied.Value;
+        }
+
+        return Result<CombatEntity>.Success(current);
     }
 
-    private EntityDefinition? TryLoadEntityDefinition(string definitionId, string contentRevision)
+    private static Result ValidateInitialResourceValueOwners(
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? valuesByEntity,
+        IEnumerable<string> participantIds)
     {
-        if (_entityDefinitionLoader == null)
-            return null;
+        if (valuesByEntity == null)
+            return Result.Success();
 
-        var result = _entityDefinitionLoader.LoadDefinition(definitionId, contentRevision);
-        if (result.IsSuccess)
-            return result.Value;
+        var knownParticipants = participantIds.ToHashSet(StringComparer.Ordinal);
+        foreach (var (entityId, resourceValues) in valuesByEntity)
+        {
+            if (string.IsNullOrWhiteSpace(entityId) || !knownParticipants.Contains(entityId))
+            {
+                return Result.Failure(
+                    $"Initial resource override references an unknown combat participant: {entityId}");
+            }
+            if (resourceValues == null)
+            {
+                return Result.Failure(
+                    $"Initial resource values are required for combat participant: {entityId}");
+            }
+        }
 
-        _logger.LogDebug($"Entity definition not found for combat start: {definitionId}");
-        return null;
+        return Result.Success();
     }
     
     private CombatState ExecuteConfiguredAction(

@@ -23,7 +23,10 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         // Simulate tactical combat with squad-based units
         var combatId = await Client.StartCombatAsync("squad_leader",
             new[] { "enemy_soldier_1", "enemy_soldier_2", "enemy_elite" },
-            initialEnergy: 5);
+            initialHeroResourceValues: new Dictionary<string, float>
+            {
+                ["energy"] = 5
+            });
 
         var combatState = await Client.GetCombatStateAsync(combatId);
 

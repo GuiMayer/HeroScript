@@ -29,8 +29,8 @@ public class TurnOrderIntegrationTests
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
-            turnOrderCalculator: calculator
-        );
+            turnOrderCalculator: calculator,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
         // Act
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1", "enemy2" });
@@ -52,8 +52,8 @@ public class TurnOrderIntegrationTests
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
-            turnOrderCalculator: calculator
-        );
+            turnOrderCalculator: calculator,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
         // Act
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1", "enemy2" });
@@ -72,8 +72,8 @@ public class TurnOrderIntegrationTests
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
-            turnOrderCalculator: calculator
-        );
+            turnOrderCalculator: calculator,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
         // Act
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1", "enemy2" });
@@ -102,8 +102,8 @@ public class TurnOrderIntegrationTests
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
-            turnOrderCalculator: calculator
-        );
+            turnOrderCalculator: calculator,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
         // Act
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" });
@@ -128,8 +128,8 @@ public class TurnOrderIntegrationTests
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
-            turnOrderCalculator: calculator
-        );
+            turnOrderCalculator: calculator,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
         // Act
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1", "enemy2" });
@@ -151,8 +151,8 @@ public class TurnOrderIntegrationTests
          var combatSystem = new CombatSystem(
              _logger,
              _resourceManager,
-             new FixedTurnOrderCalculator(_logger)
-         );
+             new FixedTurnOrderCalculator(_logger),
+             entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
          
          // Act
          var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" });
@@ -188,8 +188,8 @@ public class TurnOrderIntegrationTests
             var combatSystem = new CombatSystem(
                 _logger,
                 _resourceManager,
-                turnOrderCalculator: calculatorResult.Value
-            );
+                turnOrderCalculator: calculatorResult.Value,
+                entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
             
             var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" });
             
@@ -207,8 +207,8 @@ public class TurnOrderIntegrationTests
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
-            turnOrderCalculator: calculator
-        );
+            turnOrderCalculator: calculator,
+            entityDefinitionLoader: CombatParticipantTestFixture.CreateDefinitionLoader(_logger));
         
         // Act
         var startResult = combatSystem.StartCombat("hero1", new List<string> { "enemy1" });
