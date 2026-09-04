@@ -7,6 +7,7 @@ using Core.Determinism;
 using Core.Effects;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
+using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Moq;
@@ -137,6 +138,112 @@ public sealed class ContentRevisionActivationTests
 
         Assert.True(result.IsFailure);
         Assert.Contains("Component not found: effect.old", result.Error);
+        Assert.Equal(revisionA, manager.GetRun(state.RunId).Value.Determinism.ContentRevision);
+    }
+
+    [Fact]
+    public void ActivateContentRevision_RebindsRunResourcesAndAppliesNewConstraints()
+    {
+        var revisionA = new string('a', 64);
+        var revisionB = new string('b', 64);
+        var oldDefinition = Resource("Old Health", canExceedMax: true);
+        var newDefinition = Resource("New Health", canExceedMax: false);
+        var runtime = RuntimeWithResources(revisionB, newDefinition);
+        var manager = CreateManagerWithRuntime(revisionA, revisionB, runtime);
+        var state = CreateState(revisionA) with
+        {
+            ResourceState = new ResourceSet
+            {
+                OwnerId = "run",
+                Resources = new Dictionary<string, ResourcePool>
+                {
+                    ["health"] = new()
+                    {
+                        ResourceId = "health",
+                        Current = 150,
+                        Minimum = 0,
+                        Maximum = 100,
+                        Definition = oldDefinition
+                    }
+                }
+            }
+        };
+        state = manager.RestoreState(state).Value;
+
+        var result = Activate(manager, state, revisionB);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(150, state.ResourceState.Current("health"));
+        Assert.Equal(100, result.Value.State.ResourceState.Current("health"));
+        Assert.Equal("New Health", result.Value.State.ResourceState.Get("health")!.Definition.DisplayName);
+    }
+
+    [Fact]
+    public void ActivateContentRevision_RejectsRemovedResourceAtomically()
+    {
+        var revisionA = new string('a', 64);
+        var revisionB = new string('b', 64);
+        var oldDefinition = Resource("Health", canExceedMax: false);
+        var runtime = RuntimeWithResources(revisionB, Resource("Mana", false) with { ResourceId = "mana" });
+        var manager = CreateManagerWithRuntime(revisionA, revisionB, runtime);
+        var state = CreateState(revisionA) with
+        {
+            ResourceState = new ResourceSet
+            {
+                OwnerId = "run",
+                Resources = new Dictionary<string, ResourcePool>
+                {
+                    ["health"] = new()
+                    {
+                        ResourceId = "health",
+                        Current = 50,
+                        Maximum = 100,
+                        Definition = oldDefinition
+                    }
+                }
+            }
+        };
+        state = manager.RestoreState(state).Value;
+
+        var result = Activate(manager, state, revisionB);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("health", result.Error);
+        var unchanged = manager.GetRun(state.RunId).Value;
+        Assert.Equal(revisionA, unchanged.Determinism.ContentRevision);
+        Assert.Equal(50, unchanged.ResourceState.Current("health"));
+    }
+
+    [Fact]
+    public void ActivateContentRevision_RequiresRuntimeForContentBoundState()
+    {
+        var revisionA = new string('a', 64);
+        var revisionB = new string('b', 64);
+        var definition = Resource("Health", canExceedMax: false);
+        var manager = CreateManager(null, revisionA, revisionB);
+        var state = CreateState(revisionA) with
+        {
+            ResourceState = new ResourceSet
+            {
+                OwnerId = "run",
+                Resources = new Dictionary<string, ResourcePool>
+                {
+                    ["health"] = new()
+                    {
+                        ResourceId = "health",
+                        Current = 50,
+                        Maximum = 100,
+                        Definition = definition
+                    }
+                }
+            }
+        };
+        state = manager.RestoreState(state).Value;
+
+        var result = Activate(manager, state, revisionB);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("runtime resolver", result.Error, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(revisionA, manager.GetRun(state.RunId).Value.Determinism.ContentRevision);
     }
 
@@ -278,6 +385,49 @@ public sealed class ContentRevisionActivationTests
         Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
         return created.Value;
     }
+
+    private static ContentRuntime RuntimeWithResources(
+        string revision,
+        params ResourceDefinition[] definitions)
+    {
+        const string path = "resources/catalog.json";
+        var artifacts = new Dictionary<string, JsonElement>
+        {
+            [path] = JsonSerializer.SerializeToElement(definitions.ToDictionary(
+                definition => definition.ResourceId,
+                StringComparer.Ordinal))
+        }.ToImmutableDictionary(StringComparer.Ordinal);
+        var created = ContentRuntime.Create(new ContentBundle
+        {
+            Manifest = new ContentManifest
+            {
+                ConfigName = "test",
+                Revision = revision,
+                Artifacts =
+                [
+                    new ContentArtifactManifest
+                    {
+                        Kind = "resources",
+                        Path = path,
+                        DefinitionCount = definitions.Length
+                    }
+                ]
+            },
+            Artifacts = artifacts
+        });
+        Assert.True(created.IsSuccess, created.IsFailure ? created.Error : null);
+        return created.Value;
+    }
+
+    private static ResourceDefinition Resource(string displayName, bool canExceedMax) => new()
+    {
+        ResourceId = "health",
+        DisplayName = displayName,
+        DefaultMin = 0,
+        DefaultMax = 100,
+        DefaultCurrent = 100,
+        CanExceedMax = canExceedMax
+    };
 
     private static RunState CreateState(string revision) => new()
     {

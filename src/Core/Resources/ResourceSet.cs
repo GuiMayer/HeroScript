@@ -61,6 +61,64 @@ public sealed record ResourceSet
         _resources.Values.FirstOrDefault(pool =>
             pool.Definition is not null && pool.Definition.Category == category);
 
+    /// <summary>
+    /// Rebinds every existing pool to a new immutable definition graph. Bounds
+    /// belong to runtime state and are preserved; the current value is clamped
+    /// again because the new definition may change overflow/negative rules.
+    /// </summary>
+    public Result<ResourceSet> RebindDefinitions(
+        IReadOnlyDictionary<string, ResourceDefinition> definitions)
+    {
+        ArgumentNullException.ThrowIfNull(definitions);
+        var byIdBuilder = ImmutableDictionary.CreateBuilder<string, ResourceDefinition>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var (resourceId, definition) in definitions)
+        {
+            if (!byIdBuilder.TryAdd(resourceId, definition))
+                return Result<ResourceSet>.Failure($"Duplicate resource definition: {resourceId}");
+        }
+        var byId = byIdBuilder.ToImmutable();
+        var rebound = ImmutableDictionary.CreateBuilder<string, ResourcePool>(
+            StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (resourceId, pool) in _resources.OrderBy(item => item.Key, StringComparer.Ordinal))
+        {
+            if (!byId.TryGetValue(resourceId, out var definition))
+            {
+                return Result<ResourceSet>.Failure(
+                    $"Resource definition not found while rebinding owner '{OwnerId}': {resourceId}");
+            }
+
+            var validation = ResourceDefinitionValidator.Validate(definition, resourceId);
+            if (validation.IsFailure)
+            {
+                return Result<ResourceSet>.Failure(
+                    $"Invalid resource definition while rebinding owner '{OwnerId}': {validation.Error}");
+            }
+
+            if (!string.Equals(pool.ResourceId, resourceId, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result<ResourceSet>.Failure(
+                    $"Resource key does not match pool id while rebinding owner '{OwnerId}': " +
+                    $"{resourceId}/{pool.ResourceId}");
+            }
+
+            try
+            {
+                var updated = (pool with { Definition = definition }).Set(pool.Current);
+                rebound[resourceId] = updated;
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Result<ResourceSet>.Failure(
+                    $"Resource '{resourceId}' could not be rebound for owner '{OwnerId}': {exception.Message}",
+                    exception);
+            }
+        }
+
+        return Result<ResourceSet>.Success(this with { Resources = rebound.ToImmutable() });
+    }
+
     public Result<ResourceSetMutationResult> Apply(
         IReadOnlyList<ResolvedResourceMutation> mutations,
         IResourceMutationReducer? reducer = null)

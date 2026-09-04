@@ -697,16 +697,23 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (string.Equals(state.Determinism.ContentRevision, manifest.Value.Revision, StringComparison.Ordinal))
             return Result.Success();
 
+        var activationState = state;
         if (_contentRuntimes != null)
         {
             var targetRuntime = _contentRuntimes.Resolve(manifest.Value.Revision, state.ConfigName);
             if (targetRuntime.IsFailure)
                 return Result.Failure($"Target content revision is unavailable: {targetRuntime.Error}");
-            var compatibility = RunContentCompatibilityValidator.ValidateForActivation(
+            var compatibility = RunContentCompatibilityValidator.PrepareForActivation(
                 state,
                 targetRuntime.Value);
             if (compatibility.IsFailure)
                 return Result.Failure(compatibility.Error);
+            activationState = compatibility.Value;
+        }
+        else if (RunContentCompatibilityValidator.RequiresRuntime(state))
+        {
+            return Result.Failure(
+                "Content runtime resolver is required to activate a revision for content-bound state");
         }
 
         var activatedMode = state.ResolvedMode;
@@ -722,7 +729,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             activatedMode = resolved.Value;
         }
 
-        var encounters = state.Encounters
+        var encounters = activationState.Encounters
             .Select(encounter => encounter with
             {
                 Combat = encounter.Combat with
@@ -731,7 +738,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 }
             })
             .ToImmutableArray();
-        var candidate = state with
+        var candidate = activationState with
         {
             ContentManifest = manifest.Value,
             ResolvedMode = activatedMode,
