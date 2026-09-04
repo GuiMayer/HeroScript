@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Resources;
 using Core.Run.Content;
 
 namespace Core.Run;
@@ -29,9 +30,20 @@ public sealed record CardSelectionDefinition
 
 public sealed record RerollRulesDefinition
 {
+    private ImmutableArray<ResourceAmount> _baseCosts = [];
+    private ImmutableArray<ResourceAmount> _costsPerReroll = [];
+
     public int FreeRerolls { get; init; } = 1;
-    public int BaseGoldCost { get; init; } = 10;
-    public int GoldCostPerReroll { get; init; } = 5;
+    public IReadOnlyList<ResourceAmount> BaseCosts
+    {
+        get => _baseCosts;
+        init => _baseCosts = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ResourceAmount> CostsPerReroll
+    {
+        get => _costsPerReroll;
+        init => _costsPerReroll = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record DecomposeRulesDefinition
@@ -59,7 +71,7 @@ public sealed record CardSelectionState
     }
     public int RerollsUsed { get; init; }
     public int FreeRerollsRemaining { get; init; }
-    public int RerollCostGold { get; init; }
+    public ImmutableArray<ResourceAmount> RerollCosts { get; init; } = [];
     public bool Completed { get; init; }
     public IReadOnlyList<string> PickedCardIds
     {
@@ -78,6 +90,7 @@ public sealed record CardSelectionState
 public sealed record CardSelectionOptionState
 {
     private ImmutableList<string> _tags = [];
+    private ImmutableArray<ResourceAmount> _decomposeRewards = [];
 
     public string CardId { get; init; } = string.Empty;
     public CardRarity Rarity { get; init; } = CardRarity.Common;
@@ -86,6 +99,10 @@ public sealed record CardSelectionOptionState
         get => _tags;
         init => _tags = value?.ToImmutableList() ?? [];
     }
-    public int DecomposePowerPoints { get; init; } = 1;
+    public IReadOnlyList<ResourceAmount> DecomposeRewards
+    {
+        get => _decomposeRewards;
+        init => _decomposeRewards = value?.ToImmutableArray() ?? [];
+    }
     public bool Decomposed { get; init; }
 }

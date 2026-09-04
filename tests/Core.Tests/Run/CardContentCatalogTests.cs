@@ -21,8 +21,8 @@ public sealed class CardContentCatalogTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal("fireball", result.Value.CardId);
         Assert.Equal(CardRarity.Uncommon, result.Value.Rarity);
-        Assert.Equal(25, result.Value.BaseGoldPrice);
-        Assert.Equal(2, result.Value.DecomposePowerPoints);
+        Assert.Equal(25, result.Value.BasePrices.Single(price => price.ResourceId == "gold").Amount);
+        Assert.Equal(2, result.Value.DecomposeRewards.Single(reward => reward.ResourceId == "power_points").Amount);
         Assert.Contains("fire", result.Value.Tags);
     }
 
@@ -101,31 +101,31 @@ public sealed class CardContentCatalogTests
         "cardId": "basic_attack",
         "actionId": "basic_attack",
         "rarity": "Common",
-        "baseGoldPrice": 10,
-        "decomposePowerPoints": 1,
+        "basePrices": [{ "resourceId": "gold", "amount": 10 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
         "tags": ["attack", "common", "starter"]
       },
       "defend": {
         "cardId": "defend",
         "actionId": "defend",
         "rarity": "Common",
-        "baseGoldPrice": 10,
-        "decomposePowerPoints": 1,
+        "basePrices": [{ "resourceId": "gold", "amount": 10 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
         "tags": ["defense", "common", "starter"]
       },
       "fireball": {
         "cardId": "fireball",
         "actionId": "fireball",
         "rarity": "Uncommon",
-        "baseGoldPrice": 25,
-        "decomposePowerPoints": 2,
+        "basePrices": [{ "resourceId": "gold", "amount": 25 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
         "tags": ["attack", "fire", "magic", "uncommon"]
       },
       "heal": {
         "cardId": "heal",
         "rarity": "Common",
-        "baseGoldPrice": 18,
-        "decomposePowerPoints": 1,
+        "basePrices": [{ "resourceId": "gold", "amount": 18 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
         "tags": ["heal", "utility", "common"]
       }
     }

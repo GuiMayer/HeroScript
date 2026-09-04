@@ -104,7 +104,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         {
             var preparation = await Client.StartPreparationAsync(runId, "basic_preparation");
             var paidOption = preparation.GetProperty("options").EnumerateArray()
-                .Single(option => GetJsonInt(option, "goldCost") == 10);
+                .Single(option => GetResourceAmount(option, "costs", "gold") == 10);
             await Client.ApplyPreparationOptionAsync(
                 runId,
                 GetJsonGuid(preparation, "preparationInstanceId"),
@@ -116,7 +116,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
 
         var secondShop = await Client.OpenShopAsync(runId, "basic_shop");
         var expensiveItem = secondShop.GetProperty("items").EnumerateArray()
-            .First(item => GetJsonInt(item, "goldCost") > remainingGold);
+            .First(item => GetResourceAmount(item, "costs", "gold") > remainingGold);
 
         var exception = await Assert.ThrowsAsync<HttpRequestException>(
             () => Client.BuyShopItemAsync(

@@ -23,7 +23,7 @@ public static class ShopTransitions
             OfferFingerprint = offerFingerprint,
             Pricing = definition.Pricing,
             Reroll = definition.Reroll,
-            RerollCostGold = CalculateRerollCost(definition.Reroll, 0),
+            RerollCosts = CalculateRerollCosts(definition.Reroll, 0),
             Items = items
         };
         var next = state with
@@ -53,7 +53,7 @@ public static class ShopTransitions
             return Result<RunStateTransition<ShopItemState>>.Failure($"Shop item already purchased: {itemId}");
         var spent = RunResourceTransitions.Spend(
             state.ResourceState,
-            Costs(itemIndex.item.GoldCost, itemIndex.item.PowerPointCost),
+            itemIndex.item.Costs,
             $"shop:{shopInstanceId}:buy:{itemId}");
         if (spent.IsFailure)
             return Result<RunStateTransition<ShopItemState>>.Failure(spent.Error);
@@ -94,7 +94,7 @@ public static class ShopTransitions
         var (index, shop) = located.Value;
         var spent = RunResourceTransitions.Spend(
             state.ResourceState,
-            [new ResourceAmount { ResourceId = "gold", Amount = shop.RerollCostGold }],
+            shop.RerollCosts,
             $"shop:{shopInstanceId}:reroll:{shop.RerollsUsed + 1}");
         if (spent.IsFailure)
             return Result<RunStateTransition<ShopState>>.Failure(spent.Error);
@@ -103,7 +103,7 @@ public static class ShopTransitions
         var updated = shop with
         {
             RerollsUsed = rerollsUsed,
-            RerollCostGold = CalculateRerollCost(shop.Reroll, rerollsUsed),
+            RerollCosts = CalculateRerollCosts(shop.Reroll, rerollsUsed),
             Items = items,
             OfferFingerprint = offerFingerprint
         };
@@ -127,13 +127,11 @@ public static class ShopTransitions
         return Result<(int, ShopState)>.Failure($"Shop not found: {instanceId}");
     }
 
-    private static int CalculateRerollCost(ShopRerollRules rules, int rerollsUsed) =>
-        checked(rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll);
-
-    private static IReadOnlyList<ResourceAmount> Costs(int gold, int powerPoints) =>
-        new[]
-        {
-            new ResourceAmount { ResourceId = "gold", Amount = gold },
-            new ResourceAmount { ResourceId = "power_points", Amount = powerPoints }
-        }.Where(cost => cost.Amount > 0).ToArray();
+    private static ImmutableArray<ResourceAmount> CalculateRerollCosts(
+        ShopRerollRules rules,
+        int rerollsUsed) =>
+        RunResourceTransitions.ProgressiveAmounts(
+            rules.BaseCosts,
+            rules.CostsPerReroll,
+            rerollsUsed);
 }

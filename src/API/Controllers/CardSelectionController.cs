@@ -51,7 +51,7 @@ public sealed class CardSelectionController : BaseApiController
             selection.Options,
             selection.RerollsUsed,
             selection.FreeRerollsRemaining,
-            selection.RerollCostGold,
+            selection.RerollCosts,
             selection.Completed,
             selection.PickedCardIds,
             selection.DecomposedCardIds

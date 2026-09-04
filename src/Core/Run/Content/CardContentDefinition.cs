@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Core.Resources;
 
 namespace Core.Run.Content;
 
@@ -18,11 +19,21 @@ public sealed record CardContentDefinition
     private ImmutableArray<string> _componentBundleIds = [];
     private ImmutableArray<CardComponentDefinition> _components = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
+    private ImmutableArray<ResourceAmount> _basePrices = [];
+    private ImmutableArray<ResourceAmount> _decomposeRewards = [];
 
     public string CardId { get; init; } = string.Empty;
     public CardRarity Rarity { get; init; } = CardRarity.Common;
-    public int BaseGoldPrice { get; init; }
-    public int DecomposePowerPoints { get; init; } = 1;
+    public IReadOnlyList<ResourceAmount> BasePrices
+    {
+        get => _basePrices;
+        init => _basePrices = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ResourceAmount> DecomposeRewards
+    {
+        get => _decomposeRewards;
+        init => _decomposeRewards = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<string> ComponentBundleIds
     {
         get => _componentBundleIds;

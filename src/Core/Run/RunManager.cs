@@ -1813,7 +1813,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             CardId = card.CardId,
             Rarity = card.Rarity,
             Tags = card.Tags.ToList(),
-            DecomposePowerPoints = card.DecomposePowerPoints
+            DecomposeRewards = card.DecomposeRewards
         };
     }
 
@@ -1868,32 +1868,35 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     state.ConfigName)
                 : _cardContentCatalog.GetCard(item.CardId, state.ConfigName);
             if (cardResult.IsSuccess)
-                return ToShopItem(cardResult.Value, pricing, index, item.ItemId, item.PowerPointCost, item.GoldCost);
+                return ToShopItem(cardResult.Value, pricing, index, item.ItemId, item.Costs);
         }
 
         return new ShopItemState
         {
             ItemId = string.IsNullOrWhiteSpace(item.ItemId) ? $"item_{index + 1}" : item.ItemId,
             CardId = item.CardId,
-            BaseGoldPrice = item.GoldCost,
-            GoldCost = item.GoldCost,
-            PowerPointCost = item.PowerPointCost
+            BaseCosts = item.Costs,
+            Costs = item.Costs
         };
     }
 
-    private static ShopItemState ToShopItem(CardContentDefinition card, ShopPricingRules pricing, int index, string? itemId = null, int powerPointCost = 0, int? explicitGoldCost = null)
+    private static ShopItemState ToShopItem(
+        CardContentDefinition card,
+        ShopPricingRules pricing,
+        int index,
+        string? itemId = null,
+        IReadOnlyList<ResourceAmount>? explicitCosts = null)
     {
-        var breakdown = CalculateShopPrice(card, pricing, explicitGoldCost);
+        var calculated = CalculateShopPrices(card, pricing, explicitCosts);
         return new ShopItemState
         {
             ItemId = string.IsNullOrWhiteSpace(itemId) ? $"buy_{card.CardId}_{index + 1}" : itemId,
             CardId = card.CardId,
             Rarity = card.Rarity,
             Tags = card.Tags.ToList(),
-            BaseGoldPrice = card.BaseGoldPrice,
-            GoldCost = (int)System.Math.Ceiling(breakdown["final"]),
-            PowerPointCost = powerPointCost,
-            PricingBreakdown = breakdown
+            BaseCosts = calculated.BaseCosts,
+            Costs = calculated.Costs,
+            PricingBreakdowns = calculated.Breakdowns
         };
     }
 
@@ -1907,23 +1910,48 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         DeterministicContext Context,
         string Fingerprint);
 
-    private static Dictionary<string, double> CalculateShopPrice(CardContentDefinition card, ShopPricingRules pricing, int? explicitGoldCost)
+    private sealed record CalculatedShopPrices(
+        ImmutableArray<ResourceAmount> BaseCosts,
+        ImmutableArray<ResourceAmount> Costs,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> Breakdowns);
+
+    private static CalculatedShopPrices CalculateShopPrices(
+        CardContentDefinition card,
+        ShopPricingRules pricing,
+        IReadOnlyList<ResourceAmount>? explicitCosts)
     {
-        var basePrice = explicitGoldCost.GetValueOrDefault(card.BaseGoldPrice);
+        var baseCosts = (explicitCosts is { Count: > 0 } ? explicitCosts : card.BasePrices)
+            .OrderBy(cost => cost.ResourceId, StringComparer.Ordinal)
+            .ToImmutableArray();
         var rarityMultiplier = pricing.RarityMultipliers.TryGetValue(card.Rarity, out var rarityValue) ? rarityValue : 1.0;
         var tagMultiplier = card.Tags
             .Select(tag => pricing.TagMultipliers.TryGetValue(tag, out var value) ? value : 1.0)
             .Aggregate(1.0, (current, value) => current * value);
-        var final = basePrice * pricing.BaseMultiplier * rarityMultiplier * tagMultiplier;
-
-        return new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+        var costs = ImmutableArray.CreateBuilder<ResourceAmount>(baseCosts.Length);
+        var breakdowns = new Dictionary<string, IReadOnlyDictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var baseCost in baseCosts)
         {
-            ["base"] = basePrice,
-            ["baseMultiplier"] = pricing.BaseMultiplier,
-            ["rarityMultiplier"] = rarityMultiplier,
-            ["tagMultiplier"] = tagMultiplier,
-            ["final"] = final
-        };
+            var raw = baseCost.Amount * pricing.BaseMultiplier * rarityMultiplier * tagMultiplier;
+            var final = pricing.Rounding switch
+            {
+                ResourcePriceRounding.None => raw,
+                ResourcePriceRounding.Floor => System.Math.Floor(raw),
+                ResourcePriceRounding.Ceiling => System.Math.Ceiling(raw),
+                ResourcePriceRounding.Nearest => System.Math.Round(raw, MidpointRounding.AwayFromZero),
+                _ => throw new InvalidOperationException($"Unsupported price rounding: {pricing.Rounding}")
+            };
+            costs.Add(new ResourceAmount { ResourceId = baseCost.ResourceId, Amount = (float)final });
+            breakdowns[baseCost.ResourceId] = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["base"] = baseCost.Amount,
+                ["baseMultiplier"] = pricing.BaseMultiplier,
+                ["rarityMultiplier"] = rarityMultiplier,
+                ["tagMultiplier"] = tagMultiplier,
+                ["raw"] = raw,
+                ["final"] = final
+            };
+        }
+        return new CalculatedShopPrices(baseCosts, costs.MoveToImmutable(), breakdowns);
     }
 
     private Result<T> GetContentDefinition<T>(

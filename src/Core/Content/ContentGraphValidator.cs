@@ -60,6 +60,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateEnemyPools(runtime, errors);
         ValidateCardPools(runtime, errors);
         ValidateCardUpgrades(runtime, errors);
+        ValidateCardSelections(runtime, errors);
         ValidateShops(runtime, errors);
         ValidatePreparations(runtime, errors);
         ValidateDailyChallenges(runtime, errors);
@@ -612,6 +613,42 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "shops", id, definition, "cardPoolId", "card-pools");
             foreach (var cardId in FindStringProperties(definition, "cardId"))
                 Require(runtime, errors, "shops", id, cardId, "cards");
+            foreach (var resourceId in FindStringProperties(definition, "resourceId"))
+                Require(runtime, errors, "shops", id, resourceId, "resources");
+            var shop = definition.Deserialize<ShopDefinition>(CreateJsonOptions());
+            if (shop == null)
+            {
+                errors.Add($"shops/{id} is invalid");
+                continue;
+            }
+            ValidateResourceAmounts($"shops/{id} reroll baseCosts", shop.Reroll.BaseCosts, errors);
+            ValidateResourceAmounts($"shops/{id} reroll costsPerReroll", shop.Reroll.CostsPerReroll, errors);
+            foreach (var item in shop.Items)
+                ValidateResourceAmounts($"shops/{id} item {item.ItemId} costs", item.Costs, errors);
+        }
+    }
+
+    private static void ValidateCardSelections(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
+    {
+        foreach (var (id, definition) in runtime.GetDefinitions("card-selections"))
+        {
+            RequireProperty(runtime, errors, "card-selections", id, definition, "cardPoolId", "card-pools");
+            foreach (var resourceId in FindStringProperties(definition, "resourceId"))
+                Require(runtime, errors, "card-selections", id, resourceId, "resources");
+            var selection = definition.Deserialize<CardSelectionDefinition>(CreateJsonOptions());
+            if (selection == null)
+            {
+                errors.Add($"card-selections/{id} is invalid");
+                continue;
+            }
+            ValidateResourceAmounts(
+                $"card-selections/{id} reroll baseCosts",
+                selection.Reroll.BaseCosts,
+                errors);
+            ValidateResourceAmounts(
+                $"card-selections/{id} reroll costsPerReroll",
+                selection.Reroll.CostsPerReroll,
+                errors);
         }
     }
 
@@ -623,6 +660,38 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 Require(runtime, errors, "preparations", id, cardId, "cards");
             foreach (var modifierId in FindStringProperties(definition, "modifierId"))
                 Require(runtime, errors, "preparations", id, modifierId, "modifiers");
+            foreach (var resourceId in FindStringProperties(definition, "resourceId"))
+                Require(runtime, errors, "preparations", id, resourceId, "resources");
+            var preparation = definition.Deserialize<PreparationDefinition>(CreateJsonOptions());
+            if (preparation == null)
+            {
+                errors.Add($"preparations/{id} is invalid");
+                continue;
+            }
+            foreach (var option in preparation.Options)
+                ValidateResourceAmounts($"preparations/{id} option {option.OptionId} costs", option.Costs, errors);
+        }
+    }
+
+    private static void ValidateResourceAmounts(
+        string source,
+        IReadOnlyList<ResourceAmount> amounts,
+        ImmutableArray<string>.Builder errors)
+    {
+        var duplicate = amounts
+            .Where(amount => !string.IsNullOrWhiteSpace(amount.ResourceId))
+            .GroupBy(amount => amount.ResourceId, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+            errors.Add($"{source} contains duplicate resource {duplicate.Key}");
+        foreach (var amount in amounts)
+        {
+            if (string.IsNullOrWhiteSpace(amount.ResourceId) ||
+                !IsFinite(amount.Amount) ||
+                amount.Amount < 0)
+            {
+                errors.Add($"{source} contains an invalid resource amount");
+            }
         }
     }
 

@@ -47,7 +47,7 @@ public sealed class ShopController : BaseApiController
             shop.CardPoolId,
             shop.OfferCount,
             shop.RerollsUsed,
-            shop.RerollCostGold,
+            shop.RerollCosts,
             shop.Pricing,
             shop.Items
         };

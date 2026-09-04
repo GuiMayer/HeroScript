@@ -36,8 +36,7 @@ public static class PreparationTransitions
             Options = definition.Options.Select(option => new PreparationOptionState
             {
                 OptionId = option.OptionId,
-                GoldCost = option.GoldCost,
-                PowerPointCost = option.PowerPointCost,
+                Costs = option.Costs,
                 AddCardsToDiscard = option.AddCardsToDiscard,
                 ApplyModifiers = option.ApplyModifiers.Select(modifier => new PreparationModifierGrantState
                 {
@@ -71,7 +70,7 @@ public static class PreparationTransitions
             return Result<PreparationApplyPlan>.Failure($"Preparation option already applied: {optionId}");
         var affordability = RunResourceTransitions.Spend(
             state.ResourceState,
-            Costs(option.GoldCost, option.PowerPointCost),
+            option.Costs,
             $"preparation:{preparationInstanceId}:plan:{optionId}");
         if (affordability.IsFailure)
             return Result<PreparationApplyPlan>.Failure(affordability.Error);
@@ -124,7 +123,7 @@ public static class PreparationTransitions
                 $"Preparation option already applied: {option.OptionId}");
         var spent = RunResourceTransitions.Spend(
             state.ResourceState,
-            Costs(option.GoldCost, option.PowerPointCost),
+            option.Costs,
             $"preparation:{plan.PreparationInstanceId}:apply:{option.OptionId}");
         if (spent.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(spent.Error);
@@ -205,10 +204,4 @@ public static class PreparationTransitions
             : ownerId;
     }
 
-    private static IReadOnlyList<ResourceAmount> Costs(int gold, int powerPoints) =>
-        new[]
-        {
-            new ResourceAmount { ResourceId = "gold", Amount = gold },
-            new ResourceAmount { ResourceId = "power_points", Amount = powerPoints }
-        }.Where(cost => cost.Amount > 0).ToArray();
 }

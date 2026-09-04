@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Resources;
 
 namespace Core.Run;
 
@@ -26,10 +27,14 @@ public sealed record PreparationOptionDefinition
     private ImmutableList<string> _addCardsToDiscard = [];
     private ImmutableList<PreparationModifierGrantDefinition> _applyModifiers = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
+    private ImmutableArray<ResourceAmount> _costs = [];
 
     public string OptionId { get; init; } = string.Empty;
-    public int GoldCost { get; init; }
-    public int PowerPointCost { get; init; }
+    public IReadOnlyList<ResourceAmount> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<string> AddCardsToDiscard
     {
         get => _addCardsToDiscard;
@@ -82,10 +87,14 @@ public sealed record PreparationOptionState
     private ImmutableList<string> _addCardsToDiscard = [];
     private ImmutableList<PreparationModifierGrantState> _applyModifiers = [];
     private ImmutableList<Guid> _appliedModifierInstanceIds = [];
+    private ImmutableArray<ResourceAmount> _costs = [];
 
     public string OptionId { get; init; } = string.Empty;
-    public int GoldCost { get; init; }
-    public int PowerPointCost { get; init; }
+    public IReadOnlyList<ResourceAmount> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<string> AddCardsToDiscard
     {
         get => _addCardsToDiscard;

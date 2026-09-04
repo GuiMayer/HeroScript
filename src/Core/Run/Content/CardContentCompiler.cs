@@ -99,6 +99,8 @@ public sealed class CardContentCompiler : ICardContentCompiler
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} contains multiple targeting components");
         if (expanded.OfType<CardDispositionComponentDefinition>().Count() > 1)
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} contains multiple disposition components");
+        if (HasInvalidAmounts(card.BasePrices) || HasInvalidAmounts(card.DecomposeRewards))
+            return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} contains invalid price or decompose resources");
 
         var ordered = expanded
             .OrderBy(component => component.Order)
@@ -107,16 +109,16 @@ public sealed class CardContentCompiler : ICardContentCompiler
         var payload = new CompiledCardPayload(
             card.CardId,
             card.Rarity,
-            card.BaseGoldPrice,
-            card.DecomposePowerPoints,
+            card.BasePrices.OrderBy(item => item.ResourceId, StringComparer.Ordinal).ToImmutableArray(),
+            card.DecomposeRewards.OrderBy(item => item.ResourceId, StringComparer.Ordinal).ToImmutableArray(),
             card.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToImmutableArray(),
             ordered);
         return Result<CompiledCardDefinition>.Success(new CompiledCardDefinition
         {
             CardId = payload.CardId,
             Rarity = payload.Rarity,
-            BaseGoldPrice = payload.BaseGoldPrice,
-            DecomposePowerPoints = payload.DecomposePowerPoints,
+            BasePrices = payload.BasePrices,
+            DecomposeRewards = payload.DecomposeRewards,
             Tags = payload.Tags,
             Components = payload.Components,
             Fingerprint = CanonicalJson.ComputeHash(payload)
@@ -166,11 +168,19 @@ public sealed class CardContentCompiler : ICardContentCompiler
         return Result.Success();
     }
 
+    private static bool HasInvalidAmounts(IReadOnlyList<Core.Resources.ResourceAmount> amounts) =>
+        amounts.Any(amount =>
+            string.IsNullOrWhiteSpace(amount.ResourceId) ||
+            float.IsNaN(amount.Amount) ||
+            float.IsInfinity(amount.Amount) ||
+            amount.Amount < 0) ||
+        amounts.GroupBy(amount => amount.ResourceId, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1);
+
     private sealed record CompiledCardPayload(
         string CardId,
         CardRarity Rarity,
-        int BaseGoldPrice,
-        int DecomposePowerPoints,
+        ImmutableArray<Core.Resources.ResourceAmount> BasePrices,
+        ImmutableArray<Core.Resources.ResourceAmount> DecomposeRewards,
         ImmutableArray<string> Tags,
         ImmutableArray<CardComponentDefinition> Components);
 }

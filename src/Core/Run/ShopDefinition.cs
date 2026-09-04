@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
+using Core.Resources;
 using Core.Run.Content;
 
 namespace Core.Run;
@@ -29,11 +31,15 @@ public sealed record ShopDefinition
 public sealed record ShopItemDefinition
 {
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
+    private ImmutableArray<ResourceAmount> _costs = [];
 
     public string ItemId { get; init; } = string.Empty;
     public string? CardId { get; init; }
-    public int GoldCost { get; init; }
-    public int PowerPointCost { get; init; }
+    public IReadOnlyList<ResourceAmount> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyDictionary<string, object> Metadata
     {
         get => _metadata;
@@ -48,6 +54,7 @@ public sealed record ShopPricingRules
     private ImmutableDictionary<string, double> _tagMultipliers = ImmutableDictionary<string, double>.Empty;
 
     public double BaseMultiplier { get; init; } = 1.0;
+    public ResourcePriceRounding Rounding { get; init; } = ResourcePriceRounding.Ceiling;
     public IReadOnlyDictionary<CardRarity, double> RarityMultipliers
     {
         get => _rarityMultipliers;
@@ -62,10 +69,30 @@ public sealed record ShopPricingRules
     }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ResourcePriceRounding
+{
+    None,
+    Floor,
+    Ceiling,
+    Nearest
+}
+
 public sealed record ShopRerollRules
 {
-    public int BaseGoldCost { get; init; } = 10;
-    public int GoldCostPerReroll { get; init; } = 5;
+    private ImmutableArray<ResourceAmount> _baseCosts = [];
+    private ImmutableArray<ResourceAmount> _costsPerReroll = [];
+
+    public IReadOnlyList<ResourceAmount> BaseCosts
+    {
+        get => _baseCosts;
+        init => _baseCosts = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ResourceAmount> CostsPerReroll
+    {
+        get => _costsPerReroll;
+        init => _costsPerReroll = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record ShopState
@@ -79,7 +106,7 @@ public sealed record ShopState
     public string OfferFingerprint { get; init; } = string.Empty;
     public int OfferCount { get; init; }
     public int RerollsUsed { get; init; }
-    public int RerollCostGold { get; init; }
+    public ImmutableArray<ResourceAmount> RerollCosts { get; init; } = [];
     public ShopPricingRules Pricing { get; init; } = new();
     public ShopRerollRules Reroll { get; init; } = new();
     public IReadOnlyList<ShopItemState> Items
@@ -92,7 +119,10 @@ public sealed record ShopState
 public sealed record ShopItemState
 {
     private ImmutableList<string> _tags = [];
-    private ImmutableDictionary<string, double> _pricingBreakdown = ImmutableDictionary<string, double>.Empty;
+    private ImmutableArray<ResourceAmount> _baseCosts = [];
+    private ImmutableArray<ResourceAmount> _costs = [];
+    private ImmutableDictionary<string, IReadOnlyDictionary<string, double>> _pricingBreakdowns =
+        ImmutableDictionary<string, IReadOnlyDictionary<string, double>>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
 
     public string ItemId { get; init; } = string.Empty;
     public string? CardId { get; init; }
@@ -102,14 +132,24 @@ public sealed record ShopItemState
         get => _tags;
         init => _tags = value?.ToImmutableList() ?? [];
     }
-    public int BaseGoldPrice { get; init; }
-    public int GoldCost { get; init; }
-    public int PowerPointCost { get; init; }
-    public IReadOnlyDictionary<string, double> PricingBreakdown
+    public IReadOnlyList<ResourceAmount> BaseCosts
     {
-        get => _pricingBreakdown;
-        init => _pricingBreakdown = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
-            ?? ImmutableDictionary<string, double>.Empty;
+        get => _baseCosts;
+        init => _baseCosts = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ResourceAmount> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> PricingBreakdowns
+    {
+        get => _pricingBreakdowns;
+        init => _pricingBreakdowns = value?.ToImmutableDictionary(
+                pair => pair.Key,
+                pair => (IReadOnlyDictionary<string, double>)pair.Value.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, IReadOnlyDictionary<string, double>>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     }
     public bool Purchased { get; init; }
 }

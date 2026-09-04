@@ -183,6 +183,32 @@ public sealed class ContentGraphValidatorTests
         Assert.Contains("runs/default references missing resources/credits", result.Errors);
     }
 
+    [Fact]
+    public void Validate_RejectsShopCostResourceOutsidePublishedGraph()
+    {
+        var bundle = Bundle(
+            ("shops", "shops/test.json", new Dictionary<string, object>
+            {
+                ["test"] = new
+                {
+                    shopId = "test",
+                    items = new[]
+                    {
+                        new
+                        {
+                            itemId = "card",
+                            costs = new[] { new { resourceId = "credits", amount = 2 } }
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("shops/test references missing resources/credits", result.Errors);
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

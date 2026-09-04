@@ -618,9 +618,9 @@ public sealed class RunManagerTests
         Assert.Equal("basic_rewards", shop.Value.CardPoolId);
         Assert.Equal(2, shop.Value.Items.Count);
         Assert.False(string.IsNullOrWhiteSpace(shop.Value.OfferFingerprint));
-        Assert.Contains(shop.Value.Items, item => item.CardId == "heal" && item.GoldCost == 18);
-        Assert.Contains(shop.Value.Items, item => item.CardId == "fireball" && item.GoldCost == 35);
-        Assert.All(shop.Value.Items, item => Assert.True(item.PricingBreakdown.ContainsKey("final")));
+        Assert.Contains(shop.Value.Items, item => item.CardId == "heal" && Amount(item.Costs, "gold") == 18);
+        Assert.Contains(shop.Value.Items, item => item.CardId == "fireball" && Amount(item.Costs, "gold") == 35);
+        Assert.All(shop.Value.Items, item => Assert.True(item.PricingBreakdowns["gold"].ContainsKey("final")));
     }
 
     [Fact]
@@ -636,7 +636,7 @@ public sealed class RunManagerTests
         Assert.True(reroll.IsSuccess, reroll.IsFailure ? reroll.Error : null);
         Assert.Equal(15, run.Gold);
         Assert.Equal(1, reroll.Value.RerollsUsed);
-        Assert.Equal(15, reroll.Value.RerollCostGold);
+        Assert.Equal(15, Amount(reroll.Value.RerollCosts, "gold"));
         Assert.NotEqual(shop.OfferFingerprint, reroll.Value.OfferFingerprint);
         Assert.All(reroll.Value.Items, item => Assert.False(item.Purchased));
     }
@@ -650,14 +650,14 @@ public sealed class RunManagerTests
         run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
         var originalItems = shop.Items.Select(i => i.ItemId).ToArray();
         var originalRerolls = shop.RerollsUsed;
-        var originalCost = shop.RerollCostGold;
+        var originalCosts = shop.RerollCosts;
 
         var reroll = manager.RerollShop(run.RunId, shop.ShopInstanceId);
 
         Assert.True(reroll.IsFailure);
         Assert.Equal(0, run.Gold);
         Assert.Equal(originalRerolls, shop.RerollsUsed);
-        Assert.Equal(originalCost, shop.RerollCostGold);
+        Assert.Equal(originalCosts, shop.RerollCosts);
         Assert.Equal(originalItems, shop.Items.Select(i => i.ItemId));
     }
 
@@ -673,7 +673,7 @@ public sealed class RunManagerTests
         var originalOptions = selection.Options.Select(o => o.CardId).ToArray();
         var originalRerolls = selection.RerollsUsed;
         var originalFree = selection.FreeRerollsRemaining;
-        var originalCost = selection.RerollCostGold;
+        var originalCosts = selection.RerollCosts;
 
         var paid = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
 
@@ -681,7 +681,7 @@ public sealed class RunManagerTests
         Assert.Equal(0, run.Gold);
         Assert.Equal(originalRerolls, selection.RerollsUsed);
         Assert.Equal(originalFree, selection.FreeRerollsRemaining);
-        Assert.Equal(originalCost, selection.RerollCostGold);
+        Assert.Equal(originalCosts, selection.RerollCosts);
         Assert.Equal(originalOptions, selection.Options.Select(o => o.CardId));
     }
 
@@ -990,6 +990,9 @@ public sealed class RunManagerTests
             definitionId,
             StringComparison.Ordinal));
 
+    private static float Amount(IEnumerable<ResourceAmount> amounts, string resourceId) =>
+        amounts.Single(amount => amount.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)).Amount;
+
     private RunManager CreateManager(
         IScriptModifierManager? scriptModifierManager = null,
         IRunStateRepository? repository = null,
@@ -1154,8 +1157,8 @@ public sealed class RunManagerTests
         "cardPoolId": "basic_rewards",
         "reroll": {
           "freeRerolls": 1,
-          "baseGoldCost": 10,
-          "goldCostPerReroll": 5
+          "baseCosts": [{ "resourceId": "gold", "amount": 10 }],
+          "costsPerReroll": [{ "resourceId": "gold", "amount": 5 }]
         },
         "decompose": {
           "enabled": true
@@ -1170,24 +1173,24 @@ public sealed class RunManagerTests
         "cardId": "basic_attack",
         "actionId": "basic_attack",
         "rarity": "Common",
-        "baseGoldPrice": 10,
-        "decomposePowerPoints": 1,
+        "basePrices": [{ "resourceId": "gold", "amount": 10 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
         "tags": ["attack", "common", "starter"]
       },
       "fireball": {
         "cardId": "fireball",
         "actionId": "fireball",
         "rarity": "Uncommon",
-        "baseGoldPrice": 25,
-        "decomposePowerPoints": 2,
+        "basePrices": [{ "resourceId": "gold", "amount": 25 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
         "tags": ["attack", "fire", "magic", "uncommon"]
       },
       "heal": {
         "cardId": "heal",
         "actionId": "heal",
         "rarity": "Common",
-        "baseGoldPrice": 18,
-        "decomposePowerPoints": 1,
+        "basePrices": [{ "resourceId": "gold", "amount": 18 }],
+        "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
         "tags": ["heal", "utility", "common"]
       }
     }
@@ -1211,7 +1214,7 @@ public sealed class RunManagerTests
       "basic_shop": {
         "shopId": "basic_shop",
         "items": [
-          { "itemId": "buy_zap", "cardId": "zap", "goldCost": 10, "powerPointCost": 0 }
+          { "itemId": "buy_zap", "cardId": "zap", "costs": [{ "resourceId": "gold", "amount": 10 }] }
         ]
       }
     }
@@ -1234,11 +1237,11 @@ public sealed class RunManagerTests
           }
         },
         "reroll": {
-          "baseGoldCost": 10,
-          "goldCostPerReroll": 5
+          "baseCosts": [{ "resourceId": "gold", "amount": 10 }],
+          "costsPerReroll": [{ "resourceId": "gold", "amount": 5 }]
         },
         "items": [
-          { "itemId": "buy_fireball", "cardId": "fireball", "goldCost": 25, "powerPointCost": 0 }
+          { "itemId": "buy_fireball", "cardId": "fireball", "costs": [{ "resourceId": "gold", "amount": 25 }] }
         ]
       }
     }
@@ -1249,11 +1252,10 @@ public sealed class RunManagerTests
       "basic_preparation": {
         "preparationId": "basic_preparation",
         "options": [
-          { "optionId": "pack_supplies", "goldCost": 5, "powerPointCost": 0, "addCardsToDiscard": ["heal"] },
+          { "optionId": "pack_supplies", "costs": [{ "resourceId": "gold", "amount": 5 }], "addCardsToDiscard": ["heal"] },
           {
             "optionId": "train_spell",
-            "goldCost": 0,
-            "powerPointCost": 1,
+            "costs": [{ "resourceId": "power_points", "amount": 1 }],
             "addCardsToDiscard": ["fireball"],
             "applyModifiers": [
               { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
@@ -1261,8 +1263,7 @@ public sealed class RunManagerTests
           },
           {
             "optionId": "double_train",
-            "goldCost": 0,
-            "powerPointCost": 2,
+            "costs": [{ "resourceId": "power_points", "amount": 2 }],
             "addCardsToDiscard": ["fireball"],
             "applyModifiers": [
               { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "double_train" },

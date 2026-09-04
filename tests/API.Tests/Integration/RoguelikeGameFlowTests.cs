@@ -133,7 +133,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         Assert.NotEmpty(items.EnumerateArray());
         var firstItem = items.EnumerateArray().First();
         var itemId = GetJsonString(firstItem, "itemId");
-        var price = GetJsonInt(firstItem, "goldCost");
+        var price = GetResourceAmount(firstItem, "costs", "gold");
         Assert.True(initialGold >= price, "The shipped starting run must afford the first basic-shop item.");
 
         var buyResult = await Client.BuyShopItemAsync(runId, shopInstanceId, itemId);
@@ -210,7 +210,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         var initialOptions = selectionResponse.GetProperty("options");
         Assert.NotEmpty(initialOptions.EnumerateArray());
 
-        var rerollCostGold = selectionResponse.GetProperty("rerollCostGold").GetInt32();
+        var rerollCostGold = GetResourceAmount(selectionResponse, "rerollCosts", "gold");
         var effectiveCost = selectionResponse.GetProperty("freeRerollsRemaining").GetInt32() > 0
             ? 0
             : rerollCostGold;

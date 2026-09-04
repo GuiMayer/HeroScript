@@ -25,7 +25,7 @@ public static class CardSelectionTransitions
             Reroll = definition.Reroll,
             Decompose = definition.Decompose,
             FreeRerollsRemaining = definition.Reroll.FreeRerolls,
-            RerollCostGold = CalculateRerollCost(definition.Reroll, 0),
+            RerollCosts = CalculateRerollCosts(definition.Reroll, 0),
             Options = options
         };
 
@@ -101,10 +101,12 @@ public static class CardSelectionTransitions
             return Result<RunStateTransition<CardSelectionState>>.Failure(
                 $"Card selection already completed: {selectionInstanceId}");
 
-        var cost = selection.FreeRerollsRemaining > 0 ? 0 : selection.RerollCostGold;
+        IReadOnlyList<ResourceAmount> costs = selection.FreeRerollsRemaining > 0
+            ? Array.Empty<ResourceAmount>()
+            : selection.RerollCosts;
         var spent = RunResourceTransitions.Spend(
             state.ResourceState,
-            [new ResourceAmount { ResourceId = "gold", Amount = cost }],
+            costs,
             $"card-selection:{selectionInstanceId}:reroll:{selection.RerollsUsed + 1}");
         if (spent.IsFailure)
             return Result<RunStateTransition<CardSelectionState>>.Failure(spent.Error);
@@ -114,7 +116,7 @@ public static class CardSelectionTransitions
         {
             RerollsUsed = rerollsUsed,
             FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1),
-            RerollCostGold = CalculateRerollCost(selection.Reroll, rerollsUsed),
+            RerollCosts = CalculateRerollCosts(selection.Reroll, rerollsUsed),
             Options = options,
             OfferFingerprint = offerFingerprint
         };
@@ -161,11 +163,7 @@ public static class CardSelectionTransitions
         };
         var rewarded = RunResourceTransitions.Gain(
             state.ResourceState,
-            [new ResourceAmount
-            {
-                ResourceId = "power_points",
-                Amount = updatedOption.DecomposePowerPoints
-            }],
+            updatedOption.DecomposeRewards,
             $"card-selection:{selectionInstanceId}:decompose:{cardId}");
         if (rewarded.IsFailure)
             return Result<RunStateTransition<CardSelectionState>>.Failure(rewarded.Error);
@@ -189,6 +187,11 @@ public static class CardSelectionTransitions
         return Result<(int, CardSelectionState)>.Failure($"Card selection not found: {instanceId}");
     }
 
-    private static int CalculateRerollCost(RerollRulesDefinition rules, int rerollsUsed) =>
-        checked(rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll);
+    private static ImmutableArray<ResourceAmount> CalculateRerollCosts(
+        RerollRulesDefinition rules,
+        int rerollsUsed) =>
+        RunResourceTransitions.ProgressiveAmounts(
+            rules.BaseCosts,
+            rules.CostsPerReroll,
+            rerollsUsed);
 }

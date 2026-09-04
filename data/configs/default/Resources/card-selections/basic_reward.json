@@ -7,8 +7,8 @@
     "cardPool": ["basic_attack", "defend", "fireball", "heal"],
     "reroll": {
       "freeRerolls": 1,
-      "baseGoldCost": 10,
-      "goldCostPerReroll": 5
+      "baseCosts": [{ "resourceId": "gold", "amount": 10 }],
+      "costsPerReroll": [{ "resourceId": "gold", "amount": 5 }]
     },
     "decompose": {
       "enabled": true

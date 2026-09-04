@@ -1,6 +1,7 @@
 using Core.Determinism;
 using Core.Run;
 using Core.Combat.Modifiers;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -56,7 +57,12 @@ public sealed class RunSubmoduleTransitionsTests
                     ShopId = "shop",
                     Items = new[]
                     {
-                        new ShopItemState { ItemId = "card", CardId = "zap", GoldCost = 10 }
+                        new ShopItemState
+                        {
+                            ItemId = "card",
+                            CardId = "zap",
+                            Costs = [new ResourceAmount { ResourceId = "gold", Amount = 10 }]
+                        }
                     }
                 }
             ]
@@ -93,7 +99,7 @@ public sealed class RunSubmoduleTransitionsTests
                         new PreparationOptionState
                         {
                             OptionId = "train",
-                            PowerPointCost = 1,
+                            Costs = [new ResourceAmount { ResourceId = "power_points", Amount = 1 }],
                             AddCardsToDiscard = new[] { "fireball" },
                             ApplyModifiers = new[]
                             {
@@ -178,14 +184,62 @@ public sealed class RunSubmoduleTransitionsTests
     public void NestedState_DefensivelyCopiesListsAndDictionaries()
     {
         var tags = new List<string> { "fire" };
-        var pricing = new Dictionary<string, double> { ["final"] = 10 };
-        var item = new ShopItemState { Tags = tags, PricingBreakdown = pricing };
+        var pricing = new Dictionary<string, IReadOnlyDictionary<string, double>>
+        {
+            ["credits"] = new Dictionary<string, double> { ["final"] = 10 }
+        };
+        var item = new ShopItemState { Tags = tags, PricingBreakdowns = pricing };
 
         tags.Add("magic");
-        pricing["final"] = 99;
+        ((Dictionary<string, double>)pricing["credits"])["final"] = 99;
 
         Assert.Equal(new[] { "fire" }, item.Tags);
-        Assert.Equal(10, item.PricingBreakdown["final"]);
+        Assert.Equal(10, item.PricingBreakdowns["credits"]["final"]);
+    }
+
+    [Fact]
+    public void ShopBuy_MultiResourceCostIsAtomic()
+    {
+        var shopId = Guid.Parse("50000000-0000-8000-8000-000000000001");
+        var state = WithResources(CreateState(),
+            new ResourceAmount { ResourceId = "credits", Amount = 20 },
+            new ResourceAmount { ResourceId = "reputation", Amount = 1 }) with
+        {
+            Shops =
+            [
+                new ShopState
+                {
+                    ShopInstanceId = shopId,
+                    Items =
+                    [
+                        new ShopItemState
+                        {
+                            ItemId = "rare_card",
+                            Costs =
+                            [
+                                new ResourceAmount { ResourceId = "credits", Amount = 10 },
+                                new ResourceAmount { ResourceId = "reputation", Amount = 2 }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var failure = ShopTransitions.Buy(state, shopId, "rare_card");
+
+        Assert.True(failure.IsFailure);
+        Assert.Equal(20, state.ResourceState.Current("credits"));
+        Assert.Equal(1, state.ResourceState.Current("reputation"));
+
+        var affordable = WithResources(state,
+            new ResourceAmount { ResourceId = "credits", Amount = 20 },
+            new ResourceAmount { ResourceId = "reputation", Amount = 2 });
+        var success = ShopTransitions.Buy(affordable, shopId, "rare_card");
+
+        Assert.True(success.IsSuccess, success.IsFailure ? success.Error : null);
+        Assert.Equal(10, success.Value.State.ResourceState.Current("credits"));
+        Assert.Equal(0, success.Value.State.ResourceState.Current("reputation"));
     }
 
     private static readonly Guid RunId = Guid.Parse("00000000-0000-8000-8000-000000000001");
@@ -197,4 +251,33 @@ public sealed class RunSubmoduleTransitionsTests
         PlayerEntityId = "hero",
         Determinism = DeterministicContext.Create(42, "test-content")
     };
+
+    private static RunState WithResources(RunState state, params ResourceAmount[] amounts)
+    {
+        var pools = amounts.ToDictionary(
+            amount => amount.ResourceId,
+            amount => new ResourcePool
+            {
+                ResourceId = amount.ResourceId,
+                Current = amount.Amount,
+                Minimum = 0,
+                Maximum = 1_000_000,
+                Definition = new ResourceDefinition
+                {
+                    ResourceId = amount.ResourceId,
+                    DisplayName = amount.ResourceId,
+                    DefaultMax = 1_000_000,
+                    CanExceedMax = true
+                }
+            },
+            StringComparer.OrdinalIgnoreCase);
+        return state with
+        {
+            ResourceState = new ResourceSet
+            {
+                OwnerId = $"run:{state.RunId}",
+                Resources = pools
+            }
+        };
+    }
 }

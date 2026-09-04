@@ -36,7 +36,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         Assert.NotEmpty(items.EnumerateArray());
         var firstUnit = items.EnumerateArray().First();
         var unitId = GetJsonString(firstUnit, "itemId");
-        var price = GetJsonInt(firstUnit, "goldCost");
+        var price = GetResourceAmount(firstUnit, "costs", "gold");
         Assert.True(initialGold >= price);
 
         var buyResult = await Client.BuyShopItemAsync(runId, shopInstanceId, unitId);
@@ -58,7 +58,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
         var shopInstanceId = GetJsonGuid(shopResponse, "shopInstanceId");
 
-        var rerollCost = shopResponse.GetProperty("rerollCostGold").GetInt32();
+        var rerollCost = GetResourceAmount(shopResponse, "rerollCosts", "gold");
         Assert.True(initialGold >= rerollCost);
 
         var rerollResult = await Client.RerollShopAsync(runId, shopInstanceId);

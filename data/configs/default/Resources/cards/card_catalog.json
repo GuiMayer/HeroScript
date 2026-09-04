@@ -2,8 +2,8 @@
   "basic_attack": {
     "cardId": "basic_attack",
     "rarity": "Common",
-    "baseGoldPrice": 10,
-    "decomposePowerPoints": 1,
+    "basePrices": [{ "resourceId": "gold", "amount": 10 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
     "tags": ["attack", "common", "starter"],
     "components": [
       {
@@ -45,8 +45,8 @@
   "defend": {
     "cardId": "defend",
     "rarity": "Common",
-    "baseGoldPrice": 10,
-    "decomposePowerPoints": 1,
+    "basePrices": [{ "resourceId": "gold", "amount": 10 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
     "tags": ["defense", "common", "starter"],
     "components": [
       {
@@ -90,8 +90,8 @@
   "fireball": {
     "cardId": "fireball",
     "rarity": "Uncommon",
-    "baseGoldPrice": 25,
-    "decomposePowerPoints": 2,
+    "basePrices": [{ "resourceId": "gold", "amount": 25 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
     "tags": ["attack", "fire", "magic", "uncommon"],
     "components": [
       {
@@ -148,8 +148,8 @@
   "heal": {
     "cardId": "heal",
     "rarity": "Common",
-    "baseGoldPrice": 18,
-    "decomposePowerPoints": 1,
+    "basePrices": [{ "resourceId": "gold", "amount": 18 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
     "tags": ["heal", "utility", "common"],
     "components": [
       {

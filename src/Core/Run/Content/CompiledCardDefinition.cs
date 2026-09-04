@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Resources;
 
 namespace Core.Run.Content;
 
@@ -10,11 +11,21 @@ public sealed record CompiledCardDefinition
 {
     private ImmutableArray<CardComponentDefinition> _components = [];
     private ImmutableArray<string> _tags = [];
+    private ImmutableArray<ResourceAmount> _basePrices = [];
+    private ImmutableArray<ResourceAmount> _decomposeRewards = [];
 
     public string CardId { get; init; } = string.Empty;
     public CardRarity Rarity { get; init; }
-    public int BaseGoldPrice { get; init; }
-    public int DecomposePowerPoints { get; init; }
+    public IReadOnlyList<ResourceAmount> BasePrices
+    {
+        get => _basePrices;
+        init => _basePrices = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ResourceAmount> DecomposeRewards
+    {
+        get => _decomposeRewards;
+        init => _decomposeRewards = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<string> Tags
     {
         get => _tags;

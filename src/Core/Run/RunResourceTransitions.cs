@@ -1,11 +1,37 @@
 using Core.Common;
 using Core.Resources;
+using System.Collections.Immutable;
 
 namespace Core.Run;
 
 /// <summary>Pure atomic resource transactions for a run aggregate.</summary>
 public static class RunResourceTransitions
 {
+    public static ImmutableArray<ResourceAmount> ProgressiveAmounts(
+        IReadOnlyList<ResourceAmount> baseAmounts,
+        IReadOnlyList<ResourceAmount> amountsPerUse,
+        int uses)
+    {
+        var normalizedUses = System.Math.Max(0, uses);
+        return baseAmounts
+            .Concat(amountsPerUse)
+            .Where(amount => !string.IsNullOrWhiteSpace(amount.ResourceId))
+            .GroupBy(amount => amount.ResourceId, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new ResourceAmount
+            {
+                ResourceId = group.Key,
+                Amount = baseAmounts
+                    .Where(amount => amount.ResourceId.Equals(group.Key, StringComparison.OrdinalIgnoreCase))
+                    .Sum(amount => amount.Amount) +
+                    normalizedUses * amountsPerUse
+                        .Where(amount => amount.ResourceId.Equals(group.Key, StringComparison.OrdinalIgnoreCase))
+                        .Sum(amount => amount.Amount)
+            })
+            .Where(amount => amount.Amount > 0)
+            .OrderBy(amount => amount.ResourceId, StringComparer.Ordinal)
+            .ToImmutableArray();
+    }
+
     public static Result<ResourceSetMutationResult> ApplyDelta(
         ResourceSet resources,
         string resourceId,

@@ -121,6 +121,19 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
             .GetSingle();
     }
 
+    protected static float GetResourceAmount(
+        JsonElement element,
+        string collectionProperty,
+        string resourceId)
+    {
+        foreach (var amount in element.GetProperty(collectionProperty).EnumerateArray())
+        {
+            if (amount.GetProperty("resourceId").GetString() == resourceId)
+                return amount.GetProperty("amount").GetSingle();
+        }
+        return 0f;
+    }
+
     protected static int GetArrayLength(JsonElement element, string propertyName)
     {
         return element.GetProperty(propertyName).GetArrayLength();
