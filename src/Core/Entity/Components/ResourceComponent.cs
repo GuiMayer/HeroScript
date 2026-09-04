@@ -39,19 +39,9 @@ public class ResourceComponent : ComponentBase
     }
     
     /// <summary>
-    /// Obtém o recurso vital (primeiro recurso VITAL)
+    /// Verifica se nenhuma política configurada de recurso derrotou a entidade.
+    /// Nome e categoria do recurso não possuem semântica implícita.
     /// </summary>
-    public ResourcePool? GetVitalResource()
-    {
-        return ResourceState.FirstInCategory(ResourceCategory.VITAL);
-    }
-    
-    /// <summary>
-    /// Verifica se a entidade está viva (recurso vital > 0)
-    /// </summary>
-    public bool IsAlive()
-    {
-        var vital = GetVitalResource();
-        return vital != null && vital.Current > 0;
-    }
+    public bool IsAlive() => !ResourceThresholdEvaluator.IsOwnerDefeated(
+        ResourceState.Resources.Values);
 }

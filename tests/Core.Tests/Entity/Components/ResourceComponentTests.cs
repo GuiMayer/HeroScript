@@ -96,21 +96,7 @@ public class ResourceComponentTests
     }
     
     [Fact]
-    public void GetVitalResource_ShouldReturnFirstVitalResource()
-    {
-        // Arrange
-        var component = CreateComponentWithHealth(100);
-        
-        // Act
-        var vital = component.GetVitalResource();
-        
-        // Assert
-        Assert.NotNull(vital);
-        Assert.Equal("health", vital.ResourceId);
-    }
-    
-    [Fact]
-    public void IsAlive_ShouldReturnTrue_WhenVitalResourceAboveZero()
+    public void IsAlive_ShouldReturnTrue_WhenDefeatPolicyIsNotReached()
     {
         // Arrange
         var component = CreateComponentWithHealth(50);
@@ -123,7 +109,7 @@ public class ResourceComponentTests
     }
     
     [Fact]
-    public void IsAlive_ShouldReturnFalse_WhenVitalResourceAtZero()
+    public void IsAlive_ShouldReturnFalse_WhenConfiguredDefeatPolicyIsReached()
     {
         // Arrange
         var component = CreateComponentWithHealth(0);
@@ -133,6 +119,44 @@ public class ResourceComponentTests
         
         // Assert
         Assert.False(isAlive);
+    }
+
+    [Fact]
+    public void IsAlive_DoesNotInferDefeatFromVitalCategory()
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "stability",
+            DisplayName = "Stability",
+            Category = ResourceCategory.VITAL
+        };
+        var component = Component("stability", 0, definition);
+
+        Assert.True(component.IsAlive());
+    }
+
+    [Fact]
+    public void IsAlive_UsesDefeatPolicyOnArbitraryResource()
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "morale",
+            DisplayName = "Morale",
+            Category = ResourceCategory.SPECIAL,
+            ThresholdPolicies =
+            [
+                new ResourceThresholdPolicy
+                {
+                    PolicyId = "surrender",
+                    Comparison = ResourceThresholdComparison.LessThanOrEqual,
+                    ThresholdSource = ResourceThresholdSource.Minimum,
+                    Consequence = ResourceThresholdConsequence.DefeatOwner
+                }
+            ]
+        };
+        var component = Component("morale", 0, definition);
+
+        Assert.False(component.IsAlive());
     }
     
     [Fact]
@@ -195,7 +219,17 @@ public class ResourceComponentTests
             DisplayName = "Health",
             Category = ResourceCategory.VITAL,
             DefaultCurrent = 100,
-            DefaultMax = 100
+            DefaultMax = 100,
+            ThresholdPolicies =
+            [
+                new ResourceThresholdPolicy
+                {
+                    PolicyId = "defeat",
+                    Comparison = ResourceThresholdComparison.LessThanOrEqual,
+                    ThresholdSource = ResourceThresholdSource.Minimum,
+                    Consequence = ResourceThresholdConsequence.DefeatOwner
+                }
+            ]
         };
         
         var healthPool = new ResourcePool
@@ -214,6 +248,25 @@ public class ResourceComponentTests
         
         return new ResourceComponent(resourceState);
     }
+
+    private static ResourceComponent Component(
+        string resourceId,
+        float current,
+        ResourceDefinition definition) => new(new ResourceSet
+        {
+            OwnerId = "test",
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                [resourceId] = new ResourcePool
+                {
+                    ResourceId = resourceId,
+                    Current = current,
+                    Minimum = 0,
+                    Maximum = 100,
+                    Definition = definition
+                }
+            }
+        });
     
     private ResourceComponent CreateComponentWithHealthAndEnergy(float health, float energy)
     {

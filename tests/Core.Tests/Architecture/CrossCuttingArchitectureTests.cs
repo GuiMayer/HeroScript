@@ -8,6 +8,7 @@ using Core.Resources;
 using Core.Run;
 using Core.StatusEffects;
 using Core.Events.Domain;
+using Core.Entity.Components;
 using System.Collections.Immutable;
 using Xunit;
 
@@ -178,6 +179,8 @@ public sealed class CrossCuttingArchitectureTests
         Assert.Null(coreAssembly.GetType("Core.Combat.Models.EnergyPool"));
         Assert.Null(coreAssembly.GetType("Core.Combat.IEntityFactory"));
         Assert.Null(coreAssembly.GetType("Core.Combat.EntityFactory"));
+        Assert.Null(typeof(ResourceSet).GetMethod("FirstInCategory"));
+        Assert.Null(typeof(ResourceComponent).GetMethod("GetVitalResource"));
     }
 
     [Theory]

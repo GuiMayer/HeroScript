@@ -27,10 +27,6 @@ public sealed record ResourceSet
 
     public float Current(string resourceId) => Get(resourceId)?.Current ?? 0f;
 
-    public ResourcePool? FirstInCategory(ResourceCategory category) =>
-        _resources.Values.FirstOrDefault(pool =>
-            pool.Definition is not null && pool.Definition.Category == category);
-
     /// <summary>
     /// Rebinds every existing pool to a new immutable definition graph. Bounds
     /// belong to runtime state and are preserved; the current value is clamped
