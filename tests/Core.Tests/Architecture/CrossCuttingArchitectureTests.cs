@@ -83,6 +83,26 @@ public sealed class CrossCuttingArchitectureTests
             BindingFlags.Public | BindingFlags.Static));
     }
 
+    [Fact]
+    public void ResourceManager_DoesNotExposeUnversionedHotReloadControls()
+    {
+        var forbiddenMethods = new[]
+        {
+            "EnableHotReload",
+            "DisableHotReload",
+            "ReloadResource"
+        };
+        var exposed = typeof(IResourceManager)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Select(method => method.Name)
+            .Intersect(forbiddenMethods, StringComparer.Ordinal)
+            .ToArray();
+
+        Assert.True(
+            exposed.Length == 0,
+            $"Unversioned resource reload controls are exposed: {string.Join(", ", exposed)}");
+    }
+
     [Theory]
     [InlineData(typeof(ActionManager), "_definitions")]
     [InlineData(typeof(GambitEngine), "_definitions")]

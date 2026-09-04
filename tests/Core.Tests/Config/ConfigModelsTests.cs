@@ -198,7 +198,6 @@ public class ConfigModelsTests
         // Assert
         Assert.Equal(ResourceMode.Auto, config.Mode);
         Assert.Null(config.CoreResourcesPath);
-        Assert.False(config.EnableHotReload);
         Assert.False(config.ValidateResourceVersions);
     }
     
@@ -210,14 +209,12 @@ public class ConfigModelsTests
         {
             Mode = ResourceMode.Development,
             CoreResourcesPath = "C:\\CustomPath\\Resources",
-            EnableHotReload = true,
             ValidateResourceVersions = true
         };
         
         // Assert
         Assert.Equal(ResourceMode.Development, config.Mode);
         Assert.Equal("C:\\CustomPath\\Resources", config.CoreResourcesPath);
-        Assert.True(config.EnableHotReload);
         Assert.True(config.ValidateResourceVersions);
     }
     
@@ -229,16 +226,6 @@ public class ConfigModelsTests
         
         // Assert
         Assert.Equal(ResourceMode.Auto, config.Mode);
-    }
-    
-    [Fact]
-    public void ResourceConfiguration_EnableHotReload_DefaultsToFalse()
-    {
-        // Arrange & Act
-        var config = new ResourceConfiguration();
-        
-        // Assert
-        Assert.False(config.EnableHotReload);
     }
     
     [Fact]
@@ -395,36 +382,32 @@ public class ConfigModelsTests
     }
     
     [Fact]
-    public void ResourceConfiguration_DevelopmentMode_WithHotReload()
+    public void ResourceConfiguration_DevelopmentMode_WithVersionValidation()
     {
         // Arrange & Act - Development configuration
         var devConfig = new ResourceConfiguration
         {
             Mode = ResourceMode.Development,
-            EnableHotReload = true,
             ValidateResourceVersions = true
         };
         
         // Assert
         Assert.Equal(ResourceMode.Development, devConfig.Mode);
-        Assert.True(devConfig.EnableHotReload);
         Assert.True(devConfig.ValidateResourceVersions);
     }
     
     [Fact]
-    public void ResourceConfiguration_ProductionMode_NoHotReload()
+    public void ResourceConfiguration_ProductionMode_WithVersionValidationDisabled()
     {
         // Arrange & Act - Production configuration
         var prodConfig = new ResourceConfiguration
         {
             Mode = ResourceMode.Production,
-            EnableHotReload = false,
             ValidateResourceVersions = false
         };
         
         // Assert
         Assert.Equal(ResourceMode.Production, prodConfig.Mode);
-        Assert.False(prodConfig.EnableHotReload);
     }
     
     [Fact]

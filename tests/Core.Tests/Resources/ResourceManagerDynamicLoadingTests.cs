@@ -87,105 +87,6 @@ public class ResourceManagerDynamicLoadingTests : IDisposable
         Assert.Equal("health", definitions[0].ResourceId);
     }
 
-    [Fact]
-    public void EnableHotReload_ShouldDetectNewFiles()
-    {
-        // Arrange
-        CreateTestResource("health", "Health", ResourceCategory.VITAL);
-        _resourceManager.LoadResourceDefinitions("default");
-        _resourceManager.EnableHotReload("default");
-
-        // Act: Create a new resource file
-        Thread.Sleep(200); // Wait for watcher to initialize
-        CreateTestResource("mana", "Mana", ResourceCategory.VITAL);
-        Thread.Sleep(500); // Wait for file system event to be processed
-
-        // Assert
-        var definitions = _resourceManager.GetAllDefinitions();
-        Assert.Equal(2, definitions.Count);
-        Assert.Contains(definitions, d => d.ResourceId == "mana");
-    }
-
-    [Fact]
-    public void EnableHotReload_ShouldDetectModifiedFiles()
-    {
-        // Arrange
-        CreateTestResource("health", "Health", ResourceCategory.VITAL);
-        _resourceManager.LoadResourceDefinitions("default");
-        _resourceManager.EnableHotReload("default");
-
-        var originalDefinition = _resourceManager.GetDefinition("health").Value;
-        Assert.Equal("Health", originalDefinition.DisplayName);
-
-        // Act: Modify the resource file
-        Thread.Sleep(200);
-        CreateTestResource("health", "Modified Health", ResourceCategory.VITAL);
-        Thread.Sleep(500);
-
-        // Assert
-        var modifiedDefinition = _resourceManager.GetDefinition("health").Value;
-        Assert.Equal("Modified Health", modifiedDefinition.DisplayName);
-    }
-
-    [Fact]
-    public void EnableHotReload_ShouldDetectDeletedFiles()
-    {
-        // Arrange
-        CreateTestResource("health", "Health", ResourceCategory.VITAL);
-        CreateTestResource("mana", "Mana", ResourceCategory.VITAL);
-        _resourceManager.LoadResourceDefinitions("default");
-        _resourceManager.EnableHotReload("default");
-
-        Assert.Equal(2, _resourceManager.GetAllDefinitions().Count);
-
-        // Act: Delete a resource file
-        Thread.Sleep(200);
-        File.Delete(Path.Combine(_testResourcesPath, "health.json"));
-        Thread.Sleep(500);
-
-        // Assert
-        var definitions = _resourceManager.GetAllDefinitions();
-        Assert.Single(definitions);
-        Assert.DoesNotContain(definitions, d => d.ResourceId == "health");
-    }
-
-    [Fact]
-    public void DisableHotReload_ShouldStopDetectingChanges()
-    {
-        // Arrange
-        CreateTestResource("health", "Health", ResourceCategory.VITAL);
-        _resourceManager.LoadResourceDefinitions("default");
-        _resourceManager.EnableHotReload("default");
-        Thread.Sleep(200);
-
-        // Act: Disable hot reload
-        _resourceManager.DisableHotReload();
-        CreateTestResource("mana", "Mana", ResourceCategory.VITAL);
-        Thread.Sleep(500);
-
-        // Assert: New file should not be detected
-        var definitions = _resourceManager.GetAllDefinitions();
-        Assert.Single(definitions);
-        Assert.DoesNotContain(definitions, d => d.ResourceId == "mana");
-    }
-
-    [Fact]
-    public void ReloadResource_ShouldReloadSpecificResource()
-    {
-        // Arrange
-        CreateTestResource("health", "Health", ResourceCategory.VITAL);
-        _resourceManager.LoadResourceDefinitions("default");
-
-        // Act: Modify and reload
-        CreateTestResource("health", "Modified Health", ResourceCategory.VITAL);
-        var result = _resourceManager.ReloadResource("health");
-
-        // Assert
-        Assert.True(result.IsSuccess);
-        var definition = _resourceManager.GetDefinition("health").Value;
-        Assert.Equal("Modified Health", definition.DisplayName);
-    }
-
     private void CreateTestResource(string resourceId, string displayName, ResourceCategory category)
     {
         var shortName = displayName.Length > 3 ? displayName.Substring(0, 3) : displayName;
@@ -218,9 +119,6 @@ public class ResourceManagerDynamicLoadingTests : IDisposable
 
     public void Dispose()
     {
-        _resourceManager.DisableHotReload();
-        _resourceManager.Dispose();
-        
         if (Directory.Exists(_testConfigPath))
         {
             Directory.Delete(_testConfigPath, true);

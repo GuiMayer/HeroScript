@@ -82,24 +82,6 @@ public interface IResourceManager
         RegenerationTiming timing,
         Dictionary<string, float>? context = null);
     
-    /// <summary>
-    /// Habilita hot-reload de recursos.
-    /// Monitora mudanças em arquivos de recursos e recarrega automaticamente.
-    /// </summary>
-    /// <param name="configName">Nome do config a monitorar</param>
-    void EnableHotReload(string configName);
-    
-    /// <summary>
-    /// Desabilita hot-reload de recursos.
-    /// </summary>
-    void DisableHotReload();
-    
-    /// <summary>
-    /// Recarrega um recurso específico.
-    /// </summary>
-    /// <param name="resourceId">ID do recurso a recarregar</param>
-    /// <returns>Resultado da operação</returns>
-    Result ReloadResource(string resourceId);
 }
 
 public interface IRevisionedResourceManager

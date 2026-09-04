@@ -16,11 +16,6 @@ namespace Core.Config
         public string? CoreResourcesPath { get; set; }
 
         /// <summary>
-        /// Habilitar hot reload (apenas dev mode)
-        /// </summary>
-        public bool EnableHotReload { get; set; } = false;
-
-        /// <summary>
         /// Validar versões de recursos
         /// </summary>
         public bool ValidateResourceVersions { get; set; } = false;
