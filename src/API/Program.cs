@@ -478,17 +478,11 @@ builder.Services.AddSingleton<ITurnOrderCalculator>(sp =>
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("TurnOrderCalculator"));
     var combatOptions = sp.GetRequiredService<IOptions<CombatOptions>>();
-    var turnOrderStrategy = combatOptions.Value.TurnOrderStrategy;
-    
-    return turnOrderStrategy.ToLowerInvariant() switch
-    {
-        "speed_based" => new SpeedBasedTurnOrderCalculator(logger),
-        "initiative" => new InitiativeTurnOrderCalculator(logger),
-        "atb" => new ATBTurnOrderCalculator(10f, logger),
-        "conditional" => ConditionalTurnOrderCalculator.CreateHybridCalculator(logger),
-        "fixed" => new FixedTurnOrderCalculator(logger),
-        _ => new FixedTurnOrderCalculator(logger)
-    };
+    var calculator = new TurnOrderCalculatorFactory(logger)
+        .CreateCalculator(combatOptions.Value.ToTurnOrderConfiguration());
+    return calculator.IsSuccess
+        ? calculator.Value
+        : throw new InvalidOperationException(calculator.Error);
 });
 
 // Register CombatSystem

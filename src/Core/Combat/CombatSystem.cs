@@ -110,23 +110,10 @@ public class CombatSystem : ICombatSystem
                 RunNodeId = options.RunNodeId
             };
             combatState = ApplyInitialStatusEffects(combatState, options.InitialStatusEffects);
-            
-            // Inicializar calculadora de ordem de turnos e calcular ordem inicial
-            var initResult = _turnOrderCalculator.InitializeState(combatState);
-            if (initResult.IsFailure)
-            {
-                _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
-            }
-            else
-            {
-                combatState = initResult.Value;
-                var turnOrderResult = _turnOrderCalculator.Calculate(combatState);
-                if (turnOrderResult.IsSuccess)
-                {
-                    combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
-                    _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
-                }
-            }
+            var initialized = InitializeCombatState(combatState);
+            if (initialized.IsFailure)
+                return initialized;
+            combatState = initialized.Value;
             
             // Adicionar ao dicionário
             if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
@@ -188,23 +175,10 @@ public class CombatSystem : ICombatSystem
                 RunNodeId = options.RunNodeId
             };
             combatState = ApplyInitialStatusEffects(combatState, options.InitialStatusEffects);
-            
-            // Inicializar calculadora de ordem de turnos e calcular ordem inicial
-            var initResult = _turnOrderCalculator.InitializeState(combatState);
-            if (initResult.IsFailure)
-            {
-                _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
-            }
-            else
-            {
-                combatState = initResult.Value;
-                var turnOrderResult = _turnOrderCalculator.Calculate(combatState);
-                if (turnOrderResult.IsSuccess)
-                {
-                    combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
-                    _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
-                }
-            }
+            var initialized = InitializeCombatState(combatState);
+            if (initialized.IsFailure)
+                return initialized;
+            combatState = initialized.Value;
             
             // Adicionar ao dicionário
             if (!_activeCombats.TryAdd(combatState.CombatId, combatState))
@@ -299,18 +273,16 @@ public class CombatSystem : ICombatSystem
     {
         var initResult = _turnOrderCalculator.InitializeState(combatState);
         if (initResult.IsFailure)
-        {
-            _logger.LogWarning($"Failed to initialize turn order calculator: {initResult.Error}");
-            return Result<CombatState>.Success(combatState);
-        }
+            return Result<CombatState>.Failure(
+                $"Failed to initialize turn order calculator: {initResult.Error}");
 
         combatState = initResult.Value;
         var turnOrderResult = _turnOrderCalculator.Calculate(combatState);
-        if (turnOrderResult.IsSuccess)
-        {
-            combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
-            _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
-        }
+        if (turnOrderResult.IsFailure)
+            return Result<CombatState>.Failure(
+                $"Failed to calculate turn order: {turnOrderResult.Error}");
+        combatState = turnOrderResult.Value.State with { TurnOrder = turnOrderResult.Value.Order };
+        _logger.LogDebug($"Initial turn order: {string.Join(", ", turnOrderResult.Value.Order)}");
         return Result<CombatState>.Success(combatState);
     }
 
@@ -373,11 +345,11 @@ public class CombatSystem : ICombatSystem
             if (command.ActionType == ActionType.END_TURN)
             {
                 var turnOrder = _turnOrderCalculator.Calculate(newState);
-                if (turnOrder.IsSuccess)
-                {
-                    newState = turnOrder.Value.State with { TurnOrder = turnOrder.Value.Order };
-                    _logger.LogDebug($"Turn order for turn {newState.CurrentTurn}: {string.Join(", ", turnOrder.Value.Order)}");
-                }
+                if (turnOrder.IsFailure)
+                    return Result<CombatState>.Failure(
+                        $"Failed to calculate turn order: {turnOrder.Error}");
+                newState = turnOrder.Value.State with { TurnOrder = turnOrder.Value.Order };
+                _logger.LogDebug($"Turn order for turn {newState.CurrentTurn}: {string.Join(", ", turnOrder.Value.Order)}");
             }
             
             // Verificar condições de vitória/derrota

@@ -11,11 +11,31 @@ namespace Core.Combat.TurnOrder;
 public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
 {
     private readonly ILogger? _logger;
+    private readonly string _modifierResourceId;
+    private readonly float _resourcePerModifier;
+    private readonly int _dieSides;
+    private readonly float? _missingResourceValue;
 
     public TurnStrategy Strategy => TurnStrategy.INITIATIVE;
     
-    public InitiativeTurnOrderCalculator(ILogger? logger = null, Random? random = null)
+    public InitiativeTurnOrderCalculator(
+        string modifierResourceId,
+        float resourcePerModifier,
+        int dieSides,
+        float? missingResourceValue = null,
+        ILogger? logger = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modifierResourceId);
+        if (!float.IsFinite(resourcePerModifier) || resourcePerModifier <= 0)
+            throw new ArgumentOutOfRangeException(nameof(resourcePerModifier));
+        if (dieSides <= 0)
+            throw new ArgumentOutOfRangeException(nameof(dieSides));
+        if (missingResourceValue.HasValue && !float.IsFinite(missingResourceValue.Value))
+            throw new ArgumentOutOfRangeException(nameof(missingResourceValue));
+        _modifierResourceId = modifierResourceId;
+        _resourcePerModifier = resourcePerModifier;
+        _dieSides = dieSides;
+        _missingResourceValue = missingResourceValue;
         _logger = logger;
     }
 
@@ -24,11 +44,23 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
         var context = state.Determinism;
         var entities = new List<(string EntityId, int Initiative)>();
 
-        foreach (var entity in state.GetAllEntities())
+        var actors = state.GetAllEntities()
+            .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+            .ToArray();
+        var modifiers = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var entity in actors)
         {
-            var roll = context.DrawInt32(20);
+            var modifier = GetResourceModifier(entity);
+            if (modifier.IsFailure)
+                return Result<CombatState>.Failure(modifier.Error);
+            modifiers[entity.EntityId] = modifier.Value;
+        }
+
+        foreach (var entity in actors)
+        {
+            var roll = context.DrawInt32(_dieSides);
             context = roll.Context;
-            entities.Add((entity.EntityId, roll.Value + 1 + GetSpeedModifier(entity)));
+            entities.Add((entity.EntityId, roll.Value + 1 + modifiers[entity.EntityId]));
         }
 
         var order = entities
@@ -79,15 +111,13 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
         return Result.Success();
     }
     
-    private static int GetSpeedModifier(CombatEntity entity)
+    private Result<int> GetResourceModifier(CombatEntity entity)
     {
-        var speedModifier = 0;
-        if (entity.ResourceState.Resources.TryGetValue("speed", out var speedPool))
-        {
-            // Cada 2 pontos de velocidade dá +1 de modificador
-            speedModifier = (int)(speedPool.Current / 2);
-        }
-        
-        return speedModifier;
+        if (entity.ResourceState.Resources.TryGetValue(_modifierResourceId, out var resource))
+            return Result<int>.Success((int)(resource.Current / _resourcePerModifier));
+        return _missingResourceValue.HasValue
+            ? Result<int>.Success((int)(_missingResourceValue.Value / _resourcePerModifier))
+            : Result<int>.Failure(
+                $"Initiative resource '{_modifierResourceId}' is missing from actor '{entity.EntityId}'");
     }
 }

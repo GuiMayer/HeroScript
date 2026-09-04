@@ -28,6 +28,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Development");
         builder.UseSetting("Admin:Enabled", "true");
         builder.UseSetting("Admin:ApiKey", "dev-admin-key");
+        builder.UseSetting("Combat:TurnOrderStrategy", "FIXED");
         builder.UseSetting("Persistence:EventStorePath", Path.Combine(_persistenceRoot, "events"));
         builder.UseSetting("Persistence:RunStatePath", Path.Combine(_persistenceRoot, "runs"));
         builder.UseSetting("Persistence:ContentStorePath", Path.Combine(_persistenceRoot, "content"));

@@ -12,7 +12,11 @@ namespace Core.Combat.TurnOrder;
 public class ATBTurnOrderCalculator : ITurnOrderCalculator
 {
     private readonly ILogger? _logger;
+    private readonly string _rateResourceId;
     private readonly float _atbFillRate;
+    private readonly float _referenceResourceValue;
+    private readonly float _readyThreshold;
+    private readonly float? _missingResourceValue;
     
     public TurnStrategy Strategy => TurnStrategy.ATB;
     
@@ -21,10 +25,29 @@ public class ATBTurnOrderCalculator : ITurnOrderCalculator
     /// </summary>
     /// <param name="atbFillRate">Taxa base de preenchimento da barra ATB (padrão: 10.0)</param>
     /// <param name="logger">Logger opcional</param>
-    public ATBTurnOrderCalculator(float atbFillRate = 10f, ILogger? logger = null)
+    public ATBTurnOrderCalculator(
+        string rateResourceId,
+        float atbFillRate,
+        float referenceResourceValue,
+        float readyThreshold,
+        float? missingResourceValue = null,
+        ILogger? logger = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rateResourceId);
+        if (!float.IsFinite(atbFillRate) || atbFillRate <= 0)
+            throw new ArgumentOutOfRangeException(nameof(atbFillRate));
+        if (!float.IsFinite(referenceResourceValue) || referenceResourceValue <= 0)
+            throw new ArgumentOutOfRangeException(nameof(referenceResourceValue));
+        if (!float.IsFinite(readyThreshold) || readyThreshold <= 0)
+            throw new ArgumentOutOfRangeException(nameof(readyThreshold));
+        if (missingResourceValue.HasValue && !float.IsFinite(missingResourceValue.Value))
+            throw new ArgumentOutOfRangeException(nameof(missingResourceValue));
+        _rateResourceId = rateResourceId;
         _logger = logger;
         _atbFillRate = atbFillRate;
+        _referenceResourceValue = referenceResourceValue;
+        _readyThreshold = readyThreshold;
+        _missingResourceValue = missingResourceValue;
     }
 
     public Result<CombatState> InitializeState(CombatState state)
@@ -49,14 +72,17 @@ public class ATBTurnOrderCalculator : ITurnOrderCalculator
 
         foreach (var entity in state.GetAllEntities())
         {
+            var rate = GetRateValue(entity);
+            if (rate.IsFailure)
+                return Result<TurnOrderTransition>.Failure(rate.Error);
             var current = gauges.GetValueOrDefault(entity.EntityId);
             gauges = gauges.SetItem(
                 entity.EntityId,
-                current + _atbFillRate * (GetEntitySpeed(entity) / 10f));
+                current + _atbFillRate * (rate.Value / _referenceResourceValue));
         }
 
         var order = gauges
-            .Where(pair => pair.Value >= 100f)
+            .Where(pair => pair.Value >= _readyThreshold)
             .OrderByDescending(pair => pair.Value)
             .ThenBy(pair => pair.Key, StringComparer.Ordinal)
             .Select(pair => pair.Key)
@@ -93,15 +119,13 @@ public class ATBTurnOrderCalculator : ITurnOrderCalculator
             : Result.Failure("Failed to update ATB");
     }
     
-    private static float GetEntitySpeed(CombatEntity entity)
+    private Result<float> GetRateValue(CombatEntity entity)
     {
-        // Tentar obter velocidade do recurso "speed"
-        if (entity.ResourceState.Resources.TryGetValue("speed", out var speedPool))
-        {
-            return speedPool.Current;
-        }
-        
-        // Fallback: usar um valor padrão
-        return entity.EntityId.StartsWith("hero") ? 10f : 5f;
+        if (entity.ResourceState.Resources.TryGetValue(_rateResourceId, out var resource))
+            return Result<float>.Success(resource.Current);
+        return _missingResourceValue.HasValue
+            ? Result<float>.Success(_missingResourceValue.Value)
+            : Result<float>.Failure(
+                $"ATB rate resource '{_rateResourceId}' is missing from actor '{entity.EntityId}'");
     }
 }

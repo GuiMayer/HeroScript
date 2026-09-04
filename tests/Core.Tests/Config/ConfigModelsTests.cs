@@ -1,6 +1,7 @@
 using System;
 using Core.Config;
 using Core.Config.Delta;
+using Core.Combat.TurnOrder;
 using Xunit;
 
 namespace Core.Tests.Config;
@@ -15,39 +16,44 @@ public class ConfigModelsTests
     // ==================== COMBAT OPTIONS TESTS ====================
     
     [Fact]
-    public void CombatOptions_DefaultConstruction_SetsTurnOrderStrategyToFixed()
+    public void CombatOptions_DefaultConstruction_LeavesTurnOrderUnspecified()
     {
         // Arrange & Act
         var options = new CombatOptions();
         
         // Assert
-        Assert.Equal("fixed", options.TurnOrderStrategy);
+        Assert.Equal(TurnStrategy.UNSPECIFIED, options.ToTurnOrderConfiguration().Strategy);
     }
     
     [Fact]
-    public void CombatOptions_TurnOrderStrategy_CanBeSet()
+    public void CombatOptions_TurnOrderConfiguration_CanBeSet()
     {
         // Arrange & Act
         var options = new CombatOptions
         {
-            TurnOrderStrategy = "speed_based"
+            TurnOrderStrategy = "SPEED_BASED",
+            TurnOrderResourceId = "tempo"
         };
         
         // Assert
-        Assert.Equal("speed_based", options.TurnOrderStrategy);
+        Assert.Equal(TurnStrategy.SPEED_BASED, options.ToTurnOrderConfiguration().Strategy);
+        Assert.Equal("tempo", options.ToTurnOrderConfiguration().OrderResourceId);
     }
     
     [Fact]
     public void CombatOptions_TurnOrderStrategy_SupportsAllValidValues()
     {
         // Arrange
-        var validStrategies = new[] { "fixed", "speed_based", "initiative", "atb", "conditional" };
+        var validStrategies = Enum.GetValues<TurnStrategy>();
         
         // Act & Assert
         foreach (var strategy in validStrategies)
         {
-            var options = new CombatOptions { TurnOrderStrategy = strategy };
-            Assert.Equal(strategy, options.TurnOrderStrategy);
+            var options = new CombatOptions
+            {
+                TurnOrderStrategy = strategy.ToString()
+            };
+            Assert.Equal(strategy, options.ToTurnOrderConfiguration().Strategy);
         }
     }
     
@@ -322,11 +328,13 @@ public class ConfigModelsTests
         // Arrange & Act - Configure speed-based turn order
         var options = new CombatOptions
         {
-            TurnOrderStrategy = "speed_based"
+            TurnOrderStrategy = "speed_based",
+            TurnOrderResourceId = "speed"
         };
         
         // Assert
-        Assert.Equal("speed_based", options.TurnOrderStrategy);
+        Assert.Equal(TurnStrategy.SPEED_BASED, options.ToTurnOrderConfiguration().Strategy);
+        Assert.Equal("speed", options.ToTurnOrderConfiguration().OrderResourceId);
     }
     
     [Fact]

@@ -58,30 +58,23 @@ public class ConditionalTurnOrderCalculator : ITurnOrderCalculator
     }
     
     /// <summary>
-    /// Cria uma calculadora condicional com regra baseada em saúde
-    /// Entidades com menos saúde agem primeiro
+    /// Creates a calculator ordered by the percentage of a configured resource.
+    /// Entities with the lowest percentage act first.
     /// </summary>
-    public static ConditionalTurnOrderCalculator CreateHealthBasedCalculator(ILogger? logger = null)
+    public static ConditionalTurnOrderCalculator CreateResourceBasedCalculator(
+        string resourceId,
+        float? missingResourceValue = null,
+        ILogger? logger = null)
     {
+        ValidateResourceConfiguration(resourceId, missingResourceValue);
         return new ConditionalTurnOrderCalculator(state =>
         {
-            var entities = new List<(string EntityId, float HealthPercent)>();
-            
-            // Adicionar hero
-            var heroHealth = GetHealthPercent(state.Hero);
-            entities.Add((state.Hero.EntityId, heroHealth));
-            
-            // Adicionar inimigos
-            foreach (var enemy in state.Enemies)
-            {
-                var enemyHealth = GetHealthPercent(enemy);
-                entities.Add((enemy.EntityId, enemyHealth));
-            }
-            
-            // Ordenar por saúde (menor primeiro)
-            return entities
-                .OrderBy(e => e.HealthPercent)
-                .ThenBy(e => e.EntityId)
+            return state.GetAllEntities()
+                .Select(entity => (
+                    entity.EntityId,
+                    Percent: GetResourcePercent(entity, resourceId, missingResourceValue)))
+                .OrderBy(e => e.Percent)
+                .ThenBy(e => e.EntityId, StringComparer.Ordinal)
                 .Select(e => e.EntityId)
                 .ToList();
         }, logger);
@@ -111,56 +104,71 @@ public class ConditionalTurnOrderCalculator : ITurnOrderCalculator
     }
     
     /// <summary>
-    /// Cria uma calculadora condicional com regra híbrida
-    /// Usa velocidade, mas dá prioridade a entidades com baixa saúde
+    /// Creates a hybrid calculator: actors below the configured priority-resource
+    /// threshold act first, then all actors are ordered by a second resource.
     /// </summary>
-    public static ConditionalTurnOrderCalculator CreateHybridCalculator(ILogger? logger = null)
+    public static ConditionalTurnOrderCalculator CreateHybridCalculator(
+        string orderResourceId,
+        string priorityResourceId,
+        float priorityThreshold,
+        float? missingResourceValue = null,
+        ILogger? logger = null)
     {
+        ValidateResourceConfiguration(orderResourceId, missingResourceValue);
+        ValidateResourceConfiguration(priorityResourceId, missingResourceValue);
+        if (!float.IsFinite(priorityThreshold) || priorityThreshold is < 0f or > 1f)
+            throw new ArgumentOutOfRangeException(nameof(priorityThreshold));
         return new ConditionalTurnOrderCalculator(state =>
         {
-            var entities = new List<(string EntityId, float Speed, float HealthPercent, bool LowHealth)>();
-            
-            // Adicionar hero
-            var heroSpeed = GetEntitySpeed(state.Hero);
-            var heroHealth = GetHealthPercent(state.Hero);
-            entities.Add((state.Hero.EntityId, heroSpeed, heroHealth, heroHealth < 0.3f));
-            
-            // Adicionar inimigos
-            foreach (var enemy in state.Enemies)
-            {
-                var enemySpeed = GetEntitySpeed(enemy);
-                var enemyHealth = GetHealthPercent(enemy);
-                entities.Add((enemy.EntityId, enemySpeed, enemyHealth, enemyHealth < 0.3f));
-            }
-            
-            // Ordenar: baixa saúde primeiro, depois por velocidade
-            return entities
-                .OrderByDescending(e => e.LowHealth)
-                .ThenByDescending(e => e.Speed)
-                .ThenBy(e => e.EntityId)
+            return state.GetAllEntities()
+                .Select(entity =>
+                {
+                    var priority = GetResourcePercent(entity, priorityResourceId, missingResourceValue);
+                    return (
+                        entity.EntityId,
+                        Order: GetResourceCurrent(entity, orderResourceId, missingResourceValue),
+                        HasPriority: priority < priorityThreshold);
+                })
+                .OrderByDescending(e => e.HasPriority)
+                .ThenByDescending(e => e.Order)
+                .ThenBy(e => e.EntityId, StringComparer.Ordinal)
                 .Select(e => e.EntityId)
                 .ToList();
         }, logger);
     }
-    
-    private static float GetHealthPercent(CombatEntity entity)
+
+    private static float GetResourcePercent(
+        CombatEntity entity,
+        string resourceId,
+        float? missingResourceValue)
     {
-        if (entity.ResourceState.Resources.TryGetValue("health", out var healthPool))
-        {
-            if (healthPool.Maximum > 0)
-            {
-                return healthPool.Current / healthPool.Maximum;
-            }
-        }
-        return 1f;
+        if (entity.ResourceState.Resources.TryGetValue(resourceId, out var resource))
+            return resource.GetPercentage() / 100f;
+        if (missingResourceValue.HasValue)
+            return missingResourceValue.Value;
+        throw new InvalidOperationException(
+            $"Conditional turn-order resource '{resourceId}' is missing from actor '{entity.EntityId}'");
     }
-    
-    private static float GetEntitySpeed(CombatEntity entity)
+
+    private static float GetResourceCurrent(
+        CombatEntity entity,
+        string resourceId,
+        float? missingResourceValue)
     {
-        if (entity.ResourceState.Resources.TryGetValue("speed", out var speedPool))
-        {
-            return speedPool.Current;
-        }
-        return entity.EntityId.StartsWith("hero") ? 10f : 5f;
+        if (entity.ResourceState.Resources.TryGetValue(resourceId, out var resource))
+            return resource.Current;
+        if (missingResourceValue.HasValue)
+            return missingResourceValue.Value;
+        throw new InvalidOperationException(
+            $"Conditional turn-order resource '{resourceId}' is missing from actor '{entity.EntityId}'");
+    }
+
+    private static void ValidateResourceConfiguration(
+        string resourceId,
+        float? missingResourceValue)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceId);
+        if (missingResourceValue.HasValue && !float.IsFinite(missingResourceValue.Value))
+            throw new ArgumentOutOfRangeException(nameof(missingResourceValue));
     }
 }

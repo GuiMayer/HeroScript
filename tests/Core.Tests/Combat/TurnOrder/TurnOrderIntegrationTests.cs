@@ -48,7 +48,7 @@ public class TurnOrderIntegrationTests
     public void CombatSystem_WithSpeedBasedTurnOrder_ShouldOrderBySpeed()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("speed", 0, _logger);
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
@@ -61,15 +61,14 @@ public class TurnOrderIntegrationTests
         // Assert
         Assert.True(startResult.IsSuccess);
         Assert.NotNull(startResult.Value.TurnOrder);
-        // Hero has default speed 10, enemies have default speed 5
-        Assert.Equal("hero1", startResult.Value.TurnOrder[0]);
+        Assert.Equal("enemy1", startResult.Value.TurnOrder[0]);
     }
     
     [Fact]
     public void CombatSystem_WithInitiativeTurnOrder_ShouldCalculateOnce()
     {
         // Arrange
-        var calculator = new InitiativeTurnOrderCalculator(_logger, new Random(42));
+        var calculator = new InitiativeTurnOrderCalculator("speed", 2, 20, 0, _logger);
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
@@ -99,7 +98,7 @@ public class TurnOrderIntegrationTests
     public void CombatSystem_WithATBTurnOrder_ShouldFillGaugesOverTime()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(50f, _logger);
+        var calculator = new ATBTurnOrderCalculator("speed", 50f, 10f, 100f, 10f, _logger);
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
@@ -183,7 +182,7 @@ public class TurnOrderIntegrationTests
         foreach (var strategy in strategies)
         {
             // Act
-            var calculatorResult = factory.CreateCalculator(strategy);
+            var calculatorResult = factory.CreateCalculator(Configuration(strategy));
             Assert.True(calculatorResult.IsSuccess, $"Failed to create calculator for {strategy}");
             
             var combatSystem = new CombatSystem(
@@ -204,7 +203,7 @@ public class TurnOrderIntegrationTests
     public void CombatSystem_TurnOrderRecalculation_ShouldUpdateAfterEndTurn()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("speed", 0, _logger);
         var combatSystem = new CombatSystem(
             _logger,
             _resourceManager,
@@ -235,4 +234,18 @@ public class TurnOrderIntegrationTests
             ActionType = ActionType.END_TURN
         };
     }
+
+    private static TurnOrderConfiguration Configuration(TurnStrategy strategy) => new()
+    {
+        Strategy = strategy,
+        OrderResourceId = "speed",
+        MissingResourceValue = 0,
+        InitiativeDieSides = 20,
+        InitiativeResourcePerModifier = 2,
+        AtbFillRate = 10,
+        AtbReferenceResourceValue = 10,
+        AtbReadyThreshold = 100,
+        PriorityResourceId = "health",
+        PriorityThreshold = 0.3f
+    };
 }

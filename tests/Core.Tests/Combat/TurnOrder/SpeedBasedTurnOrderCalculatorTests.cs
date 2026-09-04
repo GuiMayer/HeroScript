@@ -19,7 +19,7 @@ public class SpeedBasedTurnOrderCalculatorTests
     public void CalculateTurnOrder_ShouldOrderBySpeed_HighestFirst()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("speed", logger: _logger);
         var state = CreateTestCombatStateWithSpeed(
             ("hero1", 15f),
             new[] { ("enemy1", 5f), ("enemy2", 20f), ("enemy3", 10f) }
@@ -41,7 +41,7 @@ public class SpeedBasedTurnOrderCalculatorTests
     public void CalculateTurnOrder_WithEqualSpeed_ShouldUseEntityIdForTiebreaker()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("speed", logger: _logger);
         var state = CreateTestCombatStateWithSpeed(
             ("hero1", 10f),
             new[] { ("enemy1", 10f), ("enemy2", 10f) }
@@ -60,27 +60,25 @@ public class SpeedBasedTurnOrderCalculatorTests
     }
     
     [Fact]
-    public void CalculateTurnOrder_WithoutSpeedResource_ShouldUseFallbackValues()
+    public void CalculateTurnOrder_WithoutConfiguredResource_ShouldFail()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("initiative", logger: _logger);
         var state = CreateTestCombatState("hero1", new[] { "enemy1", "enemy2" });
         
         // Act
         var result = calculator.CalculateTurnOrder(state);
         
         // Assert
-        Assert.True(result.IsSuccess);
-        Assert.Equal(3, result.Value.Count);
-        // Hero fallback is 10, enemies fallback is 5
-        Assert.Equal("hero1", result.Value[0]);
+        Assert.True(result.IsFailure);
+        Assert.Contains("initiative", result.Error);
     }
     
     [Fact]
     public void CalculateTurnOrder_ShouldRecalculate_EachTime()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("speed", logger: _logger);
         var state = CreateTestCombatStateWithSpeed(
             ("hero1", 10f),
             new[] { ("enemy1", 15f) }
@@ -106,7 +104,7 @@ public class SpeedBasedTurnOrderCalculatorTests
     public void Strategy_ShouldReturnSpeedBased()
     {
         // Arrange
-        var calculator = new SpeedBasedTurnOrderCalculator(_logger);
+        var calculator = new SpeedBasedTurnOrderCalculator("speed", logger: _logger);
         
         // Act & Assert
         Assert.Equal(TurnStrategy.SPEED_BASED, calculator.Strategy);

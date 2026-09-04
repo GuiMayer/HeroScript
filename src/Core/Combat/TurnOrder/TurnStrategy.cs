@@ -5,6 +5,8 @@ namespace Core.Combat.TurnOrder;
 /// </summary>
 public enum TurnStrategy
 {
+    UNSPECIFIED,
+
     /// <summary>
     /// Ordem fixa: Hero sempre age primeiro, depois inimigos na ordem de criação
     /// </summary>

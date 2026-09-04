@@ -34,10 +34,12 @@ public class ConditionalTurnOrderCalculatorTests
     }
     
     [Fact]
-    public void CreateHealthBasedCalculator_ShouldOrderByLowestHealthFirst()
+    public void CreateResourceBasedCalculator_ShouldOrderByLowestResourceFirst()
     {
         // Arrange
-        var calculator = ConditionalTurnOrderCalculator.CreateHealthBasedCalculator(_logger);
+        var calculator = ConditionalTurnOrderCalculator.CreateResourceBasedCalculator(
+            "health",
+            logger: _logger);
         var state = CreateTestCombatStateWithHealth(
             ("hero1", 100f, 100f),
             new[] { ("enemy1", 10f, 50f), ("enemy2", 50f, 50f) }
@@ -77,7 +79,11 @@ public class ConditionalTurnOrderCalculatorTests
     public void CreateHybridCalculator_ShouldPrioritizeLowHealthThenSpeed()
     {
         // Arrange
-        var calculator = ConditionalTurnOrderCalculator.CreateHybridCalculator(_logger);
+        var calculator = ConditionalTurnOrderCalculator.CreateHybridCalculator(
+            "speed",
+            "health",
+            0.3f,
+            logger: _logger);
         var state = CreateTestCombatStateWithHealthAndSpeed(
             ("hero1", 100f, 100f, 10f),
             new[] 

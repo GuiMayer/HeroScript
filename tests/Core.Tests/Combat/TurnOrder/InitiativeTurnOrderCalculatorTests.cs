@@ -19,8 +19,7 @@ public class InitiativeTurnOrderCalculatorTests
     public void Initialize_ShouldCalculateInitiativeOrder()
     {
         // Arrange
-        var random = new Random(42); // Fixed seed for deterministic tests
-        var calculator = new InitiativeTurnOrderCalculator(_logger, random);
+        var calculator = new InitiativeTurnOrderCalculator("speed", 2, 20, 0, _logger);
         var state = CreateTestCombatState("hero1", new[] { "enemy1", "enemy2" });
         
         // Act
@@ -37,7 +36,7 @@ public class InitiativeTurnOrderCalculatorTests
     public void CalculateTurnOrder_ShouldReturnSameOrder_AcrossMultipleCalls()
     {
         // Arrange
-        var calculator = new InitiativeTurnOrderCalculator(_logger);
+        var calculator = new InitiativeTurnOrderCalculator("speed", 2, 20, 0, _logger);
         var state = CreateTestCombatState("hero1", new[] { "enemy1", "enemy2" });
         
         // Act
@@ -58,8 +57,7 @@ public class InitiativeTurnOrderCalculatorTests
     public void Initialize_WithSpeedModifier_ShouldAffectInitiative()
     {
         // Arrange
-        var random = new Random(42);
-        var calculator = new InitiativeTurnOrderCalculator(_logger, random);
+        var calculator = new InitiativeTurnOrderCalculator("speed", 2, 20, logger: _logger);
         
         // Create state with high speed hero
         var state = CreateTestCombatStateWithSpeed(
@@ -80,7 +78,7 @@ public class InitiativeTurnOrderCalculatorTests
     public void Strategy_ShouldReturnInitiative()
     {
         // Arrange
-        var calculator = new InitiativeTurnOrderCalculator(_logger);
+        var calculator = new InitiativeTurnOrderCalculator("speed", 2, 20, 0, _logger);
         
         // Act & Assert
         Assert.Equal(TurnStrategy.INITIATIVE, calculator.Strategy);

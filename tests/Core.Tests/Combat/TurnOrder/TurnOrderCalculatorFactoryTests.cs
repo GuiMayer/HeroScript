@@ -20,7 +20,7 @@ public class TurnOrderCalculatorFactoryTests
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateCalculator(TurnStrategy.FIXED);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.FIXED));
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -35,7 +35,7 @@ public class TurnOrderCalculatorFactoryTests
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateCalculator(TurnStrategy.SPEED_BASED);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.SPEED_BASED));
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -50,7 +50,7 @@ public class TurnOrderCalculatorFactoryTests
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateCalculator(TurnStrategy.INITIATIVE);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.INITIATIVE));
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -65,7 +65,7 @@ public class TurnOrderCalculatorFactoryTests
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateCalculator(TurnStrategy.ATB);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.ATB));
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -80,7 +80,7 @@ public class TurnOrderCalculatorFactoryTests
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateCalculator(TurnStrategy.CONDITIONAL);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.CONDITIONAL));
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -106,13 +106,16 @@ public class TurnOrderCalculatorFactoryTests
     }
     
     [Fact]
-    public void CreateATBCalculator_WithCustomFillRate_ShouldReturnCalculator()
+    public void CreateCalculator_WithCustomATBConfiguration_ShouldReturnCalculator()
     {
         // Arrange
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateATBCalculator(25f);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.ATB) with
+        {
+            AtbFillRate = 25f
+        });
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -120,30 +123,50 @@ public class TurnOrderCalculatorFactoryTests
     }
     
     [Fact]
-    public void CreateATBCalculator_WithNegativeFillRate_ShouldReturnFailure()
+    public void CreateCalculator_WithNegativeATBFillRate_ShouldReturnFailure()
     {
         // Arrange
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateATBCalculator(-5f);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.ATB) with
+        {
+            AtbFillRate = -5f
+        });
         
         // Assert
         Assert.True(result.IsFailure);
-        Assert.Contains("must be positive", result.Error);
+        Assert.Contains("Failed to create calculator", result.Error);
     }
     
     [Fact]
-    public void CreateATBCalculator_WithZeroFillRate_ShouldReturnFailure()
+    public void CreateCalculator_WithZeroATBFillRate_ShouldReturnFailure()
     {
         // Arrange
         var factory = new TurnOrderCalculatorFactory(_logger);
         
         // Act
-        var result = factory.CreateATBCalculator(0f);
+        var result = factory.CreateCalculator(Configuration(TurnStrategy.ATB) with
+        {
+            AtbFillRate = 0f
+        });
         
         // Assert
         Assert.True(result.IsFailure);
-        Assert.Contains("must be positive", result.Error);
+        Assert.Contains("Failed to create calculator", result.Error);
     }
+
+    private static TurnOrderConfiguration Configuration(TurnStrategy strategy) => new()
+    {
+        Strategy = strategy,
+        OrderResourceId = "speed",
+        MissingResourceValue = 0,
+        InitiativeDieSides = 20,
+        InitiativeResourcePerModifier = 2,
+        AtbFillRate = 10,
+        AtbReferenceResourceValue = 10,
+        AtbReadyThreshold = 100,
+        PriorityResourceId = "health",
+        PriorityThreshold = 0.3f
+    };
 }

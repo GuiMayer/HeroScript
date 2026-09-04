@@ -19,7 +19,7 @@ public class ATBTurnOrderCalculatorTests
     public void Initialize_ShouldSetAllGaugesToZero()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(10f, _logger);
+        var calculator = Calculator(10f, missingResourceValue: 10f);
         var state = CreateTestCombatState("hero1", new[] { "enemy1", "enemy2" });
         
         // Act
@@ -36,7 +36,7 @@ public class ATBTurnOrderCalculatorTests
     public void CalculateTurnOrder_ShouldReturnEmpty_WhenNoEntityIsReady()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(10f, _logger);
+        var calculator = Calculator(10f, missingResourceValue: 10f);
         var state = CreateTestCombatState("hero1", new[] { "enemy1" });
         calculator.Initialize(state);
         
@@ -52,7 +52,7 @@ public class ATBTurnOrderCalculatorTests
     public void CalculateTurnOrder_ShouldFillGauges_AndReturnReadyEntities()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(100f, _logger); // High fill rate
+        var calculator = Calculator(100f, missingResourceValue: 10f); // High fill rate
         var state = CreateTestCombatState("hero1", new[] { "enemy1" });
         calculator.Initialize(state);
         
@@ -68,7 +68,7 @@ public class ATBTurnOrderCalculatorTests
     public void UpdateAfterAction_ShouldResetGauge()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(100f, _logger);
+        var calculator = Calculator(100f, missingResourceValue: 10f);
         var state = CreateTestCombatState("hero1", new[] { "enemy1" });
         calculator.Initialize(state);
         
@@ -88,7 +88,7 @@ public class ATBTurnOrderCalculatorTests
     public void CalculateTurnOrder_WithHigherSpeed_ShouldFillFaster()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(10f, _logger);
+        var calculator = Calculator(10f);
         var state = CreateTestCombatStateWithSpeed(
             ("hero1", 20f),
             new[] { ("enemy1", 5f) }
@@ -115,7 +115,7 @@ public class ATBTurnOrderCalculatorTests
     public void Strategy_ShouldReturnATB()
     {
         // Arrange
-        var calculator = new ATBTurnOrderCalculator(10f, _logger);
+        var calculator = Calculator(10f, missingResourceValue: 10f);
         
         // Act & Assert
         Assert.Equal(TurnStrategy.ATB, calculator.Strategy);
@@ -132,4 +132,7 @@ public class ATBTurnOrderCalculatorTests
     {
         return TurnOrderTestHelper.CreateTestCombatStateWithSpeed(heroData, enemyData);
     }
+
+    private ATBTurnOrderCalculator Calculator(float fillRate, float? missingResourceValue = null) =>
+        new("speed", fillRate, 10f, 100f, missingResourceValue, _logger);
 }

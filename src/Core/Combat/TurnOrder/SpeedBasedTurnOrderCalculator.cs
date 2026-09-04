@@ -11,37 +11,44 @@ namespace Core.Combat.TurnOrder;
 public class SpeedBasedTurnOrderCalculator : ITurnOrderCalculator
 {
     private readonly ILogger? _logger;
+    private readonly string _orderResourceId;
+    private readonly float? _missingResourceValue;
     
     public TurnStrategy Strategy => TurnStrategy.SPEED_BASED;
     
-    public SpeedBasedTurnOrderCalculator(ILogger? logger = null)
+    public SpeedBasedTurnOrderCalculator(
+        string orderResourceId,
+        float? missingResourceValue = null,
+        ILogger? logger = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(orderResourceId);
+        if (missingResourceValue.HasValue && !float.IsFinite(missingResourceValue.Value))
+            throw new ArgumentOutOfRangeException(nameof(missingResourceValue));
+        _orderResourceId = orderResourceId;
+        _missingResourceValue = missingResourceValue;
         _logger = logger;
     }
     
     public Result<List<string>> CalculateTurnOrder(CombatState state)
     {
-        var entities = new List<(string EntityId, float Speed)>();
-        
-        // Adicionar hero
-        var heroSpeed = GetEntitySpeed(state.Hero);
-        entities.Add((state.Hero.EntityId, heroSpeed));
-        
-        // Adicionar inimigos
-        foreach (var enemy in state.Enemies)
+        var entities = new List<(string EntityId, float Value)>();
+        foreach (var entity in state.GetAllEntities().OrderBy(item => item.EntityId, StringComparer.Ordinal))
         {
-            var enemySpeed = GetEntitySpeed(enemy);
-            entities.Add((enemy.EntityId, enemySpeed));
+            var value = GetOrderValue(entity);
+            if (value.IsFailure)
+                return Result<List<string>>.Failure(value.Error);
+            entities.Add((entity.EntityId, value.Value));
         }
-        
-        // Ordenar por velocidade (maior primeiro)
+
         var turnOrder = entities
-            .OrderByDescending(e => e.Speed)
-            .ThenBy(e => e.EntityId) // Desempate por ID
+            .OrderByDescending(e => e.Value)
+            .ThenBy(e => e.EntityId, StringComparer.Ordinal)
             .Select(e => e.EntityId)
             .ToList();
         
-        _logger?.LogDebug($"Speed-based turn order calculated: {string.Join(", ", turnOrder.Select(id => $"{id}({entities.First(e => e.EntityId == id).Speed})"))}");
+        _logger?.LogDebug(
+            $"Resource-based turn order calculated from {_orderResourceId}: " +
+            string.Join(", ", turnOrder.Select(id => $"{id}({entities.First(e => e.EntityId == id).Value})")));
         
         return Result<List<string>>.Success(turnOrder);
     }
@@ -58,16 +65,13 @@ public class SpeedBasedTurnOrderCalculator : ITurnOrderCalculator
         return Result.Success();
     }
     
-    private float GetEntitySpeed(CombatEntity entity)
+    private Result<float> GetOrderValue(CombatEntity entity)
     {
-        // Tentar obter velocidade do recurso "speed"
-        if (entity.ResourceState.Resources.TryGetValue("speed", out var speedPool))
-        {
-            return speedPool.Current;
-        }
-        
-        // Fallback: usar um valor padrão baseado no tipo de entidade
-        // Hero tem velocidade base de 10, inimigos têm 5
-        return entity.EntityId.StartsWith("hero") ? 10f : 5f;
+        if (entity.ResourceState.Resources.TryGetValue(_orderResourceId, out var resource))
+            return Result<float>.Success(resource.Current);
+        return _missingResourceValue.HasValue
+            ? Result<float>.Success(_missingResourceValue.Value)
+            : Result<float>.Failure(
+                $"Turn-order resource '{_orderResourceId}' is missing from actor '{entity.EntityId}'");
     }
 }

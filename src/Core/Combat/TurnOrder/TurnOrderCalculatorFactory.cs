@@ -19,21 +19,42 @@ public class TurnOrderCalculatorFactory
     /// <summary>
     /// Cria uma calculadora baseada na estratégia especificada
     /// </summary>
-    public Result<ITurnOrderCalculator> CreateCalculator(TurnStrategy strategy)
+    public Result<ITurnOrderCalculator> CreateCalculator(TurnOrderConfiguration configuration)
     {
+        ArgumentNullException.ThrowIfNull(configuration);
         try
         {
-            ITurnOrderCalculator calculator = strategy switch
+            ITurnOrderCalculator calculator = configuration.Strategy switch
             {
                 TurnStrategy.FIXED => new FixedTurnOrderCalculator(_logger),
-                TurnStrategy.SPEED_BASED => new SpeedBasedTurnOrderCalculator(_logger),
-                TurnStrategy.INITIATIVE => new InitiativeTurnOrderCalculator(_logger),
-                TurnStrategy.ATB => new ATBTurnOrderCalculator(atbFillRate: 10f, _logger),
-                TurnStrategy.CONDITIONAL => ConditionalTurnOrderCalculator.CreateHybridCalculator(_logger),
-                _ => throw new ArgumentException($"Unknown turn strategy: {strategy}")
+                TurnStrategy.SPEED_BASED => new SpeedBasedTurnOrderCalculator(
+                    configuration.OrderResourceId!,
+                    configuration.MissingResourceValue,
+                    _logger),
+                TurnStrategy.INITIATIVE => new InitiativeTurnOrderCalculator(
+                    configuration.OrderResourceId!,
+                    configuration.InitiativeResourcePerModifier,
+                    configuration.InitiativeDieSides,
+                    configuration.MissingResourceValue,
+                    _logger),
+                TurnStrategy.ATB => new ATBTurnOrderCalculator(
+                    configuration.OrderResourceId!,
+                    configuration.AtbFillRate,
+                    configuration.AtbReferenceResourceValue,
+                    configuration.AtbReadyThreshold,
+                    configuration.MissingResourceValue,
+                    _logger),
+                TurnStrategy.CONDITIONAL => ConditionalTurnOrderCalculator.CreateHybridCalculator(
+                    configuration.OrderResourceId!,
+                    configuration.PriorityResourceId!,
+                    configuration.PriorityThreshold,
+                    configuration.MissingResourceValue,
+                    _logger),
+                _ => throw new ArgumentException(
+                    $"Unknown or unspecified turn strategy: {configuration.Strategy}")
             };
             
-            _logger?.LogDebug($"Created turn order calculator for strategy: {strategy}");
+            _logger?.LogDebug($"Created turn order calculator for strategy: {configuration.Strategy}");
             
             return Result<ITurnOrderCalculator>.Success(calculator);
         }
@@ -65,28 +86,23 @@ public class TurnOrderCalculatorFactory
         }
     }
     
-    /// <summary>
-    /// Cria uma calculadora ATB com taxa de preenchimento customizada
-    /// </summary>
-    public Result<ITurnOrderCalculator> CreateATBCalculator(float atbFillRate)
-    {
-        try
-        {
-            if (atbFillRate <= 0)
-            {
-                return Result<ITurnOrderCalculator>.Failure("ATB fill rate must be positive");
-            }
-            
-            var calculator = new ATBTurnOrderCalculator(atbFillRate, _logger);
-            
-            _logger?.LogDebug($"Created ATB calculator with fill rate: {atbFillRate}");
-            
-            return Result<ITurnOrderCalculator>.Success(calculator);
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogError($"Failed to create ATB calculator: {ex.Message}");
-            return Result<ITurnOrderCalculator>.Failure($"Failed to create ATB calculator: {ex.Message}");
-        }
-    }
+}
+
+/// <summary>
+/// Explicit configuration for the host-level combat adapter. Canonical runs
+/// capture their combat-flow policies separately; direct combats still need a
+/// complete deterministic turn-order definition.
+/// </summary>
+public sealed record TurnOrderConfiguration
+{
+    public TurnStrategy Strategy { get; set; }
+    public string? OrderResourceId { get; set; }
+    public float? MissingResourceValue { get; set; }
+    public int InitiativeDieSides { get; set; }
+    public float InitiativeResourcePerModifier { get; set; }
+    public float AtbFillRate { get; set; }
+    public float AtbReferenceResourceValue { get; set; }
+    public float AtbReadyThreshold { get; set; }
+    public string? PriorityResourceId { get; set; }
+    public float PriorityThreshold { get; set; }
 }
