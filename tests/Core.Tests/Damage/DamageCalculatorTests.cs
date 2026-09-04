@@ -336,9 +336,14 @@ public class DamageCalculatorTests
         Assert.Contains("physical", capturedContext.Tags);
         Assert.Equal(35f, capturedContext.Modifiers["base_damage"]);
         Assert.Equal(0f, capturedContext.Modifiers["added_damage"]);
-        Assert.Equal(25f, capturedContext.Modifiers["crit_chance"]);
-        Assert.Equal(1.5f, capturedContext.Modifiers["crit_multiplier"]);
-        Assert.Equal(10f, capturedContext.Modifiers["target_armor"]);
+        Assert.Equal(25f, capturedContext.Modifiers["source.resources.crit_chance.current"]);
+        Assert.Equal(1.5f, capturedContext.Modifiers["source.resources.crit_multiplier.current"]);
+        Assert.Equal(10f, capturedContext.Modifiers["target.resources.armor.current"]);
+        Assert.Equal(
+            10f / 999f * 100f,
+            capturedContext.Modifiers["target.resources.armor.percent"],
+            precision: 3);
+        Assert.False(capturedContext.Modifiers.ContainsKey("target_armor"));
         Assert.Equal("warrior", capturedContext.Metadata["attacker_id"]);
         Assert.Equal("goblin", capturedContext.Metadata["target_id"]);
         Assert.Equal("sword_slash", capturedContext.Metadata["action_id"]);

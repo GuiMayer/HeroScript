@@ -5,6 +5,7 @@ using Core.Combat.Models;
 using Core.Effects;
 using Core.Events;
 using Core.Logging;
+using Core.Resources;
 using Core.StatusEffects;
 
 namespace Core.Damage;
@@ -132,28 +133,22 @@ public class DamageCalculator : IDamageCalculator, IRevisionedDamageCalculator
             .Where(e => e.Type == EffectType.DAMAGE)
             .Sum(e => e.FlatValue ?? 0f);
         
+        var modifiers = new Dictionary<string, float>(StringComparer.Ordinal)
+        {
+            ["base_damage"] = baseDamage,
+            ["added_damage"] = 0f,
+            ["increased_damage_total"] = 0f
+        };
+        ResourceFormulaVariables.AddOwner(modifiers, "source", attacker.ResourceState);
+        ResourceFormulaVariables.AddOwner(modifiers, "target", target.ResourceState);
+
         var context = new DamageContext
         {
             BaseDamage = baseDamage,
             CurrentDamage = baseDamage,
             Tags = new HashSet<string>(action.Tags ?? new List<string>()),
             MoreMultipliers = new List<float>(),
-            Modifiers = new Dictionary<string, float>
-            {
-                // Base
-                ["base_damage"] = baseDamage,
-                ["added_damage"] = 0f,
-                
-                // Increased (soma de todos "increased")
-                ["increased_damage_total"] = 0f,
-                
-                // Critical
-                ["crit_chance"] = attacker.GetCritChance(),
-                ["crit_multiplier"] = attacker.GetCritMultiplier(),
-                
-                // Mitigation
-                ["target_armor"] = target.GetArmor()
-            },
+            Modifiers = modifiers,
             Metadata = new Dictionary<string, object>
             {
                 ["attacker_id"] = attacker.EntityId,
@@ -168,7 +163,8 @@ public class DamageCalculator : IDamageCalculator, IRevisionedDamageCalculator
             context = ApplyStatusModifiers(context, attacker.EntityId, target.EntityId);
         }
         
-        _logger.LogDebug($"Initial context: base={baseDamage:F2}, crit_chance={attacker.GetCritChance():F1}%, armor={target.GetArmor():F1}");
+        _logger.LogDebug(
+            $"Initial context: base={baseDamage:F2}, sourceResources={attacker.ResourceState.Resources.Count}, targetResources={target.ResourceState.Resources.Count}");
         
         return context;
     }

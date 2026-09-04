@@ -490,7 +490,12 @@ public class BucketOperationTests
             {
                 new BucketOperation
                 {
-                    Type = OperationType.ROLL_CRIT_TIER
+                    Type = OperationType.ROLL_CRIT_TIER,
+                    Source = "modifier:luck",
+                    Parameters = new Dictionary<string, object>
+                    {
+                        ["multiplierSource"] = "modifier:critical_power"
+                    }
                 }
             }
         };
@@ -500,8 +505,8 @@ public class BucketOperationTests
             baseDamage: 100f,
             modifiers: new Dictionary<string, float> 
             { 
-                { "crit_chance", 150f },
-                { "crit_multiplier", 2.0f }
+                { "luck", 150f },
+                { "critical_power", 2.0f }
             }
         );
 
@@ -553,7 +558,12 @@ public class BucketOperationTests
             {
                 new BucketOperation
                 {
-                    Type = OperationType.ROLL_CRIT_TIER
+                    Type = OperationType.ROLL_CRIT_TIER,
+                    Source = "modifier:luck",
+                    Parameters = new Dictionary<string, object>
+                    {
+                        ["multiplierSource"] = "modifier:critical_power"
+                    }
                 }
             }
         };
@@ -563,8 +573,8 @@ public class BucketOperationTests
             baseDamage: 100f,
             modifiers: new Dictionary<string, float> 
             { 
-                { "crit_chance", 150f },
-                { "crit_multiplier", 2.0f }
+                { "luck", 150f },
+                { "critical_power", 2.0f }
             }
         );
 
@@ -614,7 +624,12 @@ public class BucketOperationTests
             {
                 new BucketOperation
                 {
-                    Type = OperationType.ROLL_CRIT_TIER
+                    Type = OperationType.ROLL_CRIT_TIER,
+                    Source = "modifier:luck",
+                    Parameters = new Dictionary<string, object>
+                    {
+                        ["multiplierSource"] = "modifier:critical_power"
+                    }
                 }
             }
         };
@@ -624,8 +639,8 @@ public class BucketOperationTests
             baseDamage: 100f,
             modifiers: new Dictionary<string, float> 
             { 
-                { "crit_chance", 0f },
-                { "crit_multiplier", 2.0f }
+                { "luck", 0f },
+                { "critical_power", 2.0f }
             }
         );
 

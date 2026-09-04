@@ -60,31 +60,4 @@ public record CombatEntity
             : Common.Result<CombatEntity>.Success(this with { ResourceState = applied.Value.State });
     }
     
-    /// <summary>
-    /// Obtém armadura da entidade para cálculo de mitigação.
-    /// </summary>
-    public float GetArmor()
-    {
-        var armor = GetResource("armor");
-        return armor?.Current ?? 0f;
-    }
-    
-    /// <summary>
-    /// Obtém chance de crítico da entidade (pode ultrapassar 100% para multi-tier).
-    /// </summary>
-    public float GetCritChance()
-    {
-        var critChance = GetResource("crit_chance");
-        return critChance?.Current ?? 0f;
-    }
-    
-    /// <summary>
-    /// Obtém multiplicador de crítico da entidade (padrão 2.0, Felídeo 3.0).
-    /// </summary>
-    public float GetCritMultiplier()
-    {
-        var critMult = GetResource("crit_multiplier");
-        return critMult?.Current ?? 2.0f;
-    }
-    
 }

@@ -47,8 +47,10 @@
       "operations": [
         {
           "type": "ROLL_CRIT_TIER",
-          "source": "",
-          "parameters": {}
+          "source": "modifier:source.resources.crit_chance.current",
+          "parameters": {
+            "multiplierSource": "modifier:source.resources.crit_multiplier.current"
+          }
         }
       ],
       "emitEvents": true
@@ -79,13 +81,19 @@
     {
       "bucketId": "mitigation",
       "order": 5,
-      "filterConditions": [],
+      "filterConditions": [
+        {
+          "type": "MODIFIER_PRESENT",
+          "parameter": "target.resources.armor.current",
+          "value": null
+        }
+      ],
       "operations": [
         {
           "type": "APPLY_FORMULA",
           "source": "formula:ARMOR_REDUCTION",
           "parameters": {
-            "ARMOR": "modifier:target_armor",
+            "ARMOR": "modifier:target.resources.armor.current",
             "DAMAGE": "current_damage"
           }
         }

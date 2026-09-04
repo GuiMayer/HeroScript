@@ -59,7 +59,10 @@
       "operations": [
         {
           "type": "ROLL_CRIT_TIER",
-          "source": "modifier:crit_rate"
+          "source": "modifier:crit_rate",
+          "parameters": {
+            "multiplierSource": "formula:1 + (modifier:crit_damage / 100)"
+          }
         }
       ]
     },

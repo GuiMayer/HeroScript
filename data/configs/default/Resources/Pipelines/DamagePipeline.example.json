@@ -110,8 +110,10 @@
           "_mechanics": "Guaranteed tier = floor(crit_chance / 100), then roll for +1 tier based on remainder",
           "_example": "150% crit chance = guaranteed Tier 1, 50% chance for Tier 2",
           "type": "ROLL_CRIT_TIER",
-          "source": "",
-          "parameters": {}
+          "source": "modifier:source.resources.crit_chance.current",
+          "parameters": {
+            "multiplierSource": "modifier:source.resources.crit_multiplier.current"
+          }
         }
       ],
       "emitEvents": true
@@ -126,7 +128,14 @@
       
       "bucketId": "mitigation",
       "order": 5,
-      "filterConditions": [],
+      "filterConditions": [
+        {
+          "_comment": "Mitigation is optional and only runs when the configured target resource exists",
+          "type": "MODIFIER_PRESENT",
+          "parameter": "target.resources.armor.current",
+          "value": null
+        }
+      ],
       "operations": [
         {
           "_comment": "Apply armor-based damage reduction",
@@ -134,7 +143,7 @@
           "type": "APPLY_FORMULA",
           "source": "formula:ARMOR_REDUCTION",
           "parameters": {
-            "ARMOR": "modifier:target_armor",
+            "ARMOR": "modifier:target.resources.armor.current",
             "DAMAGE": "current_damage"
           }
         }

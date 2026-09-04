@@ -73,7 +73,7 @@ public record BucketOperation
     public OperationType Type { get; init; }
     
     /// <summary>
-    /// Fonte do valor (ex: "modifier:crit_chance", "formula:ARMOR_REDUCTION")
+    /// Fonte do valor (ex: "modifier:source.resources.luck.current", "formula:ARMOR_REDUCTION")
     /// </summary>
     public string Source { get; init; } = string.Empty;
     

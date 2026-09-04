@@ -26,7 +26,10 @@
       "operations": [
         {
           "type": "ROLL_CRIT_TIER",
-          "source": "modifier:crit_chance"
+          "source": "modifier:crit_chance",
+          "parameters": {
+            "multiplierSource": "modifier:crit_multiplier"
+          }
         }
       ]
     },

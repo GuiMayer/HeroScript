@@ -37,7 +37,8 @@ public record DamageContext
     }
     
     /// <summary>
-    /// Modificadores numéricos (ex: "crit_chance" = 150.0)
+    /// Entradas numéricas nomeadas, incluindo recursos projetados pelos caminhos
+    /// canônicos source.resources.* e target.resources.*.
     /// </summary>
     public IReadOnlyDictionary<string, float> Modifiers
     {

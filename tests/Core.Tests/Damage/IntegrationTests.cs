@@ -358,7 +358,7 @@ public class IntegrationTests
         mock.Setup(p => p.ExecutePipeline(It.IsAny<DamageContext>()))
             .Returns((DamageContext ctx) =>
             {
-                var armor = ctx.Modifiers.GetValueOrDefault("target_armor", 0f);
+                var armor = ctx.Modifiers.GetValueOrDefault("target.resources.armor.current", 0f);
                 var reduction = armor * 0.5f; // 50% of armor value
                 return ctx with { CurrentDamage = System.Math.Max(0f, ctx.BaseDamage - reduction) };
             });
@@ -371,7 +371,9 @@ public class IntegrationTests
         mock.Setup(p => p.ExecutePipeline(It.IsAny<DamageContext>()))
             .Returns((DamageContext ctx) =>
             {
-                var critMult = ctx.Modifiers.GetValueOrDefault("crit_multiplier", 1.5f);
+                var critMult = ctx.Modifiers.GetValueOrDefault(
+                    "source.resources.crit_multiplier.current",
+                    1.5f);
                 var newMetadata = new Dictionary<string, object>(ctx.Metadata) { ["crit_tier"] = 1 };
                 return ctx with 
                 { 

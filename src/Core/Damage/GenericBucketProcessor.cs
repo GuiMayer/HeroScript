@@ -217,8 +217,17 @@ public class GenericBucketProcessor
         // Resto = probabilidade de tier extra
         // Fórmula: Dcrit = Dbase × (1 + Tier × (mult - 1))
 
-        var critChance = context.Modifiers.GetValueOrDefault("crit_chance", 0f);
-        var critMult = context.Modifiers.GetValueOrDefault("crit_multiplier", 2.0f);
+        var critChance = ResolveRequiredValue(context, op.Source, "critical chance");
+        if (!op.Parameters.TryGetValue("multiplierSource", out var multiplierSourceValue) ||
+            string.IsNullOrWhiteSpace(multiplierSourceValue?.ToString()))
+        {
+            throw new InvalidOperationException(
+                "ROLL_CRIT_TIER requires the 'multiplierSource' parameter");
+        }
+        var critMult = ResolveRequiredValue(
+            context,
+            multiplierSourceValue!.ToString()!,
+            "critical multiplier");
 
         // Usar MathEngine para calcular tier garantido
         var guaranteedTierExpr = BuildFormula(
@@ -265,6 +274,21 @@ public class GenericBucketProcessor
         _logger.LogDebug($"Critical roll: {critChance:F1}% chance → Tier {finalTier} (guaranteed: {guaranteedTier}, extra chance: {extraChance:F1}%)");
 
         return newContext;
+    }
+
+    private float ResolveRequiredValue(
+        DamageContext context,
+        string source,
+        string description)
+    {
+        var result = ResolveValueSafe(context, source);
+        if (result.IsFailure)
+        {
+            throw new InvalidOperationException(
+                $"Unable to resolve {description} from '{source}': {result.Error}");
+        }
+
+        return result.Value;
     }
 
     private MathExpression BuildFormula(
