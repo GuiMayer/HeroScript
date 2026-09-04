@@ -4,6 +4,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
 using Core.Math;
+using Core.Resources;
 
 namespace Core.Run.Content;
 
@@ -202,6 +203,21 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 failures.Add($"Cost option is required for {component.ComponentId}");
             else if (!affordableOptions.Contains(request.CostOptionId))
                 failures.Add($"Cost option cannot be paid: {request.CostOptionId}");
+        }
+
+        if (!request.IgnoreConfiguredCosts && resolvedCosts.Count > 0)
+        {
+            var aggregate = ResourceCostTransitions.Spend(
+                actor.ResourceState,
+                resolvedCosts.Select(cost => new ResolvedResourceCost
+                {
+                    ResourceId = cost.ResourceId,
+                    Amount = cost.Amount,
+                    AllowOverdraft = cost.AllowOverdraft
+                }).ToArray(),
+                $"card-cost-quote:{card.CardInstanceId:N}");
+            if (aggregate.IsFailure)
+                failures.Add($"Selected card costs cannot be paid: {aggregate.Error}");
         }
 
         var targets = ResolveTargets(card, combat, actor, request.SelectedTargetIds);

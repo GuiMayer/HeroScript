@@ -1213,41 +1213,13 @@ public class CombatSystem : ICombatSystem
         string? costOptionId = null,
         string? contentRevision = null)
     {
-        var updates = new Dictionary<string, ResourcePool>();
-        
-        // Se houver opção de custo alternativo, usar ela
-        if (!string.IsNullOrWhiteSpace(costOptionId) && costs.AlternativeCosts.Count > 0)
-        {
-            var option = costs.GetOption(costOptionId);
-            if (option == null)
-                throw new InvalidOperationException($"Cost option not found: {costOptionId}");
-            
-            // Aplicar custos da opção
-            foreach (var cost in option.Costs)
-            {
-                var pool = actor.GetResource(cost.ResourceId);
-                if (pool == null)
-                    throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
-                
-                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources, contentRevision);
-                updates[cost.ResourceId] = newPool;
-            }
-        }
-        else
-        {
-            // Aplicar custos normais
-            foreach (var cost in costs.Costs)
-            {
-                var pool = actor.GetResource(cost.ResourceId);
-                if (pool == null)
-                    throw new InvalidOperationException($"Resource not found: {cost.ResourceId}");
-                
-                var newPool = SpendCost(cost, pool, actor.ResourceState.Resources, contentRevision);
-                updates[cost.ResourceId] = newPool;
-            }
-        }
-        
-        return actor.UpdateResources(updates);
+        var selected = SelectCosts(costs, costOptionId);
+        if (selected.IsFailure)
+            throw new InvalidOperationException(selected.Error);
+        var spent = SpendCosts(actor.ResourceState, selected.Value, contentRevision);
+        if (spent.IsFailure)
+            throw new InvalidOperationException(spent.Error);
+        return actor with { ResourceState = spent.Value.State };
     }
 
     private ActionDefinition? GetConfiguredAction(string actionId, string contentRevision)
@@ -1261,72 +1233,62 @@ public class CombatSystem : ICombatSystem
         return result.IsSuccess ? result.Value : null;
     }
 
-    private ResourcePool SpendCost(
-        ResourceCost cost,
-        ResourcePool pool,
-        IReadOnlyDictionary<string, ResourcePool> resources,
-        string? contentRevision)
-    {
-        if (_actionCostEvaluator == null)
-            return pool.Spend(cost.Amount);
-
-        var spend = _actionCostEvaluator.Spend(cost, pool, resources, contentRevision);
-        if (spend.IsFailure)
-            throw new InvalidOperationException(spend.Error);
-
-        return spend.Value;
-    }
-
     private string? ValidateActionCosts(
         CombatEntity actor,
         ActionCosts costs,
         string? costOptionId,
         string? contentRevision)
     {
-        var resources = new Dictionary<string, ResourcePool>(actor.ResourceState.Resources);
-
-        if (costs.AlternativeCosts.Count > 0)
-        {
-            if (string.IsNullOrWhiteSpace(costOptionId))
-                return "Cost option must be specified for this action";
-
-            var option = costs.GetOption(costOptionId);
-            if (option == null)
-                return $"Cost option not found: {costOptionId}";
-
-            return GetCostError(option.Costs, resources, contentRevision);
-        }
-
-        return GetCostError(costs.Costs, resources, contentRevision);
+        var selected = SelectCosts(costs, costOptionId);
+        if (selected.IsFailure)
+            return selected.Error;
+        var spent = SpendCosts(actor.ResourceState, selected.Value, contentRevision);
+        return spent.IsFailure ? spent.Error : null;
     }
 
-    private string? GetCostError(
+    private Result<ResourceSetMutationResult> SpendCosts(
+        ResourceSet resources,
         IReadOnlyList<ResourceCost> costs,
-        IReadOnlyDictionary<string, ResourcePool> resources,
         string? contentRevision)
     {
+        var resolved = new List<ResolvedResourceCost>(costs.Count);
         foreach (var cost in costs)
         {
-            if (!resources.TryGetValue(cost.ResourceId, out var pool))
-                return $"Resource not found: {cost.ResourceId}";
-
-            if (_actionCostEvaluator == null)
-            {
-                if (!cost.AllowOverdraft && !pool.CanAfford(cost.Amount))
-                    return $"Insufficient {pool.Definition?.DisplayName ?? cost.ResourceId}: has {pool.Current}, needs {cost.Amount}";
-                continue;
-            }
-
-            var amount = _actionCostEvaluator.CalculateCost(cost, resources, contentRevision);
+            var amount = _actionCostEvaluator == null
+                ? IsValidResourceAmount(cost.Amount)
+                    ? Result<float>.Success(cost.Amount)
+                    : Result<float>.Failure("Resource cost must be finite and non-negative")
+                : _actionCostEvaluator.CalculateCost(cost, resources.Resources, contentRevision);
             if (amount.IsFailure)
-                return amount.Error;
-
-            if (!cost.AllowOverdraft && !pool.CanAfford(amount.Value))
-                return $"Insufficient {pool.Definition?.DisplayName ?? cost.ResourceId}: has {pool.Current}, needs {amount.Value}";
+                return Result<ResourceSetMutationResult>.Failure(amount.Error);
+            resolved.Add(new ResolvedResourceCost
+            {
+                ResourceId = cost.ResourceId,
+                Amount = amount.Value,
+                AllowOverdraft = cost.AllowOverdraft
+            });
         }
 
-        return null;
+        return ResourceCostTransitions.Spend(resources, resolved, "combat-action-cost");
     }
+
+    private static Result<IReadOnlyList<ResourceCost>> SelectCosts(
+        ActionCosts costs,
+        string? costOptionId)
+    {
+        if (costs.AlternativeCosts.Count == 0)
+            return Result<IReadOnlyList<ResourceCost>>.Success(costs.Costs);
+        if (string.IsNullOrWhiteSpace(costOptionId))
+            return Result<IReadOnlyList<ResourceCost>>.Failure(
+                "Cost option must be specified for this action");
+        var option = costs.GetOption(costOptionId);
+        return option == null
+            ? Result<IReadOnlyList<ResourceCost>>.Failure($"Cost option not found: {costOptionId}")
+            : Result<IReadOnlyList<ResourceCost>>.Success(option.Costs);
+    }
+
+    private static bool IsValidResourceAmount(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0;
     
     private CombatState CheckCombatEnd(CombatState state)
     {

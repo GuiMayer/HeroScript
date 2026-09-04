@@ -118,6 +118,43 @@ public sealed class CardPlayEvaluatorTests
         Assert.Equal("enemy-a", Assert.Single(result.Value.ResolvedTargetIds));
     }
 
+    [Fact]
+    public void Evaluate_RejectsAggregateCostsAgainstTheSameResource()
+    {
+        var combat = Combat(
+            Entity("hero", true, ("mana", 3)),
+            Entity("enemy", false, ("mana", 9)));
+        var card = Card(
+            new CardCostComponentDefinition
+            {
+                ComponentId = "cost.first",
+                Costs = new ActionCosts
+                {
+                    Costs = [new ResourceCost { ResourceId = "mana", Amount = 2 }]
+                }
+            },
+            new CardCostComponentDefinition
+            {
+                ComponentId = "cost.second",
+                Costs = new ActionCosts
+                {
+                    Costs = [new ResourceCost { ResourceId = "mana", Amount = 2 }]
+                }
+            });
+
+        var result = CreateEvaluator().Evaluate(
+            card,
+            combat,
+            new CardPlayRequest { ActorId = "hero" });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(result.Value.IsLegal);
+        Assert.Contains(
+            result.Value.FailureReasons,
+            reason => reason.Contains("Selected card costs", StringComparison.Ordinal));
+        Assert.Equal(3, combat.Hero.GetResource("mana")!.Current);
+    }
+
     private CardPlayEvaluator CreateEvaluator() =>
         new(new ActionCostEvaluator(_formulas), _formulas);
 
@@ -159,6 +196,7 @@ public sealed class CardPlayEvaluatorTests
         IsHero = isHero,
         ResourceState = new ResourceSet
         {
+            OwnerId = id,
             Resources = resources.ToDictionary(
                 item => item.Id,
                 item => new ResourcePool

@@ -9,7 +9,6 @@ public interface IActionCostEvaluator
 {
     Result<float> CalculateCost(ResourceCost cost, IReadOnlyDictionary<string, ResourcePool> resources, string? contentRevision = null);
     Result<bool> CanAfford(ResourceCost cost, IReadOnlyDictionary<string, ResourcePool> resources, string? contentRevision = null);
-    Result<ResourcePool> Spend(ResourceCost cost, ResourcePool pool, IReadOnlyDictionary<string, ResourcePool> resources, string? contentRevision = null);
 }
 
 public sealed class ActionCostEvaluator : IActionCostEvaluator
@@ -54,25 +53,6 @@ public sealed class ActionCostEvaluator : IActionCostEvaluator
             return Result<bool>.Failure(amount.Error);
 
         return Result<bool>.Success(cost.AllowOverdraft || pool.CanAfford(amount.Value));
-    }
-
-    public Result<ResourcePool> Spend(ResourceCost cost, ResourcePool pool, IReadOnlyDictionary<string, ResourcePool> resources, string? contentRevision = null)
-    {
-        var amount = CalculateCost(cost, resources, contentRevision);
-        if (amount.IsFailure)
-            return Result<ResourcePool>.Failure(amount.Error);
-
-        if (cost.AllowOverdraft)
-            return Result<ResourcePool>.Success(pool.Set(pool.Current - amount.Value));
-
-        try
-        {
-            return Result<ResourcePool>.Success(pool.Spend(amount.Value));
-        }
-        catch (Exception ex)
-        {
-            return Result<ResourcePool>.Failure(ex.Message);
-        }
     }
 
     private static Dictionary<string, float> BuildVariables(IReadOnlyDictionary<string, ResourcePool> resources)

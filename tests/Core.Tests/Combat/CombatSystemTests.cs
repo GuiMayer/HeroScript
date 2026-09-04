@@ -451,6 +451,55 @@ public class CombatSystemTests
     }
 
     [Fact]
+    public void ExecuteAction_WithRepeatedResourceCosts_ShouldSpendTheirSum()
+    {
+        var action = ActionWithEnergyCosts("double_cost", 1, 1);
+        var actionManager = new Mock<IActionManager>();
+        SetupActionDefinitions(actionManager, action);
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
+            _mockEventBus.Object,
+            actionManager: actionManager.Object,
+            actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
+        var start = combatSystem.StartCombat("hero-1", ["enemy-1"], 3);
+
+        var result = combatSystem.ExecuteAction(
+            start.Value.CombatId,
+            Command("hero-1", ActionType.POWER, "double_cost", "enemy-1"));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(1, result.Value.GetHeroResource("energy")!.Current);
+    }
+
+    [Fact]
+    public void ExecuteAction_WithAggregateOverspend_ShouldRejectWithoutChangingCombat()
+    {
+        var action = ActionWithEnergyCosts("double_cost", 2, 2);
+        var actionManager = new Mock<IActionManager>();
+        SetupActionDefinitions(actionManager, action);
+        var combatSystem = new CombatSystem(
+            _mockLogger.Object,
+            _mockResourceManager.Object,
+            new FixedTurnOrderCalculator(_mockLogger.Object),
+            _mockEventBus.Object,
+            actionManager: actionManager.Object,
+            actionCostEvaluator: new ActionCostEvaluator(_formulaEvaluator.Object));
+        var start = combatSystem.StartCombat("hero-1", ["enemy-1"], 3);
+
+        var result = combatSystem.ExecuteAction(
+            start.Value.CombatId,
+            Command("hero-1", ActionType.POWER, "double_cost", "enemy-1"));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Insufficient", result.Error);
+        var unchanged = combatSystem.GetCombatState(start.Value.CombatId).Value;
+        Assert.Equal(3, unchanged.GetHeroResource("energy")!.Current);
+        Assert.Empty(unchanged.ActionHistory);
+    }
+
+    [Fact]
     public void ExecuteAction_PowerWithAlternativeCosts_ShouldRequireCostOption()
     {
         // Arrange
@@ -692,4 +741,18 @@ public class CombatSystemTests
             }
         };
     }
+
+    private static ActionDefinition ActionWithEnergyCosts(string actionId, params float[] costs) => new()
+    {
+        ActionId = actionId,
+        ActionType = ActionType.POWER,
+        Costs = new ActionCosts
+        {
+            Costs = costs.Select(amount => new ResourceCost
+            {
+                ResourceId = "energy",
+                Amount = amount
+            }).ToArray()
+        }
+    };
 }

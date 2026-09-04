@@ -65,6 +65,46 @@ public sealed class ResourceSetTests
         Assert.Equal(10, state.Current("health"));
     }
 
+    [Fact]
+    public void ResourceCostTransitions_RejectsAggregateOverspendAtomically()
+    {
+        var state = Energy(5);
+
+        var result = ResourceCostTransitions.Spend(
+            state,
+            [
+                new ResolvedResourceCost { ResourceId = "energy", Amount = 3 },
+                new ResolvedResourceCost { ResourceId = "energy", Amount = 3 }
+            ],
+            "action");
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Insufficient", result.Error);
+        Assert.Equal(5, state.Current("energy"));
+    }
+
+    [Fact]
+    public void ResourceCostTransitions_AppliesEveryCostInDeclaredOrder()
+    {
+        var state = Energy(5);
+
+        var result = ResourceCostTransitions.Spend(
+            state,
+            [
+                new ResolvedResourceCost { ResourceId = "energy", Amount = 2 },
+                new ResolvedResourceCost { ResourceId = "energy", Amount = 1 }
+            ],
+            "action");
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(2, result.Value.State.Current("energy"));
+        Assert.Equal(2, result.Value.Records.Count);
+        Assert.Equal(5, result.Value.Records[0].PreviousValue);
+        Assert.Equal(3, result.Value.Records[0].CurrentValue);
+        Assert.Equal(3, result.Value.Records[1].PreviousValue);
+        Assert.Equal(2, result.Value.Records[1].CurrentValue);
+    }
+
     private static ResourceDefinition Definition(string displayName, bool canExceedMax) => new()
     {
         ResourceId = "health",
@@ -74,4 +114,31 @@ public sealed class ResourceSetTests
         DefaultCurrent = 100,
         CanExceedMax = canExceedMax
     };
+
+    private static ResourceSet Energy(float current)
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "energy",
+            DisplayName = "Energy",
+            DefaultMin = 0,
+            DefaultMax = 10,
+            DefaultCurrent = current
+        };
+        return new ResourceSet
+        {
+            OwnerId = "hero",
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                ["energy"] = new()
+                {
+                    ResourceId = "energy",
+                    Current = current,
+                    Minimum = 0,
+                    Maximum = 10,
+                    Definition = definition
+                }
+            }
+        };
+    }
 }

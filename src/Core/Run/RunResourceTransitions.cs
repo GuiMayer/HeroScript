@@ -72,18 +72,16 @@ public static class RunResourceTransitions
         var validation = ValidateAmounts(resources, costs, requireAffordability: true);
         if (validation.IsFailure)
             return Result<ResourceSetMutationResult>.Failure(validation.Error);
-        if (costs.Count == 0)
-            return Result<ResourceSetMutationResult>.Success(new(resources, []));
-        return resources.Apply(costs
-            .OrderBy(cost => cost.ResourceId, StringComparer.Ordinal)
-            .Select((cost, index) => new ResolvedResourceMutation
-            {
-                MutationId = $"{transactionId}:{index}:{cost.ResourceId}",
-                ResourceId = cost.ResourceId,
-                Operation = ResourceMutationOperation.Subtract,
-                Value = cost.Amount
-            })
-            .ToArray());
+        return ResourceCostTransitions.Spend(
+            resources,
+            costs.OrderBy(cost => cost.ResourceId, StringComparer.Ordinal)
+                .Select(cost => new ResolvedResourceCost
+                {
+                    ResourceId = cost.ResourceId,
+                    Amount = cost.Amount
+                })
+                .ToArray(),
+            transactionId);
     }
 
     public static Result<ResourceSetMutationResult> Gain(
