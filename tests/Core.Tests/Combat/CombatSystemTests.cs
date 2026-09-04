@@ -311,7 +311,9 @@ public class CombatSystemTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(0, result.Value.GetHeroResource("energy")?.Current);
         Assert.Equal(20, result.Value.Enemies[0].GetResource("health")?.Current);
-        Assert.Equal(0, result.Value.ActionHistory.Single().EnergyChange);
+        Assert.DoesNotContain(
+            result.Value.ActionHistory.Single().Applications,
+            application => application.TargetEntityId == "hero-1" && application.ResourceId == "energy");
     }
 
     [Fact]
@@ -403,7 +405,11 @@ public class CombatSystemTests
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? -1);
         Assert.Equal(38, result.Value.Enemies[0].GetResource("health")?.Current);
-        Assert.Equal(-2, result.Value.ActionHistory.Single().EnergyChange);
+        var resourceChange = Assert.Single(
+            result.Value.ActionHistory.Single().Applications,
+            application => application.TargetEntityId == "hero-1" && application.ResourceId == "energy");
+        Assert.Equal(3, resourceChange.PreviousValue);
+        Assert.Equal(1, resourceChange.CurrentValue);
     }
 
     [Fact]

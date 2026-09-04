@@ -162,7 +162,8 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 CardInstanceId = request.CardInstanceId,
                 CardDefinitionId = effective.Value.DefinitionId,
                 TargetId = evaluation.Value.ResolvedTargetIds.FirstOrDefault(),
-                TargetIds = evaluation.Value.ResolvedTargetIds
+                TargetIds = evaluation.Value.ResolvedTargetIds,
+                Applications = applied.Value.Records
             });
         var fingerprint = CanonicalJson.ComputeHash(new
         {

@@ -1017,6 +1017,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             ActorId = action.ActorId,
             ActionTypeName = ActionType.PLAY_CARD.ToString(),
             TargetId = action.TargetId,
+            Applications = action.Applications,
             Turn = action.Turn,
             Subject = action.ActorId,
             Target = action.TargetId ?? "none",
@@ -1027,6 +1028,29 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 ["resolutionFingerprint"] = result.ResolutionFingerprint
             }
         });
+
+        foreach (var application in action.Applications)
+        {
+            if (application.ResourceId is not { } resourceId ||
+                application.ResourceField is not { } field ||
+                application.PreviousValue is not { } previousValue ||
+                application.CurrentValue is not { } currentValue)
+                continue;
+            _eventBus.Publish(new ResourceChangedEvent
+            {
+                CombatId = result.Combat.CombatId,
+                ActionId = action.ActionId,
+                OwnerId = application.TargetEntityId,
+                ResourceId = resourceId,
+                Field = field,
+                PreviousValue = previousValue,
+                CurrentValue = currentValue,
+                Reason = $"Card: {result.Card.DefinitionId}",
+                Turn = action.Turn,
+                Subject = application.TargetEntityId,
+                Target = resourceId
+            });
+        }
     }
 
 }

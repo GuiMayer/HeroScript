@@ -197,8 +197,25 @@ public class CombatController : BaseApiController
             ActionType = action.ActionType.ToString(),
             PowerId = action.PowerId,
             TargetId = action.TargetId,
-            DamageDealt = action.DamageDealt,
-            EnergyChange = action.EnergyChange
+            Applications = action.Applications.Select(application => new ActionApplicationDto
+            {
+                EffectInstanceId = application.EffectInstanceId,
+                EffectType = application.EffectType.ToString(),
+                TargetEntityId = application.TargetEntityId,
+                ResourceId = application.ResourceId,
+                ResourceField = application.ResourceField?.ToString(),
+                ResourceOperation = application.ResourceOperation?.ToString(),
+                PreviousValue = application.PreviousValue,
+                CurrentValue = application.CurrentValue,
+                SignedAmount = application.PreviousValue.HasValue && application.CurrentValue.HasValue
+                    ? application.CurrentValue.Value - application.PreviousValue.Value
+                    : null,
+                StatusId = application.StatusId,
+                StatusInstanceId = application.StatusInstanceId,
+                ProvenanceKind = application.Provenance.Kind.ToString(),
+                ProvenanceSourceId = application.Provenance.SourceId,
+                ProvenanceComponentId = application.Provenance.ComponentId
+            }).ToList()
         };
     }
 }

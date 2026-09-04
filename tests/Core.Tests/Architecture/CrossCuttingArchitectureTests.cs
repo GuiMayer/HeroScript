@@ -7,6 +7,7 @@ using Core.Determinism;
 using Core.Resources;
 using Core.Run;
 using Core.StatusEffects;
+using Core.Events.Domain;
 using System.Collections.Immutable;
 using Xunit;
 
@@ -136,6 +137,37 @@ public sealed class CrossCuttingArchitectureTests
         Assert.NotNull(typeof(CombatEntity).GetMethod(
             nameof(CombatEntity.ApplyResourceMutation),
             BindingFlags.Instance | BindingFlags.Public));
+    }
+
+    [Fact]
+    public void CombatHistory_DoesNotExposePrivilegedResourceSummaries()
+    {
+        var forbiddenProperties = new[]
+        {
+            "DamageDealt",
+            "DamageTaken",
+            "EnergyChange",
+            "InitialEnergy"
+        };
+        var contractTypes = new[]
+        {
+            typeof(CombatAction),
+            typeof(CombatResult),
+            typeof(ActionExecutedEvent),
+            typeof(CombatStartedEvent)
+        };
+        var exposed = contractTypes
+            .SelectMany(type => type
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(property => forbiddenProperties.Contains(property.Name, StringComparer.Ordinal))
+                .Select(property => $"{type.Name}.{property.Name}"))
+            .ToArray();
+
+        Assert.True(
+            exposed.Length == 0,
+            $"Privileged resource summaries are exposed: {string.Join(", ", exposed)}");
+        Assert.Null(typeof(CombatAction).Assembly.GetType("Core.Events.Domain.EnergyChangedEvent"));
+        Assert.NotNull(typeof(CombatAction).GetProperty(nameof(CombatAction.Applications)));
     }
 
     [Theory]

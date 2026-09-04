@@ -16,8 +16,6 @@ public record CombatStartedEvent : GameEvent
         get => _enemyIds;
         init => _enemyIds = value?.ToImmutableList() ?? [];
     }
-    public int InitialEnergy { get; init; }
-    
     public CombatStartedEvent()
     {
         EventType = nameof(CombatStartedEvent);

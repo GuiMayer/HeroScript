@@ -145,6 +145,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
         if (executed.IsFailure)
             return Result<AbilityExecutionResult>.Failure(executed.Error);
 
+        var applications = costs.Value.Records.Concat(executed.Value.Records).ToImmutableArray();
         var appended = CombatTransitions.AppendAction(
             executed.Value.State,
             new CombatAction
@@ -156,9 +157,9 @@ public sealed class AbilityExecutor : IAbilityExecutor
                     ? null
                     : definition.Value.ActionId,
                 TargetId = evaluation.Value.ResolvedTargetIds.FirstOrDefault(),
-                TargetIds = evaluation.Value.ResolvedTargetIds
+                TargetIds = evaluation.Value.ResolvedTargetIds,
+                Applications = applications
             });
-        var applications = costs.Value.Records.Concat(executed.Value.Records).ToImmutableArray();
         var fingerprint = CanonicalJson.ComputeHash(new
         {
             definition = definition.Value,

@@ -71,6 +71,18 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
                 .GetDouble() < initialEnemyHealth,
             "The persisted Fireball command must survive a client reconnect.");
 
+        using var historyResponse = await RawClient.GetAsync($"/api/v1/combats/{combatId}/history");
+        var history = await historyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, historyResponse.StatusCode);
+        var application = history.GetProperty("actions")[0]
+            .GetProperty("applications")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("resourceId").GetString() == "health");
+        Assert.Equal("Current", application.GetProperty("resourceField").GetString());
+        Assert.True(application.GetProperty("signedAmount").GetDouble() < 0);
+        Assert.False(history.GetProperty("actions")[0].TryGetProperty("damageDealt", out _));
+        Assert.False(history.GetProperty("actions")[0].TryGetProperty("energyChange", out _));
+
         using var journalResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/journal?limit=10");
         var journal = await journalResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, journalResponse.StatusCode);

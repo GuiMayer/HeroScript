@@ -33,6 +33,7 @@ public sealed class AbilityExecutorTests
         Assert.Equal(ActionType.POWER, action.ActionType);
         Assert.Equal("test_ability", action.PowerId);
         Assert.Equal("enemy", action.TargetId);
+        Assert.Equal(result.Value.Applications, action.Applications);
     }
 
     [Fact]

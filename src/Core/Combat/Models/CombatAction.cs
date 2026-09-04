@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Effects;
 
 namespace Core.Combat.Models;
 
@@ -9,6 +10,7 @@ namespace Core.Combat.Models;
 public record CombatAction
 {
     private ImmutableArray<string> _targetIds = [];
+    private ImmutableArray<EffectApplicationRecord> _applications = [];
 
     public Guid ActionId { get; init; } = Guid.Empty;
     public DateTime Timestamp { get; init; } = DateTime.UnixEpoch;
@@ -24,6 +26,9 @@ public record CombatAction
         get => _targetIds;
         init => _targetIds = value?.ToImmutableArray() ?? [];
     }
-    public int? DamageDealt { get; init; }  // Resultado da ação
-    public int? EnergyChange { get; init; }  // +1 para BASIC_ATTACK, -X para POWER
+    public IReadOnlyList<EffectApplicationRecord> Applications
+    {
+        get => _applications;
+        init => _applications = value?.ToImmutableArray() ?? [];
+    }
 }

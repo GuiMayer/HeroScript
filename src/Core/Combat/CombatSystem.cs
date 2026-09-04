@@ -139,7 +139,6 @@ public class CombatSystem : ICombatSystem
                 CombatId = combatState.CombatId,
                 HeroId = heroId,
                 EnemyIds = enemyIds,
-                InitialEnergy = (int)(hero.GetResource("energy")?.Current ?? initialEnergy),
                 Target = combatState.CombatId.ToString()
             });
             
@@ -218,7 +217,6 @@ public class CombatSystem : ICombatSystem
                 CombatId = combatState.CombatId,
                 HeroId = hero.EntityId,
                 EnemyIds = enemies.Select(e => e.EntityId).ToList(),
-                InitialEnergy = (int)(heroCombat.GetResource("energy")?.Current ?? 0),
                 Target = combatState.CombatId.ToString()
             });
             
@@ -286,7 +284,6 @@ public class CombatSystem : ICombatSystem
                 CombatId = initialized.Value.CombatId,
                 HeroId = hero.EntityId,
                 EnemyIds = enemies.Select(enemy => enemy.EntityId).ToList(),
-                InitialEnergy = (int)(hero.GetResource("energy")?.Current ?? 0),
                 Target = initialized.Value.CombatId.ToString()
             });
             return initialized;
@@ -400,12 +397,12 @@ public class CombatSystem : ICombatSystem
                 ActionTypeName = lastAction.ActionType.ToString(),
                 PowerId = lastAction.PowerId,
                 TargetId = lastAction.TargetId,
-                DamageDealt = lastAction.DamageDealt,
-                EnergyChange = lastAction.EnergyChange,
+                Applications = lastAction.Applications,
                 Turn = newState.CurrentTurn,
                 Subject = lastAction.ActorId,
                 Target = lastAction.TargetId ?? "none"
             });
+            PublishResourceChanges(newState, lastAction, $"Action: {lastAction.PowerId ?? lastAction.ActionType.ToString()}");
             
             return Result<CombatState>.Success(newState);
         }
@@ -631,22 +628,6 @@ public class CombatSystem : ICombatSystem
             state,
             randomProvider);
 
-        var previousEnergy = actor.GetResource("energy")?.Current ?? 0;
-        var currentEnergy = updatedActor.GetResource("energy")?.Current ?? previousEnergy;
-        var energyChange = (int)(currentEnergy - previousEnergy);
-        var action = new CombatAction
-        {
-            Turn = state.CurrentTurn,
-            ActorId = actor.EntityId,
-            ActionType = actionType,
-            PowerId = actionType == ActionType.POWER ? actionId : null,
-            TargetId = targetId,
-            DamageDealt = (int)damageDealt,
-            EnergyChange = energyChange
-        };
-
-        PublishEnergyChange(state, actor.EntityId, previousEnergy, currentEnergy, energyChange, $"Action: {actionId}");
-
         var updatedState = state with { Determinism = randomProvider.Context };
         if (updatedActor.EntityId == newTarget.EntityId)
         {
@@ -665,6 +646,15 @@ public class CombatSystem : ICombatSystem
             randomProvider);
         updatedState = updatedState with { Determinism = randomProvider.Context };
 
+        var action = new CombatAction
+        {
+            Turn = state.CurrentTurn,
+            ActorId = actor.EntityId,
+            ActionType = actionType,
+            PowerId = actionType == ActionType.POWER ? actionId : null,
+            TargetId = targetId,
+            Applications = DescribeResourceChanges(state, updatedState, actionId)
+        };
         return CombatTransitions.AppendAction(updatedState, action).State;
     }
 
@@ -925,20 +915,108 @@ public class CombatSystem : ICombatSystem
         };
     }
 
-    private void PublishEnergyChange(CombatState state, string actorId, float oldEnergy, float newEnergy, int energyChange, string reason)
+    private void PublishResourceChanges(CombatState state, CombatAction action, string reason)
     {
-        if (energyChange == 0)
+        if (_eventBus == null)
             return;
 
-        _eventBus?.Publish(new EnergyChangedEvent
+        foreach (var application in action.Applications)
         {
-            CombatId = state.CombatId,
-            OldEnergy = (int)oldEnergy,
-            NewEnergy = (int)newEnergy,
-            Delta = energyChange,
-            Reason = reason,
-            Turn = state.CurrentTurn,
-            Target = actorId
+            if (application.ResourceId is not { } resourceId ||
+                application.ResourceField is not { } field ||
+                application.PreviousValue is not { } previousValue ||
+                application.CurrentValue is not { } currentValue)
+                continue;
+            _eventBus.Publish(new ResourceChangedEvent
+            {
+                CombatId = state.CombatId,
+                ActionId = action.ActionId,
+                OwnerId = application.TargetEntityId,
+                ResourceId = resourceId,
+                Field = field,
+                PreviousValue = previousValue,
+                CurrentValue = currentValue,
+                Reason = reason,
+                Turn = state.CurrentTurn,
+                Subject = application.TargetEntityId,
+                Target = resourceId
+            });
+        }
+    }
+
+    private static IReadOnlyList<EffectApplicationRecord> DescribeResourceChanges(
+        CombatState before,
+        CombatState after,
+        string sourceId)
+    {
+        var applications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
+        foreach (var beforeEntity in before.GetAllEntities()
+                     .OrderBy(entity => entity.EntityId, StringComparer.Ordinal))
+        {
+            var afterEntity = after.GetEntity(beforeEntity.EntityId);
+            if (afterEntity == null)
+                continue;
+
+            foreach (var (resourceId, beforePool) in beforeEntity.ResourceState.Resources
+                         .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                var afterPool = afterEntity.GetResource(resourceId);
+                if (afterPool == null)
+                    continue;
+                AddResourceFieldChange(
+                    applications,
+                    sourceId,
+                    beforeEntity.EntityId,
+                    resourceId,
+                    ResourceValueField.Current,
+                    beforePool.Current,
+                    afterPool.Current);
+                AddResourceFieldChange(
+                    applications,
+                    sourceId,
+                    beforeEntity.EntityId,
+                    resourceId,
+                    ResourceValueField.Minimum,
+                    beforePool.Minimum,
+                    afterPool.Minimum);
+                AddResourceFieldChange(
+                    applications,
+                    sourceId,
+                    beforeEntity.EntityId,
+                    resourceId,
+                    ResourceValueField.Maximum,
+                    beforePool.Maximum,
+                    afterPool.Maximum);
+            }
+        }
+        return applications.ToImmutable();
+    }
+
+    private static void AddResourceFieldChange(
+        ImmutableArray<EffectApplicationRecord>.Builder applications,
+        string sourceId,
+        string ownerId,
+        string resourceId,
+        ResourceValueField field,
+        float previousValue,
+        float currentValue)
+    {
+        if (previousValue.Equals(currentValue))
+            return;
+        applications.Add(new EffectApplicationRecord
+        {
+            EffectInstanceId = $"action:{sourceId}:{ownerId}:{resourceId}:{field}",
+            EffectType = EffectType.MODIFY_RESOURCE,
+            TargetEntityId = ownerId,
+            ResourceId = resourceId,
+            ResourceField = field,
+            PreviousValue = previousValue,
+            CurrentValue = currentValue,
+            Provenance = new EffectProvenance
+            {
+                Kind = EffectProvenanceKind.Ability,
+                SourceId = sourceId
+            }
         });
     }
     
@@ -1513,8 +1591,6 @@ public class CombatSystem : ICombatSystem
                 Status = state.Status,
                 TotalTurns = state.CurrentTurn,
                 TotalActions = state.ActionHistory.Count,
-                DamageDealt = state.ActionHistory.Sum(a => a.DamageDealt ?? 0),
-                DamageTaken = (int)((state.Hero.GetResource("health")?.Maximum ?? 0f) - (state.Hero.GetResource("health")?.Current ?? 0f)),
                 Duration = state.Determinism.LogicalTimestamp.UtcDateTime - state.StartedAt
             };
 

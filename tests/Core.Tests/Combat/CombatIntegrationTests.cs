@@ -85,7 +85,7 @@ public class CombatIntegrationTests
         var eventsPublished = new List<string>();
         eventBus.Subscribe<CombatStartedEvent>(e => eventsPublished.Add("CombatStarted"));
         eventBus.Subscribe<ActionExecutedEvent>(e => eventsPublished.Add("ActionExecuted"));
-        eventBus.Subscribe<EnergyChangedEvent>(e => eventsPublished.Add("EnergyChanged"));
+        eventBus.Subscribe<ResourceChangedEvent>(e => eventsPublished.Add("ResourceChanged"));
         eventBus.Subscribe<CombatEndedEvent>(e => eventsPublished.Add("CombatEnded"));
 
         // Act
@@ -100,7 +100,7 @@ public class CombatIntegrationTests
         // Assert
         Assert.Contains("CombatStarted", eventsPublished);
         Assert.Contains("ActionExecuted", eventsPublished);
-        Assert.Contains("EnergyChanged", eventsPublished);
+        Assert.Contains("ResourceChanged", eventsPublished);
         Assert.Contains("CombatEnded", eventsPublished);
     }
 

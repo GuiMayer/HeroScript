@@ -1,9 +1,10 @@
 using Core.Events.Domain;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Events;
 
-public sealed class PhaseAndEnergyEventsTests
+public sealed class PhaseAndResourceEventsTests
 {
     [Fact]
     public void PhaseEvents_PreserveContentDefinedIds()
@@ -29,18 +30,22 @@ public sealed class PhaseAndEnergyEventsTests
     }
 
     [Fact]
-    public void EnergyChangedEvent_RecordsSignedDelta()
+    public void ResourceChangedEvent_RecordsGenericFieldAndSignedAmount()
     {
-        var changed = new EnergyChangedEvent
+        var changed = new ResourceChangedEvent
         {
             CombatId = Guid.NewGuid(),
-            OldEnergy = 3,
-            NewEnergy = 1,
-            Delta = -2,
+            OwnerId = "hero",
+            ResourceId = "mana",
+            Field = ResourceValueField.Current,
+            PreviousValue = 3,
+            CurrentValue = 1,
             Reason = "card_played"
         };
 
-        Assert.Equal(-2, changed.Delta);
+        Assert.Equal(-2, changed.SignedAmount);
+        Assert.Equal("mana", changed.ResourceId);
+        Assert.Equal(ResourceValueField.Current, changed.Field);
         Assert.Equal("card_played", changed.Reason);
     }
 }

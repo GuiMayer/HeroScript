@@ -16,6 +16,23 @@ public class ActionDto
     public string ActionType { get; set; } = string.Empty;
     public string? PowerId { get; set; }
     public string? TargetId { get; set; }
-    public int? DamageDealt { get; set; }
-    public int? EnergyChange { get; set; }
+    public List<ActionApplicationDto> Applications { get; set; } = new();
+}
+
+public class ActionApplicationDto
+{
+    public string EffectInstanceId { get; set; } = string.Empty;
+    public string EffectType { get; set; } = string.Empty;
+    public string TargetEntityId { get; set; } = string.Empty;
+    public string? ResourceId { get; set; }
+    public string? ResourceField { get; set; }
+    public string? ResourceOperation { get; set; }
+    public float? PreviousValue { get; set; }
+    public float? CurrentValue { get; set; }
+    public float? SignedAmount { get; set; }
+    public string? StatusId { get; set; }
+    public Guid? StatusInstanceId { get; set; }
+    public string ProvenanceKind { get; set; } = string.Empty;
+    public string ProvenanceSourceId { get; set; } = string.Empty;
+    public string? ProvenanceComponentId { get; set; }
 }

@@ -9,7 +9,5 @@ public record CombatResult
     public CombatStatus Status { get; init; }
     public int TotalTurns { get; init; }
     public int TotalActions { get; init; }
-    public int DamageDealt { get; init; }
-    public int DamageTaken { get; init; }
     public TimeSpan Duration { get; init; }
 }

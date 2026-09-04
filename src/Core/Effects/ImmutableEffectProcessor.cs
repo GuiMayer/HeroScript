@@ -57,6 +57,8 @@ public sealed record EffectApplicationRecord
     public EffectType EffectType { get; init; }
     public string TargetEntityId { get; init; } = string.Empty;
     public string? ResourceId { get; init; }
+    public ResourceValueField? ResourceField { get; init; }
+    public ResourceMutationOperation? ResourceOperation { get; init; }
     public float? PreviousValue { get; init; }
     public float? CurrentValue { get; init; }
     public string? StatusId { get; init; }
@@ -229,6 +231,8 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 EffectType = effect.Definition.Type,
                 TargetEntityId = target.EntityId,
                 ResourceId = resourceId,
+                ResourceField = reduced.Value.Records[0].Field,
+                ResourceOperation = reduced.Value.Records[0].Operation,
                 PreviousValue = reduced.Value.Records[0].PreviousValue,
                 CurrentValue = reduced.Value.Records[0].CurrentValue,
                 Provenance = effect.Provenance

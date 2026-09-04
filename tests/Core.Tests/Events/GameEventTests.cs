@@ -181,8 +181,7 @@ public class GameEventTests
         {
             CombatId = combatId,
             HeroId = "hero_ironclad",
-            EnemyIds = enemyIds,
-            InitialEnergy = 3
+            EnemyIds = enemyIds
         };
         
         // Assert
@@ -190,7 +189,6 @@ public class GameEventTests
         Assert.Equal("hero_ironclad", evt.HeroId);
         Assert.Equal(3, evt.EnemyIds.Count);
         Assert.Contains("goblin1", evt.EnemyIds);
-        Assert.Equal(3, evt.InitialEnergy);
     }
     
     // ==================== COMBAT ENDED EVENT TESTS ====================
@@ -265,8 +263,18 @@ public class GameEventTests
             ActionTypeName = "ATTACK",
             PowerId = "strike",
             TargetId = "enemy1",
-            DamageDealt = 15,
-            EnergyChange = -1
+            Applications =
+            [
+                new EffectApplicationRecord
+                {
+                    EffectInstanceId = "strike:mana",
+                    EffectType = EffectType.MODIFY_RESOURCE,
+                    TargetEntityId = "hero",
+                    ResourceId = "mana",
+                    PreviousValue = 3,
+                    CurrentValue = 2
+                }
+            ]
         };
         
         // Assert
@@ -276,8 +284,10 @@ public class GameEventTests
         Assert.Equal("ATTACK", evt.ActionTypeName);
         Assert.Equal("strike", evt.PowerId);
         Assert.Equal("enemy1", evt.TargetId);
-        Assert.Equal(15, evt.DamageDealt);
-        Assert.Equal(-1, evt.EnergyChange);
+        var application = Assert.Single(evt.Applications);
+        Assert.Equal("mana", application.ResourceId);
+        Assert.Equal(3, application.PreviousValue);
+        Assert.Equal(2, application.CurrentValue);
     }
     
     [Fact]
@@ -289,16 +299,13 @@ public class GameEventTests
             ActorId = "hero",
             ActionTypeName = "PASS",
             PowerId = null,
-            TargetId = null,
-            DamageDealt = null,
-            EnergyChange = null
+            TargetId = null
         };
         
         // Assert
         Assert.Null(evt.PowerId);
         Assert.Null(evt.TargetId);
-        Assert.Null(evt.DamageDealt);
-        Assert.Null(evt.EnergyChange);
+        Assert.Empty(evt.Applications);
     }
     
     // ==================== EFFECT EXECUTED EVENT TESTS ====================
@@ -621,8 +628,7 @@ public class GameEventTests
         {
             CombatId = combatId,
             HeroId = "ironclad",
-            EnemyIds = new List<string> { "jaw_worm" },
-            InitialEnergy = 3
+            EnemyIds = new List<string> { "jaw_worm" }
         };
         
         // Act - Combat action
@@ -633,8 +639,18 @@ public class GameEventTests
             ActionTypeName = "ATTACK",
             PowerId = "bash",
             TargetId = "jaw_worm",
-            DamageDealt = 12,
-            EnergyChange = -2
+            Applications =
+            [
+                new EffectApplicationRecord
+                {
+                    EffectInstanceId = "bash:target-resource",
+                    EffectType = EffectType.MODIFY_RESOURCE,
+                    TargetEntityId = "jaw_worm",
+                    ResourceId = "guard",
+                    PreviousValue = 20,
+                    CurrentValue = 8
+                }
+            ]
         };
         
         // Combat ends

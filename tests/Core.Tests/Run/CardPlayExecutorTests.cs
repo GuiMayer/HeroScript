@@ -100,6 +100,7 @@ public sealed class CardPlayExecutorTests
         Assert.Equal(ActionType.PLAY_CARD, action.ActionType);
         Assert.Equal(instanceId, action.CardInstanceId);
         Assert.Equal("arcane_drain", action.CardDefinitionId);
+        Assert.Equal(result.Value.Applications, action.Applications);
     }
 
     [Fact]

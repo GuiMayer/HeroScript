@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Core.Combat.Models;
+using Core.Effects;
 using Core.Resources;
 using Xunit;
 
@@ -464,8 +465,18 @@ public class CombatModelsTests
             ActionType = ActionType.POWER,
             PowerId = "fireball",
             TargetId = "enemy_1",
-            DamageDealt = 25,
-            EnergyChange = -5
+            Applications =
+            [
+                new EffectApplicationRecord
+                {
+                    EffectInstanceId = "fireball:ward",
+                    EffectType = EffectType.MODIFY_RESOURCE,
+                    TargetEntityId = "enemy_1",
+                    ResourceId = "ward",
+                    PreviousValue = 30,
+                    CurrentValue = 5
+                }
+            ]
         };
         
         // Assert
@@ -476,8 +487,9 @@ public class CombatModelsTests
         Assert.Equal(ActionType.POWER, action.ActionType);
         Assert.Equal("fireball", action.PowerId);
         Assert.Equal("enemy_1", action.TargetId);
-        Assert.Equal(25, action.DamageDealt);
-        Assert.Equal(-5, action.EnergyChange);
+        var application = Assert.Single(action.Applications);
+        Assert.Equal("ward", application.ResourceId);
+        Assert.Equal(5, application.CurrentValue);
     }
     
     [Fact]
@@ -500,14 +512,24 @@ public class CombatModelsTests
             ActorId = "hero",
             ActionType = ActionType.BASIC_ATTACK,
             TargetId = "enemy",
-            DamageDealt = 10,
-            EnergyChange = 1
+            Applications =
+            [
+                new EffectApplicationRecord
+                {
+                    EffectInstanceId = "attack:rage",
+                    EffectType = EffectType.MODIFY_RESOURCE,
+                    TargetEntityId = "hero",
+                    ResourceId = "rage",
+                    PreviousValue = 0,
+                    CurrentValue = 1
+                }
+            ]
         };
         
         // Assert
         Assert.Equal(ActionType.BASIC_ATTACK, action.ActionType);
         Assert.Null(action.PowerId);
-        Assert.Equal(1, action.EnergyChange);
+        Assert.Equal("rage", Assert.Single(action.Applications).ResourceId);
     }
     
     [Fact]
@@ -542,8 +564,6 @@ public class CombatModelsTests
             Status = CombatStatus.VICTORY,
             TotalTurns = 10,
             TotalActions = 25,
-            DamageDealt = 150,
-            DamageTaken = 50,
             Duration = duration
         };
         
@@ -552,8 +572,6 @@ public class CombatModelsTests
         Assert.Equal(CombatStatus.VICTORY, result.Status);
         Assert.Equal(10, result.TotalTurns);
         Assert.Equal(25, result.TotalActions);
-        Assert.Equal(150, result.DamageDealt);
-        Assert.Equal(50, result.DamageTaken);
         Assert.Equal(duration, result.Duration);
     }
     
