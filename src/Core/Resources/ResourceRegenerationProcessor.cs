@@ -34,8 +34,7 @@ public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
         if (resourceState == null)
             return Result<ResourceSet>.Failure("ResourceSet cannot be null");
 
-        var updatedResources = new Dictionary<string, ResourcePool>();
-        var hasChanges = false;
+        var mutations = new List<ResolvedResourceMutation>();
 
         foreach (var (resourceId, pool) in resourceState.Resources)
         {
@@ -43,79 +42,52 @@ public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
 
             // Skip if regeneration is not enabled
             if (def.Regeneration == null || !def.Regeneration.Enabled)
-            {
-                updatedResources[resourceId] = pool;
                 continue;
-            }
 
             // Skip if timing doesn't match
             if (def.Regeneration.Timing != timing)
-            {
-                updatedResources[resourceId] = pool;
                 continue;
-            }
 
             // Calculate regeneration amount
             var amount = CalculateRegenerationAmount(def, pool, context);
 
-            // Apply regeneration
-            ResourcePool newPool;
-            if (amount >= 0)
+            mutations.Add(new ResolvedResourceMutation
             {
-                newPool = pool.Gain(amount);
-            }
-            else
-            {
-                // Handle negative regeneration (e.g., block zeroing)
-                var absAmount = System.Math.Abs(amount);
-                if (absAmount > pool.Current)
-                {
-                    // If trying to spend more than available, set to minimum
-                    newPool = pool.Set(pool.Minimum);
-                }
-                else
-                {
-                    newPool = pool.Spend(absAmount);
-                }
-            }
-
-            updatedResources[resourceId] = newPool;
-
-            // Track if any changes occurred
-            if (System.Math.Abs(newPool.Current - pool.Current) > 0.001f)
-            {
-                hasChanges = true;
-
-                // Publish event
-                _eventBus?.Publish(new ResourceRegeneratedEvent
-                {
-                    OwnerId = resourceState.OwnerId,
-                    ResourceId = resourceId,
-                    OldValue = pool.Current,
-                    NewValue = newPool.Current,
-                    Amount = amount,
-                    Timing = timing
-                });
-
-                _logger.LogDebug(
-                    $"Regenerated {resourceId} for {resourceState.OwnerId}: " +
-                    $"{pool.Current:F2} -> {newPool.Current:F2} ({amount:+0.##;-0.##}) at {timing}");
-            }
-            else
-            {
-                updatedResources[resourceId] = pool; // No change, keep original
-            }
+                MutationId = $"regeneration:{timing}:{resourceId}",
+                ResourceId = resourceId,
+                Operation = amount >= 0
+                    ? ResourceMutationOperation.Add
+                    : ResourceMutationOperation.Subtract,
+                Value = System.Math.Abs(amount)
+            });
         }
 
-        // Return updated state
-        var newState = resourceState with { Resources = updatedResources };
+        var applied = resourceState.Apply(mutations);
+        if (applied.IsFailure)
+            return Result<ResourceSet>.Failure(applied.Error);
 
-        if (hasChanges)
+        foreach (var record in applied.Value.Records.Where(record =>
+                     System.Math.Abs(record.CurrentValue - record.PreviousValue) > 0.001f))
         {
-            _logger.LogDebug($"Processed regeneration for {resourceState.OwnerId} at {timing}");
+            var amount = record.CurrentValue - record.PreviousValue;
+            _eventBus?.Publish(new ResourceRegeneratedEvent
+            {
+                OwnerId = resourceState.OwnerId,
+                ResourceId = record.ResourceId,
+                OldValue = record.PreviousValue,
+                NewValue = record.CurrentValue,
+                Amount = amount,
+                Timing = timing
+            });
+            _logger.LogDebug(
+                $"Regenerated {record.ResourceId} for {resourceState.OwnerId}: " +
+                $"{record.PreviousValue:F2} -> {record.CurrentValue:F2} ({amount:+0.##;-0.##}) at {timing}");
         }
 
-        return Result<ResourceSet>.Success(newState);
+        if (applied.Value.Records.Count > 0)
+            _logger.LogDebug($"Processed regeneration for {resourceState.OwnerId} at {timing}");
+
+        return Result<ResourceSet>.Success(applied.Value.State);
     }
 
     public float CalculateRegenerationAmount(

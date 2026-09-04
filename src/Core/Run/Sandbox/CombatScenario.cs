@@ -536,7 +536,14 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             var resource = current.GetResource(resourceId);
             if (resource == null)
                 return Result<CombatEntity>.Failure($"Resource is not present on scenario hero: {resourceId}");
-            current = current.UpdateResource(resourceId, resource.Set(value));
+            var updated = current.ApplyResourceMutation(
+                $"scenario-override:{current.EntityId}:{resourceId}",
+                resourceId,
+                ResourceMutationOperation.Set,
+                value);
+            if (updated.IsFailure)
+                return Result<CombatEntity>.Failure(updated.Error);
+            current = updated.Value;
         }
         return Result<CombatEntity>.Success(current);
     }

@@ -65,9 +65,8 @@ public class EntityCombatAdapter
         if (resourceComponent == null)
             throw new InvalidOperationException($"Entity {entity.EntityId} has no ResourceComponent");
         
-        // Atualizar recursos - criar novo componente com recursos atualizados
-        var updatedComponent = resourceComponent.UpdateResources(
-            combatEntity.ResourceState.Resources.ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+        // Atualizar recursos - trocar o snapshot completo e já reduzido.
+        var updatedComponent = resourceComponent.WithState(combatEntity.ResourceState);
         
         // Substituir componente na entidade
         entity.RemoveComponent<ResourceComponent>();

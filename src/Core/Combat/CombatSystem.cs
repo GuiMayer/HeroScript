@@ -517,7 +517,12 @@ public class CombatSystem : ICombatSystem
             var energyPool = hero.GetResource("energy");
             return energyPool == null
                 ? hero
-                : hero.UpdateResource("energy", energyPool.Set(initialEnergy));
+                : ApplyResourceMutation(
+                    hero,
+                    "combat-start:initial-energy",
+                    "energy",
+                    ResourceMutationOperation.Set,
+                    initialEnergy);
         }
 
         var heroHealthPool = _resourceManager.CreatePool("health", 100);
@@ -714,7 +719,12 @@ public class CombatSystem : ICombatSystem
                         $"Resource {resourceId} not found on effect target {affectedId}");
                 }
                 current = current.ReplaceEntity(
-                    affected.UpdateResource(resourceId, resource.Gain(increase)));
+                    ApplyResourceMutation(
+                        affected,
+                        $"action-heal:{actionId}:{resourceId}",
+                        resourceId,
+                        ResourceMutationOperation.Add,
+                        increase));
             }
         }
         return current;
@@ -853,13 +863,25 @@ public class CombatSystem : ICombatSystem
             {
                 var pool = updatedActor.GetResource(resourceId);
                 if (pool != null)
-                    updatedActor = updatedActor.UpdateResource(resourceId, ApplyResourceDelta(pool, value));
+                    updatedActor = ApplyResourceMutation(
+                        updatedActor,
+                        $"action-resource:{effect.EffectId}:{resourceId}",
+                        resourceId,
+                        ToMutationOperation(effect.Operation),
+                        value,
+                        effect.ResourceField);
             }
             else if (effect.Target == EffectTarget.TARGET && target.EntityId == actor.EntityId)
             {
                 var pool = updatedActor.GetResource(resourceId);
                 if (pool != null)
-                    updatedActor = updatedActor.UpdateResource(resourceId, ApplyResourceDelta(pool, value));
+                    updatedActor = ApplyResourceMutation(
+                        updatedActor,
+                        $"action-resource:{effect.EffectId}:{resourceId}",
+                        resourceId,
+                        ToMutationOperation(effect.Operation),
+                        value,
+                        effect.ResourceField);
             }
         }
 
@@ -901,11 +923,6 @@ public class CombatSystem : ICombatSystem
             TargetEntityId = targetId,
             SourceActionId = sourceActionId
         };
-    }
-
-    private static ResourcePool ApplyResourceDelta(ResourcePool pool, float value)
-    {
-        return value >= 0 ? pool.Gain(value) : pool.Set(pool.Current + value);
     }
 
     private void PublishEnergyChange(CombatState state, string actorId, float oldEnergy, float newEnergy, int energyChange, string reason)
@@ -1085,10 +1102,12 @@ public class CombatSystem : ICombatSystem
                     var resourceId = RequireStatusTargetResource(result);
                     _logger.LogDebug(
                         $"Status effect {result.StatusId} increased {resourceId} by {result.Value} on {entity.EntityId}");
-                    var pool = updatedEntity.GetResource(resourceId)
-                        ?? throw new InvalidOperationException(
-                            $"Resource {resourceId} not found on {entity.EntityId}");
-                    updatedEntity = updatedEntity.UpdateResource(resourceId, pool.Gain(result.Value));
+                    updatedEntity = ApplyResourceMutation(
+                        updatedEntity,
+                        $"status:{result.StatusId}:{resourceId}:heal",
+                        resourceId,
+                        ResourceMutationOperation.Add,
+                        result.Value);
                 }
             }
         }
@@ -1164,9 +1183,15 @@ public class CombatSystem : ICombatSystem
         var pool = entity.GetResource(resourceId)
             ?? throw new InvalidOperationException(
                 $"Resource {resourceId} not found on {entity.EntityId}");
-        var reducedPool = pool.Set(pool.Current - amount);
+        var reducedEntity = ApplyResourceMutation(
+            entity,
+            $"resource-reduction:{resourceId}",
+            resourceId,
+            ResourceMutationOperation.Subtract,
+            amount);
+        var reducedPool = reducedEntity.GetResource(resourceId)!;
         if (_statusEffectManager == null)
-            return entity.UpdateResource(resourceId, reducedPool);
+            return reducedEntity;
 
         var wouldDefeat = ResourceThresholdEvaluator.Evaluate(reducedPool)
             .Any(fact => fact.Consequence == ResourceThresholdConsequence.DefeatOwner);
@@ -1187,14 +1212,47 @@ public class CombatSystem : ICombatSystem
                         _logger.LogDebug(
                             $"Status effect {bufferEffect.StatusId} prevented defeat for {entity.EntityId} through resource {resourceId}");
                         _statusEffectManager.RemoveStatus(entity.EntityId, bufferEffect.InstanceId);
-                        return entity.UpdateResource(resourceId, pool.Set(preservedValue));
+                        return ApplyResourceMutation(
+                            entity,
+                            $"defeat-prevention:{bufferEffect.InstanceId:N}:{resourceId}",
+                            resourceId,
+                            ResourceMutationOperation.Set,
+                            preservedValue);
                     }
                 }
             }
         }
         
-        return entity.UpdateResource(resourceId, reducedPool);
+        return reducedEntity;
     }
+
+    private static CombatEntity ApplyResourceMutation(
+        CombatEntity entity,
+        string mutationId,
+        string resourceId,
+        ResourceMutationOperation operation,
+        float value,
+        ResourceValueField field = ResourceValueField.Current)
+    {
+        var applied = entity.ApplyResourceMutation(
+            mutationId,
+            resourceId,
+            operation,
+            value,
+            field);
+        return applied.IsSuccess
+            ? applied.Value
+            : throw new InvalidOperationException(applied.Error);
+    }
+
+    private static ResourceMutationOperation ToMutationOperation(ResourceEffectOperation operation) =>
+        operation switch
+        {
+            ResourceEffectOperation.ADD => ResourceMutationOperation.Add,
+            ResourceEffectOperation.SUBTRACT => ResourceMutationOperation.Subtract,
+            ResourceEffectOperation.SET => ResourceMutationOperation.Set,
+            _ => throw new InvalidOperationException($"Unsupported resource operation: {operation}")
+        };
 
     private static string RequireStatusTargetResource(StatusEffectTickResult result) =>
         !string.IsNullOrWhiteSpace(result.TargetResource)

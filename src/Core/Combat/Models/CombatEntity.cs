@@ -34,46 +34,30 @@ public record CombatEntity
         => ResourceState.Get(resourceId);
     
     /// <summary>
-    /// Atualiza um recurso específico.
+    /// Applies one source-agnostic resource mutation through the canonical
+    /// atomic reducer.
     /// </summary>
-    public CombatEntity UpdateResource(string resourceId, Resources.ResourcePool newPool)
+    public Common.Result<CombatEntity> ApplyResourceMutation(
+        string mutationId,
+        string resourceId,
+        Resources.ResourceMutationOperation operation,
+        float value,
+        Resources.ResourceValueField field = Resources.ResourceValueField.Current)
     {
-        return this with 
-        { 
-            ResourceState = ResourceState.WithResource(resourceId, newPool)
-        };
-    }
-    
-    /// <summary>
-    /// Atualiza múltiplos recursos de uma vez.
-    /// </summary>
-    public CombatEntity UpdateResources(Dictionary<string, Resources.ResourcePool> updates)
-    {
-        return this with 
-        { 
-            ResourceState = ResourceState.WithResources(updates)
-        };
-    }
-    
-    /// <summary>
-    /// Reduz um recurso explicitamente selecionado. O resultado da redução
-    /// (inclusive derrota) pertence às políticas da definição do recurso.
-    /// </summary>
-    public CombatEntity ReduceResource(string resourceId, float amount)
-    {
-        var resource = GetResource(resourceId);
-        if (resource == null) return this;
-        return UpdateResource(resourceId, resource.Set(resource.Current - amount));
-    }
-    
-    /// <summary>
-    /// Aumenta um recurso explicitamente selecionado.
-    /// </summary>
-    public CombatEntity IncreaseResource(string resourceId, float amount)
-    {
-        var resource = GetResource(resourceId);
-        if (resource == null) return this;
-        return UpdateResource(resourceId, resource.Gain(amount));
+        var applied = ResourceState.Apply(
+        [
+            new Resources.ResolvedResourceMutation
+            {
+                MutationId = mutationId,
+                ResourceId = resourceId,
+                Field = field,
+                Operation = operation,
+                Value = value
+            }
+        ]);
+        return applied.IsFailure
+            ? Common.Result<CombatEntity>.Failure(applied.Error)
+            : Common.Result<CombatEntity>.Success(this with { ResourceState = applied.Value.State });
     }
     
     /// <summary>

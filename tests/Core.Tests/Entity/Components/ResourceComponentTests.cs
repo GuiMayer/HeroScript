@@ -71,15 +71,24 @@ public class ResourceComponentTests
     }
     
     [Fact]
-    public void UpdateResource_ShouldUpdateResource()
+    public void WithState_ShouldReplaceReducedResourceState()
     {
         // Arrange
         var component = CreateComponentWithHealth(100);
-        var health = component.GetResource("health")!;
-        var newHealth = health.Set(50);
-        
+        var reduced = component.ResourceState.Apply(
+        [
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-health",
+                ResourceId = "health",
+                Operation = ResourceMutationOperation.Set,
+                Value = 50
+            }
+        ]);
+
         // Act
-        var updatedComponent = component.UpdateResource("health", newHealth);
+        Assert.True(reduced.IsSuccess, reduced.IsFailure ? reduced.Error : null);
+        var updatedComponent = component.WithState(reduced.Value.State);
         
         // Assert
         Assert.Equal(50, updatedComponent.GetResource("health")!.Current);
@@ -127,25 +136,48 @@ public class ResourceComponentTests
     }
     
     [Fact]
-    public void UpdateResources_ShouldUpdateMultipleResources()
+    public void WithState_ShouldReplaceReducedResourceBatch()
     {
         // Arrange
         var component = CreateComponentWithHealthAndEnergy(100, 10);
-        var health = component.GetResource("health")!.Set(50);
-        var energy = component.GetResource("energy")!.Set(5);
-        
-        var updates = new Dictionary<string, ResourcePool>
-        {
-            ["health"] = health,
-            ["energy"] = energy
-        };
+        var reduced = component.ResourceState.Apply(
+        [
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-health",
+                ResourceId = "health",
+                Operation = ResourceMutationOperation.Set,
+                Value = 50
+            },
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-energy",
+                ResourceId = "energy",
+                Operation = ResourceMutationOperation.Set,
+                Value = 5
+            }
+        ]);
         
         // Act
-        var updatedComponent = component.UpdateResources(updates);
+        Assert.True(reduced.IsSuccess, reduced.IsFailure ? reduced.Error : null);
+        var updatedComponent = component.WithState(reduced.Value.State);
         
         // Assert
         Assert.Equal(50, updatedComponent.GetResource("health")!.Current);
         Assert.Equal(5, updatedComponent.GetResource("energy")!.Current);
+        Assert.Equal(100, component.GetResource("health")!.Current);
+        Assert.Equal(10, component.GetResource("energy")!.Current);
+    }
+
+    [Fact]
+    public void WithState_ShouldRejectDifferentOwner()
+    {
+        var component = CreateComponentWithHealth(100);
+        var otherOwner = component.ResourceState with { OwnerId = "other" };
+
+        var error = Assert.Throws<InvalidOperationException>(() => component.WithState(otherOwner));
+
+        Assert.Contains("owner cannot change", error.Message);
     }
     
     [Fact]

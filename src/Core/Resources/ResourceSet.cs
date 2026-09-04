@@ -27,36 +27,6 @@ public sealed record ResourceSet
 
     public float Current(string resourceId) => Get(resourceId)?.Current ?? 0f;
 
-    public ResourceSet WithResource(string resourceId, ResourcePool pool)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourceId);
-        ArgumentNullException.ThrowIfNull(pool);
-        if (!string.Equals(resourceId, pool.ResourceId, StringComparison.OrdinalIgnoreCase))
-            throw new ArgumentException(
-                $"Resource key '{resourceId}' does not match pool id '{pool.ResourceId}'",
-                nameof(pool));
-
-        return this with { Resources = _resources.SetItem(resourceId, pool) };
-    }
-
-    public ResourceSet WithResources(IReadOnlyDictionary<string, ResourcePool> updates)
-    {
-        ArgumentNullException.ThrowIfNull(updates);
-        var merged = _resources;
-        foreach (var (resourceId, pool) in updates)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(resourceId);
-            ArgumentNullException.ThrowIfNull(pool);
-            if (!string.Equals(resourceId, pool.ResourceId, StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException(
-                    $"Resource key '{resourceId}' does not match pool id '{pool.ResourceId}'",
-                    nameof(updates));
-            merged = merged.SetItem(resourceId, pool);
-        }
-
-        return this with { Resources = merged };
-    }
-
     public ResourcePool? FirstInCategory(ResourceCategory category) =>
         _resources.Values.FirstOrDefault(pool =>
             pool.Definition is not null && pool.Definition.Category == category);

@@ -646,14 +646,20 @@ public class CombatModelsTests
     }
     
     [Fact]
-    public void ResourceSet_WithResource_CreatesNewInstance()
+    public void ResourceSet_Apply_CreatesNewInstance()
     {
         // Arrange
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "health",
+            DefaultMax = 100
+        };
         var originalPool = new ResourcePool
         {
             ResourceId = "health",
             Current = 50,
-            Maximum = 100
+            Maximum = 100,
+            Definition = definition
         };
         
         var state = new ResourceSet
@@ -665,58 +671,109 @@ public class CombatModelsTests
             }
         };
         
-        var newPool = new ResourcePool
-        {
-            ResourceId = "health",
-            Current = 75,
-            Maximum = 100
-        };
-        
         // Act
-        var newState = state.WithResource("health", newPool);
+        var result = state.Apply(
+        [
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-health",
+                ResourceId = "health",
+                Operation = ResourceMutationOperation.Set,
+                Value = 75
+            }
+        ]);
         
         // Assert
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(50, state.Get("health")!.Current); // Original unchanged
-        Assert.Equal(75, newState.Get("health")!.Current); // New updated
+        Assert.Equal(75, result.Value.State.Get("health")!.Current); // New updated
     }
 
     [Fact]
-    public void ResourceSet_WithResource_RejectsMismatchedPoolId()
+    public void ResourceSet_Apply_RejectsMismatchedPoolId()
     {
-        var state = new ResourceSet { OwnerId = "hero_1" };
-
-        var error = Assert.Throws<ArgumentException>(() =>
-            state.WithResource("health", new ResourcePool { ResourceId = "mana" }));
-
-        Assert.Contains("does not match", error.Message);
-    }
-    
-    [Fact]
-    public void ResourceSet_WithResources_UpdatesMultiple()
-    {
-        // Arrange
+        var definition = new ResourceDefinition { ResourceId = "mana", DefaultMax = 100 };
         var state = new ResourceSet
         {
             OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
-                ["health"] = new ResourcePool { ResourceId = "health", Current = 50 },
-                ["energy"] = new ResourcePool { ResourceId = "energy", Current = 5 }
+                ["health"] = new ResourcePool
+                {
+                    ResourceId = "mana",
+                    Current = 50,
+                    Maximum = 100,
+                    Definition = definition
+                }
+            }
+        };
+
+        var result = state.Apply(
+        [
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-health",
+                ResourceId = "health",
+                Operation = ResourceMutationOperation.Set,
+                Value = 75
+            }
+        ]);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("does not match", result.Error);
+    }
+    
+    [Fact]
+    public void ResourceSet_Apply_UpdatesMultipleAtomically()
+    {
+        // Arrange
+        var healthDefinition = new ResourceDefinition { ResourceId = "health", DefaultMax = 100 };
+        var energyDefinition = new ResourceDefinition { ResourceId = "energy", DefaultMax = 10 };
+        var state = new ResourceSet
+        {
+            OwnerId = "hero_1",
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                ["health"] = new ResourcePool
+                {
+                    ResourceId = "health",
+                    Current = 50,
+                    Maximum = 100,
+                    Definition = healthDefinition
+                },
+                ["energy"] = new ResourcePool
+                {
+                    ResourceId = "energy",
+                    Current = 5,
+                    Maximum = 10,
+                    Definition = energyDefinition
+                }
             }
         };
         
-        var updates = new Dictionary<string, ResourcePool>
-        {
-            ["health"] = new ResourcePool { ResourceId = "health", Current = 75 },
-            ["energy"] = new ResourcePool { ResourceId = "energy", Current = 10 }
-        };
-        
         // Act
-        var newState = state.WithResources(updates);
+        var result = state.Apply(
+        [
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-health",
+                ResourceId = "health",
+                Operation = ResourceMutationOperation.Set,
+                Value = 75
+            },
+            new ResolvedResourceMutation
+            {
+                MutationId = "test:set-energy",
+                ResourceId = "energy",
+                Operation = ResourceMutationOperation.Set,
+                Value = 10
+            }
+        ]);
         
         // Assert
-        Assert.Equal(75, newState.Get("health")!.Current);
-        Assert.Equal(10, newState.Get("energy")!.Current);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(75, result.Value.State.Get("health")!.Current);
+        Assert.Equal(10, result.Value.State.Get("energy")!.Current);
         
         // Original unchanged
         Assert.Equal(50, state.Get("health")!.Current);

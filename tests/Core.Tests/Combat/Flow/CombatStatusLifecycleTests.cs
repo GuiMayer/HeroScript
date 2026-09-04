@@ -117,6 +117,7 @@ public sealed class CombatStatusLifecycleTests
         IsHero = hero,
         ResourceState = new ResourceSet
         {
+            OwnerId = id,
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = new()

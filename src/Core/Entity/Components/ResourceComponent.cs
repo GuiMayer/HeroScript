@@ -26,26 +26,12 @@ public class ResourceComponent : ComponentBase
         return ResourceState.Get(resourceId);
     }
     
-    /// <summary>
-    /// Atualiza um recurso específico
-    /// </summary>
-    public ResourceComponent UpdateResource(string resourceId, ResourcePool newPool)
+    public ResourceComponent WithState(ResourceSet resourceState)
     {
-        var newState = ResourceState.WithResource(resourceId, newPool);
-        return new ResourceComponent(newState)
-        {
-            ComponentId = this.ComponentId,
-            IsEnabled = this.IsEnabled
-        };
-    }
-    
-    /// <summary>
-    /// Atualiza múltiplos recursos de uma vez
-    /// </summary>
-    public ResourceComponent UpdateResources(Dictionary<string, ResourcePool> updates)
-    {
-        var newState = ResourceState.WithResources(updates);
-        return new ResourceComponent(newState)
+        ArgumentNullException.ThrowIfNull(resourceState);
+        if (!string.Equals(ResourceState.OwnerId, resourceState.OwnerId, StringComparison.Ordinal))
+            throw new InvalidOperationException("Resource state owner cannot change");
+        return new ResourceComponent(resourceState)
         {
             ComponentId = this.ComponentId,
             IsEnabled = this.IsEnabled

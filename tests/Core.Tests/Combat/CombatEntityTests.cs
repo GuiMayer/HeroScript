@@ -66,56 +66,80 @@ public class CombatEntityTests
     }
 
     [Fact]
-    public void ReduceResource_ShouldReduceSelectedResource()
+    public void ApplyResourceMutation_SubtractsSelectedResource()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 100, 100);
 
         // Act
-        var newEntity = entity.ReduceResource("health", 30);
+        var result = entity.ApplyResourceMutation(
+            "test:subtract",
+            "health",
+            ResourceMutationOperation.Subtract,
+            30);
 
         // Assert
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var newEntity = result.Value;
         Assert.Equal(70, newEntity.GetResource("health")?.Current);
         Assert.True(newEntity.IsAlive);
     }
 
     [Fact]
-    public void ReduceResource_BelowMinimum_ShouldCapAndApplyConfiguredDefeat()
+    public void ApplyResourceMutation_BelowMinimumCapsAndAppliesConfiguredDefeat()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 20, 100);
 
         // Act
-        var newEntity = entity.ReduceResource("health", 50);
+        var result = entity.ApplyResourceMutation(
+            "test:subtract",
+            "health",
+            ResourceMutationOperation.Subtract,
+            50);
 
         // Assert
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var newEntity = result.Value;
         Assert.Equal(0, newEntity.GetResource("health")?.Current);
         Assert.False(newEntity.IsAlive);
     }
 
     [Fact]
-    public void IncreaseResource_ShouldIncreaseSelectedResource()
+    public void ApplyResourceMutation_AddsSelectedResource()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 50, 100);
 
         // Act
-        var newEntity = entity.IncreaseResource("health", 30);
+        var result = entity.ApplyResourceMutation(
+            "test:add",
+            "health",
+            ResourceMutationOperation.Add,
+            30);
 
         // Assert
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var newEntity = result.Value;
         Assert.Equal(80, newEntity.GetResource("health")?.Current);
     }
 
     [Fact]
-    public void IncreaseResource_AboveMaximum_ShouldCapAtMaximum()
+    public void ApplyResourceMutation_AboveMaximumCapsAtMaximum()
     {
         // Arrange
         var entity = CreateTestEntity("test-1", 90, 100);
 
         // Act
-        var newEntity = entity.IncreaseResource("health", 50);
+        var result = entity.ApplyResourceMutation(
+            "test:add",
+            "health",
+            ResourceMutationOperation.Add,
+            50);
 
         // Assert
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var newEntity = result.Value;
         Assert.Equal(100, newEntity.GetResource("health")?.Current);
     }
 

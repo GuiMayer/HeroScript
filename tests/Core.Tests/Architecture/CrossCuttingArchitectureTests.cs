@@ -103,6 +103,41 @@ public sealed class CrossCuttingArchitectureTests
             $"Unversioned resource reload controls are exposed: {string.Join(", ", exposed)}");
     }
 
+    [Fact]
+    public void ResourceOwners_DoNotExposeMutationReducerBypasses()
+    {
+        var forbidden = new[]
+        {
+            "UpdateResource",
+            "UpdateResources",
+            "WithResource",
+            "WithResources",
+            "ReduceResource",
+            "IncreaseResource"
+        };
+        var ownerTypes = new[]
+        {
+            typeof(ResourceSet),
+            typeof(CombatEntity)
+        };
+        var exposed = ownerTypes
+            .SelectMany(type => type
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .Where(method => forbidden.Contains(method.Name, StringComparer.Ordinal))
+                .Select(method => $"{type.Name}.{method.Name}"))
+            .ToArray();
+
+        Assert.True(
+            exposed.Length == 0,
+            $"Resource mutation reducer bypasses are exposed: {string.Join(", ", exposed)}");
+        Assert.NotNull(typeof(ResourceSet).GetMethod(
+            nameof(ResourceSet.Apply),
+            BindingFlags.Instance | BindingFlags.Public));
+        Assert.NotNull(typeof(CombatEntity).GetMethod(
+            nameof(CombatEntity.ApplyResourceMutation),
+            BindingFlags.Instance | BindingFlags.Public));
+    }
+
     [Theory]
     [InlineData(typeof(ActionManager), "_definitions")]
     [InlineData(typeof(GambitEngine), "_definitions")]

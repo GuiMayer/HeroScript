@@ -147,6 +147,7 @@ public sealed class ImmutableEffectProcessorTests
         IsHero = isHero,
         ResourceState = new ResourceSet
         {
+            OwnerId = id,
             Resources = resources.ToDictionary(
                 item => item.Id,
                 item => new ResourcePool

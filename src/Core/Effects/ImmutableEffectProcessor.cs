@@ -208,8 +208,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             ResourceEffectOperation.SET => ResourceMutationOperation.Set,
             _ => throw new InvalidOperationException($"Unsupported resource operation: {operation}")
         };
-        var reduced = _resources.Apply(
-            target.ResourceState.Resources,
+        var reduced = target.ResourceState.Apply(
             [new ResolvedResourceMutation
             {
                 MutationId = effect.EffectInstanceId,
@@ -217,11 +216,11 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 Field = effect.Definition.ResourceField,
                 Operation = mutationOperation,
                 Value = effect.ResolvedValue
-            }]);
+            }],
+            _resources);
         if (reduced.IsFailure)
             return Result<EffectTargetApplication>.Failure(reduced.Error);
-        var updatedPool = reduced.Value.Resources[resourceId];
-        var updated = state.ReplaceEntity(target.UpdateResource(resourceId, updatedPool));
+        var updated = state.ReplaceEntity(target with { ResourceState = reduced.Value.State });
         return Result<EffectTargetApplication>.Success(new EffectTargetApplication(
             updated,
             new EffectApplicationRecord
