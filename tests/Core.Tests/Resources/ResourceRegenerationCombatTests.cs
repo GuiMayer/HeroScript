@@ -62,6 +62,7 @@ public class ResourceRegenerationCombatTests
 
                 return new ResourcePool
                 {
+                    ResourceId = resourceId,
                     Definition = definition,
                     Current = current,
                     Maximum = resourceId == "health" ? 100 : 10,
@@ -73,10 +74,11 @@ public class ResourceRegenerationCombatTests
         mockRegenerationProcessor.Setup(rp => rp.ProcessRegeneration(
             It.IsAny<ResourceSet>(),
             It.IsAny<RegenerationTiming>(),
-            It.IsAny<Dictionary<string, float>>()))
-            .Returns((ResourceSet state, RegenerationTiming timing, Dictionary<string, float> context) =>
+            It.IsAny<ResourceRegenerationContext>()))
+            .Returns((ResourceSet state, RegenerationTiming timing, ResourceRegenerationContext? _) =>
             {
                 var updatedResources = new Dictionary<string, ResourcePool>();
+                var records = new List<ResourceMutationRecord>();
                 foreach (var (resourceId, pool) in state.Resources)
                 {
                     if (resourceId == "energy" && timing == RegenerationTiming.START_TURN)
@@ -84,6 +86,13 @@ public class ResourceRegenerationCombatTests
                         // Regenerate 1 energy
                         var newPool = pool.Gain(1);
                         updatedResources[resourceId] = newPool;
+                        records.Add(new ResourceMutationRecord(
+                            $"regeneration:{timing}:{resourceId}",
+                            resourceId,
+                            ResourceValueField.Current,
+                            ResourceMutationOperation.Add,
+                            pool.Current,
+                            newPool.Current));
                     }
                     else
                     {
@@ -91,11 +100,10 @@ public class ResourceRegenerationCombatTests
                     }
                 }
                 
-                return Result<ResourceSet>.Success(new ResourceSet
-                {
-                    OwnerId = state.OwnerId,
-                    Resources = updatedResources
-                });
+                return Result<ResourceRegenerationResult>.Success(new ResourceRegenerationResult(
+                    state with { Resources = updatedResources },
+                    records,
+                    timing));
             });
         
         _combatSystem = new CombatSystem(_logger, _resourceManager, new FixedTurnOrderCalculator(_logger), _eventBus, regenerationProcessor: _regenerationProcessor);
@@ -221,6 +229,7 @@ public class ResourceRegenerationCombatTests
 
                 return new ResourcePool
                 {
+                    ResourceId = resourceId,
                     Definition = definition,
                     Current = current,
                     Maximum = resourceId == "health" ? 100 : 10,
@@ -228,31 +237,28 @@ public class ResourceRegenerationCombatTests
                 };
             });
         
-        // Setup RegenerationProcessor to regenerate and publish events
+        // Setup RegenerationProcessor to return changes; CombatSystem publishes only after commit.
         mockRegenerationProcessor.Setup(rp => rp.ProcessRegeneration(
             It.IsAny<ResourceSet>(),
             It.IsAny<RegenerationTiming>(),
-            It.IsAny<Dictionary<string, float>>()))
-            .Returns((ResourceSet state, RegenerationTiming timing, Dictionary<string, float> context) =>
+            It.IsAny<ResourceRegenerationContext>()))
+            .Returns((ResourceSet state, RegenerationTiming timing, ResourceRegenerationContext? _) =>
             {
                 var updatedResources = new Dictionary<string, ResourcePool>();
+                var records = new List<ResourceMutationRecord>();
                 foreach (var (resourceId, pool) in state.Resources)
                 {
                     if (resourceId == "energy" && timing == RegenerationTiming.START_TURN)
                     {
                         var newPool = pool.Gain(1);
                         updatedResources[resourceId] = newPool;
-                        
-                        // Publicar evento
-                        realEventBus.Publish(new ResourceRegeneratedEvent
-                        {
-                            OwnerId = state.OwnerId,
-                            ResourceId = resourceId,
-                            OldValue = pool.Current,
-                            NewValue = newPool.Current,
-                            Amount = 1,
-                            Timing = timing
-                        });
+                        records.Add(new ResourceMutationRecord(
+                            $"regeneration:{timing}:{resourceId}",
+                            resourceId,
+                            ResourceValueField.Current,
+                            ResourceMutationOperation.Add,
+                            pool.Current,
+                            newPool.Current));
                     }
                     else
                     {
@@ -260,11 +266,10 @@ public class ResourceRegenerationCombatTests
                     }
                 }
                 
-                return Result<ResourceSet>.Success(new ResourceSet
-                {
-                    OwnerId = state.OwnerId,
-                    Resources = updatedResources
-                });
+                return Result<ResourceRegenerationResult>.Success(new ResourceRegenerationResult(
+                    state with { Resources = updatedResources },
+                    records,
+                    timing));
             });
         
         var combatSystem = new CombatSystem(mockLogger.Object, mockResourceManager.Object, new FixedTurnOrderCalculator(mockLogger.Object), realEventBus, regenerationProcessor: mockRegenerationProcessor.Object);
@@ -288,6 +293,61 @@ public class ResourceRegenerationCombatTests
         Assert.Equal("hero1", energyEvent.OwnerId);
         Assert.True(energyEvent.Amount > 0, "Regeneration amount should be positive");
         Assert.True(energyEvent.NewValue > energyEvent.OldValue, "New value should be greater than old value");
+    }
+
+    [Fact]
+    public void EndTurn_WhenAnyOwnerRegenerationFails_RollsBackStateAndPublishesNothing()
+    {
+        var eventBus = new EventBus(_logger);
+        var resourceEvents = new List<ResourceChangedEvent>();
+        var regenerationEvents = new List<ResourceRegeneratedEvent>();
+        eventBus.Subscribe<ResourceChangedEvent>(resourceEvents.Add);
+        eventBus.Subscribe<ResourceRegeneratedEvent>(regenerationEvents.Add);
+        var regeneration = new Mock<IResourceRegenerationProcessor>();
+        regeneration.Setup(processor => processor.ProcessRegeneration(
+                It.IsAny<ResourceSet>(),
+                It.IsAny<RegenerationTiming>(),
+                It.IsAny<ResourceRegenerationContext>()))
+            .Returns((ResourceSet state, RegenerationTiming timing, ResourceRegenerationContext? _) =>
+            {
+                if (state.OwnerId == "z-enemy")
+                    return Result<ResourceRegenerationResult>.Failure("enemy formula failed");
+                var applied = state.Apply(
+                [
+                    new ResolvedResourceMutation
+                    {
+                        MutationId = $"regeneration:{timing}:energy",
+                        ResourceId = "energy",
+                        Operation = ResourceMutationOperation.Add,
+                        Value = 1
+                    }
+                ]);
+                return applied.IsFailure
+                    ? Result<ResourceRegenerationResult>.Failure(applied.Error)
+                    : Result<ResourceRegenerationResult>.Success(new ResourceRegenerationResult(
+                        applied.Value.State,
+                        applied.Value.Records,
+                        timing));
+            });
+        var system = new CombatSystem(
+            _logger,
+            _resourceManager,
+            new FixedTurnOrderCalculator(_logger),
+            eventBus,
+            regenerationProcessor: regeneration.Object);
+        var started = system.StartCombat("a-hero", ["z-enemy"], initialEnergy: 1);
+        Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
+
+        var result = system.ExecuteAction(
+            started.Value.CombatId,
+            EndTurn("a-hero"));
+
+        Assert.True(result.IsFailure);
+        var persisted = system.GetCombatState(started.Value.CombatId);
+        Assert.True(persisted.IsSuccess, persisted.IsFailure ? persisted.Error : null);
+        Assert.Equal(1, persisted.Value.GetHeroResource("energy")!.Current);
+        Assert.Empty(resourceEvents);
+        Assert.Empty(regenerationEvents);
     }
 
     [Fact]

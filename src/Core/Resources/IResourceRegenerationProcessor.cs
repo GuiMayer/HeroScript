@@ -13,22 +13,10 @@ public interface IResourceRegenerationProcessor
     /// </summary>
     /// <param name="resourceState">Current resource state of the owner</param>
     /// <param name="timing">Timing of regeneration (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
-    /// <param name="context">Optional context for formula evaluation (turn_number, game state, etc.)</param>
-    /// <returns>Result containing the updated immutable resource set or failure</returns>
-    Result<ResourceSet> ProcessRegeneration(
+    /// <param name="context">Optional immutable context for formula evaluation</param>
+    /// <returns>Updated immutable state plus ordered mutation records, or failure</returns>
+    Result<ResourceRegenerationResult> ProcessRegeneration(
         ResourceSet resourceState,
         RegenerationTiming timing,
-        Dictionary<string, float>? context = null);
-    
-    /// <summary>
-    /// Calculates the regeneration amount for a resource without applying it.
-    /// </summary>
-    /// <param name="definition">Resource definition containing regeneration config</param>
-    /// <param name="currentPool">Current state of the resource pool</param>
-    /// <param name="context">Optional context for formula evaluation</param>
-    /// <returns>Amount to regenerate (positive for gain, negative for loss)</returns>
-    float CalculateRegenerationAmount(
-        ResourceDefinition definition,
-        ResourcePool currentPool,
-        Dictionary<string, float>? context = null);
+        ResourceRegenerationContext? context = null);
 }

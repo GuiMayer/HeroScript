@@ -241,10 +241,10 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
     public Result ValidateResourceDefinition(ResourceDefinition definition)
         => ResourceDefinitionValidator.Validate(definition);
     
-    public Result<ResourceSet> ProcessRegeneration(
+    public Result<ResourceRegenerationResult> ProcessRegeneration(
         ResourceSet resourceState,
         RegenerationTiming timing,
-        Dictionary<string, float>? context = null)
+        ResourceRegenerationContext? context = null)
     {
         return _regenerationProcessor.ProcessRegeneration(resourceState, timing, context);
     }

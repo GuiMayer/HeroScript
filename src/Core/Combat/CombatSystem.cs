@@ -941,6 +941,28 @@ public class CombatSystem : ICombatSystem
                 Subject = application.TargetEntityId,
                 Target = resourceId
             });
+
+            const string regenerationPrefix = "regeneration:";
+            if (application.Provenance.SourceId.StartsWith(
+                    regenerationPrefix,
+                    StringComparison.Ordinal) &&
+                Enum.TryParse<RegenerationTiming>(
+                    application.Provenance.SourceId[regenerationPrefix.Length..],
+                    out var timing))
+            {
+                _eventBus.Publish(new ResourceRegeneratedEvent
+                {
+                    OwnerId = application.TargetEntityId,
+                    ResourceId = resourceId,
+                    OldValue = previousValue,
+                    NewValue = currentValue,
+                    Amount = currentValue - previousValue,
+                    Timing = timing,
+                    Turn = state.CurrentTurn,
+                    Subject = application.TargetEntityId,
+                    Target = resourceId
+                });
+            }
         }
     }
 
@@ -1034,31 +1056,54 @@ public class CombatSystem : ICombatSystem
     
     private CombatState ExecuteEndTurn(CombatState state, CombatEntity actor, bool deferTurnLifecycle)
     {
-        var action = new CombatAction
-        {
-            Turn = state.CurrentTurn,
-            ActorId = actor.EntityId,
-            ActionType = ActionType.END_TURN
-        };
-        
-        var updatedState = CombatTransitions.AppendAction(state, action).State;
-
         if (deferTurnLifecycle)
-            return updatedState;
+        {
+            return CombatTransitions.AppendAction(state, new CombatAction
+            {
+                Turn = state.CurrentTurn,
+                ActorId = actor.EntityId,
+                ActionType = ActionType.END_TURN
+            }).State;
+        }
+
+        var updatedState = state;
+        var applications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         
         if (_statusEffectManager != null)
         {
             // Fechar integralmente a fronteira atual antes de abrir a próxima.
+            var beforeStatus = updatedState;
             updatedState = ProcessEndOfTurnStatusEffects(updatedState);
+            applications.AddRange(DescribeResourceChanges(
+                beforeStatus,
+                updatedState,
+                "status:end-turn"));
         }
-        updatedState = ProcessEndOfTurnRegeneration(updatedState);
+        var endRegeneration = ProcessRegeneration(updatedState, RegenerationTiming.END_TURN);
+        updatedState = endRegeneration.State;
+        applications.AddRange(endRegeneration.Applications);
 
         updatedState = updatedState with { CurrentTurn = state.CurrentTurn + 1 };
         if (_statusEffectManager != null)
+        {
+            var beforeStatus = updatedState;
             updatedState = ProcessStartOfTurnStatusEffects(updatedState);
-        updatedState = ProcessStartOfTurnRegeneration(updatedState);
-        
-        return updatedState;
+            applications.AddRange(DescribeResourceChanges(
+                beforeStatus,
+                updatedState,
+                "status:start-turn"));
+        }
+        var startRegeneration = ProcessRegeneration(updatedState, RegenerationTiming.START_TURN);
+        updatedState = startRegeneration.State;
+        applications.AddRange(startRegeneration.Applications);
+
+        return CombatTransitions.AppendAction(updatedState, new CombatAction
+        {
+            Turn = state.CurrentTurn,
+            ActorId = actor.EntityId,
+            ActionType = ActionType.END_TURN,
+            Applications = applications.ToImmutable()
+        }).State;
     }
     
     /// <summary>
@@ -1649,96 +1694,79 @@ public class CombatSystem : ICombatSystem
     /// <summary>
     /// Processa regeneração de recursos no início do turno
     /// </summary>
-    private CombatState ProcessStartOfTurnRegeneration(CombatState state)
+    private CombatRegenerationTransition ProcessRegeneration(
+        CombatState state,
+        RegenerationTiming timing)
     {
         if (_regenerationProcessor == null)
-            return state;
-        
-        _logger.LogDebug("Processing start-of-turn resource regeneration");
-        
-        var updatedHero = state.Hero;
-        var updatedEnemies = state.Enemies.ToList();
-        
-        // Processar regeneração do herói
-        var heroRegenResult = _regenerationProcessor.ProcessRegeneration(
-            state.Hero.ResourceState,
-            RegenerationTiming.START_TURN,
-            new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
-        );
-        
-        if (heroRegenResult.IsSuccess)
+            return new CombatRegenerationTransition(state, []);
+
+        _logger.LogDebug($"Processing resource regeneration at {timing}");
+        var context = BuildRegenerationContext(state);
+        var current = state;
+        var applications = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
+        foreach (var entity in state.GetAllEntities()
+                     .OrderBy(entity => entity.EntityId, StringComparer.Ordinal))
         {
-            updatedHero = updatedHero with { ResourceState = heroRegenResult.Value };
-        }
-        
-        // Processar regeneração dos inimigos
-        for (int i = 0; i < updatedEnemies.Count; i++)
-        {
-            var enemy = updatedEnemies[i];
-            var enemyRegenResult = _regenerationProcessor.ProcessRegeneration(
-                enemy.ResourceState,
-                RegenerationTiming.START_TURN,
-                new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
-            );
-            
-            if (enemyRegenResult.IsSuccess)
+            var result = _regenerationProcessor.ProcessRegeneration(
+                entity.ResourceState,
+                timing,
+                context);
+            if (result.IsFailure)
+                throw new InvalidOperationException(result.Error);
+            current = current.ReplaceEntity(entity with { ResourceState = result.Value.State });
+            foreach (var record in result.Value.Records)
             {
-                updatedEnemies[i] = enemy with { ResourceState = enemyRegenResult.Value };
+                if (record.PreviousValue.Equals(record.CurrentValue))
+                    continue;
+                applications.Add(new EffectApplicationRecord
+                {
+                    EffectInstanceId = $"{record.MutationId}:{entity.EntityId}",
+                    EffectType = EffectType.MODIFY_RESOURCE,
+                    TargetEntityId = entity.EntityId,
+                    ResourceId = record.ResourceId,
+                    ResourceField = record.Field,
+                    ResourceOperation = record.Operation,
+                    PreviousValue = record.PreviousValue,
+                    CurrentValue = record.CurrentValue,
+                    Provenance = new EffectProvenance
+                    {
+                        Kind = EffectProvenanceKind.Rule,
+                        SourceId = $"regeneration:{timing}"
+                    }
+                });
             }
         }
-        
-        return state with
-        {
-            Hero = updatedHero,
-            Enemies = updatedEnemies
-        };
+        return new CombatRegenerationTransition(current, applications.ToImmutable());
     }
-    
-    /// <summary>
-    /// Processa regeneração de recursos no final do turno
-    /// </summary>
-    private CombatState ProcessEndOfTurnRegeneration(CombatState state)
+
+    private static ResourceRegenerationContext BuildRegenerationContext(CombatState state)
     {
-        if (_regenerationProcessor == null)
-            return state;
-        
-        _logger.LogDebug("Processing end-of-turn resource regeneration");
-        
-        var updatedHero = state.Hero;
-        var updatedEnemies = state.Enemies.ToList();
-        
-        // Processar regeneração do herói
-        var heroRegenResult = _regenerationProcessor.ProcessRegeneration(
-            state.Hero.ResourceState,
-            RegenerationTiming.END_TURN,
-            new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
-        );
-        
-        if (heroRegenResult.IsSuccess)
+        var variables = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
         {
-            updatedHero = updatedHero with { ResourceState = heroRegenResult.Value };
-        }
-        
-        // Processar regeneração dos inimigos
-        for (int i = 0; i < updatedEnemies.Count; i++)
+            ["turn"] = state.CurrentTurn
+        };
+        foreach (var entity in state.GetAllEntities()
+                     .OrderBy(entity => entity.EntityId, StringComparer.Ordinal))
         {
-            var enemy = updatedEnemies[i];
-            var enemyRegenResult = _regenerationProcessor.ProcessRegeneration(
-                enemy.ResourceState,
-                RegenerationTiming.END_TURN,
-                new Dictionary<string, float> { ["turn"] = state.CurrentTurn }
-            );
-            
-            if (enemyRegenResult.IsSuccess)
+            foreach (var (resourceId, pool) in entity.ResourceState.Resources
+                         .OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {
-                updatedEnemies[i] = enemy with { ResourceState = enemyRegenResult.Value };
+                var prefix = $"actors.{entity.EntityId}.resources.{resourceId}";
+                variables[$"{prefix}.current"] = pool.Current;
+                variables[$"{prefix}.minimum"] = pool.Minimum;
+                variables[$"{prefix}.maximum"] = pool.Maximum;
+                variables[$"{prefix}.percent"] = pool.GetPercentage();
             }
         }
-        
-        return state with
+        return new ResourceRegenerationContext
         {
-            Hero = updatedHero,
-            Enemies = updatedEnemies
+            ContentRevision = state.Determinism.ContentRevision,
+            Variables = variables
         };
     }
+
+    private sealed record CombatRegenerationTransition(
+        CombatState State,
+        IReadOnlyList<EffectApplicationRecord> Applications);
 }

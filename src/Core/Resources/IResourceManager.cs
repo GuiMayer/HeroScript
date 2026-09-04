@@ -76,11 +76,11 @@ public interface IResourceManager
     /// <param name="resourceState">Estado de recursos do dono</param>
     /// <param name="timing">Timing da regeneração (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
     /// <param name="context">Contexto opcional para avaliação de fórmulas</param>
-    /// <returns>Resultado contendo o ResourceSet imutável atualizado ou falha</returns>
-    Result<ResourceSet> ProcessRegeneration(
+    /// <returns>Resultado contendo estado e registros imutáveis ou falha</returns>
+    Result<ResourceRegenerationResult> ProcessRegeneration(
         ResourceSet resourceState,
         RegenerationTiming timing,
-        Dictionary<string, float>? context = null);
+        ResourceRegenerationContext? context = null);
     
 }
 

@@ -1,148 +1,122 @@
 using Core.Common;
-using Core.Events;
-using Core.Events.Domain;
-using Core.Logging;
 using Core.Math;
 
 namespace Core.Resources;
 
 /// <summary>
-/// Processes resource regeneration based on timing and context.
-/// Handles both fixed-amount and formula-based regeneration.
+/// Resolves every matching regeneration rule against one immutable snapshot,
+/// then applies the resulting mutations atomically through the resource reducer.
+/// It does not publish events: aggregate owners publish only after their full
+/// transaction commits.
 /// </summary>
-public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
+public sealed class ResourceRegenerationProcessor : IResourceRegenerationProcessor
 {
-    private readonly IMathEngine _mathEngine;
-    private readonly ILogger _logger;
-    private readonly IEventBus? _eventBus;
+    private readonly IRuntimeFormulaEvaluator _formulas;
 
-    public ResourceRegenerationProcessor(
-        IMathEngine mathEngine,
-        ILogger logger,
-        IEventBus? eventBus = null)
+    public ResourceRegenerationProcessor(IRuntimeFormulaEvaluator formulas)
     {
-        _mathEngine = mathEngine ?? throw new ArgumentNullException(nameof(mathEngine));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _eventBus = eventBus;
+        _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
     }
 
-    public Result<ResourceSet> ProcessRegeneration(
+    public Result<ResourceRegenerationResult> ProcessRegeneration(
         ResourceSet resourceState,
         RegenerationTiming timing,
-        Dictionary<string, float>? context = null)
+        ResourceRegenerationContext? context = null)
     {
         if (resourceState == null)
-            return Result<ResourceSet>.Failure("ResourceSet cannot be null");
+            return Result<ResourceRegenerationResult>.Failure("ResourceSet cannot be null");
 
-        var mutations = new List<ResolvedResourceMutation>();
-
-        foreach (var (resourceId, pool) in resourceState.Resources)
+        context ??= new ResourceRegenerationContext();
+        foreach (var (name, value) in context.Variables)
         {
-            var def = pool.Definition;
-
-            // Skip if regeneration is not enabled
-            if (def.Regeneration == null || !def.Regeneration.Enabled)
+            if (string.IsNullOrWhiteSpace(name))
+                return Result<ResourceRegenerationResult>.Failure("Regeneration context variable name is required");
+            if (float.IsNaN(value) || float.IsInfinity(value))
+            {
+                return Result<ResourceRegenerationResult>.Failure(
+                    $"Regeneration context variable must be finite: {name}");
+            }
+        }
+        var mutations = new List<ResolvedResourceMutation>();
+        foreach (var (resourceId, pool) in resourceState.Resources
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (pool.Definition == null)
+            {
+                return Result<ResourceRegenerationResult>.Failure(
+                    $"Resource pool has no pinned definition: {resourceState.OwnerId}/{resourceId}");
+            }
+            var regeneration = pool.Definition.Regeneration;
+            if (regeneration is not { Enabled: true } || regeneration.Timing != timing)
                 continue;
 
-            // Skip if timing doesn't match
-            if (def.Regeneration.Timing != timing)
-                continue;
-
-            // Calculate regeneration amount
-            var amount = CalculateRegenerationAmount(def, pool, context);
-
+            var amount = ResolveAmount(resourceState, pool, regeneration, context);
+            if (amount.IsFailure)
+            {
+                return Result<ResourceRegenerationResult>.Failure(
+                    $"Regeneration failed for {resourceState.OwnerId}/{resourceId}: {amount.Error}");
+            }
             mutations.Add(new ResolvedResourceMutation
             {
                 MutationId = $"regeneration:{timing}:{resourceId}",
                 ResourceId = resourceId,
-                Operation = amount >= 0
+                Operation = amount.Value >= 0
                     ? ResourceMutationOperation.Add
                     : ResourceMutationOperation.Subtract,
-                Value = System.Math.Abs(amount)
+                Value = System.Math.Abs(amount.Value)
             });
         }
 
         var applied = resourceState.Apply(mutations);
-        if (applied.IsFailure)
-            return Result<ResourceSet>.Failure(applied.Error);
-
-        foreach (var record in applied.Value.Records.Where(record =>
-                     System.Math.Abs(record.CurrentValue - record.PreviousValue) > 0.001f))
-        {
-            var amount = record.CurrentValue - record.PreviousValue;
-            _eventBus?.Publish(new ResourceRegeneratedEvent
-            {
-                OwnerId = resourceState.OwnerId,
-                ResourceId = record.ResourceId,
-                OldValue = record.PreviousValue,
-                NewValue = record.CurrentValue,
-                Amount = amount,
-                Timing = timing
-            });
-            _logger.LogDebug(
-                $"Regenerated {record.ResourceId} for {resourceState.OwnerId}: " +
-                $"{record.PreviousValue:F2} -> {record.CurrentValue:F2} ({amount:+0.##;-0.##}) at {timing}");
-        }
-
-        if (applied.Value.Records.Count > 0)
-            _logger.LogDebug($"Processed regeneration for {resourceState.OwnerId} at {timing}");
-
-        return Result<ResourceSet>.Success(applied.Value.State);
+        return applied.IsFailure
+            ? Result<ResourceRegenerationResult>.Failure(applied.Error)
+            : Result<ResourceRegenerationResult>.Success(new ResourceRegenerationResult(
+                applied.Value.State,
+                applied.Value.Records,
+                timing));
     }
 
-    public float CalculateRegenerationAmount(
-        ResourceDefinition definition,
+    private Result<float> ResolveAmount(
+        ResourceSet resourceState,
         ResourcePool currentPool,
-        Dictionary<string, float>? context = null)
+        RegenerationConfig regeneration,
+        ResourceRegenerationContext context)
     {
-        var regen = definition.Regeneration;
-        if (regen == null || !regen.Enabled)
-            return 0f;
+        if (string.IsNullOrWhiteSpace(regeneration.Formula))
+            return Result<float>.Success(regeneration.AmountPerTurn);
 
-        // If has formula, use MathEngine
-        if (!string.IsNullOrEmpty(regen.Formula))
+        var variables = BuildVariables(resourceState, currentPool, context.Variables);
+        return !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+               _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
+            ? revisioned.EvaluateAtRevision(
+                regeneration.Formula,
+                context.ContentRevision,
+                variables)
+            : _formulas.Evaluate(regeneration.Formula, variables);
+    }
+
+    private static Dictionary<string, float> BuildVariables(
+        ResourceSet resourceState,
+        ResourcePool currentPool,
+        IReadOnlyDictionary<string, float> external)
+    {
+        var variables = new Dictionary<string, float>(external, StringComparer.OrdinalIgnoreCase);
+        foreach (var (resourceId, pool) in resourceState.Resources
+                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
-            try
-            {
-                // Create context with pool values
-                var formulaContext = new Dictionary<string, float>
-                {
-                    ["current"] = currentPool.Current,
-                    ["max"] = currentPool.Maximum,
-                    ["min"] = currentPool.Minimum,
-                    ["percent"] = currentPool.GetPercentage()
-                };
-
-                // Merge with external context
-                if (context != null)
-                {
-                    foreach (var (key, value) in context)
-                    {
-                        formulaContext[key] = value;
-                    }
-                }
-
-                // Evaluate formula
-                var expr = _mathEngine.BuildFromFormula(regen.Formula, 0, formulaContext);
-                var result = expr.Build();
-
-                _logger.LogDebug(
-                    $"Evaluated regeneration formula '{regen.Formula}' for {definition.ResourceId}: {result:F2}");
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(
-                    $"Failed to evaluate regeneration formula '{regen.Formula}' for {definition.ResourceId}: {ex.Message}. " +
-                    $"Falling back to AmountPerTurn.");
-
-                // Fallback to fixed amount
-                return regen.AmountPerTurn;
-            }
+            var prefix = $"resources.{resourceId}";
+            variables[$"{prefix}.current"] = pool.Current;
+            variables[$"{prefix}.minimum"] = pool.Minimum;
+            variables[$"{prefix}.maximum"] = pool.Maximum;
+            variables[$"{prefix}.percent"] = pool.GetPercentage();
         }
 
-        // Use fixed amount
-        return regen.AmountPerTurn;
+        // Local aliases are generic and always describe the pool whose rule is
+        // being evaluated. They deliberately overwrite external values.
+        variables["current"] = currentPool.Current;
+        variables["minimum"] = currentPool.Minimum;
+        variables["maximum"] = currentPool.Maximum;
+        variables["percent"] = currentPool.GetPercentage();
+        return variables;
     }
 }

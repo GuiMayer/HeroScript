@@ -17,17 +17,17 @@ namespace Core.Tests.Resources;
 /// </summary>
 public class ResourceRegenerationIntegrationTests
 {
-    private readonly Mock<IMathEngine> _mockMathEngine;
+    private readonly Mock<IRevisionedRuntimeFormulaEvaluator> _mockFormulaEvaluator;
     private readonly ILogger _logger;
     private readonly IEventBus _eventBus;
     private readonly IResourceRegenerationProcessor _processor;
 
     public ResourceRegenerationIntegrationTests()
     {
-        _mockMathEngine = new Mock<IMathEngine>();
+        _mockFormulaEvaluator = new Mock<IRevisionedRuntimeFormulaEvaluator>();
         _logger = new Mock<ILogger>().Object;
         _eventBus = new EventBus(_logger);
-        _processor = new ResourceRegenerationProcessor(_mockMathEngine.Object, _logger, _eventBus);
+        _processor = new ResourceRegenerationProcessor(_mockFormulaEvaluator.Object);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(3f, result.Value.Resources["energy"].Current);
+        Assert.Equal(3f, result.Value.State.Resources["energy"].Current);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(55f, result.Value.Resources["mana"].Current);
+        Assert.Equal(55f, result.Value.State.Resources["mana"].Current);
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(0f, result.Value.Resources["block"].Current);
+        Assert.Equal(0f, result.Value.State.Resources["block"].Current);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(50f, result.Value.Resources["health"].Current);
+        Assert.Equal(50f, result.Value.State.Resources["health"].Current);
     }
 
     [Fact]
@@ -253,13 +253,13 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(0f, result.Value.Resources["energy"].Current); // Should not change
+        Assert.Equal(0f, result.Value.State.Resources["energy"].Current); // Should not change
     }
 
 
 
     [Fact]
-    public void ProcessRegeneration_EventsArePublished()
+    public void ProcessRegeneration_ReturnsMutationRecordsWithoutPublishingBeforeCommit()
     {
         // Arrange
         ResourceRegeneratedEvent? publishedEvent = null;
@@ -304,13 +304,12 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.NotNull(publishedEvent);
-        Assert.Equal("player1", publishedEvent.OwnerId);
-        Assert.Equal("energy", publishedEvent.ResourceId);
-        Assert.Equal(0f, publishedEvent.OldValue);
-        Assert.Equal(3f, publishedEvent.NewValue);
-        Assert.Equal(3f, publishedEvent.Amount);
-        Assert.Equal(RegenerationTiming.START_TURN, publishedEvent.Timing);
+        Assert.Null(publishedEvent);
+        var record = Assert.Single(result.Value.Records);
+        Assert.Equal("energy", record.ResourceId);
+        Assert.Equal(0f, record.PreviousValue);
+        Assert.Equal(3f, record.CurrentValue);
+        Assert.Equal(RegenerationTiming.START_TURN, result.Value.Timing);
     }
 
     [Fact]
@@ -378,8 +377,8 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(3f, result.Value.Resources["energy"].Current);
-        Assert.Equal(55f, result.Value.Resources["mana"].Current);
+        Assert.Equal(3f, result.Value.State.Resources["energy"].Current);
+        Assert.Equal(55f, result.Value.State.Resources["mana"].Current);
     }
 
     [Fact]
@@ -425,7 +424,145 @@ public class ResourceRegenerationIntegrationTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.Equal(10f, result.Value.Resources["energy"].Current); // Should cap at max
+        Assert.Equal(10f, result.Value.State.Resources["energy"].Current); // Should cap at max
+    }
+
+    [Fact]
+    public void ProcessRegeneration_FormulaUsesPinnedRevisionAndGenericSnapshotVariables()
+    {
+        const string revision = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        _mockFormulaEvaluator
+            .Setup(evaluator => evaluator.EvaluateAtRevision(
+                "stamina_regeneration",
+                revision,
+                It.Is<Dictionary<string, float>>(variables =>
+                    variables["turn"] == 4 &&
+                    variables["current"] == 2 &&
+                    variables["maximum"] == 10 &&
+                    variables["resources.focus.current"] == 5 &&
+                    variables["resources.stamina.current"] == 2),
+                0f))
+            .Returns(Result<float>.Success(4));
+        var stamina = new ResourceDefinition
+        {
+            ResourceId = "stamina",
+            DisplayName = "Stamina",
+            DefaultMax = 10,
+            Regeneration = new RegenerationConfig
+            {
+                Enabled = true,
+                Timing = RegenerationTiming.START_TURN,
+                Formula = "stamina_regeneration"
+            }
+        };
+        var focus = new ResourceDefinition
+        {
+            ResourceId = "focus",
+            DisplayName = "Focus",
+            DefaultMax = 10
+        };
+        var state = new ResourceSet
+        {
+            OwnerId = "actor",
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                ["stamina"] = new()
+                {
+                    ResourceId = "stamina",
+                    Current = 2,
+                    Maximum = 10,
+                    Definition = stamina
+                },
+                ["focus"] = new()
+                {
+                    ResourceId = "focus",
+                    Current = 5,
+                    Maximum = 10,
+                    Definition = focus
+                }
+            }
+        };
+
+        var result = _processor.ProcessRegeneration(
+            state,
+            RegenerationTiming.START_TURN,
+            new ResourceRegenerationContext
+            {
+                ContentRevision = revision,
+                Variables = new Dictionary<string, float>
+                {
+                    ["turn"] = 4,
+                    ["current"] = 999
+                }
+            });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(6, result.Value.State.Current("stamina"));
+        _mockFormulaEvaluator.VerifyAll();
+    }
+
+    [Fact]
+    public void ProcessRegeneration_InvalidFormulaRejectsWholeBatchWithoutFallback()
+    {
+        _mockFormulaEvaluator
+            .Setup(evaluator => evaluator.Evaluate(
+                "broken_regeneration",
+                It.IsAny<Dictionary<string, float>>(),
+                0f))
+            .Returns(Result<float>.Failure("formula failed"));
+        var fixedDefinition = new ResourceDefinition
+        {
+            ResourceId = "a_fixed",
+            DisplayName = "Fixed",
+            DefaultMax = 10,
+            Regeneration = new RegenerationConfig
+            {
+                Enabled = true,
+                Timing = RegenerationTiming.START_TURN,
+                AmountPerTurn = 3
+            }
+        };
+        var formulaDefinition = new ResourceDefinition
+        {
+            ResourceId = "z_formula",
+            DisplayName = "Formula",
+            DefaultMax = 10,
+            Regeneration = new RegenerationConfig
+            {
+                Enabled = true,
+                Timing = RegenerationTiming.START_TURN,
+                AmountPerTurn = 9,
+                Formula = "broken_regeneration"
+            }
+        };
+        var state = new ResourceSet
+        {
+            OwnerId = "actor",
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                ["a_fixed"] = new()
+                {
+                    ResourceId = "a_fixed",
+                    Current = 1,
+                    Maximum = 10,
+                    Definition = fixedDefinition
+                },
+                ["z_formula"] = new()
+                {
+                    ResourceId = "z_formula",
+                    Current = 1,
+                    Maximum = 10,
+                    Definition = formulaDefinition
+                }
+            }
+        };
+
+        var result = _processor.ProcessRegeneration(state, RegenerationTiming.START_TURN);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("formula failed", result.Error);
+        Assert.Equal(1, state.Current("a_fixed"));
+        Assert.Equal(1, state.Current("z_formula"));
     }
 
 

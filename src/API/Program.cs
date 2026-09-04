@@ -152,11 +152,7 @@ builder.Services.AddSingleton<IRuntimeFormulaEvaluator, RuntimeFormulaEvaluator>
 // Register ResourceRegenerationProcessor
 builder.Services.AddSingleton<IResourceRegenerationProcessor, ResourceRegenerationProcessor>(sp =>
 {
-    var mathEngine = sp.GetRequiredService<IMathEngine>();
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceRegenerationProcessor"));
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    return new ResourceRegenerationProcessor(mathEngine, logger, eventBus);
+    return new ResourceRegenerationProcessor(sp.GetRequiredService<IRuntimeFormulaEvaluator>());
 });
 
 // Register ResourceManager

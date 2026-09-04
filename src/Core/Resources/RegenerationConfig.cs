@@ -17,7 +17,9 @@ public record RegenerationConfig
     
     /// <summary>
     /// Fórmula dinâmica para calcular regeneração (opcional).
-    /// Contexto disponível: current, max, percent
+    /// Contexto local disponível: current, minimum, maximum, percent.
+    /// Todos os pools do dono também são expostos como
+    /// resources.&lt;resourceId&gt;.&lt;field&gt;.
     /// </summary>
     public string? Formula { get; init; }
     
