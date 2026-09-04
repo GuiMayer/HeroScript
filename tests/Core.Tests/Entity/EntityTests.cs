@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Core.Entity;
 using Core.Entity.Components;
 using Core.Combat.Models;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Entity;
@@ -74,7 +75,7 @@ public class EntityTests
     public void Entity_GetComponent_ReturnsComponentWhenExists()
     {
         // Arrange
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var resourceComponent = new ResourceComponent(resourceState);
         var components = new Dictionary<Type, IComponent>
         {
@@ -107,7 +108,7 @@ public class EntityTests
     public void Entity_HasComponent_ReturnsTrueWhenExists()
     {
         // Arrange
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var resourceComponent = new ResourceComponent(resourceState);
         var components = new Dictionary<Type, IComponent>
         {
@@ -140,7 +141,7 @@ public class EntityTests
     {
         // Arrange
         var entity = new Core.Entity.Entity { EntityId = "test_entity" };
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var component = new ResourceComponent(resourceState);
         
         // Act
@@ -158,7 +159,7 @@ public class EntityTests
     public void Entity_AddComponent_ReplacesExistingComponent()
     {
         // Arrange
-        var resourceState1 = new EntityResourceState();
+        var resourceState1 = new ResourceSet();
         var component1 = new ResourceComponent(resourceState1);
         var components = new Dictionary<Type, IComponent>
         {
@@ -170,7 +171,7 @@ public class EntityTests
             Components = components 
         };
         
-        var resourceState2 = new EntityResourceState();
+        var resourceState2 = new ResourceSet();
         var component2 = new ResourceComponent(resourceState2);
         
         // Act
@@ -198,7 +199,7 @@ public class EntityTests
     public void Entity_RemoveComponent_RemovesExistingComponent()
     {
         // Arrange
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var component = new ResourceComponent(resourceState);
         var components = new Dictionary<Type, IComponent>
         {
@@ -260,7 +261,7 @@ public class EntityTests
         var entity = new Core.Entity.Entity { EntityId = "multi_component" };
         
         // Act
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var withResource = entity.AddComponent(new ResourceComponent(resourceState));
         var withStats = withResource.AddComponent(new StatsComponent());
         var withInventory = withStats.AddComponent(new InventoryComponent());
@@ -410,7 +411,7 @@ public class EntityTests
         };
         
         // Act - Add components
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var withResource = player.AddComponent(new ResourceComponent(resourceState));
         var withStats = withResource.AddComponent(new StatsComponent());
         var withInventory = withStats.AddComponent(new InventoryComponent());
@@ -437,7 +438,7 @@ public class EntityTests
         };
         
         // Act - Add only resource component
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var withResource = enemy.AddComponent(new ResourceComponent(resourceState));
         
         // Assert
@@ -451,7 +452,7 @@ public class EntityTests
     {
         // Arrange
         var entity = new Core.Entity.Entity { EntityId = "lifecycle_test" };
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var component = new ResourceComponent(resourceState);
         
         // Act - Attach
@@ -478,7 +479,7 @@ public class EntityTests
         
         // Act - Chain modifications
         var step1 = original with { DisplayName = "Step 1" };
-        var resourceState = new EntityResourceState();
+        var resourceState = new ResourceSet();
         var step2 = step1.AddComponent(new ResourceComponent(resourceState));
         var step3 = step2 with { DisplayName = "Step 3" };
         

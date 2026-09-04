@@ -579,10 +579,10 @@ public class CombatModelsTests
         Assert.Equal(result1, result2);
     }
     
-    // ==================== ENTITY RESOURCE STATE TESTS ====================
+    // ==================== RESOURCE SET TESTS ====================
     
     [Fact]
-    public void EntityResourceState_GetResource_ReturnsCorrectPool()
+    public void ResourceSet_Get_ReturnsCorrectPool()
     {
         // Arrange
         var healthPool = new ResourcePool
@@ -592,9 +592,9 @@ public class CombatModelsTests
             Maximum = 100
         };
         
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = healthPool
@@ -602,7 +602,7 @@ public class CombatModelsTests
         };
         
         // Act
-        var retrieved = state.GetResource("health");
+        var retrieved = state.Get("health");
         
         // Assert
         Assert.NotNull(retrieved);
@@ -611,29 +611,29 @@ public class CombatModelsTests
     }
     
     [Fact]
-    public void EntityResourceState_GetResource_ReturnsNullForMissing()
+    public void ResourceSet_Get_ReturnsNullForMissing()
     {
         // Arrange
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>()
         };
         
         // Act
-        var retrieved = state.GetResource("nonexistent");
+        var retrieved = state.Get("nonexistent");
         
         // Assert
         Assert.Null(retrieved);
     }
     
     [Fact]
-    public void EntityResourceState_HasResource_WorksCorrectly()
+    public void ResourceSet_Contains_WorksCorrectly()
     {
         // Arrange
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = new ResourcePool { ResourceId = "health" }
@@ -641,12 +641,12 @@ public class CombatModelsTests
         };
         
         // Act & Assert
-        Assert.True(state.HasResource("health"));
-        Assert.False(state.HasResource("mana"));
+        Assert.True(state.Contains("health"));
+        Assert.False(state.Contains("mana"));
     }
     
     [Fact]
-    public void EntityResourceState_UpdateResource_CreatesNewInstance()
+    public void ResourceSet_WithResource_CreatesNewInstance()
     {
         // Arrange
         var originalPool = new ResourcePool
@@ -656,9 +656,9 @@ public class CombatModelsTests
             Maximum = 100
         };
         
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = originalPool
@@ -673,20 +673,31 @@ public class CombatModelsTests
         };
         
         // Act
-        var newState = state.UpdateResource("health", newPool);
+        var newState = state.WithResource("health", newPool);
         
         // Assert
-        Assert.Equal(50, state.GetResource("health")!.Current); // Original unchanged
-        Assert.Equal(75, newState.GetResource("health")!.Current); // New updated
+        Assert.Equal(50, state.Get("health")!.Current); // Original unchanged
+        Assert.Equal(75, newState.Get("health")!.Current); // New updated
+    }
+
+    [Fact]
+    public void ResourceSet_WithResource_RejectsMismatchedPoolId()
+    {
+        var state = new ResourceSet { OwnerId = "hero_1" };
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            state.WithResource("health", new ResourcePool { ResourceId = "mana" }));
+
+        Assert.Contains("does not match", error.Message);
     }
     
     [Fact]
-    public void EntityResourceState_UpdateResources_UpdatesMultiple()
+    public void ResourceSet_WithResources_UpdatesMultiple()
     {
         // Arrange
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = new ResourcePool { ResourceId = "health", Current = 50 },
@@ -701,19 +712,19 @@ public class CombatModelsTests
         };
         
         // Act
-        var newState = state.UpdateResources(updates);
+        var newState = state.WithResources(updates);
         
         // Assert
-        Assert.Equal(75, newState.GetResource("health")!.Current);
-        Assert.Equal(10, newState.GetResource("energy")!.Current);
+        Assert.Equal(75, newState.Get("health")!.Current);
+        Assert.Equal(10, newState.Get("energy")!.Current);
         
         // Original unchanged
-        Assert.Equal(50, state.GetResource("health")!.Current);
-        Assert.Equal(5, state.GetResource("energy")!.Current);
+        Assert.Equal(50, state.Get("health")!.Current);
+        Assert.Equal(5, state.Get("energy")!.Current);
     }
     
     [Fact]
-    public void EntityResourceState_GetVitalResource_ReturnsVitalCategory()
+    public void ResourceSet_FirstInCategory_ReturnsVitalCategory()
     {
         // Arrange
         var healthDef = new ResourceDefinition
@@ -728,9 +739,9 @@ public class CombatModelsTests
             Category = ResourceCategory.TACTICAL
         };
         
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = new ResourcePool
@@ -749,7 +760,7 @@ public class CombatModelsTests
         };
         
         // Act
-        var vital = state.GetVitalResource();
+        var vital = state.FirstInCategory(ResourceCategory.VITAL);
         
         // Assert
         Assert.NotNull(vital);
@@ -757,12 +768,12 @@ public class CombatModelsTests
     }
     
     [Fact]
-    public void EntityResourceState_GetVitalResource_ReturnsNullWhenNoneExists()
+    public void ResourceSet_FirstInCategory_ReturnsNullWhenNoneExists()
     {
         // Arrange
-        var state = new EntityResourceState
+        var state = new ResourceSet
         {
-            EntityId = "hero_1",
+            OwnerId = "hero_1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = new ResourcePool
@@ -778,7 +789,7 @@ public class CombatModelsTests
         };
         
         // Act
-        var vital = state.GetVitalResource();
+        var vital = state.FirstInCategory(ResourceCategory.VITAL);
         
         // Assert
         Assert.Null(vital);

@@ -8,9 +8,9 @@ namespace Core.Events.Domain;
 public record ResourceRegeneratedEvent : GameEvent
 {
     /// <summary>
-    /// ID of the entity whose resource regenerated.
+    /// ID of the entity, run or other aggregate whose resource regenerated.
     /// </summary>
-    public string EntityId { get; init; } = string.Empty;
+    public string OwnerId { get; init; } = string.Empty;
 
     /// <summary>
     /// ID of the resource that regenerated.

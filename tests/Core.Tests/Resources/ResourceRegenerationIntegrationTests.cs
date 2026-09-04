@@ -59,9 +59,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = energyDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = energyPool
@@ -105,9 +105,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = manaDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["mana"] = manaPool
@@ -152,9 +152,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = blockDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["block"] = blockPool
@@ -193,9 +193,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = healthDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = healthPool
@@ -239,9 +239,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = energyDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = energyPool
@@ -290,9 +290,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = energyDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = energyPool
@@ -305,7 +305,7 @@ public class ResourceRegenerationIntegrationTests
         // Assert
         Assert.True(result.IsSuccess);
         Assert.NotNull(publishedEvent);
-        Assert.Equal("player1", publishedEvent.EntityId);
+        Assert.Equal("player1", publishedEvent.OwnerId);
         Assert.Equal("energy", publishedEvent.ResourceId);
         Assert.Equal(0f, publishedEvent.OldValue);
         Assert.Equal(3f, publishedEvent.NewValue);
@@ -349,9 +349,9 @@ public class ResourceRegenerationIntegrationTests
             }
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = new ResourcePool
@@ -411,9 +411,9 @@ public class ResourceRegenerationIntegrationTests
             Definition = energyDef
         };
 
-        var entityState = new EntityResourceState
+        var entityState = new ResourceSet
         {
-            EntityId = "player1",
+            OwnerId = "player1",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = energyPool

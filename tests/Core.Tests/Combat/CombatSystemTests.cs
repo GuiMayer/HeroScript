@@ -61,6 +61,7 @@ public class CombatSystemTests
 
                 return new ResourcePool
                 {
+                    ResourceId = resourceId,
                     Definition = definition,
                     Current = current,
                     Maximum = resourceId == "health" ? 100 : 10,

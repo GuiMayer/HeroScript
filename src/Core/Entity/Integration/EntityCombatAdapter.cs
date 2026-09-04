@@ -34,7 +34,7 @@ public class EntityCombatAdapter
         if (resourceComponent == null)
             throw new InvalidOperationException($"Entity {entity.EntityId} has no ResourceComponent");
         
-        // Obter EntityResourceState do ResourceComponent
+        // Obter ResourceSet do ResourceComponent
         var resourceState = resourceComponent.ResourceState;
         
         // Criar CombatEntity
@@ -122,10 +122,10 @@ public class EntityCombatAdapter
             }
         }
         
-        // Criar EntityResourceState
-        var resourceState = new EntityResourceState
+        // Criar ResourceSet
+        var resourceState = new ResourceSet
         {
-            EntityId = entityId,
+            OwnerId = entityId,
             Resources = resources
         };
         

@@ -95,9 +95,9 @@ public sealed class ActivationStateTests
         {
             EntityId = id,
             Name = id,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = id,
+                OwnerId = id,
                 Resources = new Dictionary<string, ResourcePool>
                 {
                     ["health"] = new ResourcePool

@@ -713,9 +713,9 @@ public class EffectResolverTests
             EntityId = entityId,
             Name = entityId,
             IsHero = isHero,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = entityId,
+                OwnerId = entityId,
                 Resources = new Dictionary<string, ResourcePool>
                 {
                     ["health"] = new ResourcePool

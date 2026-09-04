@@ -303,9 +303,9 @@ public class EntityCombatIntegrationTests
             }
         }
         
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = entityId,
+            OwnerId = entityId,
             Resources = resources
         };
         

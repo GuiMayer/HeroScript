@@ -157,7 +157,7 @@ public sealed class CardPlayEvaluatorTests
     {
         EntityId = id,
         IsHero = isHero,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
             Resources = resources.ToDictionary(
                 item => item.Id,

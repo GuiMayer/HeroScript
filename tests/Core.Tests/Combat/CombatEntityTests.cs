@@ -50,9 +50,9 @@ public class CombatEntityTests
             [resourceId] = resourcePool
         };
 
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = entityId,
+            OwnerId = entityId,
             Resources = resources
         };
 
@@ -190,9 +190,9 @@ public class CombatEntityTests
         {
             EntityId = "test-1",
             Name = "Test Entity",
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = "test-1",
+                OwnerId = "test-1",
                 Resources = new Dictionary<string, ResourcePool>
                 {
                     ["morale"] = new()
@@ -253,9 +253,9 @@ public class CombatEntityTests
         {
             EntityId = "test-1",
             Name = "Test Entity",
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = "test-1",
+                OwnerId = "test-1",
                 Resources = new Dictionary<string, ResourcePool> { ["focus"] = pool }
             }
         };

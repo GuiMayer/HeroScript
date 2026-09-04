@@ -629,9 +629,9 @@ public class EdgeCaseTests
             EntityId = id,
             Name = id,
             IsHero = false,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = id,
+                OwnerId = id,
                 Resources = new Dictionary<string, ResourcePool>
                 {
                     ["health"] = new()
@@ -659,9 +659,9 @@ public class EdgeCaseTests
             EntityId = id,
             Name = id,
             IsHero = false,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = id,
+                OwnerId = id,
                 Resources = new Dictionary<string, ResourcePool>
                 {
                     ["armor"] = new()

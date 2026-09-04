@@ -13,7 +13,7 @@ public record CombatEntity
     /// <summary>
     /// Estado de recursos da entidade (health, energy, mana, etc.)
     /// </summary>
-    public EntityResourceState ResourceState { get; init; } = null!;
+    public Resources.ResourceSet ResourceState { get; init; } = null!;
     
     /// <summary>
     /// Verifica se nenhuma política de recurso declarou o dono derrotado.
@@ -31,7 +31,7 @@ public record CombatEntity
     /// Obtém um recurso específico.
     /// </summary>
     public Resources.ResourcePool? GetResource(string resourceId) 
-        => ResourceState.GetResource(resourceId);
+        => ResourceState.Get(resourceId);
     
     /// <summary>
     /// Atualiza um recurso específico.
@@ -40,7 +40,7 @@ public record CombatEntity
     {
         return this with 
         { 
-            ResourceState = ResourceState.UpdateResource(resourceId, newPool) 
+            ResourceState = ResourceState.WithResource(resourceId, newPool)
         };
     }
     
@@ -51,7 +51,7 @@ public record CombatEntity
     {
         return this with 
         { 
-            ResourceState = ResourceState.UpdateResources(updates) 
+            ResourceState = ResourceState.WithResources(updates)
         };
     }
     

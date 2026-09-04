@@ -1,4 +1,3 @@
-using Core.Combat.Models;
 using Core.Common;
 
 namespace Core.Resources;
@@ -74,12 +73,12 @@ public interface IResourceManager
     /// <summary>
     /// Processa regeneração de recursos para uma entidade.
     /// </summary>
-    /// <param name="entityResourceState">Estado de recursos da entidade</param>
+    /// <param name="resourceState">Estado de recursos do dono</param>
     /// <param name="timing">Timing da regeneração (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
     /// <param name="context">Contexto opcional para avaliação de fórmulas</param>
-    /// <returns>Resultado contendo EntityResourceState atualizado ou falha</returns>
-    Result<EntityResourceState> ProcessRegeneration(
-        EntityResourceState entityResourceState,
+    /// <returns>Resultado contendo o ResourceSet imutável atualizado ou falha</returns>
+    Result<ResourceSet> ProcessRegeneration(
+        ResourceSet resourceState,
         RegenerationTiming timing,
         Dictionary<string, float>? context = null);
     

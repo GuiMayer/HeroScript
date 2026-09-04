@@ -123,9 +123,9 @@ public sealed class AbilityExecutorTests
     {
         EntityId = id,
         IsHero = hero,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
-            EntityId = id,
+            OwnerId = id,
             Resources = resources.ToDictionary(
                 item => item.Id,
                 item => new ResourcePool

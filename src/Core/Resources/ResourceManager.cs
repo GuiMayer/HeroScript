@@ -252,12 +252,12 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager, IDi
     public Result ValidateResourceDefinition(ResourceDefinition definition)
         => ResourceDefinitionValidator.Validate(definition);
     
-    public Result<EntityResourceState> ProcessRegeneration(
-        EntityResourceState entityResourceState,
+    public Result<ResourceSet> ProcessRegeneration(
+        ResourceSet resourceState,
         RegenerationTiming timing,
         Dictionary<string, float>? context = null)
     {
-        return _regenerationProcessor.ProcessRegeneration(entityResourceState, timing, context);
+        return _regenerationProcessor.ProcessRegeneration(resourceState, timing, context);
     }
     
     public void EnableHotReload(string configName)

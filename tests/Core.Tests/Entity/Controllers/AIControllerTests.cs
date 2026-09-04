@@ -126,9 +126,9 @@ public class AIControllerTests
     {
         // Arrange
         var controller = new AIController(AIBehaviorType.AGGRESSIVE, new ConsoleLogger("Test"));
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = "test",
+            OwnerId = "test",
             Resources = new Dictionary<string, ResourcePool>()
         };
         var entity = new Core.Entity.Entity { EntityId = "test" }
@@ -217,9 +217,9 @@ public class AIControllerTests
             Definition = healthDef
         };
         
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = "test",
+            OwnerId = "test",
             Resources = new Dictionary<string, ResourcePool> { ["health"] = healthPool }
         };
         
@@ -245,9 +245,9 @@ public class AIControllerTests
             Definition = heroHealthDef
         };
         
-        var heroResourceState = new EntityResourceState
+        var heroResourceState = new ResourceSet
         {
-            EntityId = "hero",
+            OwnerId = "hero",
             Resources = new Dictionary<string, ResourcePool> { ["health"] = heroHealthPool }
         };
         

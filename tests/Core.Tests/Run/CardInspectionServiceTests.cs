@@ -265,6 +265,6 @@ public sealed class CardInspectionServiceTests
     {
         EntityId = id,
         IsHero = hero,
-        ResourceState = new EntityResourceState { EntityId = id }
+        ResourceState = new ResourceSet { OwnerId = id }
     };
 }

@@ -1,4 +1,3 @@
-using Core.Combat.Models;
 using Core.Common;
 using Core.Events;
 using Core.Events.Domain;
@@ -27,18 +26,18 @@ public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
         _eventBus = eventBus;
     }
 
-    public Result<EntityResourceState> ProcessRegeneration(
-        EntityResourceState entityResourceState,
+    public Result<ResourceSet> ProcessRegeneration(
+        ResourceSet resourceState,
         RegenerationTiming timing,
         Dictionary<string, float>? context = null)
     {
-        if (entityResourceState == null)
-            return Result<EntityResourceState>.Failure("EntityResourceState cannot be null");
+        if (resourceState == null)
+            return Result<ResourceSet>.Failure("ResourceSet cannot be null");
 
         var updatedResources = new Dictionary<string, ResourcePool>();
         var hasChanges = false;
 
-        foreach (var (resourceId, pool) in entityResourceState.Resources)
+        foreach (var (resourceId, pool) in resourceState.Resources)
         {
             var def = pool.Definition;
 
@@ -90,7 +89,7 @@ public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
                 // Publish event
                 _eventBus?.Publish(new ResourceRegeneratedEvent
                 {
-                    EntityId = entityResourceState.EntityId,
+                    OwnerId = resourceState.OwnerId,
                     ResourceId = resourceId,
                     OldValue = pool.Current,
                     NewValue = newPool.Current,
@@ -99,7 +98,7 @@ public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
                 });
 
                 _logger.LogDebug(
-                    $"Regenerated {resourceId} for {entityResourceState.EntityId}: " +
+                    $"Regenerated {resourceId} for {resourceState.OwnerId}: " +
                     $"{pool.Current:F2} -> {newPool.Current:F2} ({amount:+0.##;-0.##}) at {timing}");
             }
             else
@@ -109,18 +108,14 @@ public class ResourceRegenerationProcessor : IResourceRegenerationProcessor
         }
 
         // Return updated state
-        var newState = new EntityResourceState
-        {
-            EntityId = entityResourceState.EntityId,
-            Resources = updatedResources
-        };
+        var newState = resourceState with { Resources = updatedResources };
 
         if (hasChanges)
         {
-            _logger.LogDebug($"Processed regeneration for {entityResourceState.EntityId} at {timing}");
+            _logger.LogDebug($"Processed regeneration for {resourceState.OwnerId} at {timing}");
         }
 
-        return Result<EntityResourceState>.Success(newState);
+        return Result<ResourceSet>.Success(newState);
     }
 
     public float CalculateRegenerationAmount(

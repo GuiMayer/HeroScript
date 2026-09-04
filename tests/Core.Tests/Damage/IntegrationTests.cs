@@ -498,9 +498,9 @@ public class IntegrationTests
             EntityId = id,
             Name = id,
             IsHero = isHero,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = id,
+                OwnerId = id,
                 Resources = resources
             }
         };

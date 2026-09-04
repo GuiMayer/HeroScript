@@ -35,7 +35,7 @@ internal static class CombatSystemTestFactory
         public bool ValidateResourceExists(string resourceId) => false;
         public Core.Common.Result ValidateCost(ResourcePool pool, float cost) => Core.Common.Result.Success();
         public Core.Common.Result ValidateResourceDefinition(ResourceDefinition definition) => Core.Common.Result.Success();
-        public Core.Common.Result<EntityResourceState> ProcessRegeneration(EntityResourceState entityResourceState, RegenerationTiming timing, Dictionary<string, float>? context = null) => Core.Common.Result<EntityResourceState>.Success(entityResourceState);
+        public Core.Common.Result<ResourceSet> ProcessRegeneration(ResourceSet entityResourceState, RegenerationTiming timing, Dictionary<string, float>? context = null) => Core.Common.Result<ResourceSet>.Success(entityResourceState);
         public void EnableHotReload(string configName) { }
         public void DisableHotReload() { }
         public Core.Common.Result ReloadResource(string resourceId) => Core.Common.Result.Success();

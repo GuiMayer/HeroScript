@@ -71,10 +71,10 @@ public class ResourceRegenerationCombatTests
         
         // Setup RegenerationProcessor to actually regenerate energy
         mockRegenerationProcessor.Setup(rp => rp.ProcessRegeneration(
-            It.IsAny<EntityResourceState>(),
+            It.IsAny<ResourceSet>(),
             It.IsAny<RegenerationTiming>(),
             It.IsAny<Dictionary<string, float>>()))
-            .Returns((EntityResourceState state, RegenerationTiming timing, Dictionary<string, float> context) =>
+            .Returns((ResourceSet state, RegenerationTiming timing, Dictionary<string, float> context) =>
             {
                 var updatedResources = new Dictionary<string, ResourcePool>();
                 foreach (var (resourceId, pool) in state.Resources)
@@ -91,9 +91,9 @@ public class ResourceRegenerationCombatTests
                     }
                 }
                 
-                return Result<EntityResourceState>.Success(new EntityResourceState
+                return Result<ResourceSet>.Success(new ResourceSet
                 {
-                    EntityId = state.EntityId,
+                    OwnerId = state.OwnerId,
                     Resources = updatedResources
                 });
             });
@@ -230,10 +230,10 @@ public class ResourceRegenerationCombatTests
         
         // Setup RegenerationProcessor to regenerate and publish events
         mockRegenerationProcessor.Setup(rp => rp.ProcessRegeneration(
-            It.IsAny<EntityResourceState>(),
+            It.IsAny<ResourceSet>(),
             It.IsAny<RegenerationTiming>(),
             It.IsAny<Dictionary<string, float>>()))
-            .Returns((EntityResourceState state, RegenerationTiming timing, Dictionary<string, float> context) =>
+            .Returns((ResourceSet state, RegenerationTiming timing, Dictionary<string, float> context) =>
             {
                 var updatedResources = new Dictionary<string, ResourcePool>();
                 foreach (var (resourceId, pool) in state.Resources)
@@ -246,7 +246,7 @@ public class ResourceRegenerationCombatTests
                         // Publicar evento
                         realEventBus.Publish(new ResourceRegeneratedEvent
                         {
-                            EntityId = state.EntityId,
+                            OwnerId = state.OwnerId,
                             ResourceId = resourceId,
                             OldValue = pool.Current,
                             NewValue = newPool.Current,
@@ -260,9 +260,9 @@ public class ResourceRegenerationCombatTests
                     }
                 }
                 
-                return Result<EntityResourceState>.Success(new EntityResourceState
+                return Result<ResourceSet>.Success(new ResourceSet
                 {
-                    EntityId = state.EntityId,
+                    OwnerId = state.OwnerId,
                     Resources = updatedResources
                 });
             });
@@ -285,7 +285,7 @@ public class ResourceRegenerationCombatTests
         // Verificar que evento tem dados corretos
         var energyEvent = events.FirstOrDefault(e => e.ResourceId == "energy");
         Assert.NotNull(energyEvent);
-        Assert.Equal("hero1", energyEvent.EntityId);
+        Assert.Equal("hero1", energyEvent.OwnerId);
         Assert.True(energyEvent.Amount > 0, "Regeneration amount should be positive");
         Assert.True(energyEvent.NewValue > energyEvent.OldValue, "New value should be greater than old value");
     }

@@ -115,7 +115,7 @@ public sealed class CombatStatusLifecycleTests
         EntityId = id,
         Name = id,
         IsHero = hero,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
             Resources = new Dictionary<string, ResourcePool>
             {

@@ -501,9 +501,9 @@ public sealed class CombatRunCoordinatorTests
         EntityId = id,
         Name = id,
         IsHero = isHero,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
-            EntityId = id,
+            OwnerId = id,
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = new()

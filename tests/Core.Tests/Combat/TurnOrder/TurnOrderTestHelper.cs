@@ -64,9 +64,9 @@ public static class TurnOrderTestHelper
             EntityId = heroId,
             Name = "Hero",
             IsHero = true,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = heroId,
+                OwnerId = heroId,
                 Resources = heroResources
             }
         };
@@ -84,9 +84,9 @@ public static class TurnOrderTestHelper
                 EntityId = id,
                 Name = $"Enemy-{id}",
                 IsHero = false,
-                ResourceState = new EntityResourceState
+                ResourceState = new ResourceSet
                 {
-                    EntityId = id,
+                    OwnerId = id,
                     Resources = enemyResources
                 }
             };
@@ -120,9 +120,9 @@ public static class TurnOrderTestHelper
             EntityId = heroData.id,
             Name = "Hero",
             IsHero = true,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = heroData.id,
+                OwnerId = heroData.id,
                 Resources = heroResources
             }
         };
@@ -142,9 +142,9 @@ public static class TurnOrderTestHelper
                 EntityId = data.id,
                 Name = $"Enemy-{data.id}",
                 IsHero = false,
-                ResourceState = new EntityResourceState
+                ResourceState = new ResourceSet
                 {
-                    EntityId = data.id,
+                    OwnerId = data.id,
                     Resources = enemyResources
                 }
             };
@@ -177,9 +177,9 @@ public static class TurnOrderTestHelper
             EntityId = heroData.id,
             Name = "Hero",
             IsHero = true,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = heroData.id,
+                OwnerId = heroData.id,
                 Resources = heroResources
             }
         };
@@ -198,9 +198,9 @@ public static class TurnOrderTestHelper
                 EntityId = data.id,
                 Name = $"Enemy-{data.id}",
                 IsHero = false,
-                ResourceState = new EntityResourceState
+                ResourceState = new ResourceSet
                 {
-                    EntityId = data.id,
+                    OwnerId = data.id,
                     Resources = enemyResources
                 }
             };
@@ -235,9 +235,9 @@ public static class TurnOrderTestHelper
             EntityId = heroData.id,
             Name = "Hero",
             IsHero = true,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = heroData.id,
+                OwnerId = heroData.id,
                 Resources = heroResources
             }
         };
@@ -258,9 +258,9 @@ public static class TurnOrderTestHelper
                 EntityId = data.id,
                 Name = $"Enemy-{data.id}",
                 IsHero = false,
-                ResourceState = new EntityResourceState
+                ResourceState = new ResourceSet
                 {
-                    EntityId = data.id,
+                    OwnerId = data.id,
                     Resources = enemyResources
                 }
             };

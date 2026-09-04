@@ -535,9 +535,9 @@ public class CombatSystem : ICombatSystem
             EntityId = heroId,
             Name = "Hero",
             IsHero = true,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = heroId,
+                OwnerId = heroId,
                 Resources = heroResources
             }
         };
@@ -563,9 +563,9 @@ public class CombatSystem : ICombatSystem
             EntityId = enemyId,
             Name = enemyId,
             IsHero = false,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = enemyId,
+                OwnerId = enemyId,
                 Resources = enemyResources
             }
         };

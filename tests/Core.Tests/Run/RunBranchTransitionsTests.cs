@@ -88,9 +88,9 @@ public sealed class RunBranchTransitionsTests
         EntityId = "hero",
         Name = "Hero",
         IsHero = true,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
-            EntityId = "hero",
+            OwnerId = "hero",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = new ResourcePool

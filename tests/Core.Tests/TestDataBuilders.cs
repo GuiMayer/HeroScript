@@ -102,9 +102,9 @@ public static class TestDataBuilders
         mock.Setup(rm => rm.ValidateCost(It.IsAny<ResourcePool>(), It.IsAny<float>()))
             .Returns(Result.Success());
         
-        mock.Setup(rm => rm.ProcessRegeneration(It.IsAny<EntityResourceState>(), It.IsAny<RegenerationTiming>(), It.IsAny<Dictionary<string, float>>()))
-            .Returns((EntityResourceState state, RegenerationTiming timing, Dictionary<string, float>? ctx) => 
-                Result<EntityResourceState>.Success(state));
+        mock.Setup(rm => rm.ProcessRegeneration(It.IsAny<ResourceSet>(), It.IsAny<RegenerationTiming>(), It.IsAny<Dictionary<string, float>>()))
+            .Returns((ResourceSet state, RegenerationTiming timing, Dictionary<string, float>? ctx) =>
+                Result<ResourceSet>.Success(state));
         
         return mock;
     }
@@ -195,9 +195,9 @@ public static class TestDataBuilders
                 EntityId = _id,
                 Name = _name,
                 IsHero = _isHero,
-                ResourceState = new EntityResourceState
+                ResourceState = new ResourceSet
                 {
-                    EntityId = _id,
+                    OwnerId = _id,
                     Resources = _resources
                 }
             };

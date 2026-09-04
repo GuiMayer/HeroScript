@@ -1,4 +1,3 @@
-using Core.Combat.Models;
 using Core.Common;
 
 namespace Core.Resources;
@@ -12,12 +11,12 @@ public interface IResourceRegenerationProcessor
     /// <summary>
     /// Processes regeneration of resources for an entity.
     /// </summary>
-    /// <param name="entityResourceState">Current resource state of the entity</param>
+    /// <param name="resourceState">Current resource state of the owner</param>
     /// <param name="timing">Timing of regeneration (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
     /// <param name="context">Optional context for formula evaluation (turn_number, game state, etc.)</param>
-    /// <returns>Result containing updated EntityResourceState or failure</returns>
-    Result<EntityResourceState> ProcessRegeneration(
-        EntityResourceState entityResourceState,
+    /// <returns>Result containing the updated immutable resource set or failure</returns>
+    Result<ResourceSet> ProcessRegeneration(
+        ResourceSet resourceState,
         RegenerationTiming timing,
         Dictionary<string, float>? context = null);
     

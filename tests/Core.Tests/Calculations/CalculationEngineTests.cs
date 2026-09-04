@@ -349,7 +349,7 @@ public sealed class CalculationEngineTests
     private static CombatEntity Entity(string id, string resourceId, float value) => new()
     {
         EntityId = id,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
             Resources = new Dictionary<string, ResourcePool>
             {

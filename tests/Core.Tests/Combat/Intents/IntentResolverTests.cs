@@ -147,9 +147,9 @@ public sealed class IntentResolverTests
             EntityId = entityId,
             Name = name,
             IsHero = isHero,
-            ResourceState = new EntityResourceState
+            ResourceState = new ResourceSet
             {
-                EntityId = entityId,
+                OwnerId = entityId,
                 Resources = new Dictionary<string, ResourcePool>
                 {
                     ["health"] = new()

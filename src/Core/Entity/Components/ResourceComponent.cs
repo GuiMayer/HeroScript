@@ -1,20 +1,19 @@
-using Core.Combat.Models;
 using Core.Resources;
 
 namespace Core.Entity.Components;
 
 /// <summary>
 /// Componente que gerencia recursos da entidade (HP, energia, mana, etc.)
-/// Encapsula EntityResourceState existente para compatibilidade.
+/// Encapsula o conjunto imutável e genérico de recursos do dono.
 /// </summary>
 public class ResourceComponent : ComponentBase
 {
     /// <summary>
     /// Estado de recursos da entidade
     /// </summary>
-    public EntityResourceState ResourceState { get; private set; }
+    public ResourceSet ResourceState { get; private set; }
     
-    public ResourceComponent(EntityResourceState resourceState)
+    public ResourceComponent(ResourceSet resourceState)
     {
         ResourceState = resourceState ?? throw new ArgumentNullException(nameof(resourceState));
     }
@@ -24,7 +23,7 @@ public class ResourceComponent : ComponentBase
     /// </summary>
     public ResourcePool? GetResource(string resourceId)
     {
-        return ResourceState.GetResource(resourceId);
+        return ResourceState.Get(resourceId);
     }
     
     /// <summary>
@@ -32,7 +31,7 @@ public class ResourceComponent : ComponentBase
     /// </summary>
     public ResourceComponent UpdateResource(string resourceId, ResourcePool newPool)
     {
-        var newState = ResourceState.UpdateResource(resourceId, newPool);
+        var newState = ResourceState.WithResource(resourceId, newPool);
         return new ResourceComponent(newState)
         {
             ComponentId = this.ComponentId,
@@ -45,7 +44,7 @@ public class ResourceComponent : ComponentBase
     /// </summary>
     public ResourceComponent UpdateResources(Dictionary<string, ResourcePool> updates)
     {
-        var newState = ResourceState.UpdateResources(updates);
+        var newState = ResourceState.WithResources(updates);
         return new ResourceComponent(newState)
         {
             ComponentId = this.ComponentId,
@@ -58,7 +57,7 @@ public class ResourceComponent : ComponentBase
     /// </summary>
     public ResourcePool? GetVitalResource()
     {
-        return ResourceState.GetVitalResource();
+        return ResourceState.FirstInCategory(ResourceCategory.VITAL);
     }
     
     /// <summary>

@@ -63,10 +63,10 @@ public class EntityFactory : IEntityFactory
                 Definition = healthDef
             };
 
-            // Criar EntityResourceState
-            var resourceState = new EntityResourceState
+            // Criar ResourceSet
+            var resourceState = new ResourceSet
             {
-                EntityId = entityId,
+                OwnerId = entityId,
                 Resources = new Dictionary<string, ResourcePool> { ["health"] = healthPool }
             };
 

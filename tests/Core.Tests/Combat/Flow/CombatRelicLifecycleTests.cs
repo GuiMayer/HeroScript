@@ -70,9 +70,9 @@ public sealed class CombatRelicLifecycleTests
     {
         EntityId = id,
         IsHero = hero,
-        ResourceState = new EntityResourceState
+        ResourceState = new ResourceSet
         {
-            EntityId = id,
+            OwnerId = id,
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["energy"] = new()

@@ -29,9 +29,9 @@ public class ResourceComponentTests
             Definition = healthDef
         };
         
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = "test",
+            OwnerId = "test",
             Resources = new Dictionary<string, ResourcePool> { ["health"] = healthPool }
         };
         
@@ -40,7 +40,7 @@ public class ResourceComponentTests
         
         // Assert
         Assert.NotNull(component.ResourceState);
-        Assert.Equal("test", component.ResourceState.EntityId);
+        Assert.Equal("test", component.ResourceState.OwnerId);
     }
     
     [Fact]
@@ -174,9 +174,9 @@ public class ResourceComponentTests
             Definition = healthDef
         };
         
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = "test",
+            OwnerId = "test",
             Resources = new Dictionary<string, ResourcePool> { ["health"] = healthPool }
         };
         
@@ -217,9 +217,9 @@ public class ResourceComponentTests
             Definition = energyDef
         };
         
-        var resourceState = new EntityResourceState
+        var resourceState = new ResourceSet
         {
-            EntityId = "test",
+            OwnerId = "test",
             Resources = new Dictionary<string, ResourcePool>
             {
                 ["health"] = healthPool,
