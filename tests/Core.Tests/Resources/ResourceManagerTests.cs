@@ -194,6 +194,50 @@ public class ResourceManagerTests
             _resourceManager.CreatePool(null!));
     }
 
+    [Fact]
+    public void CreatePoolFromDefinition_AppliesEntitySpecificMaximumCentrally()
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "charge",
+            DisplayName = "Charge",
+            DefaultMin = 2,
+            DefaultMax = 10,
+            DefaultCurrent = 5
+        };
+
+        var pool = ResourcePool.Materialize(
+            definition,
+            initialCurrent: 12,
+            maximum: 20);
+
+        Assert.Equal(2, pool.Minimum);
+        Assert.Equal(20, pool.Maximum);
+        Assert.Equal(12, pool.Current);
+        Assert.Same(definition, pool.Definition);
+    }
+
+    [Fact]
+    public void CreatePoolFromDefinition_RejectsMaximumBelowConfiguredMinimum()
+    {
+        var definition = new ResourceDefinition
+        {
+            ResourceId = "charge",
+            DisplayName = "Charge",
+            DefaultMin = 2,
+            DefaultMax = 10,
+            DefaultCurrent = 5
+        };
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ResourcePool.Materialize(
+                definition,
+                initialCurrent: 2,
+                maximum: 1));
+
+        Assert.Contains("configured minimum", exception.Message);
+    }
+
     #endregion
 
     #region ValidateResourceDefinition Tests

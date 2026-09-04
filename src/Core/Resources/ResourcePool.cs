@@ -7,6 +7,41 @@ namespace Core.Resources;
 public record ResourcePool
 {
     /// <summary>
+    /// Materializes a valid immutable pool from one pinned definition and
+    /// optional owner-specific starting bounds.
+    /// </summary>
+    public static ResourcePool Materialize(
+        ResourceDefinition definition,
+        float? initialCurrent = null,
+        float? maximum = null)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        var validation = ResourceDefinitionValidator.Validate(definition);
+        if (validation.IsFailure)
+            throw new InvalidOperationException(validation.Error);
+
+        var resolvedMaximum = maximum ?? definition.DefaultMax;
+        if (!IsFinite(resolvedMaximum))
+            throw new ArgumentOutOfRangeException(nameof(maximum), "Resource maximum must be finite");
+        if (resolvedMaximum < definition.DefaultMin)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(maximum),
+                "Resource maximum cannot be below its configured minimum");
+        }
+
+        var pool = new ResourcePool
+        {
+            ResourceId = definition.ResourceId,
+            Current = initialCurrent ?? definition.DefaultCurrent,
+            Maximum = resolvedMaximum,
+            Minimum = definition.DefaultMin,
+            Definition = definition
+        };
+        return pool.Set(pool.Current);
+    }
+
+    /// <summary>
     /// ID do recurso.
     /// </summary>
     public string ResourceId { get; init; } = string.Empty;

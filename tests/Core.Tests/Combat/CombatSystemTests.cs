@@ -43,7 +43,12 @@ public class CombatSystemTests
                     Category = resourceId == "health" ? ResourceCategory.VITAL : ResourceCategory.TACTICAL,
                     DefaultMin = 0,
                     DefaultMax = resourceId == "health" ? 100 : 10,
-                    DefaultCurrent = current,
+                    DefaultCurrent = resourceId switch
+                    {
+                        "health" => 100,
+                        "energy" => 10,
+                        _ => 0
+                    },
                     CanBeNegative = false,
                     ThresholdPolicies = resourceId == "health"
                         ?

@@ -118,21 +118,15 @@ public class EntityFactory
             var resourceDefResult = _resourceManager.GetDefinition(resourceId);
             if (!resourceDefResult.IsSuccess)
             {
-                _logger.LogWarning($"Resource definition not found: {resourceId}");
-                continue;
+                throw new InvalidOperationException(
+                    $"Resource definition not found for entity {entityId}: {resourceId}");
             }
             
             var resourceDef = resourceDefResult.Value!;
-            
-            var pool = new ResourcePool
-            {
-                ResourceId = resourceId,
-                Current = poolDef.Current,
-                Maximum = poolDef.Max,
-                Definition = resourceDef
-            };
-            
-            pools[resourceId] = pool;
+            pools[resourceId] = ResourcePool.Materialize(
+                resourceDef,
+                poolDef.Current,
+                poolDef.Max);
         }
         
         var resourceState = new ResourceSet

@@ -251,6 +251,21 @@ public class EntityFactoryTests
         Assert.False(result.IsSuccess);
         Assert.Contains("Failed to load definition", result.Error);
     }
+
+    [Fact]
+    public void CreateEntity_ShouldFail_WhenReferencedResourceDefinitionIsMissing()
+    {
+        var loader = CreateLoader();
+        var resources = new Mock<IResourceManager>();
+        resources.Setup(manager => manager.GetDefinition(It.IsAny<string>()))
+            .Returns((string id) => Result<ResourceDefinition>.Failure($"Resource not found: {id}"));
+        var factory = new EntityFactory(loader, resources.Object, new ConsoleLogger("Test"));
+
+        var result = factory.CreateEntity("player_warrior", "player");
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Resource definition not found", result.Error);
+    }
     
     [Fact]
     public void CreateEntity_ShouldSupportDeltaInheritance()

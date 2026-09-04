@@ -195,23 +195,8 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
     
     public ResourcePool CreatePoolFromDefinition(
         ResourceDefinition definition, 
-        float? initialCurrent = null)
-    {
-        ArgumentNullException.ThrowIfNull(definition);
-        var validation = ValidateResourceDefinition(definition);
-        if (validation.IsFailure)
-            throw new InvalidOperationException(validation.Error);
-
-        var pool = new ResourcePool
-        {
-            ResourceId = definition.ResourceId,
-            Current = definition.DefaultCurrent,
-            Maximum = definition.DefaultMax,
-            Minimum = definition.DefaultMin,
-            Definition = definition
-        };
-        return initialCurrent.HasValue ? pool.Set(initialCurrent.Value) : pool;
-    }
+        float? initialCurrent = null) =>
+        ResourcePool.Materialize(definition, initialCurrent);
     
     public Dictionary<string, ResourcePool> CreateDefaultPools()
     {

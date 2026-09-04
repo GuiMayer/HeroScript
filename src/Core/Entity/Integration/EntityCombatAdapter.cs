@@ -111,13 +111,10 @@ public class EntityCombatAdapter
                             value => value,
                             error => throw new InvalidOperationException(error))
                     : _resourceManager.CreatePool(resourceId, resourceDef.Current);
-                // Ajustar o máximo se necessário
-                if (resourceDef.Max != pool.Maximum)
-                {
-                    pool = pool with { Maximum = resourceDef.Max };
-                }
-                pool = pool.Set(resourceDef.Current);
-                resources[resourceId] = pool;
+                resources[resourceId] = ResourcePool.Materialize(
+                    pool.Definition,
+                    resourceDef.Current,
+                    resourceDef.Max);
             }
         }
         
