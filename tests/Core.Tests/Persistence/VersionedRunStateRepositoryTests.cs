@@ -4,6 +4,7 @@ using Core.Determinism;
 using System.Text.Json;
 using Core.Logging;
 using Core.Run;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Persistence;
@@ -37,9 +38,20 @@ public sealed class VersionedRunStateRepositoryTests : IDisposable
     {
         using var repository = new VersionedRunStateRepository(_storePath, new TestLogger());
         var runId = Guid.NewGuid();
-        var firstState = new RunState { RunId = runId, Sequence = 1, Gold = 10 };
+        var firstState = new RunState
+        {
+            RunId = runId,
+            Sequence = 1,
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 10 })
+        };
         var firstHash = CanonicalJson.ComputeHash(firstState);
-        var secondState = firstState with { Sequence = 2, Gold = 20 };
+        var secondState = firstState with
+        {
+            Sequence = 2,
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 20 })
+        };
         var secondHash = CanonicalJson.ComputeHash(secondState);
         var commandId = Guid.NewGuid();
         var batch = new RunCheckpointBatch
@@ -74,7 +86,7 @@ public sealed class VersionedRunStateRepositoryTests : IDisposable
 
         var loaded = await repository.LoadCheckpointsAsync(runId);
         Assert.Equal([1, 2], loaded.Select(checkpoint => checkpoint.State.Sequence));
-        Assert.Equal(20, (await repository.LoadLatestAsync(runId))?.Gold);
+        Assert.Equal(20, (await repository.LoadLatestAsync(runId))?.ResourceState.Current("credits"));
         Assert.Single(Directory.GetFiles(Path.Combine(_storePath, runId.ToString(), "batches"), "*.json"));
     }
 

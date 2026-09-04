@@ -701,6 +701,18 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         {
             RequireProperty(runtime, errors, "daily-challenges", id, definition, "runDefinitionId", "runs");
             RequireProperty(runtime, errors, "daily-challenges", id, definition, "modeId", "modes");
+            var challenge = definition.Deserialize<DailyChallengeDefinition>(CreateJsonOptions());
+            if (challenge == null)
+            {
+                errors.Add($"daily-challenges/{id} is invalid");
+                continue;
+            }
+            foreach (var weight in challenge.ScoreResourceWeights)
+            {
+                Require(runtime, errors, "daily-challenges", id, weight.Key, "resources");
+                if (!IsFinite(weight.Value))
+                    errors.Add($"daily-challenges/{id} score weight for {weight.Key} must be finite");
+            }
         }
     }
 

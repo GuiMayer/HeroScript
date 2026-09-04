@@ -1,6 +1,7 @@
 using Core.Infrastructure.Persistence;
 using Core.Logging;
 using Core.Run;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Persistence;
@@ -26,8 +27,9 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
         var state = new RunState
         {
             RunId = Guid.NewGuid(),
-            Gold = 100,
-            PowerPoints = 5,
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "gold", Amount = 100 },
+                new ResourceAmount { ResourceId = "power_points", Amount = 5 }),
             CurrentNodeId = "node_1",
             Map = map
         };
@@ -37,8 +39,8 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
 
         Assert.NotNull(loaded);
         Assert.Equal(state.RunId, loaded.RunId);
-        Assert.Equal(100, loaded.Gold);
-        Assert.Equal(5, loaded.PowerPoints);
+        Assert.Equal(100, loaded.ResourceState.Current("gold"));
+        Assert.Equal(5, loaded.ResourceState.Current("power_points"));
         Assert.Equal("node_1", loaded.CurrentNodeId);
         Assert.Equal(new[] { "node_1" }, loaded.Map.VisitedNodeIds);
         Assert.Equal(2, loaded.Map.Nodes.Count);
@@ -55,15 +57,15 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     [Fact]
     public async Task Save_Overwrite_UpdatesState()
     {
-        var state = new RunState { RunId = Guid.NewGuid(), Gold = 10 };
+        var state = WithResource(new RunState { RunId = Guid.NewGuid() }, "gold", 10);
         await _repo.SaveAsync(state);
 
-        state = state with { Gold = 999 };
+        state = WithResource(state, "gold", 999);
         await _repo.SaveAsync(state);
 
         var loaded = await _repo.LoadLatestAsync(state.RunId);
         Assert.NotNull(loaded);
-        Assert.Equal(999, loaded.Gold);
+        Assert.Equal(999, loaded.ResourceState.Current("gold"));
     }
 
     [Fact]
@@ -98,7 +100,7 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     public async Task Save_AtomicWrite_FileNotCorruptedIfFail()
     {
         // Just verify normal path doesn't leave .tmp behind
-        var state = new RunState { RunId = Guid.NewGuid(), Gold = 42 };
+        var state = WithResource(new RunState { RunId = Guid.NewGuid() }, "gold", 42);
         await _repo.SaveAsync(state);
 
         var tmpFiles = Directory.GetFiles(_tempDir, "*.tmp");
@@ -110,14 +112,24 @@ public sealed class JsonFileRunStateRepositoryTests : IDisposable
     {
         var state = new RunState { RunId = Guid.NewGuid() };
         var tasks = Enumerable.Range(0, 10)
-            .Select(i => _repo.SaveAsync(state with { Gold = i }));
+            .Select(i => _repo.SaveAsync(WithResource(state, "gold", i)));
         await Task.WhenAll(tasks);
 
         var loaded = await _repo.LoadLatestAsync(state.RunId);
         Assert.NotNull(loaded);
         // Gold is some value between 0-9; important: no exception or corruption
-        Assert.InRange(loaded.Gold, 0, 9);
+        Assert.InRange(loaded.ResourceState.Current("gold"), 0, 9);
     }
+
+    private static RunState WithResource(RunState state, string resourceId, float value) =>
+        state with
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = resourceId, Amount = value }) with
+            {
+                OwnerId = $"run:{state.RunId}"
+            }
+        };
 
     public void Dispose()
     {

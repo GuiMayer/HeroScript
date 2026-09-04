@@ -233,9 +233,7 @@ public sealed class DailyChallengeService
             entries.Add(new DailyLeaderboardEntry(
                 state.PlayerEntityId,
                 state.RunId,
-                checked(
-                    (long)state.ResourceState.Current("gold") +
-                    (long)state.ResourceState.Current("power_points") * 10L),
+                CalculateScore(state, challenge),
                 state.Sequence,
                 CanonicalJson.ComputeHash(state)));
         }
@@ -252,6 +250,13 @@ public sealed class DailyChallengeService
         .Where(challenge => challenge.IsCurrent)
         .OrderBy(challenge => challenge.ChallengeId, StringComparer.Ordinal)
         .FirstOrDefault();
+
+    private static long CalculateScore(RunState state, DailyChallengeDefinition challenge)
+    {
+        var score = challenge.ScoreResourceWeights.Sum(weight =>
+            state.ResourceState.Current(weight.Key) * weight.Value);
+        return checked((long)System.Math.Round(score, MidpointRounding.AwayFromZero));
+    }
 
     private static DailyAttempt MapAttempt(DailyChallengeDefinition challenge, RunState state) => new(
         challenge.ChallengeId,

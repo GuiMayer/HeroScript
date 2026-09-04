@@ -108,6 +108,28 @@ public static class TestDataBuilders
         
         return mock;
     }
+
+    public static ResourceSet RunResources(params ResourceAmount[] amounts)
+    {
+        var pools = amounts.ToDictionary(
+            amount => amount.ResourceId,
+            amount => new ResourcePool
+            {
+                ResourceId = amount.ResourceId,
+                Current = amount.Amount,
+                Minimum = 0f,
+                Maximum = 1_000_000f,
+                Definition = new ResourceDefinition
+                {
+                    ResourceId = amount.ResourceId,
+                    DisplayName = amount.ResourceId,
+                    DefaultMax = 1_000_000f,
+                    CanExceedMax = true
+                }
+            },
+            StringComparer.OrdinalIgnoreCase);
+        return new ResourceSet { OwnerId = "test-owner", Resources = pools };
+    }
     
     // ==================== ENTITY BUILDERS ====================
     
@@ -432,7 +454,7 @@ public static class TestDataBuilders
     public class RunStateBuilder
     {
         private Guid _runId = Guid.NewGuid();
-        private int _gold = 0;
+        private readonly List<ResourceAmount> _resources = [];
         private DeckState? _deckState;
         
         public RunStateBuilder WithRunId(Guid runId)
@@ -441,9 +463,10 @@ public static class TestDataBuilders
             return this;
         }
         
-        public RunStateBuilder WithGold(int gold)
+        public RunStateBuilder WithResource(string resourceId, float amount)
         {
-            _gold = gold;
+            _resources.RemoveAll(resource => resource.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase));
+            _resources.Add(new ResourceAmount { ResourceId = resourceId, Amount = amount });
             return this;
         }
         
@@ -458,7 +481,7 @@ public static class TestDataBuilders
             return new RunState
             {
                 RunId = _runId,
-                Gold = _gold,
+                ResourceState = RunResources(_resources.ToArray()) with { OwnerId = $"run:{_runId}" },
                 Deck = _deckState ?? new DeckState()
             };
         }

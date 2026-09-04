@@ -17,7 +17,8 @@ public sealed class RunBranchTransitionsTests
             RunId = Guid.Parse("10000000-0000-0000-0000-000000000010"),
             Sequence = 7,
             PlayerEntityId = "player",
-            Gold = 25,
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 25 }),
             Determinism = DeterministicContext.Create(123, "content-v1").AdvanceStep()
         };
         var command = new RunBranchStartCommand(

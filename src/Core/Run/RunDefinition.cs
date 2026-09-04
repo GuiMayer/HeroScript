@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
@@ -17,18 +16,6 @@ public sealed record RunDefinition
         get => _startingResources;
         init => _startingResources = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
             ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
-    }
-    [JsonIgnore]
-    public int StartingGold
-    {
-        get => (int)_startingResources.GetValueOrDefault("gold");
-        init => _startingResources = _startingResources.SetItem("gold", value);
-    }
-    [JsonIgnore]
-    public int StartingPowerPoints
-    {
-        get => (int)_startingResources.GetValueOrDefault("power_points");
-        init => _startingResources = _startingResources.SetItem("power_points", value);
     }
     public int StartingHandSize { get; init; } = 5;
     public IReadOnlyList<string> StartingDeck

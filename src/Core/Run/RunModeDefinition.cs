@@ -151,10 +151,19 @@ public sealed record ResolvedGameMode
 
 public sealed record DailyChallengeDefinition
 {
+    private ImmutableDictionary<string, float> _scoreResourceWeights =
+        ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+
     public string ChallengeId { get; init; } = string.Empty;
     public bool IsCurrent { get; init; }
     public string ConfigName { get; init; } = "default";
     public string RunDefinitionId { get; init; } = "default_run";
     public string ModeId { get; init; } = "standard";
     public ulong Seed { get; init; }
+    public IReadOnlyDictionary<string, float> ScoreResourceWeights
+    {
+        get => _scoreResourceWeights;
+        init => _scoreResourceWeights = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
+            ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    }
 }

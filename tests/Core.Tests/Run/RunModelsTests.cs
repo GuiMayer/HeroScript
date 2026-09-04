@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Collections.Generic;
 using System.Text.Json;
 using Core.Run;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -156,8 +157,7 @@ public class RunModelsTests
         Assert.Equal(0, runState.Sequence);
         Assert.Equal("default", runState.ConfigName);
         Assert.Equal("player", runState.PlayerEntityId);
-        Assert.Equal(0, runState.Gold);
-        Assert.Equal(0, runState.PowerPoints);
+        Assert.Empty(runState.ResourceState.Resources);
         Assert.Null(runState.CurrentNodeId);
         Assert.NotNull(runState.Deck);
         Assert.Empty(runState.CardSelections);
@@ -192,8 +192,9 @@ public class RunModelsTests
             Sequence = 5,
             ConfigName = "hard_mode",
             PlayerEntityId = "hero_001",
-            Gold = 150,
-            PowerPoints = 3,
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 150 },
+                new ResourceAmount { ResourceId = "insight", Amount = 3 }),
             CurrentNodeId = "node_boss",
             Deck = deckState,
             Metadata = ImmutableDictionary<string, JsonElement>.Empty.Add(
@@ -206,8 +207,8 @@ public class RunModelsTests
         Assert.Equal(5, runState.Sequence);
         Assert.Equal("hard_mode", runState.ConfigName);
         Assert.Equal("hero_001", runState.PlayerEntityId);
-        Assert.Equal(150, runState.Gold);
-        Assert.Equal(3, runState.PowerPoints);
+        Assert.Equal(150, runState.ResourceState.Current("credits"));
+        Assert.Equal(3, runState.ResourceState.Current("insight"));
         Assert.Equal("node_boss", runState.CurrentNodeId);
         Assert.Single(runState.Deck.Hand);
         Assert.Single(runState.Metadata);
@@ -228,31 +229,47 @@ public class RunModelsTests
     }
     
     [Fact]
-    public void RunState_Gold_ChangesByReplacement()
+    public void RunState_ResourceState_ChangesByReplacement()
     {
         // Arrange
-        var runState = new RunState { Gold = 100 };
+        var runState = new RunState
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 100 })
+        };
         
         // Act
-        var updated = runState with { Gold = 150 };
+        var updated = runState with
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 150 })
+        };
         
         // Assert
-        Assert.Equal(100, runState.Gold);
-        Assert.Equal(150, updated.Gold);
+        Assert.Equal(100, runState.ResourceState.Current("credits"));
+        Assert.Equal(150, updated.ResourceState.Current("credits"));
     }
     
     [Fact]
-    public void RunState_PowerPoints_ChangesByReplacement()
+    public void RunState_CustomResource_ChangesByReplacement()
     {
         // Arrange
-        var runState = new RunState { PowerPoints = 2 };
+        var runState = new RunState
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "insight", Amount = 2 })
+        };
         
         // Act
-        var updated = runState with { PowerPoints = 5 };
+        var updated = runState with
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "insight", Amount = 5 })
+        };
         
         // Assert
-        Assert.Equal(2, runState.PowerPoints);
-        Assert.Equal(5, updated.PowerPoints);
+        Assert.Equal(2, runState.ResourceState.Current("insight"));
+        Assert.Equal(5, updated.ResourceState.Current("insight"));
     }
     
     [Fact]
@@ -282,15 +299,20 @@ public class RunModelsTests
         var original = new RunState
         {
             ConfigName = "normal",
-            Gold = 100
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 100 })
         };
         
         // Act
-        var modified = original with { Gold = 200 };
+        var modified = original with
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 200 })
+        };
         
         // Assert
-        Assert.Equal(100, original.Gold);
-        Assert.Equal(200, modified.Gold);
+        Assert.Equal(100, original.ResourceState.Current("credits"));
+        Assert.Equal(200, modified.ResourceState.Current("credits"));
         Assert.Equal("normal", modified.ConfigName);
     }
     
@@ -304,8 +326,7 @@ public class RunModelsTests
         
         // Assert
         Assert.Equal("default_run", runDef.RunId);
-        Assert.Equal(0, runDef.StartingGold);
-        Assert.Equal(0, runDef.StartingPowerPoints);
+        Assert.Empty(runDef.StartingResources);
         Assert.Equal(5, runDef.StartingHandSize);
         Assert.Empty(runDef.StartingDeck);
         Assert.Empty(runDef.MapNodes);
@@ -319,8 +340,11 @@ public class RunModelsTests
         var runDef = new RunDefinition
         {
             RunId = "ironclad_run",
-            StartingGold = 100,
-            StartingPowerPoints = 3,
+            StartingResources = new Dictionary<string, float>
+            {
+                ["credits"] = 100,
+                ["insight"] = 3
+            },
             StartingHandSize = 6,
             StartingDeck = new List<string> { "strike", "strike", "defend", "bash" },
             MapNodes = new List<RunMapNodeDefinition>
@@ -332,8 +356,8 @@ public class RunModelsTests
         
         // Assert
         Assert.Equal("ironclad_run", runDef.RunId);
-        Assert.Equal(100, runDef.StartingGold);
-        Assert.Equal(3, runDef.StartingPowerPoints);
+        Assert.Equal(100, runDef.StartingResources["credits"]);
+        Assert.Equal(3, runDef.StartingResources["insight"]);
         Assert.Equal(6, runDef.StartingHandSize);
         Assert.Equal(4, runDef.StartingDeck.Count);
         Assert.Single(runDef.MapNodes);
@@ -376,15 +400,18 @@ public class RunModelsTests
         var original = new RunDefinition
         {
             RunId = "original",
-            StartingGold = 100
+            StartingResources = new Dictionary<string, float> { ["credits"] = 100 }
         };
         
         // Act
-        var modified = original with { StartingGold = 200 };
+        var modified = original with
+        {
+            StartingResources = new Dictionary<string, float> { ["credits"] = 200 }
+        };
         
         // Assert
-        Assert.Equal(100, original.StartingGold);
-        Assert.Equal(200, modified.StartingGold);
+        Assert.Equal(100, original.StartingResources["credits"]);
+        Assert.Equal(200, modified.StartingResources["credits"]);
         Assert.Equal("original", modified.RunId);
     }
     
@@ -512,28 +539,35 @@ public class RunModelsTests
     }
     
     [Fact]
-    public void RunState_ProgressionScenario_GoldAndPowerPoints()
+    public void RunState_ProgressionScenario_UsesGenericResources()
     {
         // Arrange - Start of run
         var runState = new RunState
         {
-            Gold = 100,
-            PowerPoints = 0,
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "credits", Amount = 100 },
+                new ResourceAmount { ResourceId = "insight", Amount = 0 }),
             CurrentNodeId = "node_start"
         };
         
         // Act - Win combat, gain gold and PP
+        var resources = RunResourceTransitions.Gain(
+            runState.ResourceState,
+            [
+                new ResourceAmount { ResourceId = "credits", Amount = 50 },
+                new ResourceAmount { ResourceId = "insight", Amount = 1 }
+            ],
+            "test-progression").Value.State;
         var progressed = runState with
         {
-            Gold = runState.Gold + 50,
-            PowerPoints = runState.PowerPoints + 1,
+            ResourceState = resources,
             CurrentNodeId = "node_shop_1"
         };
         
         // Assert
-        Assert.Equal(100, runState.Gold);
-        Assert.Equal(150, progressed.Gold);
-        Assert.Equal(1, progressed.PowerPoints);
+        Assert.Equal(100, runState.ResourceState.Current("credits"));
+        Assert.Equal(150, progressed.ResourceState.Current("credits"));
+        Assert.Equal(1, progressed.ResourceState.Current("insight"));
         Assert.Equal("node_shop_1", progressed.CurrentNodeId);
     }
     
@@ -544,8 +578,7 @@ public class RunModelsTests
         var ironcladRun = new RunDefinition
         {
             RunId = "ironclad_ascension_0",
-            StartingGold = 99,
-            StartingPowerPoints = 0,
+            StartingResources = new Dictionary<string, float> { ["gold"] = 99 },
             StartingHandSize = 5,
             StartingDeck = new List<string>
             {

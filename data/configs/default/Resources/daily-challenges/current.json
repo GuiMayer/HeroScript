@@ -5,6 +5,10 @@
     "configName": "default",
     "runDefinitionId": "default_run",
     "modeId": "standard",
-    "seed": 20260816
+    "seed": 20260816,
+    "scoreResourceWeights": {
+      "gold": 1,
+      "power_points": 10
+    }
   }
 }

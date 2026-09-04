@@ -5,7 +5,6 @@ using Core.Combat.Modifiers;
 using Core.Determinism;
 using Core.Run.Sandbox;
 using Core.Resources;
-using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
@@ -29,21 +28,6 @@ public sealed record RunState
     public string? BranchKey { get; init; }
     public ResourceSet ResourceState { get; init; } = new();
 
-    // Transitional source compatibility for in-process callers. These are
-    // projections over ResourceState, never independent persisted state.
-    [JsonIgnore]
-    public int Gold
-    {
-        get => (int)ResourceState.Current("gold");
-        init => ResourceState = SetProjectedResource(ResourceState, "gold", value);
-    }
-
-    [JsonIgnore]
-    public int PowerPoints
-    {
-        get => (int)ResourceState.Current("power_points");
-        init => ResourceState = SetProjectedResource(ResourceState, "power_points", value);
-    }
     public string? CurrentNodeId { get; init; }
     public RunMapState Map { get; init; } = new();
     public Guid? ActiveEncounterId { get; init; }
@@ -81,32 +65,4 @@ public sealed record RunState
     public CombatResolutionRecord? GetCombatResolution(Guid commandId) =>
         _combatResolutions.TryGetValue(commandId, out var resolution) ? resolution : null;
 
-    private static ResourceSet SetProjectedResource(ResourceSet state, string id, float value)
-    {
-        var ownerId = string.IsNullOrWhiteSpace(state.OwnerId) ? "run" : state.OwnerId;
-        var resources = state.Resources.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
-        if (resources.TryGetValue(id, out var existing))
-            resources[id] = existing.Set(value);
-        else
-        {
-            var definition = new ResourceDefinition
-            {
-                ResourceId = id,
-                DisplayName = id,
-                DefaultMin = 0,
-                DefaultMax = 1_000_000,
-                DefaultCurrent = value,
-                CanExceedMax = true
-            };
-            resources[id] = new ResourcePool
-            {
-                ResourceId = id,
-                Definition = definition,
-                Current = value,
-                Minimum = 0,
-                Maximum = 1_000_000
-            }.Set(value);
-        }
-        return new ResourceSet { OwnerId = ownerId, Resources = resources };
-    }
 }

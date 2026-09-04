@@ -45,9 +45,10 @@ public sealed class RunSubmoduleTransitionsTests
     public void ShopBuy_FailureAndSuccessLeaveOriginalUntouched()
     {
         var shopId = Guid.Parse("20000000-0000-8000-8000-000000000001");
-        var state = CreateState() with
+        var state = WithResources(
+            CreateState(),
+            new ResourceAmount { ResourceId = "gold", Amount = 5 }) with
         {
-            Gold = 5,
             Shops =
             [
                 new ShopState
@@ -69,14 +70,17 @@ public sealed class RunSubmoduleTransitionsTests
         };
 
         var failure = ShopTransitions.Buy(state, shopId, "card");
-        var success = ShopTransitions.Buy(state with { Gold = 10 }, shopId, "card");
+        var success = ShopTransitions.Buy(
+            WithResources(state, new ResourceAmount { ResourceId = "gold", Amount = 10 }),
+            shopId,
+            "card");
 
         Assert.True(failure.IsFailure);
         Assert.False(state.Shops[0].Items[0].Purchased);
         Assert.Empty(state.Deck.DiscardPile);
         Assert.True(success.IsSuccess, success.IsFailure ? success.Error : null);
         Assert.True(success.Value.Value.Purchased);
-        Assert.Equal(0, success.Value.State.Gold);
+        Assert.Equal(0, success.Value.State.ResourceState.Current("gold"));
         Assert.Equal(new[] { "zap" }, success.Value.State.Deck.DiscardPile);
     }
 
@@ -84,9 +88,10 @@ public sealed class RunSubmoduleTransitionsTests
     public void PreparationPlan_SameStateAllocatesSameModifierIds()
     {
         var preparationId = Guid.Parse("30000000-0000-8000-8000-000000000001");
-        var state = CreateState() with
+        var state = WithResources(
+            CreateState(),
+            new ResourceAmount { ResourceId = "power_points", Amount = 1 }) with
         {
-            PowerPoints = 1,
             Preparations =
             [
                 new PreparationState
@@ -145,7 +150,7 @@ public sealed class RunSubmoduleTransitionsTests
         Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
         Assert.False(state.Preparations[0].Options[0].Applied);
         Assert.True(committed.Value.Value.Applied);
-        Assert.Equal(0, committed.Value.State.PowerPoints);
+        Assert.Equal(0, committed.Value.State.ResourceState.Current("power_points"));
         Assert.Equal(new[] { "fireball" }, committed.Value.State.Deck.DiscardPile);
         // One deterministic identity is allocated for the modifier and another
         // for the newly acquired card instance.

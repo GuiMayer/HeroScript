@@ -2,6 +2,7 @@ using API.Controllers;
 using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Run;
+using Core.Resources;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -158,7 +159,25 @@ public sealed class RunControllerTests
             RunId = Guid.NewGuid(),
             ConfigName = "test",
             PlayerEntityId = "hero",
-            Gold = 10,
+            ResourceState = new ResourceSet
+            {
+                OwnerId = "test",
+                Resources = new Dictionary<string, ResourcePool>
+                {
+                    ["credits"] = new()
+                    {
+                        ResourceId = "credits",
+                        Current = 10,
+                        Maximum = 100,
+                        Definition = new ResourceDefinition
+                        {
+                            ResourceId = "credits",
+                            DisplayName = "Credits",
+                            DefaultMax = 100
+                        }
+                    }
+                }
+            },
             Deck = new DeckState
             {
                 DrawPile = new List<string> { "c" },

@@ -469,10 +469,18 @@ public class EffectResolverTests
     [Fact]
     public void ApplyEffect_RunGoldEffect_WithRunState_AppliesEconomyState()
     {
-        var runState = new RunState { Gold = 10 };
+        var runState = new RunState
+        {
+            ResourceState = TestDataBuilders.RunResources(
+                new ResourceAmount { ResourceId = "gold", Amount = 10 })
+        };
         _runManager
             .Setup(m => m.ApplyRunResource(runState.RunId, "gold", 25))
-            .Returns(Result<RunState>.Success(runState with { Gold = 35 }));
+            .Returns(Result<RunState>.Success(runState with
+            {
+                ResourceState = TestDataBuilders.RunResources(
+                    new ResourceAmount { ResourceId = "gold", Amount = 35 })
+            }));
 
         var resolver = CreateResolver();
         var effect = new EffectInstance

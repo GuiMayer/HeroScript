@@ -77,7 +77,7 @@ public sealed class RunManagerTests
             var tampered = checkpoints.ToArray();
             tampered[^1] = tampered[^1] with
             {
-                State = tampered[^1].State with { Gold = 999 }
+                State = SetResource(tampered[^1].State, "gold", 999)
             };
             Assert.False(RunReplayVerifier.Verify(tampered).IsValid);
         }
@@ -200,7 +200,7 @@ public sealed class RunManagerTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal("test", result.Value.ConfigName);
         Assert.Equal("hero", result.Value.PlayerEntityId);
-        Assert.Equal(25, result.Value.Gold);
+        Assert.Equal(25, result.Value.ResourceState.Current("gold"));
         Assert.Equal(new[] { "strike", "defend" }, result.Value.Deck.Hand);
         Assert.Equal(new[] { "zap" }, result.Value.Deck.DrawPile);
         Assert.Equal("start", result.Value.CurrentNodeId);
@@ -468,8 +468,8 @@ public sealed class RunManagerTests
 
         Assert.True(gold.IsSuccess, gold.IsFailure ? gold.Error : null);
         Assert.True(pp.IsSuccess, pp.IsFailure ? pp.Error : null);
-        Assert.Equal(15, run.Gold);
-        Assert.Equal(3, run.PowerPoints);
+        Assert.Equal(15, run.ResourceState.Current("gold"));
+        Assert.Equal(3, run.ResourceState.Current("power_points"));
     }
 
     [Fact]
@@ -514,7 +514,7 @@ public sealed class RunManagerTests
         var reroll = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId, new[] { "heal" });
 
         Assert.True(reroll.IsSuccess, reroll.IsFailure ? reroll.Error : null);
-        Assert.Equal(25, run.Gold);
+        Assert.Equal(25, run.ResourceState.Current("gold"));
         Assert.Equal(1, reroll.Value.RerollsUsed);
         Assert.Equal(0, reroll.Value.FreeRerollsRemaining);
         Assert.Contains(reroll.Value.Options, option => option.CardId == "heal");
@@ -533,7 +533,7 @@ public sealed class RunManagerTests
         run = manager.GetRun(run.RunId).Value;
 
         Assert.True(decompose.IsSuccess, decompose.IsFailure ? decompose.Error : null);
-        Assert.Equal(2, run.PowerPoints);
+        Assert.Equal(2, run.ResourceState.Current("power_points"));
         Assert.Contains("fireball", decompose.Value.DecomposedCardIds);
         Assert.True(pick.IsFailure);
         Assert.Contains("Invalid card options", pick.Error);
@@ -562,13 +562,13 @@ public sealed class RunManagerTests
         var run = manager.StartRun("test", "default_run", "hero").Value;
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var first = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
-        var powerPointsAfterFirst = manager.GetRun(run.RunId).Value.PowerPoints;
+        var powerPointsAfterFirst = manager.GetRun(run.RunId).Value.ResourceState.Current("power_points");
 
         var second = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.True(second.IsFailure);
-        Assert.Equal(powerPointsAfterFirst, manager.GetRun(run.RunId).Value.PowerPoints);
+        Assert.Equal(powerPointsAfterFirst, manager.GetRun(run.RunId).Value.ResourceState.Current("power_points"));
         Assert.Single(first.Value.DecomposedCardIds, id => id == "fireball");
     }
 
@@ -585,7 +585,7 @@ public sealed class RunManagerTests
         Assert.True(shop.IsSuccess, shop.IsFailure ? shop.Error : null);
         Assert.True(item.IsSuccess, item.IsFailure ? item.Error : null);
         Assert.True(item.Value.Purchased);
-        Assert.Equal(15, run.Gold);
+        Assert.Equal(15, run.ResourceState.Current("gold"));
         Assert.Contains("zap", run.Deck.DiscardPile);
     }
 
@@ -594,14 +594,14 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
+        run = manager.ApplyRunResource(run.RunId, "gold", -run.ResourceState.Current("gold")).Value;
         var shop = manager.CreateShop(run.RunId, "basic_shop").Value;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
 
         var item = manager.BuyShopItem(run.RunId, shop.ShopInstanceId, "buy_zap");
 
         Assert.True(item.IsFailure);
-        Assert.Equal(0, run.Gold);
+        Assert.Equal(0, run.ResourceState.Current("gold"));
         Assert.Equal(originalDiscard, run.Deck.DiscardPile);
         Assert.False(shop.Items.Single(i => i.ItemId == "buy_zap").Purchased);
     }
@@ -634,7 +634,7 @@ public sealed class RunManagerTests
         run = manager.GetRun(run.RunId).Value;
 
         Assert.True(reroll.IsSuccess, reroll.IsFailure ? reroll.Error : null);
-        Assert.Equal(15, run.Gold);
+        Assert.Equal(15, run.ResourceState.Current("gold"));
         Assert.Equal(1, reroll.Value.RerollsUsed);
         Assert.Equal(15, Amount(reroll.Value.RerollCosts, "gold"));
         Assert.NotEqual(shop.OfferFingerprint, reroll.Value.OfferFingerprint);
@@ -647,7 +647,7 @@ public sealed class RunManagerTests
         var manager = CreateManagerWithContent();
         var run = manager.StartRun("test", "default_run", "hero").Value;
         var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
-        run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
+        run = manager.ApplyRunResource(run.RunId, "gold", -run.ResourceState.Current("gold")).Value;
         var originalItems = shop.Items.Select(i => i.ItemId).ToArray();
         var originalRerolls = shop.RerollsUsed;
         var originalCosts = shop.RerollCosts;
@@ -655,7 +655,7 @@ public sealed class RunManagerTests
         var reroll = manager.RerollShop(run.RunId, shop.ShopInstanceId);
 
         Assert.True(reroll.IsFailure);
-        Assert.Equal(0, run.Gold);
+        Assert.Equal(0, run.ResourceState.Current("gold"));
         Assert.Equal(originalRerolls, shop.RerollsUsed);
         Assert.Equal(originalCosts, shop.RerollCosts);
         Assert.Equal(originalItems, shop.Items.Select(i => i.ItemId));
@@ -669,7 +669,7 @@ public sealed class RunManagerTests
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var free = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
         Assert.True(free.IsSuccess, free.IsFailure ? free.Error : null);
-        run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
+        run = manager.ApplyRunResource(run.RunId, "gold", -run.ResourceState.Current("gold")).Value;
         var originalOptions = selection.Options.Select(o => o.CardId).ToArray();
         var originalRerolls = selection.RerollsUsed;
         var originalFree = selection.FreeRerollsRemaining;
@@ -678,7 +678,7 @@ public sealed class RunManagerTests
         var paid = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
 
         Assert.True(paid.IsFailure);
-        Assert.Equal(0, run.Gold);
+        Assert.Equal(0, run.ResourceState.Current("gold"));
         Assert.Equal(originalRerolls, selection.RerollsUsed);
         Assert.Equal(originalFree, selection.FreeRerollsRemaining);
         Assert.Equal(originalCosts, selection.RerollCosts);
@@ -698,7 +698,7 @@ public sealed class RunManagerTests
         Assert.True(preparation.IsSuccess, preparation.IsFailure ? preparation.Error : null);
         Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
         Assert.True(option.Value.Applied);
-        Assert.Equal(20, run.Gold);
+        Assert.Equal(20, run.ResourceState.Current("gold"));
         Assert.Contains("heal", run.Deck.DiscardPile);
     }
 
@@ -723,7 +723,7 @@ public sealed class RunManagerTests
 
         Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
         Assert.True(option.Value.Applied);
-        Assert.Equal(1, run.PowerPoints);
+        Assert.Equal(1, run.ResourceState.Current("power_points"));
         Assert.Contains("fireball", run.Deck.DiscardPile);
         var modifier = Assert.Single(run.Modifiers);
         Assert.Equal("flat_power_bonus", modifier.ModifierId);
@@ -738,16 +738,16 @@ public sealed class RunManagerTests
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyRunResource(run.RunId, "power_points", 2).Value;
-        var originalGold = run.Gold;
-        var originalPowerPoints = run.PowerPoints;
+        var originalGold = run.ResourceState.Current("gold");
+        var originalPowerPoints = run.ResourceState.Current("power_points");
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
         var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
 
         Assert.True(option.IsFailure);
-        Assert.Equal(originalGold, run.Gold);
-        Assert.Equal(originalPowerPoints, run.PowerPoints);
+        Assert.Equal(originalGold, run.ResourceState.Current("gold"));
+        Assert.Equal(originalPowerPoints, run.ResourceState.Current("power_points"));
         Assert.Equal(originalDiscard, run.Deck.DiscardPile);
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "train_spell").Applied);
@@ -760,8 +760,8 @@ public sealed class RunManagerTests
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyRunResource(run.RunId, "power_points", 2).Value;
-        var originalGold = run.Gold;
-        var originalPowerPoints = run.PowerPoints;
+        var originalGold = run.ResourceState.Current("gold");
+        var originalPowerPoints = run.ResourceState.Current("power_points");
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
             .Setup(m => m.GetDefinition("flat_power_bonus"))
@@ -772,8 +772,8 @@ public sealed class RunManagerTests
 
         Assert.True(option.IsFailure);
         Assert.Equal("modifier rejected", option.Error);
-        Assert.Equal(originalGold, run.Gold);
-        Assert.Equal(originalPowerPoints, run.PowerPoints);
+        Assert.Equal(originalGold, run.ResourceState.Current("gold"));
+        Assert.Equal(originalPowerPoints, run.ResourceState.Current("power_points"));
         Assert.Equal(originalDiscard, run.Deck.DiscardPile);
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "train_spell").Applied);
@@ -787,8 +787,8 @@ public sealed class RunManagerTests
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyRunResource(run.RunId, "power_points", 3).Value;
-        var originalGold = run.Gold;
-        var originalPowerPoints = run.PowerPoints;
+        var originalGold = run.ResourceState.Current("gold");
+        var originalPowerPoints = run.ResourceState.Current("power_points");
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
             .Setup(m => m.GetDefinition("flat_power_bonus"))
@@ -806,8 +806,8 @@ public sealed class RunManagerTests
 
         Assert.True(option.IsFailure);
         Assert.Equal("modifier missing", option.Error);
-        Assert.Equal(originalGold, run.Gold);
-        Assert.Equal(originalPowerPoints, run.PowerPoints);
+        Assert.Equal(originalGold, run.ResourceState.Current("gold"));
+        Assert.Equal(originalPowerPoints, run.ResourceState.Current("power_points"));
         Assert.Equal(originalDiscard, run.Deck.DiscardPile);
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "double_train").Applied);
@@ -992,6 +992,19 @@ public sealed class RunManagerTests
 
     private static float Amount(IEnumerable<ResourceAmount> amounts, string resourceId) =>
         amounts.Single(amount => amount.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)).Amount;
+
+    private static RunState SetResource(RunState state, string resourceId, float value)
+    {
+        var resources = state.ResourceState.Resources.ToDictionary(
+            pair => pair.Key,
+            pair => pair.Value,
+            StringComparer.OrdinalIgnoreCase);
+        resources[resourceId] = resources[resourceId].Set(value);
+        return state with
+        {
+            ResourceState = state.ResourceState with { Resources = resources }
+        };
+    }
 
     private RunManager CreateManager(
         IScriptModifierManager? scriptModifierManager = null,
