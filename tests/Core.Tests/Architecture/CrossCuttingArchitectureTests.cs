@@ -170,6 +170,16 @@ public sealed class CrossCuttingArchitectureTests
         Assert.NotNull(typeof(CombatAction).GetProperty(nameof(CombatAction.Applications)));
     }
 
+    [Fact]
+    public void ResourceSystem_DoesNotExposeSpecializedPoolsOrMockEntityFactories()
+    {
+        var coreAssembly = typeof(ResourcePool).Assembly;
+
+        Assert.Null(coreAssembly.GetType("Core.Combat.Models.EnergyPool"));
+        Assert.Null(coreAssembly.GetType("Core.Combat.IEntityFactory"));
+        Assert.Null(coreAssembly.GetType("Core.Combat.EntityFactory"));
+    }
+
     [Theory]
     [InlineData(typeof(ActionManager), "_definitions")]
     [InlineData(typeof(GambitEngine), "_definitions")]

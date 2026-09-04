@@ -540,8 +540,6 @@ builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new Combat
     sp.GetRequiredService<IRunManager>(),
     (IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
 
-// Register EntityFactory
-builder.Services.AddSingleton<IEntityFactory, Core.Combat.EntityFactory>();
 builder.Services.AddSingleton<Core.Entity.Definitions.EntityFactory>(sp => new Core.Entity.Definitions.EntityFactory(
     sp.GetRequiredService<EntityDefinitionLoader>(),
     sp.GetRequiredService<IResourceManager>(),
