@@ -297,24 +297,27 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 ? entities
                 : entities.Where(entity => entity.EntityId != actor.EntityId),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or
-                EffectTarget.LOWEST_HP_ENEMY or EffectTarget.HIGHEST_HP_ENEMY => enemies,
+                EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => enemies,
             EffectTarget.ALL_ALLIES => targeting.AllowSelf
                 ? allies
                 : allies.Where(entity => entity.EntityId != actor.EntityId),
             _ => []
         };
         var legalEntities = legal.OrderBy(entity => entity.EntityId, StringComparer.Ordinal).ToArray();
-        if (targeting.Target is EffectTarget.LOWEST_HP_ENEMY or EffectTarget.HIGHEST_HP_ENEMY)
+        if (targeting.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {
             if (string.IsNullOrWhiteSpace(targeting.SelectionResourceId))
             {
                 return Result<TargetResolution>.Failure(
                     $"Targeting {targeting.ComponentId} requires selectionResourceId");
             }
-            legalEntities = targeting.Target == EffectTarget.LOWEST_HP_ENEMY
-                ? legalEntities.OrderBy(entity => entity.GetResource(targeting.SelectionResourceId)?.Current ?? float.MaxValue)
+            legalEntities = legalEntities
+                .Where(entity => entity.GetResource(targeting.SelectionResourceId) != null)
+                .ToArray();
+            legalEntities = targeting.Target == EffectTarget.LOWEST_RESOURCE_ENEMY
+                ? legalEntities.OrderBy(entity => entity.GetResource(targeting.SelectionResourceId)!.Current)
                     .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).Take(1).ToArray()
-                : legalEntities.OrderByDescending(entity => entity.GetResource(targeting.SelectionResourceId)?.Current ?? float.MinValue)
+                : legalEntities.OrderByDescending(entity => entity.GetResource(targeting.SelectionResourceId)!.Current)
                     .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).Take(1).ToArray();
         }
 
@@ -322,7 +325,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         if (targeting.Target == EffectTarget.SELF)
             return Result<TargetResolution>.Success(new TargetResolution(legalIds, [actor.EntityId], []));
         if (targeting.Target is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES or
-            EffectTarget.LOWEST_HP_ENEMY or EffectTarget.HIGHEST_HP_ENEMY)
+            EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {
             return Result<TargetResolution>.Success(new TargetResolution(legalIds, legalIds, []));
         }
@@ -357,27 +360,13 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         CombatEntity? target,
         IReadOnlyDictionary<string, float> supplied)
     {
-        var variables = new Dictionary<string, float>(StringComparer.Ordinal);
-        AddEntityVariables(variables, "actor", actor);
+        var variables = supplied
+            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        ResourceFormulaVariables.AddOwner(variables, "actor", actor.ResourceState);
         if (target != null)
-            AddEntityVariables(variables, "target", target);
-        foreach (var (key, value) in supplied.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-            variables[key] = value;
+            ResourceFormulaVariables.AddOwner(variables, "target", target.ResourceState);
         return variables;
-    }
-
-    private static void AddEntityVariables(
-        IDictionary<string, float> variables,
-        string prefix,
-        CombatEntity entity)
-    {
-        foreach (var (resourceId, pool) in entity.ResourceState.Resources
-                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            variables[$"{prefix}_{resourceId}_current"] = pool.Current;
-            variables[$"{prefix}_{resourceId}_max"] = pool.Maximum;
-            variables[$"{prefix}_{resourceId}_min"] = pool.Minimum;
-        }
     }
 
     private sealed record TargetResolution(

@@ -1749,15 +1749,10 @@ public class CombatSystem : ICombatSystem
         foreach (var entity in state.GetAllEntities()
                      .OrderBy(entity => entity.EntityId, StringComparer.Ordinal))
         {
-            foreach (var (resourceId, pool) in entity.ResourceState.Resources
-                         .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-            {
-                var prefix = $"actors.{entity.EntityId}.resources.{resourceId}";
-                variables[$"{prefix}.current"] = pool.Current;
-                variables[$"{prefix}.minimum"] = pool.Minimum;
-                variables[$"{prefix}.maximum"] = pool.Maximum;
-                variables[$"{prefix}.percent"] = pool.GetPercentage();
-            }
+            ResourceFormulaVariables.AddOwner(
+                variables,
+                $"actors.{entity.EntityId}",
+                entity.ResourceState);
         }
         return new ResourceRegenerationContext
         {

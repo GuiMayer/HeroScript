@@ -142,7 +142,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
                                                            targeting.MaximumTargets < targeting.MinimumTargets =>
                 Result.Failure($"Card {cardId} targeting {component.ComponentId} has an invalid target range"),
             CardTargetingComponentDefinition targeting when
-                targeting.Target is EffectTarget.LOWEST_HP_ENEMY or EffectTarget.HIGHEST_HP_ENEMY &&
+                targeting.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
                 string.IsNullOrWhiteSpace(targeting.SelectionResourceId) =>
                 Result.Failure($"Card {cardId} targeting {component.ComponentId} requires selectionResourceId"),
             CardTriggerComponentDefinition trigger when string.IsNullOrWhiteSpace(trigger.Boundary) =>
@@ -164,6 +164,12 @@ public sealed class CardContentCompiler : ICardContentCompiler
         {
             return Result.Failure(
                 $"Card {cardId} effect component {componentId} requires targetResource");
+        }
+        if (effect.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
+            string.IsNullOrWhiteSpace(effect.SelectionResourceId))
+        {
+            return Result.Failure(
+                $"Card {cardId} effect component {componentId} requires selectionResourceId");
         }
         return Result.Success();
     }

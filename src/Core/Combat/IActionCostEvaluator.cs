@@ -57,14 +57,8 @@ public sealed class ActionCostEvaluator : IActionCostEvaluator
 
     private static Dictionary<string, float> BuildVariables(IReadOnlyDictionary<string, ResourcePool> resources)
     {
-        var variables = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (resourceId, pool) in resources)
-        {
-            variables[$"{resourceId}_current"] = pool.Current;
-            variables[$"{resourceId}_max"] = pool.Maximum;
-            variables[$"{resourceId}_min"] = pool.Minimum;
-        }
-
+        var variables = new Dictionary<string, float>(StringComparer.Ordinal);
+        ResourceFormulaVariables.AddUnscoped(variables, resources);
         return variables;
     }
 

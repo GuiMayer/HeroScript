@@ -101,7 +101,10 @@ public class EffectResolverTests
                 FinalDamage = action.Effects.Single().FlatValue!.Value
             });
         _formulaEvaluator
-            .Setup(m => m.Evaluate("target_max_hp - target_hp", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Setup(m => m.Evaluate(
+                "target.resources.health.maximum - target.resources.health.current",
+                It.IsAny<Dictionary<string, float>>(),
+                0f))
             .Returns(Result<float>.Success(60f));
         var resolver = CreateResolver();
         var effect = new EffectInstance
@@ -112,7 +115,7 @@ public class EffectResolverTests
             {
                 EffectId = "execute",
                 Type = EffectType.DAMAGE,
-                FormulaValue = "target_max_hp - target_hp",
+                FormulaValue = "target.resources.health.maximum - target.resources.health.current",
                 TargetResource = "health"
             }
         };
@@ -127,8 +130,10 @@ public class EffectResolverTests
             state.Hero,
             state.Enemies[0]), Times.Once);
         _formulaEvaluator.Verify(m => m.Evaluate(
-            "target_max_hp - target_hp",
-            It.Is<Dictionary<string, float>>(vars => vars["target_hp"] == 40f && vars["target_max_hp"] == 100f),
+            "target.resources.health.maximum - target.resources.health.current",
+            It.Is<Dictionary<string, float>>(vars =>
+                vars["target.resources.health.current"] == 40f &&
+                vars["target.resources.health.maximum"] == 100f),
             0f), Times.Once);
     }
 
@@ -178,7 +183,10 @@ public class EffectResolverTests
         var targetId = Guid.NewGuid().ToString();
         var state = CreateCombatState(sourceId, targetId, targetHealth: 40);
         _formulaEvaluator
-            .Setup(m => m.Evaluate("target_hp - 50", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Setup(m => m.Evaluate(
+                "target.resources.health.current - 50",
+                It.IsAny<Dictionary<string, float>>(),
+                0f))
             .Returns(Result<float>.Success(-10f));
         var resolver = CreateResolver();
         var effect = new EffectInstance
@@ -188,7 +196,7 @@ public class EffectResolverTests
             Definition = new EffectDefinition
             {
                 Type = EffectType.HEAL,
-                Condition = "target_hp - 50",
+                Condition = "target.resources.health.current - 50",
                 FlatValue = 10,
                 TargetResource = "health"
             }
@@ -208,7 +216,10 @@ public class EffectResolverTests
         var targetId = Guid.NewGuid().ToString();
         var state = CreateCombatState(sourceId, targetId, targetHealth: 40);
         _formulaEvaluator
-            .Setup(m => m.Evaluate("50 - target_hp", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Setup(m => m.Evaluate(
+                "50 - target.resources.health.current",
+                It.IsAny<Dictionary<string, float>>(),
+                0f))
             .Returns(Result<float>.Success(10f));
         var resolver = CreateResolver();
         var effect = new EffectInstance
@@ -218,7 +229,7 @@ public class EffectResolverTests
             Definition = new EffectDefinition
             {
                 Type = EffectType.HEAL,
-                Condition = "50 - target_hp",
+                Condition = "50 - target.resources.health.current",
                 FlatValue = 10,
                 TargetResource = "health"
             }

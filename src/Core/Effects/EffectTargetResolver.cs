@@ -10,7 +10,8 @@ public static class EffectTargetResolver
         string sourceId,
         string primaryTargetId,
         IEffectContext context,
-        IRandomProvider randomProvider)
+        IRandomProvider randomProvider,
+        string? selectionResourceId = null)
     {
         if (context.CombatState == null)
         {
@@ -30,8 +31,14 @@ public static class EffectTargetResolver
                 .Select(entity => entity.EntityId).ToArray(),
             EffectTarget.ALL_ALLIES => new[] { context.CombatState.Hero.EntityId },
             EffectTarget.RANDOM_ENEMY => RandomEnemy(context.CombatState, randomProvider),
-            EffectTarget.LOWEST_HP_ENEMY => ByHealth(context.CombatState, descending: false),
-            EffectTarget.HIGHEST_HP_ENEMY => ByHealth(context.CombatState, descending: true),
+            EffectTarget.LOWEST_RESOURCE_ENEMY => ByResource(
+                context.CombatState,
+                selectionResourceId,
+                descending: false),
+            EffectTarget.HIGHEST_RESOURCE_ENEMY => ByResource(
+                context.CombatState,
+                selectionResourceId,
+                descending: true),
             _ => new[] { primaryTargetId }
         };
     }
@@ -46,15 +53,23 @@ public static class EffectTargetResolver
             : new[] { alive[randomProvider.Next(0, alive.Length)].EntityId };
     }
 
-    private static IReadOnlyList<string> ByHealth(CombatState state, bool descending)
+    private static IReadOnlyList<string> ByResource(
+        CombatState state,
+        string? resourceId,
+        bool descending)
     {
-        var alive = state.Enemies.Where(entity => entity.IsAlive);
+        if (string.IsNullOrWhiteSpace(resourceId))
+            return [];
+        var alive = state.Enemies.Where(entity =>
+            entity.IsAlive && entity.GetResource(resourceId) != null);
         var selected = descending
-            ? alive.OrderByDescending(Health).ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault()
-            : alive.OrderBy(Health).ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault();
+            ? alive.OrderByDescending(entity => ResourceValue(entity, resourceId))
+                .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault()
+            : alive.OrderBy(entity => ResourceValue(entity, resourceId))
+                .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault();
         return selected == null ? Array.Empty<string>() : new[] { selected.EntityId };
     }
 
-    private static float Health(CombatEntity entity) =>
-        entity.GetResource("health")?.Current ?? 0f;
+    private static float ResourceValue(CombatEntity entity, string resourceId) =>
+        entity.GetResource(resourceId)!.Current;
 }

@@ -7,6 +7,7 @@ using Core.Math;
 using Core.StatusEffects;
 using Core.Calculations;
 using Core.Run;
+using Core.Resources;
 
 namespace Core.Effects;
 
@@ -145,6 +146,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 request.OwnerEntityId,
                 request.SelectedTargetEntityIds,
                 effect.Target,
+                effect.SelectionResourceId,
                 context);
             if (targets.IsFailure)
                 return Result<ExpandedTrigger>.Failure(targets.Error);
@@ -351,12 +353,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         string prefix,
         CombatEntity entity)
     {
-        foreach (var (id, pool) in entity.ResourceState.Resources.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            variables[$"{prefix}_{id}_current"] = pool.Current;
-            variables[$"{prefix}_{id}_max"] = pool.Maximum;
-            variables[$"{prefix}_{id}_min"] = pool.Minimum;
-        }
+        ResourceFormulaVariables.AddOwner(variables, prefix, entity.ResourceState);
     }
 
     private static Result<ResolvedTargets> ResolveTargets(
@@ -364,6 +361,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         string ownerId,
         IReadOnlyList<string> selectedTargetIds,
         EffectTarget target,
+        string? selectionResourceId,
         DeterministicContext context)
     {
         var owner = combat.GetEntity(ownerId)!;
@@ -376,7 +374,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     .Distinct(StringComparer.Ordinal)
                     .Where(id => combat.GetEntity(id)?.IsAlive == true)
                     .ToArray(),
-            EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY => combat.GetAllEntities()
+            EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or
+                EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => combat.GetAllEntities()
                 .Where(entity => entity.IsAlive && entity.IsHero != owner.IsHero)
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
                 .Select(entity => entity.EntityId)
@@ -390,6 +389,24 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         };
         if (candidates.Length == 0)
             return Result<ResolvedTargets>.Failure($"Trigger target {target} resolved no entities");
+        if (target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
+        {
+            if (string.IsNullOrWhiteSpace(selectionResourceId))
+                return Result<ResolvedTargets>.Failure($"Trigger target {target} requires selectionResourceId");
+            var withResource = candidates
+                .Select(combat.GetEntity)
+                .Where(entity => entity?.GetResource(selectionResourceId) != null)
+                .Cast<CombatEntity>();
+            var selected = target == EffectTarget.LOWEST_RESOURCE_ENEMY
+                ? withResource.OrderBy(entity => entity.GetResource(selectionResourceId)!.Current)
+                    .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault()
+                : withResource.OrderByDescending(entity => entity.GetResource(selectionResourceId)!.Current)
+                    .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault();
+            return selected == null
+                ? Result<ResolvedTargets>.Failure(
+                    $"No candidate exposes selection resource {selectionResourceId}")
+                : Result<ResolvedTargets>.Success(new([selected.EntityId], context));
+        }
         if (target != EffectTarget.RANDOM_ENEMY)
             return Result<ResolvedTargets>.Success(new(candidates, context));
         var draw = context.DrawInt32(candidates.Length);

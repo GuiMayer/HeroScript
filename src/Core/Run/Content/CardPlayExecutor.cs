@@ -7,6 +7,7 @@ using Core.Content;
 using Core.Determinism;
 using Core.Effects;
 using Core.Math;
+using Core.Resources;
 using Core.StatusEffects;
 
 namespace Core.Run.Content;
@@ -503,7 +504,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
                 .Select(entity => entity.EntityId)
                 .ToArray(),
-            EffectTarget.RANDOM_ENEMY or EffectTarget.LOWEST_HP_ENEMY or EffectTarget.HIGHEST_HP_ENEMY =>
+            EffectTarget.RANDOM_ENEMY or EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY =>
                 evaluation.ResolvedTargetIds,
             _ => []
         };
@@ -535,13 +536,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
         string prefix,
         CombatEntity entity)
     {
-        foreach (var (resourceId, pool) in entity.ResourceState.Resources
-                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            variables[$"{prefix}_{resourceId}_current"] = pool.Current;
-            variables[$"{prefix}_{resourceId}_max"] = pool.Maximum;
-            variables[$"{prefix}_{resourceId}_min"] = pool.Minimum;
-        }
+        ResourceFormulaVariables.AddOwner(variables, prefix, entity.ResourceState);
     }
 
     private static EffectProvenance CardProvenance(Guid cardInstanceId, string componentId) => new()

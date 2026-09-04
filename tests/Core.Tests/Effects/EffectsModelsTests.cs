@@ -115,8 +115,8 @@ public class EffectsModelsTests
         Assert.Contains(EffectTarget.ALL_ENEMIES, values);
         Assert.Contains(EffectTarget.ALL_ALLIES, values);
         Assert.Contains(EffectTarget.RANDOM_ENEMY, values);
-        Assert.Contains(EffectTarget.LOWEST_HP_ENEMY, values);
-        Assert.Contains(EffectTarget.HIGHEST_HP_ENEMY, values);
+        Assert.Contains(EffectTarget.LOWEST_RESOURCE_ENEMY, values);
+        Assert.Contains(EffectTarget.HIGHEST_RESOURCE_ENEMY, values);
     }
     
     // ==================== EFFECT TIMING ENUM TESTS ====================
@@ -190,7 +190,7 @@ public class EffectsModelsTests
             ModifierKey = "fire_damage",
             ModifierValue = 0.5f,
             ModifierFormula = "stacks * 0.1",
-            Condition = "target_hp > 0",
+            Condition = "target.resources.health.current > 0",
             RequiredTags = new List<string> { "fire", "spell" },
             ExcludedTags = new List<string> { "physical" },
             Chance = 0.8f,
@@ -214,7 +214,7 @@ public class EffectsModelsTests
         Assert.Equal("fire_damage", definition.ModifierKey);
         Assert.Equal(0.5f, definition.ModifierValue);
         Assert.Equal("stacks * 0.1", definition.ModifierFormula);
-        Assert.Equal("target_hp > 0", definition.Condition);
+        Assert.Equal("target.resources.health.current > 0", definition.Condition);
         Assert.Equal(2, definition.RequiredTags!.Count);
         Assert.Single(definition.ExcludedTags!);
         Assert.Equal(0.8f, definition.Chance);
@@ -315,12 +315,14 @@ public class EffectsModelsTests
         var conditionalEffect = new EffectDefinition
         {
             Type = EffectType.DAMAGE,
-            Condition = "target_hp < target_max_hp * 0.5",
+            Condition = "target.resources.health.current < target.resources.health.maximum * 0.5",
             FlatValue = 20.0f
         };
         
         // Assert
-        Assert.Equal("target_hp < target_max_hp * 0.5", conditionalEffect.Condition);
+        Assert.Equal(
+            "target.resources.health.current < target.resources.health.maximum * 0.5",
+            conditionalEffect.Condition);
     }
     
     [Fact]

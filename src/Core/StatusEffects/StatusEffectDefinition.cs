@@ -70,7 +70,7 @@ public record StatusEffectDefinition
     
     /// <summary>
     /// Fórmula dinâmica para calcular valor (usa MathEngine)
-    /// Contexto disponível: stacks, target_hp, target_max_hp, source_*, etc.
+    /// Contexto disponível: stacks e recursos genéricos de source/target.
     /// Ex: "stacks * 3" para Burning que causa 3 de dano por stack
     /// Ex: "stacks * 0.25" para Strength que aumenta dano em 25% por stack
     /// </summary>

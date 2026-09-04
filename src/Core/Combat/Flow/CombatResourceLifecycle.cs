@@ -144,17 +144,11 @@ public sealed class CombatResourceLifecycle : ICombatResourceLifecycle
         var variables = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
         {
             ["current"] = pool.Current,
-            ["min"] = pool.Minimum,
-            ["max"] = pool.Maximum,
+            ["minimum"] = pool.Minimum,
+            ["maximum"] = pool.Maximum,
             ["percent"] = pool.GetPercentage()
         };
-        foreach (var (resourceId, resource) in actor.ResourceState.Resources
-                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            variables[$"resource_{resourceId}"] = resource.Current;
-            variables[$"resource_{resourceId}_min"] = resource.Minimum;
-            variables[$"resource_{resourceId}_max"] = resource.Maximum;
-        }
+        ResourceFormulaVariables.AddUnscoped(variables, actor.ResourceState);
 
         var evaluated = _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
             ? revisioned.EvaluateAtRevision(

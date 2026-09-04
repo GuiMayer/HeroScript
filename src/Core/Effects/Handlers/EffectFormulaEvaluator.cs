@@ -1,5 +1,6 @@
 using Core.Logging;
 using Core.Math;
+using Core.Resources;
 
 namespace Core.Effects.Handlers;
 
@@ -68,16 +69,9 @@ public sealed class EffectFormulaEvaluator
         var target = context.CombatState?.GetEntity(targetId);
 
         if (source != null)
-        {
-            variables["source_hp"] = source.GetResource("health")?.Current ?? 0f;
-            variables["source_max_hp"] = source.GetResource("health")?.Maximum ?? 0f;
-        }
-
+            ResourceFormulaVariables.AddOwner(variables, "source", source.ResourceState);
         if (target != null)
-        {
-            variables["target_hp"] = target.GetResource("health")?.Current ?? 0f;
-            variables["target_max_hp"] = target.GetResource("health")?.Maximum ?? 0f;
-        }
+            ResourceFormulaVariables.AddOwner(variables, "target", target.ResourceState);
 
         return variables;
     }

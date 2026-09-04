@@ -102,7 +102,7 @@ public sealed class CardPlayEvaluatorTests
         var card = Card(new CardTargetingComponentDefinition
         {
             ComponentId = "target.lowest_mana",
-            Target = EffectTarget.LOWEST_HP_ENEMY,
+            Target = EffectTarget.LOWEST_RESOURCE_ENEMY,
             SelectionResourceId = "mana",
             MinimumTargets = 1,
             MaximumTargets = 1
@@ -116,6 +116,57 @@ public sealed class CardPlayEvaluatorTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.True(result.Value.IsLegal);
         Assert.Equal("enemy-a", Assert.Single(result.Value.ResolvedTargetIds));
+    }
+
+    [Fact]
+    public void Evaluate_ResourceVariablesAreCanonicalAndCannotBeOverriddenByCaller()
+    {
+        var hero = Entity("hero", true, ("mana", 5));
+        var card = Card(new CardConditionComponentDefinition
+        {
+            ComponentId = "condition.has_mana",
+            Expression = "actor.resources.mana.current",
+            FailureReason = "Actor has no mana"
+        });
+
+        var result = CreateEvaluator().Evaluate(
+            card,
+            Combat(hero),
+            new CardPlayRequest
+            {
+                ActorId = "hero",
+                Variables = new Dictionary<string, float>
+                {
+                    ["actor.resources.mana.current"] = 0
+                }
+            });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True(result.Value.IsLegal);
+    }
+
+    [Fact]
+    public void Evaluate_AutomaticResourceTargetIgnoresEntitiesWithoutConfiguredResource()
+    {
+        var hero = Entity("hero", true, ("mana", 5));
+        var hasMana = Entity("enemy-b", false, ("mana", 8));
+        var lacksMana = Entity("enemy-a", false, ("health", 1));
+        var card = Card(new CardTargetingComponentDefinition
+        {
+            ComponentId = "target.lowest_mana",
+            Target = EffectTarget.LOWEST_RESOURCE_ENEMY,
+            SelectionResourceId = "mana",
+            MinimumTargets = 1,
+            MaximumTargets = 1
+        });
+
+        var result = CreateEvaluator().Evaluate(
+            card,
+            Combat(hero, lacksMana, hasMana),
+            new CardPlayRequest { ActorId = "hero" });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal("enemy-b", Assert.Single(result.Value.ResolvedTargetIds));
     }
 
     [Fact]

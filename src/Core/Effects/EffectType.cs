@@ -165,14 +165,14 @@ public enum EffectTarget
     RANDOM_ENEMY,
     
     /// <summary>
-    /// Inimigo com menor HP
+    /// Inimigo com o menor valor no recurso de seleção configurado
     /// </summary>
-    LOWEST_HP_ENEMY,
+    LOWEST_RESOURCE_ENEMY,
     
     /// <summary>
-    /// Inimigo com maior HP
+    /// Inimigo com o maior valor no recurso de seleção configurado
     /// </summary>
-    HIGHEST_HP_ENEMY
+    HIGHEST_RESOURCE_ENEMY
 }
 
 /// <summary>

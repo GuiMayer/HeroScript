@@ -101,15 +101,7 @@ public sealed class ResourceRegenerationProcessor : IResourceRegenerationProcess
         IReadOnlyDictionary<string, float> external)
     {
         var variables = new Dictionary<string, float>(external, StringComparer.OrdinalIgnoreCase);
-        foreach (var (resourceId, pool) in resourceState.Resources
-                     .OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            var prefix = $"resources.{resourceId}";
-            variables[$"{prefix}.current"] = pool.Current;
-            variables[$"{prefix}.minimum"] = pool.Minimum;
-            variables[$"{prefix}.maximum"] = pool.Maximum;
-            variables[$"{prefix}.percent"] = pool.GetPercentage();
-        }
+        ResourceFormulaVariables.AddUnscoped(variables, resourceState);
 
         // Local aliases are generic and always describe the pool whose rule is
         // being evaluated. They deliberately overwrite external values.

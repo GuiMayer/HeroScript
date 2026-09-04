@@ -424,7 +424,7 @@ public class CombatSystemTests
             {
                 Costs = new List<ResourceCost>
                 {
-                    new() { ResourceId = "energy", Amount = 99, Formula = "energy_current - 1" }
+                    new() { ResourceId = "energy", Amount = 99, Formula = "resources.energy.current - 1" }
                 }
             },
             Effects = new List<EffectDefinition>
@@ -433,7 +433,7 @@ public class CombatSystemTests
             }
         });
         _formulaEvaluator
-            .Setup(m => m.Evaluate("energy_current - 1", It.IsAny<Dictionary<string, float>>(), 0f))
+            .Setup(m => m.Evaluate("resources.energy.current - 1", It.IsAny<Dictionary<string, float>>(), 0f))
             .Returns(Result<float>.Success(2f));
         var combatSystem = new CombatSystem(
             _mockLogger.Object,
@@ -451,8 +451,8 @@ public class CombatSystemTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(1, result.Value.GetHeroResource("energy")?.Current ?? -1);
         _formulaEvaluator.Verify(m => m.Evaluate(
-            "energy_current - 1",
-            It.Is<Dictionary<string, float>>(vars => vars["energy_current"] == 3f),
+            "resources.energy.current - 1",
+            It.Is<Dictionary<string, float>>(vars => vars["resources.energy.current"] == 3f),
             0f), Times.AtLeastOnce);
     }
 

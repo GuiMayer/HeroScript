@@ -48,6 +48,12 @@ public record EffectDefinition
     /// Alvo do efeito
     /// </summary>
     public EffectTarget Target { get; init; } = EffectTarget.TARGET;
+
+    /// <summary>
+    /// Resource used by resource-ranked automatic targeting. It is independent
+    /// from TargetResource, which identifies the resource changed by the effect.
+    /// </summary>
+    public string? SelectionResourceId { get; init; }
     
     /// <summary>
     /// Timing de execução
@@ -143,7 +149,7 @@ public record EffectDefinition
     
     /// <summary>
     /// Condição para executar o efeito (expressão booleana via MathEngine)
-    /// Ex: "target_hp < target_max_hp * 0.5"
+    /// Ex: "target.resources.health.current &lt; target.resources.health.maximum * 0.5"
     /// </summary>
     public string? Condition { get; init; }
     

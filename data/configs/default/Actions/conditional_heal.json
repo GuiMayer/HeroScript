@@ -18,7 +18,7 @@
       "timing": "IMMEDIATE",
       "flatValue": 15,
       "targetResource": "health",
-      "condition": "target_hp < target_max_hp * 0.5",
+      "condition": "target.resources.health.current < target.resources.health.maximum * 0.5",
       "tags": ["heal", "conditional"]
     },
     {
@@ -27,7 +27,7 @@
       "timing": "IMMEDIATE",
       "flatValue": 5,
       "targetResource": "health",
-      "condition": "target_hp >= target_max_hp * 0.5",
+      "condition": "target.resources.health.current >= target.resources.health.maximum * 0.5",
       "tags": ["heal", "conditional"]
     }
   ],

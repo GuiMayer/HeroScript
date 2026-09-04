@@ -116,7 +116,8 @@ public sealed class EffectResolver : IEffectResolver
                 effect.SourceEntityId,
                 effect.TargetEntityId,
                 context,
-                randomProvider);
+                randomProvider,
+                effect.Definition.SelectionResourceId);
             if (targets.Count == 0)
                 return ApplicationResult(context, EffectResult.CreateFailure("No valid targets"));
 

@@ -216,6 +216,12 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                 return Result.Failure(
                     $"Effect {effect.EffectId} ({effect.Type}) requires targetResource");
             }
+            if (effect.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
+                string.IsNullOrWhiteSpace(effect.SelectionResourceId))
+            {
+                return Result.Failure(
+                    $"Effect {effect.EffectId} ({effect.Target}) requires selectionResourceId");
+            }
         }
         
         return Result.Success();
