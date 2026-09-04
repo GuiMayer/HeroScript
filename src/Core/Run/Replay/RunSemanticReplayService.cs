@@ -359,6 +359,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                     new CompositeCalculationInfluenceProvider(
                     [
                         new CardComponentInfluenceProvider(_formulaEvaluator),
+                        new EntityResourceInfluenceProvider(),
                         new RunModifierInfluenceProvider(_formulaEvaluator),
                         new StatusCalculationInfluenceProvider(_formulaEvaluator),
                         new RelicCalculationInfluenceProvider(_formulaEvaluator)
@@ -371,6 +372,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                     new CompositeCalculationInfluenceProvider(
                     [
                         new CardComponentInfluenceProvider(_formulaEvaluator),
+                        new EntityResourceInfluenceProvider(),
                         new RunModifierInfluenceProvider(_formulaEvaluator),
                         new StatusCalculationInfluenceProvider(_formulaEvaluator),
                         new RelicCalculationInfluenceProvider(_formulaEvaluator)
@@ -389,6 +391,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 new CompositeCalculationInfluenceProvider(
                 [
                     new CardComponentInfluenceProvider(_formulaEvaluator),
+                    new EntityResourceInfluenceProvider(),
                     new RunModifierInfluenceProvider(_formulaEvaluator),
                     new StatusCalculationInfluenceProvider(_formulaEvaluator),
                     new RelicCalculationInfluenceProvider(_formulaEvaluator)
@@ -409,6 +412,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                     new CompositeCalculationInfluenceProvider(
                     [
                         new CardComponentInfluenceProvider(_formulaEvaluator),
+                        new EntityResourceInfluenceProvider(),
                         new RunModifierInfluenceProvider(_formulaEvaluator),
                         new StatusCalculationInfluenceProvider(_formulaEvaluator),
                         new RelicCalculationInfluenceProvider(_formulaEvaluator)

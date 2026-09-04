@@ -209,6 +209,89 @@ public sealed class ContentGraphValidatorTests
         Assert.Contains("shops/test references missing resources/credits", result.Errors);
     }
 
+    [Fact]
+    public void Validate_RejectsCalculationBindingResourceOutsidePublishedGraph()
+    {
+        var bundle = Bundle(
+            ("calculation-pipelines", "calculation-pipelines/power.json", new Dictionary<string, object>
+            {
+                ["power"] = new
+                {
+                    pipelineId = "power",
+                    channel = "effect_amount",
+                    buckets = new[]
+                    {
+                        new { bucketId = "flat", order = 10, operation = "Add" }
+                    },
+                    resourceInfluenceBindings = new[]
+                    {
+                        new
+                        {
+                            bindingId = "actor.power",
+                            scope = "Actor",
+                            resourceId = "power",
+                            field = "Current",
+                            channel = "effect_amount",
+                            bucket = "flat"
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            "calculation-pipelines/power references missing resources/power",
+            result.Errors);
+    }
+
+    [Fact]
+    public void Validate_RejectsCalculationBindingForUnknownBucket()
+    {
+        var bundle = Bundle(
+            ("resources", "resources/power.json", new Dictionary<string, object>
+            {
+                ["power"] = new
+                {
+                    resourceId = "power",
+                    displayName = "Power",
+                    defaultMin = 0,
+                    defaultMax = 100,
+                    defaultCurrent = 0,
+                    costMultiplier = 1
+                }
+            }),
+            ("calculation-pipelines", "calculation-pipelines/power.json", new Dictionary<string, object>
+            {
+                ["power"] = new
+                {
+                    pipelineId = "power",
+                    channel = "effect_amount",
+                    buckets = new[]
+                    {
+                        new { bucketId = "flat", order = 10, operation = "Add" }
+                    },
+                    resourceInfluenceBindings = new[]
+                    {
+                        new
+                        {
+                            bindingId = "actor.power",
+                            scope = "Actor",
+                            resourceId = "power",
+                            channel = "effect_amount",
+                            bucket = "missing"
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("unknown bucket", StringComparison.Ordinal));
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

@@ -401,6 +401,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
             Combat = combat,
             Actor = actor,
             Target = target,
+            Pipeline = pipeline.Value,
             Tags = effect.Tags.ToHashSet(StringComparer.Ordinal),
             Variables = variables
         });

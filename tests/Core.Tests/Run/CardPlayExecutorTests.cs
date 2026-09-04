@@ -149,6 +149,58 @@ public sealed class CardPlayExecutorTests
     }
 
     [Fact]
+    public void Execute_AppliesResourceInfluenceFromPinnedPipeline()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000004");
+        var card = Card(
+        [
+            new CardEffectComponentDefinition
+            {
+                ComponentId = "effect.drain",
+                Effect = new EffectDefinition
+                {
+                    EffectId = "arcane_drain.mana",
+                    Type = EffectType.DAMAGE,
+                    Target = EffectTarget.TARGET,
+                    TargetResource = "mana",
+                    FlatValue = 5
+                }
+            },
+            Targeting(),
+            Disposition()
+        ]);
+        var pipeline = Pipeline() with
+        {
+            ResourceInfluenceBindings =
+            [
+                new ResourceInfluenceBindingDefinition
+                {
+                    BindingId = "actor.mana.flat",
+                    Scope = CalculationEntityScope.Actor,
+                    ResourceId = "mana",
+                    Channel = "effect_amount",
+                    Bucket = "flat"
+                }
+            ]
+        };
+        var result = Executor(Runtime(card, pipeline)).Execute(new CardPlayExecutionRequest
+        {
+            Run = Run(instanceId),
+            Combat = Combat(),
+            CardInstanceId = instanceId,
+            ActorId = "hero",
+            SelectedTargetIds = ["enemy"]
+        });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(5, result.Value.Combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        var calculation = Assert.Single(result.Value.Calculations);
+        var contribution = Assert.Single(Assert.Single(calculation.Buckets).Contributions);
+        Assert.Equal("actor.mana.flat", contribution.InfluenceId);
+        Assert.Equal(CalculationSourceKind.Actor, contribution.SourceKind);
+    }
+
+    [Fact]
     public void Execute_InvalidLaterEffectDoesNotMutateInputOrSpendCost()
     {
         var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000003");
@@ -203,7 +255,8 @@ public sealed class CardPlayExecutorTests
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
         var influences = new CompositeCalculationInfluenceProvider(
         [
-            new CardComponentInfluenceProvider(formulas.Object)
+            new CardComponentInfluenceProvider(formulas.Object),
+            new EntityResourceInfluenceProvider()
         ]);
         return new CardPlayExecutor(
             runtimes.Object,

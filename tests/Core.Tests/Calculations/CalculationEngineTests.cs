@@ -92,27 +92,95 @@ public sealed class CalculationEngineTests
     public void EntityResourceProvider_UsesExplicitBindingsForArbitraryResources()
     {
         var actor = Entity("mage", "mana", 7);
-        var provider = new EntityResourceInfluenceProvider(
-        [
-            new ResourceInfluenceBindingDefinition
-            {
-                BindingId = "actor.mana.scaling",
-                Scope = CalculationEntityScope.Actor,
-                ResourceId = "mana",
-                Channel = "resource_reduction",
-                Bucket = "flat",
-                Scale = 2,
-                Offset = 1
-            }
-        ]);
+        var pipeline = Pipeline() with
+        {
+            ResourceInfluenceBindings =
+            [
+                new ResourceInfluenceBindingDefinition
+                {
+                    BindingId = "actor.mana.scaling",
+                    Scope = CalculationEntityScope.Actor,
+                    ResourceId = "mana",
+                    Channel = "resource_reduction",
+                    Bucket = "flat",
+                    Scale = 2,
+                    Offset = 1
+                }
+            ]
+        };
+        var provider = new EntityResourceInfluenceProvider();
 
-        var result = provider.Collect(new CalculationSourceContext { Actor = actor });
+        var result = provider.Collect(new CalculationSourceContext
+        {
+            Actor = actor,
+            Pipeline = pipeline
+        });
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         var influence = Assert.Single(result.Value);
         Assert.Equal(15, influence.Value);
         Assert.Equal("resource_reduction", influence.Channel);
         Assert.Equal("flat", influence.Bucket);
+    }
+
+    [Fact]
+    public void EntityResourceProvider_CanReadConfiguredResourceField()
+    {
+        var actor = Entity("mage", "mana", 7);
+        var pipeline = Pipeline() with
+        {
+            ResourceInfluenceBindings =
+            [
+                new ResourceInfluenceBindingDefinition
+                {
+                    BindingId = "actor.mana.capacity",
+                    Scope = CalculationEntityScope.Actor,
+                    ResourceId = "mana",
+                    Field = ResourceValueField.Maximum,
+                    Channel = "resource_reduction",
+                    Bucket = "flat",
+                    Scale = .1f
+                }
+            ]
+        };
+
+        var result = new EntityResourceInfluenceProvider().Collect(new CalculationSourceContext
+        {
+            Actor = actor,
+            Pipeline = pipeline
+        });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(10, Assert.Single(result.Value).Value);
+    }
+
+    [Fact]
+    public void Calculate_RejectsInvalidPinnedResourceBinding()
+    {
+        var pipeline = Pipeline() with
+        {
+            ResourceInfluenceBindings =
+            [
+                new ResourceInfluenceBindingDefinition
+                {
+                    BindingId = "actor.mana.scaling",
+                    Scope = CalculationEntityScope.Actor,
+                    ResourceId = "mana",
+                    Channel = "resource_reduction",
+                    Bucket = "missing"
+                }
+            ]
+        };
+
+        var result = _engine.Calculate(new CalculationRequest
+        {
+            CalculationId = "invalid-resource-binding",
+            Channel = "resource_reduction",
+            BaseValue = 1
+        }, pipeline);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("unknown bucket", result.Error);
     }
 
     [Fact]

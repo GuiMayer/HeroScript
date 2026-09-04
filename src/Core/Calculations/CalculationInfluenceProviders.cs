@@ -5,6 +5,7 @@ using Core.Run.Content;
 using Core.Run;
 using Core.Combat.Modifiers;
 using Core.StatusEffects;
+using Core.Resources;
 
 namespace Core.Calculations;
 
@@ -109,33 +110,38 @@ public sealed class CardComponentInfluenceProvider : ICalculationInfluenceProvid
 /// </summary>
 public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvider
 {
-    private readonly ImmutableArray<ResourceInfluenceBindingDefinition> _bindings;
-
-    public EntityResourceInfluenceProvider(IEnumerable<ResourceInfluenceBindingDefinition> bindings)
-    {
-        _bindings = (bindings ?? throw new ArgumentNullException(nameof(bindings)))
-            .OrderBy(binding => binding.BindingId, StringComparer.Ordinal)
-            .ToImmutableArray();
-    }
-
     public string ProviderId => "entity-resources";
 
     public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
     {
         var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
-        foreach (var binding in _bindings)
+        foreach (var binding in (context.Pipeline?.ResourceInfluenceBindings ?? [])
+                     .OrderBy(item => item.BindingId, StringComparer.Ordinal))
         {
             if (string.IsNullOrWhiteSpace(binding.BindingId) ||
                 string.IsNullOrWhiteSpace(binding.ResourceId) ||
                 string.IsNullOrWhiteSpace(binding.Channel) ||
                 string.IsNullOrWhiteSpace(binding.Bucket))
                 return Result<IReadOnlyList<CalculationInfluence>>.Failure("Resource influence binding is incomplete");
+            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.Field))
+            {
+                return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                    $"Resource influence binding {binding.BindingId} has an invalid scope or field");
+            }
             var entity = binding.Scope == CalculationEntityScope.Actor
                 ? context.Actor
                 : context.Target;
             var resource = entity?.GetResource(binding.ResourceId);
             if (resource == null)
                 continue;
+            var sourceValue = binding.Field switch
+            {
+                ResourceValueField.Current => resource.Current,
+                ResourceValueField.Minimum => resource.Minimum,
+                ResourceValueField.Maximum => resource.Maximum,
+                _ => throw new InvalidOperationException(
+                    $"Unsupported resource value field: {binding.Field}")
+            };
             result.Add(new CalculationInfluence
             {
                 InfluenceId = binding.BindingId,
@@ -145,7 +151,7 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
                 SourceId = $"{entity!.EntityId}:{binding.ResourceId}",
                 Channel = binding.Channel,
                 Bucket = binding.Bucket,
-                Value = resource.Current * binding.Scale + binding.Offset,
+                Value = sourceValue * binding.Scale + binding.Offset,
                 Priority = binding.Priority
             });
         }

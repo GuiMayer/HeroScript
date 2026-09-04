@@ -4,6 +4,7 @@ using Core.Combat.Models;
 using Core.Determinism;
 using Core.Run;
 using Core.Run.Content;
+using Core.Resources;
 
 namespace Core.Calculations;
 
@@ -61,6 +62,7 @@ public sealed record CalculationBucketDefinition
 public sealed record CalculationPipelineDefinition
 {
     private ImmutableArray<CalculationBucketDefinition> _buckets = [];
+    private ImmutableArray<ResourceInfluenceBindingDefinition> _resourceInfluenceBindings = [];
 
     public string PipelineId { get; init; } = string.Empty;
     public string Channel { get; init; } = string.Empty;
@@ -68,6 +70,11 @@ public sealed record CalculationPipelineDefinition
     {
         get => _buckets;
         init => _buckets = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ResourceInfluenceBindingDefinition> ResourceInfluenceBindings
+    {
+        get => _resourceInfluenceBindings;
+        init => _resourceInfluenceBindings = value?.ToImmutableArray() ?? [];
     }
 }
 
@@ -164,6 +171,7 @@ public sealed record CalculationSourceContext
     public CombatState? Combat { get; init; }
     public CombatEntity? Actor { get; init; }
     public CombatEntity? Target { get; init; }
+    public CalculationPipelineDefinition? Pipeline { get; init; }
     public IReadOnlySet<string> Tags
     {
         get => _tags;
@@ -211,6 +219,7 @@ public sealed record ResourceInfluenceBindingDefinition
     public string BindingId { get; init; } = string.Empty;
     public CalculationEntityScope Scope { get; init; }
     public string ResourceId { get; init; } = string.Empty;
+    public ResourceValueField Field { get; init; } = ResourceValueField.Current;
     public string Channel { get; init; } = string.Empty;
     public string Bucket { get; init; } = string.Empty;
     public float Scale { get; init; } = 1;

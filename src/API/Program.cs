@@ -552,6 +552,7 @@ builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();
 builder.Services.AddSingleton<ICardPlayEvaluator, CardPlayEvaluator>();
 builder.Services.AddSingleton<CardComponentInfluenceProvider>(sp =>
     new CardComponentInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<EntityResourceInfluenceProvider>();
 builder.Services.AddSingleton<RunModifierInfluenceProvider>(sp =>
     new RunModifierInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<StatusCalculationInfluenceProvider>(sp =>
@@ -562,6 +563,7 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     new CompositeCalculationInfluenceProvider(
     [
         sp.GetRequiredService<CardComponentInfluenceProvider>(),
+        sp.GetRequiredService<EntityResourceInfluenceProvider>(),
         sp.GetRequiredService<RunModifierInfluenceProvider>(),
         sp.GetRequiredService<StatusCalculationInfluenceProvider>(),
         sp.GetRequiredService<RelicCalculationInfluenceProvider>()

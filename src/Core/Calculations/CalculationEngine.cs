@@ -116,6 +116,37 @@ public sealed class CalculationEngine : ICalculationEngine
             return Result.Failure($"Pipeline {pipeline.PipelineId} contains invalid bucket bounds");
 
         var buckets = pipeline.Buckets.Select(bucket => bucket.BucketId).ToHashSet(StringComparer.Ordinal);
+        var duplicateBinding = pipeline.ResourceInfluenceBindings
+            .Where(binding => !string.IsNullOrWhiteSpace(binding.BindingId))
+            .GroupBy(binding => binding.BindingId, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateBinding != null)
+        {
+            return Result.Failure(
+                $"Pipeline {pipeline.PipelineId} contains duplicate resource influence binding {duplicateBinding.Key}");
+        }
+        foreach (var binding in pipeline.ResourceInfluenceBindings)
+        {
+            if (string.IsNullOrWhiteSpace(binding.BindingId) ||
+                string.IsNullOrWhiteSpace(binding.ResourceId) ||
+                string.IsNullOrWhiteSpace(binding.Channel) ||
+                string.IsNullOrWhiteSpace(binding.Bucket))
+            {
+                return Result.Failure(
+                    $"Pipeline {pipeline.PipelineId} contains an incomplete resource influence binding");
+            }
+            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.Field))
+                return Result.Failure($"Resource influence binding {binding.BindingId} has an invalid scope or field");
+            if (!string.Equals(binding.Channel, pipeline.Channel, StringComparison.Ordinal))
+                return Result.Failure($"Resource influence binding {binding.BindingId} targets another channel");
+            if (!buckets.Contains(binding.Bucket))
+            {
+                return Result.Failure(
+                    $"Resource influence binding {binding.BindingId} targets unknown bucket {binding.Bucket}");
+            }
+            if (!IsFinite(binding.Scale) || !IsFinite(binding.Offset))
+                return Result.Failure($"Resource influence binding {binding.BindingId} must be finite");
+        }
         foreach (var influence in request.Influences)
         {
             if (string.IsNullOrWhiteSpace(influence.InfluenceId) ||

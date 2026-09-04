@@ -755,6 +755,19 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 }, pipeline);
                 if (validation.IsFailure)
                     errors.Add($"calculation-pipelines/{id}: {validation.Error}");
+                foreach (var binding in pipeline.ResourceInfluenceBindings)
+                {
+                    if (!string.IsNullOrWhiteSpace(binding.ResourceId))
+                    {
+                        Require(
+                            runtime,
+                            errors,
+                            "calculation-pipelines",
+                            id,
+                            binding.ResourceId,
+                            "resources");
+                    }
+                }
             }
             catch (Exception exception)
             {
