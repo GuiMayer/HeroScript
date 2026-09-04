@@ -354,18 +354,11 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             bundle = resolved.Value;
         }
 
-        var definitions = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
-        foreach (var artifact in bundle.Manifest.Artifacts
-                     .Where(item => string.Equals(item.Kind, kind, StringComparison.OrdinalIgnoreCase))
-                     .OrderBy(item => item.Path, StringComparer.Ordinal))
-        {
-            if (!bundle.Artifacts.TryGetValue(artifact.Path, out var document) || document.ValueKind != JsonValueKind.Object)
-                continue;
-            foreach (var definition in document.EnumerateObject())
-                definitions[definition.Name] = definition.Value.Clone();
-        }
-
-        return Result<IReadOnlyDictionary<string, JsonElement>>.Success(definitions);
+        var runtime = ContentRuntime.Create(bundle);
+        return runtime.IsFailure
+            ? Result<IReadOnlyDictionary<string, JsonElement>>.Failure(runtime.Error)
+            : Result<IReadOnlyDictionary<string, JsonElement>>.Success(
+                runtime.Value.GetDefinitions(kind));
     }
 
     public void Dispose() => _semaphore.Dispose();

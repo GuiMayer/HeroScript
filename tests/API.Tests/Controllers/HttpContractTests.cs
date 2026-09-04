@@ -49,15 +49,18 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetResources_ReturnsRawJsonContract()
+    public async Task GetResources_ReturnsRevisionedContentContract()
     {
-        using var response = await _client.GetAsync("/api/v1/resources");
+        using var response = await _client.GetAsync("/api/v1/content/resources");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
+        Assert.Equal("resources", document.RootElement.GetProperty("kind").GetString());
 
-        var resource = Assert.Single(document.RootElement.EnumerateArray(), item => item.GetProperty("resourceId").GetString() == "health");
+        var item = Assert.Single(
+            document.RootElement.GetProperty("items").EnumerateArray(),
+            value => value.GetProperty("definitionId").GetString() == "health");
+        var resource = item.GetProperty("definition");
         Assert.Equal("Health Points", resource.GetProperty("displayName").GetString());
         Assert.Equal("VITAL", resource.GetProperty("category").GetString());
         Assert.Equal(100, resource.GetProperty("defaultMax").GetSingle());
@@ -65,13 +68,15 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetResourceByCategory_ReturnsFilteredContract()
+    public async Task GetResourcesByTag_ReturnsFilteredRevisionedContract()
     {
-        using var response = await _client.GetAsync("/api/v1/resources/by-category/TACTICAL");
+        using var response = await _client.GetAsync("/api/v1/content/resources?tag=tactical");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-        var resources = document.RootElement.EnumerateArray().ToArray();
+        var resources = document.RootElement.GetProperty("items").EnumerateArray()
+            .Select(item => item.GetProperty("definition"))
+            .ToArray();
         Assert.Equal(2, resources.Length);
         Assert.All(resources, resource => Assert.Equal("TACTICAL", resource.GetProperty("category").GetString()));
         Assert.Contains(resources, resource => resource.GetProperty("resourceId").GetString() == "energy");

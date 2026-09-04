@@ -218,7 +218,7 @@ curl -X POST http://localhost:5260/api/v1/actions/reload \
 
 **Endpoints Protegidos:**
 - `POST /api/v1/actions/reload`
-- `POST /api/v1/resources/reload`
+- `POST /api/v1/admin/content/reload`
 - `POST /api/v1/admin/config/load`
 - `POST /api/v1/modifiers/reload`
 - `POST /api/v1/gambits/reload`

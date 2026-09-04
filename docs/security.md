@@ -34,7 +34,7 @@ curl -X POST http://localhost:5260/api/action/reload \
 Os seguintes endpoints requerem `X-Admin-Key`:
 
 - `POST /api/action/reload` - Recarrega definições de ações
-- `POST /api/game-resources/reload` - Recarrega definições de recursos
+- `POST /api/v1/admin/content/reload` - Valida, publica e ativa uma revisão completa do conteúdo
 - `POST /api/config/load` - Carrega nova configuração
 - `POST /api/modifiers/reload` - Recarrega modificadores
 - `POST /api/gambits/reload` - Recarrega gambits
