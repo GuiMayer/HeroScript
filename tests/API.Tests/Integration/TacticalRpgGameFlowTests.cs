@@ -34,6 +34,9 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         // Verify hero has tactical resources
         var hero = combatState.GetProperty("hero");
         AssertEntityHasResource(hero, "energy");
+        Assert.False(hero.TryGetProperty("currentHp", out _));
+        Assert.False(hero.TryGetProperty("maxHp", out _));
+        Assert.False(combatState.TryGetProperty("energy", out _));
     }
 
     [Fact]
@@ -73,7 +76,11 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         var playerEntityId = GetJsonString(runState, "playerEntityId");
         var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1", "enemy_2" }, runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
-        var initialHealth = combatState.GetProperty("enemies")[0].GetProperty("currentHp").GetInt32();
+        var initialHealth = combatState.GetProperty("enemies")[0]
+            .GetProperty("resources")
+            .GetProperty("health")
+            .GetProperty("current")
+            .GetDouble();
         var fireballCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "fireball");
 
         var actionResult = await Client.ExecuteActionAsync(combatId, playerEntityId,
@@ -83,7 +90,11 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
 
         AssertJsonPropertyEquals(actionResult, "combatId", combatId);
         var updatedState = await Client.GetCombatStateAsync(combatId);
-        var updatedHealth = updatedState.GetProperty("enemies")[0].GetProperty("currentHp").GetInt32();
+        var updatedHealth = updatedState.GetProperty("enemies")[0]
+            .GetProperty("resources")
+            .GetProperty("health")
+            .GetProperty("current")
+            .GetDouble();
         Assert.True(updatedHealth < initialHealth, "Fireball from the shipped content must damage its target");
 
         // Status projections are deliberately not used as a client mutation

@@ -47,7 +47,11 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
             new[] { "prototype-enemy" },
             runId: runId);
         var beforeAction = await Client.GetCombatStateAsync(combatId);
-        var initialEnemyHealth = beforeAction.GetProperty("enemies")[0].GetProperty("currentHp").GetInt32();
+        var initialEnemyHealth = beforeAction.GetProperty("enemies")[0]
+            .GetProperty("resources")
+            .GetProperty("health")
+            .GetProperty("current")
+            .GetDouble();
         var fireball = (await Client.GetHandAsync(runId)).Single(cardId => cardId == "fireball");
 
         var afterAction = await Client.ExecuteActionAsync(
@@ -60,7 +64,11 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
         AssertJsonPropertyEquals(afterAction, "combatId", combatId);
         var reconnectedCombat = await Client.GetCombatStateAsync(combatId);
         Assert.True(
-            reconnectedCombat.GetProperty("enemies")[0].GetProperty("currentHp").GetInt32() < initialEnemyHealth,
+            reconnectedCombat.GetProperty("enemies")[0]
+                .GetProperty("resources")
+                .GetProperty("health")
+                .GetProperty("current")
+                .GetDouble() < initialEnemyHealth,
             "The persisted Fireball command must survive a client reconnect.");
 
         using var journalResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/journal?limit=10");

@@ -154,8 +154,6 @@ public class CombatController : BaseApiController
             {
                 EntityId = state.Hero.EntityId,
                 Name = state.Hero.Name,
-                CurrentHp = (int)(state.Hero.GetResource("health")?.Current ?? 0f),
-                MaxHp = (int)(state.Hero.GetResource("health")?.Maximum ?? 0f),
                 IsAlive = state.Hero.IsAlive,
                 Resources = MapResources(state.Hero)
             },
@@ -163,16 +161,9 @@ public class CombatController : BaseApiController
             {
                 EntityId = e.EntityId,
                 Name = e.Name,
-                CurrentHp = (int)(e.GetResource("health")?.Current ?? 0f),
-                MaxHp = (int)(e.GetResource("health")?.Maximum ?? 0f),
                 IsAlive = e.IsAlive,
                 Resources = MapResources(e)
             }).ToList(),
-            Energy = new EnergyDto
-            {
-                Current = (int)(state.GetHeroResource("energy")?.Current ?? 0f),
-                Maximum = (int)(state.GetHeroResource("energy")?.Maximum ?? 0f)
-            },
             TotalActions = state.ActionHistory.Count,
             Board = state.Board,
             Phase = state.PhaseState,
