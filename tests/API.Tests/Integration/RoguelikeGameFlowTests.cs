@@ -119,7 +119,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     {
         // Setup run
         var (runId, runState) = await SetupRunAsync();
-        var initialGold = GetJsonInt(runState, "gold");
+        var initialGold = GetRunResource(runState, "gold");
 
         // Open shop
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
@@ -142,7 +142,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         // Verify the exact persisted economy transition.
         var updatedRunState = await Client.GetRunStateAsync(runId);
-        var newGold = GetJsonInt(updatedRunState, "gold");
+        var newGold = GetRunResource(updatedRunState, "gold");
         Assert.Equal(initialGold - price, newGold);
     }
 
@@ -202,7 +202,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     {
         // Setup run
         var (runId, runState) = await SetupRunAsync();
-        var initialGold = GetJsonInt(runState, "gold");
+        var initialGold = GetRunResource(runState, "gold");
 
         // Open card selection
         var selectionResponse = await Client.StartCardSelectionAsync(runId, "basic_reward");
@@ -227,6 +227,6 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         Assert.NotEmpty(newCardIds);
         var updatedRunState = await Client.GetRunStateAsync(runId);
-        Assert.Equal(initialGold - effectiveCost, GetJsonInt(updatedRunState, "gold"));
+        Assert.Equal(initialGold - effectiveCost, GetRunResource(updatedRunState, "gold"));
     }
 }

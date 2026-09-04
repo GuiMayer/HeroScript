@@ -233,7 +233,9 @@ public sealed class DailyChallengeService
             entries.Add(new DailyLeaderboardEntry(
                 state.PlayerEntityId,
                 state.RunId,
-                checked((long)state.Gold + (long)state.PowerPoints * 10L),
+                checked(
+                    (long)state.ResourceState.Current("gold") +
+                    (long)state.ResourceState.Current("power_points") * 10L),
                 state.Sequence,
                 CanonicalJson.ComputeHash(state)));
         }

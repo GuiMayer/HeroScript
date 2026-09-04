@@ -22,7 +22,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     {
         // Simulate auto-battler shop round
         var (runId, runState) = await SetupRunAsync();
-        var initialGold = GetJsonInt(runState, "gold");
+        var initialGold = GetRunResource(runState, "gold");
 
         // Open shop (unit shop)
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
@@ -44,7 +44,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
 
         // Verify gold decreased
         var updatedRunState = await Client.GetRunStateAsync(runId);
-        var newGold = GetJsonInt(updatedRunState, "gold");
+        var newGold = GetRunResource(updatedRunState, "gold");
         Assert.Equal(initialGold - price, newGold);
     }
 
@@ -53,7 +53,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     {
         // Setup shop
         var (runId, runState) = await SetupRunAsync();
-        var initialGold = GetJsonInt(runState, "gold");
+        var initialGold = GetRunResource(runState, "gold");
 
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
         var shopInstanceId = GetJsonGuid(shopResponse, "shopInstanceId");
@@ -71,7 +71,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
 
         // Verify the exact persisted economy transition.
         var updatedRunState = await Client.GetRunStateAsync(runId);
-        var newGold = GetJsonInt(updatedRunState, "gold");
+        var newGold = GetRunResource(updatedRunState, "gold");
         Assert.Equal(initialGold - rerollCost, newGold);
     }
 
@@ -80,7 +80,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     {
         // Simulate multiple combat rounds with income
         var (runId, runState) = await SetupRunAsync();
-        var startGold = GetJsonInt(runState, "gold");
+        var startGold = GetRunResource(runState, "gold");
 
         // Income/preparation phase
         var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
@@ -96,7 +96,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
         
         // Verify the persisted run remains economically valid.
         var updatedRunState = await Client.GetRunStateAsync(runId);
-        Assert.True(GetJsonInt(updatedRunState, "gold") >= 0);
+        Assert.True(GetRunResource(updatedRunState, "gold") >= 0);
     }
 
     [Fact]

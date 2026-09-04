@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Common;
+using Core.Resources;
 
 namespace Core.Run;
 
@@ -50,8 +51,12 @@ public static class ShopTransitions
             return Result<RunStateTransition<ShopItemState>>.Failure($"Shop item not found: {itemId}");
         if (itemIndex.item.Purchased)
             return Result<RunStateTransition<ShopItemState>>.Failure($"Shop item already purchased: {itemId}");
-        if (state.Gold < itemIndex.item.GoldCost || state.PowerPoints < itemIndex.item.PowerPointCost)
-            return Result<RunStateTransition<ShopItemState>>.Failure($"Insufficient resources for shop item: {itemId}");
+        var spent = RunResourceTransitions.Spend(
+            state.ResourceState,
+            Costs(itemIndex.item.GoldCost, itemIndex.item.PowerPointCost),
+            $"shop:{shopInstanceId}:buy:{itemId}");
+        if (spent.IsFailure)
+            return Result<RunStateTransition<ShopItemState>>.Failure(spent.Error);
 
         var updatedItem = itemIndex.item with { Purchased = true };
         var updatedShop = shop with
@@ -60,8 +65,7 @@ public static class ShopTransitions
         };
         var next = state with
         {
-            Gold = state.Gold - updatedItem.GoldCost,
-            PowerPoints = state.PowerPoints - updatedItem.PowerPointCost,
+            ResourceState = spent.Value.State,
             Shops = state.Shops.SetItem(shopIndex, updatedShop)
         };
 
@@ -88,8 +92,12 @@ public static class ShopTransitions
             return Result<RunStateTransition<ShopState>>.Failure(located.Error);
 
         var (index, shop) = located.Value;
-        if (state.Gold < shop.RerollCostGold)
-            return Result<RunStateTransition<ShopState>>.Failure($"Insufficient gold for shop reroll: {shop.ShopId}");
+        var spent = RunResourceTransitions.Spend(
+            state.ResourceState,
+            [new ResourceAmount { ResourceId = "gold", Amount = shop.RerollCostGold }],
+            $"shop:{shopInstanceId}:reroll:{shop.RerollsUsed + 1}");
+        if (spent.IsFailure)
+            return Result<RunStateTransition<ShopState>>.Failure(spent.Error);
 
         var rerollsUsed = checked(shop.RerollsUsed + 1);
         var updated = shop with
@@ -101,7 +109,7 @@ public static class ShopTransitions
         };
         var next = state with
         {
-            Gold = state.Gold - shop.RerollCostGold,
+            ResourceState = spent.Value.State,
             Shops = state.Shops.SetItem(index, updated),
             Determinism = state.Determinism.AdvanceStep()
         };
@@ -121,4 +129,11 @@ public static class ShopTransitions
 
     private static int CalculateRerollCost(ShopRerollRules rules, int rerollsUsed) =>
         checked(rules.BaseGoldCost + System.Math.Max(0, rerollsUsed) * rules.GoldCostPerReroll);
+
+    private static IReadOnlyList<ResourceAmount> Costs(int gold, int powerPoints) =>
+        new[]
+        {
+            new ResourceAmount { ResourceId = "gold", Amount = gold },
+            new ResourceAmount { ResourceId = "power_points", Amount = powerPoints }
+        }.Where(cost => cost.Amount > 0).ToArray();
 }

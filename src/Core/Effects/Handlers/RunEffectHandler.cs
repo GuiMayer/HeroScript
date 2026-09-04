@@ -44,8 +44,8 @@ public sealed class RunEffectHandler : IEffectHandler
         {
             EffectType.GAIN_GOLD => Economy(request, "gold", 1f, calculateValue: true),
             EffectType.LOSE_GOLD => Economy(request, "gold", -1f, calculateValue: true),
-            EffectType.GAIN_PP => Economy(request, "pp", 1f, calculateValue: false),
-            EffectType.LOSE_PP => Economy(request, "pp", -1f, calculateValue: false),
+            EffectType.GAIN_PP => Economy(request, "power_points", 1f, calculateValue: false),
+            EffectType.LOSE_PP => Economy(request, "power_points", -1f, calculateValue: false),
             EffectType.DRAW_CARD => Deck(request, "DRAW_CARD"),
             EffectType.DISCARD_CARD => Deck(request, "DISCARD_CARD"),
             EffectType.EXHAUST_CARD => Deck(request, "EXHAUST_CARD"),
@@ -63,7 +63,7 @@ public sealed class RunEffectHandler : IEffectHandler
             ? _values.Calculate(request.Effect, request.TargetId, request.Context)
             : request.Effect.Definition.FlatValue ?? 0f;
         var signed = MathF.Abs(raw) * sign;
-        var applied = ApplyEconomy(request.Context, resource, (int)MathF.Round(signed));
+        var applied = ApplyRunResource(request.Context, resource, MathF.Round(signed));
         if (applied.IsFailure)
             return EffectResult.CreateFailure(applied.Error);
 
@@ -100,7 +100,7 @@ public sealed class RunEffectHandler : IEffectHandler
         };
     }
 
-    private Result<RunState?> ApplyEconomy(IEffectContext context, string resource, int amount)
+    private Result<RunState?> ApplyRunResource(IEffectContext context, string resource, float amount)
     {
         var runContext = context as RunEffectContext;
         if (runContext?.RunState == null)
@@ -108,7 +108,7 @@ public sealed class RunEffectHandler : IEffectHandler
         if (_runs == null)
             return Result<RunState?>.Failure("Run economy effects require IRunManager");
 
-        return _runs.ApplyEconomy(runContext.RunState.RunId, resource, amount)
+        return _runs.ApplyRunResource(runContext.RunState.RunId, resource, amount)
             .Map<RunState?>(state => state);
     }
 
@@ -202,8 +202,10 @@ public sealed class RunEffectHandler : IEffectHandler
         if (state != null)
         {
             result["runId"] = state.RunId;
-            result["gold"] = state.Gold;
-            result["powerPoints"] = state.PowerPoints;
+            result["resources"] = state.ResourceState.Resources.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.Current,
+                StringComparer.OrdinalIgnoreCase);
             result["handCount"] = state.Deck.Hand.Count;
             result["drawPileCount"] = state.Deck.DrawPile.Count;
             result["discardPileCount"] = state.Deck.DiscardPile.Count;

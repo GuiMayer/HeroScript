@@ -1,0 +1,13 @@
+{
+  "resourceId": "power_points",
+  "displayName": "Power Points",
+  "shortName": "PP",
+  "category": "SPECIAL",
+  "defaultMin": 0,
+  "defaultMax": 1000000,
+  "defaultCurrent": 0,
+  "canBeNegative": false,
+  "canExceedMax": true,
+  "costMultiplier": 1.0,
+  "tags": ["run", "currency", "progression"]
+}

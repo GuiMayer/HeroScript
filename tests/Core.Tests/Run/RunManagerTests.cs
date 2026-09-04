@@ -39,7 +39,7 @@ public sealed class RunManagerTests
             "test", "default_run", "hero", Seed: 10UL, ContentRevision: "test"));
         Assert.True(started.IsSuccess);
 
-        var changed = manager.ApplyEconomy(started.Value.RunId, "gold", 5);
+        var changed = manager.ApplyRunResource(started.Value.RunId, "gold", 5);
         var active = manager.GetRun(started.Value.RunId);
 
         Assert.True(changed.IsFailure);
@@ -59,7 +59,7 @@ public sealed class RunManagerTests
             var started = manager.StartRun(new RunStartOptions(
                 "test", "default_run", "hero", Seed: 20UL, ContentRevision: "test"));
             Assert.True(started.IsSuccess);
-            var changed = manager.ApplyEconomy(started.Value.RunId, "gold", 5);
+            var changed = manager.ApplyRunResource(started.Value.RunId, "gold", 5);
             Assert.True(changed.IsSuccess);
 
             var checkpoints = await repository.LoadCheckpointsAsync(started.Value.RunId);
@@ -70,8 +70,8 @@ public sealed class RunManagerTests
             Assert.Equal(
                 CanonicalJson.ComputeHash(changed.Value),
                 CanonicalJson.ComputeHash(replay.FinalState!));
-            Assert.Equal(
-                new[] { "run.start", "run.economy.apply" },
+        Assert.Equal(
+                new[] { "run.start", "run.resource.apply" },
                 checkpoints.Select(item => item.JournalEntry.CommandType));
 
             var tampered = checkpoints.ToArray();
@@ -462,8 +462,8 @@ public sealed class RunManagerTests
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
 
-        var gold = manager.ApplyEconomy(run.RunId, "gold", -10);
-        var pp = manager.ApplyEconomy(run.RunId, "pp", 3);
+        var gold = manager.ApplyRunResource(run.RunId, "gold", -10);
+        var pp = manager.ApplyRunResource(run.RunId, "power_points", 3);
         run = pp.Value;
 
         Assert.True(gold.IsSuccess, gold.IsFailure ? gold.Error : null);
@@ -594,7 +594,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run = manager.ApplyEconomy(run.RunId, "gold", -run.Gold).Value;
+        run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
         var shop = manager.CreateShop(run.RunId, "basic_shop").Value;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
 
@@ -647,7 +647,7 @@ public sealed class RunManagerTests
         var manager = CreateManagerWithContent();
         var run = manager.StartRun("test", "default_run", "hero").Value;
         var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
-        run = manager.ApplyEconomy(run.RunId, "gold", -run.Gold).Value;
+        run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
         var originalItems = shop.Items.Select(i => i.ItemId).ToArray();
         var originalRerolls = shop.RerollsUsed;
         var originalCost = shop.RerollCostGold;
@@ -669,7 +669,7 @@ public sealed class RunManagerTests
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var free = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
         Assert.True(free.IsSuccess, free.IsFailure ? free.Error : null);
-        run = manager.ApplyEconomy(run.RunId, "gold", -run.Gold).Value;
+        run = manager.ApplyRunResource(run.RunId, "gold", -run.Gold).Value;
         var originalOptions = selection.Options.Select(o => o.CardId).ToArray();
         var originalRerolls = selection.RerollsUsed;
         var originalFree = selection.FreeRerollsRemaining;
@@ -708,7 +708,7 @@ public sealed class RunManagerTests
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
+        run = manager.ApplyRunResource(run.RunId, "power_points", 2).Value;
         modifierManager
             .Setup(m => m.GetDefinition("flat_power_bonus"))
             .Returns(Result<ScriptModifierDefinition>.Success(new ScriptModifierDefinition
@@ -737,7 +737,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
+        run = manager.ApplyRunResource(run.RunId, "power_points", 2).Value;
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
@@ -759,7 +759,7 @@ public sealed class RunManagerTests
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run = manager.ApplyEconomy(run.RunId, "pp", 2).Value;
+        run = manager.ApplyRunResource(run.RunId, "power_points", 2).Value;
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
@@ -786,7 +786,7 @@ public sealed class RunManagerTests
         var modifierManager = new Mock<IScriptModifierManager>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
-        run = manager.ApplyEconomy(run.RunId, "pp", 3).Value;
+        run = manager.ApplyRunResource(run.RunId, "power_points", 3).Value;
         var originalGold = run.Gold;
         var originalPowerPoints = run.PowerPoints;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
@@ -1027,7 +1027,8 @@ public sealed class RunManagerTests
             _resourceLoader.Object,
             scriptModifierManager: scriptModifierManager,
             repository: repository,
-            contentManifestProvider: contentManifestProvider);
+            contentManifestProvider: contentManifestProvider,
+            resources: TestDataBuilders.MockResourceManager().Object);
     }
 
     private static CombatEntity CreateCombatEntity(string entityId, bool isHero)
@@ -1089,7 +1090,12 @@ public sealed class RunManagerTests
 
         var catalog = new CardContentCatalog(_configManager.Object, _resourceLoader.Object);
         var resolver = new CardPoolResolver(_configManager.Object, _resourceLoader.Object, catalog);
-        return new RunManager(_configManager.Object, _resourceLoader.Object, resolver, catalog);
+        return new RunManager(
+            _configManager.Object,
+            _resourceLoader.Object,
+            resolver,
+            catalog,
+            resources: TestDataBuilders.MockResourceManager().Object);
     }
 
     private static Dictionary<string, JsonElement> ParseResource(string json)
@@ -1103,8 +1109,7 @@ public sealed class RunManagerTests
     {
       "default_run": {
         "runId": "default_run",
-        "startingGold": 25,
-        "startingPowerPoints": 0,
+        "startingResources": { "gold": 25, "power_points": 0 },
         "startingHandSize": 2,
         "startingDeck": ["strike", "defend", "zap"],
         "mapNodes": [
@@ -1119,7 +1124,7 @@ public sealed class RunManagerTests
     {
       "default_run": {
         "runId": "default_run",
-        "startingGold": 25,
+        "startingResources": { "gold": 25, "power_points": 0 },
         "startingHandSize": 1,
         "startingDeck": ["strike", "defend"],
         "mapNodes": [

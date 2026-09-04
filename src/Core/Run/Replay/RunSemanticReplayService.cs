@@ -314,7 +314,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _modeCatalog,
             _gameModeResolver,
             _contentPublications,
-            contentRuntimes);
+            contentRuntimes,
+            _resourceManager);
         var damage = new DamageCalculator(
             _pipelineManager,
             eventBus,
@@ -437,7 +438,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 RunCommandTypes.AdvanceNode => ReplayAdvanceNode(runtime, entry),
                 "COMBAT_ACTION" or "PLAY_CARD" or "EXECUTE_ACTION" or "END_TURN" =>
                     ReplayCombatAction(runtime, entry),
-                "run.economy.apply" => ReplayEconomy(runtime, entry),
+                "run.resource.apply" => ReplayRunResource(runtime, entry),
                 "run.deck.draw" => ReplayDraw(runtime, entry),
                 "run.deck.add-to-hand" => ReplayAddToHand(runtime, entry),
                 "run.deck.consume" or "run.deck.move" => ReplayMoveCards(runtime, entry),
@@ -518,10 +519,10 @@ public sealed class RunSemanticReplayService : IRunReplayService
             : Result<RunState>.Failure(result.Error);
     }
 
-    private Result<RunState> ReplayEconomy(ReplayRuntime runtime, RunJournalEntry entry)
+    private Result<RunState> ReplayRunResource(ReplayRuntime runtime, RunJournalEntry entry)
     {
-        var payload = Deserialize<EconomyPayload>(entry.Command);
-        return runtime.Runs.ApplyEconomy(entry.RunId, payload.Resource, payload.Amount);
+        var payload = Deserialize<RunResourcePayload>(entry.Command);
+        return runtime.Runs.ApplyRunResource(entry.RunId, payload.ResourceId, payload.Amount);
     }
 
     private Result<RunState> ReplayResolveNode(ReplayRuntime runtime, RunJournalEntry entry)
@@ -683,7 +684,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
 
     private sealed record CombatActionJournalPayload(Guid CombatId, CombatActionCommand Command);
     private sealed record CombatJournalPayload(Guid CombatId);
-    private sealed record EconomyPayload(string Resource, int Amount);
+    private sealed record RunResourcePayload(string ResourceId, float Amount);
     private sealed record ResolveNodePayload(string CurrentNodeId);
     private sealed record AdvanceNodePayload(string TargetNodeId);
     private sealed record CountPayload(int Count);

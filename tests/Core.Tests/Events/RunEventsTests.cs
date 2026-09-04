@@ -26,16 +26,19 @@ public class RunEventsTests
             runId: runId,
             configName: "ironclad_ascension_5",
             playerEntityId: "player_ironclad",
-            startingGold: 99,
-            startingPowerPoints: 0
+            startingResources: new Dictionary<string, float>
+            {
+                ["gold"] = 99,
+                ["power_points"] = 0
+            }
         );
         
         // Assert
         Assert.Equal(runId, evt.RunId);
         Assert.Equal("ironclad_ascension_5", evt.ConfigName);
         Assert.Equal("player_ironclad", evt.PlayerEntityId);
-        Assert.Equal(99, evt.StartingGold);
-        Assert.Equal(0, evt.StartingPowerPoints);
+        Assert.Equal(99, evt.StartingResources["gold"]);
+        Assert.Equal(0, evt.StartingResources["power_points"]);
         Assert.Equal(nameof(RunStartedEvent), evt.EventType);
         Assert.Equal(EventCategory.RUN, evt.Category);
         Assert.Equal(EventSeverity.INFO, evt.Severity);
@@ -51,15 +54,19 @@ public class RunEventsTests
         var runId = Guid.NewGuid();
         
         // Act
-        var evt = new RunStartedEvent(runId, "base_config", "hero", 50, 10);
+        var resources = new Dictionary<string, float>
+        {
+            ["gold"] = 50,
+            ["power_points"] = 10
+        };
+        var evt = new RunStartedEvent(runId, "base_config", "hero", resources);
         
         // Assert
-        Assert.Equal(5, evt.Payload.Count);
+        Assert.Equal(4, evt.Payload.Count);
         Assert.Equal(runId, evt.Payload["runId"]);
         Assert.Equal("base_config", evt.Payload["configName"]);
         Assert.Equal("hero", evt.Payload["playerEntityId"]);
-        Assert.Equal(50, evt.Payload["startingGold"]);
-        Assert.Equal(10, evt.Payload["startingPowerPoints"]);
+        Assert.Equal(resources, evt.Payload["startingResources"]);
     }
     
     // ==================== RUN ENDED EVENT TESTS ====================
@@ -146,9 +153,9 @@ public class RunEventsTests
         
         // Assert
         Assert.Equal(5, evt.Payload.Count);
-        Assert.Equal(75, evt.Payload["oldValue"]);
-        Assert.Equal(125, evt.Payload["newValue"]);
-        Assert.Equal(50, evt.Payload["delta"]);
+        Assert.Equal(75f, evt.Payload["oldValue"]);
+        Assert.Equal(125f, evt.Payload["newValue"]);
+        Assert.Equal(50f, evt.Payload["delta"]);
     }
     
     // ==================== CARD DRAWN EVENT TESTS ====================
@@ -483,8 +490,11 @@ public class RunEventsTests
             runId, 
             "ironclad_default", 
             "player_ironclad", 
-            99, 
-            0
+            new Dictionary<string, float>
+            {
+                ["gold"] = 99,
+                ["power_points"] = 0
+            }
         );
         
         // Act - Gain gold from combat

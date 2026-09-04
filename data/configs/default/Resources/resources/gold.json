@@ -1,0 +1,13 @@
+{
+  "resourceId": "gold",
+  "displayName": "Gold",
+  "shortName": "G",
+  "category": "SPECIAL",
+  "defaultMin": 0,
+  "defaultMax": 1000000,
+  "defaultCurrent": 0,
+  "canBeNegative": false,
+  "canExceedMax": true,
+  "costMultiplier": 1.0,
+  "tags": ["run", "currency"]
+}

@@ -31,8 +31,8 @@ public sealed record RunSimulationResult
     public int CommandsExecuted { get; init; }
     public RunState FinalState { get; init; } = new();
     public string FinalStateHash { get; init; } = string.Empty;
-    public int GoldDelta { get; init; }
-    public int PowerPointsDelta { get; init; }
+    public IReadOnlyDictionary<string, float> ResourceDeltas { get; init; } =
+        new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
     public int CardCountDelta { get; init; }
     public IReadOnlyList<SimulationTimelineItem> Timeline
     {
@@ -178,8 +178,14 @@ public sealed class RunSimulationService : IRunSimulationService
             CommandsExecuted = commandsExecuted,
             FinalState = state,
             FinalStateHash = CanonicalJson.ComputeHash(state),
-            GoldDelta = state.Gold - source.Gold,
-            PowerPointsDelta = state.PowerPoints - source.PowerPoints,
+            ResourceDeltas = state.ResourceState.Resources.Keys
+                .Concat(source.ResourceState.Resources.Keys)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToDictionary(
+                    id => id,
+                    id => state.ResourceState.Current(id) - source.ResourceState.Current(id),
+                    StringComparer.OrdinalIgnoreCase),
             CardCountDelta = CountCards(state.Deck) - CountCards(source.Deck),
             Timeline = await BuildTimelineAsync(state, commandsExecuted, cancellationToken).ConfigureAwait(false)
         });

@@ -275,8 +275,15 @@ public sealed class RunController : BaseApiController
             run.ParentCombatId,
             run.BranchFromSequence,
             run.BranchKey,
-            run.Gold,
-            run.PowerPoints,
+            resources = run.ResourceState.Resources.ToDictionary(
+                pair => pair.Key,
+                pair => new
+                {
+                    pair.Value.Current,
+                    pair.Value.Minimum,
+                    pair.Value.Maximum
+                },
+                StringComparer.OrdinalIgnoreCase),
             run.CurrentNodeId,
             run.Sequence,
             seed = run.Determinism.Seed,

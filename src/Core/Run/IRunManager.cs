@@ -33,7 +33,7 @@ public interface IRunManager
         int expectedSequence,
         Guid combatId,
         RunCommandIdentity? commandIdentity = null);
-    Result<RunState> ApplyEconomy(Guid runId, string resource, int amount);
+    Result<RunState> ApplyRunResource(Guid runId, string resourceId, float amount);
     Result<IReadOnlyList<string>> DrawCards(Guid runId, int count);
     Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds);
     Result<IReadOnlyList<string>> ExhaustCards(Guid runId, IReadOnlyList<string> cardIds);

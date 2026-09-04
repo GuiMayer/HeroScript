@@ -67,7 +67,7 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
         AssertJsonPropertyExists(runState, "runId");
         AssertJsonPropertyExists(runState, "configName");
         AssertJsonPropertyExists(runState, "playerEntityId");
-        AssertJsonPropertyExists(runState, "gold");
+        AssertJsonPropertyExists(runState, "resources");
         AssertJsonPropertyExists(runState, "deck");
     }
 
@@ -110,6 +110,15 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
     protected static float GetJsonFloat(JsonElement element, string propertyName)
     {
         return element.GetProperty(propertyName).GetSingle();
+    }
+
+    protected static float GetRunResource(JsonElement runState, string resourceId)
+    {
+        return runState
+            .GetProperty("resources")
+            .GetProperty(resourceId)
+            .GetProperty("current")
+            .GetSingle();
     }
 
     protected static int GetArrayLength(JsonElement element, string propertyName)

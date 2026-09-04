@@ -164,6 +164,25 @@ public sealed class ContentGraphValidatorTests
             result.Errors);
     }
 
+    [Fact]
+    public void Validate_RejectsRunResourceOutsidePublishedGraph()
+    {
+        var bundle = Bundle(
+            ("runs", "runs/default.json", new Dictionary<string, object>
+            {
+                ["default"] = new
+                {
+                    runId = "default",
+                    startingResources = new Dictionary<string, float> { ["credits"] = 10 }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("runs/default references missing resources/credits", result.Errors);
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Common;
+using Core.Resources;
 
 namespace Core.Run;
 
@@ -101,9 +102,12 @@ public static class CardSelectionTransitions
                 $"Card selection already completed: {selectionInstanceId}");
 
         var cost = selection.FreeRerollsRemaining > 0 ? 0 : selection.RerollCostGold;
-        if (state.Gold < cost)
-            return Result<RunStateTransition<CardSelectionState>>.Failure(
-                $"Insufficient gold for reroll: {selection.SelectionId}");
+        var spent = RunResourceTransitions.Spend(
+            state.ResourceState,
+            [new ResourceAmount { ResourceId = "gold", Amount = cost }],
+            $"card-selection:{selectionInstanceId}:reroll:{selection.RerollsUsed + 1}");
+        if (spent.IsFailure)
+            return Result<RunStateTransition<CardSelectionState>>.Failure(spent.Error);
 
         var rerollsUsed = checked(selection.RerollsUsed + 1);
         var updated = selection with
@@ -116,7 +120,7 @@ public static class CardSelectionTransitions
         };
         var next = state with
         {
-            Gold = state.Gold - cost,
+            ResourceState = spent.Value.State,
             CardSelections = state.CardSelections.SetItem(index, updated),
             Determinism = state.Determinism.AdvanceStep()
         };
@@ -155,9 +159,19 @@ public static class CardSelectionTransitions
             Options = options,
             DecomposedCardIds = selection.DecomposedCardIds.Append(updatedOption.CardId).ToImmutableList()
         };
+        var rewarded = RunResourceTransitions.Gain(
+            state.ResourceState,
+            [new ResourceAmount
+            {
+                ResourceId = "power_points",
+                Amount = updatedOption.DecomposePowerPoints
+            }],
+            $"card-selection:{selectionInstanceId}:decompose:{cardId}");
+        if (rewarded.IsFailure)
+            return Result<RunStateTransition<CardSelectionState>>.Failure(rewarded.Error);
         var next = state with
         {
-            PowerPoints = checked(state.PowerPoints + updatedOption.DecomposePowerPoints),
+            ResourceState = rewarded.Value.State,
             CardSelections = state.CardSelections.SetItem(selectionIndex, updated),
             Determinism = state.Determinism.AdvanceStep()
         };

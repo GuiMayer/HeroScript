@@ -10,16 +10,20 @@ public sealed record RunStartedEvent : GameEvent
     public Guid RunId { get; init; }
     public string ConfigName { get; init; } = string.Empty;
     public string PlayerEntityId { get; init; } = string.Empty;
-    public int StartingGold { get; init; }
-    public int StartingPowerPoints { get; init; }
+    public IReadOnlyDictionary<string, float> StartingResources { get; init; }
 
-    public RunStartedEvent(Guid runId, string configName, string playerEntityId, int startingGold, int startingPowerPoints)
+    public RunStartedEvent(
+        Guid runId,
+        string configName,
+        string playerEntityId,
+        IReadOnlyDictionary<string, float> startingResources)
     {
         RunId = runId;
         ConfigName = configName;
         PlayerEntityId = playerEntityId;
-        StartingGold = startingGold;
-        StartingPowerPoints = startingPowerPoints;
+        StartingResources = new Dictionary<string, float>(
+            startingResources,
+            StringComparer.OrdinalIgnoreCase);
         EventType = nameof(RunStartedEvent);
         Category = EventCategory.RUN;
         Severity = EventSeverity.INFO;
@@ -31,8 +35,7 @@ public sealed record RunStartedEvent : GameEvent
             ["runId"] = runId,
             ["configName"] = configName,
             ["playerEntityId"] = playerEntityId,
-            ["startingGold"] = startingGold,
-            ["startingPowerPoints"] = startingPowerPoints
+            ["startingResources"] = StartingResources
         };
     }
 }
@@ -70,11 +73,11 @@ public sealed record EconomyChangedEvent : GameEvent
 {
     public Guid RunId { get; init; }
     public string Resource { get; init; } = string.Empty;
-    public int OldValue { get; init; }
-    public int NewValue { get; init; }
-    public int ValueDelta { get; init; }
+    public float OldValue { get; init; }
+    public float NewValue { get; init; }
+    public float ValueDelta { get; init; }
 
-    public EconomyChangedEvent(Guid runId, string resource, int oldValue, int newValue)
+    public EconomyChangedEvent(Guid runId, string resource, float oldValue, float newValue)
     {
         RunId = runId;
         Resource = resource;

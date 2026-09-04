@@ -409,7 +409,8 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
     sp.GetRequiredService<IGameModeResolver>(),
     sp.GetRequiredService<IContentPublicationService>(),
-    sp.GetRequiredService<IContentRuntimeResolver>()));
+    sp.GetRequiredService<IContentRuntimeResolver>(),
+    sp.GetRequiredService<IResourceManager>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IGameplayCommandGateway, GameplayCommandGateway>();

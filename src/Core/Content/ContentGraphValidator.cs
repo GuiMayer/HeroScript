@@ -110,6 +110,25 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         foreach (var (id, definition) in runtime.GetDefinitions("runs"))
         {
             RequireArray(runtime, errors, "runs", id, definition, "startingDeck", "cards");
+            if (!TryGetProperty(definition, "startingResources", out var resources) ||
+                resources.ValueKind != JsonValueKind.Object ||
+                !resources.EnumerateObject().Any())
+            {
+                errors.Add($"runs/{id} requires at least one starting resource");
+            }
+            else
+            {
+                foreach (var resource in resources.EnumerateObject())
+                {
+                    Require(runtime, errors, "runs", id, resource.Name, "resources");
+                    if (resource.Value.ValueKind != JsonValueKind.Number ||
+                        !resource.Value.TryGetSingle(out var amount) ||
+                        !IsFinite(amount))
+                    {
+                        errors.Add($"runs/{id} resource {resource.Name} requires a finite numeric amount");
+                    }
+                }
+            }
             ValidateMap(id, definition, errors);
         }
     }

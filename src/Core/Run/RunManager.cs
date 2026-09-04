@@ -12,6 +12,7 @@ using Core.Determinism;
 using Core.Run.Content;
 using Core.Run.Sandbox;
 using Core.StatusEffects;
+using Core.Resources;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
@@ -32,6 +33,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly IContentPublicationService? _contentPublications;
     private readonly IContentRuntimeResolver? _contentRuntimes;
+    private readonly IResourceManager? _resources;
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
@@ -56,7 +58,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
         IGameModeResolver? gameModeResolver = null,
         IContentPublicationService? contentPublications = null,
-        IContentRuntimeResolver? contentRuntimes = null)
+        IContentRuntimeResolver? contentRuntimes = null,
+        IResourceManager? resources = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -68,6 +71,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         _contentManifestProvider = contentManifestProvider;
         _contentPublications = contentPublications;
         _contentRuntimes = contentRuntimes;
+        _resources = resources;
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
@@ -171,8 +175,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             Scenario = options.Scenario,
             ScenarioHash = options.ScenarioHash,
             AttemptKey = options.AttemptKey,
-            Gold = definition.StartingGold,
-            PowerPoints = definition.StartingPowerPoints,
+            ResourceState = null!,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
             Map = mapResult.Value,
             Deck = deckResult.Value.State,
@@ -180,6 +183,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             ContentManifest = manifest,
             Determinism = context
         };
+        var runResources = CreateRunResources(
+            state.RunId,
+            definition.StartingResources,
+            contentRevision!,
+            options.ConfigName);
+        if (runResources.IsFailure)
+            return Result<RunState>.Failure(runResources.Error);
+        state = state with { ResourceState = runResources.Value };
 
         var startingHandSize = options.StartingHandSize ?? definition.StartingHandSize;
         if (startingHandSize < 0)
@@ -216,7 +227,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             state = persisted.Value;
         }
 
-        _eventBus?.Publish(new RunStartedEvent(state.RunId, options.ConfigName, options.PlayerEntityId, definition.StartingGold, definition.StartingPowerPoints));
+        _eventBus?.Publish(new RunStartedEvent(
+            state.RunId,
+            options.ConfigName,
+            options.PlayerEntityId,
+            state.ResourceState.Resources.ToDictionary(pair => pair.Key, pair => pair.Value.Current)));
         if (!initialDraw.Value.Cards.IsEmpty)
             _eventBus?.Publish(new CardDrawnEvent(state.RunId, initialDraw.Value.Cards));
 
@@ -1249,43 +1264,66 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         return Result.Success();
     }
 
-    public Result<RunState> ApplyEconomy(Guid runId, string resource, int amount)
+    public Result<RunState> ApplyRunResource(Guid runId, string resourceId, float amount)
     {
-        int oldValue, newValue;
+        float oldValue, newValue;
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunState>.Failure($"Run not found: {runId}");
 
-            switch (resource.ToLowerInvariant())
-            {
-                case "gold":
-                    oldValue = state.Gold;
-                    newValue = SaturatingEconomyChange(state.Gold, amount);
-                    state = state with { Gold = newValue };
-                    break;
-                case "pp":
-                case "powerpoints":
-                case "power_points":
-                    oldValue = state.PowerPoints;
-                    newValue = SaturatingEconomyChange(state.PowerPoints, amount);
-                    state = state with { PowerPoints = newValue };
-                    break;
-                default:
-                    return Result<RunState>.Failure($"Unsupported run economy resource: {resource}");
-            }
+            var pool = state.ResourceState.Get(resourceId);
+            if (pool == null)
+                return Result<RunState>.Failure($"Run resource not found: {resourceId}");
+            oldValue = pool.Current;
+            var changed = RunResourceTransitions.ApplyDelta(
+                state.ResourceState,
+                resourceId,
+                amount,
+                $"run-resource:{state.Sequence + 1}:{resourceId}");
+            if (changed.IsFailure)
+                return Result<RunState>.Failure(changed.Error);
+            state = state with { ResourceState = changed.Value.State };
+            newValue = state.ResourceState.Current(resourceId);
 
             state = state with { Determinism = state.Determinism.AdvanceStep() };
             var persisted = Persist(
                 state,
-                "run.economy.apply",
-                new { resource, amount });
+                "run.resource.apply",
+                new { resourceId, amount });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
-            _eventBus?.Publish(new EconomyChangedEvent(runId, resource, oldValue, newValue));
+            _eventBus?.Publish(new EconomyChangedEvent(runId, resourceId, oldValue, newValue));
             return Result<RunState>.Success(state);
         }
+    }
+
+    private Result<ResourceSet> CreateRunResources(
+        Guid runId,
+        IReadOnlyDictionary<string, float> startingResources,
+        string contentRevision,
+        string configName)
+    {
+        if (startingResources.Count == 0)
+            return Result<ResourceSet>.Failure("Run definition requires at least one starting resource");
+        if (_resources is not IRevisionedResourceManager revisioned)
+            return Result<ResourceSet>.Failure("Revisioned resource manager is required to start a run");
+
+        var pools = new Dictionary<string, ResourcePool>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (resourceId, current) in startingResources.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            var pool = revisioned.CreatePool(resourceId, current, contentRevision, configName);
+            if (pool.IsFailure)
+                return Result<ResourceSet>.Failure(
+                    $"Failed to create run resource '{resourceId}': {pool.Error}");
+            pools.Add(resourceId, pool.Value);
+        }
+        return Result<ResourceSet>.Success(new ResourceSet
+        {
+            OwnerId = $"run:{runId}",
+            Resources = pools
+        });
     }
 
     public Result<IReadOnlyList<string>> DrawCards(Guid runId, int count)

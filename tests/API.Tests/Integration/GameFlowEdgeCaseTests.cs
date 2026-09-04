@@ -100,7 +100,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var firstItem = items.EnumerateArray().First();
         await Client.BuyShopItemAsync(runId, shopInstanceId, GetJsonString(firstItem, "itemId"));
 
-        while (GetJsonInt(await Client.GetRunStateAsync(runId), "gold") >= 10)
+        while (GetRunResource(await Client.GetRunStateAsync(runId), "gold") >= 10)
         {
             var preparation = await Client.StartPreparationAsync(runId, "basic_preparation");
             var paidOption = preparation.GetProperty("options").EnumerateArray()
@@ -111,7 +111,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
                 GetJsonString(paidOption, "optionId"));
         }
 
-        var remainingGold = GetJsonInt(await Client.GetRunStateAsync(runId), "gold");
+        var remainingGold = GetRunResource(await Client.GetRunStateAsync(runId), "gold");
         Assert.True(remainingGold < 10);
 
         var secondShop = await Client.OpenShopAsync(runId, "basic_shop");

@@ -65,6 +65,31 @@ public static class TestDataBuilders
                     DefaultMin = 0f
                 }
             });
+
+        mock.As<IRevisionedResourceManager>()
+            .Setup(rm => rm.CreatePool(
+                It.IsAny<string>(),
+                It.IsAny<float?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>()))
+            .Returns((string id, float? initial, string _, string? _) =>
+                Result<ResourcePool>.Success(new ResourcePool
+                {
+                    ResourceId = id,
+                    Current = initial ?? 0f,
+                    Maximum = 1_000_000f,
+                    Minimum = 0f,
+                    Definition = new ResourceDefinition
+                    {
+                        ResourceId = id,
+                        DisplayName = id,
+                        Category = ResourceCategory.SPECIAL,
+                        DefaultCurrent = initial ?? 0f,
+                        DefaultMax = 1_000_000f,
+                        DefaultMin = 0f,
+                        CanExceedMax = true
+                    }
+                }));
         
         mock.Setup(rm => rm.GetDefinition(It.IsAny<string>()))
             .Returns((string id) => Result<ResourceDefinition>.Success(new ResourceDefinition

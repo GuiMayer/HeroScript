@@ -1,8 +1,10 @@
 {
   "default_run": {
     "runId": "default_run",
-    "startingGold": 50,
-    "startingPowerPoints": 0,
+    "startingResources": {
+      "gold": 50,
+      "power_points": 0
+    },
     "startingHandSize": 5,
     "startingDeck": [
       "basic_attack",

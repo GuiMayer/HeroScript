@@ -429,7 +429,7 @@ public class EffectResolverTests
         Assert.True(result.IsSuccess);
         Assert.Equal(EffectScope.RUN, result.Value!.Scope);
         Assert.Equal(5f, result.Value.EffectResult.ValueApplied);
-        Assert.Equal("pp", result.Value.EffectResult.ResourceAffected);
+        Assert.Equal("power_points", result.Value.EffectResult.ResourceAffected);
     }
 
     [Fact]
@@ -471,7 +471,7 @@ public class EffectResolverTests
     {
         var runState = new RunState { Gold = 10 };
         _runManager
-            .Setup(m => m.ApplyEconomy(runState.RunId, "gold", 25))
+            .Setup(m => m.ApplyRunResource(runState.RunId, "gold", 25))
             .Returns(Result<RunState>.Success(runState with { Gold = 35 }));
 
         var resolver = CreateResolver();
@@ -497,8 +497,10 @@ public class EffectResolverTests
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.True((bool)result.Value!.EffectResult.Metadata["stateApplied"]);
-        Assert.Equal(35, result.Value.EffectResult.Metadata["gold"]);
-        _runManager.Verify(m => m.ApplyEconomy(runState.RunId, "gold", 25), Times.Once);
+        var resources = Assert.IsAssignableFrom<IReadOnlyDictionary<string, float>>(
+            result.Value.EffectResult.Metadata["resources"]);
+        Assert.Equal(35f, resources["gold"]);
+        _runManager.Verify(m => m.ApplyRunResource(runState.RunId, "gold", 25), Times.Once);
     }
 
     [Fact]

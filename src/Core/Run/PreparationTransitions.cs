@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Common;
 using Core.Determinism;
 using Core.Combat.Modifiers;
+using Core.Resources;
 
 namespace Core.Run;
 
@@ -68,8 +69,12 @@ public static class PreparationTransitions
         var option = located.Value.Option;
         if (option.Applied)
             return Result<PreparationApplyPlan>.Failure($"Preparation option already applied: {optionId}");
-        if (state.Gold < option.GoldCost || state.PowerPoints < option.PowerPointCost)
-            return Result<PreparationApplyPlan>.Failure($"Insufficient resources for preparation option: {optionId}");
+        var affordability = RunResourceTransitions.Spend(
+            state.ResourceState,
+            Costs(option.GoldCost, option.PowerPointCost),
+            $"preparation:{preparationInstanceId}:plan:{optionId}");
+        if (affordability.IsFailure)
+            return Result<PreparationApplyPlan>.Failure(affordability.Error);
 
         var context = state.Determinism;
         var grants = ImmutableArray.CreateBuilder<PlannedModifierGrant>(option.ApplyModifiers.Count);
@@ -117,9 +122,12 @@ public static class PreparationTransitions
         if (option.Applied)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(
                 $"Preparation option already applied: {option.OptionId}");
-        if (state.Gold < option.GoldCost || state.PowerPoints < option.PowerPointCost)
-            return Result<RunStateTransition<PreparationOptionState>>.Failure(
-                $"Insufficient resources for preparation option: {option.OptionId}");
+        var spent = RunResourceTransitions.Spend(
+            state.ResourceState,
+            Costs(option.GoldCost, option.PowerPointCost),
+            $"preparation:{plan.PreparationInstanceId}:apply:{option.OptionId}");
+        if (spent.IsFailure)
+            return Result<RunStateTransition<PreparationOptionState>>.Failure(spent.Error);
 
         var deck = DeckTransitions.AddToDiscard(state.Deck, option.AddCardsToDiscard, plan.Context);
         if (deck.IsFailure)
@@ -150,8 +158,7 @@ public static class PreparationTransitions
         };
         var next = state with
         {
-            Gold = state.Gold - option.GoldCost,
-            PowerPoints = state.PowerPoints - option.PowerPointCost,
+            ResourceState = spent.Value.State,
             Deck = deck.Value.State,
             Preparations = state.Preparations.SetItem(preparationIndex, updatedPreparation),
             Modifiers = state.Modifiers.AddRange(modifiers),
@@ -197,4 +204,11 @@ public static class PreparationTransitions
             ? state.PlayerEntityId
             : ownerId;
     }
+
+    private static IReadOnlyList<ResourceAmount> Costs(int gold, int powerPoints) =>
+        new[]
+        {
+            new ResourceAmount { ResourceId = "gold", Amount = gold },
+            new ResourceAmount { ResourceId = "power_points", Amount = powerPoints }
+        }.Where(cost => cost.Amount > 0).ToArray();
 }
