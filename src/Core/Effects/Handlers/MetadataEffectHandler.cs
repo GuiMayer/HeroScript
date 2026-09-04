@@ -23,6 +23,8 @@ public sealed class MetadataEffectHandler : IEffectHandler
     public MetadataEffectHandler(ILogger logger) => _logger = logger;
 
     public IReadOnlySet<EffectType> SupportedTypes => Types;
+    public IReadOnlySet<EffectScope> SupportedScopes { get; } =
+        new HashSet<EffectScope> { EffectScope.COMBAT, EffectScope.RUN };
 
     public EffectResult Execute(EffectExecutionRequest request) =>
         request.Effect.Definition.Type switch

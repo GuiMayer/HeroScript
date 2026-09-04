@@ -22,27 +22,6 @@ public enum EffectType
     /// </summary>
     MODIFY_RESOURCE,
     
-    // ===== ECONOMIA =====
-    /// <summary>
-    /// Ganha ouro
-    /// </summary>
-    GAIN_GOLD,
-    
-    /// <summary>
-    /// Perde ouro
-    /// </summary>
-    LOSE_GOLD,
-    
-    /// <summary>
-    /// Ganha Power Points (usado para injetar modificadores)
-    /// </summary>
-    GAIN_PP,
-    
-    /// <summary>
-    /// Perde Power Points
-    /// </summary>
-    LOSE_PP,
-    
     // ===== STATUS =====
     /// <summary>
     /// Aplica status (buff/debuff/DoT/HoT)

@@ -522,7 +522,12 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private Result<RunState> ReplayRunResource(ReplayRuntime runtime, RunJournalEntry entry)
     {
         var payload = Deserialize<RunResourcePayload>(entry.Command);
-        return runtime.Runs.ApplyRunResource(entry.RunId, payload.ResourceId, payload.Amount);
+        return runtime.Runs.ApplyRunResource(
+            entry.RunId,
+            payload.ResourceId,
+            payload.Value,
+            payload.Operation,
+            payload.Field);
     }
 
     private Result<RunState> ReplayResolveNode(ReplayRuntime runtime, RunJournalEntry entry)
@@ -684,7 +689,11 @@ public sealed class RunSemanticReplayService : IRunReplayService
 
     private sealed record CombatActionJournalPayload(Guid CombatId, CombatActionCommand Command);
     private sealed record CombatJournalPayload(Guid CombatId);
-    private sealed record RunResourcePayload(string ResourceId, float Amount);
+    private sealed record RunResourcePayload(
+        string ResourceId,
+        float Value,
+        ResourceEffectOperation Operation,
+        ResourceValueField Field);
     private sealed record ResolveNodePayload(string CurrentNodeId);
     private sealed record AdvanceNodePayload(string TargetNodeId);
     private sealed record CountPayload(int Count);

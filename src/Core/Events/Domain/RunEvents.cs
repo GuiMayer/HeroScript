@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Resources;
 
 namespace Core.Events.Domain;
 
@@ -67,33 +68,45 @@ public sealed record RunEndedEvent : GameEvent
 }
 
 /// <summary>
-/// Published when the player's gold or power points change.
+/// Published when any field of an owner-scoped run resource changes.
 /// </summary>
-public sealed record EconomyChangedEvent : GameEvent
+public sealed record RunResourceChangedEvent : GameEvent
 {
     public Guid RunId { get; init; }
-    public string Resource { get; init; } = string.Empty;
+    public string ResourceId { get; init; } = string.Empty;
+    public ResourceValueField Field { get; init; }
+    public ResourceMutationOperation Operation { get; init; }
     public float OldValue { get; init; }
     public float NewValue { get; init; }
     public float ValueDelta { get; init; }
 
-    public EconomyChangedEvent(Guid runId, string resource, float oldValue, float newValue)
+    public RunResourceChangedEvent(
+        Guid runId,
+        string resourceId,
+        ResourceValueField field,
+        ResourceMutationOperation operation,
+        float oldValue,
+        float newValue)
     {
         RunId = runId;
-        Resource = resource;
+        ResourceId = resourceId;
+        Field = field;
+        Operation = operation;
         OldValue = oldValue;
         NewValue = newValue;
         ValueDelta = newValue - oldValue;
-        EventType = nameof(EconomyChangedEvent);
+        EventType = nameof(RunResourceChangedEvent);
         Category = EventCategory.RUN;
         Severity = EventSeverity.INFO;
         Subject = runId.ToString();
-        Verb = "economy_changed";
-        Target = resource;
+        Verb = "run_resource_changed";
+        Target = resourceId;
         Payload = new Dictionary<string, object>
         {
             ["runId"] = runId,
-            ["resource"] = resource,
+            ["resourceId"] = resourceId,
+            ["field"] = field.ToString(),
+            ["operation"] = operation.ToString(),
             ["oldValue"] = oldValue,
             ["newValue"] = newValue,
             ["delta"] = ValueDelta

@@ -1,6 +1,8 @@
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Effects;
+using Core.Resources;
 
 namespace Core.Run;
 
@@ -33,7 +35,12 @@ public interface IRunManager
         int expectedSequence,
         Guid combatId,
         RunCommandIdentity? commandIdentity = null);
-    Result<RunState> ApplyRunResource(Guid runId, string resourceId, float amount);
+    Result<RunState> ApplyRunResource(
+        Guid runId,
+        string resourceId,
+        float value,
+        ResourceEffectOperation operation,
+        ResourceValueField field = ResourceValueField.Current);
     Result<IReadOnlyList<string>> DrawCards(Guid runId, int count);
     Result<IReadOnlyList<string>> DiscardCards(Guid runId, IReadOnlyList<string> cardIds);
     Result<IReadOnlyList<string>> ExhaustCards(Guid runId, IReadOnlyList<string> cardIds);

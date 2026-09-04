@@ -13,10 +13,7 @@ public sealed class RunEffectHandler : IEffectHandler
 {
     private static readonly IReadOnlySet<EffectType> Types = new HashSet<EffectType>
     {
-        EffectType.GAIN_GOLD,
-        EffectType.LOSE_GOLD,
-        EffectType.GAIN_PP,
-        EffectType.LOSE_PP,
+        EffectType.MODIFY_RESOURCE,
         EffectType.DRAW_CARD,
         EffectType.DISCARD_CARD,
         EffectType.EXHAUST_CARD,
@@ -38,14 +35,12 @@ public sealed class RunEffectHandler : IEffectHandler
     }
 
     public IReadOnlySet<EffectType> SupportedTypes => Types;
+    public IReadOnlySet<EffectScope> SupportedScopes { get; } = new HashSet<EffectScope> { EffectScope.RUN };
 
     public EffectResult Execute(EffectExecutionRequest request) =>
         request.Effect.Definition.Type switch
         {
-            EffectType.GAIN_GOLD => Economy(request, "gold", 1f, calculateValue: true),
-            EffectType.LOSE_GOLD => Economy(request, "gold", -1f, calculateValue: true),
-            EffectType.GAIN_PP => Economy(request, "power_points", 1f, calculateValue: false),
-            EffectType.LOSE_PP => Economy(request, "power_points", -1f, calculateValue: false),
+            EffectType.MODIFY_RESOURCE => Resource(request),
             EffectType.DRAW_CARD => Deck(request, "DRAW_CARD"),
             EffectType.DISCARD_CARD => Deck(request, "DISCARD_CARD"),
             EffectType.EXHAUST_CARD => Deck(request, "EXHAUST_CARD"),
@@ -53,29 +48,36 @@ public sealed class RunEffectHandler : IEffectHandler
             _ => EffectResult.CreateFailure("Unsupported run effect")
         };
 
-    private EffectResult Economy(
-        EffectExecutionRequest request,
-        string resource,
-        float sign,
-        bool calculateValue)
+    private EffectResult Resource(EffectExecutionRequest request)
     {
-        var raw = calculateValue
-            ? _values.Calculate(request.Effect, request.TargetId, request.Context)
-            : request.Effect.Definition.FlatValue ?? 0f;
-        var signed = MathF.Abs(raw) * sign;
-        var applied = ApplyRunResource(request.Context, resource, MathF.Round(signed));
+        var definition = request.Effect.Definition;
+        if (string.IsNullOrWhiteSpace(definition.TargetResource))
+            return EffectResult.CreateFailure("MODIFY_RESOURCE effect requires targetResource");
+        var value = _values.Calculate(request.Effect, request.TargetId, request.Context);
+        var applied = ApplyRunResource(
+            request.Context,
+            definition.TargetResource,
+            value,
+            definition.Operation,
+            definition.ResourceField);
         if (applied.IsFailure)
             return EffectResult.CreateFailure(applied.Error);
 
-        _logger.LogDebug($"Executing economy effect: {resource} {signed:+0;-#} for {request.TargetId}");
+        _logger.LogDebug(
+            $"Executing run resource effect: {definition.Operation} {value} {definition.TargetResource}");
         return EffectResult.CreateSuccess() with
         {
-            ValueApplied = signed,
-            ResourceAffected = resource,
+            ValueApplied = value,
+            ResourceAffected = definition.TargetResource,
             AffectedEntityIds = new List<string> { request.TargetId },
             Metadata = RunMetadata(
                 applied.Value,
-                new Dictionary<string, object> { ["economyResource"] = resource })
+                new Dictionary<string, object>
+                {
+                    ["resourceId"] = definition.TargetResource,
+                    ["operation"] = definition.Operation.ToString(),
+                    ["field"] = definition.ResourceField.ToString()
+                })
         };
     }
 
@@ -100,15 +102,20 @@ public sealed class RunEffectHandler : IEffectHandler
         };
     }
 
-    private Result<RunState?> ApplyRunResource(IEffectContext context, string resource, float amount)
+    private Result<RunState?> ApplyRunResource(
+        IEffectContext context,
+        string resourceId,
+        float value,
+        ResourceEffectOperation operation,
+        Core.Resources.ResourceValueField field)
     {
         var runContext = context as RunEffectContext;
         if (runContext?.RunState == null)
             return Result<RunState?>.Success(null);
         if (_runs == null)
-            return Result<RunState?>.Failure("Run economy effects require IRunManager");
+            return Result<RunState?>.Failure("Run resource effects require IRunManager");
 
-        return _runs.ApplyRunResource(runContext.RunState.RunId, resource, amount)
+        return _runs.ApplyRunResource(runContext.RunState.RunId, resourceId, value, operation, field)
             .Map<RunState?>(state => state);
     }
 

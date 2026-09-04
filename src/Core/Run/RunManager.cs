@@ -8,6 +8,7 @@ using Core.Config;
 using Core.Content;
 using Core.Events;
 using Core.Events.Domain;
+using Core.Effects;
 using Core.Determinism;
 using Core.Run.Content;
 using Core.Run.Sandbox;
@@ -1264,9 +1265,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         return Result.Success();
     }
 
-    public Result<RunState> ApplyRunResource(Guid runId, string resourceId, float amount)
+    public Result<RunState> ApplyRunResource(
+        Guid runId,
+        string resourceId,
+        float value,
+        ResourceEffectOperation operation,
+        ResourceValueField field = ResourceValueField.Current)
     {
-        float oldValue, newValue;
         lock (_lock)
         {
             if (!_runs.TryGetValue(runId, out var state))
@@ -1275,26 +1280,33 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var pool = state.ResourceState.Get(resourceId);
             if (pool == null)
                 return Result<RunState>.Failure($"Run resource not found: {resourceId}");
-            oldValue = pool.Current;
-            var changed = RunResourceTransitions.ApplyDelta(
+            var changed = RunResourceTransitions.Apply(
                 state.ResourceState,
                 resourceId,
-                amount,
+                value,
+                operation,
+                field,
                 $"run-resource:{state.Sequence + 1}:{resourceId}");
             if (changed.IsFailure)
                 return Result<RunState>.Failure(changed.Error);
             state = state with { ResourceState = changed.Value.State };
-            newValue = state.ResourceState.Current(resourceId);
+            var mutation = changed.Value.Records.Single();
 
             state = state with { Determinism = state.Determinism.AdvanceStep() };
             var persisted = Persist(
                 state,
                 "run.resource.apply",
-                new { resourceId, amount });
+                new { resourceId, value, operation, field });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
-            _eventBus?.Publish(new EconomyChangedEvent(runId, resourceId, oldValue, newValue));
+            _eventBus?.Publish(new RunResourceChangedEvent(
+                runId,
+                resourceId,
+                mutation.Field,
+                mutation.Operation,
+                mutation.PreviousValue,
+                mutation.CurrentValue));
             return Result<RunState>.Success(state);
         }
     }

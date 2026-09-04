@@ -1,5 +1,6 @@
 using Core.Common;
 using Core.Resources;
+using Core.Effects;
 using System.Collections.Immutable;
 
 namespace Core.Run;
@@ -32,23 +33,33 @@ public static class RunResourceTransitions
             .ToImmutableArray();
     }
 
-    public static Result<ResourceSetMutationResult> ApplyDelta(
+    public static Result<ResourceSetMutationResult> Apply(
         ResourceSet resources,
         string resourceId,
-        float delta,
+        float value,
+        ResourceEffectOperation operation,
+        ResourceValueField field,
         string mutationId)
     {
         var pool = resources.Get(resourceId);
         if (pool == null)
             return Result<ResourceSetMutationResult>.Failure($"Run resource not found: {resourceId}");
+        var mutationOperation = operation switch
+        {
+            ResourceEffectOperation.ADD => ResourceMutationOperation.Add,
+            ResourceEffectOperation.SUBTRACT => ResourceMutationOperation.Subtract,
+            ResourceEffectOperation.SET => ResourceMutationOperation.Set,
+            _ => throw new InvalidOperationException($"Unsupported resource operation: {operation}")
+        };
         return resources.Apply(
         [
             new ResolvedResourceMutation
             {
                 MutationId = mutationId,
                 ResourceId = resourceId,
-                Operation = ResourceMutationOperation.Set,
-                Value = pool.Current + delta
+                Field = field,
+                Operation = mutationOperation,
+                Value = value
             }
         ]);
     }

@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using Core.Events;
 using Core.Events.Domain;
+using Core.Resources;
 using Xunit;
 
 namespace Core.Tests.Events;
 
 /// <summary>
 /// Comprehensive tests for Run-related domain events
-/// Covers all run progression events: economy, cards, shop, deck, rewards
+/// Covers all run progression events: resources, cards, shop, deck, rewards
 /// </summary>
 [Trait("Category", "Unit")]
 public class RunEventsTests
@@ -109,50 +110,53 @@ public class RunEventsTests
     // ==================== ECONOMY CHANGED EVENT TESTS ====================
     
     [Fact]
-    public void EconomyChangedEvent_GoldGain_CalculatesDelta()
+    public void RunResourceChangedEvent_Gain_CalculatesDelta()
     {
         // Arrange
         var runId = Guid.NewGuid();
         
         // Act
-        var evt = new EconomyChangedEvent(runId, "gold", 100, 150);
+        var evt = new RunResourceChangedEvent(
+            runId, "gold", ResourceValueField.Current, ResourceMutationOperation.Add, 100, 150);
         
         // Assert
         Assert.Equal(runId, evt.RunId);
-        Assert.Equal("gold", evt.Resource);
+        Assert.Equal("gold", evt.ResourceId);
         Assert.Equal(100, evt.OldValue);
         Assert.Equal(150, evt.NewValue);
         Assert.Equal(50, evt.ValueDelta);
-        Assert.Equal(nameof(EconomyChangedEvent), evt.EventType);
+        Assert.Equal(nameof(RunResourceChangedEvent), evt.EventType);
         Assert.Equal(EventCategory.RUN, evt.Category);
-        Assert.Equal("economy_changed", evt.Verb);
+        Assert.Equal("run_resource_changed", evt.Verb);
         Assert.Equal("gold", evt.Target);
     }
     
     [Fact]
-    public void EconomyChangedEvent_PowerPointsLoss_NegativeDelta()
+    public void RunResourceChangedEvent_Loss_HasNegativeDelta()
     {
         // Arrange
         var runId = Guid.NewGuid();
         
         // Act
-        var evt = new EconomyChangedEvent(runId, "power_points", 50, 30);
+        var evt = new RunResourceChangedEvent(
+            runId, "power_points", ResourceValueField.Current, ResourceMutationOperation.Subtract, 50, 30);
         
         // Assert
-        Assert.Equal("power_points", evt.Resource);
+        Assert.Equal("power_points", evt.ResourceId);
         Assert.Equal(50, evt.OldValue);
         Assert.Equal(30, evt.NewValue);
         Assert.Equal(-20, evt.ValueDelta);
     }
     
     [Fact]
-    public void EconomyChangedEvent_PayloadIncludesDelta()
+    public void RunResourceChangedEvent_PayloadIncludesDelta()
     {
         // Arrange & Act
-        var evt = new EconomyChangedEvent(Guid.NewGuid(), "gold", 75, 125);
+        var evt = new RunResourceChangedEvent(
+            Guid.NewGuid(), "gold", ResourceValueField.Current, ResourceMutationOperation.Add, 75, 125);
         
         // Assert
-        Assert.Equal(5, evt.Payload.Count);
+        Assert.Equal(7, evt.Payload.Count);
         Assert.Equal(75f, evt.Payload["oldValue"]);
         Assert.Equal(125f, evt.Payload["newValue"]);
         Assert.Equal(50f, evt.Payload["delta"]);
@@ -498,10 +502,12 @@ public class RunEventsTests
         );
         
         // Act - Gain gold from combat
-        var goldGainEvent = new EconomyChangedEvent(runId, "gold", 99, 149);
+        var goldGainEvent = new RunResourceChangedEvent(
+            runId, "gold", ResourceValueField.Current, ResourceMutationOperation.Add, 99, 149);
         
         // Gain power points from card decompose
-        var ppGainEvent = new EconomyChangedEvent(runId, "power_points", 0, 25);
+        var ppGainEvent = new RunResourceChangedEvent(
+            runId, "power_points", ResourceValueField.Current, ResourceMutationOperation.Add, 0, 25);
         
         // Run ends
         var endEvent = new RunEndedEvent(runId, "victory");
@@ -561,7 +567,8 @@ public class RunEventsTests
         var purchaseEvent = new ShopItemPurchasedEvent(runId, "merchant", "potion_health", 50);
         
         // Lose gold
-        var goldLossEvent = new EconomyChangedEvent(runId, "gold", 100, 50);
+        var goldLossEvent = new RunResourceChangedEvent(
+            runId, "gold", ResourceValueField.Current, ResourceMutationOperation.Subtract, 100, 50);
         
         // Reroll shop
         var rerollEvent = new ShopRerolledEvent(runId, "merchant", 25);
@@ -584,7 +591,8 @@ public class RunEventsTests
         var decomposeEvent = new CardDecomposedEvent(runId, "strike", 25);
         
         // Gain power points
-        var ppEvent = new EconomyChangedEvent(runId, "power_points", 0, 25);
+        var ppEvent = new RunResourceChangedEvent(
+            runId, "power_points", ResourceValueField.Current, ResourceMutationOperation.Add, 0, 25);
         
         // Deck changed
         var deckEvent = new DeckChangedEvent(runId, 9, "card_decomposed");
@@ -593,7 +601,7 @@ public class RunEventsTests
         Assert.Equal("strike", decomposeEvent.CardId);
         Assert.Equal(25, decomposeEvent.PowerPointsGained);
         Assert.Equal(25, ppEvent.ValueDelta);
-        Assert.Equal("power_points", ppEvent.Resource);
+        Assert.Equal("power_points", ppEvent.ResourceId);
         Assert.Equal(9, deckEvent.TotalCards);
     }
     

@@ -342,7 +342,7 @@ public class EffectResolverTests
     }
 
     [Fact]
-    public void ApplyEffect_RunGoldEffect_DoesNotRequireCombatState()
+    public void ApplyEffect_RunResourceEffect_DoesNotRequireCombatState()
     {
         var resolver = CreateResolver();
         var effect = new EffectInstance
@@ -351,7 +351,9 @@ public class EffectResolverTests
             TargetEntityId = "player",
             Definition = new EffectDefinition
             {
-                Type = EffectType.GAIN_GOLD,
+                Type = EffectType.MODIFY_RESOURCE,
+                TargetResource = "credits",
+                Operation = ResourceEffectOperation.ADD,
                 FlatValue = 25
             }
         };
@@ -368,7 +370,7 @@ public class EffectResolverTests
         Assert.True(result.Value!.Success);
         Assert.Equal(EffectScope.RUN, result.Value.Scope);
         Assert.Equal(25f, result.Value.EffectResult.ValueApplied);
-        Assert.Equal("gold", result.Value.EffectResult.ResourceAffected);
+        Assert.Equal("credits", result.Value.EffectResult.ResourceAffected);
         Assert.Null(result.Value.UpdatedCombatState);
     }
 
@@ -400,7 +402,7 @@ public class EffectResolverTests
     }
 
     [Fact]
-    public void ApplyEffect_GainPP_ReturnsResourcePP()
+    public void ApplyEffect_RunResourceSupportsAnyConfiguredResource()
     {
         var resolver = CreateResolver();
         var effect = new EffectInstance
@@ -408,8 +410,10 @@ public class EffectResolverTests
             InstanceId = Guid.NewGuid().ToString(),
             Definition = new EffectDefinition
             {
-                EffectId = "pp1",
-                Type = EffectType.GAIN_PP,
+                EffectId = "insight1",
+                Type = EffectType.MODIFY_RESOURCE,
+                TargetResource = "insight",
+                Operation = ResourceEffectOperation.ADD,
                 Target = EffectTarget.SELF,
                 FlatValue = 5
             },
@@ -429,7 +433,7 @@ public class EffectResolverTests
         Assert.True(result.IsSuccess);
         Assert.Equal(EffectScope.RUN, result.Value!.Scope);
         Assert.Equal(5f, result.Value.EffectResult.ValueApplied);
-        Assert.Equal("power_points", result.Value.EffectResult.ResourceAffected);
+        Assert.Equal("insight", result.Value.EffectResult.ResourceAffected);
     }
 
     [Fact]
@@ -467,7 +471,7 @@ public class EffectResolverTests
     }
 
     [Fact]
-    public void ApplyEffect_RunGoldEffect_WithRunState_AppliesEconomyState()
+    public void ApplyEffect_RunResourceEffect_WithRunState_AppliesResourceState()
     {
         var runState = new RunState
         {
@@ -475,7 +479,12 @@ public class EffectResolverTests
                 new ResourceAmount { ResourceId = "gold", Amount = 10 })
         };
         _runManager
-            .Setup(m => m.ApplyRunResource(runState.RunId, "gold", 25))
+            .Setup(m => m.ApplyRunResource(
+                runState.RunId,
+                "gold",
+                25,
+                ResourceEffectOperation.ADD,
+                ResourceValueField.Current))
             .Returns(Result<RunState>.Success(runState with
             {
                 ResourceState = TestDataBuilders.RunResources(
@@ -489,7 +498,9 @@ public class EffectResolverTests
             TargetEntityId = "player",
             Definition = new EffectDefinition
             {
-                Type = EffectType.GAIN_GOLD,
+                Type = EffectType.MODIFY_RESOURCE,
+                TargetResource = "gold",
+                Operation = ResourceEffectOperation.ADD,
                 FlatValue = 25
             }
         };
@@ -508,7 +519,12 @@ public class EffectResolverTests
         var resources = Assert.IsAssignableFrom<IReadOnlyDictionary<string, float>>(
             result.Value.EffectResult.Metadata["resources"]);
         Assert.Equal(35f, resources["gold"]);
-        _runManager.Verify(m => m.ApplyRunResource(runState.RunId, "gold", 25), Times.Once);
+        _runManager.Verify(m => m.ApplyRunResource(
+            runState.RunId,
+            "gold",
+            25,
+            ResourceEffectOperation.ADD,
+            ResourceValueField.Current), Times.Once);
     }
 
     [Fact]

@@ -28,6 +28,7 @@ public sealed class CombatEffectHandler : IEffectHandler
     }
 
     public IReadOnlySet<EffectType> SupportedTypes => Types;
+    public IReadOnlySet<EffectScope> SupportedScopes { get; } = new HashSet<EffectScope> { EffectScope.COMBAT };
 
     public EffectResult Execute(EffectExecutionRequest request) =>
         request.Effect.Definition.Type switch

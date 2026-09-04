@@ -27,19 +27,6 @@ public class EffectsModelsTests
     }
     
     [Fact]
-    public void EffectType_EconomyTypesAreDefined()
-    {
-        // Arrange & Act
-        var values = Enum.GetValues<EffectType>();
-        
-        // Assert - Economy effects
-        Assert.Contains(EffectType.GAIN_GOLD, values);
-        Assert.Contains(EffectType.LOSE_GOLD, values);
-        Assert.Contains(EffectType.GAIN_PP, values);
-        Assert.Contains(EffectType.LOSE_PP, values);
-    }
-    
-    [Fact]
     public void EffectType_StatusTypesAreDefined()
     {
         // Arrange & Act
