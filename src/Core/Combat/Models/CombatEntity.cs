@@ -9,6 +9,7 @@ public record CombatEntity
     public string EntityId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public bool IsHero { get; init; }
+    public string SideId { get; init; } = string.Empty;
     
     /// <summary>
     /// Estado de recursos da entidade (health, energy, mana, etc.)

@@ -26,8 +26,9 @@ public static class CombatTransitions
             CombatId = combatId.Value,
             StartedAt = combatId.Context.LogicalTimestamp.UtcDateTime,
             Determinism = combatId.Context,
-            Hero = hero,
-            Enemies = enemies.ToImmutableList(),
+            Hero = string.IsNullOrWhiteSpace(hero.SideId) ? hero with { SideId = "player" } : hero,
+            Enemies = enemies.Select(entity => string.IsNullOrWhiteSpace(entity.SideId)
+                ? entity with { SideId = "opposition" } : entity).ToImmutableList(),
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };

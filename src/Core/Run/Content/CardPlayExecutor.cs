@@ -496,12 +496,12 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
             EffectTarget.SELF => [actor.EntityId],
             EffectTarget.TARGET => evaluation.ResolvedTargetIds,
             EffectTarget.ALL_ENEMIES => combat.GetAllEntities()
-                .Where(entity => entity.IsAlive && entity.IsHero != actor.IsHero)
+                .Where(entity => entity.IsAlive && combat.Relationship(actor, entity) == SideRelationship.Enemy)
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
                 .Select(entity => entity.EntityId)
                 .ToArray(),
             EffectTarget.ALL_ALLIES => combat.GetAllEntities()
-                .Where(entity => entity.IsAlive && entity.IsHero == actor.IsHero)
+                .Where(entity => entity.IsAlive && combat.Relationship(actor, entity) == SideRelationship.Ally)
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
                 .Select(entity => entity.EntityId)
                 .ToArray(),

@@ -1,0 +1,62 @@
+using System.Collections.Immutable;
+using System.Text.Json.Serialization;
+using Core.Run;
+
+namespace Core.Combat.Models;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum GameplayOwnerKind { Entity, Side, Run, Global }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ControllerKind { Player, AI, None }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SideRelationship { Ally, Enemy, Neutral }
+
+/// <summary>Serializable identity; it never points at a mutable runtime object.</summary>
+public sealed record GameplayOwner
+{
+    public GameplayOwnerKind Kind { get; init; } = GameplayOwnerKind.Entity;
+    public string Id { get; init; } = string.Empty;
+
+    public bool Includes(CombatEntity entity, CombatState combat, RunState? run) => Kind switch
+    {
+        GameplayOwnerKind.Entity => StringComparer.Ordinal.Equals(Id, entity.EntityId),
+        GameplayOwnerKind.Side => StringComparer.Ordinal.Equals(Id, combat.GetSideId(entity)),
+        // A run-scoped item belongs to the run's player, not every combat participant.
+        GameplayOwnerKind.Run => run != null && StringComparer.Ordinal.Equals(Id, run.RunId.ToString()) &&
+            StringComparer.Ordinal.Equals(entity.EntityId, run.PlayerEntityId),
+        GameplayOwnerKind.Global => true,
+        _ => false
+    };
+}
+
+public sealed record CombatSide
+{
+    public string SideId { get; init; } = string.Empty;
+    public ControllerKind Controller { get; init; }
+}
+
+public sealed record SideRelationshipRule
+{
+    public string FromSideId { get; init; } = string.Empty;
+    public string ToSideId { get; init; } = string.Empty;
+    public SideRelationship Relationship { get; init; }
+}
+
+/// <summary>Relationships are directed, allowing asymmetric and multi-sided encounters.</summary>
+public sealed record CombatRelationshipPolicy
+{
+    private ImmutableArray<SideRelationshipRule> _rules = [];
+    public SideRelationship SameSide { get; init; } = SideRelationship.Ally;
+    public SideRelationship DifferentSides { get; init; } = SideRelationship.Enemy;
+    public IReadOnlyList<SideRelationshipRule> Rules
+    {
+        get => _rules;
+        init => _rules = value?.ToImmutableArray() ?? [];
+    }
+
+    public SideRelationship Resolve(string from, string to) =>
+        _rules.FirstOrDefault(rule => rule.FromSideId == from && rule.ToSideId == to)?.Relationship
+        ?? (StringComparer.Ordinal.Equals(from, to) ? SameSide : DifferentSides);
+}

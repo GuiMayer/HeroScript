@@ -288,8 +288,8 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         }
 
         var entities = combat.GetAllEntities().Where(entity => entity.IsAlive).ToArray();
-        var enemies = entities.Where(entity => entity.IsHero != actor.IsHero);
-        var allies = entities.Where(entity => entity.IsHero == actor.IsHero);
+        var enemies = entities.Where(entity => combat.Relationship(actor, entity) == SideRelationship.Enemy);
+        var allies = entities.Where(entity => combat.Relationship(actor, entity) == SideRelationship.Ally);
         IEnumerable<CombatEntity> legal = targeting.Target switch
         {
             EffectTarget.SELF => [actor],

@@ -24,6 +24,16 @@ public record CombatState
         DeterministicContext.Create(0, "legacy-combat");
     public int CurrentTurn { get; init; } = 1;
     public CombatStatus Status { get; init; } = CombatStatus.ACTIVE;
+    public CombatRelationshipPolicy Relationships { get; init; } = new();
+    public ImmutableArray<CombatSide> Sides { get; init; } = [];
+
+    // The two participant slots supply sides when a scenario does not override them.
+    // IsHero is display metadata and is deliberately not consulted here.
+    public string GetSideId(CombatEntity entity) => !string.IsNullOrWhiteSpace(entity.SideId)
+        ? entity.SideId : entity.EntityId == Hero.EntityId ? "player" : "opposition";
+
+    public SideRelationship Relationship(CombatEntity from, CombatEntity to) =>
+        Relationships.Resolve(GetSideId(from), GetSideId(to));
     
     // Entidades (agora com recursos genéricos)
     public CombatEntity Hero { get; init; } = null!;

@@ -369,20 +369,17 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var candidates = target switch
         {
             EffectTarget.SELF => [ownerId],
-            EffectTarget.TARGET => selectedTargetIds.Count == 0
-                ? [ownerId]
-                : selectedTargetIds
+            EffectTarget.TARGET => selectedTargetIds
                     .Distinct(StringComparer.Ordinal)
-                    .Where(id => combat.GetEntity(id)?.IsAlive == true)
                     .ToArray(),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or
                 EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => combat.GetAllEntities()
-                .Where(entity => entity.IsAlive && entity.IsHero != owner.IsHero)
+                .Where(entity => entity.IsAlive && combat.Relationship(owner, entity) == SideRelationship.Enemy)
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
                 .Select(entity => entity.EntityId)
                 .ToArray(),
             EffectTarget.ALL_ALLIES => combat.GetAllEntities()
-                .Where(entity => entity.IsAlive && entity.IsHero == owner.IsHero)
+                .Where(entity => entity.IsAlive && combat.Relationship(owner, entity) == SideRelationship.Ally)
                 .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
                 .Select(entity => entity.EntityId)
                 .ToArray(),
@@ -390,6 +387,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         };
         if (candidates.Length == 0)
             return Result<ResolvedTargets>.Failure($"Trigger target {target} resolved no entities");
+        if (candidates.Any(id => combat.GetEntity(id)?.IsAlive != true))
+            return Result<ResolvedTargets>.Failure("Selection contains an invalid or defeated target");
         if (target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {
             if (string.IsNullOrWhiteSpace(selectionResourceId))

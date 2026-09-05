@@ -337,6 +337,20 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (validation.IsFailure)
             return Result<CombatState>.Failure(validation.Error);
 
+        if (run.Scenario is { } scenario)
+        {
+            combat = combat with
+            {
+                Relationships = scenario.Relationships,
+                Sides = scenario.Sides,
+                Hero = combat.Hero with { SideId = scenario.Hero.SideId },
+                Enemies = combat.Enemies.Select(entity => entity with
+                {
+                    SideId = scenario.Enemies.First(item => item.Alias == entity.EntityId).SideId
+                }).ToArray()
+            };
+        }
+
         var order = CombatFlowTransitions.CreateRoundSnapshotOrder(combat, policies.ActivationOrder);
         if (order.Count == 0)
             return Result<CombatState>.Failure("No alive actors are available for combat activation");

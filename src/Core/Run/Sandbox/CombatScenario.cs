@@ -28,6 +28,8 @@ public sealed record CombatScenarioDefinition
     public ulong Seed { get; init; }
     public string AttemptKey { get; init; } = string.Empty;
     public ScenarioHeroDefinition Hero { get; init; } = new();
+    public CombatRelationshipPolicy Relationships { get; init; } = new();
+    public ImmutableArray<CombatSide> Sides { get; init; } = [];
     public IReadOnlyList<ScenarioCardDefinition> Deck
     {
         get => _deck;
@@ -43,12 +45,14 @@ public sealed record CombatScenarioDefinition
 
 public sealed record ScenarioHeroDefinition
 {
+    public string SideId { get; init; } = "player";
     public string Alias { get; init; } = "hero";
     public string EntityDefinitionId { get; init; } = string.Empty;
 }
 
 public sealed record ScenarioEnemyDefinition
 {
+    public string SideId { get; init; } = "opposition";
     public string Alias { get; init; } = string.Empty;
     public string EntityDefinitionId { get; init; } = string.Empty;
 }
@@ -284,7 +288,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 configName);
             if (materialized.IsFailure)
                 return Result<CompiledCombatScenario>.Failure(materialized.Error);
-            enemies.Add(materialized.Value);
+            enemies.Add(materialized.Value with { SideId = enemy.SideId });
         }
 
         var normalized = scenario with
@@ -327,7 +331,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 ScenarioHash: scenarioHash,
                 AttemptKey: normalized.AttemptKey,
                 Scenario: normalized),
-            Hero = heroWithResources.Value,
+            Hero = heroWithResources.Value with { SideId = scenario.Hero.SideId },
             Enemies = enemies.ToImmutableArray(),
             InitialStatusEffects = initialStatuses.Value
         });
