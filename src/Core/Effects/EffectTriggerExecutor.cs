@@ -24,6 +24,8 @@ public sealed record EffectTriggerExecutionRequest
     public string ContentRevision { get; init; } = string.Empty;
     public EffectProvenance Provenance { get; init; } = new();
     public RunState? Run { get; init; }
+    public Core.Run.Content.EffectiveCardDefinition? Card { get; init; }
+    public ImmutableHashSet<string> Tags { get; init; } = ImmutableHashSet<string>.Empty;
     public IReadOnlyList<string> SelectedTargetEntityIds
     {
         get => _selectedTargetEntityIds;
@@ -79,122 +81,115 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (request.Combat.GetEntity(request.OwnerEntityId) == null)
             return Result<EffectBatchResult>.Failure($"Trigger owner not found: {request.OwnerEntityId}");
 
-        var expanded = ExpandEffects(request);
-        if (expanded.IsFailure)
-            return Result<EffectBatchResult>.Failure(expanded.Error);
-        var applied = _effects.Apply(expanded.Value.Combat, expanded.Value.Commands);
-        return applied.IsFailure
-            ? applied
-            : Result<EffectBatchResult>.Success(applied.Value with
-            {
-                Calculations = expanded.Value.Calculations,
-                Fingerprint = CanonicalJson.ComputeHash(new
-                {
-                    effects = applied.Value.Fingerprint,
-                    calculations = expanded.Value.Calculations
-                })
-            });
-    }
-
-    private Result<ExpandedTrigger> ExpandEffects(EffectTriggerExecutionRequest request)
-    {
         var current = request.Combat;
-        var commands = ImmutableArray.CreateBuilder<ResolvedEffectCommand>();
+        var records = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
+        var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
+        var work = 0;
         foreach (var (effect, index) in request.Trigger.Effects.Select((item, index) => (item, index)))
         {
-            var expanded = ExpandEffect(request with { Combat = current }, effect, $"{index}");
-            if (expanded.IsFailure)
-                return expanded;
-            current = expanded.Value.Combat;
-            commands.AddRange(expanded.Value.Commands);
-            calculations.AddRange(expanded.Value.Calculations);
+            var executed = ExecuteEffect(effect, index.ToString(), 0, request.SelectedTargetEntityIds);
+            if (executed.IsFailure) return Result<EffectBatchResult>.Failure(executed.Error);
         }
-        return Result<ExpandedTrigger>.Success(new(
-            current,
-            commands.ToImmutable(),
-            calculations.ToImmutable()));
-    }
-
-    private Result<ExpandedTrigger> ExpandEffect(
-        EffectTriggerExecutionRequest request,
-        EffectDefinition effect,
-        string path)
-    {
-        if (effect.Repeat < 1)
-            return Result<ExpandedTrigger>.Failure($"Trigger effect {path} repeat must be positive");
-        if (effect.Chance is < 0 or > 1)
-            return Result<ExpandedTrigger>.Failure($"Trigger effect {path} chance must be between 0 and 1");
-
-        var current = request.Combat;
-        var context = current.Determinism;
-        var commands = ImmutableArray.CreateBuilder<ResolvedEffectCommand>();
-        var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
-        for (var repeat = 0; repeat < effect.Repeat; repeat++)
+        return Result<EffectBatchResult>.Success(new()
         {
-            if (effect.Chance < 1)
+            State = current, Run = request.Run, Records = records.ToImmutable(),
+            Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable(),
+            Fingerprint = CanonicalJson.ComputeHash(new { state = current, steps = steps.ToImmutable(), run = request.Run })
+        });
+
+        Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection)
+        {
+            if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
+                return Result.Failure("Effect execution limit exceeded");
+            if (effect.Repeat < 1 || effect.Repeat > EffectExecutionLimits.MaximumRepeat)
+                return Result.Failure($"Effect {path} repeat is outside execution limits");
+            if (!float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1 || !Enum.IsDefined(effect.ChanceScope))
+                return Result.Failure($"Effect {path} has an invalid chance policy");
+            if (effect.ConditionalEffects?.Count > 0)
+                return Result.Failure("conditionalEffects is unsupported; use chainedEffects with a condition");
+            for (var repeat = 0; repeat < effect.Repeat; repeat++)
             {
-                if (effect.Chance <= 0)
-                    continue;
-                var chance = context.DrawDouble();
-                context = chance.Context;
-                if (chance.Value >= effect.Chance)
-                    continue;
-            }
-            var targets = ResolveTargets(
-                current,
-                request.OwnerEntityId,
-                request.SelectedTargetEntityIds,
-                effect.Target,
-                effect.SelectionResourceId,
-                context);
-            if (targets.IsFailure)
-                return Result<ExpandedTrigger>.Failure(targets.Error);
-            context = targets.Value.Context;
-            foreach (var targetId in targets.Value.TargetIds)
-            {
-                var variables = BuildVariables(request, current, targetId);
-                var condition = EvaluateCondition(effect.Condition, request.ContentRevision, variables);
-                if (condition.IsFailure)
-                    return Result<ExpandedTrigger>.Failure(condition.Error);
-                if (!condition.Value)
-                    continue;
-                var value = ResolveValue(request, effect, targetId, variables, $"{path}:{repeat}:{targetId}");
-                if (value.IsFailure)
-                    return Result<ExpandedTrigger>.Failure(value.Error);
-                if (value.Value.Calculation != null)
-                    calculations.Add(value.Value.Calculation);
-                var status = ResolveAppliedStatus(effect, request.ContentRevision);
-                if (status.IsFailure)
-                    return Result<ExpandedTrigger>.Failure(status.Error);
-                commands.Add(new ResolvedEffectCommand
+                var beforeSelection = CanonicalJson.ComputeHash(current);
+                var targets = ResolveTargets(current, request.OwnerEntityId, selection, effect.Target,
+                    effect.SelectionResourceId, current.Determinism);
+                if (targets.IsFailure) return Result.Failure(targets.Error);
+                current = current with { Determinism = targets.Value.Context };
+                double? effectRoll = null;
+                var effectPass = effect.ChanceScope != EffectChanceScope.PerEffect || DrawChance(effect.Chance, out effectRoll);
+                for (var targetIndex = 0; targetIndex < targets.Value.TargetIds.Count; targetIndex++)
                 {
-                    EffectInstanceId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}",
-                    Definition = effect,
-                    SourceEntityId = request.SourceEntityId,
-                    TargetEntityIds = [targetId],
-                    ResolvedValue = value.Value.Value,
-                    StatusDefinition = status.Value,
-                    Provenance = request.Provenance with { ComponentId = request.Trigger.TriggerId }
-                });
+                    if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                    var targetId = targets.Value.TargetIds[targetIndex];
+                    var id = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}";
+                    var before = targetIndex == 0 ? beforeSelection : CanonicalJson.ComputeHash(current);
+                    var variables = BuildVariables(request, current, targetId);
+                    variables["repeat_index"] = repeat;
+                    variables["target_index"] = targetIndex;
+                    IReadOnlySet<string> tags = request.Tags.Count == 0 ? effect.Tags.ToHashSet(StringComparer.Ordinal) : request.Tags;
+                    var tagsPass = (effect.RequiredTags ?? []).All(tags.Contains) && !(effect.ExcludedTags ?? []).Any(tags.Contains);
+                    var condition = effectPass && tagsPass
+                        ? EvaluateCondition(effect.Condition, request.ContentRevision, variables) : Result<bool>.Success(false);
+                    if (condition.IsFailure) return Result.Failure(condition.Error);
+                    var roll = effectRoll;
+                    var chancePass = effectPass;
+                    if (effectPass && condition.Value && effect.ChanceScope == EffectChanceScope.PerTarget)
+                        chancePass = DrawChance(effect.Chance, out roll);
+                    var applies = tagsPass && condition.Value && chancePass;
+                    CalculationResult? calculation = null;
+                    ImmutableArray<EffectApplicationRecord> appliedRecords = [];
+                    if (applies)
+                    {
+                        var value = ResolveValue(request with { Combat = current }, effect, targetId, variables,
+                            $"{path}:{repeat}:{targetId}");
+                        if (value.IsFailure) return Result.Failure(value.Error);
+                        calculation = value.Value.Calculation;
+                        var status = ResolveAppliedStatus(effect, request.ContentRevision);
+                        if (status.IsFailure) return Result.Failure(status.Error);
+                        var applied = _effects.Apply(current, [new ResolvedEffectCommand
+                        {
+                            EffectInstanceId = id, Definition = effect, SourceEntityId = request.SourceEntityId,
+                            TargetEntityIds = [targetId], ResolvedValue = value.Value.Value, StatusDefinition = status.Value,
+                            ContentRevision = request.ContentRevision,
+                            Provenance = request.Provenance with { ComponentId = request.Trigger.TriggerId }
+                        }]);
+                        if (applied.IsFailure) return Result.Failure(applied.Error);
+                        current = applied.Value.State;
+                        appliedRecords = applied.Value.Records.ToImmutableArray();
+                        records.AddRange(appliedRecords);
+                        if (calculation != null) calculations.Add(calculation);
+                    }
+                    steps.Add(new()
+                    {
+                        Index = steps.Count, EffectInstanceId = id, TargetEntityId = targetId,
+                        RepeatIndex = repeat, TargetIndex = targetIndex, Applied = applies,
+                        SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
+                        ChanceRoll = roll, ContentRevision = request.ContentRevision,
+                        Provenance = request.Provenance with { ComponentId = request.Trigger.TriggerId },
+                        Calculation = calculation, Applications = appliedRecords,
+                        StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current)
+                    });
+                    if (!applies) continue;
+                    foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index)))
+                    {
+                        var childResult = ExecuteEffect(child, $"{path}:{repeat}:{targetIndex}.chain.{childIndex}", depth + 1, [targetId]);
+                        if (childResult.IsFailure) return childResult;
+                    }
+                }
             }
+            return Result.Success();
         }
-        current = current with { Determinism = context };
-        foreach (var (nested, index) in (effect.ChainedEffects ?? [])
-                     .Concat(effect.ConditionalEffects ?? [])
-                     .Select((item, index) => (item, index)))
+
+        bool DrawChance(float chance, out double? roll)
         {
-            var child = ExpandEffect(request with { Combat = current }, nested, $"{path}.{index}");
-            if (child.IsFailure)
-                return child;
-            current = child.Value.Combat;
-            commands.AddRange(child.Value.Commands);
-            calculations.AddRange(child.Value.Calculations);
+            roll = null;
+            if (chance <= 0) return false;
+            if (chance >= 1) return true;
+            var draw = current.Determinism.DrawDouble();
+            current = current with { Determinism = draw.Context };
+            roll = draw.Value;
+            return draw.Value < chance;
         }
-        return Result<ExpandedTrigger>.Success(new(
-            current,
-            commands.ToImmutable(),
-            calculations.ToImmutable()));
     }
 
     private Result<StatusEffectDefinition?> ResolveAppliedStatus(
@@ -225,7 +220,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}",
                 new CalculationSourceContext
                 {
-                    ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat,
+                    ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
                     Actor = request.Combat.GetEntity(request.SourceEntityId) ?? request.Combat.GetEntity(request.OwnerEntityId),
                     Target = request.Combat.GetEntity(targetId), Variables = variables,
                     Tags = effect.Tags.ToHashSet(StringComparer.Ordinal)

@@ -37,6 +37,7 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 - Etapa 0 concluída: contrato registrado; baseline repetido nesta implementação, 1.356 testes Core e 147 API aprovados, nenhuma falha.
 - Etapa 1: ownership tipado, lados/relações direcionais em snapshots e cenários, targeting canônico sem `IsHero`, seleção ausente/inválida rejeitada. 27 testes direcionados aprovados. Consumidores especializados antigos serão removidos na etapa 9; validação do grafo de lados entra na etapa 8.
 - Etapa 2: resolver compartilhado e namespace de variáveis canônico introduzidos; políticas de `Set` e recurso ausente, validação de enum/bounds/overflow e aliases sem valores negativos. 30 testes direcionados aprovados. A migração das cartas e a ampliação dos providers seguem nas etapas dependentes.
+- Etapa 3: triggers resolvem e aplicam sequencialmente, com rollback por snapshot, escopo de chance, limites de expansão e passos verificáveis. Filhos dependem da aplicação do pai; aliases negativos rejeitados também no reducer. Onze testes direcionados aprovados, incluindo dez repetições por política de chance. Primitivas de deck/modifier dependem da migração do estado de run nas próximas etapas.
 
 ## Testes obrigatórios da migração
 

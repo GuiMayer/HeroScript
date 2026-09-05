@@ -48,6 +48,7 @@ public sealed record ResolvedEffectCommand
     }
     public float ResolvedValue { get; init; }
     public StatusEffectDefinition? StatusDefinition { get; init; }
+    public string? ContentRevision { get; init; }
     public EffectProvenance Provenance { get; init; } = new();
 }
 
@@ -72,6 +73,8 @@ public sealed record EffectBatchResult
     private ImmutableArray<CalculationResult> _calculations = [];
 
     public CombatState State { get; init; } = null!;
+    public Core.Run.RunState? Run { get; init; }
+    public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public IReadOnlyList<EffectApplicationRecord> Records
     {
         get => _records;
@@ -151,6 +154,8 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             return Result.Failure($"Effect {effect.EffectInstanceId} contains duplicate targets");
         if (float.IsNaN(effect.ResolvedValue) || float.IsInfinity(effect.ResolvedValue))
             return Result.Failure($"Effect {effect.EffectInstanceId} value must be finite");
+        if (effect.Definition.Type is EffectType.DAMAGE or EffectType.HEAL && effect.ResolvedValue < 0)
+            return Result.Failure("DAMAGE and HEAL require non-negative amounts");
         if (effect.Definition.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE &&
             string.IsNullOrWhiteSpace(effect.Definition.TargetResource))
             return Result.Failure($"Effect {effect.EffectInstanceId} requires targetResource");
@@ -280,7 +285,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 Definition = definition,
                 TargetId = target.EntityId,
                 SourceId = effect.SourceEntityId,
-                ContentRevision = state.Determinism.ContentRevision,
+                ContentRevision = effect.ContentRevision ?? state.Determinism.ContentRevision,
                 Stacks = System.Math.Min(
                     definition.MaxStacks,
                     effect.Definition.StatusStacks ?? definition.DefaultStacks),

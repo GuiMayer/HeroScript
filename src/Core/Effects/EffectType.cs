@@ -1,5 +1,8 @@
 namespace Core.Effects;
 
+[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
+public enum EffectChanceScope { PerEffect, PerTarget }
+
 /// <summary>
 /// Tipos de efeitos que podem ser executados em combate.
 /// Effect é a unidade fundamental de todas as ações em combate.

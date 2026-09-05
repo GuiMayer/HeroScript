@@ -180,6 +180,7 @@ public record EffectDefinition
     /// 1.0 = sempre, 0.5 = 50%, 0.0 = nunca
     /// </summary>
     public float Chance { get; init; } = 1.0f;
+    public EffectChanceScope ChanceScope { get; init; } = EffectChanceScope.PerEffect;
     
     // ===== REPETIÇÃO =====
     
