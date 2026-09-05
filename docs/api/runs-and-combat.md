@@ -39,7 +39,39 @@ vencido a corrida, a resposta é `409` e informa a sequência e o step atuais.
 ## Encontro e combate
 
 `START_ENCOUNTER` e `RESOLVE_COMBAT` são comandos de run porque modificam
-simultaneamente a progressão. Dentro do encontro, use:
+simultaneamente a progressão.
+
+O início do encontro separa o alias da instância (`entityId`) da definição de
+conteúdo (`definitionId`). Recursos iniciais opcionais são um dicionário genérico
+por alias; não existe campo especializado para energia ou vida:
+
+```http
+POST /api/v1/runs/{runId}/commands
+Content-Type: application/json
+```
+
+```json
+{
+  "commandId": "54dc2f17-37cb-4e77-91ca-8464367f49e6",
+  "expectedSequence": 1,
+  "expectedStep": 1,
+  "type": "START_ENCOUNTER",
+  "payload": {
+    "hero": { "entityId": "player", "definitionId": "player_warrior" },
+    "enemies": [
+      { "entityId": "enemy_1", "definitionId": "enemy_goblin" }
+    ],
+    "initialResourceValues": {
+      "player": { "energy": 3 }
+    }
+  }
+}
+```
+
+Aliases devem ser únicos, mas vários aliases podem compartilhar a mesma definição.
+Uma referência ou override desconhecido rejeita o comando inteiro.
+
+Dentro do encontro, use:
 
 - `GET /api/v1/combats/{combatId}` para o read model;
 - `GET /cards/evaluations` para projetar toda a mão sem N+1;

@@ -1,960 +1,263 @@
-# HeroScript Integration Testing Guide
+# Guia de testes de integração
 
-Complete guide to writing and running integration tests for HeroScript, including patterns, best practices, troubleshooting, and the GameEngineClientSimulator API reference.
+**Atualizado em:** 2026-09-05
 
----
+Os testes de integração exercitam a aplicação headless por HTTP, com persistência,
+conteúdo, regras e serialização reais. Eles devem se comportar como um pequeno
+cliente Godot: enviar intenções, observar versões e confiar somente nas respostas
+da engine.
 
-## Table of Contents
+## Onde ficam
 
-1. [Overview](#overview)
-2. [Test Infrastructure](#test-infrastructure)
-3. [Writing Integration Tests](#writing-integration-tests)
-4. [GameEngineClientSimulator API](#gameengineclientsimulator-api)
-5. [Common Test Patterns](#common-test-patterns)
-6. [Troubleshooting](#troubleshooting)
-7. [CI/CD Integration](#cicd-integration)
-
----
-
-## Overview
-
-### What are Integration Tests?
-
-Integration tests verify that multiple components of HeroScript work together correctly. Unlike unit tests that test individual methods in isolation, integration tests:
-
-- Start the full API server
-- Make real HTTP requests
-- Execute complete game workflows
-- Verify end-to-end behavior
-
-### Test Categories
-
-**1. Game Flow Tests** - Complete gameplay scenarios
-- `RoguelikeGameFlowTests` - Full run from start to victory/defeat
-- `AutoBattlerGameFlowTests` - Team setup and auto-combat
-- `TacticalRpgGameFlowTests` - Turn-based tactical battles
-- `PuzzleRpgGameFlowTests` - Puzzle mechanics with combat
-
-**2. Edge Case Tests** - Boundary conditions and error handling
-- `GameFlowEdgeCaseTests` - Invalid inputs, missing resources, etc.
-
-**3. Event Tracking Tests** - Event system verification
-- `GameFlowEventTrackingTests` - Event generation and streaming
-
----
-
-## Test Infrastructure
-
-### Project Structure
-
-```
+```text
 tests/API.Tests/
-├── Integration/
-│   ├── GameEngineIntegrationTestBase.cs      # Base class for all tests
-│   ├── GameEngineClientSimulator.cs          # HTTP client wrapper
-│   ├── RoguelikeGameFlowTests.cs
-│   ├── AutoBattlerGameFlowTests.cs
-│   ├── TacticalRpgGameFlowTests.cs
-│   ├── PuzzleRpgGameFlowTests.cs
-│   ├── GameFlowEdgeCaseTests.cs
-│   └── GameFlowEventTrackingTests.cs
-├── Helpers/
-│   └── TestWebApplicationFactory.cs           # Test server setup
-└── API.Tests.csproj
+├── Controllers/     contratos HTTP e erros
+├── Integration/     fluxos completos de jogo
+├── Helpers/         cliente de teste
+└── TestWebApplicationFactory.cs
 ```
 
-### TestWebApplicationFactory
+`TestWebApplicationFactory` inicializa uma API isolada. Cada teste deve criar sua
+própria run e não depender da ordem de execução de outros testes.
 
-Creates an in-memory test server for integration tests:
+## Executar
+
+```powershell
+dotnet test tests/API.Tests/API.Tests.csproj
+```
+
+Para investigar um cenário:
+
+```powershell
+dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~DeterministicPrototypeFlowTests"
+```
+
+Rode também o Core quando a mudança atravessar regras de domínio:
+
+```powershell
+dotnet test tests/Core.Tests/Core.Tests.csproj
+dotnet test tests/API.Tests/API.Tests.csproj
+```
+
+## Cliente de teste
+
+`GameEngineClientSimulator` encapsula o envelope determinístico e reduz boilerplate.
+Ele não é uma API alternativa: internamente usa apenas as rotas v1 canônicas.
+
+Operações centrais disponíveis:
 
 ```csharp
-public class TestWebApplicationFactory : WebApplicationFactory<Program>
-{
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.ConfigureServices(services =>
-        {
-            // Use in-memory repositories
-            services.AddSingleton<ICombatRepository, InMemoryCombatRepository>();
-            services.AddSingleton<IRunRepository, InMemoryRunRepository>();
-            
-            // Override configuration
-            services.Configure<GameConfiguration>(config =>
-            {
-                config.ConfigName = "test";
-            });
-        });
-    }
-}
-```
-
-### Base Test Class
-
-All integration tests inherit from `GameEngineIntegrationTestBase`:
-
-```csharp
-[Trait("Category", "Integration")]
-public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebApplicationFactory>
-{
-    protected readonly HttpClient RawClient;
-    protected readonly GameEngineClientSimulator Client;
-
-    protected GameEngineIntegrationTestBase(TestWebApplicationFactory factory)
-    {
-        RawClient = factory.CreateClient();
-        Client = new GameEngineClientSimulator(RawClient);
-    }
-    
-    // Helper methods for assertions, setup, etc.
-}
-```
-
----
-
-## Writing Integration Tests
-
-### Basic Test Structure
-
-```csharp
-public class MyGameFlowTests : GameEngineIntegrationTestBase
-{
-    public MyGameFlowTests(TestWebApplicationFactory factory) : base(factory) { }
-    
-    [Fact]
-    public async Task TestName_Scenario_ExpectedResult()
-    {
-        // Arrange
-        var (runId, runState) = await SetupRunAsync();
-        
-        // Act
-        var result = await Client.SomeActionAsync(runId);
-        
-        // Assert
-        Assert.NotNull(result);
-        AssertJsonPropertyEquals(result, "status", "Success");
-    }
-}
-```
-
-### Prerequisites
-
-Before writing tests, ensure configuration files exist:
-
-**Required for Tests:**
-- `configs/test/Entities.json` - Test entities (hero, enemies)
-- `configs/test/Actions.json` - Test actions
-- `configs/test/RunDefinitions.json` - Test run definitions
-- `configs/test/CardSelections.json` - Test reward definitions
-- `configs/test/Shops.json` - Test shop definitions
-
-**Minimal Test Entity:**
-```json
-{
-  "id": "hero",
-  "name": "Test Hero",
-  "baseResources": {
-    "health": { "current": 100, "maximum": 100 },
-    "energy": { "current": 3, "maximum": 3 }
-  },
-  "powers": ["basic_attack"]
-}
-```
-
-### Example: Complete Roguelike Test
-
-```csharp
-[Fact]
-public async Task CompleteRoguelikeRun_WithCombatAndRewards_Succeeds()
-{
-    // 1. Start run
-    var runId = await Client.StartRunAsync("test", "test_run", "hero");
-    Assert.NotEqual(Guid.Empty, runId);
-    
-    // 2. Start combat
-    var combatId = await Client.StartCombatAsync("hero", new[] { "enemy_1" });
-    var combatState = await Client.GetCombatStateAsync(combatId);
-    AssertCombatStateValid(combatState);
-    
-    // 3. Execute combat actions
-    while (GetJsonBool(combatState, "isActive"))
-    {
-        // Player attacks
-        await Client.ExecuteActionAsync(combatId, "hero", "basic_attack", "enemy_1");
-        
-        // End turn
-        await Client.EndTurnAsync(combatId);
-        
-        // AI turn
-        await Client.ProcessAiTurnsAsync(combatId);
-        
-        // Check state
-        combatState = await Client.GetCombatStateAsync(combatId);
-    }
-    
-    // 4. Verify victory
-    var status = GetJsonString(combatState, "status");
-    Assert.Equal("Victory", status);
-    
-    // 5. Card selection
-    var selectionId = await Client.StartCardSelectionAsync(runId, "test_reward");
-    await Client.PickCardsAsync(runId, selectionId, new[] { "fireball" });
-    
-    // 6. Verify deck updated
-    var deckState = await Client.GetDeckStateAsync(runId);
-    var deck = deckState.GetProperty("drawPile");
-    Assert.Contains(deck.EnumerateArray(), card => card.GetString() == "fireball");
-}
-```
-
----
-
-## GameEngineClientSimulator API
-
-The `GameEngineClientSimulator` wraps HTTP requests with strongly-typed methods:
-
-### Run Management
-
-```csharp
-// Start new run
 Task<Guid> StartRunAsync(
     string configName = "default",
     string runDefinitionId = "default_run",
-    string playerEntityId = "player"
-)
+    string playerEntityId = "player",
+    ulong? seed = null);
 
-// Get run state
-Task<JsonElement> GetRunStateAsync(Guid runId)
+Task<JsonElement> GetRunStateAsync(Guid runId);
+Task<List<string>> DrawCardsAsync(Guid runId, int count = 1);
+Task<JsonElement> DiscardCardsAsync(Guid runId, IEnumerable<string> cardIds);
+Task<List<string>> GetHandAsync(Guid runId);
 
-// Get deck state
-Task<JsonElement> GetDeckStateAsync(Guid runId)
-
-// Get hand
-Task<JsonElement> GetHandAsync(Guid runId)
-
-// Draw cards
-Task<JsonElement> DrawCardsAsync(Guid runId, int count = 5)
-
-// Discard cards
-Task<JsonElement> DiscardCardsAsync(Guid runId, string[] cardIds)
-
-// Shuffle deck
-Task<JsonElement> ShuffleDeckAsync(Guid runId)
-
-// Snapshots
-Task<JsonElement> GetSnapshotsAsync(Guid runId)
-Task<JsonElement> GetSnapshotAsync(Guid runId, int sequence)
-Task<JsonElement> UndoToSnapshotAsync(Guid runId, int targetSequence)
-```
-
-### Combat Management
-
-```csharp
-// Start combat
 Task<Guid> StartCombatAsync(
     string heroId,
-    string[] enemyIds,
-    int initialEnergy = 3
-)
+    IEnumerable<string> enemies,
+    IReadOnlyDictionary<string, float>? initialHeroResourceValues = null,
+    Guid? runId = null,
+    string heroDefinitionId = "player_warrior",
+    string enemyDefinitionId = "enemy_goblin");
 
-// Get combat state
-Task<JsonElement> GetCombatStateAsync(Guid combatId)
-
-// Execute action
+Task<JsonElement> GetCombatStateAsync(Guid combatId);
 Task<JsonElement> ExecuteActionAsync(
     Guid combatId,
     string actorId,
-    string actionId,
-    string targetId,
-    Dictionary<string, int>? costChoices = null
-)
-
-// End turn
-Task<JsonElement> EndTurnAsync(Guid combatId)
-
-// Process AI turns
-Task<JsonElement> ProcessAiTurnsAsync(Guid combatId)
-
-// Auto-play combat
-Task<JsonElement> AutoPlayCombatAsync(Guid combatId)
-
-// End combat
-Task<JsonElement> EndCombatAsync(Guid combatId)
-
-// Get action history
-Task<JsonElement> GetCombatHistoryAsync(Guid combatId)
-
-// Get available actions
-Task<JsonElement> GetAvailableActionsAsync(
-    Guid combatId,
-    string actorId,
-    Guid? runId = null
-)
-
-// Check affordability
-Task<JsonElement> CanAffordActionAsync(
-    Guid combatId,
-    string actionId,
-    string actorId,
-    Guid? runId = null
-)
-
-// Get cost options
-Task<JsonElement> GetCostOptionsAsync(
-    Guid combatId,
-    string actionId
-)
+    string? targetId = null,
+    string? powerId = null,
+    string? cardId = null,
+    Guid? runId = null);
+Task<JsonElement> EndTurnAsync(Guid combatId, Guid? runId = null);
 ```
 
-### Card Selection (Rewards)
+O parâmetro `initialHeroResourceValues` é genérico:
 
 ```csharp
-// Start card selection
-Task<Guid> StartCardSelectionAsync(
-    Guid runId,
-    string selectionDefinitionId,
-    string context = "combat_victory"
-)
-
-// Pick cards
-Task<JsonElement> PickCardsAsync(
-    Guid runId,
-    Guid selectionInstanceId,
-    string[] cardIds
-)
-
-// Reroll options
-Task<JsonElement> RerollCardSelectionAsync(
-    Guid runId,
-    Guid selectionInstanceId
-)
-
-// Decompose card
-Task<JsonElement> DecomposeCardAsync(
-    Guid runId,
-    Guid selectionInstanceId,
-    string cardId
-)
-```
-
-### Shop
-
-```csharp
-// Open shop
-Task<Guid> OpenShopAsync(
-    Guid runId,
-    string shopDefinitionId
-)
-
-// Buy item
-Task<JsonElement> BuyShopItemAsync(
-    Guid runId,
-    Guid shopInstanceId,
-    string itemId
-)
-
-// Reroll shop
-Task<JsonElement> RerollShopAsync(
-    Guid runId,
-    Guid shopInstanceId
-)
-```
-
-### Preparation
-
-```csharp
-// Start preparation
-Task<Guid> StartPreparationAsync(
-    Guid runId,
-    string preparationDefinitionId
-)
-
-// Apply preparation option
-Task<JsonElement> ApplyPreparationAsync(
-    Guid runId,
-    Guid preparationInstanceId,
-    string optionId
-)
-```
-
-### Status Effects
-
-```csharp
-// Apply status effect
-Task<JsonElement> ApplyStatusEffectAsync(
-    Guid targetId,
-    string statusEffectId,
-    int stacks = 1,
-    int duration = 3
-)
-
-// Get active status effects
-Task<JsonElement> GetStatusEffectsAsync(Guid targetId)
-```
-
-### Events
-
-```csharp
-// Get events
-Task<JsonElement> GetEventsAsync(
-    string? category = null,
-    string? severity = null,
-    int limit = 100,
-    int? afterSequence = null,
-    Guid? combatId = null,
-    Guid? runId = null
-)
-```
-
-### Formula
-
-```csharp
-// Evaluate formula
-Task<JsonElement> EvaluateFormulaAsync(
-    string formulaName,
-    Dictionary<string, object> context
-)
-```
-
-### Entity
-
-```csharp
-// Create entity
-Task<JsonElement> CreateEntityAsync(
-    string definitionId,
-    Dictionary<string, object>? customizations = null
-)
-```
-
----
-
-## Common Test Patterns
-
-### Pattern 1: Setup Helpers
-
-Use built-in helper methods to reduce boilerplate:
-
-```csharp
-// Setup run only
-var (runId, runState) = await SetupRunAsync();
-
-// Setup combat only
-var (combatId, combatState) = await SetupCombatAsync(
-    heroId: "hero",
-    enemies: new[] { "enemy_1" },
-    initialEnergy: 3
-);
-
-// Setup both
-var (runId, combatId, runState, combatState) = await SetupRunWithCombatAsync();
-```
-
-### Pattern 2: Assertion Helpers
-
-Use built-in assertion methods:
-
-```csharp
-// Validate structure
-AssertCombatStateValid(combatState);
-AssertRunStateValid(runState);
-AssertDeckStateValid(deckState);
-
-// Check properties
-AssertJsonPropertyExists(element, "propertyName");
-AssertJsonPropertyEquals(element, "gold", 150);
-
-// Check resources
-AssertEntityHasResource(entity, "health");
-```
-
-### Pattern 3: Property Access Helpers
-
-Extract JSON values safely:
-
-```csharp
-var gold = GetJsonInt(runState, "gold");
-var heroName = GetJsonString(entity, "name");
-var combatId = GetJsonGuid(combatState, "combatId");
-var isActive = GetJsonBool(combatState, "isActive");
-var damage = GetJsonFloat(result, "damage");
-var enemyCount = GetArrayLength(combatState, "enemies");
-```
-
-### Pattern 4: Combat Loop
-
-Standard pattern for combat tests:
-
-```csharp
-var combatId = await Client.StartCombatAsync("hero", new[] { "enemy_1" });
-var state = await Client.GetCombatStateAsync(combatId);
-
-while (GetJsonBool(state, "isActive"))
+var overrides = new Dictionary<string, float>
 {
-    // Player action
-    await Client.ExecuteActionAsync(combatId, "hero", "basic_attack", "enemy_1");
-    await Client.EndTurnAsync(combatId);
-    
-    // AI action
-    await Client.ProcessAiTurnsAsync(combatId);
-    
-    // Update state
-    state = await Client.GetCombatStateAsync(combatId);
-}
+    ["energy"] = 3,
+    ["stability"] = 8
+};
 
-// Verify outcome
-Assert.Equal("Victory", GetJsonString(state, "status"));
+var combatId = await Client.StartCombatAsync(
+    "player",
+    new[] { "enemy_1" },
+    overrides,
+    runId);
 ```
 
-### Pattern 5: Event Verification
+Não adicione novamente parâmetros como `initialEnergy`. O helper deve refletir o
+modelo de recursos da API.
 
-Verify events were generated:
-
-```csharp
-var combatId = await Client.StartCombatAsync("hero", new[] { "enemy_1" });
-
-// Execute actions...
-
-// Get events
-var events = await Client.GetEventsAsync(combatId: combatId);
-var eventArray = events.GetProperty("events");
-
-// Verify event types
-Assert.Contains(eventArray.EnumerateArray(), 
-    e => e.GetProperty("eventType").GetString() == "DamageDealt");
-Assert.Contains(eventArray.EnumerateArray(), 
-    e => e.GetProperty("eventType").GetString() == "ActionExecuted");
-```
-
-### Pattern 6: Auto-Play Tests
-
-For auto-battler or long combats:
+## Estrutura recomendada de um teste
 
 ```csharp
-var combatId = await Client.StartCombatAsync("hero", new[] { "enemy_1", "enemy_2" });
-
-// Run entire combat automatically
-var result = await Client.AutoPlayCombatAsync(combatId);
-
-// Verify result
-AssertJsonPropertyExists(result, "status");
-AssertJsonPropertyExists(result, "totalTurns");
-AssertJsonPropertyExists(result, "totalActions");
-
-var status = GetJsonString(result, "status");
-Assert.True(status == "Victory" || status == "Defeat");
-```
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Timeout Errors
-
-**Symptom:** Tests hang and timeout after 60+ seconds
-
-**Possible Causes:**
-- Missing configuration files (RunDefinitions, Entities, etc.)
-- Async/sync deadlock in business logic
-- Infinite loop in game logic
-
-**Debugging Steps:**
-```csharp
-[Fact(Timeout = 30000)] // 30 second timeout
-public async Task MyTest()
+public sealed class ExampleFlowTests : GameEngineIntegrationTestBase
 {
-    // Add logging
-    var runId = await Client.StartRunAsync();
-    Console.WriteLine($"Run started: {runId}");
-    
-    // Test in isolation
-}
-```
-
-**Fix:**
-- Verify all required config files exist in `configs/test/`
-- Check `docs/DIAGNOSTIC_REPORT.md` for known issues
-- Add timeouts to individual operations
-
-#### 2. 404 Not Found
-
-**Symptom:** `HttpRequestException: Response status code does not indicate success: 404`
-
-**Possible Causes:**
-- Invalid ID (combat/run doesn't exist)
-- Wrong definition ID in config
-- Entity not created
-
-**Fix:**
-```csharp
-// Verify IDs are valid
-var runId = await Client.StartRunAsync();
-Assert.NotEqual(Guid.Empty, runId); // ✓ Ensure ID is valid
-
-// Check definition exists
-try {
-    var state = await Client.GetRunStateAsync(runId);
-} catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound) {
-    Assert.Fail("Run was not created properly");
-}
-```
-
-#### 3. 400 Bad Request
-
-**Symptom:** `Bad Request` with error message like "Not enough energy"
-
-**Possible Causes:**
-- Invalid action parameters
-- Insufficient resources
-- Action not available in current state
-
-**Fix:**
-```csharp
-// Check available actions first
-var actions = await Client.GetAvailableActionsAsync(combatId, "hero");
-var actionArray = actions.GetProperty("actions");
-Assert.NotEmpty(actionArray.EnumerateArray());
-
-// Check affordability
-var canAfford = await Client.CanAffordActionAsync(combatId, "fireball", "hero", runId);
-Assert.True(canAfford.GetProperty("canAfford").GetBoolean());
-
-// Then execute
-await Client.ExecuteActionAsync(combatId, "hero", "fireball", "enemy_1");
-```
-
-#### 4. JSON Property Not Found
-
-**Symptom:** `KeyNotFoundException: The given key 'propertyName' was not present`
-
-**Possible Causes:**
-- API response structure changed
-- Property name typo
-- Conditional property (only present in certain states)
-
-**Fix:**
-```csharp
-// Use TryGetProperty for optional properties
-if (combatState.TryGetProperty("optionalField", out var field))
-{
-    var value = field.GetInt32();
-}
-
-// Or use assertion helper
-AssertJsonPropertyExists(combatState, "requiredField");
-```
-
-#### 5. Test Isolation Issues
-
-**Symptom:** Tests pass individually but fail when run together
-
-**Possible Causes:**
-- Shared state between tests
-- Repository not resetting
-- Static variables
-
-**Fix:**
-```csharp
-// Each test should be completely independent
-[Fact]
-public async Task Test1()
-{
-    // Fresh setup
-    var factory = new TestWebApplicationFactory();
-    var client = factory.CreateClient();
-    var simulator = new GameEngineClientSimulator(client);
-    
-    // Test logic
-}
-
-// Or use IClassFixture properly
-public class MyTests : IClassFixture<TestWebApplicationFactory>
-{
-    private readonly GameEngineClientSimulator _client;
-    
-    public MyTests(TestWebApplicationFactory factory)
-    {
-        _client = new GameEngineClientSimulator(factory.CreateClient());
-    }
-}
-```
-
-### Debugging Tips
-
-**1. Enable Verbose Logging:**
-```json
-// appsettings.Test.json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Debug",
-      "Microsoft": "Information"
-    }
-  }
-}
-```
-
-**2. Use Test Output Helper:**
-```csharp
-public class MyTests : GameEngineIntegrationTestBase
-{
-    private readonly ITestOutputHelper _output;
-    
-    public MyTests(TestWebApplicationFactory factory, ITestOutputHelper output) 
+    public ExampleFlowTests(TestWebApplicationFactory factory)
         : base(factory)
     {
-        _output = output;
     }
-    
+
     [Fact]
-    public async Task MyTest()
+    public async Task FixedSeed_RunCanBeVerified()
     {
-        _output.WriteLine("Starting test...");
-        var result = await Client.SomeActionAsync();
-        _output.WriteLine($"Result: {result}");
+        var runId = await Client.StartRunAsync(seed: 424242);
+        var state = await Client.GetRunStateAsync(runId);
+        Assert.Equal((ulong)424242, state.GetProperty("seed").GetUInt64());
+
+        using var response = await RawClient.PostAsync(
+            $"/api/v1/runs/{runId}/verify",
+            content: null);
+        response.EnsureSuccessStatusCode();
+
+        var verification = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(verification.GetProperty("isValid").GetBoolean());
     }
 }
 ```
 
-**3. Inspect Raw HTTP Responses:**
-```csharp
-var response = await RawClient.PostAsync("/api/run/start", content);
-var responseBody = await response.Content.ReadAsStringAsync();
-_output.WriteLine($"Response: {responseBody}");
-```
+Use Arrange, Act e Assert, mas prefira um fluxo completo pequeno a mocks internos.
+Quando a regra é puramente local, cubra-a no Core e deixe no teste de integração
+apenas a prova de que HTTP, conteúdo e persistência estão conectados corretamente.
 
-**4. Isolate Failures:**
-```csharp
-// Run single test
-dotnet test --filter "FullyQualifiedName~MyTests.MyTest"
+## Cenário mínimo de combate
 
-// Run specific category
-dotnet test --filter "Category=Integration"
-```
+1. Crie a run com seed fixa.
+2. Compre cartas pelo comando de run, se o modo exigir.
+3. Inicie `START_ENCOUNTER` com aliases e definições explícitas.
+4. Leia a mão e obtenha o `cardInstanceId`.
+5. Consulte a avaliação da carta.
+6. Envie `PLAY_CARD` com sequência e step observados.
+7. Confirme recursos, zonas de carta e fila de resolução.
+8. Leia o journal e execute a verificação semântica.
+9. Repita o cenário do zero e compare hashes.
 
----
+O teste não deve calcular o dano esperado com uma implementação paralela. Ele pode
+afirmar um valor conhecido do fixture e deve comparar a execução com a prévia e o
+journal produzidos pela própria engine.
 
-## CI/CD Integration
+## Testando recursos genéricos
 
-### Running Tests in CI
+Todo comportamento que pareça específico de vida ou energia deve ter ao menos um
+caso com um ID arbitrário.
 
-**GitHub Actions Example:**
-```yaml
-name: Integration Tests
+Casos mínimos:
 
-on: [push, pull_request]
+- materializar `stability` a partir de JSON;
+- sobrescrever seu valor no início do encontro;
+- consumi-lo como custo;
+- reduzi-lo com `DAMAGE`;
+- restaurá-lo com `HEAL`;
+- usá-lo como influência de um pipeline;
+- alterar mínimo ou máximo;
+- disparar `DefeatOwner` por política;
+- provar que a categoria, sozinha, não derrota;
+- falhar a segunda mutação de um lote e confirmar rollback total.
 
-jobs:
-  integration-tests:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '10.0.x'
-    
-    - name: Restore dependencies
-      run: dotnet restore
-    
-    - name: Build
-      run: dotnet build --no-restore
-    
-    - name: Run Integration Tests
-      run: dotnet test --no-build --filter "Category=Integration" --logger "trx;LogFileName=test-results.trx"
-      timeout-minutes: 10
-    
-    - name: Upload Test Results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-results
-        path: '**/test-results.trx'
-```
+## Testando cartas
 
-### Test Configuration for CI
+Use instâncias reais da mão. Uma definição como `basic_attack` não substitui um
+`cardInstanceId` no comando de gameplay.
 
-**appsettings.CI.json:**
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Warning"
-    }
-  },
-  "GameConfiguration": {
-    "ConfigName": "test",
-    "EnableDiagnostics": false
-  }
-}
-```
+Valide:
 
-### Performance Considerations
+- avaliação em lote e individual;
+- custo escolhido e affordability;
+- alvos válidos e inválidos;
+- definição efetiva após upgrade;
+- influências de status, relíquia e recurso;
+- igualdade entre prévia e aplicação;
+- transição de zona após sucesso;
+- preservação da mão e dos recursos após falha.
 
-**Parallel Execution:**
-```bash
-# Run tests in parallel (xUnit default)
-dotnet test --no-build
+## Concorrência e idempotência
 
-# Disable parallel execution if tests conflict
-dotnet test --no-build -- xUnit.ParallelizeAssembly=false
-```
+Um teste de comando deve cobrir três situações:
 
-**Selective Test Execution:**
-```bash
-# Fast smoke tests
-dotnet test --filter "Priority=High"
+1. request novo com versões atuais: aceito;
+2. retry byte-equivalente com o mesmo `commandId`: mesmo recibo, sem efeito duplo;
+3. comando novo com versões antigas: `409`, sem alteração.
 
-# Full suite
-dotnet test --filter "Category=Integration"
-```
+Não gere um novo `commandId` ao simular retry. Isso representa uma nova intenção e
+não testa idempotência.
 
----
+## Timeline e branches
 
-## Best Practices
+Para o sandbox:
 
-### 1. Test Independence
+- execute comandos suficientes para formar mais de um ponto;
+- recupere o estado histórico por sequência;
+- crie duas branches do mesmo ponto;
+- aplique decisões diferentes;
+- confirme que a origem permaneceu inalterada;
+- verifique replay e hashes de cada branch.
 
-Each test should be completely independent:
+## Eventos
 
-```csharp
-// ✗ BAD - Shared state
-private Guid _sharedRunId;
+Eventos são validados depois do commit. O teste deve primeiro confirmar o estado
+persistido e depois consultar polling ou SSE. Nunca use a chegada do evento como
+prova única de que a transação ocorreu.
 
-[Fact]
-public async Task Test1() 
-{
-    _sharedRunId = await Client.StartRunAsync();
-}
+Teste paginação/cursor, filtro por run ou combate e retomada sem duplicação. Para
+recuperação do cliente, descarte a projeção local e reconstrua a tela pelo read
+model antes de continuar.
 
-[Fact]
-public async Task Test2() 
-{
-    // Depends on Test1 running first
-    var state = await Client.GetRunStateAsync(_sharedRunId);
-}
+## Teste de conteúdo revisionado
 
-// ✓ GOOD - Independent
-[Fact]
-public async Task Test1() 
-{
-    var runId = await Client.StartRunAsync();
-    // Complete test
-}
+1. Crie uma run na revisão A.
+2. Publique uma revisão B com uma regra numericamente diferente.
+3. Confirme que a run A mantém o resultado antigo.
+4. Crie uma run B e confirme a regra nova.
+5. Verifique semanticamente ambas.
 
-[Fact]
-public async Task Test2() 
-{
-    var runId = await Client.StartRunAsync();
-    // Complete test
-}
-```
+Se o modo permitir troca de revisão em runtime, a ativação deve ser um comando
+explícito, persistido e testado; editar arquivo nunca basta para mudar uma run.
 
-### 2. Descriptive Test Names
+## Diagnóstico de falhas
 
-Use clear, descriptive names:
+### `409 VersionConflict`
 
-```csharp
-// ✗ BAD
-[Fact]
-public async Task Test1() { }
+O teste reutilizou sequência ou step antigos. Releia a run e o combate antes de
+criar a próxima intenção.
 
-// ✓ GOOD
-[Fact]
-public async Task StartRun_WithValidParameters_ReturnsValidRunId() { }
+### `422 RuleViolation`
 
-[Fact]
-public async Task ExecuteAction_WithInsufficientEnergy_ReturnsBadRequest() { }
-```
+Inspecione `ProblemDetails`, avaliação da carta, comandos disponíveis, ator ativo e
+fase. Não altere o cliente para contornar a regra.
 
-### 3. Arrange-Act-Assert
+### `404`
 
-Follow AAA pattern:
+Confirme se o ID é da run/combate atual e se o fixture publica a definição na mesma
+revisão.
 
-```csharp
-[Fact]
-public async Task BuyShopItem_WithSufficientGold_DeductsGoldAndAddsItem()
-{
-    // Arrange
-    var (runId, _) = await SetupRunAsync();
-    var shopId = await Client.OpenShopAsync(runId, "test_shop");
-    var initialGold = 150;
-    
-    // Act
-    var result = await Client.BuyShopItemAsync(runId, shopId, "health_potion");
-    
-    // Assert
-    var goldSpent = GetJsonInt(result, "goldSpent");
-    var remainingGold = GetJsonInt(result, "remainingGold");
-    Assert.Equal(initialGold - goldSpent, remainingGold);
-    Assert.True(GetJsonBool(result, "addedToInventory"));
-}
-```
+### resultado não determinístico
 
-### 4. Test One Thing
+Compare seed, revisão, ordem dos comandos, payload canônico, sequence/step e
+fingerprints dos cálculos. Evite relógio real, GUID aleatório de domínio e iteração
+não ordenada dentro da engine.
 
-Each test should verify one behavior:
+## Boas práticas
 
-```csharp
-// ✗ BAD - Tests multiple behaviors
-[Fact]
-public async Task CompleteGameplay() 
-{
-    // Tests run start, combat, rewards, shop, AND progression
-    // Too much in one test
-}
+- Use uma seed explícita em cenários reproduzíveis.
+- Mantenha fixtures mínimos e legíveis.
+- Não dependa de arquivos gerados por uma execução manual da API.
+- Não use rotas removidas ou helpers que escondam uma mutação fora do gateway.
+- Afirme atomicidade em todos os caminhos de falha relevantes.
+- Compare hashes em testes de replay, não apenas campos escolhidos.
+- Dê ao teste um nome que descreva regra e resultado.
+- Preserve o corpo HTTP ao reportar uma falha de contrato.
 
-// ✓ GOOD - Focused tests
-[Fact]
-public async Task StartRun_ReturnsValidRunState() { }
+## Referências
 
-[Fact]
-public async Task Combat_HeroDiesWithZeroHealth_ResultsInDefeat() { }
-
-[Fact]
-public async Task CardSelection_PickCard_AddsCardToDeck() { }
-```
-
-### 5. Use Test Categories
-
-Organize tests with traits:
-
-```csharp
-[Trait("Category", "Integration")]
-[Trait("Genre", "Roguelike")]
-[Trait("Priority", "High")]
-public class RoguelikeGameFlowTests { }
-```
-
-Run specific categories:
-```bash
-dotnet test --filter "Genre=Roguelike"
-dotnet test --filter "Priority=High"
-```
-
----
-
-## Summary
-
-**Key Takeaways:**
-
-1. **Infrastructure:** Use `GameEngineIntegrationTestBase` and `GameEngineClientSimulator`
-2. **Prerequisites:** Ensure test configuration files exist
-3. **Patterns:** Use helper methods, assertion helpers, and standard patterns
-4. **Troubleshooting:** Check timeouts, 404s, and test isolation
-5. **Best Practices:** Independent tests, descriptive names, AAA pattern
-
-**Common Workflows:**
-
-- **New Feature:** Write integration test first, implement feature, verify test passes
-- **Bug Fix:** Write failing test that reproduces bug, fix bug, verify test passes
-- **Refactoring:** Run integration tests before and after to ensure behavior unchanged
-
-**Resources:**
-
-- API Reference: `docs/API_ENDPOINTS.md`
-- Game Flows: `docs/GAME_FLOW.md`
-- Configuration: `docs/CONFIGURATION_GUIDE.md`
-- Known Issues: `docs/DIAGNOSTIC_REPORT.md`
+- [Quickstart](api/getting-started.md)
+- [Contratos](api/contracts.md)
+- [Runs, combates e replay](api/runs-and-combat.md)
+- [Checklist de validação](VALIDATION_CHECKLIST.md)

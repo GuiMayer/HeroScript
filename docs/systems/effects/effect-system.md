@@ -1,565 +1,246 @@
-# Effect System
+# Sistema de efeitos
 
-## Visão Geral
+**Status:** implementado no processador imutável canônico
 
-O **Effect System** é a unidade fundamental de todas as ações em combate no HeroScript. Tudo que causa mudanças de estado em combate é representado como um **Effect**: dano, cura, modificadores, status, economia, cartas, e muito mais.
+**Atualizado em:** 2026-09-05
 
-## Conceitos Fundamentais
+## Objetivo
 
-### Effect como Unidade Fundamental
+Efeito é o componente reutilizável que descreve uma consequência de gameplay.
+Cartas, ações, status, relíquias, regras de turno e eventos podem produzir a mesma
+`EffectDefinition`. Para o processador, a origem altera proveniência e contexto,
+mas não cria um algoritmo diferente.
 
-No HeroScript, **Effect** é a abstração central que unifica todas as ações:
+Essa separação mantém três responsabilidades distintas:
 
-- **Cartas** são compostas por Effects
-- **Status** executam Effects a cada tick
-- **Eventos especiais** aplicam Effects
-- **Custos de ações** são Effects (MODIFY_RESOURCE com valor negativo)
-- **Modificadores de run** (relíquias, poderes) alteram Effects
+- o proprietário decide quando e por que o efeito existe;
+- o pipeline de cálculo resolve o valor;
+- o processador de efeitos aplica a consequência ao snapshot.
 
-### Arquitetura
+## Fluxo canônico
 
-```
-ActionDefinition (Carta)
-  └─> Effects[] (lista de efeitos inline)
-       ├─> EffectDefinition (tipo, valores, condições)
-       └─> EffectModifiers[] (modificações aplicadas durante run)
-
-StatusDefinition (Buff/Debuff/DoT)
-  └─> Effects[] (efeitos executados a cada tick)
-
-Event (Slay the Spire style)
-  └─> Effects[] (efeitos do evento)
-```
-
-### Fluxo de Execução
-
-```
-1. Carta é jogada
-   ↓
-2. ActionDefinition.Effects[] é carregado
-   ↓
-3. Modificadores de run são aplicados (relíquias, poderes)
-   ↓
-4. Para cada Effect:
-   ↓
-5. EffectResolver determina pipeline apropriado
-   ↓
-6. Pipeline processa Effect (DamagePipeline, HealPipeline, etc.)
-   ↓
-7. Resultado é aplicado ao CombatState
-   ↓
-8. Eventos são publicados
+```text
+owner (carta/status/relíquia/regra)
+  -> EffectDefinition
+  -> seleção determinística de alvos
+  -> condição e chance determinísticas
+  -> pipeline de cálculo da revisão fixada
+  -> comando de efeito resolvido
+  -> ImmutableEffectProcessor
+  -> mutações atômicas de estado
+  -> EffectApplicationRecord
+  -> fila visual e journal
 ```
 
-## Tipos de Effects
+O processador não publica eventos durante uma transação. O agregado publica suas
+projeções somente depois do commit completo.
 
-### Recursos
+## Definição
 
-- **DAMAGE**: Causa dano a um recurso (geralmente health)
-- **HEAL**: Cura/restaura um recurso
-- **MODIFY_RESOURCE**: Modifica qualquer recurso (energia, mana, stamina)
-
-### Economia
-
-- **GAIN_GOLD**: Ganha ouro
-- **LOSE_GOLD**: Perde ouro
-- **GAIN_PP**: Ganha Power Points
-- **LOSE_PP**: Perde Power Points
-
-### Status
-
-- **APPLY_STATUS**: Aplica status (buff/debuff/DoT/HoT)
-- **REMOVE_STATUS**: Remove status específico
-- **DISPEL_STATUS**: Dispela tipos de status
-
-### Cartas/Deck
-
-- **DRAW_CARD**: Compra carta do deck
-- **DISCARD_CARD**: Descarta carta da mão
-- **EXHAUST_CARD**: Exausta carta (remove da run)
-- **ADD_CARD_TO_HAND**: Adiciona carta específica à mão
-
-### Modificadores
-
-- **MODIFY_DAMAGE_DEALT**: Modifica dano causado
-- **MODIFY_DAMAGE_TAKEN**: Modifica dano recebido
-- **MODIFY_CRIT_CHANCE**: Modifica chance de crítico
-- **MODIFY_CRIT_MULT**: Modifica multiplicador de crítico
-- **MODIFY_COOLDOWNS**: Modifica cooldowns
-
-### Controle
-
-- **PREVENT_ACTIONS**: Impede ações (stun, silence)
-- **FORCE_TARGET**: Força alvo específico (taunt)
-- **SKIP_TURN**: Pula turno
-
-### Utilidade
-
-- **REFLECT_DAMAGE**: Reflete dano
-- **ABSORB_DAMAGE**: Absorve dano (shield)
-- **TRIGGER_EFFECT**: Dispara outro effect
-- **CONDITIONAL_EFFECT**: Effect condicional
-
-### Meta
-
-- **MODIFY_EFFECT**: Modifica outro effect
-- **COPY_EFFECT**: Copia effect de outra fonte
-
-## Estrutura JSON
-
-### EffectDefinition
+Exemplo de um efeito numérico:
 
 ```json
 {
+  "effectId": "lower_stability",
   "type": "DAMAGE",
   "target": "TARGET",
   "timing": "IMMEDIATE",
-  "flatValue": 10,
-  "formulaValue": "source_attack * 1.5",
-  "isPercentage": false,
-  "targetResource": "health",
-  "condition": "target_hp < target_max_hp * 0.5",
-  "requiredTags": ["fire"],
-  "excludedTags": ["water"],
+  "flatValue": 6,
+  "formulaValue": null,
+  "targetResource": "stability",
+  "resourceField": "Current",
+  "calculationChannel": "effect_amount",
+  "calculationPipelineId": "default_effect_amount",
+  "condition": "target.resources.stability.current > target.resources.stability.minimum",
   "chance": 1.0,
   "repeat": 1,
-  "tags": ["physical", "attack"],
-  "chainedEffects": [],
-  "conditionalEffects": []
+  "tags": ["attack", "physical"]
 }
 ```
 
-### Campos Principais
+Campos essenciais:
 
-- **type**: Tipo do efeito (ver lista acima)
-- **target**: Alvo do efeito (SELF, TARGET, ALL_ENEMIES, etc.)
-- **timing**: Quando executar (IMMEDIATE, DELAYED, ON_TURN_START, etc.)
-- **flatValue**: Valor fixo
-- **formulaValue**: Fórmula dinâmica (usa MathEngine)
-- **isPercentage**: Se o valor é percentual
-- **targetResource**: Recurso alvo (health, energy, mana)
-- **condition**: Condição para executar (expressão booleana)
-- **requiredTags**: Tags requeridas para executar
-- **excludedTags**: Tags que impedem execução
-- **chance**: Probabilidade de executar (0.0 a 1.0)
-- **repeat**: Número de repetições
-- **tags**: Tags para categorização
-- **chainedEffects**: Efeitos disparados após este
-- **conditionalEffects**: Efeitos condicionais
+| Campo | Função |
+| --- | --- |
+| `type` | Consequência a executar. |
+| `target` | Política de alvo; não é um ID enviado pelo conteúdo. |
+| `selectionResourceId` | Recurso usado para ordenar alvos automáticos baseados em recurso. |
+| `flatValue` / `formulaValue` | Valor base autorado. |
+| `targetResource` | Recurso alterado; obrigatório para efeito de recurso. |
+| `resourceField` | `Current`, `Minimum` ou `Maximum`. |
+| `operation` | Operação explícita de `MODIFY_RESOURCE`. |
+| `calculationChannel` | Canal aceito pelo pipeline. |
+| `calculationPipelineId` | Pipeline explícito opcional. |
+| `condition` | Expressão booleana sobre o contexto canônico. |
+| `chance` / `repeat` | Aleatoriedade seedada e repetição determinística. |
+| `tags` | Contexto para filtros e influências. |
 
-## Exemplos de Uso
+`chainedEffects` e `conditionalEffects` usam a mesma estrutura recursivamente.
+`EffectTriggerDefinition` liga uma lista de efeitos a um boundary nomeado e com
+prioridade, sem acoplar o processador ao proprietário.
 
-### Carta Básica (Strike)
+## Tipos e suporte
+
+O catálogo inclui famílias para:
+
+- recursos: `DAMAGE`, `HEAL`, `MODIFY_RESOURCE`;
+- status: `APPLY_STATUS`, `REMOVE_STATUS`, `DISPEL_STATUS`;
+- cartas/deck: `DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`,
+  `ADD_CARD_TO_HAND`;
+- modificadores de cálculo;
+- controle de ações e turno;
+- encadeamento, condição e metaefeitos.
+
+A presença no enum define o vocabulário de autoria; o conteúdo publicado também
+precisa ser compatível com os handlers e regras habilitados pelo modo. A validação
+de publicação deve impedir referências quebradas antes de uma run usar a revisão.
+
+## Recursos são genéricos
+
+Os três tipos numéricos convergem para a mesma representação:
+
+| Tipo autorado | Operação resolvida |
+| --- | --- |
+| `DAMAGE` | `Subtract` |
+| `HEAL` | `Add` |
+| `MODIFY_RESOURCE` | `Add`, `Subtract` ou `Set` conforme `operation` |
+
+Nenhum deles seleciona `health`, `energy` ou outro ID implicitamente. Os exemplos
+abaixo são equivalentes do ponto de vista do processador, mudando apenas os dados:
+
+```json
+{ "type": "DAMAGE", "targetResource": "mana", "flatValue": 3 }
+```
+
+```json
+{ "type": "HEAL", "targetResource": "morale", "flatValue": 3 }
+```
 
 ```json
 {
-  "actionId": "BASIC_ATTACK",
-  "displayName": "Strike",
-  "description": "Deal 6 damage",
-  "actionType": "ATTACK",
-  "costs": {
-    "resources": [{"resourceId": "energy", "amount": 1}]
-  },
-  "effects": [
-    {
-      "type": "DAMAGE",
-      "target": "TARGET",
-      "timing": "IMMEDIATE",
-      "flatValue": 6,
-      "targetResource": "health",
-      "tags": ["physical", "attack"]
-    }
+  "type": "MODIFY_RESOURCE",
+  "targetResource": "action_points",
+  "resourceField": "Maximum",
+  "operation": "ADD",
+  "flatValue": 1
+}
+```
+
+O `ResourceMutationReducer` aplica o lote. A condição de derrota, se houver, vem
+da `thresholdPolicy` do recurso depois da transição.
+
+## Cálculo por buckets
+
+`flatValue` é o valor base, não necessariamente o resultado final. A definição
+do efeito escolhe um canal; o modo habilita pipelines compatíveis e a revisão
+fixada fornece a ordem dos buckets.
+
+Influências de carta, ator, alvo, status, relíquia, upgrade, modo, encontro e
+modificador são normalizadas como `CalculationInfluence`. O cálculo ordena
+contribuições por prioridade e identidade, aplica os buckets e produz um trace e
+fingerprint.
+
+Um pipeline pode ligar diretamente um recurso ao cálculo:
+
+```json
+{
+  "pipelineId": "default_effect_amount",
+  "channel": "effect_amount",
+  "buckets": [
+    { "bucketId": "flat", "order": 10, "operation": "Add" },
+    { "bucketId": "more", "order": 20, "operation": "Multiply" }
   ],
-  "tags": ["attack", "common"]
-}
-```
-
-### Carta com Múltiplos Effects (Fireball)
-
-```json
-{
-  "actionId": "FIREBALL",
-  "displayName": "Fireball",
-  "description": "Deal 10 fire damage. Apply 2 stacks of Burn.",
-  "effects": [
+  "resourceInfluenceBindings": [
     {
-      "type": "DAMAGE",
-      "target": "TARGET",
-      "flatValue": 10,
-      "tags": ["fire", "magic"]
-    },
-    {
-      "type": "APPLY_STATUS",
-      "target": "TARGET",
-      "statusId": "BURN",
-      "statusStacks": 2
+      "bindingId": "actor.power.flat",
+      "scope": "Actor",
+      "resourceId": "power",
+      "field": "Current",
+      "channel": "effect_amount",
+      "bucket": "flat",
+      "scale": 1,
+      "offset": 0,
+      "priority": 0
     }
   ]
 }
 ```
 
-### Carta Condicional
+Upgrade de carta altera o container efetivo antes do cálculo. Status do ator,
+relíquias e recursos contribuem como influências contextuais. Assim, upgrade e
+scaling permanecem conceitos separados e auditáveis no trace.
 
-```json
-{
-  "actionId": "CONDITIONAL_HEAL",
-  "displayName": "Emergency Heal",
-  "description": "If HP < 50%, heal 15. Otherwise, heal 5.",
-  "effects": [
-    {
-      "type": "HEAL",
-      "target": "SELF",
-      "flatValue": 15,
-      "condition": "target_hp < target_max_hp * 0.5"
-    },
-    {
-      "type": "HEAL",
-      "target": "SELF",
-      "flatValue": 5,
-      "condition": "target_hp >= target_max_hp * 0.5"
-    }
-  ]
-}
+## Variáveis de fórmula
+
+Recursos usam nomes explícitos e simétricos:
+
+```text
+source.resources.<id>.current|minimum|maximum|percent
+target.resources.<id>.current|minimum|maximum|percent
 ```
 
-### Carta AoE (Whirlwind)
+Variáveis externas do boundary podem coexistir com esse namespace, mas não devem
+sobrescrever silenciosamente valores canônicos. Fórmulas e condições são avaliadas
+com o mesmo conteúdo fixado da execução e da prévia de carta.
 
-```json
-{
-  "actionId": "WHIRLWIND",
-  "displayName": "Whirlwind",
-  "description": "Deal 5 damage to ALL enemies",
-  "effects": [
-    {
-      "type": "DAMAGE",
-      "target": "ALL_ENEMIES",
-      "flatValue": 5,
-      "tags": ["physical", "aoe"]
-    }
-  ]
-}
-```
+## Alvos e determinismo
 
-### Carta com Repetição
+O alvo pode ser o próprio ator, um alvo selecionado, coleções configuradas ou uma
+seleção automática. Quando a seleção depende de um recurso, o conteúdo informa
+`selectionResourceId`; não existe preferência embutida por vida.
 
-```json
-{
-  "actionId": "DRAW_CARDS",
-  "displayName": "Preparation",
-  "description": "Draw 2 cards",
-  "effects": [
-    {
-      "type": "DRAW_CARD",
-      "target": "SELF",
-      "repeat": 2
-    }
-  ]
-}
-```
+Aleatoriedade usa o contexto determinístico da run. A engine registra consumo da
+seed e aplica desempates estáveis. A Godot nunca escolhe um resultado aleatório em
+nome da engine.
 
-## Effect Modifiers
+## Atomicidade e auditoria
 
-Modificadores alteram Effects durante a run (relíquias, poderes, status).
+Antes do commit, o executor valida toda a operação: existência dos participantes,
+alvos, recursos, pipelines, condições e custos. Se uma parte falha, o snapshot não
+muda e nenhum evento intermediário é publicado.
 
-### Tipos de Modificadores
+Para cada efeito aceito, `EffectApplicationRecord` registra a proveniência e a
+aplicação concreta. Esses registros alimentam a fila visual, logs e inspeção de
+replay sem transformar animação em regra de jogo.
 
-- **MULTIPLY_VALUE**: Multiplica valor do effect
-- **ADD_VALUE**: Adiciona valor ao effect
-- **CHANGE_TYPE**: Muda tipo do effect (dano → cura)
-- **CHANGE_TARGET**: Muda alvo do effect
-- **ADD_TAGS**: Adiciona tags ao effect
-- **REMOVE_TAGS**: Remove tags do effect
-- **MULTIPLY_CHANCE**: Multiplica chance de execução
-- **ADD_REPEAT**: Adiciona repetições
-- **CHAIN_EFFECT**: Adiciona effect encadeado
+## Uso por cartas e outros proprietários
 
-### Exemplo: Relíquia "Pen Nib" (Slay the Spire)
+Uma carta é um container de componentes: custos, condições, política de alvos,
+efeitos e upgrades. Ao jogar:
 
-```json
-{
-  "relicId": "PEN_NIB",
-  "displayName": "Pen Nib",
-  "description": "Every 10th attack deals double damage",
-  "effectModifiers": [
-    {
-      "type": "MULTIPLY_VALUE",
-      "valueMultiplier": 2.0,
-      "requiredTags": ["attack"],
-      "condition": "attack_count % 10 == 0"
-    }
-  ]
-}
-```
+1. a instância é resolvida contra a definição da revisão;
+2. upgrades geram a definição efetiva;
+3. legalidade e custos são avaliados;
+4. influências contextuais são coletadas;
+5. efeitos são calculados e aplicados na transação;
+6. a carta muda de zona somente se a ação inteira for aceita.
 
-### Exemplo: Poder "Demon Form"
+Status e relíquias entram no mesmo caminho por triggers. Regras de turno produzem
+efeitos fonte-agnósticos, inclusive para regeneração.
 
-```json
-{
-  "powerId": "DEMON_FORM",
-  "displayName": "Demon Form",
-  "description": "Increases attack damage by 50%",
-  "effectModifiers": [
-    {
-      "type": "MULTIPLY_VALUE",
-      "valueMultiplier": 1.5,
-      "requiredTags": ["attack"],
-      "isPermanent": false,
-      "duration": 3
-    }
-  ]
-}
-```
+## Contrato de prévia
 
-## Alvos (EffectTarget)
+Os endpoints de avaliação de carta usam os mesmos compiladores, resolvedores e
+cálculos da execução real. Uma prévia legal com alvos completos deve corresponder
+ao resultado determinístico, salvo mudança concorrente detectada por
+`expectedSequence`/`expectedStep`.
 
-- **SELF**: Quem executou a ação
-- **TARGET**: Alvo selecionado
-- **ALL_ENEMIES**: Todos os inimigos
-- **ALL_ALLIES**: Todos os aliados
-- **RANDOM_ENEMY**: Inimigo aleatório
-- **LOWEST_HP_ENEMY**: Inimigo com menor HP
-- **HIGHEST_HP_ENEMY**: Inimigo com maior HP
+## Regras para extensões
 
-## Timing (EffectTiming)
-
-- **IMMEDIATE**: Executa imediatamente
-- **DELAYED**: Executa após X turnos
-- **ON_TURN_START**: Executa no início do turno
-- **ON_TURN_END**: Executa no fim do turno
-- **ON_DAMAGE_DEALT**: Executa ao causar dano
-- **ON_DAMAGE_TAKEN**: Executa ao receber dano
-
-## Condições e Fórmulas
-
-Effects suportam condições e fórmulas dinâmicas via MathEngine.
-
-### Variáveis Disponíveis
-
-- **source_hp**: HP atual da fonte
-- **source_max_hp**: HP máximo da fonte
-- **source_energy**: Energia atual da fonte
-- **target_hp**: HP atual do alvo
-- **target_max_hp**: HP máximo do alvo
-- **target_energy**: Energia atual do alvo
-- **stacks**: Número de stacks (para status)
-
-### Exemplos de Condições
-
-```json
-"condition": "target_hp < target_max_hp * 0.5"  // HP < 50%
-"condition": "source_energy >= 3"                // Energia >= 3
-"condition": "stacks >= 5"                       // 5+ stacks
-```
-
-### Exemplos de Fórmulas
-
-```json
-"formulaValue": "source_attack * 1.5"           // 150% do ataque
-"formulaValue": "target_max_hp * 0.1"           // 10% do HP máximo
-"formulaValue": "stacks * 3"                    // 3 por stack
-```
-
-## Integração com Status System
-
-Status executam Effects a cada tick. O StatusManager delega a execução ao EffectResolver.
-
-### Exemplo: Poison (DoT)
-
-```json
-{
-  "statusId": "POISON",
-  "displayName": "Poison",
-  "description": "Lose 3 HP at the start of each turn",
-  "type": "DOT",
-  "baseDuration": 3,
-  "maxStacks": 10,
-  "timings": ["TURN_START"],
-  "effects": [
-    {
-      "type": "DAMAGE",
-      "target": "SELF",
-      "flatValue": 3,
-      "targetResource": "health",
-      "tags": ["poison", "dot"]
-    }
-  ]
-}
-```
-
-### Exemplo: Regeneration (HoT)
-
-```json
-{
-  "statusId": "REGENERATION",
-  "displayName": "Regeneration",
-  "description": "Heal 5 HP at the start of each turn",
-  "type": "HOT",
-  "baseDuration": 3,
-  "timings": ["TURN_START"],
-  "effects": [
-    {
-      "type": "HEAL",
-      "target": "SELF",
-      "flatValue": 5,
-      "targetResource": "health",
-      "tags": ["heal", "hot"]
-    }
-  ]
-}
-```
-
-### Exemplo: Strength (Modificador)
-
-```json
-{
-  "statusId": "STRENGTH",
-  "displayName": "Strength",
-  "description": "Increases damage dealt by 25% per stack",
-  "type": "BUFF",
-  "baseDuration": 3,
-  "maxStacks": 5,
-  "effects": [
-    {
-      "type": "MODIFY_DAMAGE_DEALT",
-      "target": "SELF",
-      "modifierKey": "damage_multiplier",
-      "modifierValue": 1.25,
-      "tags": ["buff", "damage"]
-    }
-  ]
-}
-```
-
-## Eventos
-
-O EffectResolver publica eventos para todos os sistemas:
-
-- **EffectExecutedEvent**: Quando um effect é executado
-- **EffectModifiedEvent**: Quando modificadores são aplicados
-- **EffectChainedEvent**: Quando effects encadeados são disparados
-
-## API Programática
-
-### IEffectResolver
-
-```csharp
-public interface IEffectResolver
-{
-    // Execução
-    Result<EffectResult> ResolveEffect(EffectInstance effect, CombatState state);
-    Result<List<EffectResult>> ResolveEffects(List<EffectInstance> effects, CombatState state);
-    
-    // Modificação
-    EffectDefinition ApplyModifiers(EffectDefinition definition, List<EffectModifier> modifiers);
-    EffectInstance CreateEffectInstance(EffectDefinition definition, string sourceId, string targetId);
-    
-    // Validação
-    Result<bool> CanExecuteEffect(EffectInstance effect, CombatState state);
-    Result<bool> ValidateDefinition(EffectDefinition definition);
-    
-    // Query
-    List<EffectModifier> GetActiveModifiers(string entityId, EffectType? filterType = null);
-}
-```
-
-### Exemplo de Uso
-
-```csharp
-// Criar effect
-var effectDef = new EffectDefinition
-{
-    Type = EffectType.DAMAGE,
-    Target = EffectTarget.TARGET,
-    FlatValue = 10,
-    Tags = new List<string> { "physical", "attack" }
-};
-
-// Criar instância
-var effect = effectResolver.CreateEffectInstance(effectDef, heroId, enemyId);
-
-// Aplicar modificadores (relíquias, poderes)
-var modifiers = effectResolver.GetActiveModifiers(heroId, EffectType.DAMAGE);
-effect = effect with { AppliedModifiers = modifiers };
-
-// Executar
-var result = effectResolver.ResolveEffect(effect, combatState);
-```
-
-## Boas Práticas
-
-### 1. Use Tags para Filtros
-
-Tags permitem que modificadores sejam aplicados seletivamente:
-
-```json
-{
-  "type": "DAMAGE",
-  "flatValue": 10,
-  "tags": ["physical", "attack", "fire"]
-}
-```
-
-Modificador que afeta apenas ataques físicos:
-
-```json
-{
-  "type": "MULTIPLY_VALUE",
-  "valueMultiplier": 1.5,
-  "requiredTags": ["physical", "attack"]
-}
-```
-
-### 2. Use Condições para Lógica Complexa
-
-Em vez de criar múltiplas cartas, use condições:
-
-```json
-{
-  "type": "DAMAGE",
-  "formulaValue": "target_hp < target_max_hp * 0.5 ? 20 : 10"
-}
-```
-
-### 3. Use Effects Encadeados para Combos
-
-```json
-{
-  "type": "DAMAGE",
-  "flatValue": 10,
-  "chainedEffects": [
-    {
-      "type": "APPLY_STATUS",
-      "statusId": "VULNERABLE",
-      "statusStacks": 1
-    }
-  ]
-}
-```
-
-### 4. Use Repeat para Múltiplos Hits
-
-```json
-{
-  "type": "DAMAGE",
-  "flatValue": 3,
-  "repeat": 5,
-  "tags": ["multi-hit"]
-}
-```
-
-## Próximos Passos
-
-Com o Effect System implementado, os próximos sistemas são:
-
-1. **Status System** - Gerencia duração, stacks, timing; usa Effects para DoT/HoT
-2. **Modifier System** - Go Again, Multi-Hit, etc.; usa EffectModifiers
-3. **Card System** - Cartas são ActionDefinitions com Effects
-4. **Event System** - Eventos especiais (Slay the Spire style) com Effects
-5. **Relic System** - Relíquias modificam Effects
+1. Não crie um processador por origem do efeito.
+2. Não inferir recurso a partir de `EffectType`.
+3. Não aplique mutações fora dos redutores canônicos.
+4. Mantenha cálculo separado de aplicação.
+5. Registre proveniência sem torná-la um desvio algorítmico.
+6. Valide referências na publicação e novamente na fronteira de execução.
+7. Use ordem estável e aleatoriedade seedada.
+8. Garanta equivalência entre prévia, execução e replay.
 
 ## Referências
 
-- `src/Core/Effects/` - Código fonte do sistema
-- `data/configs/default/Actions/` - Exemplos de cartas
-- [`damage-pipeline.md`](../damage/damage-pipeline.md) - Pipeline de dano (integrado com Effects)
-- [`phase-2.md`](../../roadmap/phases/phase-2.md) - Roadmap de implementação
+- [Sistema de recursos](../resources/resource-system.md)
+- [Sistema de combate](../combat/combat-system.md)
+- [Arquitetura de componentes de carta](../../plans/CARD_COMPONENT_ARCHITECTURE_AND_IMPLEMENTATION_PLAN.md)
+- `src/Core/Effects/ImmutableEffectProcessor.cs`
+- `src/Core/Calculations/CalculationEngine.cs`
+- `src/Core/Run/Content/CardPlayExecutor.cs`

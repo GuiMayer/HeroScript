@@ -6,22 +6,23 @@ namespace Core.Resources;
 public enum ResourceCategory
 {
     /// <summary>
-    /// Recursos vitais - morte se chegar a 0 (HP, Shield)
+    /// Recursos classificados como vitais para consulta e apresentação.
+    /// A categoria não implica derrota ou qualquer outra consequência.
     /// </summary>
     VITAL,
     
     /// <summary>
-    /// Recursos táticos - consumo/ganho em combate (Energy, Mana, Stamina)
+    /// Recursos classificados como táticos para consulta e apresentação.
     /// </summary>
     TACTICAL,
     
     /// <summary>
-    /// Recursos especiais - mecânicas únicas (Rage, Combo, Momentum)
+    /// Recursos classificados como especiais para consulta e apresentação.
     /// </summary>
     SPECIAL,
     
     /// <summary>
-    /// Recursos temporários - buffs com duração
+    /// Recursos classificados como temporários para consulta e apresentação.
     /// </summary>
     TEMPORARY
 }

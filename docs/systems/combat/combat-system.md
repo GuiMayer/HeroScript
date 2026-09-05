@@ -1,582 +1,206 @@
-# Combat System
+# Sistema de combate
 
-**Status:** ✅ Implementado  
-**Versão:** 1.1.0  
-**Data:** 2026-05-11
+**Status:** implementado no fluxo canônico de run
 
----
+**Atualizado em:** 2026-09-05
 
-## Visão Geral
+## Papel arquitetural
 
-O Combat System é o núcleo do sistema de combate do HeroScript, gerenciando estado imutável de combates, execução de ações, sistema de energia, e integração com EventBus para Event Sourcing.
+O combate é um subagregado imutável de uma run. A engine recebe comandos,
+valida regras, calcula toda a consequência imediatamente e persiste o novo
+snapshot. A Godot envia intenção e renderiza o estado e a fila de resolução;
+ela não calcula custos, dano, alvos, turnos ou vitória.
 
-### Características Principais
+Não existe uma segunda API autoritativa de combate. Criação e resolução do
+encontro atravessam o gateway da run; ações do encontro atravessam o gateway de
+combate e são registradas na mesma run.
 
-- **Estado Imutável**: Cada ação cria um novo `CombatState` usando records do C#
-- **Event Sourcing**: Todos os eventos de combate são publicados no EventBus
-- **Thread-Safe**: Usa `ConcurrentDictionary` para gerenciar combates ativos
-- **Sistema de Energia**: Ataques básicos geram energia, poderes consomem
-- **Histórico Completo**: Todas as ações são registradas para auditoria e replay
-- **Turn Phase System**: Sistema modular de fases opcional para TCGs (Magic, Yu-Gi-Oh!, etc.)
+## Invariantes
 
----
+- Uma run fixa seed, versão da engine, modo e revisão de conteúdo.
+- Todo comando possui ID, sequência e step esperados.
+- Repetir o mesmo comando e payload devolve o recibo persistido.
+- Um comando aceito produz um novo snapshot; snapshots anteriores não mudam.
+- Alterações compostas são atômicas.
+- Iterações e desempates relevantes usam ordem estável.
+- O journal contém informação suficiente para replay semântico e auditoria.
+- Eventos são projeções posteriores ao commit, não fonte concorrente de verdade.
 
-## Arquitetura
+## Estado
 
-### Estruturas de Dados
+`CombatState` contém:
 
-#### CombatEntity
-Representa uma entidade em combate (herói ou inimigo).
+- identidade do combate e da run;
+- contexto determinístico e turno atual;
+- herói e inimigos materializados;
+- recursos genéricos de cada participante;
+- status ativos;
+- board, fases, ativação e dados da estratégia de ordem de turno;
+- histórico de ações.
 
-```csharp
-public record CombatEntity
-{
-    public string EntityId { get; init; }
-    public string Name { get; init; }
-    public int CurrentHp { get; init; }
-    public int MaxHp { get; init; }
-    public bool IsAlive => CurrentHp > 0;
-    public bool IsHero { get; init; }
-}
+`CombatEntity` não possui HP ou energia especializados. Seu estado numérico é um
+`ResourceSet`. `IsAlive` é derivado somente das políticas de limite configuradas
+nas definições dos recursos.
+
+## Início de encontro
+
+O encontro é iniciado com `START_ENCOUNTER`:
+
+```http
+POST /api/v1/runs/{runId}/commands
+Content-Type: application/json
 ```
 
-**Métodos:**
-- `TakeDamage(int damage)` - Aplica dano e retorna nova instância
-- `Heal(int amount)` - Cura e retorna nova instância
-
-#### EnergyPool
-Gerencia energia do herói.
-
-```csharp
-public record EnergyPool
-{
-    public int Current { get; init; }
-    public int Maximum { get; init; }
-    
-    public bool CanAfford(int cost);
-    public EnergyPool Spend(int amount);
-    public EnergyPool Gain(int amount);
-    public EnergyPool Reset();
-}
-```
-
-#### CombatState
-Estado completo e imutável de um combate.
-
-```csharp
-public record CombatState
-{
-    public Guid CombatId { get; init; }
-    public DateTime StartedAt { get; init; }
-    public int CurrentTurn { get; init; }
-    public CombatStatus Status { get; init; }
-    public CombatEntity Hero { get; init; }
-    public IReadOnlyList<CombatEntity> Enemies { get; init; }
-    public EnergyPool Energy { get; init; }
-    public IReadOnlyList<CombatAction> ActionHistory { get; init; }
-    public PhaseState? PhaseState { get; init; }  // Opcional: sistema de fases TCG
-}
-```
-
-**Nota:** O campo `PhaseState` é opcional. Se `null`, o combate funciona no modo clássico sem fases. Veja [Turn Phase System](turn-phase-system.md) para detalhes.
-
-#### CombatAction
-Representa uma ação executada.
-
-```csharp
-public record CombatAction
-{
-    public Guid ActionId { get; init; }
-    public DateTime Timestamp { get; init; }
-    public int Turn { get; init; }
-    public string ActorId { get; init; }
-    public ActionType ActionType { get; init; }
-    public string? PowerId { get; init; }
-    public string? TargetId { get; init; }
-    public int? DamageDealt { get; init; }
-    public int? EnergyChange { get; init; }
-}
-```
-
----
-
-## Sistema de Energia
-
-### Regras
-
-- **Ataque Básico**: Gera **+1 energia**
-- **Poderes**: Consomem **-3 energia** (padrão)
-- **Máximo**: 10 energia
-- **Inicial**: 3 energia (configurável)
-
-### Validação
-
-O sistema valida automaticamente se há energia suficiente antes de executar poderes.
-
----
-
-## Eventos de Domínio
-
-### 1. CombatStartedEvent
-Publicado ao iniciar combate.
-
-```csharp
-{
-    "combatId": "guid",
-    "heroId": "player-1",
-    "enemyIds": ["goblin-1", "goblin-2"],
-    "initialEnergy": 3
-}
-```
-
-### 2. ActionExecutedEvent
-Publicado após cada ação.
-
-```csharp
-{
-    "combatId": "guid",
-    "actionId": "guid",
-    "actorId": "player-1",
-    "actionTypeName": "BASIC_ATTACK",
-    "targetId": "goblin-1",
-    "damageDealt": 10,
-    "energyChange": 1
-}
-```
-
-### 3. EnergyChangedEvent
-Publicado quando energia muda.
-
-```csharp
-{
-    "combatId": "guid",
-    "oldEnergy": 3,
-    "newEnergy": 4,
-    "delta": 1,
-    "reason": "Basic attack"
-}
-```
-
-### 4. CombatEndedEvent
-Publicado ao finalizar combate.
-
-```csharp
-{
-    "combatId": "guid",
-    "statusName": "VICTORY",
-    "totalTurns": 5,
-    "totalActions": 12,
-    "duration": "00:02:34"
-}
-```
-
----
-
-## REST API
-
-### POST /api/combat/start
-Inicia novo combate.
-
-**Request:**
 ```json
 {
-  "heroId": "player-1",
-  "enemies": ["goblin-1", "goblin-2"],
-  "initialEnergy": 3
-}
-```
-
-**Response:**
-```json
-{
-  "combatId": "550e8400-e29b-41d4-a716-446655440000",
-  "status": "ACTIVE",
-  "currentTurn": 1,
-  "hero": {
-    "entityId": "player-1",
-    "name": "Hero",
-    "currentHp": 100,
-    "maxHp": 100,
-    "isAlive": true
-  },
-  "enemies": [
-    {
-      "entityId": "goblin-1",
-      "name": "Enemy-1",
-      "currentHp": 50,
-      "maxHp": 50,
-      "isAlive": true
+  "commandId": "54dc2f17-37cb-4e77-91ca-8464367f49e6",
+  "expectedSequence": 1,
+  "expectedStep": 1,
+  "type": "START_ENCOUNTER",
+  "payload": {
+    "hero": {
+      "entityId": "player",
+      "definitionId": "player_warrior"
+    },
+    "enemies": [
+      {
+        "entityId": "enemy_1",
+        "definitionId": "enemy_goblin"
+      }
+    ],
+    "initialResourceValues": {
+      "player": { "energy": 3 }
     }
-  ],
-  "energy": {
-    "current": 3,
-    "maximum": 10
-  },
-  "totalActions": 0
+  }
 }
 ```
 
-### POST /api/combat/{combatId}/action
-Executa ação em combate.
+`entityId` é o alias único usado durante esse combate. `definitionId` aponta
+para a entidade na revisão de conteúdo da run. Isso permite criar `enemy_1` e
+`enemy_2` a partir de `enemy_goblin` sem duplicar JSON.
 
-**Request:**
+`initialResourceValues` é opcional, aceita qualquer recurso existente na
+definição e é indexado pelo alias. Participante, definição ou recurso desconhecido
+rejeita a transação inteira. Não existe `initialEnergy` ou fallback de entidade.
+
+O journal registra os participantes materializados; replay não depende do estado
+atual dos arquivos locais.
+
+## Comandos durante o encontro
+
+```http
+POST /api/v1/combats/{combatId}/commands
+Content-Type: application/json
+```
+
+Tipos aceitos:
+
+| Tipo | Uso |
+| --- | --- |
+| `PLAY_CARD` | Joga uma instância de carta da run. |
+| `EXECUTE_ACTION` | Executa uma habilidade configurada do ator. |
+| `END_TURN` | Encerra a ativação/turno conforme o modo. |
+
+Exemplo:
+
 ```json
 {
-  "actionType": "BASIC_ATTACK",
-  "targetId": "goblin-1"
+  "commandId": "28beec35-b909-47de-876d-f11dccd59a23",
+  "expectedSequence": 3,
+  "expectedStep": 6,
+  "type": "PLAY_CARD",
+  "payload": {
+    "cardInstanceId": "35fc8101-753e-4e5f-bf9e-2b91933d9290",
+    "actorId": "player",
+    "targetIds": ["enemy_1"],
+    "costOptionId": "energy"
+  }
 }
 ```
 
-**Tipos de Ação:**
-- `BASIC_ATTACK` - Ataque básico (requer targetId)
-- `POWER` - Usar poder (requer powerId e targetId)
-- `PASS` - Passar turno
-- `END_TURN` - Finalizar turno
+O cliente nunca envia a definição ou o valor calculado da carta. A engine carrega
+o container, aplica upgrades, status, relíquias e influências da revisão fixada,
+valida custo/alvos/fase/orçamento e executa a transação.
 
-**Response:** Retorna o novo estado do combate (mesmo formato do start).
+## Fluxo de uma ação
 
-### GET /api/combat/{combatId}/state
-Obtém estado atual do combate.
-
-**Response:** Estado do combate (mesmo formato do start).
-
-### GET /api/combat/{combatId}/history
-Obtém histórico de ações.
-
-**Response:**
-```json
-{
-  "combatId": "guid",
-  "totalActions": 5,
-  "actions": [
-    {
-      "actionId": "guid",
-      "timestamp": "2026-05-08T12:00:00Z",
-      "turn": 1,
-      "actorId": "player-1",
-      "actionType": "BASIC_ATTACK",
-      "targetId": "goblin-1",
-      "damageDealt": 10,
-      "energyChange": 1
-    }
-  ]
-}
+```text
+CommandEnvelope
+  -> controle de concorrência e idempotência
+  -> compilação da carta/ação
+  -> validação de legalidade e alvos
+  -> cálculo por buckets configurados
+  -> pagamento atômico de custos
+  -> efeitos fonte-agnósticos
+  -> novo CombatState
+  -> fila de resolução visual + journal
+  -> commit atômico da run
 ```
 
-### POST /api/combat/{combatId}/end
-Finaliza combate.
-
-**Response:**
-```json
-{
-  "combatId": "guid",
-  "status": "VICTORY",
-  "totalTurns": 5,
-  "totalActions": 12,
-  "damageDealt": 150,
-  "damageTaken": 30,
-  "duration": 154.5
-}
-```
-
----
-
-## Uso Básico
-
-### Iniciar Combate
-
-```csharp
-var result = combatSystem.StartCombat(
-    heroId: "player-1",
-    enemyIds: new List<string> { "goblin-1", "goblin-2" },
-    initialEnergy: 3
-);
-
-if (result.IsSuccess)
-{
-    var combatId = result.Value.CombatId;
-    Console.WriteLine($"Combat started: {combatId}");
-}
-```
-
-### Executar Ações
-
-```csharp
-// Ataque básico
-var result = combatSystem.ExecuteAction(
-    combatId,
-    ActionType.BASIC_ATTACK,
-    targetId: "goblin-1"
-);
-
-// Usar poder
-var result = combatSystem.ExecuteAction(
-    combatId,
-    ActionType.POWER,
-    powerId: "FIREBALL",
-    targetId: "goblin-1"
-);
-
-// Passar turno
-var result = combatSystem.ExecuteAction(
-    combatId,
-    ActionType.PASS
-);
-
-// Finalizar turno
-var result = combatSystem.ExecuteAction(
-    combatId,
-    ActionType.END_TURN
-);
-```
-
-### Verificar Estado
-
-```csharp
-var stateResult = combatSystem.GetCombatState(combatId);
-if (stateResult.IsSuccess)
-{
-    var state = stateResult.Value;
-    Console.WriteLine($"Turn: {state.CurrentTurn}");
-    Console.WriteLine($"Energy: {state.Energy.Current}/{state.Energy.Maximum}");
-    Console.WriteLine($"Hero HP: {state.Hero.CurrentHp}/{state.Hero.MaxHp}");
-    
-    if (state.Status == CombatStatus.VICTORY)
-        Console.WriteLine("Victory!");
-}
-```
-
----
-
-## Integração com EventBus
-
-O Combat System publica eventos automaticamente. Para escutar eventos:
-
-```csharp
-eventBus.Subscribe<CombatStartedEvent>(e => 
-{
-    Console.WriteLine($"Combat {e.CombatId} started!");
-});
-
-eventBus.Subscribe<ActionExecutedEvent>(e => 
-{
-    Console.WriteLine($"{e.ActorId} used {e.ActionTypeName}");
-});
-
-eventBus.Subscribe<EnergyChangedEvent>(e => 
-{
-    Console.WriteLine($"Energy: {e.OldEnergy} -> {e.NewEnergy}");
-});
-
-eventBus.Subscribe<CombatEndedEvent>(e => 
-{
-    Console.WriteLine($"Combat ended: {e.StatusName}");
-});
-```
-
----
-
-## Thread Safety
-
-O `CombatSystem` usa `ConcurrentDictionary<Guid, CombatState>` para gerenciar combates ativos de forma thread-safe. Múltiplas threads podem:
-
-- Iniciar combates diferentes simultaneamente
-- Executar ações em combates diferentes simultaneamente
-- Consultar estados de combates diferentes simultaneamente
-
-**Nota:** Ações no mesmo combate são serializadas pelo dicionário.
-
----
-
-## Limitações Atuais (MVP)
-
-### Implementado
-
-- ✅ Sistema de energia básico
-- ✅ Ataque básico e poderes simples
-- ✅ Tracking de HP e turnos
-- ✅ Estado imutável
-- ✅ Event Sourcing completo
-- ✅ Validação de ações
-- ✅ Detecção de vitória/derrota
-- ✅ Histórico de ações
-
-### Não Implementado (fases futuras)
-
-- ❌ **Cálculo de dano complexo** - Damage Pipeline (Fase 1)
-  - Crítico multi-tier
-  - Armadura e resistências
-  - Modificadores de dano
-  
-- ❌ **Status effects** (Fase 2)
-  - Buffs e debuffs
-  - DoTs (Damage over Time)
-  - Stun, silêncio, etc.
-  
-- ❌ **Script modifiers** (Fase 2)
-  - Go Again
-  - Multi-Hit
-  - Conditional effects
-  
-- ❌ **IA de inimigos** (Fase 2)
-  - Inimigos atualmente não agem
-  - Apenas recebem dano
-  
-- ❌ **Definições de poderes em JSON** (Fase 4)
-  - Poderes atualmente hardcoded
-  - Dano fixo (30 para poderes, 10 para básico)
-  
-- ❌ **Persistência em disco** (Fase 5)
-  - Combates existem apenas em memória
-  - Perdidos ao reiniciar aplicação
-
----
-
-## Valores Hardcoded (Temporários)
-
-```csharp
-// src/Core/Combat/CombatSystem.cs
-private const int BASIC_ATTACK_DAMAGE = 10;
-private const int BASIC_ATTACK_ENERGY_GAIN = 1;
-private const int DEFAULT_POWER_COST = 3;
-private const int DEFAULT_POWER_DAMAGE = 30;
-
-// Entidades criadas com valores fixos
-Hero: 100 HP
-Enemy: 50 HP
-```
-
-**Nota:** Estes valores serão substituídos pelo Damage Pipeline e sistema de definições em fases futuras.
-
----
-
-## Testes
-
-### Cobertura
-
-- **27 testes de Combat** (100% passando)
-- **142 testes totais** no projeto (100% passando)
-
-### Arquivos de Teste
-
-- `tests/Core.Tests/Combat/CombatSystemTests.cs` - Testes unitários do sistema
-- `tests/Core.Tests/Combat/EnergyPoolTests.cs` - Testes do sistema de energia
-- `tests/Core.Tests/Combat/CombatEntityTests.cs` - Testes de entidades
-- `tests/Core.Tests/Combat/CombatIntegrationTests.cs` - Testes de integração
-
-### Executar Testes
-
-```bash
-# Todos os testes
-dotnet test
-
-# Apenas testes de Combat
-dotnet test --filter "FullyQualifiedName~Combat"
-```
-
----
-
-## Turn Phase System Integration
-
-O Combat System possui integração opcional com o **Turn Phase System**, que permite suportar múltiplos estilos de Trading Card Games (TCG).
-
-### Ativação do Sistema de Fases
-
-O sistema de fases é **completamente opcional** e ativado através do campo `PhaseState?` no `CombatState`:
-
-```csharp
-// Combate SEM fases (modo clássico)
-var result = combatSystem.StartCombat(hero, enemy);
-// result.Value.PhaseState == null
-
-// Combate COM fases (TCG style)
-var result = combatSystem.StartCombatWithPhases(hero, enemy, phaseSystem, sequence);
-// result.Value.PhaseState != null
-```
-
-### Funcionalidades do Sistema de Fases
-
-- **Sequências Configuráveis**: Defina fases via JSON (Magic, Yu-Gi-Oh!, Hearthstone, etc.)
-- **Sistema de Prioridade**: Controle de ordem de ações entre jogadores
-- **Action Stack**: Pilha LIFO para resolução de ações (estilo Magic)
-- **Transições Automáticas/Manuais**: Fases podem avançar automaticamente ou aguardar input
-- **Event-Driven**: Publica eventos de fase no EventBus
-
-### Exemplo de Uso
-
-```csharp
-// Carregar sequência de fases
-var loader = new PhaseSequenceLoader(logger);
-var sequence = loader.LoadFromFile("magic-style.json");
-
-// Criar sistema de fases
-var factory = new PhaseSystemFactory(logger, eventBus);
-
-// Iniciar combate com fases
-var result = combatSystem.StartCombatWithPhases(hero, enemy, factory, sequence);
-
-if (result.IsSuccess)
-{
-    var state = result.Value;
-    Console.WriteLine($"Phase: {state.PhaseState.CurrentPhase}");
-    Console.WriteLine($"Active Player: {state.PhaseState.ActivePlayerId}");
-}
-
-// Passar prioridade
-var passResult = combatSystem.PassPriority(combatId, playerId, factory);
-
-// Transicionar para próxima fase
-var transitionResult = combatSystem.TransitionPhase(combatId, factory);
-```
-
-### Configurações Pré-Definidas
-
-O sistema inclui 4 estilos pré-configurados:
-
-1. **Magic: The Gathering** - 12 fases com prioridade interativa
-2. **Yu-Gi-Oh!** - 6 fases com turnos alternados
-3. **Hearthstone** - 3 fases simplificadas
-4. **Classic** - 2 fases minimalistas
-
-**Documentação completa:** [Turn Phase System](turn-phase-system.md)
-
----
-
-## Próximos Passos
-
-### 1. Damage Pipeline (Fase 1)
-Sistema de cálculo de dano com 6 buckets:
-- Base damage
-- Multiplicadores
-- Flat bonuses
-- Critical calculation
-- Armor/resistance
-- Final modifiers
-
-### 2. Status System (Fase 2)
-- Buffs e debuffs
-- DoTs e HoTs
-- Stun, silêncio, root
-- Duração e stacks
-
-### 3. Script Modifiers (Fase 2)
-- Go Again
-- Multi-Hit
-- Conditional effects
-- Triggers
-
----
+Efeitos numéricos convergem para o redutor genérico de recursos. `DAMAGE` não
+significa "reduzir health"; significa subtrair do `targetResource` declarado.
+Derrota é reavaliada pelas políticas de limite após as transições.
+
+## Turnos e fases
+
+O modo de jogo escolhe a política de ativação, orçamento de ações, estratégia de
+ordem e fases. O mínimo operacional é começo, meio e fim do turno, mas fases
+adicionais podem ser configuradas.
+
+Regenerações de `START_TURN` e `END_TURN`, ticks de status e gatilhos usam limites
+de ciclo de vida nomeados. A engine resolve toda a cadeia imediatamente. A fila de
+resolução permite que a Godot anime cada item no próprio ritmo sem pausar a regra.
+
+Estado necessário a estratégias, como medidores de iniciativa, vive no snapshot
+do combate. Serviços singleton não armazenam progresso de gameplay.
+
+## Leituras para a Godot
+
+| Objetivo | Endpoint |
+| --- | --- |
+| Encontro atual da run | `GET /api/v1/runs/{runId}/encounters/current` |
+| Estado do combate | `GET /api/v1/combats/{combatId}` |
+| Avaliar toda a mão | `GET /api/v1/combats/{combatId}/cards/evaluations` |
+| Inspecionar uma carta | `GET /api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation` |
+| Retomar fila visual | `GET /api/v1/combats/{combatId}/resolutions/{commandId}` |
+| Consultar pilha | `GET /api/v1/combats/{combatId}/stack` |
+| Histórico | `GET /api/v1/combats/{combatId}/history` |
+| Journal | `GET /api/v1/combats/{combatId}/journal` |
+| Timeline | `GET /api/v1/combats/{combatId}/timeline` |
+| Estado histórico | `GET /api/v1/combats/{combatId}/timeline/{sequence}/state` |
+| Criar branch | `POST /api/v1/combats/{combatId}/timeline/{sequence}/branches` |
+| Verificar replay | `POST /api/v1/combats/{combatId}/verify` |
+
+Os read models expõem `resources` como dicionário. A UI escolhe representação com
+base em definições, tags e regras de apresentação; não deve esperar campos
+duplicados `currentHp`, `maxHp` ou `energy`.
+
+## Timeline, branches e replay
+
+Cada comando aceito forma um ponto da timeline. O sandbox pode:
+
+- consultar o estado em uma sequência anterior;
+- criar uma branch derivada daquele ponto;
+- comparar branches sem alterar a original;
+- verificar o journal reexecutando comandos contra a mesma revisão.
+
+Branches têm identidade própria e preservam proveniência. Voltar no tempo não
+reescreve o histórico da run original.
+
+## Contrato com o cliente
+
+A Godot deve:
+
+1. guardar `runId`, `combatId`, `sequence`, `step` e o último hash;
+2. criar um novo `commandId` para uma nova intenção;
+3. reutilizar o mesmo request apenas em retry da mesma intenção;
+4. tratar `409` como necessidade de recarregar o estado;
+5. renderizar a fila de resolução sem recalcular regras;
+6. atualizar a UI exclusivamente a partir da resposta aceita/read model.
 
 ## Referências
 
-- **Código Core:** `src/Core/Combat/`
-- **Testes:** `tests/Core.Tests/Combat/`
-- **API:** `src/API/Controllers/CombatController.cs`
-- **DI Setup:** `src/API/Program.cs:54-60`
-- **Eventos:** `src/Core/Events/Domain/`
-
----
-
-**Última atualização:** 2026-05-08  
-**Versão:** 1.0.0  
-**Status:** ✅ Implementado e testado
+- [Runs, combates e replay](../../api/runs-and-combat.md)
+- [Sistema de recursos](../resources/resource-system.md)
+- [Sistema de efeitos](../effects/effect-system.md)
+- [Arquitetura e plano do sandbox](../../plans/COMBAT_SANDBOX_ARCHITECTURE_AND_PLAN.md)

@@ -8,17 +8,17 @@ public enum EffectType
 {
     // ===== RECURSOS =====
     /// <summary>
-    /// Causa dano a um recurso (geralmente health)
+    /// Subtrai do recurso explicitamente selecionado pelo efeito.
     /// </summary>
     DAMAGE,
     
     /// <summary>
-    /// Cura/restaura um recurso
+    /// Adiciona ao recurso explicitamente selecionado pelo efeito.
     /// </summary>
     HEAL,
     
     /// <summary>
-    /// Modifica qualquer recurso (energia, mana, stamina, etc.)
+    /// Modifica qualquer campo de um recurso com uma operação explícita.
     /// </summary>
     MODIFY_RESOURCE,
     
@@ -108,7 +108,7 @@ public enum EffectType
     REFLECT_DAMAGE,
     
     /// <summary>
-    /// Absorve dano antes de afetar HP (shield/barrier)
+    /// Absorve uma alteração conforme a regra configurada pelo conteúdo.
     /// </summary>
     ABSORB_DAMAGE,
     
