@@ -29,6 +29,12 @@ public enum CalculationRounding
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SetConflictPolicy { HighestPriorityWins, LowestPriorityWins, ErrorOnMultiple }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum MissingResourcePolicy { Ignore, Zero, Error }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CalculationSourceKind
 {
     Card,
@@ -57,6 +63,7 @@ public sealed record CalculationBucketDefinition
     public CalculationRounding Rounding { get; init; }
     public float? Minimum { get; init; }
     public float? Maximum { get; init; }
+    public SetConflictPolicy SetConflict { get; init; } = SetConflictPolicy.HighestPriorityWins;
 }
 
 public sealed record CalculationPipelineDefinition
@@ -216,6 +223,7 @@ public sealed record ContextualInfluenceDefinition
 
 public sealed record ResourceInfluenceBindingDefinition
 {
+    public MissingResourcePolicy MissingResource { get; init; } = MissingResourcePolicy.Ignore;
     public string BindingId { get; init; } = string.Empty;
     public CalculationEntityScope Scope { get; init; }
     public string ResourceId { get; init; } = string.Empty;

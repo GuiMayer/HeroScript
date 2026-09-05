@@ -40,7 +40,18 @@ public sealed class CalculationEngine : ICalculationEngine
                 .ThenBy(item => item.InfluenceId, StringComparer.Ordinal)
                 .ToImmutableArray();
             var input = current;
-            current = ApplyBucket(current, bucket.Operation, influences);
+            if (bucket.Operation == CalculationBucketOperation.Set &&
+                bucket.SetConflict == SetConflictPolicy.ErrorOnMultiple && influences.Length > 1)
+                return Result<CalculationResult>.Failure($"Bucket {bucket.BucketId} has multiple Set contributions");
+            current = bucket.Operation == CalculationBucketOperation.Set && influences.Length > 0
+                ? bucket.SetConflict == SetConflictPolicy.LowestPriorityWins
+                    ? influences.OrderBy(item => item.Priority).ThenBy(item => item.SourceKind)
+                        .ThenBy(item => item.SourceId, StringComparer.Ordinal)
+                        .ThenBy(item => item.InfluenceId, StringComparer.Ordinal).First().Value
+                    : influences[0].Value
+                : ApplyBucket(current, bucket.Operation, influences);
+            if (!IsFinite(current))
+                return Result<CalculationResult>.Failure($"Bucket {bucket.BucketId} produced a non-finite value");
             var beforeBounds = current;
             if (bucket.Minimum is { } minimum)
                 current = MathF.Max(current, minimum);
@@ -114,6 +125,12 @@ public sealed class CalculationEngine : ICalculationEngine
             return Result.Failure($"Pipeline {pipeline.PipelineId} contains duplicate bucket order");
         if (pipeline.Buckets.Any(bucket => bucket.Minimum > bucket.Maximum))
             return Result.Failure($"Pipeline {pipeline.PipelineId} contains invalid bucket bounds");
+        if (pipeline.Buckets.Any(bucket => !Enum.IsDefined(bucket.Operation) ||
+                !Enum.IsDefined(bucket.Rounding) || !Enum.IsDefined(bucket.SetConflict)))
+            return Result.Failure($"Pipeline {pipeline.PipelineId} contains an unsupported bucket policy");
+        if (pipeline.Buckets.Any(bucket => bucket.Minimum is { } min && !IsFinite(min) ||
+                bucket.Maximum is { } max && !IsFinite(max)))
+            return Result.Failure($"Pipeline {pipeline.PipelineId} contains non-finite bounds");
 
         var buckets = pipeline.Buckets.Select(bucket => bucket.BucketId).ToHashSet(StringComparer.Ordinal);
         var duplicateBinding = pipeline.ResourceInfluenceBindings
@@ -135,7 +152,7 @@ public sealed class CalculationEngine : ICalculationEngine
                 return Result.Failure(
                     $"Pipeline {pipeline.PipelineId} contains an incomplete resource influence binding");
             }
-            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.Field))
+            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.Field) || !Enum.IsDefined(binding.MissingResource))
                 return Result.Failure($"Resource influence binding {binding.BindingId} has an invalid scope or field");
             if (!string.Equals(binding.Channel, pipeline.Channel, StringComparison.Ordinal))
                 return Result.Failure($"Resource influence binding {binding.BindingId} targets another channel");
@@ -173,9 +190,7 @@ public sealed class CalculationEngine : ICalculationEngine
             CalculationBucketOperation.Multiply => influences.Aggregate(
                 current,
                 (value, influence) => value * influence.Value),
-            CalculationBucketOperation.Set => influences.Aggregate(
-                current,
-                (_, influence) => influence.Value),
+            CalculationBucketOperation.Set => current,
             CalculationBucketOperation.Minimum => influences.Aggregate(
                 current,
                 (value, influence) => MathF.Min(value, influence.Value)),

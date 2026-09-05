@@ -125,7 +125,7 @@ public sealed class CardPlayEvaluatorTests
         var card = Card(new CardConditionComponentDefinition
         {
             ComponentId = "condition.has_mana",
-            Expression = "actor.resources.mana.current",
+            Expression = "source.resources.mana.current",
             FailureReason = "Actor has no mana"
         });
 
@@ -137,7 +137,7 @@ public sealed class CardPlayEvaluatorTests
                 ActorId = "hero",
                 Variables = new Dictionary<string, float>
                 {
-                    ["actor.resources.mana.current"] = 0
+                    ["source.resources.mana.current"] = 0
                 }
             });
 

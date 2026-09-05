@@ -363,7 +363,8 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         var variables = supplied
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
-        ResourceFormulaVariables.AddOwner(variables, "actor", actor.ResourceState);
+        ResourceFormulaVariables.AddOwner(variables, "source", actor.ResourceState);
+        ResourceFormulaVariables.AddOwner(variables, "owner", actor.ResourceState);
         if (target != null)
             ResourceFormulaVariables.AddOwner(variables, "target", target.ResourceState);
         return variables;

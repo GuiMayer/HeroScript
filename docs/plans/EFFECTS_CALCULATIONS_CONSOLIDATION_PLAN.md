@@ -36,6 +36,7 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 - Baseline Git: `8e29131` (`main`). Revisão anterior registrou 1.356 testes Core e 147 API aprovados; repetir nesta implementação antes de considerar esse resultado atual.
 - Etapa 0 concluída: contrato registrado; baseline repetido nesta implementação, 1.356 testes Core e 147 API aprovados, nenhuma falha.
 - Etapa 1: ownership tipado, lados/relações direcionais em snapshots e cenários, targeting canônico sem `IsHero`, seleção ausente/inválida rejeitada. 27 testes direcionados aprovados. Consumidores especializados antigos serão removidos na etapa 9; validação do grafo de lados entra na etapa 8.
+- Etapa 2: resolver compartilhado e namespace de variáveis canônico introduzidos; políticas de `Set` e recurso ausente, validação de enum/bounds/overflow e aliases sem valores negativos. 30 testes direcionados aprovados. A migração das cartas e a ampliação dos providers seguem nas etapas dependentes.
 
 ## Testes obrigatórios da migração
 

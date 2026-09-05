@@ -218,98 +218,20 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     }
 
     private Result<ResolvedAmount> ResolveValue(
-        EffectTriggerExecutionRequest request,
-        EffectDefinition effect,
-        string targetId,
-        Dictionary<string, float> variables,
-        string calculationSuffix)
+        EffectTriggerExecutionRequest request, EffectDefinition effect, string targetId,
+        Dictionary<string, float> variables, string calculationSuffix)
     {
-        if (effect.Type is not (EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE))
-            return Result<ResolvedAmount>.Success(new(0, null));
-        var value = effect.FlatValue ?? 0;
-        if (string.IsNullOrWhiteSpace(effect.FormulaValue))
-        {
-            // Keep the authored flat value and continue through the optional
-            // calculation pipeline below.
-        }
-        else
-        {
-            var evaluated = Evaluate(effect.FormulaValue, request.ContentRevision, variables);
-            if (evaluated.IsFailure)
-                return Result<ResolvedAmount>.Failure(evaluated.Error);
-            value += evaluated.Value;
-        }
-        if (request.Run?.ResolvedMode == null)
-            return Result<ResolvedAmount>.Success(new(value, null));
-        if (_contentRuntimes == null || _calculations == null || _influences == null)
-            return Result<ResolvedAmount>.Failure("Trigger calculation services are unavailable");
-        var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
-        if (runtime.IsFailure)
-            return Result<ResolvedAmount>.Failure(runtime.Error);
-        var pipeline = ResolvePipeline(effect, request.Run, runtime.Value);
-        if (pipeline.IsFailure)
-            return Result<ResolvedAmount>.Failure(pipeline.Error);
-        var actor = request.Combat.GetEntity(request.SourceEntityId)
-            ?? request.Combat.GetEntity(request.OwnerEntityId)!;
-        var target = request.Combat.GetEntity(targetId)!;
-        var influences = _influences.Collect(new CalculationSourceContext
-        {
-            ContentRevision = request.ContentRevision,
-            Run = request.Run,
-            Combat = request.Combat,
-            Actor = actor,
-            Target = target,
-            Pipeline = pipeline.Value,
-            Tags = effect.Tags.ToHashSet(StringComparer.Ordinal),
-            Variables = variables
-        });
-        if (influences.IsFailure)
-            return Result<ResolvedAmount>.Failure(influences.Error);
-        var calculated = _calculations.Calculate(new CalculationRequest
-        {
-            CalculationId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}",
-            Channel = effect.CalculationChannel,
-            BaseValue = value,
-            Influences = influences.Value
-                .Where(item => string.Equals(item.Channel, effect.CalculationChannel, StringComparison.Ordinal))
-                .ToArray(),
-            Tags = effect.Tags.ToHashSet(StringComparer.Ordinal)
-        }, pipeline.Value);
-        return calculated.IsFailure
-            ? Result<ResolvedAmount>.Failure(calculated.Error)
-            : Result<ResolvedAmount>.Success(new(calculated.Value.Value, calculated.Value));
-    }
-
-    private static Result<CalculationPipelineDefinition> ResolvePipeline(
-        EffectDefinition effect,
-        RunState run,
-        ContentRuntime runtime)
-    {
-        var enabled = run.ResolvedMode?.Definition.CalculationPipelineIds ?? [];
-        if (!string.IsNullOrWhiteSpace(effect.CalculationPipelineId))
-        {
-            if (!enabled.Contains(effect.CalculationPipelineId, StringComparer.Ordinal))
-                return Result<CalculationPipelineDefinition>.Failure(
-                    $"Calculation pipeline is not enabled by mode: {effect.CalculationPipelineId}");
-            return runtime.GetDefinition<CalculationPipelineDefinition>(
-                "calculation-pipelines",
-                effect.CalculationPipelineId);
-        }
-        var compatible = new List<CalculationPipelineDefinition>();
-        foreach (var pipelineId in enabled.OrderBy(id => id, StringComparer.Ordinal))
-        {
-            var pipeline = runtime.GetDefinition<CalculationPipelineDefinition>(
-                "calculation-pipelines",
-                pipelineId);
-            if (pipeline.IsFailure)
-                return Result<CalculationPipelineDefinition>.Failure(pipeline.Error);
-            if (string.Equals(pipeline.Value.Channel, effect.CalculationChannel, StringComparison.Ordinal))
-                compatible.Add(pipeline.Value);
-        }
-        return compatible.Count == 1
-            ? Result<CalculationPipelineDefinition>.Success(compatible[0])
-            : Result<CalculationPipelineDefinition>.Failure(
-                $"Effect channel {effect.CalculationChannel} requires exactly one enabled pipeline; found {compatible.Count}");
+        var resolved = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences)
+            .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}",
+                new CalculationSourceContext
+                {
+                    ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat,
+                    Actor = request.Combat.GetEntity(request.SourceEntityId) ?? request.Combat.GetEntity(request.OwnerEntityId),
+                    Target = request.Combat.GetEntity(targetId), Variables = variables,
+                    Tags = effect.Tags.ToHashSet(StringComparer.Ordinal)
+                });
+        return resolved.IsFailure ? Result<ResolvedAmount>.Failure(resolved.Error)
+            : Result<ResolvedAmount>.Success(new(resolved.Value.Value, resolved.Value.Calculation));
     }
 
     private Result<bool> EvaluateCondition(
@@ -339,14 +261,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         CombatState combat,
         string targetId)
     {
-        var variables = request.Variables.ToDictionary(
-            pair => pair.Key,
-            pair => pair.Value,
-            StringComparer.Ordinal);
         var source = combat.GetEntity(request.SourceEntityId) ?? combat.GetEntity(request.OwnerEntityId)!;
-        AddResources(variables, "source", source);
-        AddResources(variables, "target", combat.GetEntity(targetId)!);
-        return variables;
+        return GameplayFormulaContext.Build(source, combat.GetEntity(targetId),
+            combat.GetEntity(request.OwnerEntityId)!, request.Run, request.Variables);
     }
 
     private static void AddResources(

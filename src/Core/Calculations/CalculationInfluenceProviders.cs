@@ -123,7 +123,7 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
                 string.IsNullOrWhiteSpace(binding.Channel) ||
                 string.IsNullOrWhiteSpace(binding.Bucket))
                 return Result<IReadOnlyList<CalculationInfluence>>.Failure("Resource influence binding is incomplete");
-            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.Field))
+            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.Field) || !Enum.IsDefined(binding.MissingResource))
             {
                 return Result<IReadOnlyList<CalculationInfluence>>.Failure(
                     $"Resource influence binding {binding.BindingId} has an invalid scope or field");
@@ -132,9 +132,13 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
                 ? context.Actor
                 : context.Target;
             var resource = entity?.GetResource(binding.ResourceId);
-            if (resource == null)
+            if (entity == null)
+                return Result<IReadOnlyList<CalculationInfluence>>.Failure($"Binding {binding.BindingId} has no scoped entity");
+            if (resource == null && binding.MissingResource == MissingResourcePolicy.Error)
+                return Result<IReadOnlyList<CalculationInfluence>>.Failure($"Binding {binding.BindingId}: missing resource {binding.ResourceId}");
+            if (resource == null && binding.MissingResource == MissingResourcePolicy.Ignore)
                 continue;
-            var sourceValue = binding.Field switch
+            var sourceValue = resource == null ? 0 : binding.Field switch
             {
                 ResourceValueField.Current => resource.Current,
                 ResourceValueField.Minimum => resource.Minimum,
