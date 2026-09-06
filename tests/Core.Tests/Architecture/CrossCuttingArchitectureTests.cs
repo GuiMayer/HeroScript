@@ -9,6 +9,7 @@ using Core.Run;
 using Core.StatusEffects;
 using Core.Events.Domain;
 using Core.Entity.Components;
+using Core.Math;
 using System.Collections.Immutable;
 using Xunit;
 
@@ -113,6 +114,29 @@ public sealed class CrossCuttingArchitectureTests
         Assert.True(
             present.Length == 0,
             $"Removed gameplay authorities were reintroduced: {string.Join(", ", present)}");
+    }
+
+    [Theory]
+    [InlineData(typeof(MathEngine))]
+    [InlineData(typeof(GambitEngine))]
+    public void PureEvaluationServices_DoNotPublishEvents(Type serviceType)
+    {
+        var eventBusType = typeof(Core.Events.IEventBus);
+        var eventFields = serviceType
+            .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            .Where(field => eventBusType.IsAssignableFrom(field.FieldType))
+            .Select(field => field.Name)
+            .ToArray();
+        var eventParameters = serviceType
+            .GetConstructors(BindingFlags.Instance | BindingFlags.Public)
+            .SelectMany(constructor => constructor.GetParameters())
+            .Where(parameter => eventBusType.IsAssignableFrom(parameter.ParameterType))
+            .Select(parameter => parameter.Name)
+            .ToArray();
+
+        Assert.True(
+            eventFields.Length == 0 && eventParameters.Length == 0,
+            $"{serviceType.Name} can publish events during evaluation");
     }
 
     [Fact]

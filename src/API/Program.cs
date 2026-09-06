@@ -132,8 +132,7 @@ builder.Services.AddSingleton<IMathEngine, MathEngine>(sp =>
     var formulaLoader = sp.GetRequiredService<FormulaLoader>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("MathEngine"));
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    return new MathEngine(configManager, formulaLoader, logger, eventBus);
+    return new MathEngine(configManager, formulaLoader, logger);
 });
 builder.Services.AddSingleton<IRuntimeFormulaEvaluator, RuntimeFormulaEvaluator>(sp =>
 {
@@ -230,12 +229,10 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
 {
     var configManager = sp.GetRequiredService<IConfigManager>();
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
-    var eventBus = sp.GetRequiredService<IEventBus>();
     var persister = sp.GetRequiredService<IDefinitionPersister>();
     return new GambitEngine(
         configManager,
         resourceLoader,
-        eventBus,
         persister,
         sp.GetRequiredService<IContentRuntimeResolver>(),
         sp.GetRequiredService<IRuntimeFormulaEvaluator>());

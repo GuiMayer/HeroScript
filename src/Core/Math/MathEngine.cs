@@ -74,7 +74,6 @@ namespace Core.Math
         private readonly object _cacheLock = new();
         private readonly Config.IConfigManager _configManager;
         private readonly FormulaLoader _formulaLoader;
-        private readonly Events.IEventBus? _eventBus;
         private readonly Logging.ILogger _logger;
         
         // Cache de fórmulas carregadas
@@ -92,12 +91,14 @@ namespace Core.Math
         /// <summary>
         /// Constructor for dependency injection
         /// </summary>
-        public MathEngine(Config.IConfigManager configManager, FormulaLoader formulaLoader, Logging.ILogger logger, Events.IEventBus? eventBus = null)
+        public MathEngine(
+            Config.IConfigManager configManager,
+            FormulaLoader formulaLoader,
+            Logging.ILogger logger)
         {
             _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
             _formulaLoader = formulaLoader ?? throw new ArgumentNullException(nameof(formulaLoader));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _eventBus = eventBus;
         }
 
         /// <summary>
@@ -350,16 +351,6 @@ namespace Core.Math
             var result = expression.Build();
 
             _logger.LogDebug($"Formula '{formulaName}' evaluated: {inputValue} -> {result}");
-
-            // 11. Publicar evento se EventBus estiver configurado
-            _eventBus?.Publish(new Events.Domain.MathFormulaEvaluatedEvent
-            {
-                FormulaName = formulaName,
-                InputValue = inputValue,
-                OutputValue = result,
-                Parameters = parameters,
-                Target = formulaName
-            });
 
             return expression;
         }

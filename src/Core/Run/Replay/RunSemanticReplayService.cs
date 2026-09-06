@@ -16,8 +16,6 @@ using Core.Content;
 using Core.Determinism;
 using Core.Effects;
 using Core.Entity.Definitions;
-using Core.Events;
-using Core.Logging;
 using Core.Math;
 using Core.Resources;
 using Core.Run.Content;
@@ -280,7 +278,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
 
     private ReplayRuntime CreateRuntime(string configName)
     {
-        var eventBus = new EventBus(NullLogger.Instance);
         var contentRuntimes = _contentRuntimes ??
             (_contentPublications == null ? null : new ContentRuntimeResolver(_contentPublications));
         var modifierCatalog = contentRuntimes == null
@@ -315,7 +312,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
         var gambits = new GambitEngine(
             _configManager,
             _resourceLoader,
-            eventBus,
             contentRuntimes: contentRuntimes,
             formulas: _formulaEvaluator);
         var triggers = new EffectTriggerExecutor(_formulaEvaluator, new ImmutableEffectProcessor(), contentRuntimes,
