@@ -13,6 +13,20 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     public CombatSandboxIntegrationTests(TestWebApplicationFactory factory) => _client = factory.CreateClient();
 
     [Fact]
+    public async Task IdenticalCompleteSandboxFlow_IsBitwiseStableAcrossTenFreshRuntimes()
+    {
+        DeterministicFlowEvidence? baseline = null;
+        for (var iteration = 0; iteration < 10; iteration++)
+        {
+            using var factory = new TestWebApplicationFactory();
+            using var client = factory.CreateClient();
+            var evidence = await ExecuteDeterministicFlow(client);
+            baseline ??= evidence;
+            Assert.Equal(baseline, evidence);
+        }
+    }
+
+    [Fact]
     public async Task CardEvaluation_ExplainsExactPreviewWithoutMutatingCombat()
     {
         using var launch = await _client.PostAsJsonAsync(
@@ -541,6 +555,82 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         },
         initialState = initialState ?? new { heroResources = new { energy = 3 } }
     };
+
+    private static async Task<DeterministicFlowEvidence> ExecuteDeterministicFlow(HttpClient client)
+    {
+        using var launchResponse = await client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario("ten-runtime-determinism"));
+        var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
+        var runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launch.GetProperty("combat").GetProperty("combatId").GetGuid();
+        var initialResolution = Assert.Single(
+            launch.GetProperty("run").GetProperty("combatResolutions").EnumerateObject()).Value;
+
+        using var snapshotResponse = await client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
+        var card = snapshot.GetProperty("hand").EnumerateArray()
+            .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
+        var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
+
+        using var previewResponse = await client.GetAsync(
+            $"/api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation?actorId=hero&targetIds=goblin_a");
+        var preview = await previewResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+
+        using var actionResponse = await client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            new
+            {
+                commandId = Guid.Parse("70000000-0000-8000-8000-000000000001"),
+                expectedSequence = snapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
+                expectedStep = snapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
+                type = "PLAY_CARD",
+                payload = new
+                {
+                    actorId = "hero",
+                    cardInstanceId,
+                    targetIds = new[] { "goblin_a" }
+                }
+            });
+        var action = await actionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(actionResponse.StatusCode == HttpStatusCode.OK, action.GetRawText());
+        var resolution = action.GetProperty("state").GetProperty("resolution");
+
+        using var journalResponse = await client.GetAsync($"/api/v1/runs/{runId}/journal?limit=100");
+        var journal = await journalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, journalResponse.StatusCode);
+        using var verifyResponse = await client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await verifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, verifyResponse.StatusCode);
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+
+        return new DeterministicFlowEvidence(
+            runId,
+            combatId,
+            cardInstanceId,
+            snapshot.GetProperty("run").GetProperty("stateHash").GetString()!,
+            initialResolution.GetProperty("resolutionFingerprint").GetString()!,
+            preview.GetProperty("resolutionFingerprint").GetString()!,
+            action.GetProperty("stateHash").GetString()!,
+            resolution.GetProperty("resolutionFingerprint").GetString()!,
+            resolution.GetProperty("frames").GetRawText(),
+            journal.GetProperty("entries").GetRawText());
+    }
+
+    private sealed record DeterministicFlowEvidence(
+        Guid RunId,
+        Guid CombatId,
+        Guid CardInstanceId,
+        string InitialStateHash,
+        string InitializationFingerprint,
+        string PreviewFingerprint,
+        string FinalStateHash,
+        string ResolutionFingerprint,
+        string Frames,
+        string Journal);
 
     private static double Health(JsonElement snapshot, string entityId) => snapshot
         .GetProperty("combat")
