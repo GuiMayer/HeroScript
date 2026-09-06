@@ -32,7 +32,6 @@ public record EffectDefinition
     private ImmutableDictionary<string, object> _metadata =
         ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     private ImmutableList<EffectDefinition>? _chainedEffects;
-    private ImmutableList<EffectDefinition>? _conditionalEffects;
 
     /// <summary>
     /// ID único do efeito (gerado automaticamente se não fornecido)
@@ -55,11 +54,6 @@ public record EffectDefinition
     /// </summary>
     public string? SelectionResourceId { get; init; }
     
-    /// <summary>
-    /// Timing de execução
-    /// </summary>
-    public EffectTiming Timing { get; init; } = EffectTiming.IMMEDIATE;
-    
     // ===== VALORES =====
     
     /// <summary>
@@ -72,11 +66,6 @@ public record EffectDefinition
     /// Contexto disponível: source_*, target_*, stacks, etc.
     /// </summary>
     public string? FormulaValue { get; init; }
-    
-    /// <summary>
-    /// Se o valor é percentual (ex: 50% = 0.5)
-    /// </summary>
-    public bool IsPercentage { get; init; }
     
     // ===== RECURSOS (para DAMAGE, HEAL, MODIFY_RESOURCE) =====
     
@@ -136,24 +125,6 @@ public record EffectDefinition
     public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
     public bool ShuffleDiscardWhenEmpty { get; init; } = true;
     public bool AllowPartialDraw { get; init; } = true;
-    
-    // ===== MODIFICADORES (para MODIFY_*) =====
-    
-    /// <summary>
-    /// Chave do modificador no damage pipeline
-    /// Ex: "increased_damage_total", "crit_chance"
-    /// </summary>
-    public string? ModifierKey { get; init; }
-    
-    /// <summary>
-    /// Valor do modificador (flat)
-    /// </summary>
-    public float? ModifierValue { get; init; }
-    
-    /// <summary>
-    /// Fórmula do modificador (dinâmica)
-    /// </summary>
-    public string? ModifierFormula { get; init; }
     
     // ===== CONDIÇÕES =====
     
@@ -232,12 +203,4 @@ public record EffectDefinition
         init => _chainedEffects = value?.ToImmutableList();
     }
     
-    /// <summary>
-    /// Efeitos condicionais (executam se condição for verdadeira)
-    /// </summary>
-    public IReadOnlyList<EffectDefinition>? ConditionalEffects
-    {
-        get => _conditionalEffects;
-        init => _conditionalEffects = value?.ToImmutableList();
-    }
 }

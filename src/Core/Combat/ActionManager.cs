@@ -235,8 +235,6 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
             yield return effect;
             foreach (var nested in EnumerateEffects(effect.ChainedEffects ?? []))
                 yield return nested;
-            foreach (var nested in EnumerateEffects(effect.ConditionalEffects ?? []))
-                yield return nested;
         }
     }
 
@@ -420,14 +418,10 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
         var chained = effect.ChainedEffects?
             .Select((child, index) => NormalizeEffectId(child, $"{path}.chained.{index}"))
             .ToList();
-        var conditional = effect.ConditionalEffects?
-            .Select((child, index) => NormalizeEffectId(child, $"{path}.conditional.{index}"))
-            .ToList();
         return effect with
         {
             EffectId = string.IsNullOrWhiteSpace(effect.EffectId) ? path : effect.EffectId,
-            ChainedEffects = chained,
-            ConditionalEffects = conditional
+            ChainedEffects = chained
         };
     }
 }

@@ -32,10 +32,6 @@ public static class EffectDefinitionValidator
             void Error(string message) => errors.Add($"{path}: {message}");
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
             if (!Enum.IsDefined(effect.Target)) Error("invalid target policy");
-            if (effect.Timing != EffectTiming.IMMEDIATE) Error("only IMMEDIATE timing is executable; use an owner trigger for lifecycle timing");
-            if (effect.IsPercentage) Error("isPercentage is not executable; express scaling through a formula or calculation influence");
-            if (effect.ModifierKey != null || effect.ModifierValue != null || effect.ModifierFormula != null)
-                Error("legacy modifier fields are not executable; use APPLY_MODIFIER with modifierId");
             if (!Enum.IsDefined(effect.ChanceScope) || !float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1)
                 Error("invalid chance policy");
             if (effect.Repeat is < 1 or > EffectExecutionLimits.MaximumRepeat) Error("repeat is outside execution limits");
@@ -76,7 +72,6 @@ public static class EffectDefinitionValidator
             }
             if (effect.Type == EffectType.ADD_CARD_TO_HAND && string.IsNullOrWhiteSpace(effect.CardDefinitionId))
                 Error("ADD_CARD_TO_HAND requires cardDefinitionId");
-            if (effect.ConditionalEffects?.Count > 0) Error("conditionalEffects is unsupported; use chainedEffects with a condition");
             inspect?.Invoke(effect, path);
             foreach (var (child, index) in (effect.ChainedEffects ?? []).Select((child, index) => (child, index)).Reverse())
                 pending.Push((child, $"{path}.chainedEffects[{index}]", depth + 1, expansion));

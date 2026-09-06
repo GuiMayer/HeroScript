@@ -136,8 +136,6 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 return Result.Failure($"Effect {path} repeat is outside execution limits");
             if (!float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1 || !Enum.IsDefined(effect.ChanceScope))
                 return Result.Failure($"Effect {path} has an invalid chance policy");
-            if (effect.ConditionalEffects?.Count > 0)
-                return Result.Failure("conditionalEffects is unsupported; use chainedEffects with a condition");
             for (var repeat = 0; repeat < effect.Repeat; repeat++)
             {
                 var beforeSelection = CanonicalJson.ComputeHash(current);

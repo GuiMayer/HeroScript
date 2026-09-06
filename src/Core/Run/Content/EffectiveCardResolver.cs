@@ -188,10 +188,6 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             {
                 StatusDuration = ApplyInteger(effect.StatusDuration ?? 0, patch.Operation, patch.Value)
             },
-            CardEffectNumericAttribute.ModifierValue => effect with
-            {
-                ModifierValue = Apply(effect.ModifierValue ?? 0, patch.Operation, patch.Value)
-            },
             _ => effect
         };
         return Result<CardComponentDefinition>.Success(effectComponent with { Effect = effect });
@@ -350,7 +346,6 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         CardEffectNumericAttribute.Repeat => effect.Repeat,
         CardEffectNumericAttribute.StatusStacks => effect.StatusStacks,
         CardEffectNumericAttribute.StatusDuration => effect.StatusDuration,
-        CardEffectNumericAttribute.ModifierValue => effect.ModifierValue,
         _ => null
     };
 

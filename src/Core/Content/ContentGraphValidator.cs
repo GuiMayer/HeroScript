@@ -492,8 +492,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             yield return effect;
             foreach (var nested in EnumerateEffects(effect.ChainedEffects ?? []))
                 yield return nested;
-            foreach (var nested in EnumerateEffects(effect.ConditionalEffects ?? []))
-                yield return nested;
         }
     }
 

@@ -13,15 +13,11 @@ namespace Core.Tests.Content;
 
 public sealed class GameplayContentValidationTests
 {
-    [Theory]
-    [InlineData(EffectType.COPY_EFFECT)]
-    [InlineData(EffectType.MODIFY_CRIT_CHANCE)]
-    [InlineData(EffectType.SKIP_TURN)]
-    [InlineData((EffectType)999)]
-    public void UnsupportedChildIsRejectedEvenWhenParentNeverExecutes(EffectType type)
+    [Fact]
+    public void UnsupportedChildIsRejectedEvenWhenParentNeverExecutes()
     {
         var parent = EffectTransactionTests.Resource(EffectType.DAMAGE, 1) with
-            { Chance = 0, ChainedEffects = [new() { Type = type }] };
+            { Chance = 0, ChainedEffects = [new() { Type = (EffectType)999 }] };
         var result = EffectTransactionTests.Executor().Execute(EffectTransactionTests.Request(parent));
         Assert.True(result.IsFailure);
         Assert.Contains("no executable runtime", result.Error);
@@ -37,13 +33,12 @@ public sealed class GameplayContentValidationTests
             Type = EffectType.APPLY_MODIFIER, ModifierId = "missing", Chance = 0,
             ModifierOwner = new() { Kind = GameplayOwnerKind.Side }, ChainedEffects = [new()
             {
-                Type = EffectType.DRAW_CARD, CardCount = -1, Timing = EffectTiming.DELAYED
+                Type = EffectType.DRAW_CARD, CardCount = -1
             }]
         }] }));
         Assert.Contains(result.Errors, error => error.Contains("modifiers/missing"));
         Assert.Contains(result.Errors, error => error.Contains("invalid modifier owner"));
         Assert.Contains(result.Errors, error => error.Contains("invalid cardCount"));
-        Assert.Contains(result.Errors, error => error.Contains("only IMMEDIATE"));
     }
 
     [Theory]

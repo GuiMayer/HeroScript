@@ -17,8 +17,7 @@ public enum CardEffectNumericAttribute
     Chance,
     Repeat,
     StatusStacks,
-    StatusDuration,
-    ModifierValue
+    StatusDuration
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
