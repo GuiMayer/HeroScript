@@ -149,7 +149,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add($"phase-sequences/{id} is invalid");
                     continue;
                 }
-                var validation = PhaseSequenceLoader.ValidateSequence(sequence);
+                var validation = PhaseSequenceValidator.Validate(sequence);
                 if (validation.IsFailure)
                     errors.Add($"phase-sequences/{id}: {validation.Error}");
             }
@@ -195,7 +195,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                         combat.DefaultPhaseSequenceId);
                     if (selectedSequence.IsSuccess)
                     {
-                        var operationalSequence = PhaseSequenceLoader.ValidateCanonicalActivationSequence(
+                        var operationalSequence = PhaseSequenceValidator.ValidateCanonicalActivationSequence(
                             selectedSequence.Value);
                         if (operationalSequence.IsFailure)
                         {

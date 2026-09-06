@@ -179,18 +179,6 @@ builder.Services.AddSingleton<EntityDefinitionLoader>(sp =>
     return loader;
 });
 
-// Register PhaseSequenceLoader
-builder.Services.AddSingleton<PhaseSequenceLoader>(sp =>
-{
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PhaseSequenceLoader"));
-    var configManager = sp.GetRequiredService<IConfigManager>();
-    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
-    var loader = new PhaseSequenceLoader(logger, configManager, resourceLoader);
-    
-    return loader;
-});
-
 // Register ActionManager
 builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 {
@@ -554,7 +542,6 @@ var applicationCaches = new ICacheService[]
 {
     (ICacheService)app.Services.GetRequiredService<IResourceLoader>(),
     app.Services.GetRequiredService<EntityDefinitionLoader>(),
-    app.Services.GetRequiredService<PhaseSequenceLoader>(),
     (ICacheService)app.Services.GetRequiredService<IMathEngine>(),
     (ICacheService)app.Services.GetRequiredService<IContentManifestProvider>(),
     (ICacheService)app.Services.GetRequiredService<IContentRuntimeResolver>(),

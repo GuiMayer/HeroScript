@@ -206,7 +206,7 @@ public sealed class CardInspectionService : ICardInspectionService
         if (instance == null)
             return Result<CardInspectionResult>.Failure($"Card instance not found: {request.CardInstanceId}");
         var actorId = string.IsNullOrWhiteSpace(request.ActorId)
-            ? combat.ActivationState?.ActiveActorId ?? combat.GetCurrentPriorityPlayer() ?? combat.Hero.EntityId
+            ? combat.ActivationState?.ActiveActorId ?? combat.Hero.EntityId
             : request.ActorId;
         var actor = combat.GetEntity(actorId);
         if (actor == null)

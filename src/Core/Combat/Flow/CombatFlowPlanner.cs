@@ -361,7 +361,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies)
     {
-        var validation = PhaseSequenceLoader.ValidateCanonicalActivationSequence(sequence);
+        var validation = PhaseSequenceValidator.ValidateCanonicalActivationSequence(sequence);
         if (validation.IsFailure)
             return Result<CombatState>.Failure(validation.Error);
 
@@ -406,7 +406,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         return Result<CombatState>.Success(refreshed.Value with
         {
             ActivationState = activation,
-            PhaseState = CreatePhaseState(sequence, middle, actorId, order)
+            PhaseState = CreatePhaseState(sequence, middle)
         });
     }
 
@@ -465,11 +465,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
                 CompletedActorIds = completed,
                 WaitingForInput = false
             },
-            PhaseState = CreatePhaseState(
-                sequence,
-                endPhase,
-                activation.ActiveActorId,
-                activation.ActivationOrder)
+            PhaseState = CreatePhaseState(sequence, endPhase)
         };
         var endStep = new CombatResolutionStep
         {
@@ -547,7 +543,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var startedCombat = refreshed.Value with
         {
             ActivationState = nextActivation,
-            PhaseState = CreatePhaseState(sequence, middle, nextActorId, nextOrder)
+            PhaseState = CreatePhaseState(sequence, middle)
         };
         var startStep = new CombatResolutionStep
         {
@@ -875,18 +871,11 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
 
     private static PhaseState CreatePhaseState(
         PhaseSequenceDefinition sequence,
-        PhaseDefinition phase,
-        string actorId,
-        IReadOnlyList<string> order) => new()
+        PhaseDefinition phase) => new()
         {
             CurrentPhaseId = phase.PhaseId,
             PhaseIndex = sequence.Phases.ToList().IndexOf(phase),
-            PhaseSequence = sequence,
-            PriorityOrder = order,
-            CurrentPriorityIndex = System.Math.Max(0, order.ToList().IndexOf(actorId)),
-            ActivePlayerId = actorId,
-            CanTransition = phase.AutoTransition,
-            PhaseStartTime = DateTime.UnixEpoch
+            PhaseSequence = sequence
         };
 
     private static bool ScopeApplies(

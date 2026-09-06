@@ -105,7 +105,12 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Combat.Modifiers.IScriptModifierManager",
             "Core.Resources.ResourceRegenerationProcessor",
             "Core.Resources.IResourceRegenerationProcessor",
-            "Core.Entity.Components.StatusEffectComponent"
+            "Core.Entity.Components.StatusEffectComponent",
+            "Core.Combat.TurnPhase.PhaseManager",
+            "Core.Combat.TurnPhase.PrioritySystem",
+            "Core.Combat.TurnPhase.ActionStackManager",
+            "Core.Combat.TurnPhase.PhaseSystemFactory",
+            "Core.Combat.TurnPhase.PhaseSequenceLoader"
         };
         var present = removedTypes
             .Where(name => coreAssembly.GetType(name) != null)

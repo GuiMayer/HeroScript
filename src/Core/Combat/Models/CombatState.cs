@@ -65,17 +65,16 @@ public record CombatState
     public ImmutableDictionary<string, float> TurnOrderValues { get; init; } =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
     
-    // Sistema de fases (opcional - se null, usa sistema de turno simples sem fases)
-    // Quando não-null, habilita sistema de fases TCG-style com prioridade e validação de ações por fase
+    // Fase materializada pelo único fluxo canônico. Ausente apenas antes da
+    // inicialização do encontro; não existe fallback permissivo sem fases.
     public PhaseState? PhaseState { get; init; }
     public CombatBoardState Board { get; init; } = new();
 
-    // Estado de ativação por entidade (opcional - Fase 3 run loop)
+    // Única autoridade para ator ativo e progresso da ativação.
     public ActivationState? ActivationState { get; init; }
 
     /// <summary>
-    /// Status ativos pertencem ao snapshot do combate. O gerenciador de status
-    /// pode executar definições, mas não é a fonte de verdade de uma run.
+    /// Status ativos pertencem exclusivamente ao snapshot do combate.
     /// </summary>
     public ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>> StatusEffects { get; init; } =
         ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);

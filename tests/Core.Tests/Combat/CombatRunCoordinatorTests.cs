@@ -207,8 +207,7 @@ public sealed class CombatRunCoordinatorTests
             PhaseState = new PhaseState
             {
                 CurrentPhaseId = "action",
-                PhaseSequence = sequence,
-                ActivePlayerId = actorId
+                PhaseSequence = sequence
             }
         };
     }

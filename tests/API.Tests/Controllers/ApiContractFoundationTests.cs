@@ -250,11 +250,6 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             cards.SelectMany(card => card.GetProperty("evaluation").GetProperty("legalTargetIds").EnumerateArray()),
             target => target.GetString() == "enemy_1");
 
-        using var stackResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/stack");
-        var stack = await stackResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, stackResponse.StatusCode);
-        Assert.Empty(stack.GetProperty("actions").EnumerateArray());
-
         using var currentResponse = await _client.GetAsync(
             $"/api/v1/runs/{runId}/encounters/current");
         var current = await currentResponse.Content.ReadFromJsonAsync<JsonElement>();

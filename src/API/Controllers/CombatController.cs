@@ -5,7 +5,6 @@ using Core.Combat.Models;
 using Core.Common;
 using API.Models.Combat;
 using Core.Determinism;
-using Core.Combat.TurnPhase;
 
 namespace API.Controllers;
 
@@ -88,26 +87,6 @@ public class CombatController : BaseApiController
         {
             return HandleException(ex, "get combat history", combatId.ToString());
         }
-    }
-
-    [HttpGet("/api/v1/combats/{combatId:guid}/stack")]
-    public IActionResult GetStack(Guid combatId)
-    {
-        var state = GetCombatStateIncludingOwned(combatId);
-        if (state.IsFailure)
-            return ApiNotFound(state.Error);
-        var stack = state.Value.PhaseState?.ActionStack ?? new ActionStack();
-        return Ok(new
-        {
-            combatId,
-            phase = state.Value.PhaseState?.CurrentPhaseId,
-            priorityActorId = state.Value.GetCurrentPriorityPlayer(),
-            stack.IsResolving,
-            stack.CurrentlyResolving,
-            actions = stack.Actions
-                .OrderByDescending(action => action.StackPosition)
-                .ToArray()
-        });
     }
 
     private Result<CombatState> GetCombatStateIncludingOwned(Guid combatId)

@@ -7,29 +7,6 @@ namespace Core.Tests.Events;
 public sealed class PhaseAndResourceEventsTests
 {
     [Fact]
-    public void PhaseEvents_PreserveContentDefinedIds()
-    {
-        var started = new PhaseStartedEvent
-        {
-            CombatId = Guid.NewGuid(),
-            PhaseId = "modded_combo_window",
-            ActivePlayerId = "hero",
-            Turn = 4
-        };
-        var ended = new PhaseEndedEvent
-        {
-            CombatId = started.CombatId,
-            PhaseId = started.PhaseId,
-            NextPhaseId = "cleanup",
-            Turn = started.Turn,
-            DurationMs = 12
-        };
-
-        Assert.Equal("modded_combo_window", started.PhaseId);
-        Assert.Equal("cleanup", ended.NextPhaseId);
-    }
-
-    [Fact]
     public void ResourceChangedEvent_RecordsGenericFieldAndSignedAmount()
     {
         var changed = new ResourceChangedEvent

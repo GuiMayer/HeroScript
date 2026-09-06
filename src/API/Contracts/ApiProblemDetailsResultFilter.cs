@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Filters;
 namespace API.Contracts;
 
 /// <summary>
-/// Normalizes legacy controller errors at the HTTP boundary. Domain and
+/// Normalizes controller errors at the HTTP boundary. Domain and
 /// controller code can migrate incrementally while clients always receive one
 /// RFC 9457-compatible representation.
 /// </summary>

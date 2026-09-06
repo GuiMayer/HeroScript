@@ -91,8 +91,7 @@ public sealed class SystemController : ControllerBase
             "profile-projections",
             "daily-challenge-proofs",
             "tcg-legality-reads",
-            "sse-events",
-            "legacy-routes"
+            "sse-events"
         }
     });
 }
