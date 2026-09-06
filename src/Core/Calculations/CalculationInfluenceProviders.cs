@@ -104,6 +104,30 @@ public sealed class CardComponentInfluenceProvider : ICalculationInfluenceProvid
     }
 }
 
+public sealed class GameModeCalculationInfluenceProvider(IRuntimeFormulaEvaluator formulas) : ICalculationInfluenceProvider
+{
+    public string ProviderId => "game-mode";
+    public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
+    {
+        var mode = context.Run?.ResolvedMode?.Definition;
+        return mode == null ? Result<IReadOnlyList<CalculationInfluence>>.Success([]) :
+            ContextualInfluencePolicies.Resolve(mode.Influences, CalculationSourceKind.GameMode,
+                mode.ModeId, context, formulas);
+    }
+}
+
+public sealed class EncounterCalculationInfluenceProvider(IRuntimeFormulaEvaluator formulas) : ICalculationInfluenceProvider
+{
+    public string ProviderId => "encounter";
+    public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
+    {
+        var scenario = context.Run?.Scenario;
+        return scenario == null ? Result<IReadOnlyList<CalculationInfluence>>.Success([]) :
+            ContextualInfluencePolicies.Resolve(scenario.Influences, CalculationSourceKind.Encounter,
+                context.Run!.ScenarioHash ?? scenario.AttemptKey, context, formulas);
+    }
+}
+
 /// <summary>
 /// Resource-to-pipeline mapping is explicit content. No resource name receives
 /// an implicit gameplay meaning.

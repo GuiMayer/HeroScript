@@ -379,6 +379,54 @@ public sealed class CalculationEngineTests
         Assert.Empty(enemyResult.Value);
     }
 
+    [Fact]
+    public void ModeAndEncounterProvidersComposeWithExplicitProvenance()
+    {
+        var run = new RunState
+        {
+            ResolvedMode = new() { Definition = new()
+            {
+                ModeId = "sandbox", Influences = [new()
+                {
+                    InfluenceId = "mode-flat", Channel = "effect_amount", Bucket = "flat", Value = 2,
+                    RequiredTags = ["attack"]
+                }]
+            } },
+            ScenarioHash = "scenario-hash",
+            Scenario = new() { Influences = [new()
+            {
+                InfluenceId = "encounter-more", Channel = "effect_amount", Bucket = "increased", Value = .5f,
+                RequiredTags = ["attack"]
+            }] }
+        };
+        var context = new CalculationSourceContext
+        {
+            Run = run, Tags = new HashSet<string> { "attack" }, ContentRevision = "revision"
+        };
+        var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
+        var collected = new CompositeCalculationInfluenceProvider([
+            new GameModeCalculationInfluenceProvider(formulas), new EncounterCalculationInfluenceProvider(formulas)
+        ]).Collect(context);
+        Assert.True(collected.IsSuccess, collected.IsFailure ? collected.Error : null);
+        Assert.Equal(2, collected.Value.Count);
+        Assert.Contains(collected.Value, item => item.SourceKind == CalculationSourceKind.GameMode);
+        Assert.Contains(collected.Value, item => item.SourceKind == CalculationSourceKind.Encounter);
+        Assert.Contains(collected.Value, item => item.SourceId == "sandbox");
+        Assert.Contains(collected.Value, item => item.SourceId == "scenario-hash");
+        var calculated = new CalculationEngine().Calculate(new()
+        {
+            CalculationId = "combined", Channel = "effect_amount", BaseValue = 10, Influences = collected.Value
+        }, new()
+        {
+            PipelineId = "test", Channel = "effect_amount", Buckets =
+            [
+                new() { BucketId = "flat", Order = 1, Operation = CalculationBucketOperation.Add },
+                new() { BucketId = "increased", Order = 2, Operation = CalculationBucketOperation.AddPercent }
+            ]
+        });
+        Assert.Equal(18, calculated.Value.Value);
+    }
+
     private static CalculationPipelineDefinition Pipeline() => new()
     {
         PipelineId = "generic-resource-change",

@@ -353,7 +353,9 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 new EntityResourceInfluenceProvider(),
                 new RunModifierInfluenceProvider(_formulaEvaluator),
                 new StatusCalculationInfluenceProvider(_formulaEvaluator),
-                new RelicCalculationInfluenceProvider(_formulaEvaluator)
+                new RelicCalculationInfluenceProvider(_formulaEvaluator),
+                new GameModeCalculationInfluenceProvider(_formulaEvaluator),
+                new EncounterCalculationInfluenceProvider(_formulaEvaluator)
             ]));
         var flowPlanner = contentRuntimes == null ? null : new CombatFlowPlanner(
             contentRuntimes, _actionManager, new IntentResolver(gambits, _actionManager),

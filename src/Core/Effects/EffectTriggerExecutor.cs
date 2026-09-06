@@ -267,7 +267,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
                     Actor = request.Combat.GetEntity(request.SourceEntityId) ?? request.Combat.GetEntity(request.OwnerEntityId),
                     Target = request.Combat.GetEntity(targetId), Variables = variables,
-                    Tags = effect.Tags.ToHashSet(StringComparer.Ordinal)
+                    Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
                 });
         return resolved.IsFailure ? Result<ResolvedAmount>.Failure(resolved.Error)
             : Result<ResolvedAmount>.Success(new(resolved.Value.Value, resolved.Value.Calculation));

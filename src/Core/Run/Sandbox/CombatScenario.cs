@@ -9,6 +9,7 @@ using Core.Entity.Integration;
 using Core.Resources;
 using Core.Run.Content;
 using Core.StatusEffects;
+using Core.Calculations;
 
 namespace Core.Run.Sandbox;
 
@@ -21,6 +22,7 @@ public sealed record CombatScenarioDefinition
 {
     private ImmutableArray<ScenarioCardDefinition> _deck = [];
     private ImmutableArray<ScenarioEnemyDefinition> _enemies = [];
+    private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
 
     public int SchemaVersion { get; init; } = 1;
     public string ModeId { get; init; } = string.Empty;
@@ -30,6 +32,11 @@ public sealed record CombatScenarioDefinition
     public ScenarioHeroDefinition Hero { get; init; } = new();
     public CombatRelationshipPolicy Relationships { get; init; } = new();
     public ImmutableArray<CombatSide> Sides { get; init; } = [];
+    public IReadOnlyList<ContextualInfluenceDefinition> Influences
+    {
+        get => _influences;
+        init => _influences = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<ScenarioCardDefinition> Deck
     {
         get => _deck;
@@ -197,6 +204,8 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             : _modes.Resolve(scenario.ModeId, configName);
         if (mode.IsFailure)
             return Result<CompiledCombatScenario>.Failure(mode.Error);
+        var scenarioInfluences = ValidateScenarioInfluences(scenario, mode.Value, manifest.Value.Revision, configName);
+        if (scenarioInfluences.IsFailure) return Result<CompiledCombatScenario>.Failure(scenarioInfluences.Error);
         if (!mode.Value.CapabilityPolicy.AllowScenarioAuthoring)
             return Result<CompiledCombatScenario>.Failure($"Game mode does not allow scenario authoring: {scenario.ModeId}");
         if (!mode.Value.CapabilityPolicy.AllowCustomDeck)
@@ -339,6 +348,29 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             Enemies = enemies.ToImmutableArray(),
             InitialStatusEffects = initialStatuses.Value
         });
+    }
+
+    private Result ValidateScenarioInfluences(CombatScenarioDefinition scenario, ResolvedGameMode mode,
+        string revision, string configName)
+    {
+        var duplicates = scenario.Influences.Where(item => !string.IsNullOrWhiteSpace(item.InfluenceId))
+            .GroupBy(item => item.InfluenceId, StringComparer.Ordinal).FirstOrDefault(group => group.Count() > 1);
+        if (duplicates != null) return Result.Failure($"Scenario contains duplicate influence: {duplicates.Key}");
+        var runtime = _contentRuntimes?.Resolve(revision, configName);
+        if (runtime is { IsFailure: true }) return Result.Failure(runtime.Error);
+        foreach (var influence in scenario.Influences)
+        {
+            var invalid = ContextualInfluencePolicies.Validate(influence);
+            if (invalid != null) return Result.Failure($"Scenario {invalid}");
+            if (runtime == null) continue;
+            var reachable = mode.Definition.CalculationPipelineIds.Select(id =>
+                    runtime.Value.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", id))
+                .Any(result => result.IsSuccess && result.Value.Channel == influence.Channel &&
+                    result.Value.Buckets.Any(bucket => bucket.BucketId == influence.Bucket));
+            if (!reachable)
+                return Result.Failure($"Scenario influence {influence.InfluenceId} is not reachable through an enabled calculation pipeline");
+        }
+        return Result.Success();
     }
 
     private Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>> CompileInitialStatusEffects(

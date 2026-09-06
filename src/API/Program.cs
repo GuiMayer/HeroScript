@@ -558,6 +558,10 @@ builder.Services.AddSingleton<StatusCalculationInfluenceProvider>(sp =>
     new StatusCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<RelicCalculationInfluenceProvider>(sp =>
     new RelicCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<GameModeCalculationInfluenceProvider>(sp =>
+    new GameModeCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<EncounterCalculationInfluenceProvider>(sp =>
+    new EncounterCalculationInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     new CompositeCalculationInfluenceProvider(
     [
@@ -565,7 +569,9 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
         sp.GetRequiredService<EntityResourceInfluenceProvider>(),
         sp.GetRequiredService<RunModifierInfluenceProvider>(),
         sp.GetRequiredService<StatusCalculationInfluenceProvider>(),
-        sp.GetRequiredService<RelicCalculationInfluenceProvider>()
+        sp.GetRequiredService<RelicCalculationInfluenceProvider>(),
+        sp.GetRequiredService<GameModeCalculationInfluenceProvider>(),
+        sp.GetRequiredService<EncounterCalculationInfluenceProvider>()
     ]));
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();

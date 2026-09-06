@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Combat.Flow;
+using Core.Calculations;
 
 namespace Core.Run;
 
@@ -12,6 +13,7 @@ public sealed record GameModeDefinition
     private ImmutableArray<string> _cardPoolIds = [];
     private ImmutableArray<string> _enemyPoolIds = [];
     private ImmutableArray<string> _calculationPipelineIds = [];
+    private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
 
     public string ModeId { get; init; } = string.Empty;
     public string? RunDefinitionId { get; init; }
@@ -28,6 +30,11 @@ public sealed record GameModeDefinition
     {
         get => _calculationPipelineIds;
         init => _calculationPipelineIds = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<ContextualInfluenceDefinition> Influences
+    {
+        get => _influences;
+        init => _influences = value?.ToImmutableArray() ?? [];
     }
 
     public IReadOnlyList<string> CardPoolIds

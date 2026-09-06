@@ -50,7 +50,7 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 As entregas acima não significam que a consolidação inteira esteja concluída. Próxima etapa: migrar os consumidores restantes antes de excluir as implementações antigas.
 
 - Remover o processador legado de regeneração junto com o fluxo antigo de `CombatSystem`; o lifecycle canônico já converte a regra de recurso em efeito comum e preserva steps, cálculo, proveniência e rollback.
-- Completar providers/componentes de modo e encontro, proveniência de upgrades e auditoria de seleção de pipeline por modo. Verificar todas as combinações alcançáveis sem rejeitar arbitrariamente conteúdo destinado a outro modo.
+- Completar proveniência de upgrades na composição do valor base. Providers de modo e encontro já usam os mesmos componentes contextuais, fórmulas, tags e traces das demais fontes; publicação de modos e compilação de cenários rejeitam influências sem pipeline alcançável.
 - Remover `Core.Damage`, resolver/handlers antigos, stores mutáveis de status/modifier e campos de compatibilidade, após migrar seus consumidores. Auditar também publicação prematura de eventos em `CombatSystem`, gambits e fórmulas.
 - Completar uso de controllers/lados fora do targeting canônico e políticas de desempate; o campo de controller do lado ainda não substitui toda a lógica de controle de ator.
 - Auditar encerramento imediato na inicialização, duração de modifiers quando a run termina por derrota, reaquisição de relíquias com políticas Replace/Highest e trace de remoção de múltiplos modifiers.

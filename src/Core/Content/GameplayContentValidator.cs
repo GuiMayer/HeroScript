@@ -18,6 +18,19 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
     {
         Visit<FormulaDefinition>("formulas", (path, item) =>
             errors.AddRange(FormulaDefinitionValidator.Validate(item).Select(error => $"{path}: {error}")));
+        Visit<GameModeDefinition>("modes", (path, item) =>
+        {
+            Influences(path, item.Influences);
+            var enabled = item.CalculationPipelineIds.ToHashSet(StringComparer.Ordinal);
+            foreach (var influence in item.Influences)
+            {
+                var reachable = enabled.Select(id => runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", id))
+                    .Any(result => result.IsSuccess && result.Value.Channel == influence.Channel &&
+                        result.Value.Buckets.Any(bucket => bucket.BucketId == influence.Bucket));
+                if (!reachable) Error($"{path}/influences/{influence.InfluenceId}",
+                    "influence is not reachable through a calculation pipeline enabled by this mode");
+            }
+        });
         Visit<ActionDefinition>("actions", (path, item) => Effects(path, item.Effects));
         Visit<Core.Resources.ResourceDefinition>("resources", (path, item) =>
         {
@@ -134,10 +147,8 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         foreach (var influence in influences)
         {
             var address = $"{path}/influences/{influence.InfluenceId}";
-            if (!Enum.IsDefined(influence.Scope)) Error(address, "invalid influence scope");
-            if (influence.Value.HasValue == !string.IsNullOrWhiteSpace(influence.Formula))
-                Error(address, "influence requires exactly one of value or formula");
-            if (influence.Value is { } value && !float.IsFinite(value)) Error(address, "influence value must be finite");
+            var invalid = ContextualInfluencePolicies.Validate(influence);
+            if (invalid != null) Error(address, invalid);
             Formula(address, influence.Formula);
             var pipelines = runtime.GetDefinitions("calculation-pipelines").Keys
                 .Select(id => runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", id))
