@@ -31,7 +31,11 @@ public sealed record CombatScenarioDefinition
     public string AttemptKey { get; init; } = string.Empty;
     public ScenarioHeroDefinition Hero { get; init; } = new();
     public CombatRelationshipPolicy Relationships { get; init; } = new();
-    public ImmutableArray<CombatSide> Sides { get; init; } = [];
+    public ImmutableArray<CombatSide> Sides { get; init; } =
+    [
+        new() { SideId = "player", Controller = ControllerKind.Player },
+        new() { SideId = "opposition", Controller = ControllerKind.AI }
+    ];
     public IReadOnlyList<ContextualInfluenceDefinition> Influences
     {
         get => _influences;

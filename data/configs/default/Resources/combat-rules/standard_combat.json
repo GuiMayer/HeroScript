@@ -14,7 +14,7 @@
       "actionBudget": {
         "strategy": "ResourceLimited",
         "actionCosts": "Configured",
-        "actorScope": "Player",
+        "actorScope": "PlayerControlled",
         "resourceId": "energy",
         "consumingCommands": ["PLAY_CARD"]
       },
@@ -28,7 +28,7 @@
         "drawPerActivation": 5,
         "handLimit": 10,
         "initialHandSize": 5,
-        "actorScope": "Player",
+        "actorScope": "RunOwner",
         "encounterStart": "PreserveZones",
         "encounterCleanup": "ReturnToDrawPile",
         "exhaustPersistence": "Encounter",
@@ -42,7 +42,7 @@
       },
       "resourceCycle": {
         "resourceId": "energy",
-        "actorScope": "Player",
+        "actorScope": "PlayerControlled",
         "startActivation": "ResetToMax"
       },
       "statusTiming": {

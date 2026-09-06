@@ -35,6 +35,10 @@ public record CombatState
 
     public SideRelationship Relationship(CombatEntity from, CombatEntity to) =>
         Relationships.Resolve(GetSideId(from), GetSideId(to));
+
+    public ControllerKind ControllerOf(CombatEntity entity) =>
+        Sides.FirstOrDefault(side => string.Equals(side.SideId, GetSideId(entity), StringComparison.Ordinal))?.Controller
+        ?? (entity.EntityId == Hero.EntityId ? ControllerKind.Player : ControllerKind.AI);
     
     // Entidades (agora com recursos genéricos)
     public CombatEntity Hero { get; init; } = null!;

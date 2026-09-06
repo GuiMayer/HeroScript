@@ -21,14 +21,29 @@ public static class CombatTransitions
         ArgumentNullException.ThrowIfNull(context);
 
         var combatId = context.AllocateId(idScope);
+        var materializedHero = string.IsNullOrWhiteSpace(hero.SideId) ? hero with { SideId = "player" } : hero;
+        var materializedEnemies = enemies.Select(entity => string.IsNullOrWhiteSpace(entity.SideId)
+            ? entity with { SideId = "opposition" } : entity).ToImmutableArray();
+        var sides = materializedEnemies.Select(entity => entity.SideId)
+            .Append(materializedHero.SideId)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(sideId => sideId, StringComparer.Ordinal)
+            .Select(sideId => new CombatSide
+            {
+                SideId = sideId,
+                Controller = string.Equals(sideId, materializedHero.SideId, StringComparison.Ordinal)
+                    ? ControllerKind.Player
+                    : ControllerKind.AI
+            })
+            .ToImmutableArray();
         return new CombatState
         {
             CombatId = combatId.Value,
             StartedAt = combatId.Context.LogicalTimestamp.UtcDateTime,
             Determinism = combatId.Context,
-            Hero = string.IsNullOrWhiteSpace(hero.SideId) ? hero with { SideId = "player" } : hero,
-            Enemies = enemies.Select(entity => string.IsNullOrWhiteSpace(entity.SideId)
-                ? entity with { SideId = "opposition" } : entity).ToImmutableList(),
+            Hero = materializedHero,
+            Enemies = materializedEnemies,
+            Sides = sides,
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };

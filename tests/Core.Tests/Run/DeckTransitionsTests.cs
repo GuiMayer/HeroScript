@@ -255,7 +255,7 @@ public sealed class DeckTransitionsTests
         DrawPerActivation = 5,
         HandLimit = 10,
         InitialHandSize = 5,
-        ActorScope = FlowActorScope.Player,
+        ActorScope = FlowActorScope.RunOwner,
         EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
         EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,
         ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,

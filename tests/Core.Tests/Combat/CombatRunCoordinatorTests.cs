@@ -242,7 +242,7 @@ public sealed class CombatRunCoordinatorTests
         {
             Strategy = ActionBudgetStrategy.FixedCount,
             ActionCosts = ActionCostStrategy.Configured,
-            ActorScope = FlowActorScope.Player,
+            ActorScope = FlowActorScope.PlayerControlled,
             MaxActionsPerActivation = 2,
             ConsumingCommands = ["EXECUTE_ACTION"]
         },

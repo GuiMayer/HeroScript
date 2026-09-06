@@ -212,7 +212,7 @@ public sealed class GameModeResolverTests
             {
                 Strategy = ActionBudgetStrategy.ResourceLimited,
                 ActionCosts = ActionCostStrategy.Configured,
-                ActorScope = FlowActorScope.Player,
+                ActorScope = FlowActorScope.PlayerControlled,
                 ResourceId = "energy",
                 ConsumingCommands = ["EXECUTE_ACTION"]
             },
@@ -221,7 +221,7 @@ public sealed class GameModeResolverTests
             {
                 HandLimit = 10,
                 InitialHandSize = 5,
-                ActorScope = FlowActorScope.Player,
+                ActorScope = FlowActorScope.RunOwner,
                 EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
                 EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,
                 ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,

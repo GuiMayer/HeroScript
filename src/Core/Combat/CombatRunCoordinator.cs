@@ -296,8 +296,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
         if (command.ActionType == ActionType.PLAY_CARD)
         {
-            if (!actor.IsHero)
-                return Result<CombatRunActionResult>.Failure("Only the run player can play cards from its deck");
+            if (encounter.Combat.ControllerOf(actor) != ControllerKind.Player ||
+                !string.Equals(actor.EntityId, run.PlayerEntityId, StringComparison.Ordinal))
+                return Result<CombatRunActionResult>.Failure("Only the configured run owner can play cards from its deck");
             if (_cardPlayExecutor == null)
                 return Result<CombatRunActionResult>.Failure("Card play executor is unavailable");
             if (!command.CardInstanceId.HasValue || command.CardInstanceId == Guid.Empty)
@@ -430,6 +431,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         var effectiveIdentity = commandIdentity ?? CreateImplicitIdentity(run, previousCombat, command);
         var effectiveCommandType = effectiveIdentity.Type;
         var budgetValidation = CombatFlowTransitions.ValidateActionBudget(
+            run,
             previousCombat,
             command,
             policies.ActionBudget,
@@ -467,6 +469,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure(executed.Error);
 
         var nextCombat = CombatFlowTransitions.ConsumeActionBudget(
+            run,
             executed.Value,
             effectiveCommand,
             policies.ActionBudget,
@@ -554,7 +557,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 if (string.IsNullOrWhiteSpace(activation.ActiveActorId))
                     return Fail<CombatRunActionResult>("Automatic activation has no actor");
                 var actor = currentCombat.GetEntity(activation.ActiveActorId);
-                if (actor == null || actor.IsHero)
+                if (actor == null || currentCombat.ControllerOf(actor) != ControllerKind.AI)
                     return Fail<CombatRunActionResult>(
                         $"Automatic activation actor is invalid: {activation.ActiveActorId}");
 
@@ -725,6 +728,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             string? gambitId)
     {
         var budget = CombatFlowTransitions.ValidateActionBudget(
+            run,
             combat,
             command,
             policies.ActionBudget,
@@ -773,6 +777,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (executed.IsFailure)
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(executed.Error);
         var next = CombatFlowTransitions.ConsumeActionBudget(
+            run,
             executed.Value,
             command,
             policies.ActionBudget,

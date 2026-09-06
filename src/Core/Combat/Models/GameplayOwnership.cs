@@ -69,12 +69,12 @@ public static class GameplayRelationshipValidator
     {
         var participantSides = participantSideIds.ToArray();
         if (participantSides.Any(string.IsNullOrWhiteSpace)) return Result.Failure("Every participant requires a sideId");
+        if (sides.Count == 0) return Result.Failure("Every combat requires an explicit side controller catalog");
         if (sides.Any(side => side == null || string.IsNullOrWhiteSpace(side.SideId) || !Enum.IsDefined(side.Controller)))
             return Result.Failure("Invalid side identity or controller");
         if (sides.Select(side => side.SideId).Distinct(StringComparer.Ordinal).Count() != sides.Count)
             return Result.Failure("Duplicate sideId");
-        // An omitted catalog declares exactly the sides used by the participants.
-        var known = (sides.Count == 0 ? participantSides : sides.Select(side => side.SideId)).ToHashSet(StringComparer.Ordinal);
+        var known = sides.Select(side => side.SideId).ToHashSet(StringComparer.Ordinal);
         if (participantSides.Any(id => !known.Contains(id))) return Result.Failure("Participant references an undeclared side");
         if (relationships == null || !Enum.IsDefined(relationships.SameSide) || !Enum.IsDefined(relationships.DifferentSides))
             return Result.Failure("Invalid default side relationship");

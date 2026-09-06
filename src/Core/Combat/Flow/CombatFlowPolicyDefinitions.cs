@@ -155,7 +155,7 @@ public enum AutomaticResolutionStrategy { Unspecified, ToNextPlayerInput }
 public enum ActivationOrderStrategy { Unspecified, RoundSnapshot }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ActivationTieBreak { Unspecified, StableActorId, HeroesFirst, EnemiesFirst, SeededRandom }
+public enum ActivationTieBreak { Unspecified, StableActorId, PlayerControlledFirst, AiControlledFirst, SeededRandom }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ActionBudgetStrategy { Unspecified, ResourceLimited, FixedCount }
@@ -164,7 +164,7 @@ public enum ActionBudgetStrategy { Unspecified, ResourceLimited, FixedCount }
 public enum ActionCostStrategy { Unspecified, Configured, Ignore }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum FlowActorScope { Unspecified, Player, Enemies, All }
+public enum FlowActorScope { Unspecified, RunOwner, PlayerControlled, AiControlled, All }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DeckEndDiscardStrategy { Unspecified, None, All, NonRetain, DownToHandLimit }
@@ -197,7 +197,7 @@ public enum StatusOrderingStrategy { Unspecified, PriorityThenInstanceId }
 public enum OutcomeEvaluationBoundary { Unspecified, Immediate, AfterCurrentAction, AfterResolutionStack }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum OutcomeTieBreak { Unspecified, Draw, HeroesWin, EnemiesWin, ActiveActorWins }
+public enum OutcomeTieBreak { Unspecified, Draw, PlayerControlledWins, AiControlledWins, ActiveActorWins }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum EncounterResolutionStrategy { Unspecified, ManualAck, Automatic }

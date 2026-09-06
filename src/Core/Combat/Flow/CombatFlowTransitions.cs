@@ -1,6 +1,7 @@
 using Core.Combat.Models;
 using Core.Common;
 using Core.Determinism;
+using Core.Run;
 
 namespace Core.Combat.Flow;
 
@@ -68,6 +69,7 @@ public static class CombatFlowTransitions
     }
 
     public static Result ValidateActionBudget(
+        RunState run,
         CombatState combat,
         CombatActionCommand command,
         ActionBudgetPolicyDefinition policy,
@@ -84,7 +86,7 @@ public static class CombatFlowTransitions
         var actor = combat.GetEntity(command.ActorId);
         if (actor == null)
             return Result.Failure($"Actor not found: {command.ActorId}");
-        if (!ScopeApplies(policy.ActorScope, actor))
+        if (!ScopeApplies(policy.ActorScope, combat, run, actor))
             return Result.Success();
 
         return policy.Strategy switch
@@ -100,6 +102,7 @@ public static class CombatFlowTransitions
     }
 
     public static CombatState ConsumeActionBudget(
+        RunState run,
         CombatState combat,
         CombatActionCommand command,
         ActionBudgetPolicyDefinition policy,
@@ -110,7 +113,7 @@ public static class CombatFlowTransitions
             !policy.ConsumingCommands.Contains(commandType, StringComparer.Ordinal) ||
             combat.ActivationState == null ||
             combat.GetEntity(command.ActorId) is not { } actor ||
-            !ScopeApplies(policy.ActorScope, actor))
+            !ScopeApplies(policy.ActorScope, combat, run, actor))
             return combat;
 
         return combat with
@@ -135,7 +138,7 @@ public static class CombatFlowTransitions
 
         return alive
             .OrderBy(entity => indexedOrder.TryGetValue(entity.EntityId, out var index) ? index : int.MaxValue)
-            .ThenBy(entity => TieRank(entity, policy.TieBreak))
+            .ThenBy(entity => TieRank(combat, entity, policy.TieBreak))
             .ThenBy(entity => TieKey(combat, entity, policy.TieBreak), StringComparer.Ordinal)
             .Select(entity => entity.EntityId)
             .ToArray();
@@ -148,22 +151,30 @@ public static class CombatFlowTransitions
     {
         ArgumentNullException.ThrowIfNull(combat);
         ArgumentNullException.ThrowIfNull(policy);
-        var heroesDefeated = combat.HeroIsDead;
-        var enemiesDefeated = combat.AllEnemiesDead;
-        if (!heroesDefeated && !enemiesDefeated)
+        var participants = combat.GetAllEntities().ToArray();
+        var playerControlled = participants
+            .Where(entity => combat.ControllerOf(entity) == ControllerKind.Player)
+            .ToArray();
+        var aiControlled = participants
+            .Where(entity => combat.ControllerOf(entity) == ControllerKind.AI)
+            .ToArray();
+        var playersDefeated = playerControlled.Length == 0 || playerControlled.All(entity => !entity.IsAlive);
+        var aiDefeated = aiControlled.Length == 0 || aiControlled.All(entity => !entity.IsAlive);
+        if (!playersDefeated && !aiDefeated)
             return combat with { Status = CombatStatus.ACTIVE };
-        if (!heroesDefeated)
+        if (!playersDefeated)
             return combat with { Status = CombatStatus.VICTORY };
-        if (!enemiesDefeated)
+        if (!aiDefeated)
             return combat with { Status = CombatStatus.DEFEAT };
 
         var status = policy.TieBreak switch
         {
             OutcomeTieBreak.Draw => CombatStatus.DRAW,
-            OutcomeTieBreak.HeroesWin => CombatStatus.VICTORY,
-            OutcomeTieBreak.EnemiesWin => CombatStatus.DEFEAT,
+            OutcomeTieBreak.PlayerControlledWins => CombatStatus.VICTORY,
+            OutcomeTieBreak.AiControlledWins => CombatStatus.DEFEAT,
             OutcomeTieBreak.ActiveActorWins =>
-                string.Equals(activeActorId, combat.Hero.EntityId, StringComparison.Ordinal)
+                combat.GetEntity(activeActorId ?? string.Empty) is { } activeActor &&
+                combat.ControllerOf(activeActor) == ControllerKind.Player
                     ? CombatStatus.VICTORY
                     : CombatStatus.DEFEAT,
             _ => CombatStatus.DRAW
@@ -184,18 +195,23 @@ public static class CombatFlowTransitions
             : Result.Success();
     }
 
-    private static bool ScopeApplies(FlowActorScope scope, CombatEntity actor) => scope switch
+    private static bool ScopeApplies(
+        FlowActorScope scope,
+        CombatState combat,
+        RunState run,
+        CombatEntity actor) => scope switch
     {
-        FlowActorScope.Player => actor.IsHero,
-        FlowActorScope.Enemies => !actor.IsHero,
+        FlowActorScope.RunOwner => string.Equals(actor.EntityId, run.PlayerEntityId, StringComparison.Ordinal),
+        FlowActorScope.PlayerControlled => combat.ControllerOf(actor) == ControllerKind.Player,
+        FlowActorScope.AiControlled => combat.ControllerOf(actor) == ControllerKind.AI,
         FlowActorScope.All => true,
         _ => false
     };
 
-    private static int TieRank(CombatEntity entity, ActivationTieBreak tieBreak) => tieBreak switch
+    private static int TieRank(CombatState combat, CombatEntity entity, ActivationTieBreak tieBreak) => tieBreak switch
     {
-        ActivationTieBreak.HeroesFirst => entity.IsHero ? 0 : 1,
-        ActivationTieBreak.EnemiesFirst => entity.IsHero ? 1 : 0,
+        ActivationTieBreak.PlayerControlledFirst => combat.ControllerOf(entity) == ControllerKind.Player ? 0 : 1,
+        ActivationTieBreak.AiControlledFirst => combat.ControllerOf(entity) == ControllerKind.AI ? 0 : 1,
         _ => 0
     };
 

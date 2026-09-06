@@ -1,6 +1,7 @@
 using Core.Combat.Activation;
 using Core.Combat.Flow;
 using Core.Combat.Models;
+using Core.Run;
 using Core.Tests.Combat.TurnOrder;
 using Xunit;
 
@@ -79,6 +80,7 @@ public sealed class CombatFlowTransitionsTests
         };
 
         var result = CombatFlowTransitions.ValidateActionBudget(
+            new RunState { PlayerEntityId = "hero" },
             combat,
             new CombatActionCommand { ActorId = "hero", ActionType = ActionType.BASIC_ATTACK },
             policy,
@@ -106,6 +108,7 @@ public sealed class CombatFlowTransitionsTests
         };
 
         var updated = CombatFlowTransitions.ConsumeActionBudget(
+            new RunState { PlayerEntityId = "hero" },
             combat,
             command,
             policy,
@@ -116,16 +119,26 @@ public sealed class CombatFlowTransitionsTests
     }
 
     [Fact]
-    public void RoundSnapshot_UsesConfiguredHeroTieBias()
+    public void RoundSnapshot_UsesConfiguredControllerTieBias()
     {
-        var combat = TurnOrderTestHelper.CreateTestCombatState("hero", ["enemy_b", "enemy_a"]);
+        var original = TurnOrderTestHelper.CreateTestCombatState("hero", ["enemy_b", "enemy_a"]);
+        var combat = original with
+        {
+            Hero = original.Hero with { SideId = "red" },
+            Enemies = original.Enemies.Select(enemy => enemy with { SideId = "blue" }).ToArray(),
+            Sides =
+            [
+                new() { SideId = "red", Controller = ControllerKind.AI },
+                new() { SideId = "blue", Controller = ControllerKind.Player }
+            ]
+        };
 
         var order = CombatFlowTransitions.CreateRoundSnapshotOrder(
             combat,
             new ActivationOrderPolicyDefinition
             {
                 Strategy = ActivationOrderStrategy.RoundSnapshot,
-                TieBreak = ActivationTieBreak.EnemiesFirst
+                TieBreak = ActivationTieBreak.PlayerControlledFirst
             });
 
         Assert.Equal(["enemy_a", "enemy_b", "hero"], order);

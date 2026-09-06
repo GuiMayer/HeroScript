@@ -6,13 +6,13 @@
     "priority": 100,
     "conditions": [
       {
-        "type": "ANY_ENEMY_ALIVE"
+        "type": "ANY_OPPONENT_ALIVE"
       }
     ],
     "action": {
       "actionType": "POWER",
       "powerId": "enemy_basic_attack",
-      "target": "HERO"
+      "target": "FIRST_ALIVE_OPPONENT"
     },
     "intent": {
       "displayName": "Preparing to strike",

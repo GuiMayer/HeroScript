@@ -153,7 +153,7 @@ public sealed class GambitEngineTests
         "priority": 100,
         "conditions": [
           {
-            "type": "HERO_RESOURCE_PERCENT",
+            "type": "ACTOR_RESOURCE_PERCENT",
             "resourceId": "health",
             "lessThanOrEqual": 0.30
           }
@@ -161,7 +161,7 @@ public sealed class GambitEngineTests
         "action": {
           "actionType": "POWER",
           "powerId": "heal",
-          "target": "HERO"
+          "target": "SELF"
         }
       },
       "attack_first": {
@@ -169,11 +169,11 @@ public sealed class GambitEngineTests
         "displayName": "Attack First Alive Enemy",
         "priority": 10,
         "conditions": [
-          { "type": "ANY_ENEMY_ALIVE" }
+          { "type": "ANY_OPPONENT_ALIVE" }
         ],
         "action": {
           "actionType": "BASIC_ATTACK",
-          "target": "FIRST_ALIVE_ENEMY"
+          "target": "FIRST_ALIVE_OPPONENT"
         }
       },
       "enemy_actor_attack": {

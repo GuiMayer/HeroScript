@@ -14,7 +14,7 @@
       "actionBudget": {
         "strategy": "FixedCount",
         "actionCosts": "Ignore",
-        "actorScope": "Player",
+        "actorScope": "PlayerControlled",
         "maxActionsPerActivation": 2,
         "consumingCommands": ["PLAY_CARD"]
       },
@@ -28,7 +28,7 @@
         "drawPerActivation": 5,
         "handLimit": 10,
         "initialHandSize": 5,
-        "actorScope": "Player",
+        "actorScope": "RunOwner",
         "encounterStart": "PreserveZones",
         "encounterCleanup": "ReturnToDrawPile",
         "exhaustPersistence": "Encounter",
@@ -42,7 +42,7 @@
       },
       "resourceCycle": {
         "resourceId": "energy",
-        "actorScope": "Player",
+        "actorScope": "PlayerControlled",
         "startActivation": "Preserve"
       },
       "statusTiming": {

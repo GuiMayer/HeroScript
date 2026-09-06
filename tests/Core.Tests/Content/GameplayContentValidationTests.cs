@@ -113,8 +113,13 @@ public sealed class GameplayContentValidationTests
     public void RelationshipValidationAllowsDirectedRulesButRejectsAmbiguousOnes()
     {
         var rule = new SideRelationshipRule { FromSideId = "a", ToSideId = "b", Relationship = SideRelationship.Neutral };
-        Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], [], new() { Rules = [rule] }).IsSuccess);
-        Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], [], new() { Rules = [rule, rule] }).IsFailure);
+        var sides = new[]
+        {
+            new CombatSide { SideId = "a", Controller = ControllerKind.Player },
+            new CombatSide { SideId = "b", Controller = ControllerKind.AI }
+        };
+        Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], sides, new() { Rules = [rule] }).IsSuccess);
+        Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], sides, new() { Rules = [rule, rule] }).IsFailure);
         Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], [new() { SideId = "a" }], new()).IsFailure);
         Assert.True(GameplayRelationshipValidator.Validate(["a"], [], new() { Rules = [rule] }).IsFailure);
     }

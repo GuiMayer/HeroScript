@@ -256,6 +256,7 @@ public sealed class CardInspectionService : ICardInspectionService
             {
                 CombatFlowTransitions.ValidateCommandInput(combat, command),
                 CombatFlowTransitions.ValidateActionBudget(
+                    run,
                     combat,
                     command,
                     run.ResolvedMode.CombatRules.Flow.ActionBudget,

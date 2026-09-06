@@ -227,7 +227,7 @@ public sealed class CombatFlowPlannerTests
         {
             DrawPerActivation = 1,
             HandLimit = 10,
-            ActorScope = FlowActorScope.Player,
+            ActorScope = FlowActorScope.RunOwner,
             EndDiscard = DeckEndDiscardStrategy.NonRetain,
             RetainTags = ["retain"],
             EtherealTag = "ethereal",

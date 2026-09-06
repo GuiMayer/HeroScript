@@ -180,11 +180,10 @@ public sealed class GambitEngine : IGambitEngine
         return condition.Type switch
         {
             GambitConditionType.ALWAYS => true,
-            GambitConditionType.ANY_ENEMY_ALIVE => state.Enemies.Any(e => e.IsAlive),
+            GambitConditionType.ANY_OPPONENT_ALIVE => FirstAliveOpponent(controlledEntity, state) != null,
             GambitConditionType.TURN_GREATER_THAN_OR_EQUAL => Compare(state.CurrentTurn, condition),
             GambitConditionType.SELF_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetEntity(controlledEntity.EntityId), condition.ResourceId), condition),
             GambitConditionType.ACTOR_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetEntity(controlledEntity.EntityId), condition.ResourceId), condition),
-            GambitConditionType.HERO_RESOURCE_PERCENT => Compare(ResourcePercent(state.Hero, condition.ResourceId), condition),
             GambitConditionType.TARGET_RESOURCE_PERCENT => Compare(ResourcePercent(ResolveTarget(action.Target, controlledEntity, state), condition.ResourceId), condition),
             _ => false
         };
@@ -207,9 +206,7 @@ public sealed class GambitEngine : IGambitEngine
         {
             "SELF" => state.GetEntity(controlledEntity.EntityId),
             "ACTOR" => state.GetEntity(controlledEntity.EntityId),
-            "HERO" => state.Hero,
-            "FIRST_ALIVE_ENEMY" or "TARGET" => state.Enemies.FirstOrDefault(e => e.IsAlive),
-            "FIRST_ALIVE_OPPONENT" => FirstAliveOpponent(controlledEntity, state),
+            "FIRST_ALIVE_OPPONENT" or "TARGET" => FirstAliveOpponent(controlledEntity, state),
             _ when !string.IsNullOrWhiteSpace(target) => state.GetEntity(target),
             _ => null
         };
@@ -221,9 +218,12 @@ public sealed class GambitEngine : IGambitEngine
         if (actor == null)
             return null;
 
-        return actor.IsHero
-            ? state.Enemies.FirstOrDefault(e => e.IsAlive)
-            : state.Hero.IsAlive ? state.Hero : null;
+        return state.GetAllEntities()
+            .Where(candidate => candidate.IsAlive &&
+                                !string.Equals(candidate.EntityId, actor.EntityId, StringComparison.Ordinal) &&
+                                state.Relationship(actor, candidate) == SideRelationship.Enemy)
+            .OrderBy(candidate => candidate.EntityId, StringComparer.Ordinal)
+            .FirstOrDefault();
     }
 
     private static float ResourcePercent(Models.CombatEntity? entity, string? resourceId)

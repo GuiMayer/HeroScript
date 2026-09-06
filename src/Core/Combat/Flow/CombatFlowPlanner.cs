@@ -448,7 +448,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             ActionsTaken = 0,
             ActivationOrder = order,
             CompletedActorIds = [],
-            WaitingForInput = IsPlayerActor(refreshed.Value, run, actorId),
+            WaitingForInput = IsPlayerActor(refreshed.Value, actorId),
             RunId = run.RunId,
             StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
         };
@@ -587,7 +587,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             ActionsTaken = 0,
             ActivationOrder = nextOrder,
             CompletedActorIds = nextCompleted,
-            WaitingForInput = IsPlayerActor(refreshed.Value, run, nextActorId),
+            WaitingForInput = IsPlayerActor(refreshed.Value, nextActorId),
             StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
         };
         var startedCombat = refreshed.Value with
@@ -984,19 +984,22 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         RunState run,
         string actorId)
     {
-        var isPlayer = IsPlayerActor(combat, run, actorId);
+        var actor = combat.GetEntity(actorId);
+        if (actor == null)
+            return false;
         return scope switch
         {
-            FlowActorScope.Player => isPlayer,
-            FlowActorScope.Enemies => !isPlayer,
+            FlowActorScope.RunOwner => string.Equals(actorId, run.PlayerEntityId, StringComparison.Ordinal),
+            FlowActorScope.PlayerControlled => combat.ControllerOf(actor) == ControllerKind.Player,
+            FlowActorScope.AiControlled => combat.ControllerOf(actor) == ControllerKind.AI,
             FlowActorScope.All => true,
             _ => false
         };
     }
 
-    private static bool IsPlayerActor(CombatState combat, RunState run, string actorId) =>
-        string.Equals(actorId, run.PlayerEntityId, StringComparison.Ordinal) ||
-        string.Equals(actorId, combat.Hero.EntityId, StringComparison.Ordinal);
+    private static bool IsPlayerActor(CombatState combat, string actorId) =>
+        combat.GetEntity(actorId) is { } actor &&
+        combat.ControllerOf(actor) == ControllerKind.Player;
 
     private sealed record EndDeckCycleResult(
         DeckState State,
