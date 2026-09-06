@@ -324,7 +324,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         };
         if (candidates.Length == 0)
             return Result<ResolvedTargets>.Failure($"Trigger target {target} resolved no entities");
-        if (candidates.Any(id => combat.GetEntity(id)?.IsAlive != true))
+        if (target != EffectTarget.SELF && candidates.Any(id => combat.GetEntity(id)?.IsAlive != true))
             return Result<ResolvedTargets>.Failure("Selection contains an invalid or defeated target");
         if (target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {

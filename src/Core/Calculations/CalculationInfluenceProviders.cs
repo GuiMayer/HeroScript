@@ -374,7 +374,7 @@ public sealed class RelicCalculationInfluenceProvider : ICalculationInfluencePro
                 var scoped = definition.Scope == CalculationEntityScope.Actor
                     ? context.Actor
                     : context.Target;
-                if (scoped?.IsHero != true ||
+                if (scoped == null || context.Combat == null || !relic.Owner.Includes(scoped, context.Combat, context.Run) ||
                     !definition.RequiredTags.All(context.Tags.Contains) ||
                     definition.ExcludedTags.Any(context.Tags.Contains))
                     continue;
@@ -417,9 +417,15 @@ public sealed class RelicCalculationInfluenceProvider : ICalculationInfluencePro
             pair => pair.Value,
             StringComparer.Ordinal);
         variables["stacks"] = relic.Stacks;
-        return !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+        if (context.Combat != null)
+        {
+            var owner = context.Combat.GetAllEntities().OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+                .FirstOrDefault(entity => relic.Owner.Includes(entity, context.Combat, context.Run));
+            if (owner != null) ResourceFormulaVariables.AddOwner(variables, "owner", owner.ResourceState);
+        }
+        return !string.IsNullOrWhiteSpace(relic.ContentRevision) &&
                _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
-            ? revisioned.EvaluateAtRevision(definition.Formula!, context.ContentRevision, variables)
+            ? revisioned.EvaluateAtRevision(definition.Formula!, relic.ContentRevision, variables)
             : _formulas.Evaluate(definition.Formula!, variables);
     }
 }

@@ -25,6 +25,7 @@ public record CombatState
     public int CurrentTurn { get; init; } = 1;
     public CombatStatus Status { get; init; } = CombatStatus.ACTIVE;
     public CombatRelationshipPolicy Relationships { get; init; } = new();
+    public ImmutableHashSet<string> CompletedLifecycleBoundaries { get; init; } = ImmutableHashSet<string>.Empty;
     public ImmutableArray<CombatSide> Sides { get; init; } = [];
 
     // The two participant slots supply sides when a scenario does not override them.

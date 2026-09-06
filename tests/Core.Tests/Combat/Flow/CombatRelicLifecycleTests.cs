@@ -26,6 +26,8 @@ public sealed class CombatRelicLifecycleTests
                 {
                     RelicInstanceId = relicId,
                     DefinitionId = "battery",
+                    Owner = new() { Kind = GameplayOwnerKind.Entity, Id = "hero" },
+                    ContentRevision = "revision",
                     Triggers =
                     [
                         new EffectTriggerDefinition

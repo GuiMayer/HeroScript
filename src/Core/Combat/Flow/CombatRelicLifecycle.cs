@@ -20,6 +20,7 @@ public sealed record CombatRelicLifecycleEvent
     public string RelicId { get; init; } = string.Empty;
     public string TriggerId { get; init; } = string.Empty;
     public string Boundary { get; init; } = string.Empty;
+    public GameplayOwner Owner { get; init; } = new();
     public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public IReadOnlyList<EffectApplicationRecord> Applications
     {
@@ -57,6 +58,9 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
         ArgumentNullException.ThrowIfNull(combat);
         if (string.IsNullOrWhiteSpace(boundary))
             return Result<CombatRelicLifecycleResult>.Failure("Relic boundary is required");
+        var once = boundary is CombatTriggerBoundaries.CombatStart or CombatTriggerBoundaries.CombatEnd;
+        if (once && combat.CompletedLifecycleBoundaries.Contains(boundary))
+            return Result<CombatRelicLifecycleResult>.Success(new(combat, []));
 
         var current = combat;
         var events = new List<CombatRelicLifecycleEvent>();
@@ -67,14 +71,20 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                          .OrderByDescending(item => item.Priority)
                          .ThenBy(item => item.TriggerId, StringComparer.Ordinal))
             {
+                var owners = current.GetAllEntities().Where(entity => relic.Owner.Includes(entity, current, run))
+                    .Where(entity => boundary is not ("StartActivation" or "EndActivation") ||
+                        entity.EntityId == current.ActivationState?.ActiveActorId)
+                    .OrderBy(entity => entity.EntityId, StringComparer.Ordinal).ToArray();
+                foreach (var owner in owners)
+                {
                 var executed = _triggers.Execute(new EffectTriggerExecutionRequest
                 {
                     Combat = current,
                     Run = run,
                     Trigger = trigger,
-                    OwnerEntityId = current.Hero.EntityId,
-                    SourceEntityId = current.Hero.EntityId,
-                    ContentRevision = run.Determinism.ContentRevision,
+                    OwnerEntityId = owner.EntityId,
+                    SourceEntityId = owner.EntityId,
+                    ContentRevision = relic.ContentRevision,
                     Variables = new Dictionary<string, float>(StringComparer.Ordinal)
                     {
                         ["stacks"] = relic.Stacks
@@ -95,11 +105,14 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                     RelicId = relic.DefinitionId,
                     TriggerId = trigger.TriggerId,
                     Boundary = boundary,
+                    Owner = relic.Owner,
                     Applications = executed.Value.Records,
                     Steps = executed.Value.Steps
                 });
+                }
             }
         }
+        if (once) current = current with { CompletedLifecycleBoundaries = current.CompletedLifecycleBoundaries.Add(boundary) };
         return Result<CombatRelicLifecycleResult>.Success(new(current, events));
     }
 }

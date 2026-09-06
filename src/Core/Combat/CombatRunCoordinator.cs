@@ -686,6 +686,19 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             }
         }
 
+        if (!currentCombat.IsActive && !currentCombat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd))
+        {
+            var completed = _flowPlanner!.Complete(run with { Deck = currentDeck, Determinism = currentRunDeterminism }, currentCombat);
+            if (completed.IsFailure) return RestoreAndFail<CombatRunActionResult>(previousCombat, completed.Error);
+            currentCombat = completed.Value.Combat;
+            steps.Add(new()
+            {
+                TransitionType = "combat.completed", Combat = currentCombat, Deck = currentDeck,
+                RunDeterminism = currentRunDeterminism,
+                Payload = JsonSerializer.SerializeToElement(new { events = completed.Value.Events })
+            });
+        }
+
         var committed = _resolutionCommitter.CommitCombatResolution(new CombatResolutionCommit
         {
             RunId = run.RunId,

@@ -4,6 +4,7 @@ using Core.Common;
 using Core.Determinism;
 using Core.Calculations;
 using Core.Effects;
+using Core.Combat.Models;
 
 namespace Core.Run;
 
@@ -16,6 +17,8 @@ public sealed record RelicDefinition
 
     public string RelicId { get; init; } = string.Empty;
     public int StackLimit { get; init; } = 1;
+    public StackReapplyPolicy Stacking { get; init; } = StackReapplyPolicy.Add;
+    public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
     public IReadOnlyList<ContextualInfluenceDefinition> Influences
     {
         get => _influences;
@@ -44,6 +47,10 @@ public sealed record RunRelicState
 
     public Guid RelicInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
+    public GameplayOwner Owner { get; init; } = new();
+    public string ContentRevision { get; init; } = string.Empty;
+    public RelicDefinition? Definition { get; init; }
+    public ImmutableDictionary<string, JsonElement> Presentation { get; init; } = ImmutableDictionary<string, JsonElement>.Empty;
     public int Stacks { get; init; } = 1;
     public ulong AcquiredAtStep { get; init; }
     public IReadOnlyList<ContextualInfluenceDefinition> Influences
@@ -70,7 +77,7 @@ public sealed record RelicTransition(RunState State, RunRelicState Relic);
 
 public static class RelicTransitions
 {
-    public static Result<RelicTransition> Acquire(RunState state, RelicDefinition definition)
+    public static Result<RelicTransition> Acquire(RunState state, RelicDefinition definition, GameplayOwner? owner = null)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(definition);
@@ -78,15 +85,24 @@ public static class RelicTransitions
             return Result<RelicTransition>.Failure("Relic definition id is required");
         if (definition.StackLimit < 1)
             return Result<RelicTransition>.Failure("Relic stack limit must be positive");
+        if (!Enum.IsDefined(definition.Stacking))
+            return Result<RelicTransition>.Failure("Invalid relic stacking policy");
+        owner ??= new() { Kind = GameplayOwnerKind.Run, Id = state.RunId.ToString() };
+        if (!Enum.IsDefined(owner.Kind) || owner.Kind != GameplayOwnerKind.Global && string.IsNullOrWhiteSpace(owner.Id))
+            return Result<RelicTransition>.Failure("Invalid relic owner");
 
-        var existingIndex = state.Relics.FindIndex(relic =>
-            string.Equals(relic.DefinitionId, definition.RelicId, StringComparison.Ordinal));
+        var existingIndex = definition.Stacking == StackReapplyPolicy.Independent ? -1 : state.Relics.FindIndex(relic =>
+            string.Equals(relic.DefinitionId, definition.RelicId, StringComparison.Ordinal) && relic.Owner == owner);
         if (existingIndex >= 0)
         {
             var existing = state.Relics[existingIndex];
+            if (existing.ContentRevision != state.Determinism.ContentRevision)
+                return Result<RelicTransition>.Failure("Cannot merge relic instances from different content revisions");
             if (existing.Stacks >= definition.StackLimit)
                 return Result<RelicTransition>.Failure($"Relic stack limit reached: {definition.RelicId}");
-            var stacked = existing with { Stacks = existing.Stacks + 1 };
+            var stacks = InstancePolicies.Stacks(existing.Stacks, 1, definition.StackLimit, definition.Stacking);
+            if (stacks.IsFailure) return Result<RelicTransition>.Failure(stacks.Error);
+            var stacked = existing with { Stacks = stacks.Value };
             return Result<RelicTransition>.Success(new RelicTransition(
                 state with
                 {
@@ -101,6 +117,10 @@ public static class RelicTransitions
         {
             RelicInstanceId = allocated.Value,
             DefinitionId = definition.RelicId,
+            Owner = owner,
+            ContentRevision = state.Determinism.ContentRevision,
+            Definition = definition,
+            Presentation = definition.Presentation,
             AcquiredAtStep = state.Determinism.Step,
             Influences = definition.Influences,
             Triggers = definition.Triggers,

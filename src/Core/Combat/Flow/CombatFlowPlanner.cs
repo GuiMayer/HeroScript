@@ -30,6 +30,7 @@ public sealed record CombatFlowAdvanceResult
 public interface ICombatFlowPlanner
 {
     Result<CombatState> Initialize(RunState run, CombatState combat);
+    Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat);
 
     Result<CombatFlowAdvanceResult> AdvanceActivation(
         RunState run,
@@ -97,10 +98,19 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             context.Value.Policies.Outcome,
             initialized.Value.ActivationState?.ActiveActorId);
         var withLifecycle = ApplyInitialLifecycle(run, afterRelics, context.Value.Policies);
-        return withLifecycle.IsFailure
-            ? withLifecycle
-            : PublishIntents(run, withLifecycle.Value, context.Value.Policies);
+        if (withLifecycle.IsFailure) return withLifecycle;
+        if (!withLifecycle.Value.IsActive)
+        {
+            var completed = Complete(run, withLifecycle.Value);
+            return completed.IsFailure ? Result<CombatState>.Failure(completed.Error)
+                : Result<CombatState>.Success(completed.Value.Combat);
+        }
+        return PublishIntents(run, withLifecycle.Value, context.Value.Policies);
     }
+
+    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat) =>
+        combat.IsActive ? Result<CombatRelicLifecycleResult>.Failure("Cannot finalize an active combat")
+            : _relicLifecycle.Process(run, combat, CombatTriggerBoundaries.CombatEnd);
 
     public Result<CombatFlowAdvanceResult> AdvanceActivation(
         RunState run,
@@ -529,17 +539,18 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
                      StatusTriggerBoundary.StartActivation
                  })
         {
-            if (!policies.StatusTiming.Boundaries.Contains(boundary))
-                continue;
-            var processed = _statusLifecycle.Process(
+            var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
+                ? Result<CombatStatusLifecycleResult>.Success(new(current, [])) : _statusLifecycle.Process(
                 run,
                 current,
                 boundary,
                 current.ActivationState?.ActiveActorId);
             if (processed.IsFailure)
                 return Result<CombatState>.Failure(processed.Error);
+            var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
+            if (relics.IsFailure) return Result<CombatState>.Failure(relics.Error);
             current = CombatFlowTransitions.EvaluateOutcome(
-                processed.Value.Combat,
+                relics.Value.Combat,
                 policies.Outcome,
                 current.ActivationState?.ActiveActorId);
             if (!current.IsActive)
@@ -557,13 +568,15 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         string? activeActorId,
         CombatFlowPoliciesDefinition policies)
     {
-        if (!policies.StatusTiming.Boundaries.Contains(boundary))
-            return Result<CombatState>.Success(combat);
-        var processed = _statusLifecycle.Process(run, combat, boundary, activeActorId);
+        var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
+            ? Result<CombatStatusLifecycleResult>.Success(new(combat, []))
+            : _statusLifecycle.Process(run, combat, boundary, activeActorId);
         if (processed.IsFailure)
             return Result<CombatState>.Failure(processed.Error);
+        var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
+        if (relics.IsFailure) return Result<CombatState>.Failure(relics.Error);
         var evaluated = CombatFlowTransitions.EvaluateOutcome(
-            processed.Value.Combat,
+            relics.Value.Combat,
             policies.Outcome,
             activeActorId);
         steps.Add(new CombatResolutionStep
@@ -575,7 +588,8 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             {
                 boundary = boundary.ToString(),
                 activeActorId,
-                events = processed.Value.Events
+                events = processed.Value.Events,
+                relicEvents = relics.Value.Events
             })
         });
         return Result<CombatState>.Success(evaluated);

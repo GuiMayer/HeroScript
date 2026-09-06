@@ -322,7 +322,7 @@ public sealed class CalculationEngineTests
     }
 
     [Fact]
-    public void RelicProvider_AppliesOnlyToConfiguredHeroScope()
+    public void RelicProvider_AppliesOnlyToConfiguredOwnerScope()
     {
         var hero = Entity("hero", "energy", 3) with { IsHero = true };
         var enemy = Entity("enemy", "health", 20) with { IsHero = false };
@@ -334,6 +334,7 @@ public sealed class CalculationEngineTests
                 {
                     RelicInstanceId = Guid.Parse("40000000-0000-8000-8000-000000000001"),
                     DefinitionId = "ember",
+                    Owner = new() { Kind = GameplayOwnerKind.Entity, Id = "hero" },
                     Stacks = 2,
                     Influences =
                     [
@@ -355,6 +356,7 @@ public sealed class CalculationEngineTests
         var heroResult = provider.Collect(new CalculationSourceContext
         {
             Run = run,
+            Combat = new() { Hero = hero, Enemies = [enemy] },
             Actor = hero,
             Target = enemy,
             Tags = new HashSet<string> { "fire" }
@@ -362,6 +364,7 @@ public sealed class CalculationEngineTests
         var enemyResult = provider.Collect(new CalculationSourceContext
         {
             Run = run,
+            Combat = new() { Hero = hero, Enemies = [enemy] },
             Actor = enemy,
             Target = hero,
             Tags = new HashSet<string> { "fire" }
