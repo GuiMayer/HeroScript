@@ -40,7 +40,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task DrawCards_EmptyDeck_HandlesGracefully()
+    public async Task DrawCards_InsufficientDeck_ReturnsSemanticValidationError()
     {
         // Setup run
         var (runId, runState) = await SetupRunAsync();
@@ -55,7 +55,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             payload = new { count = 1000 }
         });
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
     }
 
     [Fact]

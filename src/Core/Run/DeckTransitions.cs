@@ -110,7 +110,7 @@ public static class DeckTransitions
                 $"Unable to draw {count} cards without a partial draw; only {drawn.Count} are available");
         }
         return Result<DeckTransition>.Success(
-            new DeckTransition(current, currentContext, drawn.MoveToImmutable()));
+            new DeckTransition(current, currentContext, drawn.ToImmutable()));
     }
 
     public static Result<DeckTransition> AddToHand(

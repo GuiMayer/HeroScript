@@ -95,7 +95,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
-            var initialized = InitializeCanonicalFlow(run, combatResult.Value);
+            var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value);
             if (initialized.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -106,8 +106,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 runId,
                 commandIdentity?.ExpectedSequence ?? run.Sequence,
                 commandIdentity?.ExpectedStep ?? run.Determinism.Step,
-                initialized.Value,
-                commandIdentity);
+                initialized.Value.Combat,
+                commandIdentity,
+                run.ResolvedMode == null ? null : initialized.Value.Run,
+                run.ResolvedMode == null ? null : InitialCommand(combatResult.Value));
             if (attached.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -116,7 +118,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             return Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
             {
-                CombatState = initialized.Value,
+                CombatState = initialized.Value.Combat,
                 RunState = attached.Value
             });
         }
@@ -172,7 +174,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
-            var initialized = InitializeCanonicalFlow(run, combatResult.Value);
+            var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value);
             if (initialized.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -183,8 +185,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 runId,
                 commandIdentity?.ExpectedSequence ?? run.Sequence,
                 commandIdentity?.ExpectedStep ?? run.Determinism.Step,
-                initialized.Value,
-                commandIdentity);
+                initialized.Value.Combat,
+                commandIdentity,
+                run.ResolvedMode == null ? null : initialized.Value.Run,
+                run.ResolvedMode == null ? null : InitialCommand(combatResult.Value));
             if (attached.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -193,7 +197,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             return Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
             {
-                CombatState = initialized.Value,
+                CombatState = initialized.Value.Combat,
                 RunState = attached.Value
             });
         }
@@ -497,6 +501,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (budgetValidation.IsFailure)
             return Result<CombatRunActionResult>.Failure(budgetValidation.Error);
 
+        var commandModifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
+        run = cardPlay?.Run ?? ability?.Run ?? run;
         var rootDeck = Result<DeckTransition>.Success(
             new DeckTransition(run.Deck, run.Determinism, []));
         if (!string.IsNullOrWhiteSpace(consumedCardId) && destination != CardConsumeDestination.None)
@@ -559,6 +565,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 steps = ability.Steps
             }
         });
+        run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
+            Core.Combat.Modifiers.ModifierDurationBoundary.Command, previousCombat, command.ActorId, commandModifierIds);
         var steps = new List<CombatResolutionStep>
         {
             new()
@@ -567,12 +575,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 Combat = nextCombat,
                 Deck = rootDeck.Value.State,
                 RunDeterminism = rootDeck.Value.Context,
+                RunSnapshot = run,
                 Payload = rootPayload
             }
         };
         var currentCombat = nextCombat;
         var currentDeck = rootDeck.Value.State;
         var currentRunDeterminism = rootDeck.Value.Context.AdvanceStep();
+        run = run with { Deck = currentDeck, Determinism = currentRunDeterminism };
         var automaticSteps = 0;
 
         var activationBudgetExhausted =
@@ -592,6 +602,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (advanced.IsFailure)
                 return RestoreAndFail<CombatRunActionResult>(previousCombat, advanced.Error);
             (currentCombat, currentDeck, currentRunDeterminism) = advanced.Value;
+            run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
 
             while (currentCombat.IsActive &&
                    currentCombat.ActivationState is { WaitingForInput: false } activation)
@@ -641,6 +652,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 steps.Add(aiAction.Value.Step);
                 automaticSteps++;
                 (currentCombat, currentDeck, currentRunDeterminism) = aiAction.Value.State;
+                run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
                 if (!currentCombat.IsActive)
                     break;
 
@@ -666,6 +678,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     steps.Add(endTurn.Value.Step);
                     automaticSteps++;
                     (currentCombat, currentDeck, currentRunDeterminism) = endTurn.Value.State;
+                    run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
                 }
 
                 if (currentCombat.IsActive &&
@@ -682,6 +695,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     if (aiAdvanced.IsFailure)
                         return RestoreAndFail<CombatRunActionResult>(previousCombat, aiAdvanced.Error);
                     (currentCombat, currentDeck, currentRunDeterminism) = aiAdvanced.Value;
+                    run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
                 }
             }
         }
@@ -691,10 +705,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             var completed = _flowPlanner!.Complete(run with { Deck = currentDeck, Determinism = currentRunDeterminism }, currentCombat);
             if (completed.IsFailure) return RestoreAndFail<CombatRunActionResult>(previousCombat, completed.Error);
             currentCombat = completed.Value.Combat;
+            run = completed.Value.Run ?? run;
+            currentDeck = run.Deck;
+            currentRunDeterminism = run.Determinism;
             steps.Add(new()
             {
                 TransitionType = "combat.completed", Combat = currentCombat, Deck = currentDeck,
                 RunDeterminism = currentRunDeterminism,
+                RunSnapshot = run,
                 Payload = JsonSerializer.SerializeToElement(new { events = completed.Value.Events })
             });
         }
@@ -753,6 +771,10 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 (plan.Value.Combat, plan.Value.Deck, determinism));
     }
 
+    private static RunState LatestGameplay(RunState run, IEnumerable<CombatResolutionStep> steps,
+        DeckState deck, DeterministicContext context) =>
+        (steps.LastOrDefault(step => step.RunSnapshot != null)?.RunSnapshot ?? run) with { Deck = deck, Determinism = context };
+
     private Result<(CombatResolutionStep Step, (CombatState Combat, DeckState Deck, DeterministicContext Determinism) State)>
         ExecuteAutomaticAction(
             Guid combatId,
@@ -796,7 +818,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 : string.IsNullOrWhiteSpace(command.TargetId) ? [] : new[] { command.TargetId! };
             var resolved = _abilityExecutor.Execute(new AbilityExecutionRequest
             {
-                Run = run,
+                Run = run with { Deck = deck, Determinism = determinism },
                 Combat = combat,
                 ActionId = actionId,
                 ActorId = command.ActorId,
@@ -822,12 +844,19 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             policies.ActionBudget,
             "EXECUTE_ACTION");
         next = CombatFlowTransitions.EvaluateOutcome(next, policies.Outcome, command.ActorId);
+        var modifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
+        run = ability?.Run ?? run with { Deck = deck, Determinism = determinism };
+        run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
+            Core.Combat.Modifiers.ModifierDurationBoundary.Command, combat, command.ActorId, modifierIds);
+        deck = run.Deck;
+        determinism = run.Determinism;
         var step = new CombatResolutionStep
         {
             TransitionType = transitionType,
             Combat = next,
             Deck = deck,
             RunDeterminism = determinism,
+            RunSnapshot = run,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 command,
@@ -845,17 +874,19 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             (step, (next, deck, determinism.AdvanceStep())));
     }
 
-    private Result<CombatState> InitializeCanonicalFlow(RunState run, CombatState combat)
+    private Result<CombatInitializationResult> InitializeCanonicalFlow(RunState run, CombatState combat)
     {
-        if (run.ResolvedMode == null)
-            return Result<CombatState>.Success(combat);
-        if (_flowPlanner == null)
-            return Result<CombatState>.Failure("Canonical combat flow planner is unavailable");
-        var initialized = _flowPlanner.Initialize(run, combat);
-        if (initialized.IsFailure)
-            return initialized;
-        return _combatSystem.RestoreCombatState(initialized.Value);
+        if (run.ResolvedMode == null) return Result<CombatInitializationResult>.Success(new(combat, run));
+        if (_flowPlanner == null) return Result<CombatInitializationResult>.Failure("Canonical combat flow planner is unavailable");
+        var initialized = _flowPlanner.InitializeTransaction(run, combat);
+        if (initialized.IsFailure) return initialized;
+        var restored = _combatSystem.RestoreCombatState(initialized.Value.Combat);
+        return restored.IsFailure ? Result<CombatInitializationResult>.Failure(restored.Error) : initialized;
     }
+
+    private static RunEncounterStartCommand InitialCommand(CombatState combat) => new(combat.Hero, combat.Enemies.ToArray(),
+        combat.StatusEffects.ToDictionary(item => item.Key, item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),
+            StringComparer.Ordinal));
 
     private static RunCommandIdentity CreateImplicitIdentity(
         RunState run,

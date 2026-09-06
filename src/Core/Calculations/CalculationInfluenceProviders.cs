@@ -231,9 +231,12 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
             StringComparer.Ordinal);
         variables["stacks"] = modifier.Stacks;
         variables["duration"] = modifier.Duration;
-        return !string.IsNullOrWhiteSpace(context.ContentRevision) &&
+        var owner = context.Combat?.GetAllEntities().OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+            .FirstOrDefault(entity => modifier.Owner.Includes(entity, context.Combat, context.Run));
+        if (owner != null) ResourceFormulaVariables.AddOwner(variables, "owner", owner.ResourceState);
+        return !string.IsNullOrWhiteSpace(modifier.ContentRevision) &&
                _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
-            ? revisioned.EvaluateAtRevision(definition.Formula!, context.ContentRevision, variables)
+            ? revisioned.EvaluateAtRevision(definition.Formula!, modifier.ContentRevision, variables)
             : _formulas.Evaluate(definition.Formula!, variables);
     }
 
@@ -242,13 +245,10 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
         ContextualInfluenceDefinition definition,
         CalculationSourceContext context)
     {
-        var runOwner = $"run:{context.Run!.RunId}";
-        if (string.Equals(modifier.OwnerId, runOwner, StringComparison.Ordinal))
-            return true;
         var scopedEntity = definition.Scope == CalculationEntityScope.Actor
             ? context.Actor
             : context.Target;
-        return string.Equals(modifier.OwnerId, scopedEntity?.EntityId, StringComparison.Ordinal);
+        return scopedEntity != null && context.Combat != null && modifier.Owner.Includes(scopedEntity, context.Combat, context.Run);
     }
 
     private static bool TagsMatch(

@@ -7,11 +7,72 @@ using Core.Determinism;
 using Core.Resources;
 using Core.Run;
 using Xunit;
+using System.Collections.Immutable;
+using System.Text.Json;
+using Core.Content;
+using Core.Effects;
+using Core.Math;
+using Core.Combat.Intents;
+using Moq;
 
 namespace Core.Tests.Combat.Flow;
 
 public sealed class CombatFlowPlannerTests
 {
+    [Fact]
+    public void LifecycleDeckChangesSurviveInitializationAndActivationPlanning()
+    {
+        const string path = "Resources/phase-sequences/test.json";
+        var runtime = ContentRuntime.Create(new()
+        {
+            Manifest = new() { Revision = "revision", ConfigName = "default", Artifacts = [new()
+                { Kind = "phase-sequences", Path = path, DefinitionCount = 1 }] },
+            Artifacts = ImmutableDictionary<string, JsonElement>.Empty.Add(path,
+                JsonSerializer.SerializeToElement(new Dictionary<string, PhaseSequenceDefinition> { ["test"] = Sequence() }))
+        }).Value;
+        var runtimes = new Mock<IContentRuntimeResolver>();
+        runtimes.Setup(item => item.Resolve("revision", "default")).Returns(Result<ContentRuntime>.Success(runtime));
+        var actions = new Mock<IActionManager>();
+        actions.Setup(item => item.GetDefinition(It.IsAny<string>())).Returns((string id) => ResolveAction(id));
+        var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
+        var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
+        var planner = new CombatFlowPlanner(runtimes.Object, actions.Object, Mock.Of<IIntentResolver>(),
+            new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
+            new CombatResourceLifecycle(formulas, new ImmutableEffectProcessor()));
+        var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
+        var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
+            { InitialHandSize = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
+                DrawPerActivation = 0, EndDiscard = DeckEndDiscardStrategy.None } };
+        var run = new RunState
+        {
+            RunId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), PlayerEntityId = "hero", Deck = deck.State,
+            Determinism = deck.Context,
+            ResolvedMode = new() { CombatRules = new() { DefaultPhaseSequenceId = "test", Flow = policies } },
+            Relics = [new()
+            {
+                RelicInstanceId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), DefinitionId = "draw-on-boundary",
+                Owner = new() { Kind = GameplayOwnerKind.Entity, Id = "hero" }, ContentRevision = "revision",
+                Triggers = new[] { CombatTriggerBoundaries.CombatStart, "EndActivation" }.Select(boundary => new EffectTriggerDefinition
+                {
+                    TriggerId = boundary, Boundary = boundary,
+                    Effects = [new() { Type = EffectType.DRAW_CARD, Target = EffectTarget.SELF, CardCount = 1 }]
+                }).ToImmutableArray()
+            }]
+        };
+        var combat = CombatTransitions.Create(Entity("hero", true, 0), [Entity("enemy", false, 0)],
+            DeterministicContext.Create(42, "revision")) with { TurnOrder = ["hero", "enemy"] };
+        var initialized = planner.InitializeTransaction(run, combat);
+        Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
+        Assert.Single(initialized.Value.Run.Deck.HandInstanceIds);
+        var advanced = planner.AdvanceActivation(initialized.Value.Run, initialized.Value.Combat,
+            initialized.Value.Run.Deck, initialized.Value.Run.Determinism);
+        Assert.True(advanced.IsSuccess, advanced.IsFailure ? advanced.Error : null);
+        Assert.Equal(2, advanced.Value.Deck.HandInstanceIds.Count);
+        Assert.Equal(2, advanced.Value.Steps.Last(step => step.RunSnapshot != null).RunSnapshot!.Deck.HandInstanceIds.Count);
+        Assert.Empty(run.Deck.HandInstanceIds);
+        Assert.Equal("enemy", advanced.Value.Combat.ActivationState!.ActiveActorId);
+    }
+
     [Fact]
     public void InitializeAndAdvance_UsePinnedPoliciesWithoutMutatingInputs()
     {

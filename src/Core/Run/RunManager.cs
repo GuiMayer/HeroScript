@@ -851,7 +851,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         int expectedSequence,
         ulong expectedStep,
         CombatState combatState,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        RunState? initializedRun = null,
+        RunEncounterStartCommand? initialCommand = null)
     {
         if (combatState == null)
             return Result<RunState>.Failure("Combat state is required");
@@ -910,8 +912,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 Combat = combatState
             };
             var encounterDeck = Result<DeckTransition>.Success(
-                new DeckTransition(state.Deck, seed.Context, []));
-            if (state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
+                new DeckTransition(initializedRun?.Deck ?? state.Deck, initializedRun?.Determinism ?? seed.Context, []));
+            if (initializedRun != null && (initializedRun.RunId != state.RunId ||
+                initializedRun.Determinism.ContentRevision != state.Determinism.ContentRevision ||
+                initializedRun.Determinism.Seed != state.Determinism.Seed))
+                return Result<RunState>.Failure("Initialized run snapshot does not match encounter owner");
+            if (initializedRun == null && state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
             {
                 encounterDeck = DeckTransitions.BeginEncounter(
                     state.Deck,
@@ -923,11 +929,14 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var candidate = state with
             {
                 ActiveEncounterId = combatState.CombatId,
+                Modifiers = initializedRun?.Modifiers ?? state.Modifiers,
+                Relics = initializedRun?.Relics ?? state.Relics,
+                ResourceState = initializedRun?.ResourceState ?? state.ResourceState,
                 Encounters = state.Encounters.Add(encounter),
                 Deck = encounterDeck.Value.State,
                 Determinism = encounterDeck.Value.Context.AdvanceStep()
             };
-            var journalCommand = new RunEncounterStartCommand(
+            var journalCommand = initialCommand ?? new RunEncounterStartCommand(
                 combatState.Hero,
                 combatState.Enemies.ToArray(),
                 combatState.StatusEffects.ToDictionary(
@@ -1101,9 +1110,15 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         var candidate = state;
         foreach (var step in steps)
         {
+            if (step.RunSnapshot is { } gameplay && (gameplay.RunId != state.RunId ||
+                gameplay.Determinism.ContentRevision != state.Determinism.ContentRevision))
+                return Result<RunState>.Failure("Invalid run gameplay snapshot in combat resolution");
             candidate = candidate with
             {
                 Deck = step.Deck,
+                ResourceState = step.RunSnapshot?.ResourceState ?? candidate.ResourceState,
+                Modifiers = step.RunSnapshot?.Modifiers ?? candidate.Modifiers,
+                Relics = step.RunSnapshot?.Relics ?? candidate.Relics,
                 Encounters = candidate.Encounters.SetItem(
                     encounterIndex,
                     candidate.Encounters[encounterIndex] with { Combat = step.Combat }),
@@ -1349,7 +1364,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
 
-            var transition = DeckTransitions.Draw(state.Deck, count, state.Determinism);
+            var policy = state.ResolvedMode?.CombatRules.Flow.DeckCycle;
+            if (policy != null && count > System.Math.Max(0, policy.HandLimit - state.Deck.HandInstanceIds.Count))
+                return Result<IReadOnlyList<string>>.Failure("Draw count exceeds the configured hand limit");
+            var transition = DeckTransitions.Draw(state.Deck, count, state.Determinism,
+                policy?.ShuffleDiscardWhenDrawEmpty ?? true, policy?.AllowPartialDraw ?? false);
             if (transition.IsFailure)
                 return Result<IReadOnlyList<string>>.Failure(transition.Error);
 

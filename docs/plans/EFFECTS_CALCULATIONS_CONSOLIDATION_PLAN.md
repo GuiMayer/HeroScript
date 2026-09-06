@@ -44,6 +44,8 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 
 ## Testes obrigatórios da migração
 
+- Etapa 7: transições imutáveis compartilhadas de modifiers, ownership/revisão fixados e duração por comando, ativação, round, combate, nó e término do mapa. Efeitos de deck/modifier participam da transação e dos hashes; snapshots de run são propagados entre origens, boundaries, inicialização e commit. A inicialização registra os participantes anteriores aos efeitos para replay sem aplicação duplicada. Corrigida compra parcial que lançava exceção e alinhada resposta semântica da API. 1.400 Core + 147 API aprovados, incluindo dez repetições de transações mistas. Exclusão do manager antigo permanece na etapa 9; duração de run fora do término normal do mapa ainda precisa de auditoria.
+
 1. Um efeito idêntico em diferentes origens gera a mesma transição numérica, com proveniência distinta.
 2. Uma alteração de recurso influencia o cálculo imediatamente seguinte; custo é observado antes dos efeitos.
 3. Falha no último efeito não altera nenhum snapshot, deck, status, modifier ou cursor de RNG original.

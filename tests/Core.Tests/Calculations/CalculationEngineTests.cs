@@ -218,6 +218,8 @@ public sealed class CalculationEngineTests
     public void RunModifierProvider_ReadsPinnedRunStateAndFiltersEffectTags()
     {
         var runId = Guid.Parse("20000000-0000-8000-8000-000000000001");
+        var actor = Entity("player", "focus", 10);
+        var combat = new CombatState { Hero = actor };
         var run = new RunState
         {
             RunId = runId,
@@ -228,6 +230,7 @@ public sealed class CalculationEngineTests
                     InstanceId = Guid.Parse("20000000-0000-8000-8000-000000000002"),
                     ModifierId = "glass_cannon",
                     OwnerId = $"run:{runId}",
+                    Owner = new() { Kind = GameplayOwnerKind.Run, Id = runId.ToString() },
                     Stacks = 2,
                     Definition = new ScriptModifierDefinition
                     {
@@ -253,11 +256,13 @@ public sealed class CalculationEngineTests
         var attack = provider.Collect(new CalculationSourceContext
         {
             Run = run,
+            Combat = combat, Actor = actor,
             Tags = new HashSet<string> { "attack" }
         });
         var skill = provider.Collect(new CalculationSourceContext
         {
             Run = run,
+            Combat = combat, Actor = actor,
             Tags = new HashSet<string> { "skill" }
         });
 

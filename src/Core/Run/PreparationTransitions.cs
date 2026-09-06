@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Determinism;
 using Core.Combat.Modifiers;
 using Core.Resources;
+using Core.Combat.Models;
 
 namespace Core.Run;
 
@@ -145,10 +146,24 @@ public static class PreparationTransitions
             }
         }
 
+        var updatedModifiers = state with { Determinism = plan.Context };
+        var appliedIds = new List<Guid>();
+        foreach (var modifier in modifiers)
+        {
+            var owner = modifier.OwnerId.StartsWith("run:", StringComparison.Ordinal)
+                ? new GameplayOwner { Kind = GameplayOwnerKind.Run, Id = modifier.OwnerId[4..] }
+                : new GameplayOwner { Kind = GameplayOwnerKind.Entity, Id = modifier.OwnerId };
+            var applied = ModifierTransitions.Apply(updatedModifiers, modifier.Definition, owner, modifier.SourceId,
+                modifier.Stacks, modifier.Duration, modifier.InstanceId);
+            if (applied.IsFailure) return Result<RunStateTransition<PreparationOptionState>>.Failure(applied.Error);
+            updatedModifiers = applied.Value.Run;
+            appliedIds.Add(applied.Value.Instance.InstanceId);
+        }
+
         var updatedOption = option with
         {
             Applied = true,
-            AppliedModifierInstanceIds = modifiers.Select(item => item.InstanceId).ToArray()
+            AppliedModifierInstanceIds = appliedIds.ToArray()
         };
         var updatedPreparation = preparation with
         {
@@ -160,7 +175,7 @@ public static class PreparationTransitions
             ResourceState = spent.Value.State,
             Deck = deck.Value.State,
             Preparations = state.Preparations.SetItem(preparationIndex, updatedPreparation),
-            Modifiers = state.Modifiers.AddRange(modifiers),
+            Modifiers = updatedModifiers.Modifiers,
             Determinism = deck.Value.Context.AdvanceStep()
         };
         return Result<RunStateTransition<PreparationOptionState>>.Success(new(next, updatedOption));

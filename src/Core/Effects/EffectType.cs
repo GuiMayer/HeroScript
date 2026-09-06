@@ -134,7 +134,9 @@ public enum EffectType
     /// <summary>
     /// Copia effect de outra fonte
     /// </summary>
-    COPY_EFFECT
+    COPY_EFFECT,
+    APPLY_MODIFIER,
+    REMOVE_MODIFIER
 }
 
 /// <summary>

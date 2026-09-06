@@ -65,6 +65,9 @@ public sealed record EffectApplicationRecord
     public string? StatusId { get; init; }
     public Guid? StatusInstanceId { get; init; }
     public ImmutableArray<Guid> RemovedStatusInstanceIds { get; init; } = [];
+    public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
+    public Guid? ModifierInstanceId { get; init; }
+    public string? ModifierId { get; init; }
     public EffectProvenance Provenance { get; init; } = new();
 }
 

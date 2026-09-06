@@ -339,6 +339,9 @@ public sealed class RunManagerTests
                 CurrentTurn = 3,
                 Determinism = first.Determinism.AdvanceStep()
             };
+            var gameplay = Core.Combat.Modifiers.ModifierTransitions.Apply(attached,
+                new() { ModifierId = "persistent-effect" },
+                new() { Kind = GameplayOwnerKind.Entity, Id = "hero" }, "status").Value.Run;
 
             var committed = manager.CommitCombatResolution(new CombatResolutionCommit
             {
@@ -353,6 +356,8 @@ public sealed class RunManagerTests
                         TransitionType = "combat.activation.ended",
                         Combat = first,
                         Deck = attached.Deck,
+                        RunSnapshot = gameplay,
+                        RunDeterminism = gameplay.Determinism,
                         Payload = JsonSerializer.SerializeToElement(new { actorId = "hero" })
                     },
                     new CombatResolutionStep
@@ -368,6 +373,8 @@ public sealed class RunManagerTests
             Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
             Assert.Equal(attached.Sequence + 2, committed.Value.Sequence);
             Assert.Equal(3, committed.Value.GetActiveEncounter()!.Combat.CurrentTurn);
+            Assert.Equal("persistent-effect", Assert.Single(committed.Value.Modifiers).Definition.ModifierId);
+            Assert.Empty(attached.Modifiers);
             var resolution = committed.Value.GetCombatResolution(rootCommand.CommandId);
             Assert.NotNull(resolution);
             Assert.Equal(AnimationFrameMode.FullSnapshots, resolution!.Mode);

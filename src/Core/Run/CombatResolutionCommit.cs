@@ -12,6 +12,8 @@ public sealed record CombatResolutionStep
     public CombatState Combat { get; init; } = null!;
     public DeckState Deck { get; init; } = new();
     public DeterministicContext? RunDeterminism { get; init; }
+    /// <summary>Transaction-only snapshot; commit copies gameplay fields, never identity or history.</summary>
+    public RunState? RunSnapshot { get; init; }
     public JsonElement Payload { get; init; }
 }
 

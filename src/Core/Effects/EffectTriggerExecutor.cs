@@ -84,6 +84,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             return Result<EffectBatchResult>.Failure($"Trigger owner not found: {request.OwnerEntityId}");
 
         var current = request.Combat;
+        var currentRun = request.Run;
         var records = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
@@ -118,9 +119,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         }
         return Result<EffectBatchResult>.Success(new()
         {
-            State = current, Run = request.Run, Records = records.ToImmutable(),
+            State = current, Run = currentRun, Records = records.ToImmutable(),
             Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable(),
-            Fingerprint = CanonicalJson.ComputeHash(new { state = current, steps = steps.ToImmutable(), run = request.Run })
+            Fingerprint = CanonicalJson.ComputeHash(new { state = current, steps = steps.ToImmutable(), run = currentRun })
         });
 
         Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection)
@@ -148,7 +149,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     var targetId = targets.Value.TargetIds[targetIndex];
                     var id = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}";
                     var before = targetIndex == 0 ? beforeSelection : CanonicalJson.ComputeHash(current);
-                    var variables = BuildVariables(request, current, targetId);
+                    var runBefore = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun);
+                    var variables = BuildVariables(request with { Run = currentRun }, current, targetId);
                     variables["repeat_index"] = repeat;
                     variables["target_index"] = targetIndex;
                     IReadOnlySet<string> tags = request.Tags.Count == 0 ? effect.Tags.ToHashSet(StringComparer.Ordinal) : request.Tags;
@@ -165,22 +167,34 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     ImmutableArray<EffectApplicationRecord> appliedRecords = [];
                     if (applies)
                     {
-                        var value = ResolveValue(request with { Combat = current }, effect, targetId, variables,
+                        var value = ResolveValue(request with { Combat = current, Run = currentRun }, effect, targetId, variables,
                             $"{path}:{repeat}:{targetId}");
                         if (value.IsFailure) return Result.Failure(value.Error);
                         calculation = value.Value.Calculation;
                         var status = ResolveAppliedStatus(effect, request.ContentRevision);
                         if (status.IsFailure) return Result.Failure(status.Error);
-                        var applied = _effects.Apply(current, [new ResolvedEffectCommand
+                        var command = new ResolvedEffectCommand
                         {
                             EffectInstanceId = id, Definition = effect, SourceEntityId = request.SourceEntityId,
                             TargetEntityIds = [targetId], ResolvedValue = value.Value.Value, StatusDefinition = status.Value,
                             ContentRevision = request.ContentRevision,
                             Provenance = request.Provenance with { ComponentId = activeTriggerId }
-                        }]);
-                        if (applied.IsFailure) return Result.Failure(applied.Error);
-                        current = applied.Value.State;
-                        appliedRecords = applied.Value.Records.ToImmutableArray();
+                        };
+                        if (RunEffectReducer.Supports(effect.Type))
+                        {
+                            if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
+                            var appliedRun = RunEffectReducer.Apply(currentRun, current, command, _contentRuntimes, request.ContentRevision);
+                            if (appliedRun.IsFailure) return Result.Failure(appliedRun.Error);
+                            currentRun = appliedRun.Value.Run;
+                            appliedRecords = [appliedRun.Value.Record];
+                        }
+                        else
+                        {
+                            var applied = _effects.Apply(current, [command]);
+                            if (applied.IsFailure) return Result.Failure(applied.Error);
+                            current = applied.Value.State;
+                            appliedRecords = applied.Value.Records.ToImmutableArray();
+                        }
                         records.AddRange(appliedRecords);
                         if (calculation != null) calculations.Add(calculation);
                     }
@@ -192,7 +206,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         ChanceRoll = roll, ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
                         Calculation = calculation, Applications = appliedRecords,
-                        StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current)
+                        StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current),
+                        RunBeforeHash = runBefore, RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
                     if (!applies) continue;
                     foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index)))

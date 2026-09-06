@@ -90,6 +90,9 @@ public static class RunMapTransitions
             Map = map,
             Determinism = state.Determinism.AdvanceStep()
         };
+        next = Core.Combat.Modifiers.ModifierTransitions.Tick(next, Core.Combat.Modifiers.ModifierDurationBoundary.Node);
+        if (current.NextNodeIds.Count == 0)
+            next = Core.Combat.Modifiers.ModifierTransitions.Tick(next, Core.Combat.Modifiers.ModifierDurationBoundary.Run);
         return Result<RunStateTransition<RunMapNodeState>>.Success(new(next, current));
     }
 

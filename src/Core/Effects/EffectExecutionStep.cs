@@ -20,6 +20,8 @@ public sealed record EffectExecutionStep
     public ImmutableArray<EffectApplicationRecord> Applications { get; init; } = [];
     public string StateBeforeHash { get; init; } = string.Empty;
     public string StateAfterHash { get; init; } = string.Empty;
+    public string? RunBeforeHash { get; init; }
+    public string? RunAfterHash { get; init; }
 }
 
 public static class EffectExecutionLimits

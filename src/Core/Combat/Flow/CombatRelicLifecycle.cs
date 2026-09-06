@@ -31,7 +31,8 @@ public sealed record CombatRelicLifecycleEvent
 
 public sealed record CombatRelicLifecycleResult(
     CombatState Combat,
-    IReadOnlyList<CombatRelicLifecycleEvent> Events);
+    IReadOnlyList<CombatRelicLifecycleEvent> Events,
+    RunState? Run = null);
 
 public interface ICombatRelicLifecycle
 {
@@ -60,7 +61,7 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
             return Result<CombatRelicLifecycleResult>.Failure("Relic boundary is required");
         var once = boundary is CombatTriggerBoundaries.CombatStart or CombatTriggerBoundaries.CombatEnd;
         if (once && combat.CompletedLifecycleBoundaries.Contains(boundary))
-            return Result<CombatRelicLifecycleResult>.Success(new(combat, []));
+            return Result<CombatRelicLifecycleResult>.Success(new(combat, [], run));
 
         var current = combat;
         var events = new List<CombatRelicLifecycleEvent>();
@@ -99,6 +100,7 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                     return Result<CombatRelicLifecycleResult>.Failure(
                         $"Relic {relic.DefinitionId}/{trigger.TriggerId}: {executed.Error}");
                 current = executed.Value.State;
+                run = executed.Value.Run ?? run;
                 events.Add(new CombatRelicLifecycleEvent
                 {
                     RelicInstanceId = relic.RelicInstanceId,
@@ -113,6 +115,6 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
             }
         }
         if (once) current = current with { CompletedLifecycleBoundaries = current.CompletedLifecycleBoundaries.Add(boundary) };
-        return Result<CombatRelicLifecycleResult>.Success(new(current, events));
+        return Result<CombatRelicLifecycleResult>.Success(new(current, events, run));
     }
 }

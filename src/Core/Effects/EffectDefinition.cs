@@ -127,6 +127,15 @@ public record EffectDefinition
     /// </summary>
     public int? StatusDuration { get; init; }
     public StatusEffects.StatusDispelDefinition Dispel { get; init; } = new();
+    public string? ModifierId { get; init; }
+    public int? ModifierStacks { get; init; }
+    public int? ModifierDuration { get; init; }
+    public Combat.Models.GameplayOwner? ModifierOwner { get; init; }
+    public string? CardDefinitionId { get; init; }
+    public int CardCount { get; init; } = 1;
+    public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
+    public bool ShuffleDiscardWhenEmpty { get; init; } = true;
+    public bool AllowPartialDraw { get; init; } = true;
     
     // ===== MODIFICADORES (para MODIFY_*) =====
     

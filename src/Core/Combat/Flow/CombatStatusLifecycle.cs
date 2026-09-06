@@ -30,7 +30,8 @@ public sealed record CombatStatusLifecycleEvent
 
 public sealed record CombatStatusLifecycleResult(
     CombatState Combat,
-    IReadOnlyList<CombatStatusLifecycleEvent> Events);
+    IReadOnlyList<CombatStatusLifecycleEvent> Events,
+    RunState? Run = null);
 
 public interface ICombatStatusLifecycle
 {
@@ -112,6 +113,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                         return Result<CombatStatusLifecycleResult>.Failure(
                             $"Status {status.StatusId}/{trigger.TriggerId}: {executed.Error}");
                     current = executed.Value.State;
+                    run = executed.Value.Run ?? run;
                     events.Add(new CombatStatusLifecycleEvent
                     {
                         Kind = CombatStatusLifecycleEventKind.Triggered,
@@ -161,7 +163,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                 ? current with { StatusEffects = current.StatusEffects.Remove(targetId) }
                 : current with { StatusEffects = current.StatusEffects.SetItem(targetId, retained.ToImmutable()) };
         }
-        return Result<CombatStatusLifecycleResult>.Success(new(current, events));
+        return Result<CombatStatusLifecycleResult>.Success(new(current, events, run));
     }
 
     private static Result<IReadOnlyList<string>> ResolveLifecycleTargets(

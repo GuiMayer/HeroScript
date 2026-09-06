@@ -277,7 +277,7 @@ public sealed class CombatRunCoordinatorTests
                 ResolutionFingerprint = "ability-resolution"
             }));
         flowPlanner.SetupSequence(planner => planner.AdvanceActivation(
-                run,
+                It.Is<RunState>(snapshot => snapshot.RunId == run.RunId),
                 It.IsAny<CombatState>(),
                 It.IsAny<DeckState>(),
                 It.IsAny<DeterministicContext>()))

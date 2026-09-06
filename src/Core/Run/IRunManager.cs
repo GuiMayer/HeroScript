@@ -20,7 +20,9 @@ public interface IRunManager
         int expectedSequence,
         ulong expectedStep,
         CombatState combatState,
-        RunCommandIdentity? commandIdentity = null);
+        RunCommandIdentity? commandIdentity = null,
+        RunState? initializedRun = null,
+        RunEncounterStartCommand? initialCommand = null);
     Result<RunState> CommitCombatAction(
         Guid runId,
         int expectedSequence,

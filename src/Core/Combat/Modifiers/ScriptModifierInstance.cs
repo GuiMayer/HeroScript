@@ -9,6 +9,8 @@ public record ScriptModifierInstance
     public string ModifierId { get; init; } = string.Empty;
     public ScriptModifierDefinition Definition { get; init; } = new();
     public string OwnerId { get; init; } = string.Empty;
+    public Core.Combat.Models.GameplayOwner Owner { get; init; } = new();
+    public string ContentRevision { get; init; } = string.Empty;
     public string? SourceId { get; init; }
     public int Stacks { get; init; } = 1;
     public int Duration { get; init; } = -1;
