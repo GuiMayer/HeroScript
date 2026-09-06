@@ -853,7 +853,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         CombatState combatState,
         RunCommandIdentity? commandIdentity = null,
         RunState? initializedRun = null,
-        RunEncounterStartCommand? initialCommand = null)
+        RunEncounterStartCommand? initialCommand = null,
+        CombatState? stateBeforeInitialization = null,
+        CombatResolutionStep? initializationStep = null)
     {
         if (combatState == null)
             return Result<RunState>.Failure("Combat state is required");
@@ -903,8 +905,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             {
                 return Result<RunState>.Failure("Combat engine/content version does not match its run");
             }
-            if (!combatState.IsActive)
-                return Result<RunState>.Failure("A new run encounter must be active");
+            if (stateBeforeInitialization != null &&
+                (stateBeforeInitialization.CombatId != combatState.CombatId ||
+                 stateBeforeInitialization.RunId != runId ||
+                 stateBeforeInitialization.Determinism.Seed != combatState.Determinism.Seed))
+                return Result<RunState>.Failure("Pre-initialization combat state does not match the encounter");
 
             var encounter = new RunEncounterState
             {
@@ -943,6 +948,33 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     item => item.Key,
                     item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),
                     StringComparer.Ordinal));
+            if (commandIdentity != null && initializationStep != null)
+            {
+                if (initializationStep.Combat.CombatId != combatState.CombatId ||
+                    !string.Equals(
+                        CanonicalJson.ComputeHash(initializationStep.Combat),
+                        CanonicalJson.ComputeHash(combatState),
+                        StringComparison.Ordinal))
+                    return Result<RunState>.Failure("Initialization trace does not match the encounter state");
+                var normalizedStep = initializationStep with
+                {
+                    Combat = combatState,
+                    Deck = candidate.Deck,
+                    RunSnapshot = initializedRun ?? candidate,
+                    RunDeterminism = initializedRun?.Determinism ?? candidate.Determinism
+                };
+                var record = CreateCombatResolutionRecord(
+                    state,
+                    stateBeforeInitialization ?? combatState,
+                    commandIdentity,
+                    [(candidate, normalizedStep)]);
+                candidate = candidate with
+                {
+                    CombatResolutions = candidate.CombatResolutions
+                        .ToImmutableDictionary()
+                        .SetItem(commandIdentity.CommandId, record)
+                };
+            }
             return Persist(
                 candidate,
                 RunCommandTypes.StartEncounter,
@@ -1129,49 +1161,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
         if (rootCommand != null)
         {
-            var mode = state.ResolvedMode?.CombatRules.Flow.Animation.Mode
-                ?? AnimationFrameMode.FullSnapshots;
-            var frames = candidates.Select((candidate, index) => new CombatAnimationFrame
-            {
-                FrameId = DeterministicId.Create(
-                    state.Determinism.Seed,
-                    (ulong)index,
-                    $"combat-frame:{rootCommand.CommandId:N}"),
-                Index = index,
-                RunSequence = checked(state.Sequence + index + 1),
-                CombatStep = candidate.Step.Combat.Determinism.Step,
-                TransitionType = candidate.Step.TransitionType,
-                Payload = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
-                    ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
-                    : candidate.Step.Payload.Clone(),
-                EffectSteps = candidate.Step.EffectSteps,
-                Calculations = candidate.Step.Calculations,
-                Applications = candidate.Step.Applications,
-                StateAfter = mode == AnimationFrameMode.FullSnapshots
-                    ? candidate.Step.Combat
-                    : null,
-                SnapshotSequence = checked(state.Sequence + index + 1)
-            }).ToArray();
-            var record = new CombatResolutionRecord
-            {
-                CommandId = rootCommand.CommandId,
-                CombatId = previousCombat.CombatId,
-                CommandType = rootCommand.Type,
-                Mode = mode,
-                FirstSequence = frames[0].RunSequence,
-                FinalSequence = frames[^1].RunSequence,
-                InitialCombatStateHash = CanonicalJson.ComputeHash(previousCombat),
-                FinalCombatStateHash = CanonicalJson.ComputeHash(candidates[^1].Step.Combat),
-                ResolutionFingerprint = CanonicalJson.ComputeHash(new
-                {
-                    rootCommand.CommandId,
-                    previousCombat.CombatId,
-                    rootCommand.Type,
-                    mode,
-                    frames
-                }),
-                Frames = frames
-            };
+            var record = CreateCombatResolutionRecord(state, previousCombat, rootCommand, candidates);
             var final = candidates[^1];
             candidates[^1] = (final.State with
             {
@@ -1182,6 +1172,57 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         }
 
         return PersistBatch(state, candidates, rootCommand, rootPayload);
+    }
+
+    private CombatResolutionRecord CreateCombatResolutionRecord(
+        RunState state,
+        CombatState previousCombat,
+        RunCommandIdentity rootCommand,
+        IReadOnlyList<(RunState State, CombatResolutionStep Step)> candidates)
+    {
+        var mode = state.ResolvedMode?.CombatRules.Flow.Animation.Mode
+            ?? AnimationFrameMode.FullSnapshots;
+        var frames = candidates.Select((candidate, index) => new CombatAnimationFrame
+        {
+            FrameId = DeterministicId.Create(
+                state.Determinism.Seed,
+                (ulong)index,
+                $"combat-frame:{rootCommand.CommandId:N}"),
+            Index = index,
+            RunSequence = checked(state.Sequence + index + 1),
+            CombatStep = candidate.Step.Combat.Determinism.Step,
+            TransitionType = candidate.Step.TransitionType,
+            Payload = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
+                ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
+                : candidate.Step.Payload.Clone(),
+            EffectSteps = candidate.Step.EffectSteps,
+            Calculations = candidate.Step.Calculations,
+            Applications = candidate.Step.Applications,
+            StateAfter = mode == AnimationFrameMode.FullSnapshots
+                ? candidate.Step.Combat
+                : null,
+            SnapshotSequence = checked(state.Sequence + index + 1)
+        }).ToArray();
+        return new CombatResolutionRecord
+        {
+            CommandId = rootCommand.CommandId,
+            CombatId = previousCombat.CombatId,
+            CommandType = rootCommand.Type,
+            Mode = mode,
+            FirstSequence = frames[0].RunSequence,
+            FinalSequence = frames[^1].RunSequence,
+            InitialCombatStateHash = CanonicalJson.ComputeHash(previousCombat),
+            FinalCombatStateHash = CanonicalJson.ComputeHash(candidates[^1].Step.Combat),
+            ResolutionFingerprint = CanonicalJson.ComputeHash(new
+            {
+                rootCommand.CommandId,
+                previousCombat.CombatId,
+                rootCommand.Type,
+                mode,
+                frames
+            }),
+            Frames = frames
+        };
     }
 
     public Result<RunState> ResolveEncounter(

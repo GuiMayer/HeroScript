@@ -22,6 +22,20 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
         var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
         var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+        var initialResolutionProperty = Assert.Single(
+            launched.GetProperty("run").GetProperty("combatResolutions").EnumerateObject());
+        var initialCommandId = Guid.Parse(initialResolutionProperty.Name);
+        var initialResolution = initialResolutionProperty.Value;
+        Assert.Equal(combatId, initialResolution.GetProperty("combatId").GetGuid());
+        Assert.Equal(64, initialResolution.GetProperty("resolutionFingerprint").GetString()!.Length);
+        Assert.Equal(
+            "combat.initialized",
+            Assert.Single(initialResolution.GetProperty("frames").EnumerateArray())
+                .GetProperty("transitionType").GetString());
+
+        using var initialResolutionResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/resolutions/{initialCommandId}");
+        Assert.Equal(HttpStatusCode.OK, initialResolutionResponse.StatusCode);
 
         using var beforeResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var before = await beforeResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -116,6 +130,10 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             .Single(item => item.GetProperty("commandId").ValueKind == JsonValueKind.String &&
                             item.GetProperty("commandId").GetGuid() == commandId);
         Assert.Equal(committedStateHash, timelineItem.GetProperty("stateHash").GetString());
+        Assert.Equal(commandId, timelineItem.GetProperty("resolutionCommandId").GetGuid());
+        Assert.Equal(
+            embeddedResolution.GetProperty("resolutionFingerprint").GetString(),
+            timelineItem.GetProperty("resolutionFingerprint").GetString());
 
         var committedSequence = timelineItem.GetProperty("runSequence").GetInt32();
         using var historicalResponse = await _client.GetAsync(

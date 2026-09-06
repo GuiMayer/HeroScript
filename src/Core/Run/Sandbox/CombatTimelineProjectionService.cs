@@ -15,6 +15,9 @@ public sealed record CombatTimelineItem
     public string? ActorId { get; init; }
     public string CommandType { get; init; } = string.Empty;
     public Guid? CommandId { get; init; }
+    public Guid? RootCommandId { get; init; }
+    public Guid? ResolutionCommandId { get; init; }
+    public string? ResolutionFingerprint { get; init; }
     public string PreviousStateHash { get; init; } = string.Empty;
     public string StateHash { get; init; } = string.Empty;
     public bool SnapshotAvailable { get; init; }
@@ -125,7 +128,11 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
             .Where(checkpoint => IsCombatTimelineEntry(checkpoint.JournalEntry.CommandType))
             .OrderBy(checkpoint => checkpoint.State.Sequence)
             .Take(pageLimit)
-            .Select(checkpoint => Map(checkpoint, combatId, retained.Contains(checkpoint.State.Sequence)))
+            .Select(checkpoint => Map(
+                checkpoint,
+                run.Value,
+                combatId,
+                retained.Contains(checkpoint.State.Sequence)))
             .ToArray();
         var groups = run.Value.ResolvedMode!.TimelinePolicy.GroupByTurn
             ? items.GroupBy(item => item.Turn)
@@ -196,9 +203,17 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         "EXECUTE_ACTION" or
         "END_TURN";
 
-    private static CombatTimelineItem Map(RunCheckpoint checkpoint, Guid combatId, bool snapshotAvailable)
+    private static CombatTimelineItem Map(
+        RunCheckpoint checkpoint,
+        RunState currentRun,
+        Guid combatId,
+        bool snapshotAvailable)
     {
         var combat = checkpoint.State.GetEncounter(combatId)!.Combat;
+        var resolutionCommandId = checkpoint.JournalEntry.RootCommandId ?? checkpoint.JournalEntry.CommandId;
+        var resolution = resolutionCommandId.HasValue
+            ? currentRun.GetCombatResolution(resolutionCommandId.Value)
+            : null;
         return new CombatTimelineItem
         {
             RunSequence = checkpoint.State.Sequence,
@@ -208,6 +223,9 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
             ActorId = combat.ActivationState?.ActiveActorId,
             CommandType = checkpoint.JournalEntry.CommandType,
             CommandId = checkpoint.JournalEntry.CommandId,
+            RootCommandId = checkpoint.JournalEntry.RootCommandId,
+            ResolutionCommandId = resolution?.CommandId,
+            ResolutionFingerprint = resolution?.ResolutionFingerprint,
             PreviousStateHash = checkpoint.JournalEntry.PreviousStateHash,
             StateHash = checkpoint.JournalEntry.StateHash,
             SnapshotAvailable = snapshotAvailable,

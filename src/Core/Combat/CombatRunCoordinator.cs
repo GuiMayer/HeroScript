@@ -98,6 +98,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
+            var effectiveIdentity = commandIdentity ?? CreateImplicitEncounterIdentity(run, combatResult.Value);
             var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value);
             if (initialized.IsFailure)
             {
@@ -106,12 +107,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var attached = _runManager.AttachEncounter(
                 runId,
-                commandIdentity?.ExpectedSequence ?? run.Sequence,
-                commandIdentity?.ExpectedStep ?? run.Determinism.Step,
+                effectiveIdentity.ExpectedSequence,
+                effectiveIdentity.ExpectedStep,
                 initialized.Value.Combat,
-                commandIdentity,
+                effectiveIdentity,
                 initialized.Value.Run,
-                InitialCommand(combatResult.Value));
+                InitialCommand(combatResult.Value),
+                combatResult.Value,
+                InitializationStep(initialized.Value));
             if (attached.IsFailure)
             {
                 return Result<CombatRunEncounterResult>.Failure(attached.Error);
@@ -178,6 +181,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
+            var effectiveIdentity = commandIdentity ?? CreateImplicitEncounterIdentity(run, combatResult.Value);
             var initialized = InitializeCanonicalFlow(run with { Determinism = seed.Context }, combatResult.Value);
             if (initialized.IsFailure)
             {
@@ -186,12 +190,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var attached = _runManager.AttachEncounter(
                 runId,
-                commandIdentity?.ExpectedSequence ?? run.Sequence,
-                commandIdentity?.ExpectedStep ?? run.Determinism.Step,
+                effectiveIdentity.ExpectedSequence,
+                effectiveIdentity.ExpectedStep,
                 initialized.Value.Combat,
-                commandIdentity,
+                effectiveIdentity,
                 initialized.Value.Run,
-                InitialCommand(combatResult.Value));
+                InitialCommand(combatResult.Value),
+                combatResult.Value,
+                InitializationStep(initialized.Value));
             if (attached.IsFailure)
             {
                 return Result<CombatRunEncounterResult>.Failure(attached.Error);
@@ -819,6 +825,34 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     private static RunEncounterStartCommand InitialCommand(CombatState combat) => new(combat.Hero, combat.Enemies.ToArray(),
         combat.StatusEffects.ToDictionary(item => item.Key, item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),
             StringComparer.Ordinal));
+
+    private static CombatResolutionStep InitializationStep(CombatInitializationResult initialized) => new()
+    {
+        TransitionType = "combat.initialized",
+        Combat = initialized.Combat,
+        Deck = initialized.Run.Deck,
+        RunSnapshot = initialized.Run,
+        RunDeterminism = initialized.Run.Determinism,
+        EffectSteps = initialized.EffectSteps,
+        Calculations = initialized.Calculations,
+        Applications = initialized.Applications,
+        Payload = JsonSerializer.SerializeToElement(new
+        {
+            activeActorId = initialized.Combat.ActivationState?.ActiveActorId,
+            phaseId = initialized.Combat.PhaseState?.CurrentPhaseId,
+            initializationFingerprint = initialized.Fingerprint
+        })
+    };
+
+    private static RunCommandIdentity CreateImplicitEncounterIdentity(RunState run, CombatState combat) => new(
+        DeterministicId.Create(
+            run.Determinism.Seed,
+            (ulong)run.Sequence,
+            $"implicit-start-encounter:{combat.RunNodeId}:{combat.CombatId:N}"),
+        RunCommandTypes.StartEncounter,
+        run.Sequence,
+        run.Determinism.Step,
+        CanonicalJson.ComputeHash(InitialCommand(combat)));
 
     private static RunCommandIdentity CreateImplicitIdentity(
         RunState run,

@@ -64,6 +64,12 @@ public sealed class CombatFlowPlannerTests
         var initialized = planner.InitializeTransaction(run, combat);
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
         Assert.Single(initialized.Value.Run.Deck.HandInstanceIds);
+        Assert.NotEmpty(initialized.Value.EffectSteps);
+        Assert.NotEmpty(initialized.Value.Applications);
+        Assert.Equal(64, initialized.Value.Fingerprint.Length);
+        Assert.Equal(
+            Enumerable.Range(0, initialized.Value.EffectSteps.Count),
+            initialized.Value.EffectSteps.Select(step => step.Index));
         var advanced = planner.AdvanceActivation(initialized.Value.Run, initialized.Value.Combat,
             initialized.Value.Run.Deck, initialized.Value.Run.Determinism);
         Assert.True(advanced.IsSuccess, advanced.IsFailure ? advanced.Error : null);

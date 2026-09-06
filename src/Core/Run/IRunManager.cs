@@ -22,7 +22,9 @@ public interface IRunManager
         CombatState combatState,
         RunCommandIdentity? commandIdentity = null,
         RunState? initializedRun = null,
-        RunEncounterStartCommand? initialCommand = null);
+        RunEncounterStartCommand? initialCommand = null,
+        CombatState? stateBeforeInitialization = null,
+        CombatResolutionStep? initializationStep = null);
     Result<RunState> CommitCombatAction(
         Guid runId,
         int expectedSequence,

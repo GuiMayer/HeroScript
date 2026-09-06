@@ -5,6 +5,7 @@ using Core.Combat.Intents;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Common;
+using Core.Calculations;
 using Core.Content;
 using Core.Determinism;
 using Core.Effects;
@@ -13,7 +14,32 @@ using Core.Run;
 
 namespace Core.Combat.Flow;
 
-public sealed record CombatInitializationResult(CombatState Combat, RunState Run);
+public sealed record CombatInitializationResult(CombatState Combat, RunState Run)
+{
+    private ImmutableArray<EffectExecutionStep> _effectSteps = [];
+    private ImmutableArray<CalculationResult> _calculations = [];
+    private ImmutableArray<EffectApplicationRecord> _applications = [];
+
+    public IReadOnlyList<EffectExecutionStep> EffectSteps
+    {
+        get => _effectSteps;
+        init => _effectSteps = value?.ToImmutableArray() ?? [];
+    }
+
+    public IReadOnlyList<CalculationResult> Calculations
+    {
+        get => _calculations;
+        init => _calculations = value?.ToImmutableArray() ?? [];
+    }
+
+    public IReadOnlyList<EffectApplicationRecord> Applications
+    {
+        get => _applications;
+        init => _applications = value?.ToImmutableArray() ?? [];
+    }
+
+    public string Fingerprint { get; init; } = string.Empty;
+}
 
 public sealed record CombatFlowAdvanceResult
 {
@@ -82,6 +108,8 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
+        var effectSteps = new List<EffectExecutionStep>();
+        var applications = new List<EffectApplicationRecord>();
         var context = ResolveContext(run);
         if (context.IsFailure) return Result<CombatInitializationResult>.Failure(context.Error);
         var deck = DeckTransitions.BeginEncounter(run.Deck, context.Value.Policies.DeckCycle, run.Determinism);
@@ -93,23 +121,39 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             initialized.Value.ActivationState!.ActiveActorId!, RegenerationTiming.START_TURN, context.Value.Policies);
         if (regenerated.IsFailure) return Result<CombatInitializationResult>.Failure(regenerated.Error);
         run = regenerated.Value.Run ?? run;
+        effectSteps.AddRange(regenerated.Value.Steps);
+        applications.AddRange(regenerated.Value.Records);
         var relics = _relicLifecycle.Process(run, regenerated.Value.Combat, CombatTriggerBoundaries.CombatStart);
         if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
         run = relics.Value.Run ?? run;
+        effectSteps.AddRange(relics.Value.Events.SelectMany(item => item.Steps));
+        applications.AddRange(relics.Value.Events.SelectMany(item => item.Applications));
         var afterRelics = CombatFlowTransitions.EvaluateOutcome(relics.Value.Combat,
             context.Value.Policies.Outcome, initialized.Value.ActivationState?.ActiveActorId);
         var initial = ApplyInitialLifecycle(run, afterRelics, context.Value.Policies);
         if (initial.IsFailure) return initial;
         run = initial.Value.Run;
+        effectSteps.AddRange(initial.Value.EffectSteps);
+        applications.AddRange(initial.Value.Applications);
         if (!initial.Value.Combat.IsActive)
         {
             var completed = Complete(run, initial.Value.Combat);
-            return completed.IsFailure ? Result<CombatInitializationResult>.Failure(completed.Error)
-                : Result<CombatInitializationResult>.Success(new(completed.Value.Combat, completed.Value.Run ?? run));
+            if (completed.IsFailure) return Result<CombatInitializationResult>.Failure(completed.Error);
+            effectSteps.AddRange(completed.Value.Events.SelectMany(item => item.Steps));
+            applications.AddRange(completed.Value.Events.SelectMany(item => item.Applications));
+            return Result<CombatInitializationResult>.Success(CreateInitializationResult(
+                completed.Value.Combat,
+                completed.Value.Run ?? run,
+                effectSteps,
+                applications));
         }
         var intents = PublishIntents(run, initial.Value.Combat, context.Value.Policies);
         return intents.IsFailure ? Result<CombatInitializationResult>.Failure(intents.Error)
-            : Result<CombatInitializationResult>.Success(new(intents.Value, run));
+            : Result<CombatInitializationResult>.Success(CreateInitializationResult(
+                intents.Value,
+                run,
+                effectSteps,
+                applications));
     }
 
     public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat)
@@ -575,6 +619,8 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         CombatFlowPoliciesDefinition policies)
     {
         var current = combat;
+        var effectSteps = new List<EffectExecutionStep>();
+        var applications = new List<EffectApplicationRecord>();
         foreach (var boundary in new[]
                  {
                      StatusTriggerBoundary.StartRound,
@@ -593,6 +639,10 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
             if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
             run = relics.Value.Run ?? run;
+            effectSteps.AddRange(processed.Value.Events.SelectMany(item => item.Steps));
+            effectSteps.AddRange(relics.Value.Events.SelectMany(item => item.Steps));
+            applications.AddRange(processed.Value.Events.SelectMany(item => item.Applications));
+            applications.AddRange(relics.Value.Events.SelectMany(item => item.Applications));
             current = CombatFlowTransitions.EvaluateOutcome(
                 relics.Value.Combat,
                 policies.Outcome,
@@ -600,7 +650,40 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             if (!current.IsActive)
                 break;
         }
-        return Result<CombatInitializationResult>.Success(new(current, run));
+        return Result<CombatInitializationResult>.Success(CreateInitializationResult(
+            current,
+            run,
+            effectSteps,
+            applications));
+    }
+
+    private static CombatInitializationResult CreateInitializationResult(
+        CombatState combat,
+        RunState run,
+        IEnumerable<EffectExecutionStep> effectSteps,
+        IEnumerable<EffectApplicationRecord> applications)
+    {
+        var normalizedSteps = effectSteps
+            .Select((step, index) => step with { Index = index })
+            .ToImmutableArray();
+        var immutableApplications = applications.ToImmutableArray();
+        var calculations = normalizedSteps
+            .Where(step => step.Calculation != null)
+            .Select(step => step.Calculation!)
+            .ToImmutableArray();
+        return new CombatInitializationResult(combat, run)
+        {
+            EffectSteps = normalizedSteps,
+            Calculations = calculations,
+            Applications = immutableApplications,
+            Fingerprint = CanonicalJson.ComputeHash(new
+            {
+                combat,
+                run,
+                effectSteps = normalizedSteps,
+                applications = immutableApplications
+            })
+        };
     }
 
     private Result<CombatState> AppendBoundary(
