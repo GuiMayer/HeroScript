@@ -316,6 +316,12 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             Deck = processed.Value.Run?.Deck ?? deck,
             RunSnapshot = processed.Value.Run ?? run,
             RunDeterminism = (processed.Value.Run ?? run).Determinism,
+            EffectSteps = processed.Value.Steps,
+            Calculations = processed.Value.Steps
+                .Where(item => item.Calculation != null)
+                .Select(item => item.Calculation!)
+                .ToArray(),
+            Applications = processed.Value.Records,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 timing = timing.ToString(),
@@ -625,6 +631,9 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             relics.Value.Combat,
             policies.Outcome,
             activeActorId);
+        var effectSteps = processed.Value.Events.SelectMany(item => item.Steps)
+            .Concat(relics.Value.Events.SelectMany(item => item.Steps))
+            .ToArray();
         steps.Add(new CombatResolutionStep
         {
             TransitionType = $"combat.status.{ToSnakeCase(boundary)}",
@@ -632,6 +641,14 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             Deck = run.Deck,
             RunSnapshot = run,
             RunDeterminism = run.Determinism,
+            EffectSteps = effectSteps,
+            Calculations = effectSteps
+                .Where(item => item.Calculation != null)
+                .Select(item => item.Calculation!)
+                .ToArray(),
+            Applications = processed.Value.Events.SelectMany(item => item.Applications)
+                .Concat(relics.Value.Events.SelectMany(item => item.Applications))
+                .ToArray(),
             Payload = JsonSerializer.SerializeToElement(new
             {
                 boundary = boundary.ToString(),

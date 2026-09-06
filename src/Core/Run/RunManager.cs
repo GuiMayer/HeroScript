@@ -1144,6 +1144,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 Payload = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
                     ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
                     : candidate.Step.Payload.Clone(),
+                EffectSteps = candidate.Step.EffectSteps,
+                Calculations = candidate.Step.Calculations,
+                Applications = candidate.Step.Applications,
                 StateAfter = mode == AnimationFrameMode.FullSnapshots
                     ? candidate.Step.Combat
                     : null,
@@ -1157,6 +1160,16 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 Mode = mode,
                 FirstSequence = frames[0].RunSequence,
                 FinalSequence = frames[^1].RunSequence,
+                InitialCombatStateHash = CanonicalJson.ComputeHash(previousCombat),
+                FinalCombatStateHash = CanonicalJson.ComputeHash(candidates[^1].Step.Combat),
+                ResolutionFingerprint = CanonicalJson.ComputeHash(new
+                {
+                    rootCommand.CommandId,
+                    previousCombat.CombatId,
+                    rootCommand.Type,
+                    mode,
+                    frames
+                }),
                 Frames = frames
             };
             var final = candidates[^1];

@@ -358,6 +358,7 @@ public sealed class RunManagerTests
                         Deck = attached.Deck,
                         RunSnapshot = gameplay,
                         RunDeterminism = gameplay.Determinism,
+                        EffectSteps = [new EffectExecutionStep { EffectInstanceId = "status.tick" }],
                         Payload = JsonSerializer.SerializeToElement(new { actorId = "hero" })
                     },
                     new CombatResolutionStep
@@ -381,7 +382,14 @@ public sealed class RunManagerTests
             Assert.Equal(2, resolution.Frames.Count);
             Assert.Equal(attached.Sequence + 1, resolution.FirstSequence);
             Assert.Equal(attached.Sequence + 2, resolution.FinalSequence);
+            Assert.Equal(CanonicalJson.ComputeHash(combat), resolution.InitialCombatStateHash);
+            Assert.Equal(CanonicalJson.ComputeHash(second), resolution.FinalCombatStateHash);
+            Assert.Equal(64, resolution.ResolutionFingerprint.Length);
             Assert.All(resolution.Frames, frame => Assert.NotNull(frame.StateAfter));
+            Assert.Equal(
+                "status.tick",
+                Assert.Single(resolution.Frames[0].EffectSteps).EffectInstanceId);
+            Assert.Empty(resolution.Frames[1].EffectSteps);
             var journal = await repository.LoadJournalAsync(run.RunId);
             var transitions = journal.TakeLast(2).ToArray();
             Assert.Equal(new[] { 0, 1 }, transitions.Select(entry => entry.TransitionIndex));

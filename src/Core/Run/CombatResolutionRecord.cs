@@ -2,11 +2,17 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Combat.Flow;
 using Core.Combat.Models;
+using Core.Calculations;
+using Core.Effects;
 
 namespace Core.Run;
 
 public sealed record CombatAnimationFrame
 {
+    private ImmutableArray<EffectExecutionStep> _effectSteps = [];
+    private ImmutableArray<CalculationResult> _calculations = [];
+    private ImmutableArray<EffectApplicationRecord> _applications = [];
+
     public Guid FrameId { get; init; }
     public int Index { get; init; }
     public int RunSequence { get; init; }
@@ -15,6 +21,21 @@ public sealed record CombatAnimationFrame
     public JsonElement Payload { get; init; }
     public CombatState? StateAfter { get; init; }
     public int SnapshotSequence { get; init; }
+    public IReadOnlyList<EffectExecutionStep> EffectSteps
+    {
+        get => _effectSteps;
+        init => _effectSteps = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CalculationResult> Calculations
+    {
+        get => _calculations;
+        init => _calculations = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectApplicationRecord> Applications
+    {
+        get => _applications;
+        init => _applications = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record CombatResolutionRecord
@@ -27,6 +48,9 @@ public sealed record CombatResolutionRecord
     public AnimationFrameMode Mode { get; init; }
     public int FirstSequence { get; init; }
     public int FinalSequence { get; init; }
+    public string InitialCombatStateHash { get; init; } = string.Empty;
+    public string FinalCombatStateHash { get; init; } = string.Empty;
+    public string ResolutionFingerprint { get; init; } = string.Empty;
     public IReadOnlyList<CombatAnimationFrame> Frames
     {
         get => _frames;

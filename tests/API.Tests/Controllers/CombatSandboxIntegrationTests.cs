@@ -41,6 +41,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal("hero", evaluation.GetProperty("contextSources").GetProperty("actor").GetProperty("entityId").GetString());
         Assert.NotEmpty(evaluation.GetProperty("calculations").EnumerateArray());
         Assert.Equal(2, evaluation.GetProperty("previewApplications").GetArrayLength());
+        Assert.NotEmpty(evaluation.GetProperty("previewSteps").EnumerateArray());
         Assert.Equal(64, evaluation.GetProperty("resolutionFingerprint").GetString()!.Length);
 
         using var handResponse = await _client.GetAsync(
@@ -78,12 +79,16 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.False(committed.GetProperty("duplicate").GetBoolean());
         var committedStateHash = committed.GetProperty("stateHash").GetString();
         var embeddedResolution = committed.GetProperty("state").GetProperty("resolution");
+        Assert.Equal(64, embeddedResolution.GetProperty("resolutionFingerprint").GetString()!.Length);
         var appliedFrame = embeddedResolution.GetProperty("frames").EnumerateArray()
             .Single(frame => frame.GetProperty("transitionType").GetString() == "combat.action.applied");
         Assert.Equal(
             previewFingerprint,
             appliedFrame.GetProperty("payload").GetProperty("cardResolution")
                 .GetProperty("resolutionFingerprint").GetString());
+        Assert.NotEmpty(appliedFrame.GetProperty("effectSteps").EnumerateArray());
+        Assert.NotEmpty(appliedFrame.GetProperty("calculations").EnumerateArray());
+        Assert.Equal(2, appliedFrame.GetProperty("applications").GetArrayLength());
 
         using var durableResponse = await _client.GetAsync(
             $"/api/v1/combats/{combatId}/resolutions/{commandId}");

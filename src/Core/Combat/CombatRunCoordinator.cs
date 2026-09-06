@@ -506,6 +506,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 Deck = rootDeck.Value.State,
                 RunDeterminism = rootDeck.Value.Context,
                 RunSnapshot = run,
+                EffectSteps = cardPlay?.Steps ?? ability?.Steps ?? [],
+                Calculations = cardPlay?.Calculations ?? ability?.Calculations ?? [],
+                Applications = cardPlay?.Applications ?? ability?.Applications ?? [],
                 Payload = rootPayload
             }
         };
@@ -641,6 +644,12 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 TransitionType = "combat.completed", Combat = currentCombat, Deck = currentDeck,
                 RunDeterminism = currentRunDeterminism,
                 RunSnapshot = run,
+                EffectSteps = completed.Value.Events.SelectMany(item => item.Steps).ToArray(),
+                Calculations = completed.Value.Events.SelectMany(item => item.Steps)
+                    .Where(item => item.Calculation != null)
+                    .Select(item => item.Calculation!)
+                    .ToArray(),
+                Applications = completed.Value.Events.SelectMany(item => item.Applications).ToArray(),
                 Payload = JsonSerializer.SerializeToElement(new { events = completed.Value.Events })
             });
         }
@@ -776,6 +785,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             Deck = deck,
             RunDeterminism = determinism,
             RunSnapshot = run,
+            EffectSteps = ability?.Steps ?? [],
+            Calculations = ability?.Calculations ?? [],
+            Applications = ability?.Applications ?? [],
             Payload = JsonSerializer.SerializeToElement(new
             {
                 command,

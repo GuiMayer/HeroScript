@@ -88,6 +88,7 @@ public sealed record CardInspectionResult
     private ImmutableArray<CardUpgradeState> _appliedUpgrades = [];
     private ImmutableArray<CalculationResult> _calculations = [];
     private ImmutableArray<EffectApplicationRecord> _previewApplications = [];
+    private ImmutableArray<EffectExecutionStep> _previewSteps = [];
 
     public CardInspectionVersion Version { get; init; } = new();
     public InspectionDetailLevel Detail { get; init; }
@@ -113,6 +114,11 @@ public sealed record CardInspectionResult
     {
         get => _previewApplications;
         init => _previewApplications = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectExecutionStep> PreviewSteps
+    {
+        get => _previewSteps;
+        init => _previewSteps = value?.ToImmutableArray() ?? [];
     }
     public CardConsumeDestination Disposition { get; init; }
     public string ResolutionFingerprint { get; init; } = string.Empty;
@@ -335,6 +341,7 @@ public sealed class CardInspectionService : ICardInspectionService
             Evaluation = resolvedEvaluation,
             Calculations = preview?.Calculations ?? [],
             PreviewApplications = preview?.Applications ?? [],
+            PreviewSteps = preview?.Steps ?? [],
             Disposition = resolvedEvaluation.Destination,
             ResolutionFingerprint = fingerprint
         });
