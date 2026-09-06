@@ -256,7 +256,8 @@ builder.Services.AddSingleton<IGambitEngine>(sp =>
         resourceLoader,
         eventBus,
         persister,
-        sp.GetRequiredService<IContentRuntimeResolver>());
+        sp.GetRequiredService<IContentRuntimeResolver>(),
+        sp.GetRequiredService<IRuntimeFormulaEvaluator>());
 });
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 builder.Services.AddSingleton<ICombatStatusLifecycle>(sp => new CombatStatusLifecycle(

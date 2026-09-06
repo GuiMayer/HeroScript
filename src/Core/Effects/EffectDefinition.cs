@@ -126,6 +126,7 @@ public record EffectDefinition
     /// Duração do status (override do valor base)
     /// </summary>
     public int? StatusDuration { get; init; }
+    public StatusEffects.StatusDispelDefinition Dispel { get; init; } = new();
     
     // ===== MODIFICADORES (para MODIFY_*) =====
     

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Common;
+using Core.Combat.Models;
 using Core.Config;
 using Core.Content;
 using Core.Entity;
@@ -22,19 +23,22 @@ public sealed class GambitEngine : IGambitEngine
         ImmutableDictionary<string, GambitDefinition>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     private volatile string? _loadedConfigName;
     private readonly IContentRuntimeResolver? _contentRuntimes;
+    private readonly Core.Math.IRuntimeFormulaEvaluator? _formulas;
 
     public GambitEngine(
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         IEventBus? eventBus = null,
         IDefinitionPersister? persister = null,
-        IContentRuntimeResolver? contentRuntimes = null)
+        IContentRuntimeResolver? contentRuntimes = null,
+        Core.Math.IRuntimeFormulaEvaluator? formulas = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _eventBus = eventBus;
         _persister = persister; // Optional for backward compatibility
         _contentRuntimes = contentRuntimes;
+        _formulas = formulas;
     }
 
     public Result LoadDefinitions(string configName)
@@ -106,6 +110,22 @@ public sealed class GambitEngine : IGambitEngine
             {
                 _eventBus?.Publish(new GambitRuleMatchedEvent(combatId, actorId, gambit.GambitId, gambit.GambitId, gambit.Priority));
                 var action = MapAction(gambit.Action, controlledEntity, combatState);
+                if (action.ActionType is not (Models.ActionType.PASS or Models.ActionType.END_TURN))
+                {
+                    var actionTags = new HashSet<string>(StringComparer.Ordinal) { "action", "ability" };
+                    if (_contentRuntimes != null)
+                    {
+                        var runtime = _contentRuntimes.Resolve(combatState.Determinism.ContentRevision);
+                        if (runtime.IsFailure) return Result<GambitDecision>.Failure(runtime.Error);
+                        var definition = runtime.Value.GetDefinition<ActionDefinition>("actions", action.PowerId ?? "basic_attack");
+                        if (definition.IsFailure) return Result<GambitDecision>.Failure(definition.Error);
+                        actionTags.UnionWith(definition.Value.Tags);
+                    }
+                    var constraint = Core.StatusEffects.StatusActionConstraints.Evaluate(combatState,
+                        combatState.GetEntity(actorId)!, actionTags, _formulas, combatState.Determinism.ContentRevision);
+                    if (constraint.IsFailure) return Result<GambitDecision>.Failure(constraint.Error);
+                    if (!constraint.Value.IsEmpty) continue;
+                }
                 _eventBus?.Publish(new GambitActionSelectedEvent(combatId, actorId, gambit.GambitId, action.PowerId ?? action.ActionType.ToString(), action.TargetId));
                 return Result<GambitDecision>.Success(new GambitDecision
                 {

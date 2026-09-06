@@ -210,6 +210,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
                 request.Combat.Determinism.Step,
                 $"ability-legality:{definition.ActionId}"),
             DefinitionId = definition.ActionId,
+            Tags = definition.Tags.Append("ability").ToImmutableArray(),
             Components = components
         };
     }

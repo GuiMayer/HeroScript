@@ -344,7 +344,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _configManager,
             _resourceLoader,
             eventBus,
-            contentRuntimes: contentRuntimes);
+            contentRuntimes: contentRuntimes,
+            formulas: _formulaEvaluator);
         var flowPlanner = contentRuntimes == null
             ? null
             : new CombatFlowPlanner(

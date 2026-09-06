@@ -136,6 +136,10 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             return Result<CardPlayEvaluation>.Failure(
                 $"Card {card.DefinitionId} requires one disposition component");
         var failures = ImmutableArray.CreateBuilder<string>();
+        var constraints = Core.StatusEffects.StatusActionConstraints.Evaluate(combat, actor,
+            card.Tags.Append("action").ToHashSet(StringComparer.Ordinal), _formulas, request.ContentRevision);
+        if (constraints.IsFailure) return Result<CardPlayEvaluation>.Failure(constraints.Error);
+        failures.AddRange(constraints.Value);
         var conditionTarget = request.SelectedTargetIds.Count > 0
             ? combat.GetEntity(request.SelectedTargetIds[0])
             : null;

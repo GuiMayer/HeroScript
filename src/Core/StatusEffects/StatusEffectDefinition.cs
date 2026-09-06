@@ -59,6 +59,10 @@ public record StatusEffectDefinition
     /// Número máximo de stacks permitidos
     /// </summary>
     public int MaxStacks { get; init; } = 99;
+    public StackReapplyPolicy Stacking { get; init; } = StackReapplyPolicy.Add;
+    public DurationReapplyPolicy DurationReapply { get; init; } = DurationReapplyPolicy.Preserve;
+    public bool Dispellable { get; init; } = true;
+    public ImmutableArray<ActionConstraintDefinition> ActionConstraints { get; init; } = [];
     
     // ===== VALORES =====
     

@@ -68,9 +68,10 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
 
         var current = combat;
         var events = new List<CombatStatusLifecycleEvent>();
+        var boundarySnapshot = combat.StatusEffects;
         foreach (var targetId in targets.Value)
         {
-            var activeAtBoundary = current.StatusEffects.GetValueOrDefault(targetId, [])
+            var activeAtBoundary = boundarySnapshot.GetValueOrDefault(targetId, [])
                 .Where(status => status.IsActive)
                 .OrderByDescending(status => status.Definition.Priority)
                 .ThenBy(status => status.InstanceId)
@@ -85,6 +86,9 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                              .OrderByDescending(item => item.Priority)
                              .ThenBy(item => item.TriggerId, StringComparer.Ordinal))
                 {
+                    var liveStatus = current.StatusEffects.GetValueOrDefault(targetId, [])
+                        .FirstOrDefault(item => item.InstanceId == status.InstanceId && item.IsActive);
+                    if (liveStatus == null) break;
                     var executed = _triggers.Execute(new EffectTriggerExecutionRequest
                     {
                         Combat = current,
@@ -95,8 +99,8 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                         ContentRevision = status.ContentRevision ?? current.Determinism.ContentRevision,
                         Variables = new Dictionary<string, float>(StringComparer.Ordinal)
                         {
-                            ["stacks"] = status.Stacks,
-                            ["duration"] = status.Duration
+                            ["stacks"] = liveStatus.Stacks,
+                            ["duration"] = liveStatus.Duration
                         },
                         Provenance = new EffectProvenance
                         {

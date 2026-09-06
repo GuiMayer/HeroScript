@@ -64,6 +64,7 @@ public sealed record EffectApplicationRecord
     public float? CurrentValue { get; init; }
     public string? StatusId { get; init; }
     public Guid? StatusInstanceId { get; init; }
+    public ImmutableArray<Guid> RemovedStatusInstanceIds { get; init; } = [];
     public EffectProvenance Provenance { get; init; } = new();
 }
 
@@ -259,18 +260,30 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 $"Pinned status definition does not match effect statusId: {statusId}");
         if (definition.MaxStacks < 1)
             return Result<EffectTargetApplication>.Failure($"Status {statusId} maxStacks must be positive");
+        var incomingStacks = effect.Definition.StatusStacks ?? definition.DefaultStacks;
+        var incomingDuration = effect.Definition.StatusDuration ?? definition.DefaultDuration;
+        var validatedStacks = InstancePolicies.Stacks(0, incomingStacks, definition.MaxStacks, definition.Stacking);
+        if (validatedStacks.IsFailure || !InstancePolicies.ValidDuration(incomingDuration) ||
+            !InstancePolicies.ValidDuration(definition.DefaultDuration) || !Enum.IsDefined(definition.DurationReapply))
+            return Result<EffectTargetApplication>.Failure($"Status {statusId} has invalid stacks or duration policy");
         var statuses = state.StatusEffects.GetValueOrDefault(target.EntityId, []);
-        var index = FindStatus(statuses, statusId);
+        var index = definition.Stacking == StackReapplyPolicy.Independent ? -1 : FindStatus(statuses, statusId);
         StatusEffectInstance applied;
         var context = state.Determinism;
         if (index >= 0)
         {
             var existing = statuses[index];
+            if (existing.ContentRevision != null && existing.ContentRevision != (effect.ContentRevision ?? context.ContentRevision))
+                return Result<EffectTargetApplication>.Failure($"Cannot merge different revisions of status {statusId}; remove or create an independent instance");
+            var mergedStacks = InstancePolicies.Stacks(existing.Stacks, incomingStacks, definition.MaxStacks, definition.Stacking);
+            var mergedDuration = InstancePolicies.Duration(existing.Duration, incomingDuration,
+                definition.DefaultDuration, definition.DurationReapply);
+            if (mergedStacks.IsFailure || mergedDuration.IsFailure)
+                return Result<EffectTargetApplication>.Failure($"Status {statusId} reapplication failed");
             applied = existing with
             {
-                Stacks = System.Math.Min(
-                    definition.MaxStacks,
-                    existing.Stacks + (effect.Definition.StatusStacks ?? definition.DefaultStacks))
+                Stacks = mergedStacks.Value,
+                Duration = mergedDuration.Value
             };
             statuses = statuses.SetItem(index, applied);
         }
@@ -286,10 +299,8 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 TargetId = target.EntityId,
                 SourceId = effect.SourceEntityId,
                 ContentRevision = effect.ContentRevision ?? state.Determinism.ContentRevision,
-                Stacks = System.Math.Min(
-                    definition.MaxStacks,
-                    effect.Definition.StatusStacks ?? definition.DefaultStacks),
-                Duration = effect.Definition.StatusDuration ?? definition.DefaultDuration,
+                Stacks = validatedStacks.Value,
+                Duration = incomingDuration,
                 AppliedAt = context.LogicalTimestamp.UtcDateTime,
                 TurnApplied = state.CurrentTurn,
                 IsActive = true
@@ -321,21 +332,27 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         bool removeAll)
     {
         var statuses = state.StatusEffects.GetValueOrDefault(target.EntityId, []);
-        string? statusId = null;
-        if (removeAll)
+        var statusId = effect.Definition.StatusId;
+        var filter = effect.Definition.Dispel;
+        if (!removeAll && string.IsNullOrWhiteSpace(statusId))
+            return Result<EffectTargetApplication>.Failure($"Effect {effect.EffectInstanceId} requires statusId");
+        if (filter.MaximumInstances < 1 || !Enum.IsDefined(filter.Order))
+            return Result<EffectTargetApplication>.Failure("Invalid dispel policy");
+        var candidates = statuses.Where(status => removeAll
+            ? status.Definition.Dispellable &&
+                (filter.StatusIds.IsEmpty || filter.StatusIds.Contains(status.StatusId, StringComparer.Ordinal)) &&
+                filter.RequiredTags.All(tag => status.Definition.Tags.Contains(tag, StringComparer.Ordinal)) &&
+                (filter.SourceEntityId == null || status.SourceId == filter.SourceEntityId)
+            : status.StatusId == statusId);
+        var ordered = filter.Order switch
         {
-            statuses = [];
-        }
-        else
-        {
-            statusId = effect.Definition.StatusId;
-            if (string.IsNullOrWhiteSpace(statusId))
-                return Result<EffectTargetApplication>.Failure(
-                    $"Effect {effect.EffectInstanceId} requires statusId");
-            statuses = statuses
-                .Where(status => !string.Equals(status.StatusId, statusId, StringComparison.Ordinal))
-                .ToImmutableArray();
-        }
+            DispelOrder.OldestFirst => candidates.OrderBy(status => status.AppliedAt).ThenBy(status => status.InstanceId),
+            DispelOrder.NewestFirst => candidates.OrderByDescending(status => status.AppliedAt).ThenBy(status => status.InstanceId),
+            DispelOrder.HighestPriorityFirst => candidates.OrderByDescending(status => status.Definition.Priority).ThenBy(status => status.InstanceId),
+            _ => candidates.OrderBy(status => status.InstanceId)
+        };
+        var removed = ordered.Take(filter.MaximumInstances).Select(status => status.InstanceId).ToImmutableArray();
+        statuses = statuses.Where(status => !removed.Contains(status.InstanceId)).ToImmutableArray();
         var updatedStatuses = statuses.IsEmpty
             ? state.StatusEffects.Remove(target.EntityId)
             : state.StatusEffects.SetItem(target.EntityId, statuses);
@@ -347,6 +364,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 EffectType = effect.Definition.Type,
                 TargetEntityId = target.EntityId,
                 StatusId = removeAll ? "*" : statusId,
+                RemovedStatusInstanceIds = removed,
                 Provenance = effect.Provenance
             }));
     }

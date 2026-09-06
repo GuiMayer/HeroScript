@@ -63,6 +63,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             CardInstanceId = instance.CardInstanceId,
             DefinitionId = instance.DefinitionId,
             DefinitionFingerprint = definition.Fingerprint,
+            Tags = definition.Tags.ToImmutableArray(),
             AppliedUpgrades = upgrades,
             Components = components,
             Fingerprint = payload.ComputeFingerprint()

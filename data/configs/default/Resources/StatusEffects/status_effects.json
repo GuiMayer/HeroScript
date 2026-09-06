@@ -108,6 +108,9 @@
     "Type": "STUNNED",
     "DisplayName": "Stunned",
     "Description": "Cannot act",
+    "ActionConstraints": [
+      { "ConstraintId": "cannot-act", "RequiredActionTags": ["action"], "Reason": "Cannot act while stunned" }
+    ],
     "DefaultDuration": 1,
     "DefaultStacks": 1,
     "MaxStacks": 1,

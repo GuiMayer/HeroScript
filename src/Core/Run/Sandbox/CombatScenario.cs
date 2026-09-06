@@ -390,6 +390,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 InstanceId = allocated.Value,
                 StatusId = definition.Value.StatusId,
                 Definition = definition.Value,
+                ContentRevision = contentRevision,
                 TargetId = effect.TargetAlias,
                 Stacks = System.Math.Min(effect.Stacks, definition.Value.MaxStacks),
                 Duration = definition.Value.DefaultDuration,

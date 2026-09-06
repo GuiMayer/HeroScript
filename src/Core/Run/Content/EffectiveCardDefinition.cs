@@ -15,6 +15,7 @@ public sealed record EffectiveCardDefinition
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
     public string DefinitionFingerprint { get; init; } = string.Empty;
+    public ImmutableArray<string> Tags { get; init; } = [];
     public IReadOnlyList<CardUpgradeState> AppliedUpgrades
     {
         get => _appliedUpgrades;
