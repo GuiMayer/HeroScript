@@ -30,13 +30,10 @@ public class EntityCombatIntegrationTests
         _mockLogger = new Mock<ILogger>();
         var mockConfigManager = new Mock<IConfigManager>();
         var mockResourceLoader = new Mock<IResourceLoader>();
-        var mockRegenerationProcessor = new Mock<IResourceRegenerationProcessor>();
-        
         _resourceManager = new ResourceManager(
             mockConfigManager.Object,
             mockResourceLoader.Object,
-            _mockLogger.Object,
-            mockRegenerationProcessor.Object
+            _mockLogger.Object
         );
         
         _combatFactory = new CombatFactory(

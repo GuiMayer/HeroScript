@@ -70,18 +70,6 @@ public interface IResourceManager
     /// </summary>
     Result ValidateResourceDefinition(ResourceDefinition definition);
     
-    /// <summary>
-    /// Processa regeneração de recursos para uma entidade.
-    /// </summary>
-    /// <param name="resourceState">Estado de recursos do dono</param>
-    /// <param name="timing">Timing da regeneração (START_TURN, END_TURN, OUT_OF_COMBAT)</param>
-    /// <param name="context">Contexto opcional para avaliação de fórmulas</param>
-    /// <returns>Resultado contendo estado e registros imutáveis ou falha</returns>
-    Result<ResourceRegenerationResult> ProcessRegeneration(
-        ResourceSet resourceState,
-        RegenerationTiming timing,
-        ResourceRegenerationContext? context = null);
-    
 }
 
 public interface IRevisionedResourceManager

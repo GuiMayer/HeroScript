@@ -16,7 +16,6 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ILogger _logger;
-    private readonly IResourceRegenerationProcessor _regenerationProcessor;
     private ImmutableDictionary<string, ResourceDefinition> _definitions =
         ImmutableDictionary<string, ResourceDefinition>.Empty.WithComparers(StringComparer.Ordinal);
     private readonly IContentRuntimeResolver? _contentRuntimes;
@@ -25,13 +24,11 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ILogger logger,
-        IResourceRegenerationProcessor regenerationProcessor,
         IContentRuntimeResolver? contentRuntimes = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _regenerationProcessor = regenerationProcessor ?? throw new ArgumentNullException(nameof(regenerationProcessor));
         _contentRuntimes = contentRuntimes;
     }
     
@@ -225,13 +222,5 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
     
     public Result ValidateResourceDefinition(ResourceDefinition definition)
         => ResourceDefinitionValidator.Validate(definition);
-    
-    public Result<ResourceRegenerationResult> ProcessRegeneration(
-        ResourceSet resourceState,
-        RegenerationTiming timing,
-        ResourceRegenerationContext? context = null)
-    {
-        return _regenerationProcessor.ProcessRegeneration(resourceState, timing, context);
-    }
     
 }

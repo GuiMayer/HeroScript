@@ -16,7 +16,6 @@ public class ResourceManagerTests
     private readonly Mock<IConfigManager> _mockConfigManager;
     private readonly Mock<IResourceLoader> _mockResourceLoader;
     private readonly Mock<ILogger> _mockLogger;
-    private readonly Mock<IResourceRegenerationProcessor> _mockRegenerationProcessor;
     private readonly ResourceManager _resourceManager;
 
     public ResourceManagerTests()
@@ -24,8 +23,7 @@ public class ResourceManagerTests
         _mockConfigManager = new Mock<IConfigManager>();
         _mockResourceLoader = new Mock<IResourceLoader>();
         _mockLogger = new Mock<ILogger>();
-        _mockRegenerationProcessor = new Mock<IResourceRegenerationProcessor>();
-        _resourceManager = new ResourceManager(_mockConfigManager.Object, _mockResourceLoader.Object, _mockLogger.Object, _mockRegenerationProcessor.Object);
+        _resourceManager = new ResourceManager(_mockConfigManager.Object, _mockResourceLoader.Object, _mockLogger.Object);
     }
 
     #region Constructor Tests
@@ -34,28 +32,21 @@ public class ResourceManagerTests
     public void Constructor_WithNullConfigManager_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new ResourceManager(null!, _mockResourceLoader.Object, _mockLogger.Object, _mockRegenerationProcessor.Object));
+            new ResourceManager(null!, _mockResourceLoader.Object, _mockLogger.Object));
     }
 
     [Fact]
     public void Constructor_WithNullResourceLoader_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new ResourceManager(_mockConfigManager.Object, null!, _mockLogger.Object, _mockRegenerationProcessor.Object));
+            new ResourceManager(_mockConfigManager.Object, null!, _mockLogger.Object));
     }
 
     [Fact]
     public void Constructor_WithNullLogger_ThrowsArgumentNullException()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new ResourceManager(_mockConfigManager.Object, _mockResourceLoader.Object, null!, _mockRegenerationProcessor.Object));
-    }
-    
-    [Fact]
-    public void Constructor_WithNullRegenerationProcessor_ThrowsArgumentNullException()
-    {
-        Assert.Throws<ArgumentNullException>(() =>
-            new ResourceManager(_mockConfigManager.Object, _mockResourceLoader.Object, _mockLogger.Object, null!));
+            new ResourceManager(_mockConfigManager.Object, _mockResourceLoader.Object, null!));
     }
 
     #endregion

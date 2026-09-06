@@ -149,12 +149,6 @@ builder.Services.AddSingleton<IRuntimeFormulaEvaluator, RuntimeFormulaEvaluator>
         sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
-// Register ResourceRegenerationProcessor
-builder.Services.AddSingleton<IResourceRegenerationProcessor, ResourceRegenerationProcessor>(sp =>
-{
-    return new ResourceRegenerationProcessor(sp.GetRequiredService<IRuntimeFormulaEvaluator>());
-});
-
 // Register ResourceManager
 builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
 {
@@ -162,12 +156,10 @@ builder.Services.AddSingleton<IResourceManager, ResourceManager>(sp =>
     var resourceLoader = sp.GetRequiredService<IResourceLoader>();
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ResourceManager"));
-    var regenerationProcessor = sp.GetRequiredService<IResourceRegenerationProcessor>();
     return new ResourceManager(
         configManager,
         resourceLoader,
         logger,
-        regenerationProcessor,
         sp.GetRequiredService<IContentRuntimeResolver>());
 });
 

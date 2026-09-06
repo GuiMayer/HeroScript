@@ -17,7 +17,6 @@ public class ResourceManagerDynamicLoadingTests : IDisposable
     private readonly TestConfigManager _configManager;
     private readonly TestResourceLoader _resourceLoader;
     private readonly Mock<ILogger> _mockLogger;
-    private readonly Mock<IResourceRegenerationProcessor> _mockRegenerationProcessor;
     private readonly ResourceManager _resourceManager;
 
     public ResourceManagerDynamicLoadingTests()
@@ -31,14 +30,12 @@ public class ResourceManagerDynamicLoadingTests : IDisposable
         _configManager = new TestConfigManager(_testConfigPath);
         _resourceLoader = new TestResourceLoader(_testResourcesPath);
         _mockLogger = new Mock<ILogger>();
-        _mockRegenerationProcessor = new Mock<IResourceRegenerationProcessor>();
         
         // Create resource manager
         _resourceManager = new ResourceManager(
             _configManager,
             _resourceLoader,
-            _mockLogger.Object,
-            _mockRegenerationProcessor.Object);
+            _mockLogger.Object);
     }
 
     [Fact]
