@@ -17,16 +17,13 @@ namespace API.Controllers;
 [Route("api/v1/combats")]
 public class CombatController : BaseApiController
 {
-    private readonly ICombatSystem _combatSystem;
     private readonly ICombatRunCoordinator _combatRunCoordinator;
 
     public CombatController(
-        ICombatSystem combatSystem,
         ICombatRunCoordinator combatRunCoordinator,
         ILogger<CombatController> logger)
         : base(logger)
     {
-        _combatSystem = combatSystem ?? throw new ArgumentNullException(nameof(combatSystem));
         _combatRunCoordinator = combatRunCoordinator ?? throw new ArgumentNullException(nameof(combatRunCoordinator));
     }
 
@@ -75,19 +72,11 @@ public class CombatController : BaseApiController
     {
         try
         {
-            var result = _combatSystem.GetActionHistory(combatId);
+            var state = GetCombatStateIncludingOwned(combatId);
+            if (state.IsFailure)
+                return NotFound(new { error = state.Error });
 
-            if (result.IsFailure)
-            {
-                var recovered = GetCombatStateIncludingOwned(combatId);
-                if (recovered.IsSuccess)
-                    result = Result<IReadOnlyList<CombatAction>>.Success(recovered.Value.ActionHistory);
-            }
-
-            if (result.IsFailure)
-                return NotFound(new { error = result.Error });
-
-            var actions = result.Value;
+            var actions = state.Value.ActionHistory;
             return Ok(new CombatHistoryResponse
             {
                 CombatId = combatId,
@@ -123,16 +112,10 @@ public class CombatController : BaseApiController
 
     private Result<CombatState> GetCombatStateIncludingOwned(Guid combatId)
     {
-        var current = _combatSystem.GetCombatState(combatId);
-        if (current.IsSuccess && !current.Value.RunId.HasValue)
-            return current;
-
         var recovered = _combatRunCoordinator.GetCombatState(combatId);
         return recovered.IsSuccess
             ? Result<CombatState>.Success(recovered.Value.CombatState)
-            : current.IsSuccess
-                ? Result<CombatState>.Failure(recovered.Error)
-                : current;
+            : Result<CombatState>.Failure(recovered.Error);
     }
 
     // Mappers

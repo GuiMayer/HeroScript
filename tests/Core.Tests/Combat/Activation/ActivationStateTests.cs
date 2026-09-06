@@ -45,32 +45,6 @@ public sealed class ActivationStateTests
         Assert.True(state.ActivationState.WaitingForInput);
     }
 
-    [Fact]
-    public void CombatSystem_UpdateCombatState_StoresActivationState()
-    {
-        var system = CombatSystemTestFactory.Create();
-        var start = system.StartCombat("hero", new List<string> { "enemy" });
-        Assert.True(start.IsSuccess, start.IsFailure ? start.Error : null);
-
-        var update = system.UpdateCombatState(start.Value.CombatId, state => state with
-        {
-            ActivationState = new ActivationState
-            {
-                ActiveActorId = "hero",
-                ActivationOrder = new[] { "hero", "enemy" },
-                WaitingForInput = true,
-                RulesId = "default_activation"
-            }
-        });
-
-        Assert.True(update.IsSuccess, update.IsFailure ? update.Error : null);
-        Assert.Equal("hero", update.Value.ActivationState?.ActiveActorId);
-        Assert.Equal(new[] { "hero", "enemy" }, update.Value.ActivationState?.ActivationOrder);
-
-        var current = system.GetCombatState(start.Value.CombatId);
-        Assert.Equal("hero", current.Value.ActivationState?.ActiveActorId);
-    }
-
     private static CombatState CreateState()
     {
         return new CombatState

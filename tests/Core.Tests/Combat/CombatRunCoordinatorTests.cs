@@ -17,17 +17,9 @@ namespace Core.Tests.Combat;
 
 public sealed class CombatRunCoordinatorTests
 {
-    private readonly Mock<ICombatSystem> _combatSystem = new();
+    private readonly Mock<ICombatFactory> _combatFactory = new();
     private readonly Mock<IRunManager> _runManager = new();
     private readonly Mock<ICardPlayExecutor> _cardPlayExecutor = new();
-
-    public CombatRunCoordinatorTests()
-    {
-        _combatSystem.Setup(system => system.RestoreCombatState(It.IsAny<CombatState>()))
-            .Returns((CombatState state) => Result<CombatState>.Success(state));
-        _combatSystem.Setup(system => system.RemoveCombatState(It.IsAny<Guid>()))
-            .Returns(Result.Success());
-    }
 
     [Fact]
     public void EndTurn_CanonicalFlowResolvesEnemyAndCommitsOneBatch()
@@ -64,11 +56,6 @@ public sealed class CombatRunCoordinatorTests
 
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
-        _combatSystem.SetupSequence(system => system.ExecuteAction(
-                previous.CombatId,
-                It.IsAny<CombatActionCommand>()))
-            .Returns(Result<CombatState>.Success(rootState))
-            .Returns(Result<CombatState>.Success(endedState));
         abilities.Setup(executor => executor.Execute(It.IsAny<AbilityExecutionRequest>()))
             .Returns(Result<AbilityExecutionResult>.Success(new AbilityExecutionResult
             {
@@ -119,7 +106,7 @@ public sealed class CombatRunCoordinatorTests
             });
 
         var coordinator = new CombatRunCoordinator(
-            _combatSystem.Object,
+            _combatFactory.Object,
             _runManager.Object,
             _cardPlayExecutor.Object,
             flowPlanner.Object,
@@ -176,12 +163,10 @@ public sealed class CombatRunCoordinatorTests
         Assert.True(recovered.IsSuccess, recovered.IsFailure ? recovered.Error : null);
         Assert.True(resolved.IsSuccess, resolved.IsFailure ? resolved.Error : null);
         Assert.Null(resolved.Value.RunState.ActiveEncounterId);
-        _combatSystem.Verify(system => system.RestoreCombatState(terminalCombat), Times.Once);
-        _combatSystem.Verify(system => system.RemoveCombatState(terminalCombat.CombatId), Times.Once);
     }
 
     private CombatRunCoordinator CreateCoordinator() =>
-        new(_combatSystem.Object, _runManager.Object, _cardPlayExecutor.Object);
+        new(_combatFactory.Object, _runManager.Object, _cardPlayExecutor.Object);
 
     private static CombatState CreateCombatState(Guid runId, string nodeId, ulong seed) => new()
     {

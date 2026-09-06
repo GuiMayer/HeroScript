@@ -502,22 +502,10 @@ builder.Services.AddSingleton<ITurnOrderCalculator>(sp =>
         : throw new InvalidOperationException(calculator.Error);
 });
 
-// Register CombatSystem
-builder.Services.AddSingleton<ICombatSystem, CombatSystem>(sp =>
-{
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("CombatSystem"));
-    var resourceManager = sp.GetRequiredService<IResourceManager>();
-    var turnOrderCalculator = sp.GetRequiredService<ITurnOrderCalculator>();
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
-    var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
-    var actionManager = sp.GetRequiredService<IActionManager>();
-    var entityDefinitionLoader = sp.GetRequiredService<EntityDefinitionLoader>();
-    var effectResolver = sp.GetRequiredService<IEffectResolver>();
-    var actionCostEvaluator = sp.GetRequiredService<IActionCostEvaluator>();
-    return new CombatSystem(logger, resourceManager, turnOrderCalculator, eventBus, damageCalculator, statusEffectManager, regenerationProcessor: null, actionManager: actionManager, entityDefinitionLoader: entityDefinitionLoader, effectResolver: effectResolver, actionCostEvaluator: actionCostEvaluator);
-});
+builder.Services.AddSingleton<ICombatFactory>(sp => new CombatFactory(
+    sp.GetRequiredService<IResourceManager>(),
+    sp.GetRequiredService<ITurnOrderCalculator>(),
+    sp.GetRequiredService<EntityDefinitionLoader>()));
 
 // Register CombatRunCoordinator
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
@@ -528,7 +516,7 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<ICombatRelicLifecycle>(),
     sp.GetRequiredService<ICombatResourceLifecycle>()));
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
-    sp.GetRequiredService<ICombatSystem>(),
+    sp.GetRequiredService<ICombatFactory>(),
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<ICardPlayExecutor>(),
     sp.GetRequiredService<ICombatFlowPlanner>(),

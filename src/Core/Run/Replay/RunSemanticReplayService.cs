@@ -338,17 +338,10 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _formulaEvaluator,
             statusEffectManager: statuses,
             runManager: runs);
-        var combatSystem = new CombatSystem(
-            NullLogger.Instance,
+        var combatFactory = new CombatFactory(
             _resourceManager,
             _turnOrderCalculator,
-            eventBus,
-            damage,
-            statuses,
-            actionManager: _actionManager,
-            entityDefinitionLoader: _entityDefinitionLoader,
-            effectResolver: effects,
-            actionCostEvaluator: _actionCostEvaluator);
+            _entityDefinitionLoader);
         var gambits = new GambitEngine(
             _configManager,
             _resourceLoader,
@@ -376,7 +369,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
         var ability = contentRuntimes == null ? null : new AbilityExecutor(
             _actionManager, new CardPlayEvaluator(_actionCostEvaluator, _formulaEvaluator), triggers);
         var combats = new CombatRunCoordinator(
-            combatSystem,
+            combatFactory,
             runs,
             cardPlay,
             flowPlanner,

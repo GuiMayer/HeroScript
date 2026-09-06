@@ -261,9 +261,6 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(HttpStatusCode.OK, currentResponse.StatusCode);
         Assert.Equal(combatId, current.GetProperty("combatId").GetGuid());
 
-        var combatSystem = _factory.Services.GetRequiredService<ICombatSystem>();
-        Assert.True(combatSystem.RemoveCombatState(combatId).IsSuccess);
-
         using var combatResponse = await _client.GetAsync($"/api/v1/combats/{combatId}");
         Assert.Equal(HttpStatusCode.OK, combatResponse.StatusCode);
 

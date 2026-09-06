@@ -16,21 +16,18 @@ using Xunit;
 namespace Core.Tests.Entity.Integration;
 
 /// <summary>
-/// Testes de integração entre o sistema Entity e o CombatSystem.
+/// Testes de integração entre o sistema Entity e a fábrica de combate.
 /// Valida o fluxo completo de criação de entidades e início de combate.
 /// </summary>
 public class EntityCombatIntegrationTests
 {
     private readonly Mock<ILogger> _mockLogger;
-    private readonly Mock<IEventBus> _mockEventBus;
     private readonly IResourceManager _resourceManager;
-    private readonly ICombatSystem _combatSystem;
+    private readonly ICombatFactory _combatFactory;
     
     public EntityCombatIntegrationTests()
     {
         _mockLogger = new Mock<ILogger>();
-        _mockEventBus = new Mock<IEventBus>();
-        
         var mockConfigManager = new Mock<IConfigManager>();
         var mockResourceLoader = new Mock<IResourceLoader>();
         var mockRegenerationProcessor = new Mock<IResourceRegenerationProcessor>();
@@ -42,12 +39,9 @@ public class EntityCombatIntegrationTests
             mockRegenerationProcessor.Object
         );
         
-        _combatSystem = new CombatSystem(
-            _mockLogger.Object,
+        _combatFactory = new CombatFactory(
             _resourceManager,
-            new FixedTurnOrderCalculator(_mockLogger.Object),
-            _mockEventBus.Object
-        );
+            new FixedTurnOrderCalculator(_mockLogger.Object));
     }
     
     [Fact]
@@ -89,7 +83,10 @@ public class EntityCombatIntegrationTests
         var enemy = CreateEntityFromDefinition("enemy-1", enemyDefinition);
         
         // Act - Iniciar combate usando entidades
-        var result = _combatSystem.StartCombatWithEntities(hero, new List<Core.Entity.Entity> { enemy });
+        var result = _combatFactory.Create(
+            hero,
+            new List<Core.Entity.Entity> { enemy },
+            new CombatStartOptions(Seed: 42));
         
         // Assert
         Assert.True(result.IsSuccess);
@@ -156,9 +153,10 @@ public class EntityCombatIntegrationTests
         var enemy3 = CreateEntityFromDefinition("enemy-3", enemyDefinition);
         
         // Act
-        var result = _combatSystem.StartCombatWithEntities(
+        var result = _combatFactory.Create(
             hero, 
-            new List<Core.Entity.Entity> { enemy1, enemy2, enemy3 }
+            new List<Core.Entity.Entity> { enemy1, enemy2, enemy3 },
+            new CombatStartOptions(Seed: 42)
         );
         
         // Assert
@@ -190,7 +188,10 @@ public class EntityCombatIntegrationTests
         });
         
         // Act
-        var result = _combatSystem.StartCombatWithEntities(null!, new List<Core.Entity.Entity> { enemy });
+        var result = _combatFactory.Create(
+            null!,
+            new List<Core.Entity.Entity> { enemy },
+            new CombatStartOptions(Seed: 42));
         
         // Assert
         Assert.False(result.IsSuccess);
@@ -217,55 +218,14 @@ public class EntityCombatIntegrationTests
         });
         
         // Act
-        var result = _combatSystem.StartCombatWithEntities(hero, new List<Core.Entity.Entity>());
+        var result = _combatFactory.Create(
+            hero,
+            new List<Core.Entity.Entity>(),
+            new CombatStartOptions(Seed: 42));
         
         // Assert
         Assert.False(result.IsSuccess);
         Assert.Contains("At least one enemy is required", result.Error);
-    }
-    
-    [Fact]
-    public void StartCombatWithEntities_ShouldPublishCombatStartedEvent()
-    {
-        // Arrange
-        var hero = CreateEntityFromDefinition("hero-1", new EntityDefinition
-        {
-            DefinitionId = "warrior",
-            Type = Core.Entity.EntityType.PLAYER,
-            DisplayName = "Warrior",
-            Resources = new ResourcesDefinition
-            {
-                Resources = new Dictionary<string, ResourcePoolDefinition>
-                {
-                    ["health"] = new ResourcePoolDefinition { Current = 100, Max = 100 },
-                    ["energy"] = new ResourcePoolDefinition { Current = 3, Max = 10 }
-                }
-            }
-        });
-        
-        var enemy = CreateEntityFromDefinition("enemy-1", new EntityDefinition
-        {
-            DefinitionId = "goblin",
-            Type = Core.Entity.EntityType.ENEMY,
-            DisplayName = "Goblin",
-            Resources = new ResourcesDefinition
-            {
-                Resources = new Dictionary<string, ResourcePoolDefinition>
-                {
-                    ["health"] = new ResourcePoolDefinition { Current = 50, Max = 50 }
-                }
-            }
-        });
-        
-        // Act
-        var result = _combatSystem.StartCombatWithEntities(hero, new List<Core.Entity.Entity> { enemy });
-        
-        // Assert
-        Assert.True(result.IsSuccess);
-        _mockEventBus.Verify(
-            bus => bus.Publish(It.IsAny<CombatStartedEvent>()),
-            Times.Once
-        );
     }
     
     /// <summary>

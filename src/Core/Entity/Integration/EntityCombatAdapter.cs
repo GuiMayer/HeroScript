@@ -7,9 +7,7 @@ using Core.Resources;
 namespace Core.Entity.Integration;
 
 /// <summary>
-/// Adapter que converte entre Entity (novo sistema) e CombatEntity (sistema de combate).
-/// Permite que o CombatSystem continue usando sua estrutura imutável enquanto
-/// integra com o novo sistema de componentes.
+/// Adapter que converte uma entidade configurada em um snapshot imutável de combate.
 /// </summary>
 public class EntityCombatAdapter
 {

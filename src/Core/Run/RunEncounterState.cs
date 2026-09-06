@@ -10,7 +10,7 @@ public sealed record RunEncounterStartCommand(
 
 /// <summary>
 /// Combat snapshot owned by a run. Resolved encounters remain in the run so a
-/// reconnect, audit or replay never depends on CombatSystem process memory.
+/// reconnect, audit or replay never depends on process-local combat memory.
 /// </summary>
 public sealed record RunEncounterState
 {
