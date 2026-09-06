@@ -34,6 +34,10 @@ public sealed class EffectiveCardResolverTests
         Assert.Equal(9, first.Value.All<CardEffectComponentDefinition>()[0].Effect.FlatValue);
         Assert.Equal(first.Value.Fingerprint, second.Value.Fingerprint);
         Assert.NotEqual(definition.Fingerprint, first.Value.Fingerprint);
+        var trace = Assert.Single(first.Value.UpgradeTrace);
+        Assert.Equal("sharpened", trace.UpgradeId);
+        Assert.Equal(6, trace.PreviousValue);
+        Assert.Equal(9, trace.CurrentValue);
     }
 
     [Fact]

@@ -118,6 +118,12 @@ public sealed class CardPlayExecutorTests
         Assert.Equal(20, combat.GetEntity("enemy")!.GetResource("mana")!.Current);
         Assert.Equal(7, Assert.Single(result.Value.Calculations).BaseValue);
         Assert.Equal(10, result.Value.Calculations[0].Value);
+        Assert.Equal(2, result.Value.Calculations[0].BaseTrace.Count);
+        Assert.Equal(CalculationSourceKind.Card, result.Value.Calculations[0].BaseTrace[0].SourceKind);
+        Assert.Equal(CalculationSourceKind.Upgrade, result.Value.Calculations[0].BaseTrace[1].SourceKind);
+        Assert.Equal("empowered", result.Value.Calculations[0].BaseTrace[1].SourceId);
+        Assert.Equal(5, result.Value.Calculations[0].BaseTrace[1].Input);
+        Assert.Equal(7, result.Value.Calculations[0].BaseTrace[1].Output);
         Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
         var action = Assert.Single(result.Value.Combat.ActionHistory);
         Assert.Equal(ActionType.PLAY_CARD, action.ActionType);

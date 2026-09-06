@@ -5,6 +5,7 @@ using Core.Effects;
 using Core.Math;
 using Core.Resources;
 using Core.Run;
+using Core.Run.Content;
 
 namespace Core.Calculations;
 
@@ -53,6 +54,7 @@ public sealed class CalculationResolver(
         var calculated = engine.Calculate(new CalculationRequest
         {
             CalculationId = calculationId, Channel = effect.CalculationChannel, BaseValue = amount,
+            BaseTrace = BuildBaseTrace(effect, context),
             Influences = collected.Value.Where(item => item.Channel == effect.CalculationChannel).ToArray(),
             Tags = context.Tags
         }, pipeline.Value);
@@ -60,6 +62,27 @@ public sealed class CalculationResolver(
         if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL pipelines must produce non-negative amounts");
         return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value));
+    }
+
+    private static IReadOnlyList<CalculationBaseTrace> BuildBaseTrace(EffectDefinition effect, CalculationSourceContext context)
+    {
+        if (context.Card == null || string.IsNullOrWhiteSpace(context.ComponentId)) return [];
+        var traces = new List<CalculationBaseTrace>();
+        var upgrades = context.Card.UpgradeTrace.Where(item => item.ComponentId == context.ComponentId &&
+            item.Attribute == CardEffectNumericAttribute.FlatValue.ToString()).ToArray();
+        var original = upgrades.FirstOrDefault()?.PreviousValue ?? effect.FlatValue;
+        traces.Add(new()
+        {
+            SourceKind = CalculationSourceKind.Card, SourceId = context.Card.DefinitionId,
+            ComponentId = context.ComponentId, Attribute = "FlatValue", Operation = "Base", Output = original
+        });
+        traces.AddRange(upgrades.Select(item => new CalculationBaseTrace
+        {
+            SourceKind = CalculationSourceKind.Upgrade, SourceId = item.UpgradeId,
+            ComponentId = item.ComponentId, Attribute = item.Attribute, Operation = item.Operation?.ToString() ?? string.Empty,
+            Input = item.PreviousValue, Output = item.CurrentValue
+        }));
+        return traces;
     }
 
     public static Result<CalculationPipelineDefinition> ResolvePipeline(EffectDefinition effect, RunState run, ContentRuntime runtime)

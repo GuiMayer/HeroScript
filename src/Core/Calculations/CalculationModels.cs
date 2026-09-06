@@ -103,6 +103,7 @@ public sealed record CalculationInfluence
 public sealed record CalculationRequest
 {
     private ImmutableArray<CalculationInfluence> _influences = [];
+    private ImmutableArray<CalculationBaseTrace> _baseTrace = [];
     private ImmutableHashSet<string> _tags =
         ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
 
@@ -113,6 +114,11 @@ public sealed record CalculationRequest
     {
         get => _influences;
         init => _influences = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CalculationBaseTrace> BaseTrace
+    {
+        get => _baseTrace;
+        init => _baseTrace = value?.ToImmutableArray() ?? [];
     }
     public IReadOnlySet<string> Tags
     {
@@ -151,12 +157,18 @@ public sealed record CalculationBucketTrace
 public sealed record CalculationResult
 {
     private ImmutableArray<CalculationBucketTrace> _buckets = [];
+    private ImmutableArray<CalculationBaseTrace> _baseTrace = [];
 
     public string CalculationId { get; init; } = string.Empty;
     public string PipelineId { get; init; } = string.Empty;
     public string Channel { get; init; } = string.Empty;
     public float BaseValue { get; init; }
     public float Value { get; init; }
+    public IReadOnlyList<CalculationBaseTrace> BaseTrace
+    {
+        get => _baseTrace;
+        init => _baseTrace = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<CalculationBucketTrace> Buckets
     {
         get => _buckets;
@@ -174,6 +186,7 @@ public sealed record CalculationSourceContext
 
     public string ContentRevision { get; init; } = string.Empty;
     public EffectiveCardDefinition? Card { get; init; }
+    public string? ComponentId { get; init; }
     public RunState? Run { get; init; }
     public CombatState? Combat { get; init; }
     public CombatEntity? Actor { get; init; }
@@ -241,7 +254,19 @@ internal sealed record CalculationFingerprintPayload(
     string Channel,
     float BaseValue,
     float Value,
+    ImmutableArray<CalculationBaseTrace> BaseTrace,
     ImmutableArray<CalculationBucketTrace> Buckets)
 {
     public string Compute() => CanonicalJson.ComputeHash(this);
+}
+
+public sealed record CalculationBaseTrace
+{
+    public CalculationSourceKind SourceKind { get; init; }
+    public string SourceId { get; init; } = string.Empty;
+    public string ComponentId { get; init; } = string.Empty;
+    public string Attribute { get; init; } = string.Empty;
+    public string Operation { get; init; } = string.Empty;
+    public float? Input { get; init; }
+    public float? Output { get; init; }
 }

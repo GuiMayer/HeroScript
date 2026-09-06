@@ -35,6 +35,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         }
 
         var components = definition.Components.ToImmutableArray();
+        var upgradeTrace = ImmutableArray.CreateBuilder<CardUpgradeApplicationTrace>();
         foreach (var upgrade in instance.Upgrades)
         {
             foreach (var patch in upgrade.Patches)
@@ -48,7 +49,10 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
                     return Result<EffectiveCardDefinition>.Failure(
                         $"Upgrade {upgrade.UpgradeId}: {applied.Error}");
                 }
+                var before = components.First(item => string.Equals(item.ComponentId, patch.ComponentId, StringComparison.Ordinal));
                 components = applied.Value;
+                var after = components.First(item => string.Equals(item.ComponentId, patch.ComponentId, StringComparison.Ordinal));
+                upgradeTrace.Add(CreateTrace(upgrade.UpgradeId, patch, before, after));
             }
         }
 
@@ -61,6 +65,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             instance.DefinitionId,
             definition.Fingerprint,
             upgrades,
+            upgradeTrace.ToImmutable(),
             components);
         return Result<EffectiveCardDefinition>.Success(new EffectiveCardDefinition
         {
@@ -69,6 +74,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             DefinitionFingerprint = definition.Fingerprint,
             Tags = definition.Tags.ToImmutableArray(),
             AppliedUpgrades = upgrades,
+            UpgradeTrace = upgradeTrace.ToImmutable(),
             Components = components,
             Fingerprint = payload.ComputeFingerprint()
         });
@@ -294,6 +300,59 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         string expected) =>
         Result<CardComponentDefinition>.Failure(
             $"Component {component.ComponentId} is {component.GetType().Name}, expected {expected}");
+
+    private static CardUpgradeApplicationTrace CreateTrace(string upgradeId, CardUpgradePatchDefinition patch,
+        CardComponentDefinition before, CardComponentDefinition after)
+    {
+        var trace = new CardUpgradeApplicationTrace { UpgradeId = upgradeId, ComponentId = patch.ComponentId };
+        return patch switch
+        {
+            CardEffectNumericPatchDefinition numeric => trace with
+            {
+                Attribute = numeric.Attribute.ToString(), Operation = numeric.Operation,
+                PreviousValue = EffectValue(((CardEffectComponentDefinition)before).Effect, numeric.Attribute),
+                CurrentValue = EffectValue(((CardEffectComponentDefinition)after).Effect, numeric.Attribute)
+            },
+            CardCostAmountPatchDefinition cost => trace with
+            {
+                Attribute = $"cost:{cost.ResourceId}", Operation = cost.Operation,
+                PreviousValue = ((CardCostComponentDefinition)before).Costs.Costs.Single(item => item.ResourceId == cost.ResourceId).Amount,
+                CurrentValue = ((CardCostComponentDefinition)after).Costs.Costs.Single(item => item.ResourceId == cost.ResourceId).Amount
+            },
+            CardInfluenceNumericPatchDefinition numeric => trace with
+            {
+                Attribute = "Value", Operation = numeric.Operation,
+                PreviousValue = ((CardInfluenceComponentDefinition)before).Value,
+                CurrentValue = ((CardInfluenceComponentDefinition)after).Value
+            },
+            CardTargetingNumericPatchDefinition numeric => trace with
+            {
+                Attribute = numeric.Attribute.ToString(), Operation = numeric.Operation,
+                PreviousValue = numeric.Attribute == CardTargetingNumericAttribute.MinimumTargets
+                    ? ((CardTargetingComponentDefinition)before).MinimumTargets : ((CardTargetingComponentDefinition)before).MaximumTargets,
+                CurrentValue = numeric.Attribute == CardTargetingNumericAttribute.MinimumTargets
+                    ? ((CardTargetingComponentDefinition)after).MinimumTargets : ((CardTargetingComponentDefinition)after).MaximumTargets
+            },
+            CardDispositionPatchDefinition => trace with
+            {
+                Attribute = "Destination",
+                PreviousChoice = ((CardDispositionComponentDefinition)before).Destination.ToString(),
+                CurrentChoice = ((CardDispositionComponentDefinition)after).Destination.ToString()
+            },
+            _ => throw new InvalidOperationException($"Unsupported upgrade trace: {patch.GetType().Name}")
+        };
+    }
+
+    private static float? EffectValue(EffectDefinition effect, CardEffectNumericAttribute attribute) => attribute switch
+    {
+        CardEffectNumericAttribute.FlatValue => effect.FlatValue,
+        CardEffectNumericAttribute.Chance => effect.Chance,
+        CardEffectNumericAttribute.Repeat => effect.Repeat,
+        CardEffectNumericAttribute.StatusStacks => effect.StatusStacks,
+        CardEffectNumericAttribute.StatusDuration => effect.StatusDuration,
+        CardEffectNumericAttribute.ModifierValue => effect.ModifierValue,
+        _ => null
+    };
 
     private static float Apply(
         float current,

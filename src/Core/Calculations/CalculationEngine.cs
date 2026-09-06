@@ -84,6 +84,7 @@ public sealed class CalculationEngine : ICalculationEngine
             request.Channel,
             request.BaseValue,
             current,
+            request.BaseTrace.ToImmutableArray(),
             traceArray);
         return Result<CalculationResult>.Success(new CalculationResult
         {
@@ -92,6 +93,7 @@ public sealed class CalculationEngine : ICalculationEngine
             Channel = request.Channel,
             BaseValue = request.BaseValue,
             Value = current,
+            BaseTrace = request.BaseTrace,
             Buckets = traceArray,
             Fingerprint = payload.Compute()
         });

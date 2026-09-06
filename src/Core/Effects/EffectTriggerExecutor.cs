@@ -172,7 +172,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     if (applies)
                     {
                         var value = ResolveValue(request with { Combat = current, Run = currentRun }, effect, targetId, variables,
-                            $"{path}:{repeat}:{targetId}");
+                            $"{path}:{repeat}:{targetId}", activeTriggerId);
                         if (value.IsFailure) return Result.Failure(value.Error);
                         calculation = value.Value.Calculation;
                         var status = ResolveAppliedStatus(effect, request.ContentRevision);
@@ -258,13 +258,14 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
     private Result<ResolvedAmount> ResolveValue(
         EffectTriggerExecutionRequest request, EffectDefinition effect, string targetId,
-        Dictionary<string, float> variables, string calculationSuffix)
+        Dictionary<string, float> variables, string calculationSuffix, string componentId)
     {
         var resolved = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences)
             .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}",
                 new CalculationSourceContext
                 {
                     ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
+                    ComponentId = componentId,
                     Actor = request.Combat.GetEntity(request.SourceEntityId) ?? request.Combat.GetEntity(request.OwnerEntityId),
                     Target = request.Combat.GetEntity(targetId), Variables = variables,
                     Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
