@@ -118,22 +118,6 @@ public class EntityFactoryTests
     }
     
     [Fact]
-    public void CreateEntity_ShouldAddStatusEffectComponent()
-    {
-        // Arrange
-        var loader = CreateLoader();
-        var factory = new EntityFactory(loader, _mockResourceManager.Object, new ConsoleLogger("Test"));
-        
-        // Act
-        var result = factory.CreateEntity("player_warrior");
-        
-        // Assert
-        Assert.True(result.IsSuccess);
-        var entity = result.Value!;
-        Assert.True(entity.HasComponent<StatusEffectComponent>());
-    }
-    
-    [Fact]
     public void CreateEntity_ShouldAddInventoryComponent()
     {
         // Arrange

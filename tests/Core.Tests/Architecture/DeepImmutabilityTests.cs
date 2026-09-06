@@ -1,6 +1,6 @@
 using Core.Combat.Gambits;
 using Core.Combat.Modifiers;
-using Core.Damage;
+using Core.Calculations;
 using Core.Entity.Definitions;
 using Core.Resources;
 using Core.Run.Sandbox;
@@ -17,9 +17,8 @@ public sealed class DeepImmutabilityTests
     [InlineData(typeof(Core.Combat.Gambits.GambitDefinition))]
     [InlineData(typeof(ScriptModifierDefinition))]
     [InlineData(typeof(ResourceDefinition))]
-    [InlineData(typeof(PipelineConfiguration))]
-    [InlineData(typeof(BucketDefinition))]
-    [InlineData(typeof(BucketOperation))]
+    [InlineData(typeof(CalculationPipelineDefinition))]
+    [InlineData(typeof(CalculationBucketDefinition))]
     [InlineData(typeof(SandboxCombatSnapshot))]
     public void SharedModels_DoNotExposeMutableCollectionTypes(Type modelType)
     {
@@ -52,26 +51,18 @@ public sealed class DeepImmutabilityTests
     }
 
     [Fact]
-    public void PipelineConfiguration_DefensivelyCopiesNestedCollections()
+    public void CalculationPipeline_DefensivelyCopiesNestedCollections()
     {
-        var parameters = new Dictionary<string, object> { ["amount"] = 5f };
-        var operations = new List<BucketOperation>
+        var buckets = new List<CalculationBucketDefinition>
         {
-            new() { Type = OperationType.ADD_FLAT, Parameters = parameters }
+            new() { BucketId = "base", Order = 1, Operation = CalculationBucketOperation.Add }
         };
-        var buckets = new List<BucketDefinition>
-        {
-            new() { BucketId = "base", Order = 1, Operations = operations }
-        };
-        var pipeline = new PipelineConfiguration { ConfigName = "test", Buckets = buckets };
+        var pipeline = new CalculationPipelineDefinition { PipelineId = "test", Channel = "amount", Buckets = buckets };
 
-        parameters["amount"] = 99f;
-        operations.Clear();
         buckets.Clear();
 
         Assert.Single(pipeline.Buckets);
-        Assert.Single(pipeline.Buckets[0].Operations);
-        Assert.Equal(5f, pipeline.Buckets[0].Operations[0].Parameters["amount"]);
+        Assert.Equal(CalculationBucketOperation.Add, pipeline.Buckets[0].Operation);
     }
 
     private static bool IsMutableCollection(Type type)

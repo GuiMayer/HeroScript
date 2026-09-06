@@ -8,7 +8,7 @@ namespace Core.Tests.Entity;
 
 /// <summary>
 /// Comprehensive tests for Entity Components
-/// Covers InventoryComponent, InventoryItem, StatsComponent, StatusEffectComponent
+/// Covers InventoryComponent, InventoryItem and StatsComponent.
 /// </summary>
 [Trait("Category", "Unit")]
 public class ComponentsTests
@@ -418,95 +418,6 @@ public class ComponentsTests
         Assert.Equal(12f, modified.Dexterity); // Preserved
     }
     
-    // ==================== STATUS EFFECT COMPONENT TESTS ====================
-    
-    [Fact]
-    public void StatusEffectComponent_DefaultConstruction_InitializesEmpty()
-    {
-        // Arrange & Act
-        var component = new StatusEffectComponent();
-        
-        // Assert
-        Assert.Empty(component.ActiveEffectIds);
-    }
-    
-    [Fact]
-    public void StatusEffectComponent_ConstructionWithIds_SetsActiveEffects()
-    {
-        // Arrange
-        var effectIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
-        
-        // Act
-        var component = new StatusEffectComponent(effectIds);
-        
-        // Assert
-        Assert.Equal(2, component.ActiveEffectIds.Count);
-    }
-    
-    [Fact]
-    public void StatusEffectComponent_AddEffect_AddsEffectId()
-    {
-        // Arrange
-        var component = new StatusEffectComponent();
-        var effectId = Guid.NewGuid();
-        
-        // Act
-        var newComponent = component.AddEffect(effectId);
-        
-        // Assert
-        Assert.Single(newComponent.ActiveEffectIds);
-        Assert.Contains(effectId, newComponent.ActiveEffectIds);
-        
-        // Original unchanged (immutability)
-        Assert.Empty(component.ActiveEffectIds);
-    }
-    
-    [Fact]
-    public void StatusEffectComponent_RemoveEffect_RemovesEffectId()
-    {
-        // Arrange
-        var effectId1 = Guid.NewGuid();
-        var effectId2 = Guid.NewGuid();
-        var component = new StatusEffectComponent(new List<Guid> { effectId1, effectId2 });
-        
-        // Act
-        var newComponent = component.RemoveEffect(effectId1);
-        
-        // Assert
-        Assert.Single(newComponent.ActiveEffectIds);
-        Assert.Contains(effectId2, newComponent.ActiveEffectIds);
-        Assert.DoesNotContain(effectId1, newComponent.ActiveEffectIds);
-        
-        // Original unchanged (immutability)
-        Assert.Equal(2, component.ActiveEffectIds.Count);
-    }
-    
-    [Fact]
-    public void StatusEffectComponent_HasEffect_ReturnsTrueWhenEffectsExist()
-    {
-        // Arrange
-        var component = new StatusEffectComponent(new List<Guid> { Guid.NewGuid() });
-        
-        // Act
-        var hasEffect = component.HasEffect("any");
-        
-        // Assert
-        Assert.True(hasEffect);
-    }
-    
-    [Fact]
-    public void StatusEffectComponent_HasEffect_ReturnsFalseWhenEmpty()
-    {
-        // Arrange
-        var component = new StatusEffectComponent();
-        
-        // Act
-        var hasEffect = component.HasEffect("any");
-        
-        // Assert
-        Assert.False(hasEffect);
-    }
-    
     // ==================== REALISTIC SCENARIOS ====================
     
     [Fact]
@@ -561,25 +472,6 @@ public class ComponentsTests
         // Assert
         Assert.Equal(12f, level2.Strength);
         Assert.Equal(11f, level2.Constitution);
-    }
-    
-    [Fact]
-    public void StatusEffectComponent_CombatScenario_ApplyMultipleEffects()
-    {
-        // Arrange
-        var component = new StatusEffectComponent();
-        
-        // Act - Apply poison, strength buff, and shield
-        var poisonId = Guid.NewGuid();
-        var strengthId = Guid.NewGuid();
-        var shieldId = Guid.NewGuid();
-        
-        var withPoison = component.AddEffect(poisonId);
-        var withStrength = withPoison.AddEffect(strengthId);
-        var withShield = withStrength.AddEffect(shieldId);
-        
-        // Assert
-        Assert.Equal(3, withShield.ActiveEffectIds.Count);
     }
     
     [Fact]

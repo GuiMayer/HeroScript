@@ -98,10 +98,6 @@ public class EntityFactory
             entity = entity.AddComponent(inventoryComp);
         }
         
-        // Adicionar StatusEffectComponent (sempre presente)
-        var statusComp = new StatusEffectComponent();
-        entity = entity.AddComponent(statusComp);
-        
         return entity;
     }
     

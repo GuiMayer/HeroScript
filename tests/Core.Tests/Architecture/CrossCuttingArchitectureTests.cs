@@ -86,6 +86,36 @@ public sealed class CrossCuttingArchitectureTests
     }
 
     [Fact]
+    public void CanonicalGameplayFlow_DoesNotReintroduceRemovedAuthorities()
+    {
+        var coreAssembly = typeof(RunState).Assembly;
+        var removedTypes = new[]
+        {
+            "Core.Combat.CombatSystem",
+            "Core.Combat.ICombatSystem",
+            "Core.Damage.DamageCalculator",
+            "Core.Damage.IDamageCalculator",
+            "Core.Effects.EffectResolver",
+            "Core.Effects.IEffectResolver",
+            "Core.StatusEffects.StatusEffectManager",
+            "Core.StatusEffects.IStatusEffectManager",
+            "Core.StatusEffects.StatusEffectProcessor",
+            "Core.Combat.Modifiers.ScriptModifierManager",
+            "Core.Combat.Modifiers.IScriptModifierManager",
+            "Core.Resources.ResourceRegenerationProcessor",
+            "Core.Resources.IResourceRegenerationProcessor",
+            "Core.Entity.Components.StatusEffectComponent"
+        };
+        var present = removedTypes
+            .Where(name => coreAssembly.GetType(name) != null)
+            .ToArray();
+
+        Assert.True(
+            present.Length == 0,
+            $"Removed gameplay authorities were reintroduced: {string.Join(", ", present)}");
+    }
+
+    [Fact]
     public void ResourceManager_DoesNotExposeUnversionedHotReloadControls()
     {
         var forbiddenMethods = new[]
@@ -187,7 +217,6 @@ public sealed class CrossCuttingArchitectureTests
     [InlineData(typeof(ActionManager), "_definitions")]
     [InlineData(typeof(GambitEngine), "_definitions")]
     [InlineData(typeof(ResourceManager), "_definitions")]
-    [InlineData(typeof(StatusEffectManager), "_definitions")]
     public void ReloadableSingletonCatalogs_PublishImmutableSnapshots(
         Type serviceType,
         string fieldName)

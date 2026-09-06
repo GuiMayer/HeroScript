@@ -13,7 +13,6 @@ using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Config;
 using Core.Content;
-using Core.Damage;
 using Core.Determinism;
 using Core.Effects;
 using Core.Entity.Definitions;
@@ -65,7 +64,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly EntityDefinitionLoader _entityDefinitionLoader;
     private readonly IActionCostEvaluator _actionCostEvaluator;
     private readonly IRuntimeFormulaEvaluator _formulaEvaluator;
-    private readonly IPipelineManager _pipelineManager;
     private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
@@ -87,7 +85,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
         EntityDefinitionLoader entityDefinitionLoader,
         IActionCostEvaluator actionCostEvaluator,
         IRuntimeFormulaEvaluator formulaEvaluator,
-        IPipelineManager pipelineManager,
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
@@ -107,7 +104,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
         _entityDefinitionLoader = entityDefinitionLoader;
         _actionCostEvaluator = actionCostEvaluator;
         _formulaEvaluator = formulaEvaluator;
-        _pipelineManager = pipelineManager;
         _relicCatalog = relicCatalog;
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
@@ -287,19 +283,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
         var eventBus = new EventBus(NullLogger.Instance);
         var contentRuntimes = _contentRuntimes ??
             (_contentPublications == null ? null : new ContentRuntimeResolver(_contentPublications));
-        var modifiers = new ScriptModifierManager(
-            _configManager,
-            _resourceLoader,
-            _formulaEvaluator,
-            contentRuntimes: contentRuntimes);
-        modifiers.LoadDefinitions(configName);
-        var statuses = new StatusEffectManager(
-            _configManager,
-            _resourceLoader,
-            _resourceManager,
-            _formulaEvaluator,
-            contentRuntimes: contentRuntimes);
-        statuses.LoadStatusDefinitions(configName);
         var modifierCatalog = contentRuntimes == null
             ? null
             : new PinnedContentCatalog<ScriptModifierDefinition>(
@@ -325,19 +308,6 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _contentPublications,
             contentRuntimes,
             _resourceManager);
-        var damage = new DamageCalculator(
-            _pipelineManager,
-            eventBus,
-            NullLogger.Instance,
-            statuses);
-        var effects = new EffectResolver(
-            damage,
-            _resourceManager,
-            eventBus,
-            NullLogger.Instance,
-            _formulaEvaluator,
-            statusEffectManager: statuses,
-            runManager: runs);
         var combatFactory = new CombatFactory(
             _resourceManager,
             _turnOrderCalculator,

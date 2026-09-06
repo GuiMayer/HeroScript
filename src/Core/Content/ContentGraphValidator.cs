@@ -64,7 +64,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateShops(runtime, errors);
         ValidatePreparations(runtime, errors);
         ValidateDailyChallenges(runtime, errors);
-        ValidatePipelines(runtime, errors);
         ValidateCalculationPipelines(runtime, errors);
         new GameplayContentValidator(runtime, errors).Validate();
 
@@ -96,7 +95,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "runDefinitionId", "runs");
             RequireProperty(runtime, errors, "modes", id, definition, "flowRulesId", "flow-rules");
             RequireProperty(runtime, errors, "modes", id, definition, "combatRulesId", "combat-rules");
-            RequireProperty(runtime, errors, "modes", id, definition, "damagePipelineId", "pipelines");
             RequireArray(runtime, errors, "modes", id, definition, "calculationPipelineIds", "calculation-pipelines");
             RequireProperty(runtime, errors, "modes", id, definition, "replayPolicyId", "replay-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "timelinePolicyId", "timeline-policies");
@@ -714,18 +712,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 Require(runtime, errors, "daily-challenges", id, weight.Key, "resources");
                 if (!IsFinite(weight.Value))
                     errors.Add($"daily-challenges/{id} score weight for {weight.Key} must be finite");
-            }
-        }
-    }
-
-    private static void ValidatePipelines(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
-    {
-        foreach (var (id, definition) in runtime.GetDefinitions("pipelines"))
-        {
-            foreach (var source in FindStringProperties(definition, "source")
-                         .Where(value => value.StartsWith("formula:", StringComparison.OrdinalIgnoreCase)))
-            {
-                Require(runtime, errors, "pipelines", id, source["formula:".Length..], "formulas");
             }
         }
     }

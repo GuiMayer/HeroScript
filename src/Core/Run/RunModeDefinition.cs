@@ -20,7 +20,6 @@ public sealed record GameModeDefinition
     public bool AllowCustomSeed { get; init; } = true;
     public string? FlowRulesId { get; init; }
     public string? CombatRulesId { get; init; }
-    public string? DamagePipelineId { get; init; }
     public string? ReplayPolicyId { get; init; }
     public string? TimelinePolicyId { get; init; }
     public string? ContentBindingPolicyId { get; init; }

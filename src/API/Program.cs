@@ -18,7 +18,6 @@ using Core.Combat.Gambits;
 using Core.Combat.TurnPhase;
 using Core.Combat.TurnOrder;
 using Core.Resources;
-using Core.Damage;
 using Core.Effects;
 using Core.Run;
 using Core.Run.Content;
@@ -193,25 +192,6 @@ builder.Services.AddSingleton<PhaseSequenceLoader>(sp =>
     return loader;
 });
 
-// Register StatusEffectManager
-builder.Services.AddSingleton<IStatusEffectManager, StatusEffectManager>(sp =>
-{
-    var configManager = sp.GetRequiredService<IConfigManager>();
-    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
-    var resourceManager = sp.GetRequiredService<IResourceManager>();
-    var formulaEvaluator = sp.GetRequiredService<IRuntimeFormulaEvaluator>();
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    var persister = sp.GetRequiredService<IDefinitionPersister>();
-    return new StatusEffectManager(
-        configManager,
-        resourceLoader,
-        resourceManager,
-        formulaEvaluator,
-        eventBus,
-        persister,
-        sp.GetRequiredService<IContentRuntimeResolver>());
-});
-
 // Register ActionManager
 builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
 {
@@ -228,13 +208,6 @@ builder.Services.AddSingleton<IActionManager, ActionManager>(sp =>
         sp.GetRequiredService<IContentRuntimeResolver>());
 });
 
-// Register ScriptModifierManager
-builder.Services.AddSingleton<IScriptModifierManager>(sp => new ScriptModifierManager(
-    sp.GetRequiredService<IConfigManager>(),
-    sp.GetRequiredService<IResourceLoader>(),
-    sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
-    sp.GetRequiredService<IEventBus>(),
-    sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<IPinnedContentCatalog<StatusEffectDefinition>>(sp =>
     new PinnedContentCatalog<StatusEffectDefinition>(
         sp.GetRequiredService<IContentRuntimeResolver>(),
@@ -427,57 +400,6 @@ builder.Services.AddSingleton<Core.Run.Branching.IRunBranchService>(sp =>
         (Core.Abstractions.Persistence.IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
 builder.Services.AddSingleton<Core.Run.Branching.IRunSimulationService, Core.Run.Branching.RunSimulationService>();
 
-// Register damage pipeline
-builder.Services.AddSingleton<PipelineConfigLoader>(sp =>
-{
-    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PipelineConfigLoader"));
-    return new PipelineConfigLoader(resourceLoader, logger);
-});
-
-builder.Services.AddSingleton<IPipelineManager, PipelineManager>(sp =>
-{
-    var loader = sp.GetRequiredService<PipelineConfigLoader>();
-    var configManager = sp.GetRequiredService<IConfigManager>();
-    var mathEngine = sp.GetRequiredService<IMathEngine>();
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("PipelineManager"));
-    return new PipelineManager(
-        loader,
-        configManager,
-        mathEngine,
-        eventBus,
-        logger,
-        contentRuntimes: sp.GetRequiredService<IContentRuntimeResolver>());
-});
-
-// Register DamageCalculator
-builder.Services.AddSingleton<IDamageCalculator, DamageCalculator>(sp =>
-{
-    var pipelineManager = sp.GetRequiredService<IPipelineManager>();
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("DamageCalculator"));
-    return new DamageCalculator(pipelineManager, eventBus, logger, statusEffectManager);
-});
-
-// Register EffectResolver
-builder.Services.AddSingleton<IEffectResolver, EffectResolver>(sp =>
-{
-    var damageCalculator = sp.GetRequiredService<IDamageCalculator>();
-    var resourceManager = sp.GetRequiredService<IResourceManager>();
-    var eventBus = sp.GetRequiredService<IEventBus>();
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EffectResolver"));
-    var formulaEvaluator = sp.GetRequiredService<IRuntimeFormulaEvaluator>();
-    var statusEffectManager = sp.GetRequiredService<IStatusEffectManager>();
-    var runManager = sp.GetRequiredService<IRunManager>();
-    return new EffectResolver(damageCalculator, resourceManager, eventBus, logger, formulaEvaluator, randomProvider: null, statusEffectManager: statusEffectManager, runManager: runManager);
-});
-
 // Register CombatOptions
 builder.Services.Configure<CombatOptions>(builder.Configuration.GetSection("Combat"));
 
@@ -661,33 +583,11 @@ foreach (var cache in applicationCaches)
 var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
 var coreLogger = new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
 
-// Load status effect definitions
-var statusEffectManager = app.Services.GetRequiredService<IStatusEffectManager>();
 var resourceManager = app.Services.GetRequiredService<IResourceManager>();
 resourceManager.LoadResourceDefinitions("default");
 var actionManager = app.Services.GetRequiredService<IActionManager>();
 actionManager.LoadActionDefinitions("default");
-var loadResult = statusEffectManager.LoadStatusDefinitions("default");
 var logger = loggerFactory.CreateLogger("Startup");
-if (loadResult.IsSuccess)
-{
-    logger.LogInformation("Successfully loaded status effect definitions from config 'default'");
-}
-else
-{
-    logger.LogError("Failed to load status effect definitions: {Error}", loadResult.Error);
-}
-
-var scriptModifierManager = app.Services.GetRequiredService<IScriptModifierManager>();
-var modifierLoadResult = scriptModifierManager.LoadDefinitions("default");
-if (modifierLoadResult.IsSuccess)
-{
-    logger.LogInformation("Successfully loaded script modifier definitions from config 'default'");
-}
-else
-{
-    logger.LogWarning("Script modifier definitions were not loaded: {Error}", modifierLoadResult.Error);
-}
 
 var gambitEngine = app.Services.GetRequiredService<IGambitEngine>();
 var gambitLoadResult = gambitEngine.LoadDefinitions("default");
