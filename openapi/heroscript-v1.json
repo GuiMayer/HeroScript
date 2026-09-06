@@ -373,7 +373,13 @@
         "operationId": "getCombatTimeline",
         "x-heroscript-stability": "experimental",
         "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "afterSequence", "in": "query", "schema": { "type": "integer", "minimum": 0 } }, { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1 } }],
-        "responses": { "200": { "description": "Policy-governed combat command timeline and turn groups" }, "422": { "$ref": "#/components/responses/Problem" } }
+        "responses": {
+          "200": {
+            "description": "Policy-governed combat command timeline and turn groups",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CombatTimelinePage" } } }
+          },
+          "422": { "$ref": "#/components/responses/Problem" }
+        }
       }
     },
     "/api/v1/combats/{combatId}/timeline/{sequence}/state": {
@@ -392,15 +398,6 @@
         "x-heroscript-stability": "experimental",
         "parameters": [{ "$ref": "#/components/parameters/CombatId" }, { "name": "sequence", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 } }],
         "responses": { "200": { "description": "Independent child run and combat anchored at a historical combat state" }, "422": { "$ref": "#/components/responses/Problem" } }
-      }
-    },
-    "/api/v1/combats/{combatId}/stack": {
-      "get": {
-        "tags": ["Combats"],
-        "operationId": "getCombatStack",
-        "x-heroscript-stability": "experimental",
-        "parameters": [{ "$ref": "#/components/parameters/CombatId" }],
-        "responses": { "200": { "description": "Priority and action stack read model" } }
       }
     },
     "/api/v1/combats/{combatId}/verify": {
@@ -558,7 +555,7 @@
       },
       "CombatResolutionRecord": {
         "type": "object",
-        "required": ["commandId", "combatId", "commandType", "mode", "firstSequence", "finalSequence", "frames"],
+        "required": ["commandId", "combatId", "commandType", "mode", "firstSequence", "finalSequence", "initialCombatStateHash", "finalCombatStateHash", "resolutionFingerprint", "frames"],
         "properties": {
           "commandId": { "type": "string", "format": "uuid" },
           "combatId": { "type": "string", "format": "uuid" },
@@ -566,6 +563,9 @@
           "mode": { "type": "string", "enum": ["FullSnapshots", "CompactWithSnapshotLookup"] },
           "firstSequence": { "type": "integer", "minimum": 1 },
           "finalSequence": { "type": "integer", "minimum": 1 },
+          "initialCombatStateHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "finalCombatStateHash": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "resolutionFingerprint": { "type": "string", "minLength": 64, "maxLength": 64 },
           "frames": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/CombatAnimationFrame" }
@@ -574,7 +574,7 @@
       },
       "CombatAnimationFrame": {
         "type": "object",
-        "required": ["frameId", "index", "runSequence", "combatStep", "transitionType", "payload", "snapshotSequence"],
+        "required": ["frameId", "index", "runSequence", "combatStep", "transitionType", "payload", "effectSteps", "calculations", "applications", "snapshotSequence"],
         "properties": {
           "frameId": { "type": "string", "format": "uuid" },
           "index": { "type": "integer", "minimum": 0 },
@@ -582,6 +582,21 @@
           "combatStep": { "type": "integer", "format": "uint64" },
           "transitionType": { "type": "string" },
           "payload": { "type": "object", "additionalProperties": true },
+          "effectSteps": {
+            "type": "array",
+            "description": "Ordered, source-independent effect execution trace.",
+            "items": { "$ref": "#/components/schemas/EffectExecutionStep" }
+          },
+          "calculations": {
+            "type": "array",
+            "description": "Bucket calculations used by effects in this frame.",
+            "items": { "$ref": "#/components/schemas/CalculationTrace" }
+          },
+          "applications": {
+            "type": "array",
+            "description": "Concrete immutable mutations produced by the frame.",
+            "items": { "$ref": "#/components/schemas/EffectApplicationRecord" }
+          },
           "stateAfter": {
             "type": "object",
             "nullable": true,
@@ -595,9 +610,99 @@
           }
         }
       },
+      "EffectExecutionStep": {
+        "type": "object",
+        "required": ["index", "effectInstanceId", "targetEntityId", "repeatIndex", "targetIndex", "applied", "contentRevision", "provenance", "applications", "stateBeforeHash", "stateAfterHash"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 0 },
+          "effectInstanceId": { "type": "string" },
+          "targetEntityId": { "type": "string" },
+          "repeatIndex": { "type": "integer", "minimum": 0 },
+          "targetIndex": { "type": "integer", "minimum": 0 },
+          "applied": { "type": "boolean" },
+          "skipReason": { "type": "string", "nullable": true },
+          "chanceRoll": { "type": "number", "nullable": true },
+          "contentRevision": { "type": "string" },
+          "provenance": { "type": "object", "additionalProperties": true },
+          "calculation": { "allOf": [{ "$ref": "#/components/schemas/CalculationTrace" }], "nullable": true },
+          "applications": { "type": "array", "items": { "$ref": "#/components/schemas/EffectApplicationRecord" } },
+          "stateBeforeHash": { "type": "string" },
+          "stateAfterHash": { "type": "string" },
+          "runBeforeHash": { "type": "string", "nullable": true },
+          "runAfterHash": { "type": "string", "nullable": true }
+        }
+      },
+      "CalculationTrace": {
+        "type": "object",
+        "description": "Resolved calculation including ordered buckets, contributions and provenance.",
+        "additionalProperties": true
+      },
+      "EffectApplicationRecord": {
+        "type": "object",
+        "required": ["effectInstanceId", "effectType", "targetEntityId", "provenance"],
+        "properties": {
+          "effectInstanceId": { "type": "string" },
+          "effectType": { "type": "string" },
+          "targetEntityId": { "type": "string" },
+          "resourceId": { "type": "string", "nullable": true },
+          "resourceField": { "type": "string", "nullable": true },
+          "resourceOperation": { "type": "string", "nullable": true },
+          "previousValue": { "type": "number", "nullable": true },
+          "currentValue": { "type": "number", "nullable": true },
+          "statusId": { "type": "string", "nullable": true },
+          "statusInstanceId": { "type": "string", "format": "uuid", "nullable": true },
+          "removedStatusInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "cardInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "modifierInstanceId": { "type": "string", "format": "uuid", "nullable": true },
+          "modifierId": { "type": "string", "nullable": true },
+          "provenance": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "CombatTimelineItem": {
+        "type": "object",
+        "required": ["runSequence", "combatStep", "turn", "commandType", "previousStateHash", "stateHash", "snapshotAvailable", "summary"],
+        "properties": {
+          "runSequence": { "type": "integer", "minimum": 1 },
+          "combatStep": { "type": "integer", "format": "uint64" },
+          "turn": { "type": "integer", "minimum": 0 },
+          "phase": { "type": "string", "nullable": true },
+          "actorId": { "type": "string", "nullable": true },
+          "commandType": { "type": "string" },
+          "commandId": { "type": "string", "format": "uuid", "nullable": true },
+          "rootCommandId": { "type": "string", "format": "uuid", "nullable": true },
+          "resolutionCommandId": { "type": "string", "format": "uuid", "nullable": true, "description": "Use with GET /resolutions/{commandId}; null when the item has no visual resolution." },
+          "resolutionFingerprint": { "type": "string", "nullable": true },
+          "previousStateHash": { "type": "string" },
+          "stateHash": { "type": "string" },
+          "snapshotAvailable": { "type": "boolean" },
+          "summary": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "CombatTimelinePage": {
+        "type": "object",
+        "required": ["runId", "combatId", "afterSequence", "nextCursor", "items", "turnGroups"],
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" },
+          "combatId": { "type": "string", "format": "uuid" },
+          "afterSequence": { "type": "integer", "minimum": 0 },
+          "nextCursor": { "type": "integer", "minimum": 0 },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/CombatTimelineItem" } },
+          "turnGroups": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["turn", "items"],
+              "properties": {
+                "turn": { "type": "integer", "minimum": 0 },
+                "items": { "type": "array", "items": { "$ref": "#/components/schemas/CombatTimelineItem" } }
+              }
+            }
+          }
+        }
+      },
       "CardInspectionResult": {
         "type": "object",
-        "required": ["version", "detail", "zone", "isInHand", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewApplications", "disposition", "resolutionFingerprint"],
+        "required": ["version", "detail", "zone", "isInHand", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewSteps", "previewApplications", "disposition", "resolutionFingerprint"],
         "properties": {
           "version": { "type": "object", "description": "Run, combat, engine and content-revision coordinates used by this projection", "additionalProperties": true },
           "detail": { "type": "string", "enum": ["Resolved", "Full"] },
@@ -611,6 +716,7 @@
           "contextSources": { "type": "object", "nullable": true, "description": "Pinned actor, targets, statuses, relics, modifiers and mode policies; present only at Full detail.", "additionalProperties": true },
           "evaluation": { "type": "object", "additionalProperties": true },
           "calculations": { "type": "array", "description": "Configured bucket traces and influence provenance", "items": { "type": "object", "additionalProperties": true } },
+          "previewSteps": { "type": "array", "description": "Ordered effect trace produced by the same pure transaction used by PLAY_CARD", "items": { "$ref": "#/components/schemas/EffectExecutionStep" } },
           "previewApplications": { "type": "array", "description": "Exact immutable effect preview from the current deterministic snapshot", "items": { "type": "object", "additionalProperties": true } },
           "disposition": { "type": "string" },
           "resolutionFingerprint": { "type": "string" }

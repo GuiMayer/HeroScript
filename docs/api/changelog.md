@@ -1,5 +1,18 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-06
+
+- Resoluções de combate agora expõem hashes de estado inicial/final, fingerprint
+  da fila e traces tipados de efeitos, cálculos e aplicações em cada frame.
+- A avaliação de cartas passou a expor `previewSteps`, produzido pela mesma
+  transação pura usada na execução.
+- O início do encontro passou a gerar a resolução durável
+  `combat.initialized`, preservando triggers de abertura para animação e replay.
+- Itens da timeline apontam para a fila correspondente por
+  `resolutionCommandId` e `resolutionFingerprint`.
+- Removido do contrato versionado o endpoint não implementado `/stack`;
+  reações continuam somente como capacidade reservada e desabilitada.
+
 ## v1 — 2026-09-03
 
 - Removidas as APIs paralelas baseadas em estado global para ações, dano,

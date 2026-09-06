@@ -78,8 +78,7 @@ Dentro do encontro, use:
 - `GET /cards/{cardInstanceId}/evaluation` para custos, alvos, upgrades,
   cálculos e fontes contextuais de uma carta;
 - `POST /commands` com `PLAY_CARD`, `EXECUTE_ACTION` ou `END_TURN`;
-- `GET /resolutions/{commandId}` para retomar a fila visual durável;
-- `GET /stack` para sistemas TCG que exibem prioridade e pilha.
+- `GET /resolutions/{commandId}` para retomar a fila visual durável.
 
 O payload de `PLAY_CARD` aceita `cardInstanceId`, `actorId`, `targetIds` e
 `costOptionId` opcional. A definição da carta nunca é enviada pelo cliente: a
@@ -92,14 +91,28 @@ A avaliação individual e a avaliação em lote usam os mesmos compiladores,
 resolvedores de upgrade, verificação de legalidade e executor puro empregados
 por `PLAY_CARD`. `isPlayable` considera condição, custo, alvo, ator ativo, fase
 e orçamento de ações. Quando os alvos selecionados tornam a jogada legal, a
-resposta também inclui a prévia determinística exata dos efeitos sem alterar a
-run.
+resposta também inclui `previewSteps`, `calculations` e `previewApplications`
+produzidos pela mesma transação pura de `PLAY_CARD`, sem alterar a run.
 
 O nível é uma regra fixada no game mode. `Resolved` expõe legalidade, valores e
 traces de buckets; `Full`, usado pelo sandbox, acrescenta ator, candidatos a
 alvo, status, relíquias, modificadores e políticas que podem influenciar a
 carta. `Disabled` bloqueia a projeção. A Godot deve tratar essa resposta como o
 único read model de regras de carta e limitar-se a apresentação e input.
+
+### Resolução e trace
+
+Cada resolução informa `initialCombatStateHash`, `finalCombatStateHash` e
+`resolutionFingerprint`. Cada frame contém três visões complementares:
+
+- `effectSteps`: ordem, condição/chance, alvo, proveniência e hashes de cada efeito;
+- `calculations`: buckets e contribuições numéricas usados pelo frame;
+- `applications`: mudanças concretas de recurso, status, carta ou modifier.
+
+O início do encontro também gera um frame `combat.initialized`, portanto
+regeneração, relíquias e status de abertura não ficam invisíveis ao cliente.
+Esses dados são diagnóstico e apresentação; o estado final persistido continua
+sendo a autoridade.
 
 ## Comandos de economia e recompensas
 

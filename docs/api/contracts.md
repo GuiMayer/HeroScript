@@ -29,6 +29,16 @@ Ela pode ser relida, inclusive após reconexão, em
 `GET /api/v1/combats/{combatId}/resolutions/{commandId}`. O cliente confirma
 animações apenas no próprio estado visual; essa confirmação não altera a run.
 
+A resolução é verificável por três hashes: estado inicial do combate, estado
+final e fingerprint da fila inteira. Seus frames expõem coleções tipadas de
+`effectSteps`, `calculations` e `applications`; não é necessário interpretar o
+objeto livre de `payload` para descobrir a consequência de gameplay. O payload
+continua disponível para metadados específicos da transição.
+
+Um `effectStep` registra a ordem, alvo, repetição, chance, proveniência,
+resultado numérico e hashes antes/depois. Uma `application` registra a mutação
+concreta sem presumir que um recurso específico representa vida ou mana.
+
 Para jogar uma carta de uma mão com instâncias, envie o UUID em
 `snapshot.hand[].cardInstanceId` como `payload.cardId`. IDs de definição, como
 `basic_attack`, descrevem conteúdo; IDs de instância identificam a cópia

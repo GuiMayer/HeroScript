@@ -37,6 +37,8 @@ atual; após `422`, mostre o diagnóstico e não tente corrigir o estado local.
 2. Inicie-o em `POST /api/v1/sandbox/runs`.
 3. Guarde `run.runId` e `combat.combatId`. Repetir o mesmo cenário e
    `attemptKey` é idempotente; trocar só `attemptKey` abre outra tentativa.
+   O `run.combatResolutions` inicial contém o frame `combat.initialized` para
+   animar efeitos de abertura.
 4. Leia `GET /api/v1/sandbox/runs/{runId}/snapshot` para montar a tela.
 5. Envie intenção ao gateway canônico de combate usando as versões observadas.
 6. Reproduza em ordem os frames de `state.resolution.frames`.
@@ -83,6 +85,11 @@ cair após o comando ser aceito, repita o comando com o mesmo `commandId` ou
 consulte `/resolutions/{commandId}`; não gere uma segunda intenção para tentar
 recriar as animações.
 
+Cada frame expõe `effectSteps`, `calculations` e `applications`. Use
+`applications` para escolher a animação concreta, `effectSteps` para explicar
+ordem, skips, chance e proveniência, e `calculations` para ferramentas de
+theorycraft. Verifique `resolutionFingerprint` ao reutilizar uma fila em cache.
+
 Os dois modos iniciais diferem também no orçamento de ação: `combat_sandbox`
 usa custos configurados e energia; `combat_sandbox_fixed_actions` ignora esses
 custos e encerra a ativação após a quantidade definida em JSON.
@@ -92,6 +99,11 @@ custos e encerra a ativação após a quantidade definida em JSON.
 Use `GET /api/v1/combats/{combatId}/timeline` para uma lista compacta de
 comandos e `GET /api/v1/combats/{combatId}/timeline/{sequence}/state` para
 mostrar um momento passado em modo somente-leitura.
+
+Quando `resolutionCommandId` estiver presente em um item, ele pode ser usado
+diretamente em `GET /api/v1/combats/{combatId}/resolutions/{resolutionCommandId}`.
+Transições internas do mesmo comando compartilham o `rootCommandId`; a Godot
+não precisa deduzir essa associação pelo tipo ou pela posição do item.
 
 Para continuar do passado, crie uma filha:
 

@@ -37,8 +37,10 @@ Diagnósticos e reload são administração, não parte do fluxo de gameplay.
 | Branches | `/api/v1/runs/{runId}/branches` | Branch a partir de checkpoint; experimental. |
 | Simulações | `/api/v1/simulations` | Isoladas da run de origem; experimental. |
 | Cartas | `/cards/evaluations`, `/cards/{cardInstanceId}/evaluation` | Legalidade e prévia pelo mesmo fluxo de `PLAY_CARD`; experimental. |
-| TCG | `/stack` | Leitura de prioridade e pilha; experimental. |
 
 Essas superfícies não devem ser usadas para inferir que a engine oferece
 multiplayer, economia permanente ou regras completas de TCG. Cada capacidade
 precisa aparecer em `/capabilities` e no changelog antes de se tornar estável.
+
+Reações permanecem apenas uma opção de conteúdo reservada e desabilitada. Não
+há pilha ou sistema de prioridade parcialmente autoritativo na API atual.

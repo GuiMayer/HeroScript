@@ -39,6 +39,7 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/simulations", "post", "experimental");
         AssertOperation(paths, "/api/v1/simulations/{simulationId}", "get", "experimental");
         AssertOperation(paths, "/api/v1/simulations/{simulationId}/result", "get", "experimental");
+        Assert.False(paths.TryGetProperty("/api/v1/combats/{combatId}/stack", out _));
 
         var commandType = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CommandEnvelope").GetProperty("properties").GetProperty("type");
@@ -50,9 +51,22 @@ public sealed class ContractDocumentationTests
             "CompactWithSnapshotLookup",
             resolution.GetProperty("properties").GetProperty("mode").GetProperty("enum")
                 .EnumerateArray().Select(item => item.GetString()));
+        var resolutionProperties = resolution.GetProperty("properties");
+        Assert.True(resolutionProperties.TryGetProperty("initialCombatStateHash", out _));
+        Assert.True(resolutionProperties.TryGetProperty("finalCombatStateHash", out _));
+        Assert.True(resolutionProperties.TryGetProperty("resolutionFingerprint", out _));
+        var frameProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatAnimationFrame").GetProperty("properties");
+        Assert.True(frameProperties.TryGetProperty("snapshotSequence", out _));
+        Assert.True(frameProperties.TryGetProperty("effectSteps", out _));
+        Assert.True(frameProperties.TryGetProperty("calculations", out _));
+        Assert.True(frameProperties.TryGetProperty("applications", out _));
         Assert.True(root.GetProperty("components").GetProperty("schemas")
-            .GetProperty("CombatAnimationFrame").GetProperty("properties")
-            .TryGetProperty("snapshotSequence", out _));
+            .GetProperty("CardInspectionResult").GetProperty("properties")
+            .TryGetProperty("previewSteps", out _));
+        Assert.True(root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatTimelineItem").GetProperty("properties")
+            .TryGetProperty("resolutionCommandId", out _));
         Assert.Equal(
             "#/components/schemas/CombatResolutionRecord",
             root.GetProperty("components").GetProperty("schemas")

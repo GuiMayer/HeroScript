@@ -2,7 +2,7 @@
 
 **Status:** implementado no fluxo canônico de run
 
-**Atualizado em:** 2026-09-05
+**Atualizado em:** 2026-09-06
 
 ## Papel arquitetural
 
@@ -163,7 +163,6 @@ do combate. Serviços singleton não armazenam progresso de gameplay.
 | Avaliar toda a mão | `GET /api/v1/combats/{combatId}/cards/evaluations` |
 | Inspecionar uma carta | `GET /api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation` |
 | Retomar fila visual | `GET /api/v1/combats/{combatId}/resolutions/{commandId}` |
-| Consultar pilha | `GET /api/v1/combats/{combatId}/stack` |
 | Histórico | `GET /api/v1/combats/{combatId}/history` |
 | Journal | `GET /api/v1/combats/{combatId}/journal` |
 | Timeline | `GET /api/v1/combats/{combatId}/timeline` |
@@ -174,6 +173,11 @@ do combate. Serviços singleton não armazenam progresso de gameplay.
 Os read models expõem `resources` como dicionário. A UI escolhe representação com
 base em definições, tags e regras de apresentação; não deve esperar campos
 duplicados `currentHp`, `maxHp` ou `energy`.
+
+Resoluções incluem hashes inicial/final, fingerprint e, em cada frame, os passos
+de efeito, cálculos e aplicações tipados. A inicialização do encontro também é
+uma resolução durável. Itens da timeline apontam para ela por
+`resolutionCommandId`, inclusive quando um comando produz várias transições.
 
 ## Timeline, branches e replay
 
