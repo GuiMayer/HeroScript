@@ -37,16 +37,46 @@ public static class RunEffectReducer
                 return Result<RunEffectApplication>.Failure("Modifier owner is outside this run/combat");
             if (effect.Type == EffectType.REMOVE_MODIFIER)
             {
-                var removed = run.Modifiers.Where(item => item.ModifierId == effect.ModifierId && item.Owner == owner).ToArray();
+                var removed = run.Modifiers
+                    .Where(item => item.ModifierId == effect.ModifierId && item.Owner == owner)
+                    .OrderBy(item => item.InstanceId)
+                    .ToArray();
                 if (effect.ModifierStacks is <= 0) return Result<RunEffectApplication>.Failure("Removed stack count must be positive");
                 if (effect.ModifierStacks is { } decrement)
                 {
+                    var changes = removed.Select(item => new ModifierStackApplicationRecord
+                    {
+                        ModifierInstanceId = item.InstanceId,
+                        ModifierId = item.ModifierId,
+                        PreviousStacks = item.Stacks,
+                        CurrentStacks = System.Math.Max(0, item.Stacks - decrement),
+                        Removed = item.Stacks <= decrement
+                    }).ToImmutableArray();
                     var remaining = run.Modifiers.Select(item => removed.Contains(item) ? item with { Stacks = item.Stacks - decrement } : item)
                         .Where(item => item.Stacks > 0).ToImmutableArray();
-                    return Result<RunEffectApplication>.Success(new(run with { Modifiers = remaining }, record with { ModifierId = effect.ModifierId }));
+                    return Result<RunEffectApplication>.Success(new(run with { Modifiers = remaining }, record with
+                    {
+                        ModifierId = effect.ModifierId,
+                        RemovedModifierInstanceIds = changes.Where(item => item.Removed)
+                            .Select(item => item.ModifierInstanceId).ToImmutableArray(),
+                        ModifierStackChanges = changes
+                    }));
                 }
+                var removals = removed.Select(item => new ModifierStackApplicationRecord
+                {
+                    ModifierInstanceId = item.InstanceId,
+                    ModifierId = item.ModifierId,
+                    PreviousStacks = item.Stacks,
+                    CurrentStacks = 0,
+                    Removed = true
+                }).ToImmutableArray();
                 return Result<RunEffectApplication>.Success(new(run with
-                    { Modifiers = run.Modifiers.RemoveRange(removed) }, record with { ModifierId = effect.ModifierId }));
+                    { Modifiers = run.Modifiers.RemoveRange(removed) }, record with
+                {
+                    ModifierId = effect.ModifierId,
+                    RemovedModifierInstanceIds = removals.Select(item => item.ModifierInstanceId).ToImmutableArray(),
+                    ModifierStackChanges = removals
+                }));
             }
             if (runtimes == null) return Result<RunEffectApplication>.Failure("Pinned modifier runtime is unavailable");
             var runtime = runtimes.Resolve(revision, run.ConfigName);
@@ -55,9 +85,23 @@ public static class RunEffectReducer
             if (definition.IsFailure) return Result<RunEffectApplication>.Failure(definition.Error);
             var applied = ModifierTransitions.Apply(run, definition.Value, owner, command.SourceEntityId,
                 effect.ModifierStacks, effect.ModifierDuration, contentRevision: revision);
+            var previousStacks = applied.IsSuccess
+                ? run.Modifiers.FirstOrDefault(item => item.InstanceId == applied.Value.Instance.InstanceId)?.Stacks ?? 0
+                : 0;
             return applied.IsFailure ? Result<RunEffectApplication>.Failure(applied.Error)
                 : Result<RunEffectApplication>.Success(new(applied.Value.Run,
-                    record with { ModifierId = effect.ModifierId, ModifierInstanceId = applied.Value.Instance.InstanceId }));
+                    record with
+                    {
+                        ModifierId = effect.ModifierId,
+                        ModifierInstanceId = applied.Value.Instance.InstanceId,
+                        ModifierStackChanges = [new()
+                        {
+                            ModifierInstanceId = applied.Value.Instance.InstanceId,
+                            ModifierId = applied.Value.Instance.ModifierId,
+                            PreviousStacks = previousStacks,
+                            CurrentStacks = applied.Value.Instance.Stacks
+                        }]
+                    }));
         }
         if (targetId != run.PlayerEntityId)
             return Result<RunEffectApplication>.Failure("Deck effects require the configured run deck owner");

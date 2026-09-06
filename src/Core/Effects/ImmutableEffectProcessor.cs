@@ -68,7 +68,18 @@ public sealed record EffectApplicationRecord
     public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
     public Guid? ModifierInstanceId { get; init; }
     public string? ModifierId { get; init; }
+    public ImmutableArray<Guid> RemovedModifierInstanceIds { get; init; } = [];
+    public ImmutableArray<ModifierStackApplicationRecord> ModifierStackChanges { get; init; } = [];
     public EffectProvenance Provenance { get; init; } = new();
+}
+
+public sealed record ModifierStackApplicationRecord
+{
+    public Guid ModifierInstanceId { get; init; }
+    public string ModifierId { get; init; } = string.Empty;
+    public int PreviousStacks { get; init; }
+    public int CurrentStacks { get; init; }
+    public bool Removed { get; init; }
 }
 
 public sealed record EffectBatchResult

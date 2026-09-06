@@ -67,6 +67,41 @@ public sealed class RunEffectTransactionTests
         Assert.Empty(run.Modifiers);
     }
 
+    [Fact]
+    public void RemovingStacksFromMultipleModifierInstancesProducesCompleteOrderedTrace()
+    {
+        var owner = new GameplayOwner { Kind = GameplayOwnerKind.Entity, Id = "hero" };
+        var firstId = Guid.Parse("10000000-0000-0000-0000-000000000001");
+        var secondId = Guid.Parse("20000000-0000-0000-0000-000000000002");
+        var definition = new ScriptModifierDefinition { ModifierId = "power" };
+        var run = Run() with
+        {
+            Modifiers =
+            [
+                new() { InstanceId = firstId, ModifierId = "power", Definition = definition, Owner = owner, Stacks = 3 },
+                new() { InstanceId = secondId, ModifierId = "power", Definition = definition, Owner = owner, Stacks = 1 }
+            ]
+        };
+        var request = EffectTransactionTests.Request(new EffectDefinition
+        {
+            Type = EffectType.REMOVE_MODIFIER,
+            Target = EffectTarget.SELF,
+            ModifierId = "power",
+            ModifierOwner = owner,
+            ModifierStacks = 2
+        }) with { Run = run };
+
+        var result = EffectTransactionTests.Executor().Execute(request);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(1, Assert.Single(result.Value.Run!.Modifiers).Stacks);
+        var application = Assert.Single(result.Value.Records);
+        Assert.Equal(new[] { secondId }, application.RemovedModifierInstanceIds.ToArray());
+        Assert.Equal(new[] { firstId, secondId }, application.ModifierStackChanges.Select(item => item.ModifierInstanceId).ToArray());
+        Assert.Equal(new[] { 1, 0 }, application.ModifierStackChanges.Select(item => item.CurrentStacks).ToArray());
+        Assert.Equal(new[] { false, true }, application.ModifierStackChanges.Select(item => item.Removed).ToArray());
+    }
+
     [Theory]
     [InlineData(ModifierDurationBoundary.Command)]
     [InlineData(ModifierDurationBoundary.Activation)]
