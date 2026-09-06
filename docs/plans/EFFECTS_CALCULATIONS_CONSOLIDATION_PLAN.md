@@ -49,7 +49,7 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 
 As entregas acima não significam que a consolidação inteira esteja concluída. Próxima etapa: migrar os consumidores restantes antes de excluir as implementações antigas.
 
-- Adaptar regeneração ao executor de triggers; hoje usa o reducer imutável, mas ainda resolve valores por um adaptador separado.
+- Remover o processador legado de regeneração junto com o fluxo antigo de `CombatSystem`; o lifecycle canônico já converte a regra de recurso em efeito comum e preserva steps, cálculo, proveniência e rollback.
 - Completar providers/componentes de modo e encontro, proveniência de upgrades e auditoria de seleção de pipeline por modo. Verificar todas as combinações alcançáveis sem rejeitar arbitrariamente conteúdo destinado a outro modo.
 - Remover `Core.Damage`, resolver/handlers antigos, stores mutáveis de status/modifier e campos de compatibilidade, após migrar seus consumidores. Auditar também publicação prematura de eventos em `CombatSystem`, gambits e fórmulas.
 - Completar uso de controllers/lados fora do targeting canônico e políticas de desempate; o campo de controller do lado ainda não substitui toda a lógica de controle de ator.

@@ -52,6 +52,16 @@ public sealed class ResourceMutationReducerTests
         Assert.Equal(0, resources["mana"].Minimum);
     }
 
+    [Theory]
+    [InlineData(ResourceMutationOperation.Add)]
+    [InlineData(ResourceMutationOperation.Subtract)]
+    public void Apply_RejectsNegativeMagnitudeInsteadOfSilentlyChangingItsSign(ResourceMutationOperation operation)
+    {
+        var resources = Resources(("mana", 5, 0, 10));
+        Assert.True(_reducer.Apply(resources, [Mutation("negative", "mana", ResourceValueField.Current, operation, -2)]).IsFailure);
+        Assert.Equal(5, resources["mana"].Current);
+    }
+
     private static ResolvedResourceMutation Mutation(
         string id,
         string resourceId,

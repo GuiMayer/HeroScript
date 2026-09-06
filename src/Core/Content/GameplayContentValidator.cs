@@ -19,6 +19,11 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<FormulaDefinition>("formulas", (path, item) =>
             errors.AddRange(FormulaDefinitionValidator.Validate(item).Select(error => $"{path}: {error}")));
         Visit<ActionDefinition>("actions", (path, item) => Effects(path, item.Effects));
+        Visit<Core.Resources.ResourceDefinition>("resources", (path, item) =>
+        {
+            if (item.Regeneration is { Enabled: true } regeneration)
+                Effects(path, [regeneration.ToEffect(item.ResourceId)]);
+        });
         Visit<CardContentDefinition>("cards", (path, item) => Components(path, item.Components));
         Visit<CardComponentBundleDefinition>("card-component-bundles", (path, item) => Components(path, item.Components));
         Visit<StatusEffectDefinition>("status-effects", (path, item) =>

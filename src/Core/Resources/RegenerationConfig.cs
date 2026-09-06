@@ -17,9 +17,8 @@ public record RegenerationConfig
     
     /// <summary>
     /// Fórmula dinâmica para calcular regeneração (opcional).
-    /// Contexto local disponível: current, minimum, maximum, percent.
-    /// Todos os pools do dono também são expostos como
-    /// resources.&lt;resourceId&gt;.&lt;field&gt;.
+    /// Substitui AmountPerTurn. Em combate usa o contexto canônico
+    /// source.resources, target.resources, owner.resources e run.resources.
     /// </summary>
     public string? Formula { get; init; }
     
@@ -27,6 +26,23 @@ public record RegenerationConfig
     /// Quando a regeneração ocorre.
     /// </summary>
     public RegenerationTiming Timing { get; init; }
+    public string CalculationChannel { get; init; } = "effect_amount";
+    public string? CalculationPipelineId { get; init; }
+
+    /// <summary>Authoring shorthand only; the executor cannot distinguish regeneration from any other resource effect.</summary>
+    public Effects.EffectDefinition ToEffect(string resourceId) => new()
+    {
+        EffectId = $"resource:{resourceId}:regeneration",
+        Type = Effects.EffectType.MODIFY_RESOURCE,
+        Target = Effects.EffectTarget.SELF,
+        TargetResource = resourceId,
+        Operation = Effects.ResourceEffectOperation.ADD,
+        FlatValue = string.IsNullOrWhiteSpace(Formula) ? AmountPerTurn : null,
+        FormulaValue = Formula,
+        CalculationChannel = CalculationChannel,
+        CalculationPipelineId = CalculationPipelineId,
+        Tags = ["regeneration"]
+    };
 }
 
 /// <summary>

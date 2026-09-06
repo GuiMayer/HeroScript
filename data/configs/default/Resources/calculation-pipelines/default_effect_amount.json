@@ -22,7 +22,6 @@
         "bucketId": "final",
         "order": 40,
         "operation": "Add",
-        "minimum": 0,
         "rounding": "Round"
       }
     ]

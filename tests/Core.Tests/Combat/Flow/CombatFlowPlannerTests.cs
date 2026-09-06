@@ -38,7 +38,7 @@ public sealed class CombatFlowPlannerTests
         var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
         var planner = new CombatFlowPlanner(runtimes.Object, actions.Object, Mock.Of<IIntentResolver>(),
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
-            new CombatResourceLifecycle(formulas, new ImmutableEffectProcessor()));
+            new CombatResourceLifecycle(triggers));
         var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
         var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
             { InitialHandSize = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,

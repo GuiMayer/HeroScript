@@ -92,6 +92,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var regenerated = ApplyResourceLifecycle(run, initialized.Value,
             initialized.Value.ActivationState!.ActiveActorId!, RegenerationTiming.START_TURN, context.Value.Policies);
         if (regenerated.IsFailure) return Result<CombatInitializationResult>.Failure(regenerated.Error);
+        run = regenerated.Value.Run ?? run;
         var relics = _relicLifecycle.Process(run, regenerated.Value.Combat, CombatTriggerBoundaries.CombatStart);
         if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
         run = relics.Value.Run ?? run;
@@ -312,12 +313,15 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         {
             TransitionType = $"combat.resources.{ToSnakeCase(timing)}",
             Combat = evaluated,
-            Deck = deck,
+            Deck = processed.Value.Run?.Deck ?? deck,
+            RunSnapshot = processed.Value.Run ?? run,
+            RunDeterminism = (processed.Value.Run ?? run).Determinism,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 timing = timing.ToString(),
                 actorId,
                 effects = processed.Value.Records,
+                steps = processed.Value.Steps,
                 processed.Value.Fingerprint
             })
         });

@@ -16,9 +16,8 @@ public sealed class CombatResourceLifecycleTests
     [Fact]
     public void Process_UsesImmutableEffectPipelineForMatchingActorBoundary()
     {
-        var lifecycle = new CombatResourceLifecycle(
-            new StubFormulaEvaluator(),
-            new ImmutableEffectProcessor());
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
         var combat = CombatTransitions.Create(
             Entity(
                 Pool("energy", 1, 3, new RegenerationConfig
@@ -54,9 +53,8 @@ public sealed class CombatResourceLifecycleTests
     [Fact]
     public void Process_AppliesNegativeLifecycleAmountAtEndBoundary()
     {
-        var lifecycle = new CombatResourceLifecycle(
-            new StubFormulaEvaluator(),
-            new ImmutableEffectProcessor());
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
         var combat = CombatTransitions.Create(
             Entity(Pool("block", 8, 999, new RegenerationConfig
             {
@@ -77,9 +75,8 @@ public sealed class CombatResourceLifecycleTests
     [Fact]
     public void Process_ExcludesModeOwnedResourceCycleFromIntrinsicRegeneration()
     {
-        var lifecycle = new CombatResourceLifecycle(
-            new StubFormulaEvaluator(),
-            new ImmutableEffectProcessor());
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
         var combat = CombatTransitions.Create(
             Entity(Pool("energy", 1, 3, new RegenerationConfig
             {
@@ -105,9 +102,8 @@ public sealed class CombatResourceLifecycleTests
     [Fact]
     public void Process_DoesNotFallbackWhenFormulaFails()
     {
-        var lifecycle = new CombatResourceLifecycle(
-            new StubFormulaEvaluator(Result<float>.Failure("invalid formula")),
-            new ImmutableEffectProcessor());
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            new StubFormulaEvaluator(Result<float>.Failure("invalid formula")), new ImmutableEffectProcessor()));
         var combat = CombatTransitions.Create(
             Entity(Pool("mana", 1, 10, new RegenerationConfig
             {
@@ -124,6 +120,43 @@ public sealed class CombatResourceLifecycleTests
         Assert.True(result.IsFailure);
         Assert.Contains("invalid formula", result.Error);
         Assert.Equal(1, combat.Hero.GetResource("mana")!.Current);
+    }
+
+    [Fact]
+    public void Process_IsSequentialAndReturnsUniversalExecutionSteps()
+    {
+        var formulas = new StubFormulaEvaluator(evaluate: variables =>
+            Result<float>.Success(variables!["source.resources.a.current"]));
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor()));
+        var combat = CombatTransitions.Create(Entity(
+            Pool("a", 1, 10, new() { Enabled = true, AmountPerTurn = 2, Timing = RegenerationTiming.START_TURN }),
+            Pool("b", 1, 10, new() { Enabled = true, Formula = "source.resources.a.current", Timing = RegenerationTiming.START_TURN })),
+            [], DeterministicContext.Create(42, "revision"));
+
+        var result = lifecycle.Process(Run(), combat, "hero", RegenerationTiming.START_TURN);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(3, result.Value.Combat.Hero.GetResource("a")!.Current);
+        Assert.Equal(4, result.Value.Combat.Hero.GetResource("b")!.Current);
+        Assert.Equal(2, result.Value.Steps.Length);
+        Assert.All(result.Value.Steps, step => Assert.Equal(EffectProvenanceKind.Rule, step.Provenance.Kind));
+        Assert.Equal(1, combat.Hero.GetResource("a")!.Current);
+        Assert.Equal(1, combat.Hero.GetResource("b")!.Current);
+    }
+
+    [Fact]
+    public void Process_FailureAfterEarlierRuleDiscardsTheWholeBoundary()
+    {
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            new StubFormulaEvaluator(Result<float>.Failure("broken")), new ImmutableEffectProcessor()));
+        var combat = CombatTransitions.Create(Entity(
+            Pool("a", 1, 10, new() { Enabled = true, AmountPerTurn = 2, Timing = RegenerationTiming.START_TURN }),
+            Pool("b", 1, 10, new() { Enabled = true, Formula = "broken", Timing = RegenerationTiming.START_TURN })),
+            [], DeterministicContext.Create(42, "revision"));
+
+        Assert.True(lifecycle.Process(Run(), combat, "hero", RegenerationTiming.START_TURN).IsFailure);
+        Assert.Equal(1, combat.Hero.GetResource("a")!.Current);
+        Assert.Equal(1, combat.Hero.GetResource("b")!.Current);
     }
 
     private static RunState Run() => new()
@@ -169,21 +202,24 @@ public sealed class CombatResourceLifecycleTests
     private sealed class StubFormulaEvaluator : IRevisionedRuntimeFormulaEvaluator
     {
         private readonly Result<float> _result;
+        private readonly Func<Dictionary<string, float>?, Result<float>>? _evaluate;
 
-        public StubFormulaEvaluator(Result<float>? result = null)
+        public StubFormulaEvaluator(Result<float>? result = null,
+            Func<Dictionary<string, float>?, Result<float>>? evaluate = null)
         {
             _result = result ?? Result<float>.Success(1);
+            _evaluate = evaluate;
         }
 
         public Result<float> Evaluate(
             string expressionOrFormulaId,
             Dictionary<string, float>? variables = null,
-            float initialValue = 0) => _result;
+            float initialValue = 0) => _evaluate?.Invoke(variables) ?? _result;
 
         public Result<float> EvaluateAtRevision(
             string expressionOrFormulaId,
             string contentRevision,
             Dictionary<string, float>? variables = null,
-            float initialValue = 0) => _result;
+            float initialValue = 0) => _evaluate?.Invoke(variables) ?? _result;
     }
 }

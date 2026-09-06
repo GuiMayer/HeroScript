@@ -219,6 +219,15 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             ResourceEffectOperation.SET => ResourceMutationOperation.Set,
             _ => throw new InvalidOperationException($"Unsupported resource operation: {operation}")
         };
+        // Resolve signed authoring into an explicit direction and magnitude.
+        // The resource reducer never guesses direction from a value's sign.
+        var magnitude = effect.ResolvedValue;
+        if (magnitude < 0 && mutationOperation != ResourceMutationOperation.Set)
+        {
+            magnitude = -magnitude;
+            mutationOperation = mutationOperation == ResourceMutationOperation.Add
+                ? ResourceMutationOperation.Subtract : ResourceMutationOperation.Add;
+        }
         var reduced = target.ResourceState.Apply(
             [new ResolvedResourceMutation
             {
@@ -226,7 +235,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 ResourceId = resourceId,
                 Field = effect.Definition.ResourceField,
                 Operation = mutationOperation,
-                Value = effect.ResolvedValue
+                Value = magnitude
             }],
             _resources);
         if (reduced.IsFailure)

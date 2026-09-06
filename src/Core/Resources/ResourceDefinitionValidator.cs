@@ -69,6 +69,8 @@ public static class ResourceDefinitionValidator
                 return Result.Failure("Resource regeneration amount must be finite");
             if (!Enum.IsDefined(regeneration.Timing))
                 return Result.Failure("Resource regeneration timing is invalid");
+            var effectErrors = Effects.EffectDefinitionValidator.Validate([regeneration.ToEffect(definition.ResourceId)]);
+            if (!effectErrors.IsEmpty) return Result.Failure(string.Join("; ", effectErrors));
         }
 
         return Result.Success();

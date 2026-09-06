@@ -106,6 +106,20 @@ public sealed class ImmutableEffectProcessorTests
         Assert.NotEqual(Guid.Empty, status.InstanceId);
     }
 
+    [Theory]
+    [InlineData(ResourceEffectOperation.ADD, -3, 5)]
+    [InlineData(ResourceEffectOperation.SUBTRACT, -3, 11)]
+    [InlineData(ResourceEffectOperation.ADD, 3, 11)]
+    public void ModifyResourceNormalizesSignedAmounts(ResourceEffectOperation operation, float amount, float expected)
+    {
+        var state = State(Entity("hero", true, ("focus", 10)), Entity("enemy", false, ("focus", 8)));
+        var effect = ResourceEffect("signed", EffectType.MODIFY_RESOURCE, "focus", amount, EffectProvenanceKind.Rule);
+        var result = _processor.Apply(state, [effect with { Definition = effect.Definition with { Operation = operation } }]);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(expected, result.Value.State.Enemies[0].GetResource("focus")!.Current);
+        Assert.Equal(8, state.Enemies[0].GetResource("focus")!.Current);
+    }
+
     private static ResolvedEffectCommand ResourceEffect(
         string id,
         EffectType type,

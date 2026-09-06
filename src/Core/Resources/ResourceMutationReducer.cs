@@ -86,8 +86,8 @@ public sealed class ResourceMutationReducer : IResourceMutationReducer
             var previous = Read(pool, mutation.Field);
             var next = mutation.Operation switch
             {
-                ResourceMutationOperation.Add => previous + MathF.Abs(mutation.Value),
-                ResourceMutationOperation.Subtract => previous - MathF.Abs(mutation.Value),
+                ResourceMutationOperation.Add => previous + mutation.Value,
+                ResourceMutationOperation.Subtract => previous - mutation.Value,
                 ResourceMutationOperation.Set => mutation.Value,
                 _ => float.NaN
             };
@@ -124,6 +124,8 @@ public sealed class ResourceMutationReducer : IResourceMutationReducer
             return Result.Failure($"Resource mutation {mutation.MutationId} requires resourceId");
         if (!Enum.IsDefined(mutation.Field) || !Enum.IsDefined(mutation.Operation))
             return Result.Failure($"Resource mutation {mutation.MutationId} is invalid");
+        if (mutation.Operation != ResourceMutationOperation.Set && mutation.Value < 0)
+            return Result.Failure($"Resource mutation {mutation.MutationId} requires a non-negative magnitude");
         return IsFinite(mutation.Value)
             ? Result.Success()
             : Result.Failure($"Resource mutation {mutation.MutationId} value must be finite");
