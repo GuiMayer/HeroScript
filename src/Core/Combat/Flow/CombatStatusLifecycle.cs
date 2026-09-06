@@ -20,6 +20,7 @@ public sealed record CombatStatusLifecycleEvent
     public string StatusId { get; init; } = string.Empty;
     public string? TriggerId { get; init; }
     public int Priority { get; init; }
+    public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public IReadOnlyList<EffectApplicationRecord> Applications
     {
         get => _applications;
@@ -116,7 +117,8 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                         StatusId = status.StatusId,
                         TriggerId = trigger.TriggerId,
                         Priority = trigger.Priority,
-                        Applications = executed.Value.Records
+                        Applications = executed.Value.Records,
+                        Steps = executed.Value.Steps
                     });
                 }
             }

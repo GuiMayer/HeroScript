@@ -547,14 +547,16 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 fingerprint = cardPlay.Card.Fingerprint,
                 resolutionFingerprint = cardPlay.ResolutionFingerprint,
                 calculations = cardPlay.Calculations,
-                applications = cardPlay.Applications
+                applications = cardPlay.Applications,
+                steps = cardPlay.Steps
             },
             abilityResolution = ability == null ? null : new
             {
                 actionId = ability.Definition.ActionId,
                 resolutionFingerprint = ability.ResolutionFingerprint,
                 calculations = ability.Calculations,
-                applications = ability.Applications
+                applications = ability.Applications,
+                steps = ability.Steps
             }
         });
         var steps = new List<CombatResolutionStep>

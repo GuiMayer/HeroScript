@@ -26,6 +26,8 @@ public sealed record AbilityExecutionRequest
 
 public sealed record AbilityExecutionResult
 {
+    public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
+    public RunState? Run { get; init; }
     private ImmutableArray<EffectApplicationRecord> _applications = [];
     private ImmutableArray<Core.Calculations.CalculationResult> _calculations = [];
 
@@ -59,18 +61,15 @@ public sealed class AbilityExecutor : IAbilityExecutor
 {
     private readonly IActionManager _actions;
     private readonly ICardPlayEvaluator _legality;
-    private readonly IImmutableEffectProcessor _effects;
     private readonly IEffectTriggerExecutor _triggers;
 
     public AbilityExecutor(
         IActionManager actions,
         ICardPlayEvaluator legality,
-        IImmutableEffectProcessor effects,
         IEffectTriggerExecutor triggers)
     {
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _legality = legality ?? throw new ArgumentNullException(nameof(legality));
-        _effects = effects ?? throw new ArgumentNullException(nameof(effects));
         _triggers = triggers ?? throw new ArgumentNullException(nameof(triggers));
     }
 
@@ -111,16 +110,6 @@ public sealed class AbilityExecutor : IAbilityExecutor
             return Result<AbilityExecutionResult>.Failure(
                 string.Join("; ", evaluation.Value.FailureReasons));
 
-        var costs = request.IgnoreConfiguredCosts
-            ? Result<EffectBatchResult>.Success(new EffectBatchResult
-            {
-                State = request.Combat,
-                Fingerprint = CanonicalJson.ComputeHash(request.Combat)
-            })
-            : ApplyCosts(request, evaluation.Value);
-        if (costs.IsFailure)
-            return Result<AbilityExecutionResult>.Failure(costs.Error);
-
         var trigger = new EffectTriggerDefinition
         {
             TriggerId = "ability.resolve",
@@ -130,7 +119,10 @@ public sealed class AbilityExecutor : IAbilityExecutor
         var executed = _triggers.Execute(new EffectTriggerExecutionRequest
         {
             Run = request.Run,
-            Combat = costs.Value.State,
+            Combat = request.Combat,
+            PrefixCommands = request.IgnoreConfiguredCosts ? [] : ActionEffectCosts.Compile(evaluation.Value,
+                request.ActorId, new() { Kind = EffectProvenanceKind.Ability, SourceId = request.ActionId }),
+            Tags = definition.Value.Tags.ToImmutableHashSet(StringComparer.Ordinal),
             Trigger = trigger,
             OwnerEntityId = request.ActorId,
             SourceEntityId = request.ActorId,
@@ -145,7 +137,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
         if (executed.IsFailure)
             return Result<AbilityExecutionResult>.Failure(executed.Error);
 
-        var applications = costs.Value.Records.Concat(executed.Value.Records).ToImmutableArray();
+        var applications = executed.Value.Records.ToImmutableArray();
         var appended = CombatTransitions.AppendAction(
             executed.Value.State,
             new CombatAction
@@ -171,39 +163,14 @@ public sealed class AbilityExecutor : IAbilityExecutor
         return Result<AbilityExecutionResult>.Success(new AbilityExecutionResult
         {
             Combat = appended.State,
+            Steps = executed.Value.Steps,
+            Run = executed.Value.Run,
             Definition = definition.Value,
             Evaluation = evaluation.Value,
             Applications = applications,
             Calculations = executed.Value.Calculations,
             ResolutionFingerprint = fingerprint
         });
-    }
-
-    private Result<EffectBatchResult> ApplyCosts(
-        AbilityExecutionRequest request,
-        CardPlayEvaluation evaluation)
-    {
-        var commands = evaluation.Costs.Select(cost => new ResolvedEffectCommand
-        {
-            EffectInstanceId = $"{request.ActionId}:cost:{cost.ComponentId}:{cost.OptionId ?? "base"}:{cost.ResourceId}",
-            Definition = new EffectDefinition
-            {
-                EffectId = $"ability-cost:{cost.ComponentId}",
-                Type = EffectType.MODIFY_RESOURCE,
-                TargetResource = cost.ResourceId,
-                Operation = ResourceEffectOperation.SUBTRACT
-            },
-            SourceEntityId = request.ActorId,
-            TargetEntityIds = [request.ActorId],
-            ResolvedValue = cost.Amount,
-            Provenance = new EffectProvenance
-            {
-                Kind = EffectProvenanceKind.Ability,
-                SourceId = request.ActionId,
-                ComponentId = cost.ComponentId
-            }
-        }).ToArray();
-        return _effects.Apply(request.Combat, commands);
     }
 
     private static EffectiveCardDefinition AdaptToLegalityComponents(

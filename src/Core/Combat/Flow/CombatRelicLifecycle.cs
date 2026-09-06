@@ -20,6 +20,7 @@ public sealed record CombatRelicLifecycleEvent
     public string RelicId { get; init; } = string.Empty;
     public string TriggerId { get; init; } = string.Empty;
     public string Boundary { get; init; } = string.Empty;
+    public ImmutableArray<EffectExecutionStep> Steps { get; init; } = [];
     public IReadOnlyList<EffectApplicationRecord> Applications
     {
         get => _applications;
@@ -94,7 +95,8 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                     RelicId = relic.DefinitionId,
                     TriggerId = trigger.TriggerId,
                     Boundary = boundary,
-                    Applications = executed.Value.Records
+                    Applications = executed.Value.Records,
+                    Steps = executed.Value.Steps
                 });
             }
         }

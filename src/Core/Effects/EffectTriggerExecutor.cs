@@ -26,6 +26,8 @@ public sealed record EffectTriggerExecutionRequest
     public RunState? Run { get; init; }
     public Core.Run.Content.EffectiveCardDefinition? Card { get; init; }
     public ImmutableHashSet<string> Tags { get; init; } = ImmutableHashSet<string>.Empty;
+    public ImmutableArray<ResolvedEffectCommand> PrefixCommands { get; init; } = [];
+    public ImmutableArray<EffectTriggerDefinition> Components { get; init; } = [];
     public IReadOnlyList<string> SelectedTargetEntityIds
     {
         get => _selectedTargetEntityIds;
@@ -86,10 +88,33 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
         var work = 0;
-        foreach (var (effect, index) in request.Trigger.Effects.Select((item, index) => (item, index)))
+        foreach (var command in request.PrefixCommands)
         {
-            var executed = ExecuteEffect(effect, index.ToString(), 0, request.SelectedTargetEntityIds);
-            if (executed.IsFailure) return Result<EffectBatchResult>.Failure(executed.Error);
+            if (++work > EffectExecutionLimits.MaximumSteps)
+                return Result<EffectBatchResult>.Failure("Effect execution limit exceeded");
+            var before = CanonicalJson.ComputeHash(current);
+            var applied = _effects.Apply(current, [command]);
+            if (applied.IsFailure) return Result<EffectBatchResult>.Failure(applied.Error);
+            current = applied.Value.State;
+            records.AddRange(applied.Value.Records);
+            steps.Add(new()
+            {
+                Index = steps.Count, EffectInstanceId = command.EffectInstanceId,
+                TargetEntityId = command.TargetEntityIds.FirstOrDefault() ?? string.Empty,
+                Applied = true, ContentRevision = request.ContentRevision, Provenance = command.Provenance,
+                Applications = applied.Value.Records.ToImmutableArray(),
+                StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current)
+            });
+        }
+        var activeTriggerId = request.Trigger.TriggerId;
+        foreach (var component in request.Components.IsEmpty ? [request.Trigger] : request.Components)
+        {
+            activeTriggerId = component.TriggerId;
+            foreach (var (effect, index) in component.Effects.Select((item, index) => (item, index)))
+            {
+                var executed = ExecuteEffect(effect, $"{component.TriggerId}:{index}", 0, request.SelectedTargetEntityIds);
+                if (executed.IsFailure) return Result<EffectBatchResult>.Failure(executed.Error);
+            }
         }
         return Result<EffectBatchResult>.Success(new()
         {
@@ -151,7 +176,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             EffectInstanceId = id, Definition = effect, SourceEntityId = request.SourceEntityId,
                             TargetEntityIds = [targetId], ResolvedValue = value.Value.Value, StatusDefinition = status.Value,
                             ContentRevision = request.ContentRevision,
-                            Provenance = request.Provenance with { ComponentId = request.Trigger.TriggerId }
+                            Provenance = request.Provenance with { ComponentId = activeTriggerId }
                         }]);
                         if (applied.IsFailure) return Result.Failure(applied.Error);
                         current = applied.Value.State;
@@ -165,7 +190,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         RepeatIndex = repeat, TargetIndex = targetIndex, Applied = applies,
                         SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
                         ChanceRoll = roll, ContentRevision = request.ContentRevision,
-                        Provenance = request.Provenance with { ComponentId = request.Trigger.TriggerId },
+                        Provenance = request.Provenance with { ComponentId = activeTriggerId },
                         Calculation = calculation, Applications = appliedRecords,
                         StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current)
                     });

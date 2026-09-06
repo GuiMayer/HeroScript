@@ -387,6 +387,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 new CardContentCompiler(),
                 new EffectiveCardResolver(),
                 new CardPlayEvaluator(_actionCostEvaluator, _formulaEvaluator),
+                new EffectTriggerExecutor(_formulaEvaluator, new ImmutableEffectProcessor(), contentRuntimes,
                 new CalculationEngine(),
                 new CompositeCalculationInfluenceProvider(
                 [
@@ -395,15 +396,12 @@ public sealed class RunSemanticReplayService : IRunReplayService
                     new RunModifierInfluenceProvider(_formulaEvaluator),
                     new StatusCalculationInfluenceProvider(_formulaEvaluator),
                     new RelicCalculationInfluenceProvider(_formulaEvaluator)
-                ]),
-                new ImmutableEffectProcessor(),
-                _formulaEvaluator);
+                ])));
         var ability = contentRuntimes == null
             ? null
             : new AbilityExecutor(
                 _actionManager,
                 new CardPlayEvaluator(_actionCostEvaluator, _formulaEvaluator),
-                new ImmutableEffectProcessor(),
                 new EffectTriggerExecutor(
                     _formulaEvaluator,
                     new ImmutableEffectProcessor(),

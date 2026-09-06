@@ -66,7 +66,6 @@ public sealed class AbilityExecutorTests
         return new AbilityExecutor(
             actions.Object,
             new CardPlayEvaluator(new ActionCostEvaluator(formulas.Object), formulas.Object),
-            effects,
             new EffectTriggerExecutor(formulas.Object, effects));
     }
 

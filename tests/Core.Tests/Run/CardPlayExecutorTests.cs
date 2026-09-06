@@ -22,6 +22,29 @@ public sealed class CardPlayExecutorTests
     private const string Revision = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
 
     [Fact]
+    public void FormulaSeesPaidCostAndTraceIncludesCostBeforeEffect()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000009");
+        var runtime = Runtime(Card([
+            new CardCostComponentDefinition { ComponentId = "cost", Costs = new()
+                { Costs = [new() { ResourceId = "energy", Amount = 2 }] } },
+            new CardEffectComponentDefinition { ComponentId = "effect", Effect = new()
+                { Type = EffectType.DAMAGE, TargetResource = "mana", FormulaValue = "source.resources.energy.current" } },
+            Targeting(), Disposition()
+        ]), Pipeline());
+        var result = Executor(runtime).Execute(new()
+        {
+            Run = Run(instanceId), Combat = Combat(), CardInstanceId = instanceId,
+            ActorId = "hero", SelectedTargetIds = ["enemy"]
+        });
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(19, result.Value.Combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(2, result.Value.Steps.Length);
+        Assert.Equal("cost", result.Value.Steps[0].Provenance.ComponentId);
+        Assert.Equal("effect", result.Value.Steps[1].Provenance.ComponentId);
+    }
+
+    [Fact]
     public void Execute_UsesUpgradedBaseContextPipelineAndExplicitResourceAtomically()
     {
         var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000001");
@@ -253,6 +276,9 @@ public sealed class CardPlayExecutorTests
         runtimes.Setup(item => item.Resolve(Revision, "default"))
             .Returns(Result<ContentRuntime>.Success(runtime));
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
+        formulas.Setup(item => item.Evaluate(It.IsAny<string>(), It.IsAny<Dictionary<string, float>>()))
+            .Returns((string expression, Dictionary<string, float> variables, float initialValue) =>
+                variables.TryGetValue(expression, out var value) ? Result<float>.Success(value) : Result<float>.Failure("Unknown variable"));
         var influences = new CompositeCalculationInfluenceProvider(
         [
             new CardComponentInfluenceProvider(formulas.Object),
@@ -263,10 +289,8 @@ public sealed class CardPlayExecutorTests
             new CardContentCompiler(),
             new EffectiveCardResolver(),
             new CardPlayEvaluator(new ActionCostEvaluator(formulas.Object), formulas.Object),
-            new CalculationEngine(),
-            influences,
-            new ImmutableEffectProcessor(),
-            formulas.Object);
+            new EffectTriggerExecutor(formulas.Object, new ImmutableEffectProcessor(),
+                runtimes.Object, new CalculationEngine(), influences));
     }
 
     private static ContentRuntime Runtime(
