@@ -65,6 +65,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 return Result<CombatRunEncounterResult>.Failure(runResult.Error);
 
             var run = runResult.Value;
+            if (run.ResolvedMode == null)
+                return Result<CombatRunEncounterResult>.Failure(
+                    "Run has no resolved game mode; canonical combat cannot start");
             var versionValidation = ValidateRunVersion(run, commandIdentity, useCombatStep: false);
             if (versionValidation.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(versionValidation.Error);
@@ -108,8 +111,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 commandIdentity?.ExpectedStep ?? run.Determinism.Step,
                 initialized.Value.Combat,
                 commandIdentity,
-                run.ResolvedMode == null ? null : initialized.Value.Run,
-                run.ResolvedMode == null ? null : InitialCommand(combatResult.Value));
+                initialized.Value.Run,
+                InitialCommand(combatResult.Value));
             if (attached.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -146,6 +149,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (runResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(runResult.Error);
             var run = runResult.Value;
+            if (run.ResolvedMode == null)
+                return Result<CombatRunEncounterResult>.Failure(
+                    "Run has no resolved game mode; canonical combat cannot start");
             var versionValidation = ValidateRunVersion(run, commandIdentity, useCombatStep: false);
             if (versionValidation.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(versionValidation.Error);
@@ -187,8 +193,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 commandIdentity?.ExpectedStep ?? run.Determinism.Step,
                 initialized.Value.Combat,
                 commandIdentity,
-                run.ResolvedMode == null ? null : initialized.Value.Run,
-                run.ResolvedMode == null ? null : InitialCommand(combatResult.Value));
+                initialized.Value.Run,
+                InitialCommand(combatResult.Value));
             if (attached.IsFailure)
             {
                 _combatSystem.RemoveCombatState(combatResult.Value.CombatId);
@@ -275,6 +281,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure(runResult.Error);
 
         var run = runResult.Value;
+        if (run.ResolvedMode == null)
+            return Result<CombatRunActionResult>.Failure(
+                "Run has no resolved game mode; canonical combat cannot execute commands");
         var encounter = run.GetActiveEncounter();
         if (encounter == null || encounter.Combat.CombatId != combatId)
             return Result<CombatRunActionResult>.Failure($"Combat is not the active encounter for run {runId}: {combatId}");
@@ -332,7 +341,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 played.Value);
         }
 
-        if (run.ResolvedMode != null && command.ActionType is
+        if (command.ActionType is
             ActionType.BASIC_ATTACK or ActionType.POWER or ActionType.ACTIVATE_ABILITY)
         {
             if (_abilityExecutor == null)
@@ -395,81 +404,16 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         RunCommandIdentity? commandIdentity,
         CardPlayExecutionResult? cardPlay = null,
         AbilityExecutionResult? ability = null)
-    {
-        if (run.ResolvedMode != null)
-            return ExecuteCanonicalAndCommit(
-                combatId,
-                run,
-                previousCombat,
-                command,
-                consumedCardId,
-                destination,
-                commandIdentity,
-                cardPlay,
-                ability);
-
-        var actionBudget = run.ResolvedMode?.CombatRules.Flow.ActionBudget;
-        var effectiveCommandType = commandIdentity?.Type ?? "COMBAT_ACTION";
-        if (actionBudget != null)
-        {
-            var budgetValidation = CombatFlowTransitions.ValidateActionBudget(
-                previousCombat,
-                command,
-                actionBudget,
-                effectiveCommandType);
-            if (budgetValidation.IsFailure)
-                return Result<CombatRunActionResult>.Failure(budgetValidation.Error);
-        }
-
-        var effectiveCommand = commandIdentity == null
-            ? command
-            : command with { ExpectedStep = commandIdentity.ExpectedStep };
-        var combatResult = cardPlay != null
-            ? Result<CombatState>.Success(cardPlay.Combat)
-            : ability != null
-                ? Result<CombatState>.Success(ability.Combat)
-                : _combatSystem.ExecuteAction(combatId, effectiveCommand);
-        if (combatResult.IsFailure)
-            return Result<CombatRunActionResult>.Failure(combatResult.Error);
-        var nextCombat = actionBudget == null
-            ? combatResult.Value
-            : CombatFlowTransitions.ConsumeActionBudget(
-                combatResult.Value,
-                effectiveCommand,
-                actionBudget,
-                effectiveCommandType);
-
-        var committed = _runManager.CommitCombatAction(
-            run.RunId,
-            run.Sequence,
+        => ExecuteCanonicalAndCommit(
+            combatId,
+            run,
             previousCombat,
-            nextCombat,
-            effectiveCommand,
+            command,
             consumedCardId,
             destination,
-            commandIdentity);
-        if (committed.IsFailure)
-        {
-            _combatSystem.RestoreCombatState(previousCombat);
-            return Result<CombatRunActionResult>.Failure(committed.Error);
-        }
-
-        if (cardPlay != null)
-        {
-            var restoredCardState = _combatSystem.RestoreCombatState(nextCombat);
-            if (restoredCardState.IsFailure)
-                return Result<CombatRunActionResult>.Failure(restoredCardState.Error);
-            PublishCardAction(cardPlay);
-        }
-
-        return Result<CombatRunActionResult>.Success(new CombatRunActionResult
-        {
-            CombatState = nextCombat,
-            RunState = committed.Value,
-            ConsumedCardId = consumedCardId,
-            Destination = destination
-        });
-    }
+            commandIdentity,
+            cardPlay,
+            ability);
 
     private Result<CombatRunActionResult> ExecuteCanonicalAndCommit(
         Guid combatId,
@@ -526,7 +470,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             ? Result<CombatState>.Success(cardPlay.Combat)
             : ability != null
                 ? Result<CombatState>.Success(ability.Combat)
-                : _combatSystem.ExecuteAction(combatId, effectiveCommand);
+                : CombatFlowTransitions.AppendPassiveCommand(previousCombat, effectiveCommand);
         if (executed.IsFailure)
             return Result<CombatRunActionResult>.Failure(executed.Error);
 
@@ -834,7 +778,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         }
         else
         {
-            executed = _combatSystem.ExecuteAction(combatId, command);
+            executed = CombatFlowTransitions.AppendPassiveCommand(combat, command);
         }
         if (executed.IsFailure)
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(executed.Error);
@@ -876,7 +820,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
     private Result<CombatInitializationResult> InitializeCanonicalFlow(RunState run, CombatState combat)
     {
-        if (run.ResolvedMode == null) return Result<CombatInitializationResult>.Success(new(combat, run));
+        if (run.ResolvedMode == null)
+            return Result<CombatInitializationResult>.Failure(
+                "Run has no resolved game mode; canonical combat cannot initialize");
         if (_flowPlanner == null) return Result<CombatInitializationResult>.Failure("Canonical combat flow planner is unavailable");
         var initialized = _flowPlanner.InitializeTransaction(run, combat);
         if (initialized.IsFailure) return initialized;

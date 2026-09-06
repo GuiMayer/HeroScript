@@ -7,6 +7,44 @@ namespace Core.Combat.Flow;
 /// <summary>Pure deterministic transitions shared by every combat adapter.</summary>
 public static class CombatFlowTransitions
 {
+    /// <summary>
+    /// Materializes commands that have no effect graph. PASS and END_TURN are
+    /// timeline facts only; activation lifecycle is planned separately.
+    /// </summary>
+    public static Result<CombatState> AppendPassiveCommand(
+        CombatState combat,
+        CombatActionCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(combat);
+        ArgumentNullException.ThrowIfNull(command);
+        if (!combat.IsActive)
+            return Result<CombatState>.Failure($"Combat is not active: {combat.CombatId}");
+        if (command.ActionType is not ActionType.PASS and not ActionType.END_TURN)
+        {
+            return Result<CombatState>.Failure(
+                $"Action requires an effect executor: {command.ActionType}");
+        }
+        if (command.ExpectedStep.HasValue && command.ExpectedStep.Value != combat.Determinism.Step)
+        {
+            return Result<CombatState>.Failure(
+                $"Stale combat command: expected step {command.ExpectedStep.Value}, current step is {combat.Determinism.Step}");
+        }
+
+        var actor = combat.GetEntity(command.ActorId);
+        if (actor == null)
+            return Result<CombatState>.Failure($"Actor not found: {command.ActorId}");
+        if (!actor.IsAlive)
+            return Result<CombatState>.Failure($"Actor is not alive: {command.ActorId}");
+
+        var appended = CombatTransitions.AppendAction(combat, new CombatAction
+        {
+            Turn = combat.CurrentTurn,
+            ActorId = command.ActorId,
+            ActionType = command.ActionType
+        });
+        return Result<CombatState>.Success(appended.State);
+    }
+
     public static Result ValidateCommandInput(
         CombatState combat,
         CombatActionCommand command)
