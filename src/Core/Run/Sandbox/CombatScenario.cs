@@ -149,7 +149,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
     private readonly EntityDefinitionLoader _entities;
     private readonly IResourceManager _resources;
     private readonly IContentManifestProvider _manifests;
-    private readonly IStatusEffectManager _statuses;
+    private readonly IPinnedContentCatalog<StatusEffectDefinition> _statuses;
     private readonly IContentRuntimeResolver? _contentRuntimes;
 
     public CombatScenarioCompiler(
@@ -161,7 +161,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         EntityDefinitionLoader entities,
         IResourceManager resources,
         IContentManifestProvider manifests,
-        IStatusEffectManager statuses,
+        IPinnedContentCatalog<StatusEffectDefinition> statuses,
         IContentRuntimeResolver? contentRuntimes = null)
     {
         _modes = modes;
@@ -406,12 +406,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                     $"Initial status is duplicated for target: {effect.TargetAlias}/{effect.StatusId}");
             }
 
-            var definition = GetContent<StatusEffectDefinition>(
-                "status-effects",
-                effect.StatusId,
-                contentRevision,
-                configName: null,
-                () => _statuses.GetDefinition(effect.StatusId));
+            var definition = _statuses.Get(effect.StatusId, contentRevision);
             if (definition.IsFailure)
                 return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(definition.Error);
             var allocated = context.AllocateId($"scenario-status:{scenario.AttemptKey}:{effect.TargetAlias}:{effect.StatusId}:{index}");

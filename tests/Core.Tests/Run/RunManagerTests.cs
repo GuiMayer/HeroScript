@@ -735,13 +735,13 @@ public sealed class RunManagerTests
     [Fact]
     public void ApplyPreparationOption_AppliesConfiguredScriptModifiers()
     {
-        var modifierManager = new Mock<IScriptModifierManager>();
+        var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyRunResource(
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
         modifierManager
-            .Setup(m => m.GetDefinition("flat_power_bonus"))
+            .Setup(m => m.Get("flat_power_bonus", It.IsAny<string>(), It.IsAny<string?>()))
             .Returns(Result<ScriptModifierDefinition>.Success(new ScriptModifierDefinition
             {
                 ModifierId = "flat_power_bonus",
@@ -760,7 +760,9 @@ public sealed class RunManagerTests
         Assert.Equal("flat_power_bonus", modifier.ModifierId);
         Assert.Equal($"run:{run.RunId}", modifier.OwnerId);
         Assert.Equal(modifier.InstanceId, Assert.Single(option.Value.AppliedModifierInstanceIds));
-        modifierManager.Verify(m => m.GetDefinition("flat_power_bonus"), Times.Once);
+        modifierManager.Verify(
+            m => m.Get("flat_power_bonus", It.IsAny<string>(), It.IsAny<string?>()),
+            Times.Once);
     }
 
     [Fact]
@@ -788,7 +790,7 @@ public sealed class RunManagerTests
     [Fact]
     public void ApplyPreparationOption_WhenModifierDefinitionFails_LeavesRunUnchanged()
     {
-        var modifierManager = new Mock<IScriptModifierManager>();
+        var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyRunResource(
@@ -797,7 +799,7 @@ public sealed class RunManagerTests
         var originalPowerPoints = run.ResourceState.Current("power_points");
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
-            .Setup(m => m.GetDefinition("flat_power_bonus"))
+            .Setup(m => m.Get("flat_power_bonus", It.IsAny<string>(), It.IsAny<string?>()))
             .Returns(Result<ScriptModifierDefinition>.Failure("modifier rejected"));
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
@@ -816,7 +818,7 @@ public sealed class RunManagerTests
     [Fact]
     public void ApplyPreparationOption_WhenSecondDefinitionFails_DoesNotPublishPartialModifiers()
     {
-        var modifierManager = new Mock<IScriptModifierManager>();
+        var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = manager.StartRun("test", "default_run", "hero").Value;
         run = manager.ApplyRunResource(
@@ -825,14 +827,14 @@ public sealed class RunManagerTests
         var originalPowerPoints = run.ResourceState.Current("power_points");
         var originalDiscard = run.Deck.DiscardPile.ToArray();
         modifierManager
-            .Setup(m => m.GetDefinition("flat_power_bonus"))
+            .Setup(m => m.Get("flat_power_bonus", It.IsAny<string>(), It.IsAny<string?>()))
             .Returns(Result<ScriptModifierDefinition>.Success(new ScriptModifierDefinition
             {
                 ModifierId = "flat_power_bonus",
                 DefaultDuration = -1
             }));
         modifierManager
-            .Setup(m => m.GetDefinition("missing_modifier"))
+            .Setup(m => m.Get("missing_modifier", It.IsAny<string>(), It.IsAny<string?>()))
             .Returns(Result<ScriptModifierDefinition>.Failure("modifier missing"));
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
@@ -1041,7 +1043,7 @@ public sealed class RunManagerTests
     }
 
     private RunManager CreateManager(
-        IScriptModifierManager? scriptModifierManager = null,
+        IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierManager = null,
         IRunStateRepository? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
         string? runJson = null)
@@ -1075,7 +1077,7 @@ public sealed class RunManagerTests
         return new RunManager(
             _configManager.Object,
             _resourceLoader.Object,
-            scriptModifierManager: scriptModifierManager,
+            scriptModifierCatalog: scriptModifierManager,
             repository: repository,
             contentManifestProvider: contentManifestProvider,
             resources: TestDataBuilders.MockResourceManager().Object);

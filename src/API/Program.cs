@@ -243,6 +243,22 @@ builder.Services.AddSingleton<IScriptModifierManager>(sp => new ScriptModifierMa
     sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
     sp.GetRequiredService<IEventBus>(),
     sp.GetRequiredService<IContentRuntimeResolver>()));
+builder.Services.AddSingleton<IPinnedContentCatalog<StatusEffectDefinition>>(sp =>
+    new PinnedContentCatalog<StatusEffectDefinition>(
+        sp.GetRequiredService<IContentRuntimeResolver>(),
+        "status-effects",
+        (id, definition) => definition with
+        {
+            StatusId = string.IsNullOrWhiteSpace(definition.StatusId) ? id : definition.StatusId
+        }));
+builder.Services.AddSingleton<IPinnedContentCatalog<ScriptModifierDefinition>>(sp =>
+    new PinnedContentCatalog<ScriptModifierDefinition>(
+        sp.GetRequiredService<IContentRuntimeResolver>(),
+        "modifiers",
+        (id, definition) => definition with
+        {
+            ModifierId = string.IsNullOrWhiteSpace(definition.ModifierId) ? id : definition.ModifierId
+        }));
 
 // Register GambitEngine
 builder.Services.AddSingleton<IGambitEngine>(sp =>
@@ -397,7 +413,7 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IResourceLoader>(),
     sp.GetRequiredService<ICardPoolResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),
-    sp.GetRequiredService<IScriptModifierManager>(),
+    sp.GetRequiredService<IPinnedContentCatalog<ScriptModifierDefinition>>(),
     sp.GetRequiredService<IEventBus>(),
     sp.GetRequiredService<IRunStateRepository>(),
     sp.GetRequiredService<IContentManifestProvider>(),
@@ -528,7 +544,7 @@ builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioC
     sp.GetRequiredService<EntityDefinitionLoader>(),
     sp.GetRequiredService<IResourceManager>(),
     sp.GetRequiredService<IContentManifestProvider>(),
-    sp.GetRequiredService<IStatusEffectManager>(),
+    sp.GetRequiredService<IPinnedContentCatalog<StatusEffectDefinition>>(),
     sp.GetRequiredService<IContentRuntimeResolver>()));
 builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxService(
     sp.GetRequiredService<ICombatScenarioCompiler>(),

@@ -300,12 +300,21 @@ public sealed class RunSemanticReplayService : IRunReplayService
             _formulaEvaluator,
             contentRuntimes: contentRuntimes);
         statuses.LoadStatusDefinitions(configName);
+        var modifierCatalog = contentRuntimes == null
+            ? null
+            : new PinnedContentCatalog<ScriptModifierDefinition>(
+                contentRuntimes,
+                "modifiers",
+                (id, definition) => definition with
+                {
+                    ModifierId = string.IsNullOrWhiteSpace(definition.ModifierId) ? id : definition.ModifierId
+                });
         var runs = new RunManager(
             _configManager,
             _resourceLoader,
             _cardPoolResolver,
             _cardContentCatalog,
-            modifiers,
+            modifierCatalog,
             eventBus: null,
             repository: null,
             _contentManifestProvider,

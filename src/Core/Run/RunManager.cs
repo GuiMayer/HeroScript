@@ -28,7 +28,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly IResourceLoader _resourceLoader;
     private readonly ICardPoolResolver? _cardPoolResolver;
     private readonly ICardContentCatalog? _cardContentCatalog;
-    private readonly IScriptModifierManager? _scriptModifierManager;
+    private readonly IPinnedContentCatalog<ScriptModifierDefinition>? _scriptModifierCatalog;
     private readonly IEventBus? _eventBus;
     private readonly IRunStateRepository? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
@@ -50,7 +50,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         IResourceLoader resourceLoader,
         ICardPoolResolver? cardPoolResolver = null,
         ICardContentCatalog? cardContentCatalog = null,
-        IScriptModifierManager? scriptModifierManager = null,
+        IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierCatalog = null,
         IEventBus? eventBus = null,
         IRunStateRepository? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
@@ -66,7 +66,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _cardPoolResolver = cardPoolResolver;
         _cardContentCatalog = cardContentCatalog;
-        _scriptModifierManager = scriptModifierManager;
+        _scriptModifierCatalog = scriptModifierCatalog;
         _eventBus = eventBus;
         _repository = repository;
         _contentManifestProvider = contentManifestProvider;
@@ -1717,19 +1717,17 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var plan = PreparationTransitions.PlanApply(state, preparationInstanceId, optionId);
             if (plan.IsFailure)
                 return Result<PreparationOptionState>.Failure(plan.Error);
-            if (!plan.Value.ModifierGrants.IsEmpty && _scriptModifierManager == null)
+            if (!plan.Value.ModifierGrants.IsEmpty && _scriptModifierCatalog == null)
                 return Result<PreparationOptionState>.Failure(
-                    "Script modifier manager is not available for preparation modifier grants");
+                    "Script modifier catalog is not available for preparation modifier grants");
 
             var resolvedModifiers = new List<ScriptModifierInstance>();
             foreach (var grant in plan.Value.ModifierGrants)
             {
-                var definition = _scriptModifierManager is IRevisionedScriptModifierManager revisionedModifiers
-                    ? revisionedModifiers.GetDefinition(
-                        grant.ModifierId,
-                        state.Determinism.ContentRevision,
-                        state.ConfigName)
-                    : _scriptModifierManager!.GetDefinition(grant.ModifierId);
+                var definition = _scriptModifierCatalog!.Get(
+                    grant.ModifierId,
+                    state.Determinism.ContentRevision,
+                    state.ConfigName);
                 if (definition.IsFailure)
                     return Result<PreparationOptionState>.Failure(definition.Error);
                 if (grant.Stacks <= 0 || grant.Stacks > definition.Value.MaxStacks)
