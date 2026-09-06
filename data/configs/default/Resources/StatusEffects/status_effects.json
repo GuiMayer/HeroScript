@@ -1,13 +1,11 @@
 {
   "burning": {
     "StatusId": "burning",
-    "Type": "BURNING",
     "DisplayName": "Burning",
     "Description": "Takes fire damage at the end of each turn",
     "DefaultDuration": 3,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "Timing": "END_OF_TURN",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
     "Triggers": [
@@ -30,13 +28,11 @@
   },
   "poison": {
     "StatusId": "poison",
-    "Type": "POISON",
     "DisplayName": "Poison",
     "Description": "Takes poison damage at the end of each turn",
     "DefaultDuration": 3,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "Timing": "END_OF_TURN",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
     "Triggers": [
@@ -59,13 +55,11 @@
   },
   "strength": {
     "StatusId": "strength",
-    "Type": "STRENGTH",
     "DisplayName": "Strength",
     "Description": "Increases damage dealt by 25% per stack",
     "DefaultDuration": -1,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "Timing": "PERMANENT",
     "DurationTickBoundary": "Unspecified",
     "Priority": 0,
     "Influences": [
@@ -82,13 +76,11 @@
   },
   "weakness": {
     "StatusId": "weakness",
-    "Type": "WEAKNESS",
     "DisplayName": "Weakness",
     "Description": "Reduces damage dealt by 25% per stack",
     "DefaultDuration": 3,
     "DefaultStacks": 1,
     "MaxStacks": 99,
-    "Timing": "PERMANENT",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
     "Influences": [
@@ -105,7 +97,6 @@
   },
   "stunned": {
     "StatusId": "stunned",
-    "Type": "STUNNED",
     "DisplayName": "Stunned",
     "Description": "Cannot act",
     "ActionConstraints": [
@@ -114,7 +105,6 @@
     "DefaultDuration": 1,
     "DefaultStacks": 1,
     "MaxStacks": 1,
-    "Timing": "PERMANENT",
     "DurationTickBoundary": "EndActivation",
     "Priority": 0,
     "Tags": ["debuff", "control"]

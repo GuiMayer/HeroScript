@@ -388,61 +388,6 @@ public static class TestDataBuilders
         }
     }
     
-    // ==================== STATUS EFFECT BUILDERS ====================
-    
-    public static StatusEffectDefinitionBuilder StatusEffect() => new();
-    
-    public class StatusEffectDefinitionBuilder
-    {
-        private string _id = "test_status";
-        private string _name = "Test Status";
-        private StatusEffectType _type = StatusEffectType.STRENGTH;
-        private int _duration = 3;
-        private int _maxStacks = 1;
-        
-        public StatusEffectDefinitionBuilder WithId(string id)
-        {
-            _id = id;
-            return this;
-        }
-        
-        public StatusEffectDefinitionBuilder WithName(string name)
-        {
-            _name = name;
-            return this;
-        }
-        
-        public StatusEffectDefinitionBuilder WithType(StatusEffectType type)
-        {
-            _type = type;
-            return this;
-        }
-        
-        public StatusEffectDefinitionBuilder WithDuration(int duration)
-        {
-            _duration = duration;
-            return this;
-        }
-        
-        public StatusEffectDefinitionBuilder WithMaxStacks(int maxStacks)
-        {
-            _maxStacks = maxStacks;
-            return this;
-        }
-        
-        public StatusEffectDefinition Build()
-        {
-            return new StatusEffectDefinition
-            {
-                StatusId = _id,
-                DisplayName = _name,
-                Type = _type,
-                DefaultDuration = _duration,
-                MaxStacks = _maxStacks
-            };
-        }
-    }
-    
     // ==================== RUN STATE BUILDERS ====================
     
     public static RunStateBuilder RunState() => new();

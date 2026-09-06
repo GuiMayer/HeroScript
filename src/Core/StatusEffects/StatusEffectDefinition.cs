@@ -24,11 +24,6 @@ public record StatusEffectDefinition
     public string StatusId { get; init; } = string.Empty;
     
     /// <summary>
-    /// Tipo do status effect
-    /// </summary>
-    public StatusEffectType Type { get; init; }
-    
-    /// <summary>
     /// Nome para exibição
     /// </summary>
     public string DisplayName { get; init; } = string.Empty;
@@ -38,13 +33,8 @@ public record StatusEffectDefinition
     /// </summary>
     public string Description { get; init; } = string.Empty;
     
-    // ===== COMPORTAMENTO =====
-    
-    /// <summary>
-    /// Comportamento do status effect (como é processado)
-    /// </summary>
-    public StatusEffectBehavior Behavior { get; init; }
-    
+    // ===== POLÍTICAS DE INSTÂNCIA =====
+
     /// <summary>
     /// Duração padrão em turnos (-1 = permanente)
     /// </summary>
@@ -64,68 +54,8 @@ public record StatusEffectDefinition
     public bool Dispellable { get; init; } = true;
     public ImmutableArray<ActionConstraintDefinition> ActionConstraints { get; init; } = [];
     
-    // ===== VALORES =====
-    
     /// <summary>
-    /// Valor base do efeito (dano, cura, modificador)
-    /// Usado quando FormulaValue não está definido
-    /// </summary>
-    public float BaseValue { get; init; }
-    
-    /// <summary>
-    /// Fórmula dinâmica para calcular valor (usa MathEngine)
-    /// Contexto disponível: stacks e recursos genéricos de source/target.
-    /// Ex: "stacks * 3" para Burning que causa 3 de dano por stack
-    /// Ex: "stacks * 0.25" para Strength que aumenta dano em 25% por stack
-    /// </summary>
-    public string? FormulaValue { get; init; }
-    
-    /// <summary>
-    /// Se true, o valor escala com número de stacks
-    /// Se false, o valor é fixo independente de stacks
-    /// </summary>
-    public bool ScalesWithStacks { get; init; } = true;
-
-    /// <summary>
-    /// Recurso alterado por comportamentos que aumentam ou reduzem um pool.
-    /// Obrigatório para DAMAGE_OVER_TIME, HEAL_OVER_TIME e REACTIVE.
-    /// </summary>
-    public string? TargetResource { get; init; }
-    
-    // ===== INTEGRAÇÃO COM PIPELINE =====
-    
-    /// <summary>
-    /// Chave do modificador no damage pipeline
-    /// Ex: "increased_damage_total" para Strength
-    /// Ex: "increased_damage_taken" para Vulnerable
-    /// Ex: "crit_chance" para Dexterity
-    /// Quando definido, o status effect injeta modificadores no pipeline de dano
-    /// </summary>
-    public string? ModifierKey { get; init; }
-    
-    /// <summary>
-    /// Fórmula para calcular o valor do modificador (usa MathEngine)
-    /// Contexto disponível: stacks, target_*, source_*, etc.
-    /// Ex: "stacks * 0.25" para Strength (25% por stack)
-    /// Ex: "stacks * 0.5" para Vulnerable (50% por stack)
-    /// </summary>
-    public string? ModifierFormula { get; init; }
-    
-    // ===== TIMING =====
-    
-    /// <summary>
-    /// Quando o status effect é processado
-    /// </summary>
-    public StatusEffectTiming Timing { get; init; }
-
-    /// <summary>
-    /// Exact canonical combat boundary that actively executes this status.
-    /// Reactive and passive statuses leave this as Unspecified.
-    /// </summary>
-    public StatusTriggerBoundary TriggerBoundary { get; init; }
-
-    /// <summary>
-    /// Exact canonical combat boundary that decrements finite duration.
+     /// Exact canonical combat boundary that decrements finite duration.
     /// Permanent statuses leave this as Unspecified.
     /// </summary>
     public StatusTriggerBoundary DurationTickBoundary { get; init; }
