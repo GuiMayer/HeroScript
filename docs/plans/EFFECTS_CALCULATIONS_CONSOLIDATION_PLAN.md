@@ -42,9 +42,22 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 - Etapa 5: políticas compartilhadas de stacks/duração; dispel por filtros/ordem/limite; constraints de ação usadas pela avaliação e pela IA; `stunned` configurado. Status removidos não disparam; o snapshot inicial do boundary é global; cenários fixam revisão dos status. 1.386 Core e 147 API aprovados. Exclusão de modelos/stores antigos aguarda remoção de seus consumidores na etapa 9.
 - Etapa 6: relíquias fixam dono, definição e revisão na aquisição; scopes de influência não dependem de `IsHero`; stacking explícito e apresentação separada. Triggers ligados aos boundaries de ativação/round e ao encerramento transacional, com proteção contra execução duplicada. Suite completa anterior às três novas regressões: 1.386 Core + 147 API; 16 testes direcionados incluindo novas regressões aprovados.
 
-## Testes obrigatórios da migração
-
 - Etapa 7: transições imutáveis compartilhadas de modifiers, ownership/revisão fixados e duração por comando, ativação, round, combate, nó e término do mapa. Efeitos de deck/modifier participam da transação e dos hashes; snapshots de run são propagados entre origens, boundaries, inicialização e commit. A inicialização registra os participantes anteriores aos efeitos para replay sem aplicação duplicada. Corrigida compra parcial que lançava exceção e alinhada resposta semântica da API. 1.400 Core + 147 API aprovados, incluindo dez repetições de transações mistas. Exclusão do manager antigo permanece na etapa 9; duração de run fora do término normal do mapa ainda precisa de auditoria.
+- Etapa 8: contrato executável recursivo compartilhado pela publicação e pelo executor (inclusive branches não executadas); referências, limites, chance, timing, ownership, stacks/duração, triggers e destinos de influências validados. Fórmulas inline usam a gramática real do avaliador; fórmulas nomeadas têm validação estrutural de operações/parâmetros, sem executar regras durante publicação. Grafo de lados validado no cenário. Upgrades respeitam o contrato dos efeitos e retornam falha para políticas inválidas/overflow. JSON de componente desconhecido retorna diagnóstico, não exceção. 1.420 Core + 147 API aprovados. Validação da compatibilidade de todas as combinações de modo/conteúdo ainda depende da auditoria de alcance descrita abaixo.
+
+## Pendências para concluir o plano
+
+As entregas acima não significam que a consolidação inteira esteja concluída. Próxima etapa: migrar os consumidores restantes antes de excluir as implementações antigas.
+
+- Adaptar regeneração ao executor de triggers; hoje usa o reducer imutável, mas ainda resolve valores por um adaptador separado.
+- Completar providers/componentes de modo e encontro, proveniência de upgrades e auditoria de seleção de pipeline por modo. Verificar todas as combinações alcançáveis sem rejeitar arbitrariamente conteúdo destinado a outro modo.
+- Remover `Core.Damage`, resolver/handlers antigos, stores mutáveis de status/modifier e campos de compatibilidade, após migrar seus consumidores. Auditar também publicação prematura de eventos em `CombatSystem`, gambits e fórmulas.
+- Completar uso de controllers/lados fora do targeting canônico e políticas de desempate; o campo de controller do lado ainda não substitui toda a lógica de controle de ator.
+- Auditar encerramento imediato na inicialização, duração de modifiers quando a run termina por derrota, reaquisição de relíquias com políticas Replace/Highest e trace de remoção de múltiplos modifiers.
+- Finalizar API/timeline/inspeção, traces da inicialização e ações automáticas, preview e documentação dos contratos/capacidades.
+- Repetir integração completa, replay semântico/fork e dez execuções do fluxo completo após a remoção dos caminhos antigos. As dez execuções já adicionadas até aqui cobrem transações de efeitos, não substituem esse teste final.
+
+## Testes obrigatórios da migração
 
 1. Um efeito idêntico em diferentes origens gera a mesma transição numérica, com proveniência distinta.
 2. Uma alteração de recurso influencia o cálculo imediatamente seguinte; custo é observado antes dos efeitos.

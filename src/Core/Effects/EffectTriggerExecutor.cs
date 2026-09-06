@@ -82,6 +82,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             return Result<EffectBatchResult>.Failure("TriggerId is required");
         if (request.Combat.GetEntity(request.OwnerEntityId) == null)
             return Result<EffectBatchResult>.Failure($"Trigger owner not found: {request.OwnerEntityId}");
+        var definitionErrors = EffectDefinitionValidator.Validate(
+            (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects));
+        if (!definitionErrors.IsEmpty)
+            return Result<EffectBatchResult>.Failure(string.Join("; ", definitionErrors));
 
         var current = request.Combat;
         var currentRun = request.Run;

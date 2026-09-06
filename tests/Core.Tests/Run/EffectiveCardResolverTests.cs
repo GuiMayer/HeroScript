@@ -111,6 +111,21 @@ public sealed class EffectiveCardResolverTests
         Assert.Equal(CardNumericPatchOperation.Add, patch.Operation);
     }
 
+    [Theory]
+    [InlineData(CardEffectNumericAttribute.Repeat, 257f)]
+    [InlineData(CardEffectNumericAttribute.Repeat, float.MaxValue)]
+    [InlineData(CardEffectNumericAttribute.Chance, float.NaN)]
+    [InlineData(CardEffectNumericAttribute.FlatValue, -1f)]
+    [InlineData((CardEffectNumericAttribute)999, 1f)]
+    public void Resolve_RejectsUpgradeOutsideExecutableEffectContract(CardEffectNumericAttribute attribute, float value)
+    {
+        var result = _resolver.Resolve(CompileStrike(), CreateInstance(new CardEffectNumericPatchDefinition
+        {
+            ComponentId = "effect.damage", Attribute = attribute, Operation = CardNumericPatchOperation.Set, Value = value
+        }));
+        Assert.True(result.IsFailure);
+    }
+
     private CompiledCardDefinition CompileStrike()
     {
         var result = _compiler.Compile(new CardContentDefinition

@@ -66,6 +66,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateDailyChallenges(runtime, errors);
         ValidatePipelines(runtime, errors);
         ValidateCalculationPipelines(runtime, errors);
+        new GameplayContentValidator(runtime, errors).Validate();
 
         var reservedKinds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -277,12 +278,13 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         var compiler = new CardContentCompiler();
         foreach (var (id, definition) in runtime.GetDefinitions("cards"))
         {
-            var card = definition.Deserialize<CardContentDefinition>(CreateJsonOptions());
-            if (card == null)
+            var parsed = runtime.GetDefinition<CardContentDefinition>("cards", id);
+            if (parsed.IsFailure)
             {
-                errors.Add($"cards/{id} is invalid");
+                errors.Add($"cards/{id}: {parsed.Error}");
                 continue;
             }
+            var card = parsed.Value;
             if (card.Components.Count == 0 && card.ComponentBundleIds.Count == 0)
             {
                 RequireProperty(runtime, errors, "cards", id, definition, "actionId", "actions");
@@ -305,10 +307,10 @@ public sealed class ContentGraphValidator : IContentGraphValidator
     {
         foreach (var (id, definition) in runtime.GetDefinitions("card-component-bundles"))
         {
-            var bundle = definition.Deserialize<CardComponentBundleDefinition>(CreateJsonOptions());
-            if (bundle == null)
+            var bundle = runtime.GetDefinition<CardComponentBundleDefinition>("card-component-bundles", id);
+            if (bundle.IsFailure)
             {
-                errors.Add($"card-component-bundles/{id} is invalid");
+                errors.Add($"card-component-bundles/{id}: {bundle.Error}");
                 continue;
             }
             foreach (var value in FindStringProperties(definition, "resourceId", "targetResource"))

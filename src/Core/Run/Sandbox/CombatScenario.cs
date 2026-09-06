@@ -184,6 +184,10 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             return Result<CompiledCombatScenario>.Failure("Scenario hero alias and entityDefinitionId are required");
         }
 
+        var relationships = GameplayRelationshipValidator.Validate(
+            scenario.Enemies.Select(enemy => enemy.SideId).Prepend(scenario.Hero.SideId), scenario.Sides, scenario.Relationships);
+        if (relationships.IsFailure) return Result<CompiledCombatScenario>.Failure(relationships.Error);
+
         var manifest = ResolveManifest(scenario.ContentRevision, configName);
         if (manifest.IsFailure)
             return Result<CompiledCombatScenario>.Failure(manifest.Error);

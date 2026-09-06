@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Core.Run;
+using Core.Common;
 
 namespace Core.Combat.Models;
 
@@ -59,4 +60,31 @@ public sealed record CombatRelationshipPolicy
     public SideRelationship Resolve(string from, string to) =>
         _rules.FirstOrDefault(rule => rule.FromSideId == from && rule.ToSideId == to)?.Relationship
         ?? (StringComparer.Ordinal.Equals(from, to) ? SameSide : DifferentSides);
+}
+
+public static class GameplayRelationshipValidator
+{
+    public static Result Validate(IEnumerable<string> participantSideIds, IReadOnlyList<CombatSide> sides,
+        CombatRelationshipPolicy relationships)
+    {
+        var participantSides = participantSideIds.ToArray();
+        if (participantSides.Any(string.IsNullOrWhiteSpace)) return Result.Failure("Every participant requires a sideId");
+        if (sides.Any(side => side == null || string.IsNullOrWhiteSpace(side.SideId) || !Enum.IsDefined(side.Controller)))
+            return Result.Failure("Invalid side identity or controller");
+        if (sides.Select(side => side.SideId).Distinct(StringComparer.Ordinal).Count() != sides.Count)
+            return Result.Failure("Duplicate sideId");
+        // An omitted catalog declares exactly the sides used by the participants.
+        var known = (sides.Count == 0 ? participantSides : sides.Select(side => side.SideId)).ToHashSet(StringComparer.Ordinal);
+        if (participantSides.Any(id => !known.Contains(id))) return Result.Failure("Participant references an undeclared side");
+        if (relationships == null || !Enum.IsDefined(relationships.SameSide) || !Enum.IsDefined(relationships.DifferentSides))
+            return Result.Failure("Invalid default side relationship");
+        var pairs = new HashSet<(string From, string To)>();
+        foreach (var rule in relationships.Rules)
+        {
+            if (rule == null || !known.Contains(rule.FromSideId) || !known.Contains(rule.ToSideId) || !Enum.IsDefined(rule.Relationship))
+                return Result.Failure("Relationship references an undeclared side or an invalid policy");
+            if (!pairs.Add((rule.FromSideId, rule.ToSideId))) return Result.Failure("Duplicate directed side relationship");
+        }
+        return Result.Success();
+    }
 }

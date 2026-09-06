@@ -204,6 +204,28 @@ public sealed class RuntimeFormulaEvaluator : IRevisionedRuntimeFormulaEvaluator
         };
     }
 
+    /// <summary>Checks the actual inline grammar without substituting gameplay values or executing rules.</summary>
+    public static Result ValidateSyntax(string expression, Func<string, bool> variableExists, Func<string, bool> formulaExists)
+    {
+        if (string.IsNullOrWhiteSpace(expression)) return Result.Failure("Formula or expression cannot be empty");
+        if (!expression.Contains(' ', StringComparison.Ordinal) && formulaExists(expression)) return Result.Success();
+        var tokens = expression.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (tokens.Length % 2 == 0) return Result.Failure("Invalid inline expression; operators and operands must be space-separated");
+        for (var index = 0; index < tokens.Length; index++)
+        {
+            var token = tokens[index];
+            if (index % 2 == 1)
+            {
+                if (ResolveInlineOperation(token) == null) return Result.Failure($"Unsupported inline expression operator: '{token}'");
+            }
+            else if (!token.Equals("$initial", StringComparison.OrdinalIgnoreCase) &&
+                     !token.Equals("$current", StringComparison.OrdinalIgnoreCase) && !variableExists(token) &&
+                     !(float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out var value) && float.IsFinite(value)))
+                return Result.Failure($"Unknown formula, variable or invalid operand: '{token}'");
+        }
+        return Result.Success();
+    }
+
     private static bool TryResolveToken(string token, Dictionary<string, float> variables, float initialValue, float currentValue, out float value)
     {
         if (token.Equals("$initial", StringComparison.OrdinalIgnoreCase))

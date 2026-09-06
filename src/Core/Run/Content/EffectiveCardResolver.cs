@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Effects;
 
 namespace Core.Run.Content;
 
@@ -38,7 +39,10 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         {
             foreach (var patch in upgrade.Patches)
             {
-                var applied = ApplyPatch(components, patch);
+                Result<ImmutableArray<CardComponentDefinition>> applied;
+                try { applied = ApplyPatch(components, patch); }
+                catch (OverflowException)
+                { return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: integer overflow in patch {patch.ComponentId}"); }
                 if (applied.IsFailure)
                 {
                     return Result<EffectiveCardDefinition>.Failure(
@@ -108,6 +112,16 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
     {
         if (string.IsNullOrWhiteSpace(patch.ComponentId))
             return Result<ImmutableArray<CardComponentDefinition>>.Failure("Patch componentId is required");
+        var validPolicy = patch switch
+        {
+            CardEffectNumericPatchDefinition effect => Enum.IsDefined(effect.Attribute) && Enum.IsDefined(effect.Operation) && float.IsFinite(effect.Value),
+            CardCostAmountPatchDefinition cost => Enum.IsDefined(cost.Operation) && float.IsFinite(cost.Value),
+            CardInfluenceNumericPatchDefinition influence => Enum.IsDefined(influence.Operation) && float.IsFinite(influence.Value),
+            CardTargetingNumericPatchDefinition targeting => Enum.IsDefined(targeting.Attribute) && Enum.IsDefined(targeting.Operation),
+            CardDispositionPatchDefinition disposition => Enum.IsDefined(disposition.Destination),
+            _ => false
+        };
+        if (!validPolicy) return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid patch policy or non-finite value");
         var index = -1;
         for (var candidate = 0; candidate < components.Length; candidate++)
         {
@@ -208,6 +222,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
     {
         if (component is not CardInfluenceComponentDefinition influence)
             return WrongType(component, "influence");
+        if (influence.Value == null || !string.IsNullOrWhiteSpace(influence.Formula))
+            return Result<CardComponentDefinition>.Failure("Numeric influence patches require a flat base, not a formula");
         return Result<CardComponentDefinition>.Success(influence with
         {
             Value = Apply(influence.Value ?? 0, patch.Operation, patch.Value)
@@ -266,6 +282,10 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             if (targeting.MinimumTargets < 0 || targeting.MaximumTargets < targeting.MinimumTargets)
                 return Result.Failure($"Effective targeting {targeting.ComponentId} is invalid");
         }
+        var effects = EffectDefinitionValidator.Validate(components.OfType<CardEffectComponentDefinition>().Select(item => item.Effect));
+        if (!effects.IsEmpty) return Result.Failure(string.Join("; ", effects));
+        if (components.OfType<CardInfluenceComponentDefinition>().Any(item => item.Value is { } value && !float.IsFinite(value)))
+            return Result.Failure("Effective influence value must be finite");
         return Result.Success();
     }
 
