@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Determinism;
 using Core.Run;
+using Core.Run.Branching;
 
 namespace Core.Abstractions.Persistence;
 
@@ -40,7 +41,7 @@ public sealed record RunCommitFact
 /// </summary>
 public sealed record RunCommit
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private ImmutableArray<RunCommitFrame> _frames = [];
     private ImmutableArray<RunCommitFact> _facts = [];
@@ -57,6 +58,7 @@ public sealed record RunCommit
     public ulong AfterStep { get; init; }
     public DateTime LogicalTimestamp { get; init; } = DateTime.UnixEpoch;
     public RunState StateAfter { get; init; } = null!;
+    public RunLineage? Lineage { get; init; }
 
     public IReadOnlyList<RunCommitFrame> Frames
     {
@@ -88,6 +90,20 @@ public sealed record RunCommit
             throw new InvalidOperationException("Non-initial run commit requires previousStateHash");
         if (!string.Equals(CanonicalJson.ComputeHash(StateAfter), StateHash, StringComparison.Ordinal))
             throw new InvalidOperationException("Run commit stateHash does not match stateAfter");
+        if (Sequence == 1)
+        {
+            if (Lineage == null)
+                throw new InvalidOperationException("Initial run commit requires lineage");
+            var lineageValidation = Lineage.Validate(RunId);
+            if (lineageValidation.IsFailure)
+                throw new InvalidOperationException(lineageValidation.Error);
+            if (StateAfter.Lineage != Lineage)
+                throw new InvalidOperationException("Initial commit lineage differs from state lineage");
+        }
+        else if (Lineage != null)
+        {
+            throw new InvalidOperationException("Only the initial run commit may anchor lineage");
+        }
 
         var commandHash = CanonicalJson.ComputeHash(
             Command.ValueKind == JsonValueKind.Undefined

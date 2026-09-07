@@ -365,9 +365,12 @@ builder.Services.AddSingleton<IGameplayCommandCodec>(_ => GameplayCommandCodec.C
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
 builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReader>();
 builder.Services.AddSingleton<Core.Meta.IPlayerProfileProjectionReader, Core.Meta.PlayerProfileProjectionReader>();
+builder.Services.AddSingleton<Core.Run.Branching.IRunLineageIndex>(sp =>
+    new Core.Run.Branching.RunLineageIndex(sp.GetRequiredService<IRunCommitReader>()));
 builder.Services.AddSingleton<Core.Run.Branching.IRunBranchService>(sp =>
     new Core.Run.Branching.RunBranchService(
-        (Core.Abstractions.Persistence.IRunCommitStore)sp.GetRequiredService<IRunCommitStore>()));
+        (Core.Abstractions.Persistence.IRunCommitStore)sp.GetRequiredService<IRunCommitStore>(),
+        sp.GetRequiredService<Core.Run.Branching.IRunLineageIndex>()));
 builder.Services.AddSingleton<Core.Run.Branching.IRunSimulationService, Core.Run.Branching.RunSimulationService>();
 
 // Register CombatOptions

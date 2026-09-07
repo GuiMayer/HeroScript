@@ -64,5 +64,4 @@ public interface IRunManager
     Result<ShopState> RerollShop(Guid runId, Guid shopInstanceId);
     Result<PreparationState> CreatePreparation(Guid runId, string preparationId);
     Result<PreparationOptionState> ApplyPreparationOption(Guid runId, Guid preparationInstanceId, string optionId);
-    Result<RunState> RestoreState(RunState state);
 }

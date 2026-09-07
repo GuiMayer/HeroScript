@@ -20,7 +20,8 @@ public enum GameplayPersistenceMode
 public sealed record GameplayRuntimeOptions(
     GameplayPersistenceMode PersistenceMode,
     IRunCommitStore? CommitStore = null,
-    IOperationalEventBus? OperationalTelemetry = null);
+    IOperationalEventBus? OperationalTelemetry = null,
+    IRunCommitReader? HistoryReader = null);
 
 public sealed record GameplayRuntime(
     RunManager Runs,
@@ -135,7 +136,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _modeResolver,
             _publications,
             _contentRuntimes,
-            _resources);
+            _resources,
+            options.HistoryReader ?? options.CommitStore);
         var combats = new CombatRunCoordinator(
             _combatFactory,
             runs,

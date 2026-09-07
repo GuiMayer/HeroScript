@@ -37,11 +37,13 @@ public sealed class CombatTimelineBranchController : BaseApiController
             ? Ok(new
             {
                 branch.Value.RunId,
-                branch.Value.ParentRunId,
-                branch.Value.ParentCombatId,
+                rootRunId = branch.Value.Lineage?.RootRunId,
+                parentRunId = branch.Value.Lineage?.ParentRunId,
+                sourceCombatId = branch.Value.Lineage?.SourceCombatId,
                 branch.Value.ActiveEncounterId,
-                branch.Value.BranchFromSequence,
-                branch.Value.BranchKey,
+                sourceSequence = branch.Value.Lineage?.SourceSequence,
+                sourceStateHash = branch.Value.Lineage?.SourceStateHash,
+                branchKey = branch.Value.Lineage?.BranchKey,
                 stateHash = Core.Determinism.CanonicalJson.ComputeHash(branch.Value)
             })
             : ApiProblem(

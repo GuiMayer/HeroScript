@@ -271,10 +271,12 @@ public sealed class RunController : BaseApiController
             run.ModeId,
             run.ResolvedMode,
             run.ChallengeId,
-            run.ParentRunId,
-            run.ParentCombatId,
-            run.BranchFromSequence,
-            run.BranchKey,
+            rootRunId = run.Lineage?.RootRunId,
+            parentRunId = run.Lineage?.ParentRunId,
+            sourceCombatId = run.Lineage?.SourceCombatId,
+            sourceSequence = run.Lineage?.SourceSequence,
+            sourceStateHash = run.Lineage?.SourceStateHash,
+            branchKey = run.Lineage?.BranchKey,
             resources = run.ResourceState.Resources.ToDictionary(
                 pair => pair.Key,
                 pair => new

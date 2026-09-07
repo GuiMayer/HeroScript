@@ -6,7 +6,7 @@
     "timelineAccess": "full",
     "allowHistoricalInspection": true,
     "allowForkFromHistory": true,
-    "allowHeadRestore": false,
+    "allowHeadRestore": true,
     "retention": "all_commands"
   }
 }

@@ -130,7 +130,7 @@ public sealed class RunSimulationService : IRunSimulationService
         {
             cancellationToken.ThrowIfCancellationRequested();
             var type = normalized[index].type;
-            if (type is RunCommandTypes.StartEncounter or RunCommandTypes.RestoreCheckpoint)
+            if (type is RunCommandTypes.StartEncounter or RunCommandTypes.RestoreHeadFromHistory)
                 return Result<RunSimulationResult>.Failure($"Unsupported simulation command: {type}");
             var payload = normalized[index].payload;
             var payloadHash = CanonicalJson.ComputeHash(payload);
@@ -156,8 +156,8 @@ public sealed class RunSimulationService : IRunSimulationService
         CancellationToken cancellationToken = default)
     {
         var state = await _repository.LoadLatestStateAsync(simulationId, cancellationToken).ConfigureAwait(false);
-        if (state == null || state.ParentRunId == null || state.BranchFromSequence == null ||
-            state.BranchKey == null || !state.BranchKey.StartsWith("simulation:", StringComparison.Ordinal))
+        if (state?.Lineage?.ParentRunId == null || state.Lineage.SourceSequence == null ||
+            !state.Lineage.InternalSimulation)
         {
             return Result<RunSimulationResult>.Failure($"Simulation not found: {simulationId}");
         }
@@ -171,9 +171,12 @@ public sealed class RunSimulationService : IRunSimulationService
         int commandsExecuted,
         CancellationToken cancellationToken)
     {
+        var lineage = state.Lineage;
+        if (lineage?.ParentRunId == null || lineage.SourceSequence == null)
+            return Result<RunSimulationResult>.Failure("Simulation lineage is unavailable");
         var source = await _repository.LoadStateAsync(
-            state.ParentRunId!.Value,
-            state.BranchFromSequence!.Value,
+            lineage.ParentRunId.Value,
+            lineage.SourceSequence.Value,
             cancellationToken).ConfigureAwait(false);
         if (source == null)
             return Result<RunSimulationResult>.Failure("Simulation source checkpoint is unavailable");

@@ -11,6 +11,7 @@ using Core.Events.Domain;
 using Core.Effects;
 using Core.Determinism;
 using Core.Run.Content;
+using Core.Run.Branching;
 using Core.Run.Sandbox;
 using Core.StatusEffects;
 using Core.Resources;
@@ -31,6 +32,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly IPinnedContentCatalog<ScriptModifierDefinition>? _scriptModifierCatalog;
     private readonly IOperationalEventBus? _eventBus;
     private readonly IRunCommitStore? _repository;
+    private readonly IRunCommitReader? _history;
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly IContentPublicationService? _contentPublications;
     private readonly IContentRuntimeResolver? _contentRuntimes;
@@ -60,7 +62,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         IGameModeResolver? gameModeResolver = null,
         IContentPublicationService? contentPublications = null,
         IContentRuntimeResolver? contentRuntimes = null,
-        IResourceManager? resources = null)
+        IResourceManager? resources = null,
+        IRunCommitReader? history = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -69,6 +72,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         _scriptModifierCatalog = scriptModifierCatalog;
         _eventBus = eventBus;
         _repository = repository;
+        _history = history ?? repository;
         _contentManifestProvider = contentManifestProvider;
         _contentPublications = contentPublications;
         _contentRuntimes = contentRuntimes;
@@ -213,7 +217,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
             var persisted = Persist(
                 state,
-                "run.start",
+                RunCommandTypes.StartRun,
                 options with
                 {
                     RunDefinitionId = effectiveRunDefinitionId,
@@ -513,7 +517,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             RunCommandTypes.MoveCards => ExecuteMoveCards(runId, payload),
             RunCommandTypes.ResolveCombat => Result.Failure(
                 "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
-            RunCommandTypes.RestoreCheckpoint => ExecuteRestoreCheckpoint(runId, payload),
+            RunCommandTypes.RestoreHeadFromHistory => ExecuteRestoreHeadFromHistory(runId, payload),
             RunCommandTypes.StartEncounter => Result.Failure(
                 "START_ENCOUNTER must be executed through the run encounter coordinator"),
             _ => Result.Failure($"Unsupported run command type: {commandType}")
@@ -677,16 +681,24 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             new { request.CardInstanceId, request.UpgradeId }));
     }
 
-    private Result ExecuteRestoreCheckpoint(Guid runId, JsonElement payload)
+    private Result ExecuteRestoreHeadFromHistory(Guid runId, JsonElement payload)
     {
-        if (_repository == null)
+        if (_history == null)
             return Result.Failure("Run persistence is not configured");
 
-        var request = DeserializePayload<CheckpointCommand>(payload);
-        var state = _repository.LoadStateAsync(runId, request.Sequence).GetAwaiter().GetResult();
+        var current = GetRun(runId);
+        if (current.IsFailure)
+            return Result.Failure(current.Error);
+        if (current.Value.ResolvedMode?.ReplayPolicy.AllowHeadRestore != true)
+            return Result.Failure($"Game mode does not allow restoring history: {current.Value.ModeId}");
+
+        var request = DeserializePayload<RestoreHeadFromHistoryCommand>(payload);
+        if (request.SourceSequence < 1 || request.SourceSequence >= current.Value.Sequence)
+            return Result.Failure("Restore source sequence must reference an earlier commit");
+        var state = _history.LoadStateAsync(runId, request.SourceSequence).GetAwaiter().GetResult();
         return state == null
-            ? Result.Failure($"Run checkpoint not found: {runId}/{request.Sequence}")
-            : ToResult(RestoreState(state));
+            ? Result.Failure($"Run commit not found: {runId}/{request.SourceSequence}")
+            : ToResult(RestoreHeadFromHistory(current.Value, state, request.SourceSequence));
     }
 
     private Result ExecuteActivateContentRevision(Guid runId, JsonElement payload)
@@ -2251,28 +2263,24 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         }
     }
 
-    /// <summary>
-    /// Restores a run state without incrementing sequence or triggering persistence.
-    /// Used for time-travel operations (undo).
-    /// </summary>
-    public Result<RunState> RestoreState(RunState state)
+    private Result<RunState> RestoreHeadFromHistory(
+        RunState current,
+        RunState source,
+        int sourceSequence)
     {
-        if (state == null)
-            return Result<RunState>.Failure("State cannot be null");
-
         lock (_lock)
         {
-            var candidate = _runs.TryGetValue(state.RunId, out var current)
-                ? state with
-                {
-                    Sequence = current.Sequence,
-                    Determinism = current.Determinism.AdvanceStep()
-                }
-                : state with { Determinism = state.Determinism.AdvanceStep() };
+            var candidate = source with
+            {
+                RunId = current.RunId,
+                Sequence = current.Sequence,
+                Lineage = current.Lineage,
+                Determinism = current.Determinism.AdvanceStep()
+            };
             var restored = Persist(
                 candidate,
-                "run.restore",
-                new { targetSequence = state.Sequence });
+                RunCommandTypes.RestoreHeadFromHistory,
+                new { sourceSequence });
             return restored.IsSuccess
                 ? restored
                 : Result<RunState>.Failure(restored.Error);
@@ -2313,7 +2321,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var effectiveCommand = activeCommand?.Payload
                 ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
             var nextSequence = checked((previous?.Sequence ?? 0) + 1);
-            state = state with { Sequence = nextSequence };
+            state = state with
+            {
+                Sequence = nextSequence,
+                Lineage = previous == null
+                    ? state.Lineage ?? RunLineage.Root(state.RunId)
+                    : previous.Lineage
+            };
             var snapshot = CreateSnapshot(state);
             var previousHash = previous == null
                 ? string.Empty
@@ -2358,6 +2372,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 AfterStep = snapshot.Determinism.Step,
                 LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime,
                 StateAfter = snapshot,
+                Lineage = nextSequence == 1 ? snapshot.Lineage : null,
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };

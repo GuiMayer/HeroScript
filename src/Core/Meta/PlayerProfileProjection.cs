@@ -62,7 +62,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
             var state = await _runs.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
             if (state == null || !string.Equals(state.PlayerEntityId, playerId, StringComparison.Ordinal))
                 continue;
-            if (state.BranchKey?.StartsWith("simulation:", StringComparison.Ordinal) == true)
+            if (state.Lineage?.InternalSimulation == true)
                 continue;
 
             summaries.Add(new ProfileRunSummary

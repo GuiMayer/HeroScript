@@ -89,7 +89,9 @@ public static class RunCommandTypes
     public const string AcquireRelic = "ACQUIRE_RELIC";
     public const string RemoveRelic = "REMOVE_RELIC";
     public const string UpgradeCard = "UPGRADE_CARD";
-    public const string RestoreCheckpoint = "RESTORE_CHECKPOINT";
+    public const string StartRun = "START_RUN";
+    public const string CreateBranchFromHistory = "CREATE_BRANCH_FROM_HISTORY";
+    public const string RestoreHeadFromHistory = "RESTORE_HEAD_FROM_HISTORY";
     public const string ActivateContentRevision = "ACTIVATE_CONTENT_REVISION";
     public const string ApplyRunResource = "APPLY_RUN_RESOURCE";
     public const string AddCardsToHand = "ADD_CARDS_TO_HAND";

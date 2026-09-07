@@ -5,6 +5,7 @@ using Core.Combat.Modifiers;
 using Core.Determinism;
 using Core.Run.Sandbox;
 using Core.Resources;
+using Core.Run.Branching;
 
 namespace Core.Run;
 
@@ -22,10 +23,7 @@ public sealed record RunState
     public CombatScenarioDefinition? Scenario { get; init; }
     public string? ScenarioHash { get; init; }
     public string? AttemptKey { get; init; }
-    public Guid? ParentRunId { get; init; }
-    public Guid? ParentCombatId { get; init; }
-    public int? BranchFromSequence { get; init; }
-    public string? BranchKey { get; init; }
+    public RunLineage? Lineage { get; init; }
     public ResourceSet ResourceState { get; init; } = new();
 
     public string? CurrentNodeId { get; init; }

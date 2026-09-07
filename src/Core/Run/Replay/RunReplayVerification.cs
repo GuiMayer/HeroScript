@@ -22,6 +22,7 @@ public static class RunReplayVerifier
         var errors = ImmutableArray.CreateBuilder<string>();
         RunState? previousState = null;
         var previousHash = string.Empty;
+        Core.Run.Branching.RunLineage? lineage = null;
 
         foreach (var commit in ordered)
         {
@@ -47,6 +48,9 @@ public static class RunReplayVerifier
                 errors.Add($"Previous hash mismatch at sequence {state.Sequence}");
             if (!string.Equals(commit.StateHash, hash, StringComparison.Ordinal))
                 errors.Add($"State hash mismatch at sequence {state.Sequence}");
+            lineage ??= commit.Lineage;
+            if (lineage == null || state.Lineage != lineage)
+                errors.Add($"Run lineage changed at sequence {state.Sequence}");
 
             previousState = state;
             previousHash = hash;

@@ -5,6 +5,7 @@ using Core.Determinism;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
 using Core.Run;
+using Core.Run.Branching;
 using Xunit;
 
 namespace Core.Tests.Persistence;
@@ -119,6 +120,7 @@ public sealed class FileRunCommitStoreTests : IDisposable
         {
             RunId = runId,
             Sequence = commitSequence,
+            Lineage = RunLineage.Root(runId),
             Determinism = context,
             Metadata = new Dictionary<string, JsonElement>
             {
@@ -154,6 +156,7 @@ public sealed class FileRunCommitStoreTests : IDisposable
             AfterStep = context.Step,
             LogicalTimestamp = context.LogicalTimestamp.UtcDateTime,
             StateAfter = state,
+            Lineage = commitSequence == 1 ? state.Lineage : null,
             Frames = frames,
             Facts = RunCommitFacts.FromFrames(frames)
         };

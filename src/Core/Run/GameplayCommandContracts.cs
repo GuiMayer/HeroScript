@@ -249,7 +249,7 @@ public static class GameplayCommandDescriptors
         Run<RelicCommand>(RunCommandTypes.AcquireRelic),
         Run<RelicInstanceCommand>(RunCommandTypes.RemoveRelic),
         Run<CardUpgradeCommand>(RunCommandTypes.UpgradeCard),
-        Run<CheckpointCommand>(RunCommandTypes.RestoreCheckpoint),
+        Run<RestoreHeadFromHistoryCommand>(RunCommandTypes.RestoreHeadFromHistory),
         Run<ContentRevisionCommand>(RunCommandTypes.ActivateContentRevision),
         Run<RunResourceCommand>(RunCommandTypes.ApplyRunResource),
         Run<CardIdsCommand>(RunCommandTypes.AddCardsToHand),
@@ -280,7 +280,7 @@ public sealed record PreparationDefinitionCommand(string PreparationId);
 public sealed record RelicCommand(string RelicId);
 public sealed record RelicInstanceCommand(Guid RelicInstanceId);
 public sealed record CardUpgradeCommand(Guid CardInstanceId, string UpgradeId);
-public sealed record CheckpointCommand(int Sequence);
+public sealed record RestoreHeadFromHistoryCommand(int SourceSequence);
 public sealed record ContentRevisionCommand(string Revision);
 public sealed record RunResourceCommand(
     string ResourceId,

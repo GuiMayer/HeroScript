@@ -568,7 +568,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var journalEntries = journal.GetProperty("entries").EnumerateArray().ToArray();
         Assert.Equal(3, journalEntries.Length);
         Assert.Equal(journalEntries.Length, journal.GetProperty("returned").GetInt32());
-        Assert.Equal("run.start", journalEntries[0].GetProperty("commandType").GetString());
+        Assert.Equal(RunCommandTypes.StartRun, journalEntries[0].GetProperty("commandType").GetString());
         Assert.Contains(
             journalEntries,
             entry => entry.GetProperty("commandType").GetString() == RunCommandTypes.StartEncounter);

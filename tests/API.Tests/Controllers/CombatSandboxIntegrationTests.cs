@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Core.Run;
 using Xunit;
 
 namespace API.Tests.Controllers;
@@ -285,6 +286,10 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var branchCombatId = branch.GetProperty("activeEncounterId").GetGuid();
         Assert.NotEqual(runId, branchRunId);
         Assert.NotEqual(combatId, branchCombatId);
+        Assert.Equal(runId, branch.GetProperty("rootRunId").GetGuid());
+        Assert.Equal(runId, branch.GetProperty("parentRunId").GetGuid());
+        Assert.Equal(combatId, branch.GetProperty("sourceCombatId").GetGuid());
+        Assert.Equal(64, branch.GetProperty("sourceStateHash").GetString()!.Length);
 
         using var treeResponse = await _client.GetAsync($"/api/v1/runs/{runId}/branch-tree");
         var tree = await treeResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -347,6 +352,71 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var persisted = await stored.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, stored.StatusCode);
         Assert.Equal(attemptKey, persisted.GetProperty("attemptKey").GetString());
+    }
+
+    [Fact]
+    public async Task SandboxHeadRestore_AppendsACommandWithoutRewindingSequenceOrDeterminism()
+    {
+        using var launch = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario($"head-restore-{Guid.NewGuid():N}"));
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+        var run = launched.GetProperty("run");
+        var runId = run.GetProperty("runId").GetGuid();
+        var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+        var sourceSequence = run.GetProperty("sequence").GetInt32();
+
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var initialHealth = Health(snapshot, "goblin_a");
+        var attack = snapshot.GetProperty("hand").EnumerateArray()
+            .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
+        using var actionResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = sourceSequence,
+                expectedStep = snapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
+                type = GameplayCommandTypes.PlayCard,
+                payload = new
+                {
+                    actorId = "hero",
+                    cardInstanceId = attack.GetProperty("cardInstanceId").GetGuid(),
+                    targetIds = new[] { "goblin_a" }
+                }
+            });
+        var action = await actionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(actionResponse.StatusCode == HttpStatusCode.OK, action.GetRawText());
+
+        using var restoreResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/runs/{runId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = action.GetProperty("sequence").GetInt32(),
+                expectedStep = action.GetProperty("state").GetProperty("run")
+                    .GetProperty("determinism").GetProperty("step").GetUInt64(),
+                type = RunCommandTypes.RestoreHeadFromHistory,
+                payload = new { sourceSequence }
+            });
+        var restored = await restoreResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(restoreResponse.StatusCode == HttpStatusCode.OK, restored.GetRawText());
+        Assert.Equal(action.GetProperty("sequence").GetInt32() + 1, restored.GetProperty("sequence").GetInt32());
+        Assert.True(restored.GetProperty("step").GetUInt64() >
+                    action.GetProperty("state").GetProperty("run")
+                        .GetProperty("determinism").GetProperty("step").GetUInt64());
+
+        using var restoredSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var restoredSnapshot = await restoredSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(initialHealth, Health(restoredSnapshot, "goblin_a"));
+        Assert.Equal(snapshot.GetProperty("hand").GetArrayLength(), restoredSnapshot.GetProperty("hand").GetArrayLength());
+
+        using var verification = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, verification.StatusCode);
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
     }
 
     [Fact]

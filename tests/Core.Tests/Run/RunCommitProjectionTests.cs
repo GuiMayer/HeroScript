@@ -2,6 +2,7 @@ using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Determinism;
 using Core.Run;
+using Core.Run.Branching;
 using Core.Run.Events;
 using Core.Run.Projections;
 using Moq;
@@ -72,7 +73,13 @@ public sealed class RunCommitProjectionTests
         var context = DeterministicContext.Create(17, "revision");
         for (var index = 0; index < sequence; index++)
             context = context.AdvanceStep();
-        var state = new RunState { RunId = runId, Sequence = sequence, Determinism = context };
+        var state = new RunState
+        {
+            RunId = runId,
+            Sequence = sequence,
+            Lineage = RunLineage.Root(runId),
+            Determinism = context
+        };
         var frame = Frame(0, context.Step, scope, combatId);
         return new RunCommit
         {
@@ -91,6 +98,7 @@ public sealed class RunCommitProjectionTests
             AfterStep = context.Step,
             LogicalTimestamp = context.LogicalTimestamp.UtcDateTime,
             StateAfter = state,
+            Lineage = sequence == 1 ? state.Lineage : null,
             Frames = [frame],
             Facts = RunCommitFacts.FromFrames([frame])
         };

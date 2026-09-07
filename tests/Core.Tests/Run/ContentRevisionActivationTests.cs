@@ -10,6 +10,7 @@ using Core.Logging;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
+using Core.Run.Branching;
 using Moq;
 using Xunit;
 
@@ -27,7 +28,9 @@ public sealed class ContentRevisionActivationTests
             var revisionA = new string('a', 64);
             var revisionB = new string('b', 64);
             var manager = CreateManager(repository, revisionA, revisionB);
-            var restored = manager.RestoreState(CreateState(revisionA));
+            var source = CreateState(revisionA);
+            await SeedInitialCommit(repository, source);
+            var restored = manager.HydrateForReplay(source);
             Assert.True(restored.IsSuccess, restored.IsFailure ? restored.Error : null);
             var initial = restored.Value;
 
@@ -79,7 +82,7 @@ public sealed class ContentRevisionActivationTests
                 }
             }
         };
-        var restored = manager.RestoreState(state);
+        var restored = manager.HydrateForReplay(state);
         Assert.True(restored.IsSuccess, restored.IsFailure ? restored.Error : null);
         state = restored.Value;
 
@@ -134,7 +137,7 @@ public sealed class ContentRevisionActivationTests
                 HandInstanceIds = [cardId]
             }
         };
-        state = manager.RestoreState(state).Value;
+        state = manager.HydrateForReplay(state).Value;
 
         var result = Activate(manager, state, revisionB);
 
@@ -170,7 +173,7 @@ public sealed class ContentRevisionActivationTests
                 }
             }
         };
-        state = manager.RestoreState(state).Value;
+        state = manager.HydrateForReplay(state).Value;
 
         var result = Activate(manager, state, revisionB);
 
@@ -205,7 +208,7 @@ public sealed class ContentRevisionActivationTests
                 }
             }
         };
-        state = manager.RestoreState(state).Value;
+        state = manager.HydrateForReplay(state).Value;
 
         var result = Activate(manager, state, revisionB);
 
@@ -240,7 +243,7 @@ public sealed class ContentRevisionActivationTests
                 }
             }
         };
-        state = manager.RestoreState(state).Value;
+        state = manager.HydrateForReplay(state).Value;
 
         var result = Activate(manager, state, revisionB);
 
@@ -260,7 +263,9 @@ public sealed class ContentRevisionActivationTests
             var revisionB = new string('b', 64);
             var revisionC = new string('c', 64);
             var manager = CreateManager(repository, revisionA, revisionB, revisionC);
-            var initial = manager.RestoreState(CreateState(revisionA)).Value;
+            var source = CreateState(revisionA);
+            await SeedInitialCommit(repository, source);
+            var initial = manager.HydrateForReplay(source).Value;
 
             var activatedB = Activate(manager, initial, revisionB);
             Assert.True(activatedB.IsSuccess, activatedB.IsFailure ? activatedB.Error : null);
@@ -433,29 +438,68 @@ public sealed class ContentRevisionActivationTests
         CanExceedMax = canExceedMax
     };
 
-    private static RunState CreateState(string revision) => new()
+    private static RunState CreateState(string revision)
     {
-        RunId = Guid.NewGuid(),
-        Sequence = 1,
-        ConfigName = "test",
-        ModeId = "combat_sandbox",
-        ContentManifest = new ContentManifest { ConfigName = "test", Revision = revision },
-        Determinism = DeterministicContext.Create(17UL, revision).AdvanceStep(),
-        ResolvedMode = new ResolvedGameMode
+        var runId = Guid.NewGuid();
+        return new RunState
         {
-            CapabilityPolicy = new CapabilityPolicyDefinition
+            RunId = runId,
+            Sequence = 1,
+            Lineage = RunLineage.Root(runId),
+            ConfigName = "test",
+            ModeId = "combat_sandbox",
+            ContentManifest = new ContentManifest { ConfigName = "test", Revision = revision },
+            Determinism = DeterministicContext.Create(17UL, revision).AdvanceStep(),
+            ResolvedMode = new ResolvedGameMode
             {
-                CapabilityPolicyId = "theorycraft_tools",
-                AllowHotReloadActivation = true
-            },
-            ContentBindingPolicy = new ContentBindingPolicyDefinition
-            {
-                ContentBindingPolicyId = "development_versioned",
-                ActiveRuns = "allow_versioned_activation",
-                ActivationBoundary = "next_command"
+                CapabilityPolicy = new CapabilityPolicyDefinition
+                {
+                    CapabilityPolicyId = "theorycraft_tools",
+                    AllowHotReloadActivation = true
+                },
+                ContentBindingPolicy = new ContentBindingPolicyDefinition
+                {
+                    ContentBindingPolicyId = "development_versioned",
+                    ActiveRuns = "allow_versioned_activation",
+                    ActivationBoundary = "next_command"
+                }
             }
-        }
-    };
+        };
+    }
+
+    private static async Task SeedInitialCommit(IRunCommitStore repository, RunState state)
+    {
+        var payload = JsonSerializer.SerializeToElement(new { revision = state.Determinism.ContentRevision });
+        var frame = new RunCommitFrame
+        {
+            FrameIndex = 0,
+            Step = state.Determinism.Step,
+            Scope = "run",
+            Kind = RunCommandTypes.StartRun,
+            ResultHash = CanonicalJson.ComputeHash(state),
+            Resolution = payload
+        };
+        await repository.AppendAsync(new RunCommit
+        {
+            RunId = state.RunId,
+            Sequence = 1,
+            RootCommand = new RunCommandIdentity(
+                DeterministicId.Create(state.Determinism.Seed, 1, "content-activation-start"),
+                RunCommandTypes.StartRun,
+                0,
+                0,
+                CanonicalJson.ComputeHash(payload)),
+            Command = payload,
+            StateHash = CanonicalJson.ComputeHash(state),
+            BeforeStep = 0,
+            AfterStep = state.Determinism.Step,
+            LogicalTimestamp = state.Determinism.LogicalTimestamp.UtcDateTime,
+            StateAfter = state,
+            Lineage = state.Lineage,
+            Frames = [frame],
+            Facts = RunCommitFacts.FromFrames([frame])
+        });
+    }
 
     private static Core.Common.Result<RunCommandReceipt> Activate(
         RunManager manager,

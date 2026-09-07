@@ -82,8 +82,9 @@ public sealed class RunSemanticReplayService : IRunReplayService
         if (initial.IsFailure)
             return Failure(runId, initial.Error);
 
-        var runtime = _runtimeFactory.Create(
-            new GameplayRuntimeOptions(GameplayPersistenceMode.Ephemeral));
+        var runtime = _runtimeFactory.Create(new GameplayRuntimeOptions(
+            GameplayPersistenceMode.Ephemeral,
+            HistoryReader: _commits));
         var errors = ImmutableArray.CreateBuilder<string>();
         RunState? current = null;
         var commandsReplayed = 0;
@@ -138,15 +139,15 @@ public sealed class RunSemanticReplayService : IRunReplayService
     {
         try
         {
-            if (string.Equals(first.RootCommand.Type, "run.start", StringComparison.Ordinal))
+            if (string.Equals(first.RootCommand.Type, RunCommandTypes.StartRun, StringComparison.Ordinal))
             {
                 return Result<ReplayInitialState>.Success(new ReplayInitialState(
                     Deserialize<RunStartOptions>(first.Command),
                     null));
             }
-            if (!string.Equals(first.RootCommand.Type, "run.branch.start", StringComparison.Ordinal))
+            if (!string.Equals(first.RootCommand.Type, RunCommandTypes.CreateBranchFromHistory, StringComparison.Ordinal))
                 return Result<ReplayInitialState>.Failure(
-                    "Journal does not begin with run.start or run.branch.start");
+                    $"Journal does not begin with {RunCommandTypes.StartRun} or {RunCommandTypes.CreateBranchFromHistory}");
 
             var command = Deserialize<RunBranchStartCommand>(first.Command);
             var source = await _commits.LoadStateAsync(
@@ -176,10 +177,8 @@ public sealed class RunSemanticReplayService : IRunReplayService
 
         var descriptor = GameplayCommandDescriptors.All.Single(item =>
             string.Equals(item.Type, commit.RootCommand.Type, StringComparison.Ordinal));
-        var combatId = commit.Frames
-            .Select(frame => frame.CombatId)
-            .FirstOrDefault(id => id.HasValue)
-            ?? runtime.Runs.GetRun(commit.RunId).ValueOr(new RunState()).ActiveEncounterId;
+        var combatId = runtime.Runs.GetRun(commit.RunId).ValueOr(new RunState()).ActiveEncounterId
+            ?? commit.Frames.Select(frame => frame.CombatId).FirstOrDefault(id => id.HasValue);
         var executed = runtime.Gateway.Execute(
             commit.RunId,
             new GameplayCommandEnvelope(commit.RootCommand, commit.Command),

@@ -32,11 +32,13 @@ public sealed class RunBranchController : BaseApiController
             return Ok(new
             {
                 result.Value.RunId,
-                result.Value.ParentRunId,
-                result.Value.ParentCombatId,
+                rootRunId = result.Value.Lineage?.RootRunId,
+                parentRunId = result.Value.Lineage?.ParentRunId,
+                sourceCombatId = result.Value.Lineage?.SourceCombatId,
                 result.Value.ActiveEncounterId,
-                result.Value.BranchFromSequence,
-                result.Value.BranchKey,
+                sourceSequence = result.Value.Lineage?.SourceSequence,
+                sourceStateHash = result.Value.Lineage?.SourceStateHash,
+                branchKey = result.Value.Lineage?.BranchKey,
                 result.Value.Sequence,
                 result.Value.Determinism.Step,
                 stateHash = Core.Determinism.CanonicalJson.ComputeHash(result.Value)

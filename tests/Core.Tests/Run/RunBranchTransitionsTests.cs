@@ -1,5 +1,7 @@
 using Core.Determinism;
 using Core.Combat.Models;
+using Core.Combat.Activation;
+using Core.Combat.Modifiers;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Branching;
@@ -21,6 +23,7 @@ public sealed class RunBranchTransitionsTests
                 new ResourceAmount { ResourceId = "credits", Amount = 25 }),
             Determinism = DeterministicContext.Create(123, "content-v1").AdvanceStep()
         };
+        source = source with { Lineage = RunLineage.Root(source.RunId) };
         var command = new RunBranchStartCommand(
             source.RunId,
             source.Sequence,
@@ -32,10 +35,10 @@ public sealed class RunBranchTransitionsTests
 
         Assert.Equal(first, second);
         Assert.Equal(7, source.Sequence);
-        Assert.Null(source.ParentRunId);
+        Assert.Null(source.Lineage!.ParentRunId);
         Assert.Equal(1, first.Sequence);
-        Assert.Equal(source.RunId, first.ParentRunId);
-        Assert.Equal(source.Sequence, first.BranchFromSequence);
+        Assert.Equal(source.RunId, first.Lineage!.ParentRunId);
+        Assert.Equal(source.Sequence, first.Lineage.SourceSequence);
         Assert.NotEqual(source.RunId, first.RunId);
         Assert.True(first.Determinism.Step > source.Determinism.Step);
     }
@@ -65,6 +68,7 @@ public sealed class RunBranchTransitionsTests
             ],
             Determinism = DeterministicContext.Create(456, "content-v1")
         };
+        source = source with { Lineage = RunLineage.Root(source.RunId) };
         var command = new RunBranchStartCommand(
             source.RunId,
             source.Sequence,
@@ -75,12 +79,105 @@ public sealed class RunBranchTransitionsTests
         var branch = RunBranchTransitions.Create(source, command);
         Assert.True(branch.IsSuccess, branch.IsFailure ? branch.Error : null);
         Assert.NotEqual(combatId, branch.Value.ActiveEncounterId);
-        Assert.Equal(combatId, branch.Value.ParentCombatId);
+        Assert.Equal(combatId, branch.Value.Lineage!.SourceCombatId);
         Assert.Equal(branch.Value.RunId, branch.Value.GetActiveEncounter()!.Combat.RunId);
         Assert.NotEqual(combatId, branch.Value.GetActiveEncounter()!.Combat.CombatId);
         Assert.True(RunBranchTransitions.Create(
             source with { ActiveEncounterId = null },
             command).IsFailure);
+    }
+
+    [Fact]
+    public void Create_RebasesRunOwnershipAndPreservesExistingGameplayInstanceIds()
+    {
+        var runId = Guid.Parse("10000000-0000-0000-0000-000000000012");
+        var combatId = Guid.Parse("20000000-0000-0000-0000-000000000012");
+        var cardId = Guid.Parse("30000000-0000-8000-8000-000000000012");
+        var relicId = Guid.Parse("40000000-0000-8000-8000-000000000012");
+        var modifierId = Guid.Parse("50000000-0000-8000-8000-000000000012");
+        var source = new RunState
+        {
+            RunId = runId,
+            Sequence = 4,
+            Lineage = RunLineage.Root(runId),
+            ResourceState = TestDataBuilders.RunResources() with { OwnerId = $"run:{runId}" },
+            Deck = new DeckState
+            {
+                CardInstances = new Dictionary<Guid, CardInstanceState>
+                {
+                    [cardId] = new() { CardInstanceId = cardId, DefinitionId = "strike" }
+                },
+                HandInstanceIds = [cardId],
+                CollectionInstanceIds = [cardId]
+            },
+            Relics =
+            [
+                new RunRelicState
+                {
+                    RelicInstanceId = relicId,
+                    DefinitionId = "relic",
+                    Owner = new GameplayOwner { Kind = GameplayOwnerKind.Run, Id = runId.ToString() }
+                }
+            ],
+            Modifiers =
+            [
+                new ScriptModifierInstance
+                {
+                    InstanceId = modifierId,
+                    ModifierId = "modifier",
+                    OwnerId = $"run:{runId}",
+                    Owner = new GameplayOwner { Kind = GameplayOwnerKind.Run, Id = runId.ToString() }
+                }
+            ],
+            CardSelections = [new CardSelectionState { SelectionInstanceId = Guid.NewGuid(), RunId = runId }],
+            Shops = [new ShopState { ShopInstanceId = Guid.NewGuid(), RunId = runId }],
+            Preparations = [new PreparationState { PreparationInstanceId = Guid.NewGuid(), RunId = runId }],
+            ActiveEncounterId = combatId,
+            Encounters =
+            [
+                new RunEncounterState
+                {
+                    Combat = new Core.Combat.Models.CombatState
+                    {
+                        CombatId = combatId,
+                        RunId = runId,
+                        Determinism = DeterministicContext.Create(987, "content-v1"),
+                        Hero = CreateHero(),
+                        ActivationState = new ActivationState { RunId = runId }
+                    }
+                }
+            ],
+            CombatResolutions = new Dictionary<Guid, CombatResolutionRecord>
+            {
+                [Guid.NewGuid()] = new()
+            },
+            Determinism = DeterministicContext.Create(456, "content-v1")
+        };
+        var command = new RunBranchStartCommand(
+            runId,
+            source.Sequence,
+            "ownership-rebase",
+            CanonicalJson.ComputeHash(source),
+            combatId,
+            runId);
+
+        var result = RunBranchTransitions.Create(source, command);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var branch = result.Value;
+        Assert.Equal($"run:{branch.RunId}", branch.ResourceState.OwnerId);
+        Assert.Equal(cardId, Assert.Single(branch.Deck.CardInstances).Key);
+        Assert.Equal(relicId, Assert.Single(branch.Relics).RelicInstanceId);
+        Assert.Equal(branch.RunId.ToString(), branch.Relics[0].Owner.Id);
+        Assert.Equal(modifierId, Assert.Single(branch.Modifiers).InstanceId);
+        Assert.Equal($"run:{branch.RunId}", branch.Modifiers[0].OwnerId);
+        Assert.Equal(branch.RunId, branch.CardSelections[0].RunId);
+        Assert.Equal(branch.RunId, branch.Shops[0].RunId);
+        Assert.Equal(branch.RunId, branch.Preparations[0].RunId);
+        Assert.Equal(branch.RunId, branch.GetActiveEncounter()!.Combat.RunId);
+        Assert.Equal(branch.RunId, branch.GetActiveEncounter()!.Combat.ActivationState!.RunId);
+        Assert.Empty(branch.CombatResolutions);
+        Assert.Single(source.CombatResolutions);
     }
 
     private static CombatEntity CreateHero() => new()
