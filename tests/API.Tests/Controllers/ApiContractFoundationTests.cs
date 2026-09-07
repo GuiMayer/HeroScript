@@ -780,4 +780,56 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(HttpStatusCode.OK, republishResponse.StatusCode);
         Assert.Equal(revision, republished.GetProperty("revision").GetString());
     }
+
+    [Fact]
+    public async Task PackageSetting_ValidatesPublishesAndDoesNotRebindActiveRun()
+    {
+        using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            configName = "default",
+            runDefinitionId = "default_run",
+            playerEntityId = $"setting-publication-{Guid.NewGuid():N}",
+            modeId = "standard"
+        });
+        var startBody = await startResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+        var started = JsonSerializer.Deserialize<JsonElement>(startBody);
+        var runId = started.GetProperty("runId").GetGuid();
+        var pinnedRevision = started.GetProperty("contentRevision").GetString();
+
+        using var listRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        listRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var listResponse = await _client.SendAsync(listRequest);
+        var listBody = await listResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        Assert.Contains("default", listBody, StringComparison.Ordinal);
+
+        using var validateRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/v1/admin/settings/default/validate");
+        validateRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var validateResponse = await _client.SendAsync(validateRequest);
+        var validateBody = await validateResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, validateResponse.StatusCode);
+
+        using var publishRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/v1/admin/settings/default/publish");
+        publishRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var publishResponse = await _client.SendAsync(publishRequest);
+        var publishBody = await publishResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, publishResponse.StatusCode);
+        var publication = JsonSerializer.Deserialize<JsonElement>(publishBody);
+        var revision = publication.GetProperty("revision").GetString();
+        Assert.NotNull(revision);
+        Assert.Equal(64, revision.Length);
+
+        using var persistedRunResponse = await _client.GetAsync($"/api/v1/runs/{runId}");
+        var persistedRun = await persistedRunResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, persistedRunResponse.StatusCode);
+        Assert.Equal(pinnedRevision, persistedRun.GetProperty("contentRevision").GetString());
+
+        using var revisionResponse = await _client.GetAsync($"/api/v1/content/revisions/{revision}");
+        Assert.Equal(HttpStatusCode.OK, revisionResponse.StatusCode);
+    }
 }

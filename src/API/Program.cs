@@ -32,6 +32,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 using API.Contracts;
+using Mods;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseDefaultServiceProvider(options =>
@@ -237,6 +238,12 @@ builder.Services.AddSingleton<ICombatRelicLifecycle>(sp => new CombatRelicLifecy
 var telemetryStorePath = builder.Configuration.GetValue<string>("Persistence:OperationalTelemetryPath") ?? "data/telemetry";
 var runStatePath = builder.Configuration.GetValue<string>("Persistence:RunStatePath") ?? "data/runs";
 var contentStorePath = builder.Configuration.GetValue<string>("Persistence:ContentStorePath") ?? "data/content";
+var configuredPackageRoots = builder.Configuration
+    .GetSection("Mods:PackageRoots")
+    .Get<string[]>() ?? [];
+var packageRoots = configuredPackageRoots.Length > 0
+    ? configuredPackageRoots
+    : [Path.Combine(AppContext.BaseDirectory, "Resources")];
 
 builder.Services.AddSingleton<IOperationalEventStore>(sp =>
 {
@@ -264,6 +271,13 @@ builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPubli
     sp.GetRequiredService<IContentGraphValidator>()));
 builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>();
 builder.Services.AddSingleton<IContentReloadService, ContentReloadService>();
+for (var packageRootIndex = 0; packageRootIndex < packageRoots.Length; packageRootIndex++)
+{
+    builder.Services.AddSingleton<IPackageProvider>(new DirectoryPackageProvider(
+        $"configured:{packageRootIndex:D3}",
+        packageRoots[packageRootIndex]));
+}
+builder.Services.AddSingleton<ISettingCompiler, SettingCompiler>();
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();

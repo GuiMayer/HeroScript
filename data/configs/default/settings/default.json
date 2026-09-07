@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "settingId": "default",
+  "packages": [
+    {
+      "packageId": "heroscript.base",
+      "versionRange": "1.0.0"
+    }
+  ]
+}

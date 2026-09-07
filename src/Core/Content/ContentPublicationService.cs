@@ -41,6 +41,7 @@ public interface IContentPublicationService
     ContentValidationResult Validate(ContentBundle bundle);
     Task<ContentValidationResult> ValidateDraftAsync(Guid draftId, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> PublishDraftAsync(Guid draftId, int expectedVersion, CancellationToken cancellationToken = default);
+    Task<Result<ContentBundle>> PublishBundleAsync(ContentBundle bundle, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> GetPublishedAsync(string revision, CancellationToken cancellationToken = default);
     Task<Result<ContentBundle>> ResolveBundleAsync(
         string revision,
@@ -236,6 +237,59 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         catch (Exception exception)
         {
             return Result<ContentBundle>.Failure($"Failed to publish content draft: {exception.Message}", exception);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Publishes an already compiled immutable bundle. This is the boundary used
+    /// by package settings: compilation is read-only and publication is explicit.
+    /// Existing runs remain pinned to their recorded content revision.
+    /// </summary>
+    public async Task<Result<ContentBundle>> PublishBundleAsync(
+        ContentBundle bundle,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(bundle);
+        var validation = Validate(bundle);
+        if (!validation.IsValid)
+            return Result<ContentBundle>.Failure(string.Join("; ", validation.Errors));
+
+        var publishedPath = GetPublishedPath(bundle.Manifest.Revision);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (File.Exists(publishedPath))
+            {
+                var json = await File.ReadAllTextAsync(publishedPath, cancellationToken).ConfigureAwait(false);
+                var existing = JsonSerializer.Deserialize<ContentBundle>(json, _jsonOptions);
+                if (existing == null ||
+                    !string.Equals(
+                        CanonicalJson.ComputeHash(existing),
+                        CanonicalJson.ComputeHash(bundle),
+                        StringComparison.Ordinal))
+                {
+                    return Result<ContentBundle>.Failure(
+                        $"Published content revision collision: {bundle.Manifest.Revision}");
+                }
+            }
+            else
+            {
+                await WriteAtomicAsync(publishedPath, bundle, overwrite: false, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            var activation = _manifests.ActivatePublishedManifest(bundle.Manifest);
+            return activation.IsFailure
+                ? Result<ContentBundle>.Failure(activation.Error)
+                : Result<ContentBundle>.Success(bundle);
+        }
+        catch (Exception exception)
+        {
+            return Result<ContentBundle>.Failure($"Failed to publish content bundle: {exception.Message}", exception);
         }
         finally
         {
