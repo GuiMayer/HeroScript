@@ -33,7 +33,11 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _contentRuntimes = contentRuntimes;
-        _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 

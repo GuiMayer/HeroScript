@@ -137,7 +137,11 @@ public sealed class ContentRuntime
 
     private static JsonSerializerOptions CreateSerializerOptions()
     {
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }

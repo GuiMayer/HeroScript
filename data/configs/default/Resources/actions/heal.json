@@ -16,7 +16,6 @@
       {
         "type": "HEAL",
         "target": "SELF",
-        "timing": "IMMEDIATE",
         "flatValue": 8,
         "targetResource": "health",
         "tags": ["heal", "utility"]

@@ -8,33 +8,36 @@ namespace Core.Tests.Content;
 public sealed class ContentGraphValidatorTests
 {
     [Fact]
-    public void Validate_RejectsMissingCrossModuleReference()
+    public void Validate_RejectsMissingComponentBundleReference()
     {
         var bundle = Bundle(
             ("cards", "cards/catalog.json", new Dictionary<string, object>
             {
-                ["strike"] = new { cardId = "strike", actionId = "missing_action" }
+                ["strike"] = new { cardId = "strike", componentBundleIds = new[] { "missing_bundle" } }
             }));
 
         var result = new ContentGraphValidator().Validate(bundle);
 
         Assert.False(result.IsValid);
         Assert.Contains(
-            "cards/strike references missing actions/missing_action",
-            result.Errors);
+            result.Errors,
+            error => error.Contains("references missing component bundle missing_bundle", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void Validate_AcceptsResolvedCrossModuleReference()
+    public void Validate_AcceptsCanonicalCardComponents()
     {
         var bundle = Bundle(
             ("cards", "cards/catalog.json", new Dictionary<string, object>
             {
-                ["strike"] = new { cardId = "strike", actionId = "strike" }
-            }),
-            ("actions", "actions/strike.json", new Dictionary<string, object>
-            {
-                ["strike"] = new { actionId = "strike", effects = Array.Empty<object>() }
+                ["strike"] = new
+                {
+                    cardId = "strike",
+                    components = new[]
+                    {
+                        new { type = "disposition", componentId = "destination", order = 10, destination = "Discard" }
+                    }
+                }
             }));
 
         var result = new ContentGraphValidator().Validate(bundle);
@@ -48,11 +51,11 @@ public sealed class ContentGraphValidatorTests
         var bundle = Bundle(
             ("cards", "cards/a.json", new Dictionary<string, object>
             {
-                ["same"] = new { cardId = "same", actionId = "strike" }
+                ["same"] = new { cardId = "same" }
             }),
             ("cards", "cards/b.json", new Dictionary<string, object>
             {
-                ["same"] = new { cardId = "same", actionId = "strike" }
+                ["same"] = new { cardId = "same" }
             }));
 
         var result = new ContentGraphValidator().Validate(bundle);
@@ -70,10 +73,7 @@ public sealed class ContentGraphValidatorTests
                 ["burning"] = new
                 {
                     statusId = "burning",
-                    behavior = "DAMAGE_OVER_TIME",
-                    timing = "END_OF_TURN",
-                    defaultDuration = 3,
-                    triggerBoundary = "EndActivation"
+                    defaultDuration = 3
                 }
             }));
 

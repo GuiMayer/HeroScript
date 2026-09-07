@@ -99,7 +99,6 @@ public sealed class CardContentCatalogTests
     {
       "basic_attack": {
         "cardId": "basic_attack",
-        "actionId": "basic_attack",
         "rarity": "Common",
         "basePrices": [{ "resourceId": "gold", "amount": 10 }],
         "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
@@ -107,7 +106,6 @@ public sealed class CardContentCatalogTests
       },
       "defend": {
         "cardId": "defend",
-        "actionId": "defend",
         "rarity": "Common",
         "basePrices": [{ "resourceId": "gold", "amount": 10 }],
         "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
@@ -115,7 +113,6 @@ public sealed class CardContentCatalogTests
       },
       "fireball": {
         "cardId": "fireball",
-        "actionId": "fireball",
         "rarity": "Uncommon",
         "basePrices": [{ "resourceId": "gold", "amount": 25 }],
         "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],

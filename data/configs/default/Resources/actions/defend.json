@@ -16,7 +16,6 @@
       {
         "type": "MODIFY_RESOURCE",
         "target": "SELF",
-        "timing": "IMMEDIATE",
         "flatValue": 5,
         "targetResource": "block",
         "operation": "ADD",

@@ -104,6 +104,18 @@ public sealed class GameplayContentValidationTests
         Assert.Contains(result.Errors, error => error.Contains("cards/broken"));
     }
 
+    [Theory]
+    [InlineData("status-effects", "{\"legacy\":{\"statusId\":\"legacy\",\"type\":\"BURNING\"}}")]
+    [InlineData("modifiers", "{\"legacy\":{\"modifierId\":\"legacy\",\"modifierKey\":\"damage\"}}")]
+    [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"DAMAGE\",\"timing\":\"IMMEDIATE\"}]}}")]
+    public void RemovedLegacyFieldsAreRejectedInsteadOfSilentlyIgnored(string kind, string json)
+    {
+        var result = ValidateRaw(kind, json);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("could not", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void RelationshipValidationAllowsDirectedRulesButRejectsAmbiguousOnes()
     {
@@ -128,6 +140,31 @@ public sealed class GameplayContentValidationTests
             Manifest = new() { Revision = "revision", ConfigName = "default", Artifacts = artifacts.Select(item => new ContentArtifactManifest
                 { Path = item.Key, Kind = item.Key.Split('/')[0], DefinitionCount = item.Value.EnumerateObject().Count() }).ToArray() },
             Artifacts = artifacts.ToImmutableDictionary()
+        });
+    }
+
+    private static ContentGraphValidationResult ValidateRaw(string kind, string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var path = $"{kind}/catalog.json";
+        var artifact = document.RootElement.Clone();
+        return new ContentGraphValidator().Validate(new()
+        {
+            Manifest = new()
+            {
+                Revision = "revision",
+                ConfigName = "default",
+                Artifacts =
+                [
+                    new ContentArtifactManifest
+                    {
+                        Path = path,
+                        Kind = kind,
+                        DefinitionCount = artifact.EnumerateObject().Count()
+                    }
+                ]
+            },
+            Artifacts = new Dictionary<string, JsonElement> { [path] = artifact }.ToImmutableDictionary()
         });
     }
 }

@@ -9,6 +9,9 @@
 - Definições de status e modifier deixaram de expor campos comportamentais ou
   numéricos paralelos. Regras são compostas por triggers, influências, restrições
   e políticas de instância.
+- A publicação/runtime de conteúdo passou a rejeitar propriedades JSON
+  desconhecidas. O fallback legado `card.actionId` e o catálogo antigo fora de
+  `Resources` foram removidos; cartas autoritativas exigem componentes/bundles.
 - Scopes e desempates de combate usam lados/controllers (`RunOwner`,
   `PlayerControlled`, `AiControlled`, `All`) em vez de papéis de herói/inimigo.
 - Aplicações de modifier passaram a expor todas as instâncias removidas e o trace

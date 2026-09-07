@@ -16,7 +16,6 @@
       {
         "type": "DAMAGE",
         "target": "TARGET",
-        "timing": "IMMEDIATE",
         "flatValue": 6,
         "targetResource": "health",
         "tags": ["physical", "attack", "damage"]

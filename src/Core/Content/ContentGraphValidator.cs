@@ -137,8 +137,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ContentRuntime runtime,
         ImmutableArray<string>.Builder errors)
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new JsonStringEnumConverter());
+        var options = CreateJsonOptions();
         foreach (var (id, definition) in runtime.GetDefinitions("phase-sequences"))
         {
             try
@@ -165,8 +164,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ImmutableArray<string>.Builder errors,
         ImmutableArray<string>.Builder warnings)
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new JsonStringEnumConverter());
+        var options = CreateJsonOptions();
 
         foreach (var (id, definition) in runtime.GetDefinitions("combat-rules"))
         {
@@ -285,7 +283,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             var card = parsed.Value;
             if (card.Components.Count == 0 && card.ComponentBundleIds.Count == 0)
             {
-                RequireProperty(runtime, errors, "cards", id, definition, "actionId", "actions");
+                errors.Add($"cards/{id} requires at least one component or component bundle");
                 continue;
             }
 
@@ -419,8 +417,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ContentRuntime runtime,
         ImmutableArray<string>.Builder errors)
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new JsonStringEnumConverter());
+        var options = CreateJsonOptions();
         foreach (var (id, definition) in runtime.GetDefinitions("status-effects"))
         {
             try
@@ -897,7 +894,10 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
     private static JsonSerializerOptions CreateJsonOptions()
     {
-        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
         options.Converters.Add(new JsonStringEnumConverter());
         return options;
     }

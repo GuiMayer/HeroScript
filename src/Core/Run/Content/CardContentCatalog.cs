@@ -30,7 +30,11 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _contentRuntimes = contentRuntimes;
-        _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
