@@ -6,6 +6,7 @@ using Core.Abstractions.Persistence;
 using Core.Combat;
 using Core.Common;
 using Core.Determinism;
+using Core.Run.Runtime;
 
 namespace Core.Run.Branching;
 
@@ -60,17 +61,17 @@ public interface IRunSimulationService
 public sealed class RunSimulationService : IRunSimulationService
 {
     private readonly IRunBranchService _branches;
-    private readonly IRunCommitReader _repository;
-    private readonly IGameplayCommandGateway _commands;
+    private readonly IRunCommitStore _repository;
+    private readonly IGameplayRuntimeFactory _runtimeFactory;
 
     public RunSimulationService(
         IRunBranchService branches,
-        IRunCommitReader repository,
-        IGameplayCommandGateway commands)
+        IRunCommitStore repository,
+        IGameplayRuntimeFactory runtimeFactory)
     {
         _branches = branches;
         _repository = repository;
-        _commands = commands;
+        _runtimeFactory = runtimeFactory;
     }
 
     public async Task<Result<RunSimulationResult>> ExecuteAsync(
@@ -114,7 +115,13 @@ public sealed class RunSimulationService : IRunSimulationService
         if (branch.IsFailure)
             return Result<RunSimulationResult>.Failure(branch.Error);
 
-        var current = branch.Value;
+        var runtime = _runtimeFactory.Create(new GameplayRuntimeOptions(
+            GameplayPersistenceMode.Authoritative,
+            _repository));
+        var loaded = runtime.Runs.GetRun(branch.Value.RunId);
+        if (loaded.IsFailure)
+            return Result<RunSimulationResult>.Failure(loaded.Error);
+        var current = loaded.Value;
         var completedCommands = await CountCompletedCommandsAsync(current, cancellationToken)
             .ConfigureAwait(false);
         if (completedCommands > commands.Count)
@@ -134,7 +141,7 @@ public sealed class RunSimulationService : IRunSimulationService
                 current.Sequence,
                 expectedStep,
                 payloadHash);
-            var executed = ExecuteCommand(current, type, payload, identity);
+            var executed = ExecuteCommand(runtime.Gateway, current, type, payload, identity);
             if (executed.IsFailure)
                 return Result<RunSimulationResult>.Failure(
                     $"Simulation command {index} ({type}) failed: {executed.Error}");
@@ -191,7 +198,8 @@ public sealed class RunSimulationService : IRunSimulationService
         });
     }
 
-    private Result<RunState> ExecuteCommand(
+    private static Result<RunState> ExecuteCommand(
+        IGameplayCommandGateway gateway,
         RunState current,
         string type,
         JsonElement payload,
@@ -203,7 +211,7 @@ public sealed class RunSimulationService : IRunSimulationService
             RunCommandTypes.ResolveCombat
             ? current.GetActiveEncounter()?.Combat.CombatId
             : null;
-        var executed = _commands.Execute(
+        var executed = gateway.Execute(
             current.RunId,
             new GameplayCommandEnvelope(identity, payload),
             combatId);

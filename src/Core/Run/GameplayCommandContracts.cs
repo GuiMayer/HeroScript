@@ -12,6 +12,7 @@ public enum GameplayCommandRoute
 {
     Run,
     StartEncounter,
+    SandboxEncounter,
     ResolveEncounter,
     Combat
 }
@@ -149,14 +150,16 @@ public interface IGameplayCommandCodec
 public sealed class GameplayCommandCodec : IGameplayCommandCodec
 {
     private readonly ImmutableDictionary<string, GameplayCommandDescriptor> _descriptors;
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
-    };
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public GameplayCommandCodec(IEnumerable<GameplayCommandDescriptor> descriptors)
     {
         ArgumentNullException.ThrowIfNull(descriptors);
+        _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        {
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
+        _jsonOptions.Converters.Add(new JsonStringEnumConverter());
         var ordered = descriptors
             .OrderBy(descriptor => descriptor.Type, StringComparer.Ordinal)
             .ToArray();
@@ -248,7 +251,11 @@ public static class GameplayCommandDescriptors
         Run<CardUpgradeCommand>(RunCommandTypes.UpgradeCard),
         Run<CheckpointCommand>(RunCommandTypes.RestoreCheckpoint),
         Run<ContentRevisionCommand>(RunCommandTypes.ActivateContentRevision),
+        Run<RunResourceCommand>(RunCommandTypes.ApplyRunResource),
+        Run<CardIdsCommand>(RunCommandTypes.AddCardsToHand),
+        Run<MoveCardsCommand>(RunCommandTypes.MoveCards),
         new(RunCommandTypes.StartEncounter, typeof(StartEncounterCommand), GameplayCommandRoute.StartEncounter),
+        new(GameplayCommandTypes.StartSandboxEncounter, typeof(StartSandboxEncounterCommand), GameplayCommandRoute.SandboxEncounter),
         new(RunCommandTypes.ResolveCombat, typeof(ResolveCombatCommand), GameplayCommandRoute.ResolveEncounter),
         new(GameplayCommandTypes.PlayCard, typeof(CombatGameplayCommand), GameplayCommandRoute.Combat),
         new(GameplayCommandTypes.ExecuteAction, typeof(CombatGameplayCommand), GameplayCommandRoute.Combat),
@@ -275,10 +282,20 @@ public sealed record RelicInstanceCommand(Guid RelicInstanceId);
 public sealed record CardUpgradeCommand(Guid CardInstanceId, string UpgradeId);
 public sealed record CheckpointCommand(int Sequence);
 public sealed record ContentRevisionCommand(string Revision);
+public sealed record RunResourceCommand(
+    string ResourceId,
+    float Value,
+    Core.Effects.ResourceEffectOperation Operation,
+    Core.Resources.ResourceValueField Field = Core.Resources.ResourceValueField.Current);
+public sealed record MoveCardsCommand(IReadOnlyList<string> CardIds, string Destination);
 public sealed record StartEncounterCommand(
     CombatParticipantReference Hero,
     IReadOnlyList<CombatParticipantReference> Enemies,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? InitialResourceValues = null);
+public sealed record StartSandboxEncounterCommand(
+    CombatEntity Hero,
+    IReadOnlyList<CombatEntity> Enemies,
+    IReadOnlyDictionary<string, IReadOnlyList<Core.StatusEffects.StatusEffectInstance>>? InitialStatusEffects = null);
 public sealed record ResolveCombatCommand(Guid CombatId = default);
 public sealed record CombatGameplayCommand(
     string? ActorId = null,

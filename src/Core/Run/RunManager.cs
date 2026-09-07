@@ -508,6 +508,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
+            RunCommandTypes.ApplyRunResource => ExecuteApplyRunResource(runId, payload),
+            RunCommandTypes.AddCardsToHand => ExecuteAddCardsToHand(runId, payload),
+            RunCommandTypes.MoveCards => ExecuteMoveCards(runId, payload),
             RunCommandTypes.ResolveCombat => Result.Failure(
                 "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
             RunCommandTypes.RestoreCheckpoint => ExecuteRestoreCheckpoint(runId, payload),
@@ -521,6 +524,31 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     {
         var request = DeserializePayload<CardSelectionCommand>(payload);
         return ToResult(CreateCardSelection(runId, request.SelectionId));
+    }
+
+    private Result ExecuteApplyRunResource(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<RunResourceCommand>(payload);
+        return ToResult(ApplyRunResource(
+            runId,
+            request.ResourceId,
+            request.Value,
+            request.Operation,
+            request.Field));
+    }
+
+    private Result ExecuteAddCardsToHand(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<CardIdsCommand>(payload);
+        return ToResult(AddCardsToHand(runId, request.CardIds));
+    }
+
+    private Result ExecuteMoveCards(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<MoveCardsCommand>(payload);
+        return !Enum.TryParse<CardConsumeDestination>(request.Destination, true, out var destination)
+            ? Result.Failure($"Unknown card destination: {request.Destination}")
+            : ToResult(MoveCards(runId, request.CardIds, destination));
     }
 
     private Result ExecutePickCardReward(Guid runId, JsonElement payload)
@@ -1375,7 +1403,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             state = state with { Determinism = state.Determinism.AdvanceStep() };
             var persisted = Persist(
                 state,
-                "run.resource.apply",
+                RunCommandTypes.ApplyRunResource,
                 new { resourceId, value, operation, field });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
@@ -1442,7 +1470,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     Deck = transition.Value.State,
                     Determinism = transition.Value.Context.AdvanceStep()
                 };
-                var persisted = Persist(state, "run.deck.draw", new { count });
+                var persisted = Persist(state, RunCommandTypes.DrawCards, new { count });
                 if (persisted.IsFailure)
                     return Result<IReadOnlyList<string>>.Failure(persisted.Error);
             }
@@ -1484,7 +1512,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 };
                 var persisted = Persist(
                     state,
-                    "run.deck.add-to-hand",
+                    RunCommandTypes.AddCardsToHand,
                     new { cardIds });
                 if (persisted.IsFailure)
                     return Result<IReadOnlyList<string>>.Failure(persisted.Error);
@@ -1529,7 +1557,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 };
                 var persisted = Persist(
                     state,
-                    "run.deck.consume",
+                    RunCommandTypes.MoveCards,
                     new { cardIds, destination = destination.ToString() });
                 if (persisted.IsFailure)
                     return Result<IReadOnlyList<string>>.Failure(persisted.Error);
@@ -1554,7 +1582,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     Deck = transition.State,
                     Determinism = transition.Context.AdvanceStep()
                 };
-                var persisted = Persist(state, "run.deck.shuffle-discard", new { });
+                var persisted = Persist(state, RunCommandTypes.ShuffleDiscard, new { });
                 if (persisted.IsFailure)
                     return Result.Failure(persisted.Error);
             }
@@ -1590,7 +1618,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 generated.Value.Fingerprint);
             return CommitTransition(
                 transition,
-                "run.card-selection.create",
+                RunCommandTypes.CreateCardSelection,
                 new { selectionId });
         }
     }
@@ -1607,7 +1635,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
                     transition.Value,
-                    "run.card-selection.pick",
+                    RunCommandTypes.PickCardReward,
                     new { selectionInstanceId, cardIds });
         }
     }
@@ -1643,7 +1671,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
                     transition.Value,
-                    "run.card-selection.reroll",
+                    RunCommandTypes.RerollCardReward,
                     new { selectionInstanceId, lockedCardIds });
         }
     }
@@ -1660,7 +1688,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
                     transition.Value,
-                    "run.card-selection.decompose",
+                    RunCommandTypes.DecomposeCardReward,
                     new { selectionInstanceId, cardId });
         }
     }
@@ -1690,7 +1718,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 generated.Value.Fingerprint);
             return CommitTransition(
                 transition,
-                "run.shop.create",
+                RunCommandTypes.CreateShop,
                 new { shopId });
         }
     }
@@ -1707,7 +1735,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 ? Result<ShopItemState>.Failure(transition.Error)
                 : CommitTransition(
                     transition.Value,
-                    "run.shop.buy",
+                    RunCommandTypes.BuyShopItem,
                     new { shopInstanceId, itemId });
         }
     }
@@ -1742,7 +1770,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 ? Result<ShopState>.Failure(transition.Error)
                 : CommitTransition(
                     transition.Value,
-                    "run.shop.reroll",
+                    RunCommandTypes.RerollShop,
                     new { shopInstanceId });
         }
     }
@@ -1764,7 +1792,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var transition = PreparationTransitions.Create(state, definitionResult.Value);
             return CommitTransition(
                 transition,
-                "run.preparation.create",
+                RunCommandTypes.CreatePreparation,
                 new { preparationId });
         }
     }
@@ -1816,7 +1844,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
             return CommitTransition(
                 transition.Value,
-                "run.preparation.apply",
+                RunCommandTypes.ApplyPreparationOption,
                 new { preparationInstanceId, optionId });
         }
     }
@@ -2214,7 +2242,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             };
             var persisted = Persist(
                 state,
-                "run.deck.move",
+                RunCommandTypes.MoveCards,
                 new { cardIds, destination = destination.ToString() });
             if (persisted.IsFailure)
                 return Result<IReadOnlyList<string>>.Failure(persisted.Error);
@@ -2312,7 +2340,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     PhaseId = scopedCombat?.PhaseState?.CurrentPhaseId,
                     Round = scopedCombat?.ActivationState?.Round ?? scopedCombat?.CurrentTurn,
                     Activation = scopedCombat?.ActivationState?.ActivationNumber,
-                    ResultHash = CanonicalJson.ComputeHash(snapshot),
+                    ResultHash = scopedCombat == null
+                        ? CanonicalJson.ComputeHash(snapshot)
+                        : CanonicalJson.ComputeHash(scopedCombat),
                     Resolution = effectiveCommand
                 }
             };
@@ -2435,6 +2465,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             StateHash = entry.StateHash,
             State = commit.StateAfter,
             JournalEntry = entry,
+            Frames = commit.Frames,
             Duplicate = duplicate
         };
     }

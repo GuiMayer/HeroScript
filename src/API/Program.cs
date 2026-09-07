@@ -24,6 +24,7 @@ using Core.Run.Content;
 using Core.Run.Replay;
 using Core.Run.Events;
 using Core.Run.Projections;
+using Core.Run.Runtime;
 using Core.Run.Sandbox;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
@@ -360,26 +361,7 @@ builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "daily-challenges",
         definition => definition.ChallengeId));
-builder.Services.AddSingleton<RunManager>(sp => new RunManager(
-    sp.GetRequiredService<IConfigManager>(),
-    sp.GetRequiredService<IResourceLoader>(),
-    sp.GetRequiredService<ICardPoolResolver>(),
-    sp.GetRequiredService<ICardContentCatalog>(),
-    sp.GetRequiredService<IPinnedContentCatalog<ScriptModifierDefinition>>(),
-    sp.GetRequiredService<IOperationalEventBus>(),
-    sp.GetRequiredService<IRunCommitStore>(),
-    sp.GetRequiredService<IContentManifestProvider>(),
-    sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
-    sp.GetRequiredService<IGameModeResolver>(),
-    sp.GetRequiredService<IContentPublicationService>(),
-    sp.GetRequiredService<IContentRuntimeResolver>(),
-    sp.GetRequiredService<IResourceManager>()));
-builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
-builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IGameplayCommandCodec>(_ => GameplayCommandCodec.CreateDefault());
-builder.Services.AddSingleton<IGameplayCommandGateway, GameplayCommandGateway>();
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
 builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReader>();
 builder.Services.AddSingleton<Core.Meta.IPlayerProfileProjectionReader, Core.Meta.PlayerProfileProjectionReader>();
@@ -417,14 +399,6 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<ICombatStatusLifecycle>(),
     sp.GetRequiredService<ICombatRelicLifecycle>(),
     sp.GetRequiredService<ICombatResourceLifecycle>()));
-builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordinator(
-    sp.GetRequiredService<ICombatFactory>(),
-    sp.GetRequiredService<IRunManager>(),
-    sp.GetRequiredService<ICardPlayExecutor>(),
-    sp.GetRequiredService<ICombatFlowPlanner>(),
-    sp.GetRequiredService<IGambitEngine>(),
-    sp.GetRequiredService<IOperationalEventBus>(),
-    sp.GetRequiredService<IAbilityExecutor>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IGameModeResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),
@@ -439,7 +413,7 @@ builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioC
 builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxService(
     sp.GetRequiredService<ICombatScenarioCompiler>(),
     sp.GetRequiredService<IRunManager>(),
-    sp.GetRequiredService<ICombatRunCoordinator>(),
+    sp.GetRequiredService<IGameplayCommandGateway>(),
     sp.GetRequiredService<IRunCommitReader>()));
 builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
     sp.GetRequiredService<IRunManager>()));
@@ -483,6 +457,19 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
+builder.Services.AddSingleton<IGameplayRuntimeFactory, GameplayRuntimeFactory>();
+builder.Services.AddSingleton<GameplayRuntime>(sp =>
+    sp.GetRequiredService<IGameplayRuntimeFactory>().Create(new GameplayRuntimeOptions(
+        GameplayPersistenceMode.Authoritative,
+        sp.GetRequiredService<IRunCommitStore>(),
+        sp.GetRequiredService<IOperationalEventBus>())));
+builder.Services.AddSingleton<RunManager>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<CombatRunCoordinator>(sp => sp.GetRequiredService<GameplayRuntime>().Combats);
+builder.Services.AddSingleton<ICombatRunCoordinator>(sp => sp.GetRequiredService<GameplayRuntime>().Combats);
+builder.Services.AddSingleton<GameplayCommandGateway>(sp => sp.GetRequiredService<GameplayRuntime>().Gateway);
+builder.Services.AddSingleton<IGameplayCommandGateway>(sp => sp.GetRequiredService<GameplayRuntime>().Gateway);
 
 // Register ExpressionEvaluator
 builder.Services.AddSingleton<IExpressionEvaluator, ExpressionEvaluator>();

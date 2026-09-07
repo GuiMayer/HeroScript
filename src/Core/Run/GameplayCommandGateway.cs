@@ -10,6 +10,7 @@ public static class GameplayCommandTypes
     public const string PlayCard = "PLAY_CARD";
     public const string ExecuteAction = "EXECUTE_ACTION";
     public const string EndTurn = "END_TURN";
+    public const string StartSandboxEncounter = "START_SANDBOX_ENCOUNTER";
 }
 
 public sealed record GameplayCommandResult(
@@ -91,6 +92,8 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         {
             GameplayCommandRoute.StartEncounter =>
                 StartEncounter(runId, command, (StartEncounterCommand)decoded.Payload),
+            GameplayCommandRoute.SandboxEncounter =>
+                StartSandboxEncounter(runId, command, (StartSandboxEncounterCommand)decoded.Payload),
             GameplayCommandRoute.ResolveEncounter =>
                 ResolveEncounter(runId, combatId, command, (ResolveCombatCommand)decoded.Payload),
             GameplayCommandRoute.Combat =>
@@ -156,6 +159,36 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             runId,
             command.Identity.CommandId,
             resolved.Value.CombatState,
+            duplicate.Value != null);
+    }
+
+    private Result<GameplayCommandResult> StartSandboxEncounter(
+        Guid runId,
+        GameplayCommandEnvelope command,
+        StartSandboxEncounterCommand payload)
+    {
+        var run = _runs.GetRun(runId);
+        if (run.IsFailure)
+            return Result<GameplayCommandResult>.Failure(run.Error);
+        if (run.Value.ResolvedMode?.CapabilityPolicy.AllowScenarioAuthoring != true)
+            return Result<GameplayCommandResult>.Failure("Game mode does not allow sandbox scenario authoring");
+
+        var duplicate = _commands.FindReceipt(runId, command.Identity.CommandId);
+        if (duplicate.IsFailure)
+            return Result<GameplayCommandResult>.Failure(duplicate.Error);
+        var started = _combats.StartEncounter(
+            runId,
+            payload.Hero,
+            payload.Enemies,
+            command.Identity,
+            payload.InitialStatusEffects,
+            command.Payload);
+        if (started.IsFailure)
+            return Result<GameplayCommandResult>.Failure(started.Error);
+        return LoadReceipt(
+            runId,
+            command.Identity.CommandId,
+            started.Value.CombatState,
             duplicate.Value != null);
     }
 

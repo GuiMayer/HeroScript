@@ -1,6 +1,8 @@
 using Core.Abstractions.Persistence;
 using Core.Combat;
 using Core.Common;
+using Core.Determinism;
+using System.Text.Json;
 
 namespace Core.Run.Sandbox;
 
@@ -28,18 +30,18 @@ public sealed class CombatSandboxService : ICombatSandboxService
 {
     private readonly ICombatScenarioCompiler _compiler;
     private readonly IRunManager _runs;
-    private readonly ICombatRunCoordinator _combats;
+    private readonly IGameplayCommandGateway _commands;
     private readonly IRunCommitReader _repository;
 
     public CombatSandboxService(
         ICombatScenarioCompiler compiler,
         IRunManager runs,
-        ICombatRunCoordinator combats,
+        IGameplayCommandGateway commands,
         IRunCommitReader repository)
     {
         _compiler = compiler;
         _runs = runs;
-        _combats = combats;
+        _commands = commands;
         _repository = repository;
     }
 
@@ -71,18 +73,33 @@ public sealed class CombatSandboxService : ICombatSandboxService
             });
         }
 
-        var encounterResult = _combats.StartEncounter(
-            started.Value.RunId,
+        var payload = JsonSerializer.SerializeToElement(new StartSandboxEncounterCommand(
             compiled.Value.Hero,
             compiled.Value.Enemies,
-            initialStatusEffects: compiled.Value.InitialStatusEffects);
+            compiled.Value.InitialStatusEffects));
+        var encounterResult = _commands.Execute(
+            started.Value.RunId,
+            new GameplayCommandEnvelope(
+                new RunCommandIdentity(
+                    DeterministicId.Create(
+                        started.Value.Determinism.Seed,
+                        checked((ulong)started.Value.Sequence),
+                        $"sandbox-encounter:{compiled.Value.ScenarioHash}"),
+                    GameplayCommandTypes.StartSandboxEncounter,
+                    started.Value.Sequence,
+                    started.Value.Determinism.Step,
+                    CanonicalJson.ComputeHash(payload)),
+                payload));
         if (encounterResult.IsFailure)
             return Result<SandboxCombatLaunch>.Failure(
                 $"Scenario run was created but encounter launch failed: {encounterResult.Error}");
+        if (encounterResult.Value.CombatState == null)
+            return Result<SandboxCombatLaunch>.Failure(
+                "Scenario encounter command completed without a combat state");
 
         return Result<SandboxCombatLaunch>.Success(new SandboxCombatLaunch
         {
-            Run = encounterResult.Value.RunState,
+            Run = encounterResult.Value.Receipt.State,
             Combat = encounterResult.Value.CombatState,
             ScenarioHash = compiled.Value.ScenarioHash
         });

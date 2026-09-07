@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Common;
@@ -17,6 +18,8 @@ public sealed record RunCommandIdentity(
 
 public sealed record RunCommandReceipt
 {
+    private ImmutableArray<RunCommitFrame> _frames = [];
+
     public Guid CommandId { get; init; }
     public string CommandType { get; init; } = string.Empty;
     public int Sequence { get; init; }
@@ -25,6 +28,11 @@ public sealed record RunCommandReceipt
     public string StateHash { get; init; } = string.Empty;
     public RunState State { get; init; } = new();
     public RunJournalEntry JournalEntry { get; init; } = new();
+    public IReadOnlyList<RunCommitFrame> Frames
+    {
+        get => _frames;
+        init => _frames = value?.ToImmutableArray() ?? [];
+    }
     public bool Duplicate { get; init; }
 }
 

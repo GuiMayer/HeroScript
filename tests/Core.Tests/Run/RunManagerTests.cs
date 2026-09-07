@@ -80,7 +80,7 @@ public sealed class RunManagerTests
                 CanonicalJson.ComputeHash(changed.Value),
                 CanonicalJson.ComputeHash(replay.FinalState!));
         Assert.Equal(
-                new[] { "run.start", "run.resource.apply" },
+                new[] { "run.start", RunCommandTypes.ApplyRunResource },
                 checkpoints.Select(item => item.RootCommand.Type));
 
             var tampered = checkpoints.ToArray();

@@ -4,6 +4,7 @@ using System.Text.Json;
 using API.Contracts;
 using Core.Combat;
 using Core.Run;
+using Core.Run.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -19,6 +20,24 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     {
         _factory = factory;
         _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public void LiveReplayAndSimulationRuntimeFactory_ExposeTheSameCommandComposition()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        var runtimeFactory = services.GetRequiredService<IGameplayRuntimeFactory>();
+        var live = services.GetRequiredService<GameplayRuntime>();
+        var replay = runtimeFactory.Create(
+            new GameplayRuntimeOptions(GameplayPersistenceMode.Ephemeral));
+
+        Assert.Equal(runtimeFactory.RegisteredCommandTypes, live.RegisteredCommandTypes);
+        Assert.Equal(runtimeFactory.RegisteredCommandTypes, replay.RegisteredCommandTypes);
+        Assert.Same(live.Gateway, services.GetRequiredService<IGameplayCommandGateway>());
+        Assert.Same(live.Runs, services.GetRequiredService<IRunManager>());
+        Assert.NotSame(live.Gateway, replay.Gateway);
+        Assert.NotSame(live.Runs, replay.Runs);
     }
 
     [Theory]

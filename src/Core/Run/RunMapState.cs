@@ -91,4 +91,7 @@ public static class RunCommandTypes
     public const string UpgradeCard = "UPGRADE_CARD";
     public const string RestoreCheckpoint = "RESTORE_CHECKPOINT";
     public const string ActivateContentRevision = "ACTIVATE_CONTENT_REVISION";
+    public const string ApplyRunResource = "APPLY_RUN_RESOURCE";
+    public const string AddCardsToHand = "ADD_CARDS_TO_HAND";
+    public const string MoveCards = "MOVE_CARDS";
 }
