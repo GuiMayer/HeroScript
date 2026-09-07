@@ -17,7 +17,7 @@ namespace API.Tests.Controllers;
 public sealed class RunControllerTests
 {
     private readonly Mock<IRunManager> _runManager = new();
-    private readonly Mock<IRunStateRepository> _repository = new();
+    private readonly Mock<IRunCommitStore> _repository = new();
     private readonly RunController _controller;
 
     public RunControllerTests()
@@ -133,9 +133,9 @@ public sealed class RunControllerTests
         };
         _repository.Setup(repository => repository.ListRunIdsAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { second.RunId, first.RunId });
-        _repository.Setup(repository => repository.LoadLatestAsync(first.RunId, It.IsAny<CancellationToken>()))
+        _repository.Setup(repository => repository.LoadLatestStateAsync(first.RunId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(first);
-        _repository.Setup(repository => repository.LoadLatestAsync(second.RunId, It.IsAny<CancellationToken>()))
+        _repository.Setup(repository => repository.LoadLatestStateAsync(second.RunId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(second);
         _runManager.Setup(manager => manager.GetRun(first.RunId)).Returns(Result<RunState>.Success(first));
         _runManager.Setup(manager => manager.GetRun(second.RunId)).Returns(Result<RunState>.Success(second));

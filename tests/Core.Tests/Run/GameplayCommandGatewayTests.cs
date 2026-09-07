@@ -80,7 +80,8 @@ public sealed class GameplayCommandGatewayTests
                     })),
                 It.Is<IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>>(values =>
                     values["hero"]["energy"] == 3),
-                It.Is<RunCommandIdentity>(identity => identity.CommandId == commandId)))
+                It.Is<RunCommandIdentity>(identity => identity.CommandId == commandId),
+                It.IsAny<JsonElement>()))
             .Returns(Result<CombatRunEncounterResult>.Success(new CombatRunEncounterResult
             {
                 RunState = state,
@@ -147,7 +148,8 @@ public sealed class GameplayCommandGatewayTests
                     action.ActorId == "hero" &&
                     action.TargetIds.SequenceEqual(new[] { "enemy_2", "enemy_1" }) &&
                     action.RunId == runId),
-                It.Is<RunCommandIdentity>(identity => identity.CommandId == commandId)))
+                It.Is<RunCommandIdentity>(identity => identity.CommandId == commandId),
+                It.IsAny<JsonElement>()))
             .Returns(Result<CombatRunActionResult>.Success(new CombatRunActionResult
             {
                 RunState = run,

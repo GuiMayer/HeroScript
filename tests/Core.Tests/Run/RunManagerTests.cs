@@ -28,13 +28,19 @@ public sealed class RunManagerTests
     [Fact]
     public void PersistenceFailure_DoesNotPublishCandidateState()
     {
-        var repository = new Mock<IRunStateRepository>();
+        var repository = new Mock<IRunCommitStore>();
+        var appendCount = 0;
         repository
-            .SetupSequence(item => item.SaveAsync(
-                It.IsAny<RunState>(),
+            .Setup(item => item.AppendAsync(
+                It.IsAny<RunCommit>(),
                 It.IsAny<CancellationToken>()))
-            .Returns(Task.CompletedTask)
-            .ThrowsAsync(new IOException("disk unavailable"));
+            .Returns((RunCommit commit, CancellationToken _) =>
+            {
+                appendCount++;
+                if (appendCount > 1)
+                    throw new IOException("disk unavailable");
+                return Task.FromResult(new RunCommitAppendResult(commit, false));
+            });
         var manager = CreateManager(repository: repository.Object);
         var started = manager.StartRun(new RunStartOptions(
             "test", "default_run", "hero", Seed: 10UL, ContentRevision: "test"));
@@ -56,7 +62,7 @@ public sealed class RunManagerTests
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-replay-{Guid.NewGuid():N}");
         try
         {
-            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository);
             var started = manager.StartRun(new RunStartOptions(
                 "test", "default_run", "hero", Seed: 20UL, ContentRevision: "test"));
@@ -65,7 +71,7 @@ public sealed class RunManagerTests
                 started.Value.RunId, "gold", 5, ResourceEffectOperation.ADD);
             Assert.True(changed.IsSuccess);
 
-            var checkpoints = await repository.LoadCheckpointsAsync(started.Value.RunId);
+            var checkpoints = await repository.LoadCommitsAsync(started.Value.RunId);
             var replay = RunReplayVerifier.Verify(checkpoints);
 
             Assert.True(replay.IsValid, string.Join("; ", replay.Errors));
@@ -75,12 +81,12 @@ public sealed class RunManagerTests
                 CanonicalJson.ComputeHash(replay.FinalState!));
         Assert.Equal(
                 new[] { "run.start", "run.resource.apply" },
-                checkpoints.Select(item => item.JournalEntry.CommandType));
+                checkpoints.Select(item => item.RootCommand.Type));
 
             var tampered = checkpoints.ToArray();
             tampered[^1] = tampered[^1] with
             {
-                State = SetResource(tampered[^1].State, "gold", 999)
+                StateAfter = SetResource(tampered[^1].StateAfter, "gold", 999)
             };
             Assert.False(RunReplayVerifier.Verify(tampered).IsValid);
         }
@@ -160,8 +166,8 @@ public sealed class RunManagerTests
             ConfigName = "test",
             Determinism = DeterministicContext.Create(1UL, revision)
         };
-        var repository = new Mock<IRunStateRepository>();
-        repository.Setup(store => store.LoadLatestAsync(runId, It.IsAny<CancellationToken>()))
+        var repository = new Mock<IRunCommitStore>();
+        repository.Setup(store => store.LoadLatestStateAsync(runId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(state);
         var compatibleManifests = new Mock<IContentManifestProvider>();
         compatibleManifests.Setup(provider => provider.GetManifest("test"))
@@ -305,7 +311,7 @@ public sealed class RunManagerTests
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-resolution-{Guid.NewGuid():N}");
         try
         {
-            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository, runJson: CombatRunJson);
             var run = manager.StartRun(new RunStartOptions(
                 "test", "default_run", "hero", Seed: 93UL, ContentRevision: "test")).Value;
@@ -323,12 +329,13 @@ public sealed class RunManagerTests
                 run.Sequence,
                 run.Determinism.Step,
                 combat).Value;
+            var rootPayload = JsonSerializer.SerializeToElement(new { actorId = "hero" });
             var rootCommand = new RunCommandIdentity(
                 Guid.NewGuid(),
                 "COMBAT_ACTION",
                 attached.Sequence,
                 combat.Determinism.Step,
-                "payload-hash");
+                CanonicalJson.ComputeHash(rootPayload));
             var first = combat with
             {
                 CurrentTurn = 2,
@@ -349,6 +356,7 @@ public sealed class RunManagerTests
                 ExpectedSequence = attached.Sequence,
                 PreviousCombat = combat,
                 RootCommand = rootCommand,
+                RootPayload = rootPayload,
                 Steps =
                 [
                     new CombatResolutionStep
@@ -372,7 +380,7 @@ public sealed class RunManagerTests
             });
 
             Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
-            Assert.Equal(attached.Sequence + 2, committed.Value.Sequence);
+            Assert.Equal(attached.Sequence + 1, committed.Value.Sequence);
             Assert.Equal(3, committed.Value.GetActiveEncounter()!.Combat.CurrentTurn);
             Assert.Equal("persistent-effect", Assert.Single(committed.Value.Modifiers).Definition.ModifierId);
             Assert.Empty(attached.Modifiers);
@@ -381,7 +389,7 @@ public sealed class RunManagerTests
             Assert.Equal(AnimationFrameMode.FullSnapshots, resolution!.Mode);
             Assert.Equal(2, resolution.Frames.Count);
             Assert.Equal(attached.Sequence + 1, resolution.FirstSequence);
-            Assert.Equal(attached.Sequence + 2, resolution.FinalSequence);
+            Assert.Equal(attached.Sequence + 1, resolution.FinalSequence);
             Assert.Equal(CanonicalJson.ComputeHash(combat), resolution.InitialCombatStateHash);
             Assert.Equal(CanonicalJson.ComputeHash(second), resolution.FinalCombatStateHash);
             Assert.Equal(64, resolution.ResolutionFingerprint.Length);
@@ -390,18 +398,14 @@ public sealed class RunManagerTests
                 "status.tick",
                 Assert.Single(resolution.Frames[0].EffectSteps).EffectInstanceId);
             Assert.Empty(resolution.Frames[1].EffectSteps);
-            var journal = await repository.LoadJournalAsync(run.RunId);
-            var transitions = journal.TakeLast(2).ToArray();
-            Assert.Equal(new[] { 0, 1 }, transitions.Select(entry => entry.TransitionIndex));
-            Assert.All(transitions, entry =>
-            {
-                Assert.Equal(2, entry.TransitionCount);
-                Assert.Equal(rootCommand.CommandId, entry.RootCommandId);
-                Assert.Equal(rootCommand.CommandId, entry.CausationId);
-            });
-            Assert.Equal("combat.activation.ended", transitions[0].CommandType);
-            Assert.Equal(rootCommand.CommandId, transitions[1].CommandId);
-            Assert.Equal("COMBAT_ACTION", transitions[1].CommandType);
+            var commits = await repository.LoadCommitsAsync(run.RunId);
+            var transition = commits[^1];
+            Assert.Equal(rootCommand.CommandId, transition.RootCommand.CommandId);
+            Assert.Equal("COMBAT_ACTION", transition.RootCommand.Type);
+            Assert.Equal(2, transition.Frames.Count);
+            Assert.Equal(
+                new[] { "combat.activation.ended", "combat.activation.started" },
+                transition.Frames.Select(frame => frame.Kind));
         }
         finally
         {
@@ -416,7 +420,7 @@ public sealed class RunManagerTests
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-encounter-{Guid.NewGuid():N}");
         try
         {
-            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository, runJson: CombatRunJson);
             var run = manager.StartRun(new RunStartOptions(
                 "test", "default_run", "hero", Seed: 92UL, ContentRevision: "test")).Value;
@@ -997,7 +1001,7 @@ public sealed class RunManagerTests
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-command-{Guid.NewGuid():N}");
         try
         {
-            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository);
             var started = manager.StartRun(new RunStartOptions(
                 "test", "default_run", "hero", Seed: 501UL, ContentRevision: "test")).Value;
@@ -1052,7 +1056,7 @@ public sealed class RunManagerTests
 
     private RunManager CreateManager(
         IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierManager = null,
-        IRunStateRepository? repository = null,
+        IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
         string? runJson = null)
     {

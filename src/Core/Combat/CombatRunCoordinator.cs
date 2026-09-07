@@ -49,7 +49,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CombatParticipantReference hero,
         IReadOnlyList<CombatParticipantReference> enemies,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? initialResourceValues = null,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        JsonElement commandPayload = default)
     {
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
         lock (runLock)
@@ -114,7 +115,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 initialized.Value.Run,
                 InitialCommand(combatResult.Value),
                 combatResult.Value,
-                InitializationStep(initialized.Value));
+                InitializationStep(initialized.Value),
+                commandPayload);
             if (attached.IsFailure)
             {
                 return Result<CombatRunEncounterResult>.Failure(attached.Error);
@@ -133,7 +135,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CombatEntity hero,
         IReadOnlyList<CombatEntity> enemies,
         RunCommandIdentity? commandIdentity = null,
-        IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatusEffects = null)
+        IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatusEffects = null,
+        JsonElement commandPayload = default)
     {
         ArgumentNullException.ThrowIfNull(hero);
         ArgumentNullException.ThrowIfNull(enemies);
@@ -197,7 +200,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 initialized.Value.Run,
                 InitialCommand(combatResult.Value),
                 combatResult.Value,
-                InitializationStep(initialized.Value));
+                InitializationStep(initialized.Value),
+                commandPayload);
             if (attached.IsFailure)
             {
                 return Result<CombatRunEncounterResult>.Failure(attached.Error);
@@ -248,7 +252,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     public Result<CombatRunActionResult> ExecuteAction(
         Guid combatId,
         CombatActionCommand command,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        JsonElement commandPayload = default)
     {
         if (command.RunId is not { } runId)
             return Result<CombatRunActionResult>.Failure("RunId is required for run-coordinated combat actions");
@@ -262,7 +267,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (duplicate.Value != null)
                 return Result<CombatRunActionResult>.Success(duplicate.Value);
 
-            return ExecuteActionLocked(combatId, runId, command, commandIdentity);
+            return ExecuteActionLocked(combatId, runId, command, commandIdentity, commandPayload);
         }
     }
 
@@ -270,7 +275,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Guid combatId,
         Guid runId,
         CombatActionCommand command,
-        RunCommandIdentity? commandIdentity)
+        RunCommandIdentity? commandIdentity,
+        JsonElement commandPayload)
     {
         var runResult = _runManager.GetRun(runId);
         if (runResult.IsFailure)
@@ -331,7 +337,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 command.CardInstanceId.Value.ToString(),
                 played.Value.Destination,
                 commandIdentity,
-                played.Value);
+                played.Value,
+                commandPayload: commandPayload);
         }
 
         if (command.ActionType is
@@ -374,7 +381,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 consumedCardId: null,
                 CardConsumeDestination.None,
                 commandIdentity,
-                ability: ability.Value);
+                ability: ability.Value,
+                commandPayload: commandPayload);
         }
 
         return ExecuteAndCommit(
@@ -384,7 +392,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             command,
             consumedCardId: null,
             CardConsumeDestination.None,
-            commandIdentity);
+            commandIdentity,
+            commandPayload: commandPayload);
     }
 
     private Result<CombatRunActionResult> ExecuteAndCommit(
@@ -396,7 +405,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CardConsumeDestination destination,
         RunCommandIdentity? commandIdentity,
         CardPlayExecutionResult? cardPlay = null,
-        AbilityExecutionResult? ability = null)
+        AbilityExecutionResult? ability = null,
+        JsonElement commandPayload = default)
         => ExecuteCanonicalAndCommit(
             combatId,
             run,
@@ -406,7 +416,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             destination,
             commandIdentity,
             cardPlay,
-            ability);
+            ability,
+            commandPayload);
 
     private Result<CombatRunActionResult> ExecuteCanonicalAndCommit(
         Guid combatId,
@@ -417,7 +428,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         CardConsumeDestination destination,
         RunCommandIdentity? commandIdentity,
         CardPlayExecutionResult? cardPlay,
-        AbilityExecutionResult? ability)
+        AbilityExecutionResult? ability,
+        JsonElement commandPayload)
     {
         if (_flowPlanner == null || _gambitEngine == null || _resolutionCommitter == null)
             return Result<CombatRunActionResult>.Failure(
@@ -479,7 +491,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             policies.Outcome,
             command.ActorId);
 
-        var rootPayload = JsonSerializer.SerializeToElement(new
+        var resolutionPayload = JsonSerializer.SerializeToElement(new
         {
             combatId,
             command = effectiveCommand,
@@ -504,6 +516,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 steps = ability.Steps
             }
         });
+        var rootPayload = commandPayload.ValueKind == JsonValueKind.Undefined
+            ? resolutionPayload
+            : commandPayload.Clone();
         run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
             Core.Combat.Modifiers.ModifierDurationBoundary.Command, previousCombat, command.ActorId, commandModifierIds);
         var steps = new List<CombatResolutionStep>
@@ -518,7 +533,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 EffectSteps = cardPlay?.Steps ?? ability?.Steps ?? [],
                 Calculations = cardPlay?.Calculations ?? ability?.Calculations ?? [],
                 Applications = cardPlay?.Applications ?? ability?.Applications ?? [],
-                Payload = rootPayload
+                Payload = resolutionPayload
             }
         };
         var currentCombat = nextCombat;
@@ -856,8 +871,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             $"implicit-start-encounter:{combat.RunNodeId}:{combat.CombatId:N}"),
         RunCommandTypes.StartEncounter,
         run.Sequence,
-        run.Determinism.Step,
-        CanonicalJson.ComputeHash(InitialCommand(combat)));
+        run.Determinism.Step);
 
     private static RunCommandIdentity CreateImplicitIdentity(
         RunState run,
@@ -869,15 +883,15 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 $"implicit-combat-command:{combat.CombatId:N}"),
             "COMBAT_ACTION",
             run.Sequence,
-            combat.Determinism.Step,
-            CanonicalJson.ComputeHash(command));
+            combat.Determinism.Step);
 
     private static Result<T> Fail<T>(string error) => Result<T>.Failure(error);
 
     public Result<CombatRunEncounterResult> ResolveEncounter(
         Guid runId,
         Guid combatId,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        JsonElement commandPayload = default)
     {
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
         lock (runLock)
@@ -912,7 +926,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 runId,
                 commandIdentity?.ExpectedSequence ?? runResult.Value.Sequence,
                 combatId,
-                commandIdentity);
+                commandIdentity,
+                commandPayload);
             if (resolved.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(resolved.Error);
 

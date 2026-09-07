@@ -11,12 +11,12 @@ namespace API.Controllers;
 public sealed class RunController : BaseApiController
 {
     private readonly IRunManager _runManager;
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgrades;
 
     public RunController(
         IRunManager runManager,
-        IRunStateRepository repository,
+        IRunCommitStore repository,
         ILogger<RunController> logger,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgrades = null)
         : base(logger)
@@ -120,7 +120,7 @@ public sealed class RunController : BaseApiController
                 if (after.HasValue && runId.CompareTo(after.Value) <= 0)
                     continue;
 
-                var state = await _repository.LoadLatestAsync(runId, cancellationToken);
+                var state = await _repository.LoadLatestStateAsync(runId, cancellationToken);
                 if (state == null)
                     continue;
                 if (!string.IsNullOrWhiteSpace(playerEntityId) &&

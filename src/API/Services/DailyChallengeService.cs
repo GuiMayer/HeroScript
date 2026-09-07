@@ -65,14 +65,14 @@ public sealed class DailyChallengeService
     private readonly IResourceCatalog<DailyChallengeDefinition> _challenges;
     private readonly IContentManifestProvider _content;
     private readonly IRunManager _runs;
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
     private readonly IRunReplayService _replay;
 
     public DailyChallengeService(
         IResourceCatalog<DailyChallengeDefinition> challenges,
         IContentManifestProvider content,
         IRunManager runs,
-        IRunStateRepository repository,
+        IRunCommitStore repository,
         IRunReplayService replay)
     {
         _challenges = challenges;
@@ -144,7 +144,7 @@ public sealed class DailyChallengeService
         {
             foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken))
             {
-                var existing = await _repository.LoadLatestAsync(runId, cancellationToken);
+                var existing = await _repository.LoadLatestStateAsync(runId, cancellationToken);
                 if (existing != null &&
                     string.Equals(existing.PlayerEntityId, playerId, StringComparison.Ordinal) &&
                     string.Equals(existing.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal))
@@ -177,7 +177,7 @@ public sealed class DailyChallengeService
                 "Current daily challenge is not configured");
         }
 
-        var state = await _repository.LoadLatestAsync(runId, cancellationToken);
+        var state = await _repository.LoadLatestStateAsync(runId, cancellationToken);
         if (state == null || !string.Equals(state.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal))
         {
             return DailyChallengeResult<DailySubmission>.Failure(
@@ -223,7 +223,7 @@ public sealed class DailyChallengeService
         var entries = new List<DailyLeaderboardEntry>();
         foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken))
         {
-            var state = await _repository.LoadLatestAsync(runId, cancellationToken);
+            var state = await _repository.LoadLatestStateAsync(runId, cancellationToken);
             if (state == null || !string.Equals(state.ChallengeId, challenge.ChallengeId, StringComparison.Ordinal) ||
                 !IsCompleted(state))
                 continue;

@@ -122,7 +122,8 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             payload.Hero,
             payload.Enemies,
             payload.InitialResourceValues,
-            command.Identity);
+            command.Identity,
+            command.Payload);
         if (started.IsFailure)
             return Result<GameplayCommandResult>.Failure(started.Error);
         return LoadReceipt(
@@ -144,7 +145,11 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         var resolvedCombatId = combatId ?? payload.CombatId;
         if (resolvedCombatId == Guid.Empty)
             return Result<GameplayCommandResult>.Failure("CombatId is required for RESOLVE_COMBAT");
-        var resolved = _combats.ResolveEncounter(runId, resolvedCombatId, command.Identity);
+        var resolved = _combats.ResolveEncounter(
+            runId,
+            resolvedCombatId,
+            command.Identity,
+            command.Payload);
         if (resolved.IsFailure)
             return Result<GameplayCommandResult>.Failure(resolved.Error);
         return LoadReceipt(
@@ -175,7 +180,11 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         var built = BuildCombatAction(command.Identity.Type, payload, run.Value, combat);
         if (built.IsFailure)
             return Result<GameplayCommandResult>.Failure(built.Error);
-        var executed = _combats.ExecuteAction(combatId.Value, built.Value, command.Identity);
+        var executed = _combats.ExecuteAction(
+            combatId.Value,
+            built.Value,
+            command.Identity,
+            command.Payload);
         if (executed.IsFailure)
             return Result<GameplayCommandResult>.Failure(executed.Error);
         return LoadReceipt(

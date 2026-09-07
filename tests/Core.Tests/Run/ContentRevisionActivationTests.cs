@@ -23,7 +23,7 @@ public sealed class ContentRevisionActivationTests
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-content-activation-{Guid.NewGuid():N}");
         try
         {
-            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var revisionA = new string('a', 64);
             var revisionB = new string('b', 64);
             var manager = CreateManager(repository, revisionA, revisionB);
@@ -44,8 +44,10 @@ public sealed class ContentRevisionActivationTests
             Assert.Equal(revisionB, receipt.Value.State.Determinism.ContentRevision);
             Assert.Equal(revisionB, receipt.Value.State.ContentManifest!.Revision);
             Assert.Equal(initial.Sequence + 1, receipt.Value.Sequence);
-            var journal = await repository.LoadJournalAsync(initial.RunId, 0, 10);
-            Assert.Equal(2, journal.Count);
+            var journal = (await repository.LoadCommitsAsync(initial.RunId))
+                .Select(commit => commit.ToJournalEntry())
+                .ToArray();
+            Assert.Equal(2, journal.Length);
             Assert.Equal(RunCommandTypes.ActivateContentRevision, journal[1].CommandType);
             Assert.Equal(revisionB, journal[1].Command.GetProperty("revision").GetString());
         }
@@ -253,7 +255,7 @@ public sealed class ContentRevisionActivationTests
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-content-activation-{Guid.NewGuid():N}");
         try
         {
-            using var repository = new VersionedRunStateRepository(path, NullLogger.Instance);
+            using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var revisionA = new string('a', 64);
             var revisionB = new string('b', 64);
             var revisionC = new string('c', 64);
@@ -266,8 +268,10 @@ public sealed class ContentRevisionActivationTests
             Assert.True(activatedC.IsSuccess, activatedC.IsFailure ? activatedC.Error : null);
             Assert.Equal(revisionC, activatedC.Value.State.Determinism.ContentRevision);
 
-            var journal = await repository.LoadJournalAsync(initial.RunId, 0, 10);
-            Assert.Equal(3, journal.Count);
+            var journal = (await repository.LoadCommitsAsync(initial.RunId))
+                .Select(commit => commit.ToJournalEntry())
+                .ToArray();
+            Assert.Equal(3, journal.Length);
             Assert.Equal(revisionB, journal[1].Command.GetProperty("revision").GetString());
             Assert.Equal(revisionC, journal[2].Command.GetProperty("revision").GetString());
         }
@@ -279,7 +283,7 @@ public sealed class ContentRevisionActivationTests
     }
 
     private static RunManager CreateManager(
-        IRunStateRepository? repository,
+        IRunCommitStore? repository,
         string revisionA,
         params string[] additionalRevisions)
     {

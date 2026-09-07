@@ -49,9 +49,9 @@ public interface IRunEventProjectionReader
 /// </summary>
 public sealed class RunEventProjectionReader : IRunEventProjectionReader
 {
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
 
-    public RunEventProjectionReader(IRunStateRepository repository)
+    public RunEventProjectionReader(IRunCommitStore repository)
     {
         _repository = repository;
     }
@@ -63,13 +63,10 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
         CancellationToken cancellationToken = default)
     {
         ValidateCursor(afterSequence, limit);
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return Array.Empty<RunProjectionEvent>();
-
-        var source = await checkpoints.LoadCheckpointsAsync(runId, cancellationToken).ConfigureAwait(false);
+        var source = await _repository.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false);
         return source
-            .Where(item => item.JournalEntry.Sequence > afterSequence)
-            .OrderBy(item => item.JournalEntry.Sequence)
+            .Where(item => item.Sequence > afterSequence)
+            .OrderBy(item => item.Sequence)
             .Take(limit)
             .Select(item => ToEvent(item))
             .ToArray();
@@ -83,28 +80,25 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
         CancellationToken cancellationToken = default)
     {
         ValidateCursor(afterSequence, limit);
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return Array.Empty<RunProjectionEvent>();
-
-        var source = await checkpoints.LoadCheckpointsAsync(runId, cancellationToken).ConfigureAwait(false);
+        var source = await _repository.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false);
         return source
-            .Where(item => item.JournalEntry.Sequence > afterSequence)
-            .Where(item => item.State.GetEncounter(combatId) != null)
-            .Where(item => IsCombatCommand(item.JournalEntry.CommandType))
-            .OrderBy(item => item.JournalEntry.Sequence)
+            .Where(item => item.Sequence > afterSequence)
+            .Where(item => item.StateAfter.GetEncounter(combatId) != null)
+            .Where(item => item.Frames.Any(frame => frame.CombatId == combatId))
+            .OrderBy(item => item.Sequence)
             .Take(limit)
             .Select(item => ToEvent(item, combatId))
             .ToArray();
     }
 
-    private static RunProjectionEvent ToEvent(RunCheckpoint checkpoint, Guid? combatId = null)
+    private static RunProjectionEvent ToEvent(RunCommit commit, Guid? combatId = null)
     {
-        var entry = checkpoint.JournalEntry;
-        var resolvedCombatId = combatId ?? ResolveCombatId(checkpoint);
+        var entry = commit.ToJournalEntry();
+        var resolvedCombatId = combatId ?? ResolveCombatId(commit);
         return new RunProjectionEvent
         {
             EventId = DeterministicId.Create(
-                checkpoint.State.Determinism.Seed,
+                commit.StateAfter.Determinism.Seed,
                 checked((ulong)entry.Sequence),
                 $"run-event:{entry.CommandType}"),
             Sequence = entry.Sequence,
@@ -115,13 +109,13 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
             CombatId = resolvedCombatId,
             CommandId = entry.CommandId,
             CorrelationId = entry.CommandId ?? DeterministicId.Create(
-                checkpoint.State.Determinism.Seed,
+                commit.StateAfter.Determinism.Seed,
                 checked((ulong)entry.Sequence),
                 $"run-correlation:{entry.CommandType}"),
             Timestamp = entry.LogicalTimestamp,
-            ConfigName = checkpoint.State.ConfigName,
-            ContentRevision = checkpoint.State.Determinism.ContentRevision,
-            Seed = checkpoint.State.Determinism.Seed,
+            ConfigName = commit.StateAfter.ConfigName,
+            ContentRevision = commit.StateAfter.Determinism.ContentRevision,
+            Seed = commit.StateAfter.Determinism.Seed,
             ExpectedSequence = entry.ExpectedSequence,
             ExpectedStep = entry.ExpectedStep,
             CommandPayloadHash = entry.CommandPayloadHash,
@@ -131,11 +125,12 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
         };
     }
 
-    private static Guid? ResolveCombatId(RunCheckpoint checkpoint)
+    private static Guid? ResolveCombatId(RunCommit commit)
     {
-        var entry = checkpoint.JournalEntry;
-        if (!IsCombatCommand(entry.CommandType))
-            return null;
+        var scoped = commit.Frames.Select(frame => frame.CombatId).FirstOrDefault(id => id.HasValue);
+        if (scoped.HasValue)
+            return scoped;
+        var entry = commit.ToJournalEntry();
         if (entry.Command.ValueKind == JsonValueKind.Object &&
             entry.Command.TryGetProperty("combatId", out var combatId) &&
             combatId.ValueKind == JsonValueKind.String &&
@@ -144,16 +139,9 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
             return parsed;
         }
 
-        return checkpoint.State.ActiveEncounterId ?? checkpoint.State.Encounters.LastOrDefault()?.Combat.CombatId;
+        return commit.StateAfter.ActiveEncounterId ??
+               commit.StateAfter.Encounters.LastOrDefault()?.Combat.CombatId;
     }
-
-    private static bool IsCombatCommand(string commandType) => commandType is
-        RunCommandTypes.StartEncounter or
-        RunCommandTypes.ResolveCombat or
-        "COMBAT_ACTION" or
-        "PLAY_CARD" or
-        "EXECUTE_ACTION" or
-        "END_TURN";
 
     private static void ValidateCursor(int afterSequence, int limit)
     {

@@ -15,12 +15,11 @@ public sealed class RemainingSystemsArchitectureTests
     {
         var allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Core.Infrastructure.Persistence.JsonFileRunStateRepository",
-            "Core.Infrastructure.Persistence.VersionedRunStateRepository"
+            "Core.Infrastructure.Persistence.FileRunCommitStore"
         };
-        var implementations = typeof(IRunStateRepository).Assembly
+        var implementations = typeof(IRunCommitStore).Assembly
             .GetTypes()
-            .Where(type => !type.IsAbstract && typeof(IRunStateRepository).IsAssignableFrom(type))
+            .Where(type => !type.IsAbstract && typeof(IRunCommitStore).IsAssignableFrom(type))
             .Select(type => type.FullName!)
             .ToHashSet(StringComparer.Ordinal);
 

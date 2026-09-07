@@ -30,7 +30,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly ICardContentCatalog? _cardContentCatalog;
     private readonly IPinnedContentCatalog<ScriptModifierDefinition>? _scriptModifierCatalog;
     private readonly IEventBus? _eventBus;
-    private readonly IRunStateRepository? _repository;
+    private readonly IRunCommitStore? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly IContentPublicationService? _contentPublications;
     private readonly IContentRuntimeResolver? _contentRuntimes;
@@ -52,7 +52,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         ICardContentCatalog? cardContentCatalog = null,
         IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierCatalog = null,
         IEventBus? eventBus = null,
-        IRunStateRepository? repository = null,
+        IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
@@ -330,7 +330,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         // Cache miss — try loading from repository
         if (_repository != null)
         {
-            var loaded = _repository.LoadLatestAsync(runId).GetAwaiter().GetResult();
+            var loaded = _repository.LoadLatestStateAsync(runId).GetAwaiter().GetResult();
             if (loaded != null)
             {
                 var compatibility = ValidateLoadedRunCompatibility(loaded);
@@ -364,18 +364,18 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             if (_commandReceipts.TryGetValue((runId, commandId), out var cached))
                 return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
 
-            if (_repository is not IRunCheckpointRepository checkpoints)
+            if (_repository == null)
                 return Result<RunCommandReceipt?>.Success(null);
 
             try
             {
-                var checkpoint = checkpoints.LoadCheckpointsAsync(runId)
+                var commit = _repository.LoadCommitsAsync(runId)
                     .GetAwaiter().GetResult()
-                    .LastOrDefault(item => item.JournalEntry.CommandId == commandId);
-                if (checkpoint == null)
+                    .LastOrDefault(item => item.RootCommand.CommandId == commandId);
+                if (commit == null)
                     return Result<RunCommandReceipt?>.Success(null);
 
-                var receipt = CreateReceipt(checkpoint.State, checkpoint.JournalEntry, duplicate: true);
+                var receipt = CreateReceipt(commit, duplicate: true);
                 _commandReceipts[(runId, commandId)] = receipt with { Duplicate = false };
                 return Result<RunCommandReceipt?>.Success(receipt);
             }
@@ -655,7 +655,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             return Result.Failure("Run persistence is not configured");
 
         var request = DeserializePayload<CheckpointCommand>(payload);
-        var state = _repository.LoadAsync(runId, request.Sequence).GetAwaiter().GetResult();
+        var state = _repository.LoadStateAsync(runId, request.Sequence).GetAwaiter().GetResult();
         return state == null
             ? Result.Failure($"Run checkpoint not found: {runId}/{request.Sequence}")
             : ToResult(RestoreState(state));
@@ -779,7 +779,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var runIds = _repository.ListRunIdsAsync().GetAwaiter().GetResult();
             foreach (var runId in runIds.OrderBy(id => id))
             {
-                var loaded = _repository.LoadLatestAsync(runId).GetAwaiter().GetResult();
+                var loaded = _repository.LoadLatestStateAsync(runId).GetAwaiter().GetResult();
                 if (loaded?.GetEncounter(combatId) == null)
                     continue;
 
@@ -855,7 +855,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         RunState? initializedRun = null,
         RunEncounterStartCommand? initialCommand = null,
         CombatState? stateBeforeInitialization = null,
-        CombatResolutionStep? initializationStep = null)
+        CombatResolutionStep? initializationStep = null,
+        JsonElement rootPayload = default)
     {
         if (combatState == null)
             return Result<RunState>.Failure("Combat state is required");
@@ -978,8 +979,10 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             return Persist(
                 candidate,
                 RunCommandTypes.StartEncounter,
-                journalCommand,
-                commandIdentity);
+                rootPayload.ValueKind == JsonValueKind.Undefined ? journalCommand : rootPayload,
+                commandIdentity,
+                scope: "combat",
+                combatId: combatState.CombatId);
         }
     }
 
@@ -1189,7 +1192,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 (ulong)index,
                 $"combat-frame:{rootCommand.CommandId:N}"),
             Index = index,
-            RunSequence = checked(state.Sequence + index + 1),
+            RunSequence = checked(state.Sequence + 1),
             CombatStep = candidate.Step.Combat.Determinism.Step,
             TransitionType = candidate.Step.TransitionType,
             Payload = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
@@ -1201,7 +1204,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             StateAfter = mode == AnimationFrameMode.FullSnapshots
                 ? candidate.Step.Combat
                 : null,
-            SnapshotSequence = checked(state.Sequence + index + 1)
+            SnapshotSequence = checked(state.Sequence + 1)
         }).ToArray();
         return new CombatResolutionRecord
         {
@@ -1229,7 +1232,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         Guid runId,
         int expectedSequence,
         Guid combatId,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        JsonElement rootPayload = default)
     {
         lock (_lock)
         {
@@ -1286,14 +1290,18 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             return Persist(
                 candidate,
                 RunCommandTypes.ResolveCombat,
-                new
+                rootPayload.ValueKind == JsonValueKind.Undefined
+                    ? JsonSerializer.SerializeToElement(new
                 {
                     combatId,
                     nodeId = encounter.NodeId,
                     outcome = resolved.Outcome,
                     combatStateHash = CanonicalJson.ComputeHash(encounter.Combat)
-                },
-                commandIdentity);
+                }, _jsonOptions)
+                    : rootPayload,
+                commandIdentity,
+                scope: "combat",
+                combatId: combatId);
         }
     }
 
@@ -2257,14 +2265,16 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     }
 
     /// <summary>
-    /// Cria e grava um checkpoint antes de publicar o novo snapshot em memória.
-    /// Falhas de durabilidade são devolvidas ao chamador e não alteram a run ativa.
+    /// Appends one authoritative command commit before publishing the candidate
+    /// in memory. A durability failure leaves the active aggregate untouched.
     /// </summary>
     private Result<RunState> Persist(
         RunState state,
         string commandType,
         object command,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        string scope = "run",
+        Guid? combatId = null)
     {
         _runs.TryGetValue(state.RunId, out var previous);
         try
@@ -2277,42 +2287,47 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             var nextSequence = checked((previous?.Sequence ?? 0) + 1);
             state = state with { Sequence = nextSequence };
             var snapshot = CreateSnapshot(state);
-            var stateHash = CanonicalJson.ComputeHash(snapshot);
             var previousHash = previous == null
                 ? string.Empty
                 : CanonicalJson.ComputeHash(previous);
-            var entry = new RunJournalEntry
+            var effectiveIdentity = NormalizeCommitIdentity(
+                identity,
+                snapshot,
+                previous,
+                effectiveType,
+                effectiveCommand);
+            var commit = new RunCommit
             {
-                RunId = snapshot.RunId,
-                CommandId = identity?.CommandId,
-                Sequence = snapshot.Sequence,
-                Step = snapshot.Determinism.Step,
-                ExpectedSequence = identity?.ExpectedSequence,
-                ExpectedStep = identity?.ExpectedStep,
-                CommandPayloadHash = identity?.PayloadHash ?? string.Empty,
-                CommandType = effectiveType,
+                RunId = state.RunId,
+                Sequence = nextSequence,
+                RootCommand = effectiveIdentity,
                 Command = effectiveCommand,
                 PreviousStateHash = previousHash,
-                StateHash = stateHash,
-                LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime
+                StateHash = CanonicalJson.ComputeHash(snapshot),
+                BeforeStep = previous?.Determinism.Step ?? 0,
+                AfterStep = snapshot.Determinism.Step,
+                LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime,
+                StateAfter = snapshot,
+                Frames =
+                [
+                    new RunCommitFrame
+                    {
+                        FrameIndex = 0,
+                        Step = snapshot.Determinism.Step,
+                        Scope = scope,
+                        Kind = effectiveType,
+                        CombatId = combatId,
+                        ResultHash = CanonicalJson.ComputeHash(snapshot),
+                        Resolution = effectiveCommand
+                    }
+                ]
             };
 
-            if (_repository is IRunCheckpointRepository checkpoints)
-            {
-                checkpoints.SaveCheckpointAsync(new RunCheckpoint(snapshot, entry))
-                    .GetAwaiter().GetResult();
-            }
-            else if (_repository != null)
-            {
-                _repository.SaveAsync(snapshot).GetAwaiter().GetResult();
-            }
+            _repository?.AppendAsync(commit).GetAwaiter().GetResult();
 
             _runs[state.RunId] = state;
-            if (entry.CommandId is { } commandId)
-            {
-                _commandReceipts[(state.RunId, commandId)] =
-                    CreateReceipt(state, entry, duplicate: false);
-            }
+            _commandReceipts[(state.RunId, effectiveIdentity.CommandId)] =
+                CreateReceipt(commit, duplicate: false);
             return Result<RunState>.Success(state);
         }
         catch (Exception exception)
@@ -2335,84 +2350,55 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     {
         try
         {
-            var checkpoints = new List<RunCheckpoint>(candidates.Count);
-            var priorState = previous;
-            for (var index = 0; index < candidates.Count; index++)
+            if (candidates.Count == 0)
+                return Result<RunState>.Failure("A run commit requires at least one transition frame");
+            var sequence = checked(previous.Sequence + 1);
+            var finalState = CreateSnapshot(candidates[^1].State with { Sequence = sequence });
+            var commandPayload = rootPayload.ValueKind == JsonValueKind.Undefined
+                ? candidates[^1].Step.Payload.ValueKind == JsonValueKind.Undefined
+                    ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
+                    : candidates[^1].Step.Payload.Clone()
+                : rootPayload.Clone();
+            var identity = NormalizeCommitIdentity(
+                rootCommand,
+                finalState,
+                previous,
+                rootCommand?.Type ?? candidates[^1].Step.TransitionType,
+                commandPayload);
+            var frames = candidates.Select((candidate, index) => new RunCommitFrame
             {
-                var isFinal = index == candidates.Count - 1;
-                var candidate = candidates[index];
-                var state = candidate.State with
-                {
-                    Sequence = checked(previous.Sequence + index + 1)
-                };
-                var snapshot = CreateSnapshot(state);
-                var stateHash = CanonicalJson.ComputeHash(snapshot);
-                var previousHash = CanonicalJson.ComputeHash(priorState);
-                var internalId = rootCommand == null
-                    ? (Guid?)null
-                    : DeterministicId.Create(
-                        previous.Determinism.Seed,
-                        (ulong)index,
-                        $"combat-resolution:{rootCommand.CommandId:N}:{candidate.Step.TransitionType}");
-                var commandId = isFinal && rootCommand != null
-                    ? rootCommand.CommandId
-                    : internalId;
-                var entry = new RunJournalEntry
-                {
-                    RunId = state.RunId,
-                    CommandId = commandId,
-                    RootCommandId = rootCommand?.CommandId,
-                    CausationId = rootCommand?.CommandId,
-                    TransitionIndex = index,
-                    TransitionCount = candidates.Count,
-                    Sequence = snapshot.Sequence,
-                    Step = snapshot.Determinism.Step,
-                    ExpectedSequence = isFinal ? rootCommand?.ExpectedSequence : null,
-                    ExpectedStep = isFinal ? rootCommand?.ExpectedStep : null,
-                    CommandPayloadHash = isFinal ? rootCommand?.PayloadHash ?? string.Empty : string.Empty,
-                    CommandType = isFinal && rootCommand != null
-                        ? rootCommand.Type
-                        : candidate.Step.TransitionType,
-                    Command = isFinal && rootPayload.ValueKind != JsonValueKind.Undefined
-                        ? rootPayload.Clone()
-                        : candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
-                        ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
-                        : candidate.Step.Payload.Clone(),
-                    PreviousStateHash = previousHash,
-                    StateHash = stateHash,
-                    LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime
-                };
-                checkpoints.Add(new RunCheckpoint(snapshot, entry));
-                priorState = state;
-            }
-
-            var batch = new RunCheckpointBatch
+                FrameIndex = index,
+                Step = candidate.State.Determinism.Step,
+                Scope = "combat",
+                Kind = candidate.Step.TransitionType,
+                CombatId = candidate.Step.Combat.CombatId,
+                ActorId = candidate.Step.Combat.ActivationState?.ActiveActorId,
+                PhaseId = candidate.Step.Combat.PhaseState?.CurrentPhaseId,
+                ResultHash = CanonicalJson.ComputeHash(candidate.Step.Combat),
+                Resolution = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
+                    ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
+                    : candidate.Step.Payload.Clone()
+            }).ToArray();
+            var commit = new RunCommit
             {
                 RunId = previous.RunId,
-                RootCommandId = rootCommand?.CommandId,
-                Checkpoints = checkpoints
+                Sequence = sequence,
+                RootCommand = identity,
+                Command = commandPayload,
+                PreviousStateHash = CanonicalJson.ComputeHash(previous),
+                StateHash = CanonicalJson.ComputeHash(finalState),
+                BeforeStep = previous.Determinism.Step,
+                AfterStep = finalState.Determinism.Step,
+                LogicalTimestamp = finalState.Determinism.LogicalTimestamp.UtcDateTime,
+                StateAfter = finalState,
+                Frames = frames
             };
-            if (_repository is IRunCheckpointRepository checkpointRepository)
-            {
-                checkpointRepository.SaveCheckpointBatchAsync(batch).GetAwaiter().GetResult();
-            }
-            else if (_repository != null)
-            {
-                _repository.SaveAsync(checkpoints[^1].State).GetAwaiter().GetResult();
-            }
 
-            var finalState = candidates[^1].State with { Sequence = checkpoints[^1].State.Sequence };
+            _repository?.AppendAsync(commit).GetAwaiter().GetResult();
+
             _runs[previous.RunId] = finalState;
-            foreach (var checkpoint in checkpoints)
-            {
-                if (checkpoint.JournalEntry.CommandId is { } commandId)
-                {
-                    _commandReceipts[(previous.RunId, commandId)] = CreateReceipt(
-                        checkpoint.State,
-                        checkpoint.JournalEntry,
-                        duplicate: false);
-                }
-            }
+            _commandReceipts[(previous.RunId, identity.CommandId)] =
+                CreateReceipt(commit, duplicate: false);
             return Result<RunState>.Success(finalState);
         }
         catch (Exception exception)
@@ -2424,23 +2410,46 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         }
     }
 
-    private static RunCommandReceipt CreateReceipt(
-        RunState state,
-        RunJournalEntry entry,
-        bool duplicate)
+    private static RunCommandReceipt CreateReceipt(RunCommit commit, bool duplicate)
     {
+        var entry = commit.ToJournalEntry();
         return new RunCommandReceipt
         {
-            CommandId = entry.CommandId ?? Guid.Empty,
+            CommandId = commit.RootCommand.CommandId,
             CommandType = entry.CommandType,
             Sequence = entry.Sequence,
             Step = entry.Step,
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
-            State = state,
+            State = commit.StateAfter,
             JournalEntry = entry,
             Duplicate = duplicate
         };
+    }
+
+    private static RunCommandIdentity NormalizeCommitIdentity(
+        RunCommandIdentity? identity,
+        RunState next,
+        RunState? previous,
+        string commandType,
+        JsonElement payload)
+    {
+        var payloadHash = CanonicalJson.ComputeHash(payload);
+        if (identity != null && !string.IsNullOrWhiteSpace(identity.PayloadHash) &&
+            !string.Equals(identity.PayloadHash, payloadHash, StringComparison.Ordinal))
+            throw new InvalidOperationException("Root command payload differs from its canonical envelope");
+        if (identity != null)
+            return identity with { Type = commandType, PayloadHash = payloadHash };
+
+        return new RunCommandIdentity(
+            DeterministicId.Create(
+                next.Determinism.Seed,
+                checked((ulong)next.Sequence),
+                $"run-command:{next.RunId:N}:{commandType}:{payloadHash}"),
+            commandType,
+            previous?.Sequence ?? 0,
+            previous?.Determinism.Step ?? 0,
+            payloadHash);
     }
 
     private static bool IsSameCommand(RunJournalEntry entry, GameplayCommandEnvelope command)

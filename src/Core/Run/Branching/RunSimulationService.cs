@@ -60,12 +60,12 @@ public interface IRunSimulationService
 public sealed class RunSimulationService : IRunSimulationService
 {
     private readonly IRunBranchService _branches;
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
     private readonly IGameplayCommandGateway _commands;
 
     public RunSimulationService(
         IRunBranchService branches,
-        IRunStateRepository repository,
+        IRunCommitStore repository,
         IGameplayCommandGateway commands)
     {
         _branches = branches;
@@ -83,7 +83,7 @@ public sealed class RunSimulationService : IRunSimulationService
             return Result<RunSimulationResult>.Failure("Simulation commands are required");
         if (commands.Any(command => string.IsNullOrWhiteSpace(command.Type)))
             return Result<RunSimulationResult>.Failure("Every simulation command requires a type");
-        var source = await _repository.LoadAsync(sourceRunId, sourceSequence, cancellationToken).ConfigureAwait(false);
+        var source = await _repository.LoadStateAsync(sourceRunId, sourceSequence, cancellationToken).ConfigureAwait(false);
         if (source == null)
             return Result<RunSimulationResult>.Failure($"Run checkpoint not found: {sourceRunId}/{sourceSequence}");
         var capability = source.ResolvedMode?.CapabilityPolicy;
@@ -148,7 +148,7 @@ public sealed class RunSimulationService : IRunSimulationService
         Guid simulationId,
         CancellationToken cancellationToken = default)
     {
-        var state = await _repository.LoadLatestAsync(simulationId, cancellationToken).ConfigureAwait(false);
+        var state = await _repository.LoadLatestStateAsync(simulationId, cancellationToken).ConfigureAwait(false);
         if (state == null || state.ParentRunId == null || state.BranchFromSequence == null ||
             state.BranchKey == null || !state.BranchKey.StartsWith("simulation:", StringComparison.Ordinal))
         {
@@ -164,7 +164,7 @@ public sealed class RunSimulationService : IRunSimulationService
         int commandsExecuted,
         CancellationToken cancellationToken)
     {
-        var source = await _repository.LoadAsync(
+        var source = await _repository.LoadStateAsync(
             state.ParentRunId!.Value,
             state.BranchFromSequence!.Value,
             cancellationToken).ConfigureAwait(false);
@@ -217,22 +217,18 @@ public sealed class RunSimulationService : IRunSimulationService
         int commandsExecuted,
         CancellationToken cancellationToken)
     {
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return [];
-        var entries = await checkpoints.LoadCheckpointsAsync(state.RunId, cancellationToken).ConfigureAwait(false);
+        var entries = await _repository.LoadCommitsAsync(state.RunId, cancellationToken).ConfigureAwait(false);
         return entries
-            .Where(item => item.State.Sequence > 1)
-            .GroupBy(item => item.JournalEntry.RootCommandId ?? item.JournalEntry.CommandId)
-            .Select(group => group.OrderBy(item => item.State.Sequence).Last())
-            .OrderBy(item => item.State.Sequence)
+            .Where(item => item.Sequence > 1)
+            .OrderBy(item => item.Sequence)
             .Take(commandsExecuted)
             .Select((item, index) => new SimulationTimelineItem
             {
                 CommandIndex = index,
-                CommandType = item.JournalEntry.CommandType,
-                RunSequence = item.State.Sequence,
-                CombatStep = item.State.GetActiveEncounter()?.Combat.Determinism.Step,
-                StateHash = item.JournalEntry.StateHash
+                CommandType = item.RootCommand.Type,
+                RunSequence = item.Sequence,
+                CombatStep = item.StateAfter.GetActiveEncounter()?.Combat.Determinism.Step,
+                StateHash = item.StateHash
             })
             .ToArray();
     }
@@ -241,16 +237,8 @@ public sealed class RunSimulationService : IRunSimulationService
         RunState state,
         CancellationToken cancellationToken)
     {
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return System.Math.Max(0, state.Sequence - 1);
-        var journal = await checkpoints.LoadCheckpointsAsync(state.RunId, cancellationToken).ConfigureAwait(false);
-        return journal
-            .Select(checkpoint => checkpoint.JournalEntry)
-            .Where(entry => entry.Sequence > 1)
-            .Select(entry => entry.RootCommandId ?? entry.CommandId)
-            .Where(commandId => commandId.HasValue)
-            .Distinct()
-            .Count();
+        var journal = await _repository.LoadCommitsAsync(state.RunId, cancellationToken).ConfigureAwait(false);
+        return journal.Count(commit => commit.Sequence > 1);
     }
 
     private static int CountCards(DeckState deck) =>

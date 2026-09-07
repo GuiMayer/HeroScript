@@ -43,9 +43,9 @@ public interface IPlayerProfileProjectionReader
 /// </summary>
 public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionReader
 {
-    private readonly IRunStateRepository _runs;
+    private readonly IRunCommitStore _runs;
 
-    public PlayerProfileProjectionReader(IRunStateRepository runs)
+    public PlayerProfileProjectionReader(IRunCommitStore runs)
     {
         _runs = runs;
     }
@@ -59,7 +59,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
         foreach (var runId in (await _runs.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
                      .OrderBy(id => id))
         {
-            var state = await _runs.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
+            var state = await _runs.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
             if (state == null || !string.Equals(state.PlayerEntityId, playerId, StringComparison.Ordinal))
                 continue;
             if (state.BranchKey?.StartsWith("simulation:", StringComparison.Ordinal) == true)

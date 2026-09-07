@@ -10,11 +10,11 @@ namespace API.Controllers;
 [Route("api/v1/runs/{runId:guid}")]
 public sealed class RunJournalController : BaseApiController
 {
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
     private readonly IRunReplayService _replay;
 
     public RunJournalController(
-        IRunStateRepository repository,
+        IRunCommitStore repository,
         IRunReplayService replay,
         ILogger<RunJournalController> logger)
         : base(logger)
@@ -32,11 +32,13 @@ public sealed class RunJournalController : BaseApiController
     {
         if (afterSequence < 0 || limit is < 1 or > 1000)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid journal cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return JournalUnavailable();
-
-        var entries = await checkpoints.LoadJournalAsync(runId, afterSequence, limit, cancellationToken);
-        if (entries.Count == 0 && await _repository.LoadLatestAsync(runId, cancellationToken) == null)
+        var entries = (await _repository.LoadCommitsAsync(runId, cancellationToken))
+            .Where(commit => commit.Sequence > afterSequence)
+            .OrderBy(commit => commit.Sequence)
+            .Take(limit)
+            .Select(commit => commit.ToJournalEntry())
+            .ToArray();
+        if (entries.Length == 0 && await _repository.LoadLatestStateAsync(runId, cancellationToken) == null)
             return ApiNotFound($"Run journal not found: {runId}");
 
         return Ok(new
@@ -44,58 +46,52 @@ public sealed class RunJournalController : BaseApiController
             runId,
             afterSequence,
             lastSequence = entries.LastOrDefault()?.Sequence ?? afterSequence,
-            returned = entries.Count,
+            returned = entries.Length,
             entries
         });
     }
 
-    [HttpGet("checkpoints")]
-    public async Task<IActionResult> GetCheckpoints(
+    [HttpGet("commits")]
+    public async Task<IActionResult> GetCommits(
         Guid runId,
         CancellationToken cancellationToken = default)
     {
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return JournalUnavailable();
-
-        var journal = await checkpoints.LoadCheckpointsAsync(runId, cancellationToken);
+        var journal = await _repository.LoadCommitsAsync(runId, cancellationToken);
         if (journal.Count == 0)
-            return ApiNotFound($"Run checkpoints not found: {runId}");
+            return ApiNotFound($"Run commits not found: {runId}");
 
-        var retainedSnapshots = (await _repository.ListSnapshotsAsync(runId, cancellationToken)).ToHashSet();
         return Ok(new
         {
             runId,
             count = journal.Count,
-            checkpoints = journal.Select(item => new
+            commits = journal.Select(commit => new
             {
-                item.State.Sequence,
-                item.JournalEntry.Step,
-                item.JournalEntry.CommandId,
-                item.JournalEntry.CommandType,
-                item.JournalEntry.StateHash,
-                item.JournalEntry.PreviousStateHash,
-                item.JournalEntry.LogicalTimestamp,
-                snapshotRetained = retainedSnapshots.Contains(item.State.Sequence)
+                commit.Sequence,
+                step = commit.AfterStep,
+                commandId = commit.RootCommand.CommandId,
+                commandType = commit.RootCommand.Type,
+                commit.StateHash,
+                commit.PreviousStateHash,
+                commit.LogicalTimestamp,
+                frameCount = commit.Frames.Count,
+                factCount = commit.Facts.Count
             })
         });
     }
 
-    [HttpGet("checkpoints/{sequence:int}")]
-    public async Task<IActionResult> GetCheckpoint(
+    [HttpGet("commits/{sequence:int}")]
+    public async Task<IActionResult> GetCommit(
         Guid runId,
         int sequence,
         CancellationToken cancellationToken = default)
     {
         if (sequence < 1)
-            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid checkpoint", "Sequence must be positive");
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return JournalUnavailable();
+            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid commit", "Sequence must be positive");
 
-        var checkpoint = (await checkpoints.LoadCheckpointsAsync(runId, cancellationToken))
-            .FirstOrDefault(item => item.State.Sequence == sequence);
-        return checkpoint == null
-            ? ApiNotFound($"Run checkpoint not found: {runId}/{sequence}")
-            : Ok(checkpoint);
+        var commit = await _repository.LoadCommitAsync(runId, sequence, cancellationToken);
+        return commit == null
+            ? ApiNotFound($"Run commit not found: {runId}/{sequence}")
+            : Ok(commit);
     }
 
     [HttpGet("timeline")]
@@ -107,26 +103,23 @@ public sealed class RunJournalController : BaseApiController
     {
         if (afterSequence < 0 || limit is < 1 or > 1000)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return JournalUnavailable();
-        var retained = (await _repository.ListSnapshotsAsync(runId, cancellationToken)).ToHashSet();
-        var items = (await checkpoints.LoadCheckpointsAsync(runId, cancellationToken))
-            .Where(checkpoint => checkpoint.State.Sequence > afterSequence)
-            .OrderBy(checkpoint => checkpoint.State.Sequence)
+        var items = (await _repository.LoadCommitsAsync(runId, cancellationToken))
+            .Where(commit => commit.Sequence > afterSequence)
+            .OrderBy(commit => commit.Sequence)
             .Take(limit)
-            .Select(checkpoint => new
+            .Select(commit => new
             {
-                checkpoint.State.Sequence,
-                checkpoint.JournalEntry.Step,
-                checkpoint.JournalEntry.CommandId,
-                checkpoint.JournalEntry.CommandType,
-                checkpoint.JournalEntry.LogicalTimestamp,
-                checkpoint.JournalEntry.PreviousStateHash,
-                checkpoint.JournalEntry.StateHash,
-                snapshotRetained = retained.Contains(checkpoint.State.Sequence)
+                commit.Sequence,
+                step = commit.AfterStep,
+                commandId = commit.RootCommand.CommandId,
+                commandType = commit.RootCommand.Type,
+                commit.LogicalTimestamp,
+                commit.PreviousStateHash,
+                commit.StateHash,
+                frames = commit.Frames
             })
             .ToArray();
-        if (items.Length == 0 && await _repository.LoadLatestAsync(runId, cancellationToken) == null)
+        if (items.Length == 0 && await _repository.LoadLatestStateAsync(runId, cancellationToken) == null)
             return ApiNotFound($"Run timeline not found: {runId}");
         return Ok(new
         {
@@ -149,9 +142,4 @@ public sealed class RunJournalController : BaseApiController
             : Ok(verification);
     }
 
-    private IActionResult JournalUnavailable() => ApiProblem(
-        StatusCodes.Status503ServiceUnavailable,
-        ApiErrorCodes.DependencyUnavailable,
-        "Run journal unavailable",
-        "The configured repository does not support durable journals");
 }

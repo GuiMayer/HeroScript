@@ -16,6 +16,7 @@ using Core.Content;
 using Core.Determinism;
 using Core.Effects;
 using Core.Entity.Definitions;
+using Core.Events;
 using Core.Math;
 using Core.Resources;
 using Core.Run.Content;
@@ -50,7 +51,7 @@ public interface IRunReplayService
 /// </summary>
 public sealed class RunSemanticReplayService : IRunReplayService
 {
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ICardPoolResolver _cardPoolResolver;
@@ -71,7 +72,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunSemanticReplayService(
-        IRunStateRepository repository,
+        IRunCommitStore repository,
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ICardPoolResolver cardPoolResolver,
@@ -116,16 +117,13 @@ public sealed class RunSemanticReplayService : IRunReplayService
         Guid runId,
         CancellationToken cancellationToken = default)
     {
-        if (_repository is not IRunCheckpointRepository checkpointRepository)
-            return Failure(runId, "The configured run repository has no durable journal");
-
-        var checkpoints = (await checkpointRepository.LoadCheckpointsAsync(runId, cancellationToken)
+        var commits = (await _repository.LoadCommitsAsync(runId, cancellationToken)
                 .ConfigureAwait(false))
-            .OrderBy(item => item.JournalEntry.Sequence)
+            .OrderBy(item => item.Sequence)
             .ToArray();
-        if (checkpoints.Length == 0)
+        if (commits.Length == 0)
             return Failure(runId, $"Run journal not found: {runId}");
-        var structural = RunReplayVerifier.Verify(checkpoints);
+        var structural = RunReplayVerifier.Verify(commits);
         if (!structural.IsValid)
             return Failure(runId, string.Join("; ", structural.Errors));
 
@@ -134,17 +132,17 @@ public sealed class RunSemanticReplayService : IRunReplayService
         RunState? branchInitialState = null;
         try
         {
-            if (string.Equals(checkpoints[0].JournalEntry.CommandType, "run.start", StringComparison.Ordinal))
+            if (string.Equals(commits[0].RootCommand.Type, "run.start", StringComparison.Ordinal))
             {
-                startOptions = Deserialize<RunStartOptions>(checkpoints[0].JournalEntry.Command);
+                startOptions = Deserialize<RunStartOptions>(commits[0].Command);
             }
             else if (string.Equals(
-                         checkpoints[0].JournalEntry.CommandType,
+                         commits[0].RootCommand.Type,
                          "run.branch.start",
                          StringComparison.Ordinal))
             {
-                var branchCommand = Deserialize<RunBranchStartCommand>(checkpoints[0].JournalEntry.Command);
-                var source = await _repository.LoadAsync(
+                var branchCommand = Deserialize<RunBranchStartCommand>(commits[0].Command);
+                var source = await _repository.LoadStateAsync(
                         branchCommand.ParentRunId,
                         branchCommand.SourceSequence,
                         cancellationToken)
@@ -171,11 +169,11 @@ public sealed class RunSemanticReplayService : IRunReplayService
         RunState? current = null;
         var commandsReplayed = 0;
 
-        for (var checkpointIndex = 0; checkpointIndex < checkpoints.Length; checkpointIndex++)
+        for (var commitIndex = 0; commitIndex < commits.Length; commitIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var checkpoint = checkpoints[checkpointIndex];
-            var entry = checkpoint.JournalEntry;
+            var commit = commits[commitIndex];
+            var entry = commit.ToJournalEntry();
             if (entry.RunId != runId)
             {
                 errors.Add($"Journal run id mismatch at sequence {entry.Sequence}");
@@ -189,57 +187,11 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 break;
             }
 
-            if (entry.RootCommandId.HasValue && entry.TransitionCount > 1)
-            {
-                var group = checkpoints
-                    .Skip(checkpointIndex)
-                    .TakeWhile(item =>
-                        item.JournalEntry.RootCommandId == entry.RootCommandId)
-                    .ToArray();
-                if (group.Length != entry.TransitionCount ||
-                    group.Select(item => item.JournalEntry.TransitionIndex)
-                        .Where(index => index >= 0)
-                        .OrderBy(index => index)
-                        .SequenceEqual(Enumerable.Range(0, entry.TransitionCount)) == false)
-                {
-                    errors.Add($"Invalid combat resolution group at sequence {entry.Sequence}");
-                    break;
-                }
-
-                var root = group[^1].JournalEntry;
-                var groupedTransition = ReplayEntry(runtime, root, statesBySequence);
-                if (groupedTransition.IsFailure)
-                {
-                    errors.Add($"Sequence {root.Sequence} ({root.CommandType}) failed: {groupedTransition.Error}");
-                    break;
-                }
-
-                current = groupedTransition.Value;
-                runtime.SetRunId(current.RunId);
-                commandsReplayed += group.Length;
-                foreach (var item in group)
-                    statesBySequence[item.State.Sequence] = item.State;
-                var expected = group[^1];
-                var groupedActualHash = CanonicalJson.ComputeHash(current);
-                if (current.Sequence != expected.State.Sequence)
-                    errors.Add($"Sequence mismatch: journal {expected.State.Sequence}, replay {current.Sequence}");
-                if (current.Determinism.Step != expected.JournalEntry.Step)
-                    errors.Add(
-                        $"Step mismatch at sequence {expected.State.Sequence}: " +
-                        $"journal {expected.JournalEntry.Step}, replay {current.Determinism.Step}");
-                if (!string.Equals(expected.JournalEntry.StateHash, groupedActualHash, StringComparison.Ordinal))
-                    errors.Add($"State hash mismatch at sequence {expected.State.Sequence}");
-                checkpointIndex += group.Length - 1;
-                if (errors.Count > 0)
-                    break;
-                continue;
-            }
-
-            var transition = entry.Sequence == checkpoints[0].JournalEntry.Sequence
+            var transition = commitIndex == 0
                 ? startOptions != null
                     ? runtime.Runs.StartRun(startOptions)
                     : runtime.Runs.HydrateForReplay(branchInitialState!)
-                : ReplayEntry(runtime, entry, statesBySequence);
+                : ReplayCommit(runtime, commit, statesBySequence);
             if (transition.IsFailure)
             {
                 errors.Add($"Sequence {entry.Sequence} ({entry.CommandType}) failed: {transition.Error}");
@@ -261,12 +213,12 @@ public sealed class RunSemanticReplayService : IRunReplayService
                 break;
         }
 
-        var expectedFinalHash = checkpoints[^1].JournalEntry.StateHash;
+        var expectedFinalHash = commits[^1].StateHash;
         var actualFinalHash = current == null ? string.Empty : CanonicalJson.ComputeHash(current);
         return new RunSemanticReplayVerification
         {
             RunId = runId,
-            IsValid = errors.Count == 0 && commandsReplayed == checkpoints.Length,
+            IsValid = errors.Count == 0 && commandsReplayed == commits.Length,
             Reexecuted = true,
             CommandsReplayed = commandsReplayed,
             ExpectedFinalHash = expectedFinalHash,
@@ -341,7 +293,49 @@ public sealed class RunSemanticReplayService : IRunReplayService
             flowPlanner,
             gambits,
             abilityExecutor: ability);
-        return new ReplayRuntime(runs, combats);
+        var gateway = new GameplayCommandGateway(
+            runs,
+            runs,
+            combats,
+            new GameEventContextAccessor(),
+            GameplayCommandCodec.CreateDefault());
+        return new ReplayRuntime(runs, combats, gateway);
+    }
+
+    private Result<RunState> ReplayCommit(
+        ReplayRuntime runtime,
+        RunCommit commit,
+        IReadOnlyDictionary<int, RunState> statesBySequence)
+    {
+        var descriptor = GameplayCommandDescriptors.All.FirstOrDefault(item =>
+            string.Equals(item.Type, commit.RootCommand.Type, StringComparison.Ordinal));
+        if (descriptor != null)
+        {
+            // Commands issued through the public gateway carry its strict public
+            // payload. Internal engine transactions created before all callers
+            // reach that boundary carry a typed domain payload and are replayed
+            // by the corresponding domain handler below.
+            var envelope = new GameplayCommandEnvelope(commit.RootCommand, commit.Command);
+            var decoded = GameplayCommandCodec.CreateDefault().Decode(envelope);
+            if (decoded.IsFailure)
+                return ReplayEntry(runtime, commit.ToJournalEntry(), statesBySequence);
+
+            var combatId = commit.Frames
+                .Select(frame => frame.CombatId)
+                .FirstOrDefault(id => id.HasValue)
+                ?? runtime.Runs.GetRun(commit.RunId).ValueOr(new RunState()).ActiveEncounterId;
+            var executed = runtime.Gateway.Execute(
+                commit.RunId,
+                envelope,
+                descriptor.Route is GameplayCommandRoute.Combat or GameplayCommandRoute.ResolveEncounter
+                    ? combatId
+                    : null);
+            return executed.IsSuccess
+                ? Result<RunState>.Success(executed.Value.Receipt.State)
+                : Result<RunState>.Failure(executed.Error);
+        }
+
+        return ReplayEntry(runtime, commit.ToJournalEntry(), statesBySequence);
     }
 
     private Result<RunState> ReplayEntry(
@@ -589,14 +583,19 @@ public sealed class RunSemanticReplayService : IRunReplayService
 
     private sealed class ReplayRuntime
     {
-        public ReplayRuntime(RunManager runs, CombatRunCoordinator combats)
+        public ReplayRuntime(
+            RunManager runs,
+            CombatRunCoordinator combats,
+            IGameplayCommandGateway gateway)
         {
             Runs = runs;
             Combats = combats;
+            Gateway = gateway;
         }
 
         public RunManager Runs { get; }
         public CombatRunCoordinator Combats { get; }
+        public IGameplayCommandGateway Gateway { get; }
         public Guid RunId { get; private set; }
         public void SetRunId(Guid runId) => RunId = runId;
     }

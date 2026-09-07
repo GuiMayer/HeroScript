@@ -235,7 +235,6 @@ builder.Services.AddSingleton<ICombatRelicLifecycle>(sp => new CombatRelicLifecy
 var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
 var runStatePath = builder.Configuration.GetValue<string>("Persistence:RunStatePath") ?? "data/runs";
 var contentStorePath = builder.Configuration.GetValue<string>("Persistence:ContentStorePath") ?? "data/content";
-var maxRetainedSnapshots = builder.Configuration.GetValue<int>("Persistence:Snapshots:MaxRetainedSnapshots", 100);
 
 builder.Services.AddSingleton<IEventStore>(sp =>
 {
@@ -244,12 +243,13 @@ builder.Services.AddSingleton<IEventStore>(sp =>
     return new JsonFileEventStore(eventStorePath, logger);
 });
 
-builder.Services.AddSingleton<IRunStateRepository>(sp =>
+builder.Services.AddSingleton<IRunCommitStore>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("VersionedRunStateRepository"));
-    return new VersionedRunStateRepository(runStatePath, logger, maxRetainedSnapshots);
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("FileRunCommitStore"));
+    return new FileRunCommitStore(runStatePath, logger);
 });
+builder.Services.AddSingleton<IRunCommitReader>(sp => sp.GetRequiredService<IRunCommitStore>());
 
 // Register Run content and manager
 builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
@@ -365,7 +365,7 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<ICardContentCatalog>(),
     sp.GetRequiredService<IPinnedContentCatalog<ScriptModifierDefinition>>(),
     sp.GetRequiredService<IEventBus>(),
-    sp.GetRequiredService<IRunStateRepository>(),
+    sp.GetRequiredService<IRunCommitStore>(),
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
@@ -383,7 +383,7 @@ builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReade
 builder.Services.AddSingleton<Core.Meta.IPlayerProfileProjectionReader, Core.Meta.PlayerProfileProjectionReader>();
 builder.Services.AddSingleton<Core.Run.Branching.IRunBranchService>(sp =>
     new Core.Run.Branching.RunBranchService(
-        (Core.Abstractions.Persistence.IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
+        (Core.Abstractions.Persistence.IRunCommitStore)sp.GetRequiredService<IRunCommitStore>()));
 builder.Services.AddSingleton<Core.Run.Branching.IRunSimulationService, Core.Run.Branching.RunSimulationService>();
 
 // Register CombatOptions
@@ -438,12 +438,12 @@ builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxServ
     sp.GetRequiredService<ICombatScenarioCompiler>(),
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<ICombatRunCoordinator>(),
-    sp.GetRequiredService<IRunStateRepository>()));
+    sp.GetRequiredService<IRunCommitStore>()));
 builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
     sp.GetRequiredService<IRunManager>()));
 builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new CombatTimelineProjectionService(
     sp.GetRequiredService<IRunManager>(),
-    (IRunCheckpointRepository)sp.GetRequiredService<IRunStateRepository>()));
+    (IRunCommitStore)sp.GetRequiredService<IRunCommitStore>()));
 
 builder.Services.AddSingleton<Core.Entity.Definitions.EntityFactory>(sp => new Core.Entity.Definitions.EntityFactory(
     sp.GetRequiredService<EntityDefinitionLoader>(),

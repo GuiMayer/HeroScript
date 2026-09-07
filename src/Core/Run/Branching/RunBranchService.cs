@@ -59,9 +59,9 @@ public interface IRunBranchService
 
 public sealed class RunBranchService : IRunBranchService
 {
-    private readonly IRunCheckpointRepository _repository;
+    private readonly IRunCommitStore _repository;
 
-    public RunBranchService(IRunCheckpointRepository repository)
+    public RunBranchService(IRunCommitStore repository)
     {
         _repository = repository;
     }
@@ -81,7 +81,7 @@ public sealed class RunBranchService : IRunBranchService
         if (branchKey.Length > 128)
             return Result<RunState>.Failure("Branch key cannot exceed 128 characters");
 
-        var source = await _repository.LoadAsync(parentRunId, sourceSequence, cancellationToken)
+        var source = await _repository.LoadStateAsync(parentRunId, sourceSequence, cancellationToken)
             .ConfigureAwait(false);
         if (source == null)
             return Result<RunState>.Failure($"Run checkpoint not found: {parentRunId}/{sourceSequence}");
@@ -106,7 +106,7 @@ public sealed class RunBranchService : IRunBranchService
         if (created.IsFailure)
             return created;
 
-        var existing = await _repository.LoadLatestAsync(created.Value.RunId, cancellationToken)
+        var existing = await _repository.LoadLatestStateAsync(created.Value.RunId, cancellationToken)
             .ConfigureAwait(false);
         if (existing != null)
         {
@@ -118,20 +118,45 @@ public sealed class RunBranchService : IRunBranchService
         }
 
         var payload = JsonSerializer.SerializeToElement(command).Clone();
-        var entry = new RunJournalEntry
+        var payloadHash = CanonicalJson.ComputeHash(payload);
+        var identity = new RunCommandIdentity(
+            DeterministicId.Create(
+                created.Value.Determinism.Seed,
+                created.Value.Determinism.Step,
+                $"branch-command:{created.Value.RunId:N}:{payloadHash}"),
+            "run.branch.start",
+            0,
+            source.Determinism.Step,
+            payloadHash);
+        var commit = new RunCommit
         {
             RunId = created.Value.RunId,
             Sequence = created.Value.Sequence,
-            Step = created.Value.Determinism.Step,
-            CommandType = "run.branch.start",
+            RootCommand = identity,
             Command = payload,
             PreviousStateHash = string.Empty,
             StateHash = CanonicalJson.ComputeHash(created.Value),
-            LogicalTimestamp = created.Value.Determinism.LogicalTimestamp.UtcDateTime
+            BeforeStep = source.Determinism.Step,
+            AfterStep = created.Value.Determinism.Step,
+            LogicalTimestamp = created.Value.Determinism.LogicalTimestamp.UtcDateTime,
+            StateAfter = created.Value,
+            Frames =
+            [
+                new RunCommitFrame
+                {
+                    FrameIndex = 0,
+                    Step = created.Value.Determinism.Step,
+                    Scope = "run",
+                    Kind = "run.branch.start",
+                    CombatId = created.Value.ActiveEncounterId,
+                    ResultHash = CanonicalJson.ComputeHash(created.Value),
+                    Resolution = payload
+                }
+            ]
         };
         try
         {
-            await _repository.SaveCheckpointAsync(new RunCheckpoint(created.Value, entry), cancellationToken)
+            await _repository.AppendAsync(commit, cancellationToken)
                 .ConfigureAwait(false);
             return created;
         }
@@ -148,7 +173,7 @@ public sealed class RunBranchService : IRunBranchService
         var branches = new List<RunBranchSummary>();
         foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
         {
-            var state = await _repository.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
+            var state = await _repository.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
             if (state?.ParentRunId != parentRunId || state.BranchFromSequence == null || state.BranchKey == null ||
                 state.BranchKey.StartsWith("simulation:", StringComparison.Ordinal))
                 continue;
@@ -169,13 +194,13 @@ public sealed class RunBranchService : IRunBranchService
         Guid runId,
         CancellationToken cancellationToken = default)
     {
-        var selected = await _repository.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
+        var selected = await _repository.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
         if (selected == null)
             return Result<RunBranchTreeNode>.Failure($"Run not found: {runId}");
         var states = new Dictionary<Guid, RunState>();
         foreach (var id in await _repository.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
         {
-            var state = await _repository.LoadLatestAsync(id, cancellationToken).ConfigureAwait(false);
+            var state = await _repository.LoadLatestStateAsync(id, cancellationToken).ConfigureAwait(false);
             if (state != null)
                 states[state.RunId] = state;
         }
@@ -211,7 +236,7 @@ public sealed class RunBranchService : IRunBranchService
         var current = source;
         while (current.ParentRunId is { } parent)
         {
-            var parentState = await _repository.LoadLatestAsync(parent, cancellationToken).ConfigureAwait(false);
+            var parentState = await _repository.LoadLatestStateAsync(parent, cancellationToken).ConfigureAwait(false);
             if (parentState == null)
                 break;
             current = parentState;
@@ -224,7 +249,7 @@ public sealed class RunBranchService : IRunBranchService
         var count = 0;
         foreach (var runId in await _repository.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
         {
-            var state = await _repository.LoadLatestAsync(runId, cancellationToken).ConfigureAwait(false);
+            var state = await _repository.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
             if (state?.ParentRunId == null)
                 continue;
             if (await ResolveRootIdAsync(state, cancellationToken).ConfigureAwait(false) == rootId)

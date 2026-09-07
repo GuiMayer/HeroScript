@@ -29,13 +29,13 @@ public sealed class CombatSandboxService : ICombatSandboxService
     private readonly ICombatScenarioCompiler _compiler;
     private readonly IRunManager _runs;
     private readonly ICombatRunCoordinator _combats;
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
 
     public CombatSandboxService(
         ICombatScenarioCompiler compiler,
         IRunManager runs,
         ICombatRunCoordinator combats,
-        IRunStateRepository repository)
+        IRunCommitStore repository)
     {
         _compiler = compiler;
         _runs = runs;
@@ -104,7 +104,7 @@ public sealed class CombatSandboxService : ICombatSandboxService
         {
             foreach (var runId in _repository.ListRunIdsAsync().GetAwaiter().GetResult().OrderBy(id => id))
             {
-                var state = _repository.LoadLatestAsync(runId).GetAwaiter().GetResult();
+                var state = _repository.LoadLatestStateAsync(runId).GetAwaiter().GetResult();
                 if (state != null &&
                     string.Equals(state.ScenarioHash, scenarioHash, StringComparison.Ordinal) &&
                     string.Equals(state.AttemptKey, attemptKey, StringComparison.Ordinal))

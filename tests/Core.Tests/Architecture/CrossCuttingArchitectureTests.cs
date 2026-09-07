@@ -65,7 +65,7 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Events.IEventBus",
             "Core.Logging.ILogger",
             "Core.Math.IRuntimeFormulaEvaluator",
-            "Core.Abstractions.Persistence.IRunStateRepository"
+            "Core.Abstractions.Persistence.IRunCommitStore"
         };
 
         var missing = requiredContracts

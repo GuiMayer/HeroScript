@@ -12,12 +12,12 @@ namespace API.Controllers;
 public sealed class CombatJournalController : BaseApiController
 {
     private readonly IRunManager _runs;
-    private readonly IRunStateRepository _repository;
+    private readonly IRunCommitStore _repository;
     private readonly IRunReplayService _replay;
 
     public CombatJournalController(
         IRunManager runs,
-        IRunStateRepository repository,
+        IRunCommitStore repository,
         IRunReplayService replay,
         ILogger<CombatJournalController> logger)
         : base(logger)
@@ -39,16 +39,14 @@ public sealed class CombatJournalController : BaseApiController
         var run = _runs.GetRunByCombat(combatId);
         if (run.IsFailure)
             return ApiNotFound(run.Error);
-        if (_repository is not IRunCheckpointRepository checkpoints)
-            return JournalUnavailable();
-
-        var entries = (await checkpoints.LoadCheckpointsAsync(run.Value.RunId, cancellationToken))
-            .Where(item => item.JournalEntry.Sequence > afterSequence)
-            .Where(item => item.State.GetEncounter(combatId) != null)
-            .Where(item => IsCombatCommand(item.JournalEntry.CommandType))
-            .OrderBy(item => item.JournalEntry.Sequence)
+        var entries = (await _repository.LoadCommitsAsync(run.Value.RunId, cancellationToken))
+            .Where(commit => commit.Sequence > afterSequence)
+            .Where(commit => commit.StateAfter.GetEncounter(combatId) != null)
+            .Where(commit => commit.Frames.Any(frame => frame.CombatId == combatId) ||
+                             IsCombatCommand(commit.RootCommand.Type))
+            .OrderBy(commit => commit.Sequence)
             .Take(limit)
-            .Select(item => item.JournalEntry)
+            .Select(commit => commit.ToJournalEntry())
             .ToArray();
         return Ok(new
         {
@@ -98,9 +96,4 @@ public sealed class CombatJournalController : BaseApiController
         "EXECUTE_ACTION" or
         "END_TURN";
 
-    private IActionResult JournalUnavailable() => ApiProblem(
-        StatusCodes.Status503ServiceUnavailable,
-        ApiErrorCodes.DependencyUnavailable,
-        "Combat journal unavailable",
-        "The configured repository does not support durable journals");
 }

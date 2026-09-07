@@ -3,6 +3,7 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
 using Core.Resources;
+using System.Text.Json;
 
 namespace Core.Run;
 
@@ -24,7 +25,8 @@ public interface IRunManager
         RunState? initializedRun = null,
         RunEncounterStartCommand? initialCommand = null,
         CombatState? stateBeforeInitialization = null,
-        CombatResolutionStep? initializationStep = null);
+        CombatResolutionStep? initializationStep = null,
+        JsonElement rootPayload = default);
     Result<RunState> CommitCombatAction(
         Guid runId,
         int expectedSequence,
@@ -38,7 +40,8 @@ public interface IRunManager
         Guid runId,
         int expectedSequence,
         Guid combatId,
-        RunCommandIdentity? commandIdentity = null);
+        RunCommandIdentity? commandIdentity = null,
+        JsonElement rootPayload = default);
     Result<RunState> ApplyRunResource(
         Guid runId,
         string resourceId,

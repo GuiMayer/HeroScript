@@ -94,9 +94,9 @@ public interface ICombatTimelineProjectionService
 public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionService
 {
     private readonly IRunManager _runs;
-    private readonly IRunCheckpointRepository _repository;
+    private readonly IRunCommitStore _repository;
 
-    public CombatTimelineProjectionService(IRunManager runs, IRunCheckpointRepository repository)
+    public CombatTimelineProjectionService(IRunManager runs, IRunCommitStore repository)
     {
         _runs = runs;
         _repository = repository;
@@ -117,22 +117,22 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         if (access.IsFailure)
             return Result<CombatTimelinePage>.Failure(access.Error);
 
-        var retained = (await _repository.ListSnapshotsAsync(run.Value.RunId, cancellationToken)
+        var retained = (await _repository.ListCommitSequencesAsync(run.Value.RunId, cancellationToken)
                 .ConfigureAwait(false))
             .ToHashSet();
         var pageLimit = System.Math.Min(limit, run.Value.ResolvedMode!.TimelinePolicy.MaxItemsPerPage);
-        var items = (await _repository.LoadCheckpointsAsync(run.Value.RunId, cancellationToken)
+        var items = (await _repository.LoadCommitsAsync(run.Value.RunId, cancellationToken)
                 .ConfigureAwait(false))
-            .Where(checkpoint => checkpoint.State.Sequence > afterSequence)
-            .Where(checkpoint => checkpoint.State.GetEncounter(combatId) != null)
-            .Where(checkpoint => IsCombatTimelineEntry(checkpoint.JournalEntry.CommandType))
-            .OrderBy(checkpoint => checkpoint.State.Sequence)
+            .Where(commit => commit.Sequence > afterSequence)
+            .Where(commit => commit.StateAfter.GetEncounter(combatId) != null)
+            .Where(commit => IsCombatTimelineEntry(commit.RootCommand.Type))
+            .OrderBy(commit => commit.Sequence)
             .Take(pageLimit)
-            .Select(checkpoint => Map(
-                checkpoint,
+            .Select(commit => Map(
+                commit,
                 run.Value,
                 combatId,
-                retained.Contains(checkpoint.State.Sequence)))
+                retained.Contains(commit.Sequence)))
             .ToArray();
         var groups = run.Value.ResolvedMode!.TimelinePolicy.GroupByTurn
             ? items.GroupBy(item => item.Turn)
@@ -164,7 +164,7 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         var access = ValidateTimelineAccess(run.Value, historical: true, limit: 1);
         if (access.IsFailure)
             return Result<CombatTimelineHistoricalState>.Failure(access.Error);
-        var state = await _repository.LoadAsync(run.Value.RunId, sequence, cancellationToken).ConfigureAwait(false);
+        var state = await _repository.LoadStateAsync(run.Value.RunId, sequence, cancellationToken).ConfigureAwait(false);
         var combat = state?.GetEncounter(combatId)?.Combat;
         if (state == null || combat == null)
             return Result<CombatTimelineHistoricalState>.Failure($"Combat timeline state not found: {combatId}/{sequence}");
@@ -204,32 +204,30 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         "END_TURN";
 
     private static CombatTimelineItem Map(
-        RunCheckpoint checkpoint,
+        RunCommit commit,
         RunState currentRun,
         Guid combatId,
         bool snapshotAvailable)
     {
-        var combat = checkpoint.State.GetEncounter(combatId)!.Combat;
-        var resolutionCommandId = checkpoint.JournalEntry.RootCommandId ?? checkpoint.JournalEntry.CommandId;
-        var resolution = resolutionCommandId.HasValue
-            ? currentRun.GetCombatResolution(resolutionCommandId.Value)
-            : null;
+        var combat = commit.StateAfter.GetEncounter(combatId)!.Combat;
+        var resolutionCommandId = commit.RootCommand.CommandId;
+        var resolution = currentRun.GetCombatResolution(resolutionCommandId);
         return new CombatTimelineItem
         {
-            RunSequence = checkpoint.State.Sequence,
+            RunSequence = commit.Sequence,
             CombatStep = combat.Determinism.Step,
             Turn = combat.CurrentTurn,
             Phase = combat.PhaseState?.CurrentPhaseId,
             ActorId = combat.ActivationState?.ActiveActorId,
-            CommandType = checkpoint.JournalEntry.CommandType,
-            CommandId = checkpoint.JournalEntry.CommandId,
-            RootCommandId = checkpoint.JournalEntry.RootCommandId,
+            CommandType = commit.RootCommand.Type,
+            CommandId = commit.RootCommand.CommandId,
+            RootCommandId = commit.RootCommand.CommandId,
             ResolutionCommandId = resolution?.CommandId,
             ResolutionFingerprint = resolution?.ResolutionFingerprint,
-            PreviousStateHash = checkpoint.JournalEntry.PreviousStateHash,
-            StateHash = checkpoint.JournalEntry.StateHash,
+            PreviousStateHash = commit.PreviousStateHash,
+            StateHash = commit.StateHash,
             SnapshotAvailable = snapshotAvailable,
-            Summary = Summary(checkpoint.JournalEntry.Command)
+            Summary = Summary(commit.Command)
         };
     }
 

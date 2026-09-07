@@ -547,7 +547,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var journal = await journalResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, journalResponse.StatusCode);
         var journalEntries = journal.GetProperty("entries").EnumerateArray().ToArray();
-        Assert.True(journalEntries.Length > 3);
+        Assert.Equal(3, journalEntries.Length);
         Assert.Equal(journalEntries.Length, journal.GetProperty("returned").GetInt32());
         Assert.Equal("run.start", journalEntries[0].GetProperty("commandType").GetString());
         Assert.Contains(
@@ -556,14 +556,17 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Contains(
             journalEntries,
             entry => entry.GetProperty("commandType").GetString() == "END_TURN");
-        Assert.Contains(
+        Assert.DoesNotContain(
             journalEntries,
             entry => entry.GetProperty("commandType").GetString()!.StartsWith("combat.", StringComparison.Ordinal));
 
-        using var checkpointsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/checkpoints");
-        var checkpoints = await checkpointsResponse.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal(HttpStatusCode.OK, checkpointsResponse.StatusCode);
-        Assert.Equal(journalEntries.Length, checkpoints.GetProperty("count").GetInt32());
+        using var commitsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/commits");
+        var commits = await commitsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, commitsResponse.StatusCode);
+        Assert.Equal(journalEntries.Length, commits.GetProperty("count").GetInt32());
+        Assert.Contains(
+            commits.GetProperty("commits").EnumerateArray(),
+            commit => commit.GetProperty("frameCount").GetInt32() > 1);
 
         using var verifyResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var verificationBody = await verifyResponse.Content.ReadAsStringAsync();
