@@ -205,7 +205,7 @@ public sealed class RunSimulationService : IRunSimulationService
             : null;
         var executed = _commands.Execute(
             current.RunId,
-            new RunCommand(identity, payload),
+            new GameplayCommandEnvelope(identity, payload),
             combatId);
         return executed.IsFailure
             ? Result<RunState>.Failure(executed.Error)

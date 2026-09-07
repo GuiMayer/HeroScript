@@ -23,7 +23,7 @@ public sealed class GameplayCommandGatewayTests
         var processor = new Mock<IRunCommandProcessor>();
         processor.Setup(service => service.Execute(
                 runId,
-                It.Is<RunCommand>(command =>
+                It.Is<GameplayCommandEnvelope>(command =>
                     command.Identity.Type == RunCommandTypes.DrawCards &&
                     command.Identity.PayloadHash == CanonicalJson.ComputeHash(payload))))
             .Returns(Result<RunCommandReceipt>.Success(expected));
@@ -31,7 +31,7 @@ public sealed class GameplayCommandGatewayTests
 
         var result = gateway.Execute(
             runId,
-            new RunCommand(
+            new GameplayCommandEnvelope(
                 new RunCommandIdentity(commandId, " draw_cards ", 1, 0),
                 payload));
 
@@ -47,14 +47,14 @@ public sealed class GameplayCommandGatewayTests
 
         var result = gateway.Execute(
             Guid.NewGuid(),
-            new RunCommand(
+            new GameplayCommandEnvelope(
                 new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.DrawCards, 1, 0, "wrong"),
                 JsonSerializer.SerializeToElement(new { count = 1 })));
 
         Assert.True(result.IsFailure);
         Assert.Contains("payload hash", result.Error, StringComparison.OrdinalIgnoreCase);
         processor.Verify(service => service.Execute(
-            It.IsAny<Guid>(), It.IsAny<RunCommand>()), Times.Never);
+            It.IsAny<Guid>(), It.IsAny<GameplayCommandEnvelope>()), Times.Never);
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class GameplayCommandGatewayTests
 
         var result = gateway.Execute(
             runId,
-            new RunCommand(
+            new GameplayCommandEnvelope(
                 new RunCommandIdentity(commandId, RunCommandTypes.StartEncounter, 1, 0),
                 JsonSerializer.SerializeToElement(new
                 {
@@ -109,7 +109,7 @@ public sealed class GameplayCommandGatewayTests
         Assert.Equal(combat, result.Value.CombatState);
         Assert.Equal(receipt, result.Value.Receipt);
         processor.Verify(service => service.Execute(
-            It.IsAny<Guid>(), It.IsAny<RunCommand>()), Times.Never);
+            It.IsAny<Guid>(), It.IsAny<GameplayCommandEnvelope>()), Times.Never);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed class GameplayCommandGatewayTests
 
         var result = gateway.Execute(
             runId,
-            new RunCommand(
+            new GameplayCommandEnvelope(
                 new RunCommandIdentity(commandId, GameplayCommandTypes.PlayCard, 1, 0),
                 JsonSerializer.SerializeToElement(new
                 {

@@ -15,10 +15,6 @@ public sealed record RunCommandIdentity(
     ulong ExpectedStep,
     string PayloadHash = "");
 
-public sealed record RunCommand(
-    RunCommandIdentity Identity,
-    JsonElement Payload);
-
 public sealed record RunCommandReceipt
 {
     public Guid CommandId { get; init; }
@@ -35,7 +31,7 @@ public sealed record RunCommandReceipt
 public interface IRunCommandProcessor
 {
     Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId);
-    Result<RunCommandReceipt> Execute(Guid runId, RunCommand command);
+    Result<RunCommandReceipt> Execute(Guid runId, GameplayCommandEnvelope command);
 }
 
 public static class RunCommandErrors

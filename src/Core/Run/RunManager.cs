@@ -43,7 +43,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     private readonly object _lock = new();
     private readonly JsonSerializerOptions _jsonOptions;
-    private readonly AsyncLocal<RunCommand?> _executingCommand = new();
+    private readonly AsyncLocal<GameplayCommandEnvelope?> _executingCommand = new();
 
     public RunManager(
         IConfigManager configManager,
@@ -388,7 +388,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         }
     }
 
-    public Result<RunCommandReceipt> Execute(Guid runId, RunCommand command)
+    public Result<RunCommandReceipt> Execute(Guid runId, GameplayCommandEnvelope command)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(command.Identity);
@@ -484,16 +484,16 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         {
             RunCommandTypes.AdvanceNode => ToResult(AdvanceNode(
                 runId,
-                DeserializePayload<AdvanceNodePayload>(payload).TargetNodeId)),
+                DeserializePayload<AdvanceNodeCommand>(payload).TargetNodeId)),
             RunCommandTypes.ResolveNode => ToResult(ResolveCurrentNode(
                 runId,
-                DeserializePayload<ResolveNodePayload>(payload).CurrentNodeId)),
+                DeserializePayload<ResolveNodeCommand>(payload).CurrentNodeId)),
             RunCommandTypes.DrawCards => ToResult(DrawCards(
                 runId,
-                DeserializePayload<CountPayload>(payload).Count)),
+                DeserializePayload<CountCommand>(payload).Count)),
             RunCommandTypes.DiscardCards => ToResult(DiscardCards(
                 runId,
-                DeserializePayload<CardIdsPayload>(payload).CardIds)),
+                DeserializePayload<CardIdsCommand>(payload).CardIds)),
             RunCommandTypes.ShuffleDiscard => ShuffleDiscardIntoDrawPile(runId),
             RunCommandTypes.CreateCardSelection => ExecuteCreateCardSelection(runId, payload),
             RunCommandTypes.PickCardReward => ExecutePickCardReward(runId, payload),
@@ -519,55 +519,55 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     private Result ExecuteCreateCardSelection(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<CardSelectionPayload>(payload);
+        var request = DeserializePayload<CardSelectionCommand>(payload);
         return ToResult(CreateCardSelection(runId, request.SelectionId));
     }
 
     private Result ExecutePickCardReward(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<CardSelectionCardsPayload>(payload);
+        var request = DeserializePayload<CardSelectionCardsCommand>(payload);
         return ToResult(PickCards(runId, request.SelectionInstanceId, request.CardIds));
     }
 
     private Result ExecuteRerollCardReward(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<RerollCardSelectionPayload>(payload);
+        var request = DeserializePayload<RerollCardSelectionCommand>(payload);
         return ToResult(RerollCardSelection(runId, request.SelectionInstanceId, request.LockedCardIds));
     }
 
     private Result ExecuteDecomposeCardReward(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<CardSelectionItemPayload>(payload);
+        var request = DeserializePayload<CardSelectionItemCommand>(payload);
         return ToResult(DecomposeCardSelectionOption(runId, request.SelectionInstanceId, request.CardId));
     }
 
     private Result ExecuteCreateShop(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<ShopDefinitionPayload>(payload);
+        var request = DeserializePayload<ShopDefinitionCommand>(payload);
         return ToResult(CreateShop(runId, request.ShopId));
     }
 
     private Result ExecuteBuyShopItem(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<ShopItemPayload>(payload);
+        var request = DeserializePayload<ShopItemCommand>(payload);
         return ToResult(BuyShopItem(runId, request.ShopInstanceId, request.ItemId));
     }
 
     private Result ExecuteRerollShop(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<ShopPayload>(payload);
+        var request = DeserializePayload<ShopCommand>(payload);
         return ToResult(RerollShop(runId, request.ShopInstanceId));
     }
 
     private Result ExecuteCreatePreparation(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<PreparationDefinitionPayload>(payload);
+        var request = DeserializePayload<PreparationDefinitionCommand>(payload);
         return ToResult(CreatePreparation(runId, request.PreparationId));
     }
 
     private Result ExecutePreparationOption(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<PreparationPayload>(payload);
+        var request = DeserializePayload<PreparationCommand>(payload);
         return ToResult(ApplyPreparationOption(runId, request.PreparationInstanceId, request.OptionId));
     }
 
@@ -575,7 +575,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     {
         if (_relicCatalog == null)
             return Result.Failure("Relic content catalog is not configured");
-        var request = DeserializePayload<RelicPayload>(payload);
+        var request = DeserializePayload<RelicCommand>(payload);
         var run = _runs[runId];
         var definition = GetContentDefinition(
             run,
@@ -598,7 +598,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     private Result ExecuteRemoveRelic(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<RelicInstancePayload>(payload);
+        var request = DeserializePayload<RelicInstanceCommand>(payload);
         var transition = RelicTransitions.Remove(_runs[runId], request.RelicInstanceId);
         if (transition.IsFailure)
             return Result.Failure(transition.Error);
@@ -612,7 +612,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     {
         if (_cardUpgradeCatalog == null)
             return Result.Failure("Card upgrade content catalog is not configured");
-        var request = DeserializePayload<CardUpgradePayload>(payload);
+        var request = DeserializePayload<CardUpgradeCommand>(payload);
         var run = _runs[runId];
         var currentNode = run.Map.Nodes.FirstOrDefault(node =>
             string.Equals(node.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
@@ -654,7 +654,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (_repository == null)
             return Result.Failure("Run persistence is not configured");
 
-        var request = DeserializePayload<CheckpointPayload>(payload);
+        var request = DeserializePayload<CheckpointCommand>(payload);
         var state = _repository.LoadAsync(runId, request.Sequence).GetAwaiter().GetResult();
         return state == null
             ? Result.Failure($"Run checkpoint not found: {runId}/{request.Sequence}")
@@ -663,7 +663,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     private Result ExecuteActivateContentRevision(Guid runId, JsonElement payload)
     {
-        var request = DeserializePayload<ContentRevisionPayload>(payload);
+        var request = DeserializePayload<ContentRevisionCommand>(payload);
         if (string.IsNullOrWhiteSpace(request.Revision))
             return Result.Failure("Content revision is required");
         if (!_runs.TryGetValue(runId, out var state))
@@ -2443,7 +2443,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         };
     }
 
-    private static bool IsSameCommand(RunJournalEntry entry, RunCommand command)
+    private static bool IsSameCommand(RunJournalEntry entry, GameplayCommandEnvelope command)
     {
         return string.Equals(entry.CommandType, command.Identity.Type, StringComparison.Ordinal) &&
                entry.ExpectedSequence == command.Identity.ExpectedSequence &&
@@ -2497,28 +2497,4 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             StringComparer.OrdinalIgnoreCase);
     }
 
-    private sealed record AdvanceNodePayload(string TargetNodeId);
-    private sealed record ResolveNodePayload(string CurrentNodeId);
-    private sealed record CountPayload(int Count);
-    private sealed record CardIdsPayload(IReadOnlyList<string> CardIds);
-    private sealed record CardSelectionPayload(string SelectionId);
-    private sealed record CardSelectionCardsPayload(
-        Guid SelectionInstanceId,
-        IReadOnlyList<string> CardIds);
-    private sealed record RerollCardSelectionPayload(
-        Guid SelectionInstanceId,
-        IReadOnlyList<string>? LockedCardIds);
-    private sealed record CardSelectionItemPayload(
-        Guid SelectionInstanceId,
-        string CardId);
-    private sealed record ShopItemPayload(Guid ShopInstanceId, string ItemId);
-    private sealed record ShopPayload(Guid ShopInstanceId);
-    private sealed record ShopDefinitionPayload(string ShopId);
-    private sealed record PreparationPayload(Guid PreparationInstanceId, string OptionId);
-    private sealed record PreparationDefinitionPayload(string PreparationId);
-    private sealed record RelicPayload(string RelicId);
-    private sealed record RelicInstancePayload(Guid RelicInstanceId);
-    private sealed record CardUpgradePayload(Guid CardInstanceId, string UpgradeId);
-    private sealed record CheckpointPayload(int Sequence);
-    private sealed record ContentRevisionPayload(string Revision);
 }

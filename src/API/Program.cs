@@ -376,6 +376,7 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<IResourceManager>()));
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<RunManager>());
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<RunManager>());
+builder.Services.AddSingleton<IGameplayCommandCodec>(_ => GameplayCommandCodec.CreateDefault());
 builder.Services.AddSingleton<IGameplayCommandGateway, GameplayCommandGateway>();
 builder.Services.AddSingleton<IRunReplayService, RunSemanticReplayService>();
 builder.Services.AddSingleton<IRunEventProjectionReader, RunEventProjectionReader>();

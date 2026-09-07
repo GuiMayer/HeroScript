@@ -959,7 +959,7 @@ public sealed class RunManagerTests
         var started = manager.StartRun(new RunStartOptions(
             "test", "default_run", "hero", Seed: 500UL, ContentRevision: "test")).Value;
         var payload = JsonSerializer.SerializeToElement(new { currentNodeId = "start" });
-        var command = new RunCommand(
+        var command = new GameplayCommandEnvelope(
             new RunCommandIdentity(
                 Guid.NewGuid(),
                 RunCommandTypes.ResolveNode,
@@ -971,7 +971,7 @@ public sealed class RunManagerTests
         var first = manager.Execute(started.RunId, command);
         var retry = manager.Execute(started.RunId, command);
         var stalePayload = JsonSerializer.SerializeToElement(new { targetNodeId = "reward" });
-        var stale = manager.Execute(started.RunId, new RunCommand(
+        var stale = manager.Execute(started.RunId, new GameplayCommandEnvelope(
             new RunCommandIdentity(
                 Guid.NewGuid(),
                 RunCommandTypes.AdvanceNode,
@@ -1002,7 +1002,7 @@ public sealed class RunManagerTests
             var started = manager.StartRun(new RunStartOptions(
                 "test", "default_run", "hero", Seed: 501UL, ContentRevision: "test")).Value;
             var payload = JsonSerializer.SerializeToElement(new { currentNodeId = "start" });
-            var command = new RunCommand(
+            var command = new GameplayCommandEnvelope(
                 new RunCommandIdentity(
                     Guid.NewGuid(),
                     RunCommandTypes.ResolveNode,

@@ -1,6 +1,4 @@
-using System.Text.Json;
 using API.Contracts;
-using Core.Determinism;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 
@@ -43,30 +41,26 @@ public sealed class RunCommandController : BaseApiController
                 "ExpectedSequence and ExpectedStep are required for run commands");
         }
 
-        var type = envelope.Type.Trim().ToUpperInvariant();
-        var payload = envelope.Payload.ValueKind == JsonValueKind.Undefined
-            ? JsonSerializer.SerializeToElement(new { })
-            : envelope.Payload.Clone();
         var identity = new RunCommandIdentity(
             envelope.CommandId,
-            type,
+            envelope.Type,
             envelope.ExpectedSequence.Value,
-            envelope.ExpectedStep.Value,
-            CanonicalJson.ComputeHash(payload));
+            envelope.ExpectedStep.Value);
 
         try
         {
-            var result = _commands.Execute(runId, new RunCommand(identity, payload));
+            var result = _commands.Execute(
+                runId,
+                new GameplayCommandEnvelope(identity, envelope.Payload));
             return result.IsSuccess
                 ? Ok(MapReceipt(result.Value.Receipt))
                 : MapFailure(
                     runId,
                     result.Error,
-                    useCombatStep: type == RunCommandTypes.ResolveCombat);
-        }
-        catch (JsonException exception)
-        {
-            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid command payload", exception.Message);
+                    useCombatStep: string.Equals(
+                        envelope.Type.Trim(),
+                        RunCommandTypes.ResolveCombat,
+                        StringComparison.OrdinalIgnoreCase));
         }
         catch (Exception exception)
         {

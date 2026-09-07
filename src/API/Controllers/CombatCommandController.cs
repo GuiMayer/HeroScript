@@ -1,7 +1,4 @@
-using System.Text.Json;
 using API.Contracts;
-using Core.Combat.Models;
-using Core.Determinism;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 
@@ -48,34 +45,17 @@ public sealed class CombatCommandController : BaseApiController
         if (runResult.IsFailure)
             return ApiNotFound(runResult.Error);
 
-        var type = envelope.Type.Trim().ToUpperInvariant();
-        if (type is not GameplayCommandTypes.PlayCard and
-            not GameplayCommandTypes.ExecuteAction and
-            not GameplayCommandTypes.EndTurn)
-        {
-            return ApiProblem(
-                StatusCodes.Status422UnprocessableEntity,
-                ApiErrorCodes.RuleViolation,
-                "Command rejected",
-                $"Unsupported combat command type: {type}",
-                runResult.Value.Sequence,
-                runResult.Value.GetEncounter(combatId)?.Combat.Determinism.Step);
-        }
-        var payload = envelope.Payload.ValueKind == JsonValueKind.Undefined
-            ? JsonSerializer.SerializeToElement(new { })
-            : envelope.Payload.Clone();
         var identity = new RunCommandIdentity(
             envelope.CommandId,
-            type,
+            envelope.Type,
             envelope.ExpectedSequence.Value,
-            envelope.ExpectedStep.Value,
-            CanonicalJson.ComputeHash(payload));
+            envelope.ExpectedStep.Value);
 
         try
         {
             var result = _commands.Execute(
                 runResult.Value.RunId,
-                new RunCommand(identity, payload),
+                new GameplayCommandEnvelope(identity, envelope.Payload),
                 combatId);
             if (result.IsFailure)
                 return MapFailure(runResult.Value.RunId, combatId, result.Error);
@@ -90,10 +70,6 @@ public sealed class CombatCommandController : BaseApiController
                     resolution = receipt.State.GetCombatResolution(receipt.CommandId)
                 },
                 step: encounter?.Combat.Determinism.Step));
-        }
-        catch (JsonException exception)
-        {
-            return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid command payload", exception.Message);
         }
         catch (Exception exception)
         {

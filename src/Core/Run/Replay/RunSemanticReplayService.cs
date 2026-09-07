@@ -388,7 +388,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
 
     private Result<RunState> ReplayGatewayRunCommand(ReplayRuntime runtime, RunJournalEntry entry)
     {
-        var command = new RunCommand(CreateIdentity(entry), entry.Command);
+        var command = new GameplayCommandEnvelope(CreateIdentity(entry), entry.Command);
         var result = runtime.Runs.Execute(entry.RunId, command);
         return result.IsSuccess
             ? Result<RunState>.Success(result.Value.State)

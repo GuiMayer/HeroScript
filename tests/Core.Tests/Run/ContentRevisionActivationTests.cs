@@ -31,7 +31,7 @@ public sealed class ContentRevisionActivationTests
             Assert.True(restored.IsSuccess, restored.IsFailure ? restored.Error : null);
             var initial = restored.Value;
 
-            var receipt = manager.Execute(initial.RunId, new RunCommand(
+            var receipt = manager.Execute(initial.RunId, new GameplayCommandEnvelope(
                 new RunCommandIdentity(
                     Guid.NewGuid(),
                     RunCommandTypes.ActivateContentRevision,
@@ -81,7 +81,7 @@ public sealed class ContentRevisionActivationTests
         Assert.True(restored.IsSuccess, restored.IsFailure ? restored.Error : null);
         state = restored.Value;
 
-        var result = manager.Execute(state.RunId, new RunCommand(
+        var result = manager.Execute(state.RunId, new GameplayCommandEnvelope(
             new RunCommandIdentity(
                 Guid.NewGuid(),
                 RunCommandTypes.ActivateContentRevision,
@@ -459,7 +459,7 @@ public sealed class ContentRevisionActivationTests
         string revision)
     {
         var payload = JsonSerializer.SerializeToElement(new { revision });
-        return manager.Execute(state.RunId, new RunCommand(
+        return manager.Execute(state.RunId, new GameplayCommandEnvelope(
             new RunCommandIdentity(
                 Guid.NewGuid(),
                 RunCommandTypes.ActivateContentRevision,

@@ -1,8 +1,6 @@
-using System.Text.Json;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
-using Core.Determinism;
 using Core.Events;
 
 namespace Core.Run;
@@ -23,7 +21,7 @@ public interface IGameplayCommandGateway
     Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId);
     Result<GameplayCommandResult> Execute(
         Guid runId,
-        RunCommand command,
+        GameplayCommandEnvelope command,
         Guid? combatId = null);
 }
 
@@ -38,18 +36,20 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
     private readonly IRunManager _runs;
     private readonly ICombatRunCoordinator _combats;
     private readonly IGameEventContextAccessor _eventContext;
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly IGameplayCommandCodec _codec;
 
     public GameplayCommandGateway(
         IRunCommandProcessor commands,
         IRunManager runs,
         ICombatRunCoordinator combats,
-        IGameEventContextAccessor eventContext)
+        IGameEventContextAccessor eventContext,
+        IGameplayCommandCodec? codec = null)
     {
         _commands = commands ?? throw new ArgumentNullException(nameof(commands));
         _runs = runs ?? throw new ArgumentNullException(nameof(runs));
         _combats = combats ?? throw new ArgumentNullException(nameof(combats));
         _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
+        _codec = codec ?? GameplayCommandCodec.CreateDefault();
     }
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId) =>
@@ -57,14 +57,21 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
 
     public Result<GameplayCommandResult> Execute(
         Guid runId,
-        RunCommand command,
+        GameplayCommandEnvelope command,
         Guid? combatId = null)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var normalized = Normalize(command);
-        if (normalized.IsFailure)
-            return Result<GameplayCommandResult>.Failure(normalized.Error);
-        command = normalized.Value;
+        var decodedResult = _codec.Decode(command);
+        if (decodedResult.IsFailure)
+            return Result<GameplayCommandResult>.Failure(decodedResult.Error);
+        var decoded = decodedResult.Value;
+        command = decoded.Envelope;
+        if (combatId.HasValue && decoded.Descriptor.Route is not GameplayCommandRoute.Combat
+            and not GameplayCommandRoute.ResolveEncounter)
+        {
+            return Result<GameplayCommandResult>.Failure(
+                $"Command {command.Identity.Type} is not valid on a combat endpoint");
+        }
 
         var currentRun = _runs.GetRun(runId);
         using var contextScope = _eventContext.Push(new GameEventContext
@@ -80,25 +87,21 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
                 : string.Empty
         });
 
-        try
+        return decoded.Descriptor.Route switch
         {
-            return command.Identity.Type switch
-            {
-                RunCommandTypes.StartEncounter => StartEncounter(runId, command),
-                RunCommandTypes.ResolveCombat => ResolveEncounter(runId, combatId, command),
-                GameplayCommandTypes.PlayCard or GameplayCommandTypes.ExecuteAction or GameplayCommandTypes.EndTurn =>
-                    ExecuteCombatAction(runId, combatId, command),
-                _ => ExecuteRunCommand(runId, command)
-            };
-        }
-        catch (JsonException exception)
-        {
-            return Result<GameplayCommandResult>.Failure(
-                $"Invalid payload for {command.Identity.Type}: {exception.Message}");
-        }
+            GameplayCommandRoute.StartEncounter =>
+                StartEncounter(runId, command, (StartEncounterCommand)decoded.Payload),
+            GameplayCommandRoute.ResolveEncounter =>
+                ResolveEncounter(runId, combatId, command, (ResolveCombatCommand)decoded.Payload),
+            GameplayCommandRoute.Combat =>
+                ExecuteCombatAction(runId, combatId, command, (CombatGameplayCommand)decoded.Payload),
+            GameplayCommandRoute.Run => ExecuteRunCommand(runId, command),
+            _ => Result<GameplayCommandResult>.Failure(
+                $"Unsupported command route: {decoded.Descriptor.Route}")
+        };
     }
 
-    private Result<GameplayCommandResult> ExecuteRunCommand(Guid runId, RunCommand command)
+    private Result<GameplayCommandResult> ExecuteRunCommand(Guid runId, GameplayCommandEnvelope command)
     {
         var executed = _commands.Execute(runId, command);
         return executed.IsSuccess
@@ -106,13 +109,14 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             : Result<GameplayCommandResult>.Failure(executed.Error);
     }
 
-    private Result<GameplayCommandResult> StartEncounter(Guid runId, RunCommand command)
+    private Result<GameplayCommandResult> StartEncounter(
+        Guid runId,
+        GameplayCommandEnvelope command,
+        StartEncounterCommand payload)
     {
         var duplicate = _commands.FindReceipt(runId, command.Identity.CommandId);
         if (duplicate.IsFailure)
             return Result<GameplayCommandResult>.Failure(duplicate.Error);
-        var payload = command.Payload.Deserialize<StartEncounterCommandPayload>(_jsonOptions)
-            ?? throw new JsonException("START_ENCOUNTER payload is required");
         var started = _combats.StartEncounter(
             runId,
             payload.Hero,
@@ -131,13 +135,13 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
     private Result<GameplayCommandResult> ResolveEncounter(
         Guid runId,
         Guid? combatId,
-        RunCommand command)
+        GameplayCommandEnvelope command,
+        ResolveCombatCommand payload)
     {
         var duplicate = _commands.FindReceipt(runId, command.Identity.CommandId);
         if (duplicate.IsFailure)
             return Result<GameplayCommandResult>.Failure(duplicate.Error);
-        var payload = command.Payload.Deserialize<ResolveCombatCommandPayload>(_jsonOptions);
-        var resolvedCombatId = combatId ?? payload?.CombatId ?? Guid.Empty;
+        var resolvedCombatId = combatId ?? payload.CombatId;
         if (resolvedCombatId == Guid.Empty)
             return Result<GameplayCommandResult>.Failure("CombatId is required for RESOLVE_COMBAT");
         var resolved = _combats.ResolveEncounter(runId, resolvedCombatId, command.Identity);
@@ -153,7 +157,8 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
     private Result<GameplayCommandResult> ExecuteCombatAction(
         Guid runId,
         Guid? combatId,
-        RunCommand command)
+        GameplayCommandEnvelope command,
+        CombatGameplayCommand payload)
     {
         if (!combatId.HasValue || combatId == Guid.Empty)
             return Result<GameplayCommandResult>.Failure("CombatId is required for combat commands");
@@ -167,7 +172,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         if (duplicate.IsFailure)
             return Result<GameplayCommandResult>.Failure(duplicate.Error);
 
-        var built = BuildCombatAction(command.Identity.Type, command.Payload, run.Value, combat);
+        var built = BuildCombatAction(command.Identity.Type, payload, run.Value, combat);
         if (built.IsFailure)
             return Result<GameplayCommandResult>.Failure(built.Error);
         var executed = _combats.ExecuteAction(combatId.Value, built.Value, command.Identity);
@@ -182,11 +187,10 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
 
     private Result<CombatActionCommand> BuildCombatAction(
         string type,
-        JsonElement payload,
+        CombatGameplayCommand request,
         RunState run,
         CombatState combat)
     {
-        var request = payload.Deserialize<CombatGameplayCommandPayload>(_jsonOptions) ?? new();
         if (type == GameplayCommandTypes.EndTurn)
         {
             return Result<CombatActionCommand>.Success(new CombatActionCommand
@@ -244,46 +248,4 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             combat));
     }
 
-    private static Result<RunCommand> Normalize(RunCommand command)
-    {
-        if (command.Identity.CommandId == Guid.Empty)
-            return Result<RunCommand>.Failure("Command id is required");
-        if (string.IsNullOrWhiteSpace(command.Identity.Type))
-            return Result<RunCommand>.Failure("Command type is required");
-        var payload = command.Payload.ValueKind == JsonValueKind.Undefined
-            ? JsonSerializer.SerializeToElement(new { })
-            : command.Payload.Clone();
-        var payloadHash = CanonicalJson.ComputeHash(payload);
-        if (!string.IsNullOrWhiteSpace(command.Identity.PayloadHash) &&
-            !string.Equals(command.Identity.PayloadHash, payloadHash, StringComparison.Ordinal))
-        {
-            return Result<RunCommand>.Failure("Command payload hash does not match its canonical payload");
-        }
-
-        return Result<RunCommand>.Success(command with
-        {
-            Identity = command.Identity with
-            {
-                Type = command.Identity.Type.Trim().ToUpperInvariant(),
-                PayloadHash = payloadHash
-            },
-            Payload = payload
-        });
-    }
-
-    private sealed record StartEncounterCommandPayload(
-        CombatParticipantReference Hero,
-        IReadOnlyList<CombatParticipantReference> Enemies,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? InitialResourceValues = null);
-
-    private sealed record ResolveCombatCommandPayload(Guid CombatId);
-
-    private sealed record CombatGameplayCommandPayload(
-        string? ActorId = null,
-        ActionType? ActionType = null,
-        string? PowerId = null,
-        string? TargetId = null,
-        IReadOnlyList<string>? TargetIds = null,
-        string? CostOptionId = null,
-        Guid? CardInstanceId = null);
 }
