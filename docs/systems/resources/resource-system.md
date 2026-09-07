@@ -182,9 +182,6 @@ ID de recurso. No combate de uma run, `CombatResourceLifecycle` converte o
 resultado em comandos `MODIFY_RESOURCE` e usa o processador de efeitos canônico.
 Eventos só são publicados depois que a transação completa da run é persistida.
 
-`ResourceRegenerationProcessor` oferece a mesma semântica genérica para
-proprietários de agregado que processam diretamente um `ResourceSet`.
-
 ## Limites e derrota
 
 Uma política combina:
@@ -288,7 +285,6 @@ Ao adicionar uma mecânica:
 - `src/Core/Resources/ResourcePool.cs`
 - `src/Core/Resources/ResourceSet.cs`
 - `src/Core/Resources/ResourceMutationReducer.cs`
-- `src/Core/Resources/ResourceRegenerationProcessor.cs`
 - `src/Core/Resources/ResourceThresholdPolicy.cs`
 - `src/Core/Effects/ImmutableEffectProcessor.cs`
 - `src/Core/Combat/Flow/CombatResourceLifecycle.cs`

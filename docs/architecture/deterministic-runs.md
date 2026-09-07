@@ -53,10 +53,11 @@ contract before it can participate in an authoritative run.
 ## Authoritative aggregates
 
 Snapshots owned by `RunManager` are authoritative game state. A run-owned combat
-is embedded in that run; `CombatSystem` is only its in-process execution
-projection. Public transition methods serialize access per aggregate and replace
-the whole snapshot after a successful transition. Nested runtime collections use
-immutable storage and copy caller-owned collections on assignment.
+is embedded in that run; `CombatRunCoordinator` and `CombatFlowPlanner` calculate
+candidate replacements without owning parallel state. Public transition methods
+serialize access per aggregate and replace the whole snapshot after a successful
+transition. Nested runtime collections use immutable storage and copy caller-owned
+collections on assignment.
 
 The main modules have narrow responsibilities:
 
@@ -179,9 +180,9 @@ command.
 
 Daily challenge definitions are versioned content. Starting an attempt writes
 the challenge id, mode, fixed seed and effective content revision into the run;
-submission reexecutes the journal before accepting its proof. TCG legality,
-target and stack endpoints are read models over combat state. Future priority or
-stack mutations must still enter through the combat command gateway.
+submission reexecutes the journal before accepting its proof. TCG legality and
+target evaluation are read models over combat state. Any future reaction or
+priority mutation must still enter through the combat command gateway.
 
 ## Operational nondeterministic boundaries
 
@@ -191,8 +192,6 @@ receive deterministic inputs before their result can enter an authoritative run:
 
 - `DefaultRandomProvider` uses process entropy; the run path passes
   `DeterministicRandomProvider` explicitly;
-- standalone status and script-modifier helpers may allocate ambient IDs;
-  run/effect transitions require deterministic IDs and logical time;
 - optional entity/session ID helpers are conveniences for external API callers;
 - cache invalidation time and configuration authoring dates are operational
   metadata and never enter a run snapshot or its hash.

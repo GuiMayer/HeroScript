@@ -2,6 +2,17 @@
 
 ## v1 — 2026-09-06
 
+- O vocabulário de `EffectType` agora contém somente primitivas executáveis.
+  Campos rejeitados/inertes (`timing`, `isPercentage`, modifier numérico legado e
+  `conditionalEffects`) foram removidos; timing pertence ao trigger do owner e
+  condição pertence ao próprio efeito/filho encadeado.
+- Definições de status e modifier deixaram de expor campos comportamentais ou
+  numéricos paralelos. Regras são compostas por triggers, influências, restrições
+  e políticas de instância.
+- Scopes e desempates de combate usam lados/controllers (`RunOwner`,
+  `PlayerControlled`, `AiControlled`, `All`) em vez de papéis de herói/inimigo.
+- Aplicações de modifier passaram a expor todas as instâncias removidas e o trace
+  anterior/posterior de stacks em `modifierStackChanges`.
 - Resoluções de combate agora expõem hashes de estado inicial/final, fingerprint
   da fila e traces tipados de efeitos, cálculos e aplicações em cada frame.
 - A avaliação de cartas passou a expor `previewSteps`, produzido pela mesma

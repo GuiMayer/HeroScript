@@ -44,7 +44,6 @@ Exemplo de um efeito numérico:
   "effectId": "lower_stability",
   "type": "DAMAGE",
   "target": "TARGET",
-  "timing": "IMMEDIATE",
   "flatValue": 6,
   "formulaValue": null,
   "targetResource": "stability",
@@ -75,7 +74,8 @@ Campos essenciais:
 | `chance` / `repeat` | Aleatoriedade seedada e repetição determinística. |
 | `tags` | Contexto para filtros e influências. |
 
-`chainedEffects` e `conditionalEffects` usam a mesma estrutura recursivamente.
+`chainedEffects` usa a mesma estrutura recursivamente; cada filho pode declarar
+sua própria `condition`.
 `EffectTriggerDefinition` liga uma lista de efeitos a um boundary nomeado e com
 prioridade, sem acoplar o processador ao proprietário.
 
@@ -87,13 +87,12 @@ O catálogo inclui famílias para:
 - status: `APPLY_STATUS`, `REMOVE_STATUS`, `DISPEL_STATUS`;
 - cartas/deck: `DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`,
   `ADD_CARD_TO_HAND`;
-- modificadores de cálculo;
-- controle de ações e turno;
-- encadeamento, condição e metaefeitos.
+- modifiers: `APPLY_MODIFIER`, `REMOVE_MODIFIER`.
 
-A presença no enum define o vocabulário de autoria; o conteúdo publicado também
-precisa ser compatível com os handlers e regras habilitados pelo modo. A validação
-de publicação deve impedir referências quebradas antes de uma run usar a revisão.
+O enum público contém somente primitivas executáveis. Condição é um campo do
+efeito e composição usa `chainedEffects`; lifecycle usa triggers do proprietário.
+A validação de publicação impede referências quebradas antes de uma run usar a
+revisão.
 
 ## Recursos são genéricos
 
@@ -202,6 +201,9 @@ muda e nenhum evento intermediário é publicado.
 Para cada efeito aceito, `EffectApplicationRecord` registra a proveniência e a
 aplicação concreta. Esses registros alimentam a fila visual, logs e inspeção de
 replay sem transformar animação em regra de jogo.
+
+Remoções de modifiers registram todas as instâncias afetadas e cada mudança de
+stacks, evitando que uma operação em lote seja resumida por apenas um ID.
 
 ## Uso por cartas e outros proprietários
 

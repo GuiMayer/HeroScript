@@ -45,17 +45,34 @@ Cada etapa deve possuir um commit próprio e testes proporcionais. Não remover 
 - Etapa 7: transições imutáveis compartilhadas de modifiers, ownership/revisão fixados e duração por comando, ativação, round, combate, nó e término do mapa. Efeitos de deck/modifier participam da transação e dos hashes; snapshots de run são propagados entre origens, boundaries, inicialização e commit. A inicialização registra os participantes anteriores aos efeitos para replay sem aplicação duplicada. Corrigida compra parcial que lançava exceção e alinhada resposta semântica da API. 1.400 Core + 147 API aprovados, incluindo dez repetições de transações mistas. Exclusão do manager antigo permanece na etapa 9; duração de run fora do término normal do mapa ainda precisa de auditoria.
 - Etapa 8: contrato executável recursivo compartilhado pela publicação e pelo executor (inclusive branches não executadas); referências, limites, chance, timing, ownership, stacks/duração, triggers e destinos de influências validados. Fórmulas inline usam a gramática real do avaliador; fórmulas nomeadas têm validação estrutural de operações/parâmetros, sem executar regras durante publicação. Grafo de lados validado no cenário. Upgrades respeitam o contrato dos efeitos e retornam falha para políticas inválidas/overflow. JSON de componente desconhecido retorna diagnóstico, não exceção. 1.420 Core + 147 API aprovados. Validação da compatibilidade de todas as combinações de modo/conteúdo ainda depende da auditoria de alcance descrita abaixo.
 - Etapa 9 concluída: `RunState` persistido tornou-se a única autoridade do combate; `CombatFactory` apenas materializa o snapshot inicial. Foram removidos `CombatSystem`, regeneração especializada, `Core.Damage`, resolvers/handlers paralelos, stores mutáveis, componentes desconectados e campos/JSON de compatibilidade. Fórmulas e gambits não publicam eventos durante avaliação. O `CombatFlowPlanner` é o único executor de fases; managers de fase/prioridade, loader especializado e a pilha de reações não funcional foram removidos, mantendo apenas conteúdo, validação pura e snapshots canônicos. O endpoint vazio `/stack` e a capability de rotas legadas também foram excluídos. 1.144 Core + 147 API aprovados.
+- Etapa 10 concluída: resolução visual tipada inclui passos, cálculos e aplicações; inicialização do encontro produz `combat.initialized` durável; timeline liga cada item à resolução/fingerprint; avaliação de carta expõe os mesmos `previewSteps`. O OpenAPI documenta hashes, traces, remoções e mudanças de stacks de modifiers. Controllers continuam apenas como tradução HTTP/query.
+- Etapa 11 concluída: controllers de lado substituíram `IsHero` no fluxo, reaquisição de relíquias e remoções múltiplas têm regressões, campos/modelos não executáveis foram removidos e a documentação canônica foi reescrita. Uma run completa foi repetida em dez runtimes novos, comparando IDs, hashes, fingerprints, frames e journal, com replay semântico válido em cada repetição. Validação final: build da solução aprovado; 1.096 Core.Tests e 148 API.Tests aprovados, zero falhas.
 
-## Pendências para concluir o plano
+## Resultado do plano
 
-As entregas acima não significam que a consolidação inteira esteja concluída. Próxima etapa: migrar os consumidores restantes antes de excluir as implementações antigas.
+As onze etapas estão concluídas. O fluxo autoritativo não depende de
+implementações paralelas de dano, efeitos, status, relíquias, modifiers ou fases.
+As antigas pendências foram resolvidas da seguinte forma:
 
-- Remover o processador legado de regeneração junto com o fluxo antigo de `CombatSystem`; o lifecycle canônico já converte a regra de recurso em efeito comum e preserva steps, cálculo, proveniência e rollback.
-- Auditar combinações de pipelines alcançáveis durante hot reload. Providers de modo e encontro já usam os mesmos componentes contextuais, fórmulas, tags e traces das demais fontes; publicação de modos e compilação de cenários rejeitam influências sem pipeline alcançável. Upgrades agora registram cada transformação permanente do valor base sem reaplicá-la como influência contextual.
-- Completar uso de controllers/lados fora do targeting canônico e políticas de desempate; o campo de controller do lado ainda não substitui toda a lógica de controle de ator.
-- Auditar encerramento imediato na inicialização, duração de modifiers quando a run termina por derrota, reaquisição de relíquias com políticas Replace/Highest e trace de remoção de múltiplos modifiers.
-- Finalizar API/timeline/inspeção, traces da inicialização e ações automáticas, preview e documentação dos contratos/capacidades.
-- Repetir integração completa, replay semântico/fork e dez execuções do fluxo completo após a remoção dos caminhos antigos. As dez execuções já adicionadas até aqui cobrem transações de efeitos, não substituem esse teste final.
+- regeneração de combate é convertida em efeito comum pelo lifecycle;
+- publicação/compilação valida pipelines alcançáveis e providers de modo/encontro;
+- upgrades registram mudanças permanentes da base sem duplicar scaling;
+- controllers/lados governam controle, scopes e desempates;
+- inicialização terminal é persistida com resolução completa;
+- reaquisição `Replace`/`Highest` e remoções múltiplas preservam trace;
+- preview, ação automática, timeline, replay e fila visual expõem o mesmo cálculo.
+
+## Capacidades futuras deliberadas
+
+Estas extensões não são lacunas da consolidação e exigem decisões próprias de
+game design antes de implementação:
+
+- reações com prioridade/pilha permanecem reservadas e `Disabled`;
+- grafos de fase com mais de um `Start`, `Middle` ou `End` são representáveis,
+  mas o executor atual rejeita sua seleção;
+- derrota encerra o combate, não a run. Um modifier com boundary `Run` expira no
+  término normal do mapa; fazer derrota terminar a run deve vir de uma política
+  configurável de progressão, sem inferência pelo recurso ou pelo resultado.
 
 ## Testes obrigatórios da migração
 

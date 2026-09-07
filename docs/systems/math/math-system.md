@@ -342,11 +342,11 @@ var origins = engine.GetFormulaOrigins();
 services.AddSingleton<IMathEngine, MathEngine>();
 
 // Injetar no construtor
-public class CombatSystem
+public class GameplayFormulaService
 {
     private readonly IMathEngine _mathEngine;
     
-    public CombatSystem(IMathEngine mathEngine)
+    public GameplayFormulaService(IMathEngine mathEngine)
     {
         _mathEngine = mathEngine;
     }

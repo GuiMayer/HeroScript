@@ -655,7 +655,28 @@
           "cardInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
           "modifierInstanceId": { "type": "string", "format": "uuid", "nullable": true },
           "modifierId": { "type": "string", "nullable": true },
+          "removedModifierInstanceIds": {
+            "type": "array",
+            "description": "All modifier instances removed by this application, in deterministic order.",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "modifierStackChanges": {
+            "type": "array",
+            "description": "Complete before/after stack trace for every affected modifier instance.",
+            "items": { "$ref": "#/components/schemas/ModifierStackApplicationRecord" }
+          },
           "provenance": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "ModifierStackApplicationRecord": {
+        "type": "object",
+        "required": ["modifierInstanceId", "modifierId", "previousStacks", "currentStacks", "removed"],
+        "properties": {
+          "modifierInstanceId": { "type": "string", "format": "uuid" },
+          "modifierId": { "type": "string" },
+          "previousStacks": { "type": "integer", "minimum": 0 },
+          "currentStacks": { "type": "integer", "minimum": 0 },
+          "removed": { "type": "boolean" }
         }
       },
       "CombatTimelineItem": {

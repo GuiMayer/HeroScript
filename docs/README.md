@@ -1,6 +1,6 @@
 # HeroScript Documentation
 
-**Última atualização:** 2026-09-01
+**Última atualização:** 2026-09-06
 **Versão:** 1.0.0
 
 ---
@@ -21,9 +21,9 @@
 ### Combat & Gameplay
 
 - **[Combat System](systems/combat/combat-system.md)** - Sistema de combate principal com estado imutável e Event Sourcing
-- **[Turn Phase System](systems/combat/turn-phase-system.md)** - Sistema modular de fases para TCGs (Magic, Yu-Gi-Oh!, Hearthstone)
-- **[Damage Pipeline](systems/damage/damage-pipeline.md)** - Pipeline configurável de processamento de dano
-- **[Damage Examples](systems/damage/damage-examples.md)** - Exemplos práticos do pipeline de dano
+- **[Turn Phase System](systems/combat/turn-phase-system.md)** - Fluxo canônico e configurável de ativações
+- **[Damage & Calculation Pipeline](systems/damage/damage-pipeline.md)** - Dano como alteração genérica de recurso
+- **[Damage Examples](systems/damage/damage-examples.md)** - Exemplos de efeitos e scaling
 - **[Alternative Costs](systems/combat/alternative-costs.md)** - Sistema de custos alternativos para ações
 
 ### Data & Configuration
@@ -31,6 +31,7 @@
 - **[Config System](systems/config/config-system.md)** - Sistema de configuração com herança delta
 - **[Delta Reference](systems/config/delta-reference.md)** - Referência completa do sistema de deltas
 - **[Resource System](systems/resources/resource-system.md)** - Gerenciamento de recursos (HP, Mana, Energy, etc.)
+- **[Calculation System](systems/calculations/calculation-system.md)** - Pipelines, buckets, influências e traces
 - **[Math Engine](systems/math/math-system.md)** - Motor de expressões matemáticas configuráveis
 - **[Expression Modes](systems/math/expression-modes.md)** - Modos de avaliação de expressões
 
@@ -39,6 +40,9 @@
 - **[EventBus System](systems/events/eventbus-system.md)** - Pub/sub e telemetria operacional
 - **[EventBus Implementation](systems/events/eventbus-implementation.md)** - Detalhes de implementação
 - **[Effect System](systems/effects/effect-system.md)** - Sistema de efeitos e modificadores
+- **[Status System](systems/status/status-system.md)** - Status como containers de componentes
+- **[Relic System](systems/relics/relic-system.md)** - Relíquias fixadas no estado da run
+- **[Modifier System](systems/modifiers/modifier-system.md)** - Influências temporárias/persistentes com ownership
 
 ## Architecture
 
@@ -138,54 +142,24 @@ dotnet test tests/API.Tests/API.Tests.csproj
 
 ---
 
-## Project Statistics
+## Estado verificado
 
-### Estado Verificado
+A validação final desta revisão deve ser registrada no plano de consolidação. Os
+números neste índice não são mantidos manualmente para evitar estatísticas
+obsoletas; execute `dotnet test` para o total atual.
 
-- **Core.Tests:** 1.305 testes aprovados na última validação completa
-- **API.Tests:** 220 testes aprovados na última validação completa
+O caminho autoritativo implementado inclui:
 
-### Phase 0 + Phase 1 + Phase 2
+- runs e combates imutáveis com journal, replay semântico e branches;
+- cartas componentizadas, deck, custos, upgrades, shop e preparação;
+- fluxo de ativações, IA por gambits e dois orçamentos iniciais de ação;
+- efeitos atômicos, recursos genéricos e cálculos por buckets;
+- status, relíquias e modifiers como componentes com ownership/revisão;
+- conteúdo versionado, publicação validada e ativação explícita para hot reload;
+- API v1, previews, timeline e filas de animação para clientes headless.
 
-- **Implemented phases:** Phase 0, Phase 1, Phase 2 stabilized
-  - Combat: 53 tests
-  - Events: 18 tests
-  - Damage: 126 tests
-  - Math: 97 tests
-  - Resources: 23 tests
-  - Config: included in total
-  - Others: included in total
-
-- **Core Modules:** 13 modules, 166+ files
-  - Combat: 43 files (including TurnPhase system)
-  - Events: 24 files
-  - Damage: 17 files
-  - Entity: 16 files
-  - Math: 15 files
-  - Config: 15 files
-  - StatusEffects: 8 files
-  - Resources: 8 files
-  - Effects: 7 files
-  - Logging: 4 files
-  - DependencyInjection: 3 files
-  - Validation: 1 file
-  - Common: 1 file
-
-- **APIs Implemented:** Actions, Combat, Effects, Status, Modifiers, Gambits, Resources, Config, Entity, Events, Damage diagnostics, Formula/Math/Operations
-
-- **Systems Core:**
-  - ✅ EventBus
-  - ✅ CombatSystem
-  - ✅ TurnPhase System (NEW)
-  - ✅ DamagePipeline
-  - ✅ MathEngine
-  - ✅ ResourceManager
-  - ✅ ConfigManager
-  - ✅ StatusEffectManager
-  - ✅ ScriptModifierManager
-  - ✅ GambitEngine
-  - ✅ EffectResolver
-  - ⏳ RunState/DeckState/RunManager/CardSelection/Shop/Preparation
+Reações/pilha permanecem reservadas e desabilitadas. O dashboard não faz parte da
+validação atual.
 
 ---
 

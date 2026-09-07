@@ -67,6 +67,13 @@ public sealed class ContractDocumentationTests
         Assert.True(root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CombatTimelineItem").GetProperty("properties")
             .TryGetProperty("resolutionCommandId", out _));
+        var applicationProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("EffectApplicationRecord").GetProperty("properties");
+        Assert.True(applicationProperties.TryGetProperty("removedModifierInstanceIds", out _));
+        Assert.Equal(
+            "#/components/schemas/ModifierStackApplicationRecord",
+            applicationProperties.GetProperty("modifierStackChanges").GetProperty("items")
+                .GetProperty("$ref").GetString());
         Assert.Equal(
             "#/components/schemas/CombatResolutionRecord",
             root.GetProperty("components").GetProperty("schemas")
@@ -114,6 +121,11 @@ public sealed class ContractDocumentationTests
             "docs/api/content-and-platform.md",
             "docs/api/changelog.md",
             "docs/architecture/cross-cutting-systems.md",
+            "docs/systems/calculations/calculation-system.md",
+            "docs/systems/effects/effect-system.md",
+            "docs/systems/modifiers/modifier-system.md",
+            "docs/systems/relics/relic-system.md",
+            "docs/systems/status/status-system.md",
             "examples/http/deterministic-run.http",
             "examples/http/replay-and-events.http",
             "examples/http/content-publication.http",
