@@ -11,9 +11,9 @@ namespace API.Controllers;
 public sealed class SystemController : ControllerBase
 {
     private readonly IConfigManager _configManager;
-    private readonly IRunCommitStore _runRepository;
+    private readonly IRunCommitReader _runRepository;
 
-    public SystemController(IConfigManager configManager, IRunCommitStore runRepository)
+    public SystemController(IConfigManager configManager, IRunCommitReader runRepository)
     {
         _configManager = configManager;
         _runRepository = runRepository;

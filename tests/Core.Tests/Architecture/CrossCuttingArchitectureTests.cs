@@ -62,7 +62,7 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Config.IResourceLoader",
             "Core.Content.IContentRuntimeResolver",
             "Core.Run.IGameplayCommandGateway",
-            "Core.Events.IEventBus",
+            "Core.Events.IOperationalEventBus",
             "Core.Logging.ILogger",
             "Core.Math.IRuntimeFormulaEvaluator",
             "Core.Abstractions.Persistence.IRunCommitStore"
@@ -126,7 +126,7 @@ public sealed class CrossCuttingArchitectureTests
     [InlineData(typeof(GambitEngine))]
     public void PureEvaluationServices_DoNotPublishEvents(Type serviceType)
     {
-        var eventBusType = typeof(Core.Events.IEventBus);
+        var eventBusType = typeof(Core.Events.IOperationalEventBus);
         var eventFields = serviceType
             .GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
             .Where(field => eventBusType.IsAssignableFrom(field.FieldType))

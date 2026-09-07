@@ -3,7 +3,7 @@ namespace Core.Abstractions.Persistence;
 /// <summary>
 /// Filter criteria for querying the event store.
 /// </summary>
-public record EventStoreFilter(
+public record OperationalEventFilter(
     int AfterSequence = -1,
     Guid? RunId = null,
     Guid? CombatId = null,

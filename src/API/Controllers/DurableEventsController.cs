@@ -28,28 +28,31 @@ public sealed class DurableEventsController : BaseApiController
     public async Task<IActionResult> GetRunEvents(
         Guid runId,
         [FromQuery] int afterSequence = 0,
+        [FromQuery] int? afterFactIndex = null,
         [FromQuery] int limit = 100,
         CancellationToken cancellationToken = default)
     {
-        var invalid = ValidateCursor(afterSequence, limit);
+        var invalid = ValidateCursor(afterSequence, afterFactIndex, limit);
         if (invalid != null)
             return invalid;
         var run = _runs.GetRun(runId);
         if (run.IsFailure)
             return ApiNotFound(run.Error);
 
-        var events = await _events.ReadRunEventsAsync(runId, afterSequence, limit, cancellationToken);
-        return Ok(ToEnvelope(runId, null, afterSequence, events));
+        var cursor = CreateCursor(afterSequence, afterFactIndex);
+        var events = await _events.ReadRunEventsAsync(runId, cursor, limit, cancellationToken);
+        return Ok(ToEnvelope(runId, null, cursor, events));
     }
 
     [HttpGet("api/v1/combats/{combatId:guid}/events")]
     public async Task<IActionResult> GetCombatEvents(
         Guid combatId,
         [FromQuery] int afterSequence = 0,
+        [FromQuery] int? afterFactIndex = null,
         [FromQuery] int limit = 100,
         CancellationToken cancellationToken = default)
     {
-        var invalid = ValidateCursor(afterSequence, limit);
+        var invalid = ValidateCursor(afterSequence, afterFactIndex, limit);
         if (invalid != null)
             return invalid;
         var run = _runs.GetRunByCombat(combatId);
@@ -59,16 +62,21 @@ public sealed class DurableEventsController : BaseApiController
         var events = await _events.ReadCombatEventsAsync(
             run.Value.RunId,
             combatId,
-            afterSequence,
+            CreateCursor(afterSequence, afterFactIndex),
             limit,
             cancellationToken);
-        return Ok(ToEnvelope(run.Value.RunId, combatId, afterSequence, events));
+        return Ok(ToEnvelope(
+            run.Value.RunId,
+            combatId,
+            CreateCursor(afterSequence, afterFactIndex),
+            events));
     }
 
     [HttpGet("api/v1/runs/{runId:guid}/events/stream")]
     public async Task StreamRunEvents(
         Guid runId,
         [FromQuery] int? afterSequence = null,
+        [FromQuery] int? afterFactIndex = null,
         [FromQuery] int delayMs = 1000)
     {
         var run = _runs.GetRun(runId);
@@ -78,7 +86,7 @@ public sealed class DurableEventsController : BaseApiController
             return;
         }
 
-        var cursor = ResolveStreamCursor(afterSequence);
+        var cursor = ResolveStreamCursor(afterSequence, afterFactIndex);
         await Stream(
             cursor,
             delayMs,
@@ -89,6 +97,7 @@ public sealed class DurableEventsController : BaseApiController
     public async Task StreamCombatEvents(
         Guid combatId,
         [FromQuery] int? afterSequence = null,
+        [FromQuery] int? afterFactIndex = null,
         [FromQuery] int delayMs = 1000)
     {
         var run = _runs.GetRunByCombat(combatId);
@@ -98,7 +107,7 @@ public sealed class DurableEventsController : BaseApiController
             return;
         }
 
-        var cursor = ResolveStreamCursor(afterSequence);
+        var cursor = ResolveStreamCursor(afterSequence, afterFactIndex);
         await Stream(
             cursor,
             delayMs,
@@ -106,9 +115,9 @@ public sealed class DurableEventsController : BaseApiController
     }
 
     private async Task Stream(
-        int initialCursor,
+        RunEventCursor initialCursor,
         int delayMs,
-        Func<int, CancellationToken, Task<IReadOnlyList<RunProjectionEvent>>> read)
+        Func<RunEventCursor, CancellationToken, Task<IReadOnlyList<RunProjectionEvent>>> read)
     {
         Response.Headers.CacheControl = "no-cache";
         Response.Headers.Append("X-Accel-Buffering", "no");
@@ -121,12 +130,12 @@ public sealed class DurableEventsController : BaseApiController
             var events = await read(cursor, HttpContext.RequestAborted);
             foreach (var @event in events)
             {
-                await Response.WriteAsync($"id: {@event.Sequence}\n", HttpContext.RequestAborted);
+                await Response.WriteAsync($"id: {@event.Sequence}:{@event.FactIndex}\n", HttpContext.RequestAborted);
                 await Response.WriteAsync($"event: {@event.EventType}\n", HttpContext.RequestAborted);
                 await Response.WriteAsync(
                     $"data: {JsonSerializer.Serialize(@event, StreamJsonOptions)}\n\n",
                     HttpContext.RequestAborted);
-                cursor = @event.Sequence;
+                cursor = new RunEventCursor(@event.Sequence, @event.FactIndex);
             }
 
             await Response.Body.FlushAsync(HttpContext.RequestAborted);
@@ -134,40 +143,54 @@ public sealed class DurableEventsController : BaseApiController
         }
     }
 
-    private int ResolveStreamCursor(int? queryCursor)
+    private RunEventCursor ResolveStreamCursor(int? querySequence, int? queryFactIndex)
     {
         var header = Request.Headers["Last-Event-ID"].FirstOrDefault();
-        var headerCursor = int.TryParse(header, NumberStyles.None, CultureInfo.InvariantCulture, out var parsed)
-            ? parsed
-            : 0;
-        return System.Math.Max(queryCursor ?? 0, headerCursor);
+        if (!string.IsNullOrWhiteSpace(header))
+        {
+            var parts = header.Split(':', 2, StringSplitOptions.TrimEntries);
+            if (parts.Length == 2 &&
+                int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence) &&
+                int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var factIndex))
+                return new RunEventCursor(sequence, factIndex);
+        }
+        return CreateCursor(querySequence ?? 0, queryFactIndex);
     }
 
-    private IActionResult? ValidateCursor(int afterSequence, int limit)
+    private IActionResult? ValidateCursor(int afterSequence, int? afterFactIndex, int limit)
     {
-        return afterSequence < 0 || limit is < 1 or > 1000
+        return afterSequence < 0 || afterFactIndex is < -1 || limit is < 1 or > 1000
             ? ApiBadRequest(
                 ApiErrorCodes.InvalidRequest,
                 "Invalid event cursor",
-                "afterSequence must be non-negative and limit must be between 1 and 1000")
+                "afterSequence must be non-negative, afterFactIndex at least -1, and limit between 1 and 1000")
             : null;
     }
+
+    private static RunEventCursor CreateCursor(int afterSequence, int? afterFactIndex) =>
+        afterFactIndex.HasValue
+            ? new RunEventCursor(afterSequence, afterFactIndex.Value)
+            : RunEventCursor.AfterSequence(afterSequence);
 
     private static object ToEnvelope(
         Guid runId,
         Guid? combatId,
-        int afterSequence,
+        RunEventCursor cursor,
         IReadOnlyList<RunProjectionEvent> events)
     {
         return new
         {
             runId,
             combatId,
-            afterSequence,
-            lastSequence = events.LastOrDefault()?.Sequence ?? afterSequence,
+            afterSequence = cursor.Sequence,
+            afterFactIndex = cursor.FactIndex == int.MaxValue ? (int?)null : cursor.FactIndex,
+            lastSequence = events.LastOrDefault()?.Sequence ?? cursor.Sequence,
+            lastFactIndex = events.LastOrDefault()?.FactIndex ?? cursor.FactIndex,
+            nextCursor = events.LastOrDefault() is { } last
+                ? new RunEventCursor(last.Sequence, last.FactIndex).ToString()
+                : cursor.ToString(),
             returned = events.Count,
             events
         };
     }
 }
-

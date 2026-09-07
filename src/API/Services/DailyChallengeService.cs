@@ -65,14 +65,14 @@ public sealed class DailyChallengeService
     private readonly IResourceCatalog<DailyChallengeDefinition> _challenges;
     private readonly IContentManifestProvider _content;
     private readonly IRunManager _runs;
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _repository;
     private readonly IRunReplayService _replay;
 
     public DailyChallengeService(
         IResourceCatalog<DailyChallengeDefinition> challenges,
         IContentManifestProvider content,
         IRunManager runs,
-        IRunCommitStore repository,
+        IRunCommitReader repository,
         IRunReplayService replay)
     {
         _challenges = challenges;

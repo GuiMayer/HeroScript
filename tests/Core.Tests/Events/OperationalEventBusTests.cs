@@ -7,13 +7,13 @@ using Xunit;
 
 namespace Core.Tests.Events;
 
-public class EventBusTests
+public class OperationalEventBusTests
 {
-    private readonly IEventBus _eventBus;
+    private readonly IOperationalEventBus _eventBus;
 
-    public EventBusTests()
+    public OperationalEventBusTests()
     {
-        _eventBus = new EventBus(NullLogger.Instance);
+        _eventBus = new OperationalEventBus(NullLogger.Instance);
     }
 
     [Fact]
@@ -252,8 +252,8 @@ public class EventBusTests
     [Fact]
     public void Publish_SameEventStream_ReproducesIdentityAndLogicalTime()
     {
-        var first = new EventBus(NullLogger.Instance);
-        var second = new EventBus(NullLogger.Instance);
+        var first = new OperationalEventBus(NullLogger.Instance);
+        var second = new OperationalEventBus(NullLogger.Instance);
 
         first.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
         first.Publish(new ConfigLoadedEvent { ConfigName = "config2" });
@@ -287,7 +287,7 @@ public class EventBusTests
     public void Publish_EnrichesEveryGameEventFromAmbientAndEventMetadata()
     {
         var accessor = new GameEventContextAccessor();
-        var eventBus = new EventBus(NullLogger.Instance, contextAccessor: accessor);
+        var eventBus = new OperationalEventBus(NullLogger.Instance, contextAccessor: accessor);
         var runId = Guid.NewGuid();
         var combatId = Guid.NewGuid();
         var commandId = Guid.NewGuid();
@@ -317,15 +317,15 @@ public class EventBusTests
         var directory = Path.Combine(Path.GetTempPath(), $"heroscript-bus-{Guid.NewGuid():N}");
         try
         {
-            using var store = new JsonFileEventStore(directory, NullLogger.Instance);
-            var first = new EventBus(NullLogger.Instance, store);
+            using var store = new JsonFileOperationalEventStore(directory, NullLogger.Instance);
+            var first = new OperationalEventBus(NullLogger.Instance, store);
             first.Publish(new ConfigLoadedEvent { ConfigName = "first" });
 
-            Assert.Single(await store.GetEventsAsync(new EventStoreFilter()));
+            Assert.Single(await store.GetEventsAsync(new OperationalEventFilter()));
 
-            var restarted = new EventBus(NullLogger.Instance, store);
+            var restarted = new OperationalEventBus(NullLogger.Instance, store);
             restarted.Publish(new ConfigLoadedEvent { ConfigName = "second" });
-            var events = await store.GetEventsAsync(new EventStoreFilter(Limit: 10));
+            var events = await store.GetEventsAsync(new OperationalEventFilter(Limit: 10));
 
             Assert.Equal(new[] { 0, 1 }, events.Cast<GameEvent>().Select(item => item.Sequence));
         }

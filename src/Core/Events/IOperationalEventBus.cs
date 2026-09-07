@@ -1,9 +1,10 @@
 namespace Core.Events;
 
 /// <summary>
-/// Interface para o EventBus - sistema pub/sub para comunicação desacoplada.
+/// Best-effort operational telemetry and in-process notifications. This history
+/// is never authoritative gameplay state and may be cleared or unavailable.
 /// </summary>
-public interface IEventBus
+public interface IOperationalEventBus
 {
     /// <summary>
     /// Publica um evento para todos os subscribers registrados.

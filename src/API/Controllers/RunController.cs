@@ -11,12 +11,12 @@ namespace API.Controllers;
 public sealed class RunController : BaseApiController
 {
     private readonly IRunManager _runManager;
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _repository;
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgrades;
 
     public RunController(
         IRunManager runManager,
-        IRunCommitStore repository,
+        IRunCommitReader repository,
         ILogger<RunController> logger,
         IResourceCatalog<CardUpgradeDefinition>? cardUpgrades = null)
         : base(logger)

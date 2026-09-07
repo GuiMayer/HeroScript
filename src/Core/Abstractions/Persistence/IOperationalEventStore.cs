@@ -3,10 +3,10 @@ using Core.Events;
 namespace Core.Abstractions.Persistence;
 
 /// <summary>
-/// Durable store for domain events.
-/// Implementations must be thread-safe.
+/// Optional store for operational telemetry. It is not a gameplay journal and
+/// implementations must swallow/report write failures rather than affect play.
 /// </summary>
-public interface IEventStore
+public interface IOperationalEventStore
 {
     /// <summary>
     /// Appends a single event to the store.
@@ -23,5 +23,5 @@ public interface IEventStore
     /// <summary>
     /// Retrieves events matching the given filter.
     /// </summary>
-    Task<IReadOnlyList<IEvent>> GetEventsAsync(EventStoreFilter filter, CancellationToken ct = default);
+    Task<IReadOnlyList<IEvent>> GetEventsAsync(OperationalEventFilter filter, CancellationToken ct = default);
 }

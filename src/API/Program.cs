@@ -23,6 +23,7 @@ using Core.Run;
 using Core.Run.Content;
 using Core.Run.Replay;
 using Core.Run.Events;
+using Core.Run.Projections;
 using Core.Run.Sandbox;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
@@ -68,15 +69,15 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 var allowConfigReload = builder.Configuration.GetValue<bool>("AllowConfigReload", false);
 builder.Services.AddSingleton(new ConfigReloadSettings { Enabled = allowConfigReload });
 
-// Register EventBus first (singleton) - must be registered before other services that depend on it
+// Register OperationalEventBus first (singleton) - must be registered before other services that depend on it
 builder.Services.AddSingleton<IGameEventContextAccessor, GameEventContextAccessor>();
-builder.Services.AddSingleton<IEventBus, EventBus>(sp =>
+builder.Services.AddSingleton<IOperationalEventBus, OperationalEventBus>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("EventBus"));
-    return new EventBus(
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("OperationalEventBus"));
+    return new OperationalEventBus(
         logger,
-        sp.GetService<IEventStore>(),
+        sp.GetService<IOperationalEventStore>(),
         sp.GetRequiredService<IGameEventContextAccessor>());
 });
 
@@ -91,7 +92,7 @@ builder.Services.AddSingleton<IConfigManager, ConfigManager>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("ConfigManager"));
-    var eventBus = sp.GetRequiredService<IEventBus>();
+    var eventBus = sp.GetRequiredService<IOperationalEventBus>();
     var manager = new ConfigManager(logger, eventBus: eventBus);
     manager.SetValidatorFactory(() => sp.GetRequiredService<ConfigValidator>());
     return manager;
@@ -232,15 +233,15 @@ builder.Services.AddSingleton<ICombatRelicLifecycle>(sp => new CombatRelicLifecy
     sp.GetRequiredService<IEffectTriggerExecutor>()));
 
 // Register persistence services
-var eventStorePath = builder.Configuration.GetValue<string>("Persistence:EventStorePath") ?? "data/events";
+var telemetryStorePath = builder.Configuration.GetValue<string>("Persistence:OperationalTelemetryPath") ?? "data/telemetry";
 var runStatePath = builder.Configuration.GetValue<string>("Persistence:RunStatePath") ?? "data/runs";
 var contentStorePath = builder.Configuration.GetValue<string>("Persistence:ContentStorePath") ?? "data/content";
 
-builder.Services.AddSingleton<IEventStore>(sp =>
+builder.Services.AddSingleton<IOperationalEventStore>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("JsonFileEventStore"));
-    return new JsonFileEventStore(eventStorePath, logger);
+    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("JsonFileOperationalEventStore"));
+    return new JsonFileOperationalEventStore(telemetryStorePath, logger);
 });
 
 builder.Services.AddSingleton<IRunCommitStore>(sp =>
@@ -250,6 +251,7 @@ builder.Services.AddSingleton<IRunCommitStore>(sp =>
     return new FileRunCommitStore(runStatePath, logger);
 });
 builder.Services.AddSingleton<IRunCommitReader>(sp => sp.GetRequiredService<IRunCommitStore>());
+builder.Services.AddSingleton<IRunCommitProjectionReader, RunCommitProjectionReader>();
 
 // Register Run content and manager
 builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
@@ -364,7 +366,7 @@ builder.Services.AddSingleton<RunManager>(sp => new RunManager(
     sp.GetRequiredService<ICardPoolResolver>(),
     sp.GetRequiredService<ICardContentCatalog>(),
     sp.GetRequiredService<IPinnedContentCatalog<ScriptModifierDefinition>>(),
-    sp.GetRequiredService<IEventBus>(),
+    sp.GetRequiredService<IOperationalEventBus>(),
     sp.GetRequiredService<IRunCommitStore>(),
     sp.GetRequiredService<IContentManifestProvider>(),
     sp.GetRequiredService<IResourceCatalog<RelicDefinition>>(),
@@ -421,7 +423,7 @@ builder.Services.AddSingleton<ICombatRunCoordinator>(sp => new CombatRunCoordina
     sp.GetRequiredService<ICardPlayExecutor>(),
     sp.GetRequiredService<ICombatFlowPlanner>(),
     sp.GetRequiredService<IGambitEngine>(),
-    sp.GetRequiredService<IEventBus>(),
+    sp.GetRequiredService<IOperationalEventBus>(),
     sp.GetRequiredService<IAbilityExecutor>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IGameModeResolver>(),
@@ -438,12 +440,13 @@ builder.Services.AddSingleton<ICombatSandboxService>(sp => new CombatSandboxServ
     sp.GetRequiredService<ICombatScenarioCompiler>(),
     sp.GetRequiredService<IRunManager>(),
     sp.GetRequiredService<ICombatRunCoordinator>(),
-    sp.GetRequiredService<IRunCommitStore>()));
+    sp.GetRequiredService<IRunCommitReader>()));
 builder.Services.AddSingleton<ICombatSandboxSnapshotService>(sp => new CombatSandboxSnapshotService(
     sp.GetRequiredService<IRunManager>()));
 builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new CombatTimelineProjectionService(
     sp.GetRequiredService<IRunManager>(),
-    (IRunCommitStore)sp.GetRequiredService<IRunCommitStore>()));
+    sp.GetRequiredService<IRunCommitReader>(),
+    sp.GetRequiredService<IRunCommitProjectionReader>()));
 
 builder.Services.AddSingleton<Core.Entity.Definitions.EntityFactory>(sp => new Core.Entity.Definitions.EntityFactory(
     sp.GetRequiredService<EntityDefinitionLoader>(),

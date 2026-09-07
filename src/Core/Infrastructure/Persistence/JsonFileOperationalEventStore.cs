@@ -7,10 +7,10 @@ using Core.Logging;
 namespace Core.Infrastructure.Persistence;
 
 /// <summary>
-/// Appends events to a JSON Lines file (one JSON object per line).
-/// Thread-safe via SemaphoreSlim.
+/// Appends best-effort operational telemetry to a JSON Lines file.
+/// Thread-safe via SemaphoreSlim and independent from gameplay commits.
 /// </summary>
-public sealed class JsonFileEventStore : IEventStore, IDisposable
+public sealed class JsonFileOperationalEventStore : IOperationalEventStore, IDisposable
 {
     private readonly string _filePath;
     private readonly ILogger _logger;
@@ -18,7 +18,7 @@ public sealed class JsonFileEventStore : IEventStore, IDisposable
     private readonly JsonSerializerOptions _writeOptions;
     private readonly JsonSerializerOptions _readOptions;
 
-    public JsonFileEventStore(string storePath, ILogger logger)
+    public JsonFileOperationalEventStore(string storePath, ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         Directory.CreateDirectory(storePath);
@@ -127,7 +127,7 @@ public sealed class JsonFileEventStore : IEventStore, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<IEvent>> GetEventsAsync(EventStoreFilter filter, CancellationToken ct = default)
+    public async Task<IReadOnlyList<IEvent>> GetEventsAsync(OperationalEventFilter filter, CancellationToken ct = default)
     {
         if (!File.Exists(_filePath))
             return Array.Empty<IEvent>();

@@ -51,7 +51,7 @@ public interface IRunReplayService
 /// </summary>
 public sealed class RunSemanticReplayService : IRunReplayService
 {
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _repository;
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
     private readonly ICardPoolResolver _cardPoolResolver;
@@ -72,7 +72,7 @@ public sealed class RunSemanticReplayService : IRunReplayService
     private readonly JsonSerializerOptions _jsonOptions;
 
     public RunSemanticReplayService(
-        IRunCommitStore repository,
+        IRunCommitReader repository,
         IConfigManager configManager,
         IResourceLoader resourceLoader,
         ICardPoolResolver cardPoolResolver,

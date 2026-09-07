@@ -29,7 +29,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly ICardPoolResolver? _cardPoolResolver;
     private readonly ICardContentCatalog? _cardContentCatalog;
     private readonly IPinnedContentCatalog<ScriptModifierDefinition>? _scriptModifierCatalog;
-    private readonly IEventBus? _eventBus;
+    private readonly IOperationalEventBus? _eventBus;
     private readonly IRunCommitStore? _repository;
     private readonly IContentManifestProvider? _contentManifestProvider;
     private readonly IContentPublicationService? _contentPublications;
@@ -51,7 +51,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         ICardPoolResolver? cardPoolResolver = null,
         ICardContentCatalog? cardContentCatalog = null,
         IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierCatalog = null,
-        IEventBus? eventBus = null,
+        IOperationalEventBus? eventBus = null,
         IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
         IResourceCatalog<RelicDefinition>? relicCatalog = null,
@@ -2296,6 +2296,26 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 previous,
                 effectiveType,
                 effectiveCommand);
+            var scopedCombat = combatId.HasValue
+                ? snapshot.GetEncounter(combatId.Value)?.Combat
+                : null;
+            var frames = new[]
+            {
+                new RunCommitFrame
+                {
+                    FrameIndex = 0,
+                    Step = snapshot.Determinism.Step,
+                    Scope = scope,
+                    Kind = effectiveType,
+                    CombatId = combatId,
+                    ActorId = scopedCombat?.ActivationState?.ActiveActorId,
+                    PhaseId = scopedCombat?.PhaseState?.CurrentPhaseId,
+                    Round = scopedCombat?.ActivationState?.Round ?? scopedCombat?.CurrentTurn,
+                    Activation = scopedCombat?.ActivationState?.ActivationNumber,
+                    ResultHash = CanonicalJson.ComputeHash(snapshot),
+                    Resolution = effectiveCommand
+                }
+            };
             var commit = new RunCommit
             {
                 RunId = state.RunId,
@@ -2308,19 +2328,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 AfterStep = snapshot.Determinism.Step,
                 LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime,
                 StateAfter = snapshot,
-                Frames =
-                [
-                    new RunCommitFrame
-                    {
-                        FrameIndex = 0,
-                        Step = snapshot.Determinism.Step,
-                        Scope = scope,
-                        Kind = effectiveType,
-                        CombatId = combatId,
-                        ResultHash = CanonicalJson.ComputeHash(snapshot),
-                        Resolution = effectiveCommand
-                    }
-                ]
+                Frames = frames,
+                Facts = RunCommitFacts.FromFrames(frames)
             };
 
             _repository?.AppendAsync(commit).GetAwaiter().GetResult();
@@ -2374,6 +2383,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 CombatId = candidate.Step.Combat.CombatId,
                 ActorId = candidate.Step.Combat.ActivationState?.ActiveActorId,
                 PhaseId = candidate.Step.Combat.PhaseState?.CurrentPhaseId,
+                Round = candidate.Step.Combat.ActivationState?.Round ?? candidate.Step.Combat.CurrentTurn,
+                Activation = candidate.Step.Combat.ActivationState?.ActivationNumber,
                 ResultHash = CanonicalJson.ComputeHash(candidate.Step.Combat),
                 Resolution = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
                     ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
@@ -2391,7 +2402,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 AfterStep = finalState.Determinism.Step,
                 LogicalTimestamp = finalState.Determinism.LogicalTimestamp.UtcDateTime,
                 StateAfter = finalState,
-                Frames = frames
+                Frames = frames,
+                Facts = RunCommitFacts.FromFrames(frames)
             };
 
             _repository?.AppendAsync(commit).GetAwaiter().GetResult();

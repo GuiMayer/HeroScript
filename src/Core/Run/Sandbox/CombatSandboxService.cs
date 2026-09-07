@@ -29,13 +29,13 @@ public sealed class CombatSandboxService : ICombatSandboxService
     private readonly ICombatScenarioCompiler _compiler;
     private readonly IRunManager _runs;
     private readonly ICombatRunCoordinator _combats;
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _repository;
 
     public CombatSandboxService(
         ICombatScenarioCompiler compiler,
         IRunManager runs,
         ICombatRunCoordinator combats,
-        IRunCommitStore repository)
+        IRunCommitReader repository)
     {
         _compiler = compiler;
         _runs = runs;

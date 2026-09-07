@@ -126,6 +126,17 @@ public sealed class FileRunCommitStoreTests : IDisposable
             }.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
         };
         var hash = CanonicalJson.ComputeHash(state);
+        var frames = new[]
+        {
+            new RunCommitFrame
+            {
+                FrameIndex = 0,
+                Step = context.Step,
+                Kind = "TEST",
+                ResultHash = hash,
+                Resolution = payload
+            }
+        };
         return new RunCommit
         {
             RunId = runId,
@@ -143,17 +154,8 @@ public sealed class FileRunCommitStoreTests : IDisposable
             AfterStep = context.Step,
             LogicalTimestamp = context.LogicalTimestamp.UtcDateTime,
             StateAfter = state,
-            Frames =
-            [
-                new RunCommitFrame
-                {
-                    FrameIndex = 0,
-                    Step = context.Step,
-                    Kind = "TEST",
-                    ResultHash = hash,
-                    Resolution = payload
-                }
-            ]
+            Frames = frames,
+            Facts = RunCommitFacts.FromFrames(frames)
         };
     }
 

@@ -60,12 +60,12 @@ public interface IRunSimulationService
 public sealed class RunSimulationService : IRunSimulationService
 {
     private readonly IRunBranchService _branches;
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _repository;
     private readonly IGameplayCommandGateway _commands;
 
     public RunSimulationService(
         IRunBranchService branches,
-        IRunCommitStore repository,
+        IRunCommitReader repository,
         IGameplayCommandGateway commands)
     {
         _branches = branches;

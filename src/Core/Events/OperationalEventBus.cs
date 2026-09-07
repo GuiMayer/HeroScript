@@ -5,22 +5,22 @@ using Core.Determinism;
 using Core.Logging;
 
 /// <summary>
-/// Implementação thread-safe do EventBus com histórico para Event Sourcing.
-/// Supports optional dual-write to an IEventStore for durable persistence.
+/// Thread-safe operational telemetry bus with optional best-effort persistence.
+/// Gameplay recovery and replay exclusively use RunCommit.
 /// </summary>
-public class EventBus : IEventBus
+public class OperationalEventBus : IOperationalEventBus
 {
     private readonly Dictionary<Type, List<Delegate>> _handlers = new();
     private readonly List<IEvent> _eventHistory = new();
     private readonly object _lock = new();
     private readonly ILogger _logger;
-    private readonly IEventStore? _eventStore;
+    private readonly IOperationalEventStore? _eventStore;
     private readonly IGameEventContextAccessor? _contextAccessor;
     private int _sequenceCounter = 0;
 
-    public EventBus(
+    public OperationalEventBus(
         ILogger logger,
-        IEventStore? eventStore = null,
+        IOperationalEventStore? eventStore = null,
         IGameEventContextAccessor? contextAccessor = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));

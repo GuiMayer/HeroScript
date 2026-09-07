@@ -6,15 +6,15 @@ using Xunit;
 namespace Core.Tests.Events;
 
 /// <summary>
-/// Testes de integração do EventBus com outros sistemas.
+/// Testes de integração do OperationalEventBus com outros sistemas.
 /// </summary>
 public class EventIntegrationTests
 {
     [Fact]
-    public async Task EventBus_ThreadSafety_MultipleThreadsPublishing()
+    public async Task OperationalEventBus_ThreadSafety_MultipleThreadsPublishing()
     {
         // Arrange
-        var eventBus = new EventBus(NullLogger.Instance);
+        var eventBus = new OperationalEventBus(NullLogger.Instance);
         var eventCount = 0;
         var lockObj = new object();
 
@@ -51,10 +51,10 @@ public class EventIntegrationTests
     }
 
     [Fact]
-    public async Task EventBus_SubscriptionDisposal_IsThreadSafe()
+    public async Task OperationalEventBus_SubscriptionDisposal_IsThreadSafe()
     {
         // Arrange
-        var eventBus = new EventBus(NullLogger.Instance);
+        var eventBus = new OperationalEventBus(NullLogger.Instance);
         var subscriptions = new List<IDisposable>();
 
         // Act - Criar e descartar subscriptions de múltiplas threads
@@ -84,10 +84,10 @@ public class EventIntegrationTests
     }
 
     [Fact]
-    public void EventBus_HandlerException_DoesNotStopOtherHandlers()
+    public void OperationalEventBus_HandlerException_DoesNotStopOtherHandlers()
     {
         // Arrange
-        var eventBus = new EventBus(NullLogger.Instance);
+        var eventBus = new OperationalEventBus(NullLogger.Instance);
         var handler1Called = false;
         var handler3Called = false;
 
@@ -107,7 +107,7 @@ public class EventIntegrationTests
     public void GameEvent_Payload_SupportsComplexTypes()
     {
         // Arrange
-        var eventBus = new EventBus(NullLogger.Instance);
+        var eventBus = new OperationalEventBus(NullLogger.Instance);
         var testEvent = new MathFormulaEvaluatedEvent
         {
             FormulaName = "test",
@@ -146,10 +146,10 @@ public class EventIntegrationTests
     }
 
     [Fact]
-    public void EventBus_SequenceNumbers_AreUniqueAcrossEventTypes()
+    public void OperationalEventBus_SequenceNumbers_AreUniqueAcrossEventTypes()
     {
         // Arrange
-        var eventBus = new EventBus(NullLogger.Instance);
+        var eventBus = new OperationalEventBus(NullLogger.Instance);
 
         // Act
         eventBus.Publish(new ConfigLoadedEvent { ConfigName = "config1" });
@@ -166,9 +166,9 @@ public class EventIntegrationTests
     }
 
     [Fact]
-    public async Task EventBus_ConcurrentPublishing_AssignsUniqueContiguousSequences()
+    public async Task OperationalEventBus_ConcurrentPublishing_AssignsUniqueContiguousSequences()
     {
-        var eventBus = new EventBus(NullLogger.Instance);
+        var eventBus = new OperationalEventBus(NullLogger.Instance);
 
         var tasks = Enumerable.Range(0, 8)
             .Select(worker => Task.Run(() =>

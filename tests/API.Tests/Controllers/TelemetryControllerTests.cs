@@ -10,16 +10,19 @@ namespace API.Tests.Controllers;
 
 [Trait("Category", "Unit")]
 
-public sealed class EventsControllerTests
+public sealed class TelemetryControllerTests
 {
-    private readonly RecordingEventBus _eventBus = new();
-    private readonly EventsController _controller;
+    private readonly RecordingOperationalEventBus _eventBus = new();
+    private readonly TelemetryController _controller;
 
-    public EventsControllerTests()
+    public TelemetryControllerTests()
     {
         var environment = new Mock<IWebHostEnvironment>();
         environment.Setup(e => e.EnvironmentName).Returns("Development");
-        _controller = new EventsController(_eventBus, Mock.Of<ILogger<EventsController>>(), environment.Object);
+        _controller = new TelemetryController(
+            _eventBus,
+            Mock.Of<ILogger<TelemetryController>>(),
+            environment.Object);
     }
 
     [Fact]
@@ -77,7 +80,7 @@ public sealed class EventsControllerTests
         }
     };
 
-    private sealed class RecordingEventBus : IEventBus
+    private sealed class RecordingOperationalEventBus : IOperationalEventBus
     {
         public List<IEvent> Events { get; } = new();
 

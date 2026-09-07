@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Determinism;
+using Core.Run.Projections;
 
 namespace Core.Run.Events;
 
@@ -8,8 +9,9 @@ public sealed record RunProjectionEvent
 {
     public Guid EventId { get; init; }
     public int Sequence { get; init; }
+    public int FactIndex { get; init; }
     public ulong Step { get; init; }
-    public string EventType { get; init; } = "RUN_TRANSITION_COMMITTED";
+    public string EventType { get; init; } = RunCommitFacts.TransitionCommitted;
     public string CommandType { get; init; } = string.Empty;
     public Guid RunId { get; init; }
     public Guid? CombatId { get; init; }
@@ -24,89 +26,107 @@ public sealed record RunProjectionEvent
     public string CommandPayloadHash { get; init; } = string.Empty;
     public string PreviousStateHash { get; init; } = string.Empty;
     public string StateHash { get; init; } = string.Empty;
+    public int? Round { get; init; }
+    public int? Activation { get; init; }
     public JsonElement Payload { get; init; }
+}
+
+public readonly record struct RunEventCursor(int Sequence, int FactIndex)
+{
+    public static RunEventCursor AfterSequence(int sequence) => new(sequence, int.MaxValue);
+    public override string ToString() => $"{Sequence}:{FactIndex}";
 }
 
 public interface IRunEventProjectionReader
 {
     Task<IReadOnlyList<RunProjectionEvent>> ReadRunEventsAsync(
         Guid runId,
-        int afterSequence,
+        RunEventCursor cursor,
         int limit,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<RunProjectionEvent>> ReadCombatEventsAsync(
         Guid runId,
         Guid combatId,
-        int afterSequence,
+        RunEventCursor cursor,
         int limit,
         CancellationToken cancellationToken = default);
 }
 
 /// <summary>
-/// Durable event projection derived from the append-only run journal. It is a
-/// read model, not a second source of truth, so it can always be rebuilt.
+/// Rebuildable durable events projected exclusively from facts in authoritative
+/// run commits. Operational telemetry is deliberately outside this reader.
 /// </summary>
 public sealed class RunEventProjectionReader : IRunEventProjectionReader
 {
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitProjectionReader _commits;
 
-    public RunEventProjectionReader(IRunCommitStore repository)
+    public RunEventProjectionReader(IRunCommitProjectionReader commits)
     {
-        _repository = repository;
+        _commits = commits;
     }
 
     public async Task<IReadOnlyList<RunProjectionEvent>> ReadRunEventsAsync(
         Guid runId,
-        int afterSequence,
+        RunEventCursor cursor,
         int limit,
         CancellationToken cancellationToken = default)
     {
-        ValidateCursor(afterSequence, limit);
-        var source = await _repository.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false);
-        return source
-            .Where(item => item.Sequence > afterSequence)
-            .OrderBy(item => item.Sequence)
+        ValidateCursor(cursor, limit);
+        var commits = await _commits.ReadRunAsync(
+            runId,
+            CommitFloor(cursor),
+            int.MaxValue,
+            cancellationToken).ConfigureAwait(false);
+        return commits.SelectMany(ToEvents)
+            .Where(item => IsAfter(item, cursor))
             .Take(limit)
-            .Select(item => ToEvent(item))
             .ToArray();
     }
 
     public async Task<IReadOnlyList<RunProjectionEvent>> ReadCombatEventsAsync(
         Guid runId,
         Guid combatId,
-        int afterSequence,
+        RunEventCursor cursor,
         int limit,
         CancellationToken cancellationToken = default)
     {
-        ValidateCursor(afterSequence, limit);
-        var source = await _repository.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false);
-        return source
-            .Where(item => item.Sequence > afterSequence)
-            .Where(item => item.StateAfter.GetEncounter(combatId) != null)
-            .Where(item => item.Frames.Any(frame => frame.CombatId == combatId))
-            .OrderBy(item => item.Sequence)
+        ValidateCursor(cursor, limit);
+        var commits = await _commits.ReadCombatAsync(
+            runId,
+            combatId,
+            CommitFloor(cursor),
+            int.MaxValue,
+            cancellationToken).ConfigureAwait(false);
+        return commits
+            .SelectMany(ToEvents)
+            .Where(item => item.CombatId == combatId)
+            .Where(item => IsAfter(item, cursor))
             .Take(limit)
-            .Select(item => ToEvent(item, combatId))
             .ToArray();
     }
 
-    private static RunProjectionEvent ToEvent(RunCommit commit, Guid? combatId = null)
+    private static IEnumerable<RunProjectionEvent> ToEvents(RunCommit commit) =>
+        commit.Facts
+            .OrderBy(fact => fact.FactIndex)
+            .Select(fact => ToEvent(commit, fact));
+
+    private static RunProjectionEvent ToEvent(RunCommit commit, RunCommitFact fact)
     {
         var entry = commit.ToJournalEntry();
-        var resolvedCombatId = combatId ?? ResolveCombatId(commit);
         return new RunProjectionEvent
         {
             EventId = DeterministicId.Create(
                 commit.StateAfter.Determinism.Seed,
                 checked((ulong)entry.Sequence),
-                $"run-event:{entry.CommandType}"),
+                $"run-event:{fact.FactIndex}"),
             Sequence = entry.Sequence,
-            Step = entry.Step,
-            EventType = "RUN_TRANSITION_COMMITTED",
+            FactIndex = fact.FactIndex,
+            Step = fact.Step,
+            EventType = fact.Type,
             CommandType = entry.CommandType,
             RunId = entry.RunId,
-            CombatId = resolvedCombatId,
+            CombatId = fact.CombatId,
             CommandId = entry.CommandId,
             CorrelationId = entry.CommandId ?? DeterministicId.Create(
                 commit.StateAfter.Determinism.Seed,
@@ -121,32 +141,25 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
             CommandPayloadHash = entry.CommandPayloadHash,
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
-            Payload = entry.Command.Clone()
+            Round = fact.Round,
+            Activation = fact.Activation,
+            Payload = fact.Payload.Clone()
         };
     }
 
-    private static Guid? ResolveCombatId(RunCommit commit)
-    {
-        var scoped = commit.Frames.Select(frame => frame.CombatId).FirstOrDefault(id => id.HasValue);
-        if (scoped.HasValue)
-            return scoped;
-        var entry = commit.ToJournalEntry();
-        if (entry.Command.ValueKind == JsonValueKind.Object &&
-            entry.Command.TryGetProperty("combatId", out var combatId) &&
-            combatId.ValueKind == JsonValueKind.String &&
-            combatId.TryGetGuid(out var parsed))
-        {
-            return parsed;
-        }
+    private static int CommitFloor(RunEventCursor cursor) =>
+        cursor.FactIndex == int.MaxValue
+            ? cursor.Sequence
+            : System.Math.Max(0, cursor.Sequence - 1);
 
-        return commit.StateAfter.ActiveEncounterId ??
-               commit.StateAfter.Encounters.LastOrDefault()?.Combat.CombatId;
-    }
+    private static bool IsAfter(RunProjectionEvent item, RunEventCursor cursor) =>
+        item.Sequence > cursor.Sequence ||
+        item.Sequence == cursor.Sequence && item.FactIndex > cursor.FactIndex;
 
-    private static void ValidateCursor(int afterSequence, int limit)
+    private static void ValidateCursor(RunEventCursor cursor, int limit)
     {
-        if (afterSequence < 0)
-            throw new ArgumentOutOfRangeException(nameof(afterSequence));
+        if (cursor.Sequence < 0 || cursor.FactIndex < -1)
+            throw new ArgumentOutOfRangeException(nameof(cursor));
         if (limit is < 1 or > 1000)
             throw new ArgumentOutOfRangeException(nameof(limit));
     }

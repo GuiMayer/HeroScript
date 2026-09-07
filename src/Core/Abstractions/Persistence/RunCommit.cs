@@ -14,6 +14,8 @@ public sealed record RunCommitFrame
     public Guid? CombatId { get; init; }
     public string? ActorId { get; init; }
     public string? PhaseId { get; init; }
+    public int? Round { get; init; }
+    public int? Activation { get; init; }
     public string ResultHash { get; init; } = string.Empty;
     public JsonElement Resolution { get; init; }
 }
@@ -21,11 +23,14 @@ public sealed record RunCommitFrame
 public sealed record RunCommitFact
 {
     public int FactIndex { get; init; }
+    public ulong Step { get; init; }
     public string Scope { get; init; } = "run";
     public string Type { get; init; } = string.Empty;
     public Guid? CombatId { get; init; }
     public string? ActorId { get; init; }
     public string? PhaseId { get; init; }
+    public int? Round { get; init; }
+    public int? Activation { get; init; }
     public JsonElement Payload { get; init; }
 }
 
@@ -90,6 +95,8 @@ public sealed record RunCommit
                 : Command);
         if (!string.Equals(commandHash, RootCommand.PayloadHash, StringComparison.Ordinal))
             throw new InvalidOperationException("Run commit command payload hash does not match its envelope");
+        if (_frames.Length == 0 || _facts.Length == 0)
+            throw new InvalidOperationException("Run commit requires at least one frame and one durable fact");
 
         for (var index = 0; index < _frames.Length; index++)
         {
@@ -105,8 +112,10 @@ public sealed record RunCommit
         {
             var fact = _facts[index];
             if (fact.FactIndex != index || string.IsNullOrWhiteSpace(fact.Scope) ||
-                string.IsNullOrWhiteSpace(fact.Type))
+                string.IsNullOrWhiteSpace(fact.Type) || fact.Step < BeforeStep || fact.Step > AfterStep)
                 throw new InvalidOperationException($"Invalid run commit fact at index {index}");
+            if (index > 0 && fact.Step < _facts[index - 1].Step)
+                throw new InvalidOperationException("Run commit fact steps must be monotonic");
         }
     }
 
@@ -134,3 +143,24 @@ public sealed record RunCommit
 
 public sealed record RunCommitAppendResult(RunCommit Commit, bool Duplicate);
 
+public static class RunCommitFacts
+{
+    public const string TransitionCommitted = "RUN_TRANSITION_COMMITTED";
+
+    public static IReadOnlyList<RunCommitFact> FromFrames(IReadOnlyList<RunCommitFrame> frames) =>
+        frames.Select((frame, index) => new RunCommitFact
+        {
+            FactIndex = index,
+            Step = frame.Step,
+            Scope = frame.Scope,
+            Type = TransitionCommitted,
+            CombatId = frame.CombatId,
+            ActorId = frame.ActorId,
+            PhaseId = frame.PhaseId,
+            Round = frame.Round,
+            Activation = frame.Activation,
+            Payload = frame.Resolution.ValueKind == JsonValueKind.Undefined
+                ? JsonSerializer.SerializeToElement(new { })
+                : frame.Resolution.Clone()
+        }).ToArray();
+}

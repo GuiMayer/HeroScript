@@ -19,7 +19,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
     private readonly IRunManager _runManager;
     private readonly ICardPlayExecutor? _cardPlayExecutor;
     private readonly IAbilityExecutor? _abilityExecutor;
-    private readonly IEventBus? _eventBus;
+    private readonly IOperationalEventBus? _eventBus;
     private readonly ICombatFlowPlanner? _flowPlanner;
     private readonly IGambitEngine? _gambitEngine;
     private readonly IRunCombatResolutionCommitter? _resolutionCommitter;
@@ -31,7 +31,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         ICardPlayExecutor? cardPlayExecutor = null,
         ICombatFlowPlanner? flowPlanner = null,
         IGambitEngine? gambitEngine = null,
-        IEventBus? eventBus = null,
+        IOperationalEventBus? eventBus = null,
         IAbilityExecutor? abilityExecutor = null)
     {
         _combatFactory = combatFactory;

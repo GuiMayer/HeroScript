@@ -6,14 +6,14 @@ using Xunit;
 
 namespace Core.Tests.Persistence;
 
-public sealed class JsonFileEventStoreTests : IDisposable
+public sealed class JsonFileOperationalEventStoreTests : IDisposable
 {
     private readonly string _tempDir = Path.Combine(Path.GetTempPath(), $"heroscript-events-{Guid.NewGuid():N}");
-    private readonly JsonFileEventStore _store;
+    private readonly JsonFileOperationalEventStore _store;
 
-    public JsonFileEventStoreTests()
+    public JsonFileOperationalEventStoreTests()
     {
-        _store = new JsonFileEventStore(_tempDir, NullLogger.Instance);
+        _store = new JsonFileOperationalEventStore(_tempDir, NullLogger.Instance);
     }
 
     [Fact]
@@ -22,7 +22,7 @@ public sealed class JsonFileEventStoreTests : IDisposable
         var evt = new TestGameEvent("TestType", 1);
         await _store.AppendAsync(evt);
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter());
+        var results = await _store.GetEventsAsync(new OperationalEventFilter());
         Assert.Single(results);
         Assert.Equal("TestType", results[0].EventType);
     }
@@ -33,14 +33,14 @@ public sealed class JsonFileEventStoreTests : IDisposable
         for (int i = 0; i < 5; i++)
             await _store.AppendAsync(new TestGameEvent($"Event{i}", i));
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter(Limit: 100));
+        var results = await _store.GetEventsAsync(new OperationalEventFilter(Limit: 100));
         Assert.Equal(5, results.Count);
     }
 
     [Fact]
     public async Task GetEvents_EmptyFile_ReturnsEmpty()
     {
-        var results = await _store.GetEventsAsync(new EventStoreFilter());
+        var results = await _store.GetEventsAsync(new OperationalEventFilter());
         Assert.Empty(results);
     }
 
@@ -51,7 +51,7 @@ public sealed class JsonFileEventStoreTests : IDisposable
         await _store.AppendAsync(new TestGameEvent("B", sequence: 1));
         await _store.AppendAsync(new TestGameEvent("C", sequence: 2));
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter(AfterSequence: 0));
+        var results = await _store.GetEventsAsync(new OperationalEventFilter(AfterSequence: 0));
         // Events with sequence > 0 pass the filter
         Assert.DoesNotContain(results, e => e is GameEvent g && g.Sequence <= 0);
     }
@@ -62,7 +62,7 @@ public sealed class JsonFileEventStoreTests : IDisposable
         await _store.AppendAsync(new TestGameEvent("TypeA", 0));
         await _store.AppendAsync(new TestGameEvent("TypeB", 1));
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter(EventType: "TypeA"));
+        var results = await _store.GetEventsAsync(new OperationalEventFilter(EventType: "TypeA"));
         Assert.All(results, e => Assert.Equal("TypeA", e.EventType));
     }
 
@@ -72,7 +72,7 @@ public sealed class JsonFileEventStoreTests : IDisposable
         for (int i = 0; i < 10; i++)
             await _store.AppendAsync(new TestGameEvent("Evt", i));
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter(Limit: 3));
+        var results = await _store.GetEventsAsync(new OperationalEventFilter(Limit: 3));
         Assert.Equal(3, results.Count);
     }
 
@@ -83,7 +83,7 @@ public sealed class JsonFileEventStoreTests : IDisposable
             .Select(i => _store.AppendAsync(new TestGameEvent($"ConcurrentEvent{i}", i)));
         await Task.WhenAll(tasks);
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter(Limit: 100));
+        var results = await _store.GetEventsAsync(new OperationalEventFilter(Limit: 100));
         Assert.Equal(20, results.Count);
     }
 
@@ -105,7 +105,7 @@ public sealed class JsonFileEventStoreTests : IDisposable
             Context = new GameEventContext { RunId = runId, CombatId = Guid.NewGuid() }
         });
 
-        var results = await _store.GetEventsAsync(new EventStoreFilter(
+        var results = await _store.GetEventsAsync(new OperationalEventFilter(
             RunId: runId,
             CombatId: combatId));
 

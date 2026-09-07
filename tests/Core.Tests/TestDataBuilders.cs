@@ -35,9 +35,9 @@ public static class TestDataBuilders
         return mock;
     }
     
-    public static Mock<IEventBus> MockEventBus()
+    public static Mock<IOperationalEventBus> MockOperationalEventBus()
     {
-        var mock = new Mock<IEventBus>();
+        var mock = new Mock<IOperationalEventBus>();
         mock.Setup(e => e.Publish(It.IsAny<IEvent>()));
         mock.Setup(e => e.Subscribe<IEvent>(It.IsAny<Action<IEvent>>()))
             .Returns(new Mock<IDisposable>().Object);

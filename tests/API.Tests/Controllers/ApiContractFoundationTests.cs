@@ -593,11 +593,14 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             $"/api/v1/runs/{runId}/events?afterSequence=1&limit=100");
         var events = await eventsResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, eventsResponse.StatusCode);
-        Assert.Equal(journalEntries.Length - 1, events.GetProperty("returned").GetInt32());
+        var expectedFacts = commits.GetProperty("commits").EnumerateArray()
+            .Where(commit => commit.GetProperty("sequence").GetInt32() > 1)
+            .Sum(commit => commit.GetProperty("factCount").GetInt32());
+        Assert.Equal(expectedFacts, events.GetProperty("returned").GetInt32());
         Assert.Equal(2, events.GetProperty("events")[0].GetProperty("sequence").GetInt32());
         Assert.Equal(
             journalEntries.Length,
-            events.GetProperty("events")[journalEntries.Length - 2].GetProperty("sequence").GetInt32());
+            events.GetProperty("events")[expectedFacts - 1].GetProperty("sequence").GetInt32());
         Assert.All(
             events.GetProperty("events").EnumerateArray(),
             item => Assert.Equal("RUN_TRANSITION_COMMITTED", item.GetProperty("eventType").GetString()));
@@ -613,10 +616,13 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             $"/api/v1/combats/{combatId}/events?afterSequence=0&limit=10");
         var combatEvents = await combatEventsResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, combatEventsResponse.StatusCode);
-        Assert.Equal(2, combatEvents.GetProperty("returned").GetInt32());
+        Assert.True(combatEvents.GetProperty("returned").GetInt32() > 2);
         Assert.All(
             combatEvents.GetProperty("events").EnumerateArray(),
             item => Assert.Equal(combatId, item.GetProperty("combatId").GetGuid()));
+        Assert.Contains(
+            combatEvents.GetProperty("events").EnumerateArray().GroupBy(item => item.GetProperty("sequence").GetInt32()),
+            group => group.Count() > 1);
     }
 
     [Theory]

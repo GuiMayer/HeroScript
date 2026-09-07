@@ -128,6 +128,24 @@ public sealed class RunBranchService : IRunBranchService
             0,
             source.Determinism.Step,
             payloadHash);
+        var activeCombat = created.Value.GetActiveEncounter()?.Combat;
+        var frames = new[]
+        {
+            new RunCommitFrame
+            {
+                FrameIndex = 0,
+                Step = created.Value.Determinism.Step,
+                Scope = activeCombat == null ? "run" : "combat",
+                Kind = "run.branch.start",
+                CombatId = activeCombat?.CombatId,
+                ActorId = activeCombat?.ActivationState?.ActiveActorId,
+                PhaseId = activeCombat?.PhaseState?.CurrentPhaseId,
+                Round = activeCombat?.ActivationState?.Round ?? activeCombat?.CurrentTurn,
+                Activation = activeCombat?.ActivationState?.ActivationNumber,
+                ResultHash = CanonicalJson.ComputeHash(created.Value),
+                Resolution = payload
+            }
+        };
         var commit = new RunCommit
         {
             RunId = created.Value.RunId,
@@ -140,19 +158,8 @@ public sealed class RunBranchService : IRunBranchService
             AfterStep = created.Value.Determinism.Step,
             LogicalTimestamp = created.Value.Determinism.LogicalTimestamp.UtcDateTime,
             StateAfter = created.Value,
-            Frames =
-            [
-                new RunCommitFrame
-                {
-                    FrameIndex = 0,
-                    Step = created.Value.Determinism.Step,
-                    Scope = "run",
-                    Kind = "run.branch.start",
-                    CombatId = created.Value.ActiveEncounterId,
-                    ResultHash = CanonicalJson.ComputeHash(created.Value),
-                    Resolution = payload
-                }
-            ]
+            Frames = frames,
+            Facts = RunCommitFacts.FromFrames(frames)
         };
         try
         {

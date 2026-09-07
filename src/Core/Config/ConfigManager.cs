@@ -18,7 +18,7 @@ namespace Core.Config
         private readonly ILogger _logger;
         private ConfigValidator? _validator;
         private Func<ConfigValidator?>? _validatorFactory;
-        private readonly Events.IEventBus? _eventBus;
+        private readonly Events.IOperationalEventBus? _eventBus;
         private string _currentConfig;
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace Core.Config
         /// <summary>
         /// Constructor for dependency injection
         /// </summary>
-        public ConfigManager(ILogger logger, ConfigValidator? validator = null, Events.IEventBus? eventBus = null)
+        public ConfigManager(ILogger logger, ConfigValidator? validator = null, Events.IOperationalEventBus? eventBus = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _validator = validator;
@@ -209,7 +209,7 @@ namespace Core.Config
                 string oldConfig = CurrentConfig;
                 CurrentConfig = configName;
 
-                // 4. Publicar evento se EventBus estiver configurado
+                // 4. Publicar evento se OperationalEventBus estiver configurado
                 var metadata = GetConfigMetadata(configName);
                 _eventBus?.Publish(new Events.Domain.ConfigLoadedEvent
                 {

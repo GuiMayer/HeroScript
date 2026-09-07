@@ -2,6 +2,7 @@ using API.Contracts;
 using Core.Abstractions.Persistence;
 using Core.Determinism;
 using Core.Run;
+using Core.Run.Projections;
 using Core.Run.Replay;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,18 +13,18 @@ namespace API.Controllers;
 public sealed class CombatJournalController : BaseApiController
 {
     private readonly IRunManager _runs;
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitProjectionReader _commits;
     private readonly IRunReplayService _replay;
 
     public CombatJournalController(
         IRunManager runs,
-        IRunCommitStore repository,
+        IRunCommitProjectionReader commits,
         IRunReplayService replay,
         ILogger<CombatJournalController> logger)
         : base(logger)
     {
         _runs = runs;
-        _repository = repository;
+        _commits = commits;
         _replay = replay;
     }
 
@@ -39,13 +40,12 @@ public sealed class CombatJournalController : BaseApiController
         var run = _runs.GetRunByCombat(combatId);
         if (run.IsFailure)
             return ApiNotFound(run.Error);
-        var entries = (await _repository.LoadCommitsAsync(run.Value.RunId, cancellationToken))
-            .Where(commit => commit.Sequence > afterSequence)
-            .Where(commit => commit.StateAfter.GetEncounter(combatId) != null)
-            .Where(commit => commit.Frames.Any(frame => frame.CombatId == combatId) ||
-                             IsCombatCommand(commit.RootCommand.Type))
-            .OrderBy(commit => commit.Sequence)
-            .Take(limit)
+        var entries = (await _commits.ReadCombatAsync(
+                run.Value.RunId,
+                combatId,
+                afterSequence,
+                limit,
+                cancellationToken))
             .Select(commit => commit.ToJournalEntry())
             .ToArray();
         return Ok(new
@@ -87,13 +87,4 @@ public sealed class CombatJournalController : BaseApiController
             verification.Errors
         });
     }
-
-    private static bool IsCombatCommand(string type) => type is
-        RunCommandTypes.StartEncounter or
-        RunCommandTypes.ResolveCombat or
-        "COMBAT_ACTION" or
-        "PLAY_CARD" or
-        "EXECUTE_ACTION" or
-        "END_TURN";
-
 }

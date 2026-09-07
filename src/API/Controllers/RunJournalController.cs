@@ -1,6 +1,7 @@
 using API.Contracts;
 using Core.Abstractions.Persistence;
 using Core.Run;
+using Core.Run.Projections;
 using Core.Run.Replay;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,16 +11,19 @@ namespace API.Controllers;
 [Route("api/v1/runs/{runId:guid}")]
 public sealed class RunJournalController : BaseApiController
 {
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _commits;
+    private readonly IRunCommitProjectionReader _projections;
     private readonly IRunReplayService _replay;
 
     public RunJournalController(
-        IRunCommitStore repository,
+        IRunCommitReader commits,
+        IRunCommitProjectionReader projections,
         IRunReplayService replay,
         ILogger<RunJournalController> logger)
         : base(logger)
     {
-        _repository = repository;
+        _commits = commits;
+        _projections = projections;
         _replay = replay;
     }
 
@@ -32,13 +36,10 @@ public sealed class RunJournalController : BaseApiController
     {
         if (afterSequence < 0 || limit is < 1 or > 1000)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid journal cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
-        var entries = (await _repository.LoadCommitsAsync(runId, cancellationToken))
-            .Where(commit => commit.Sequence > afterSequence)
-            .OrderBy(commit => commit.Sequence)
-            .Take(limit)
+        var entries = (await _projections.ReadRunAsync(runId, afterSequence, limit, cancellationToken))
             .Select(commit => commit.ToJournalEntry())
             .ToArray();
-        if (entries.Length == 0 && await _repository.LoadLatestStateAsync(runId, cancellationToken) == null)
+        if (entries.Length == 0 && await _commits.LoadLatestStateAsync(runId, cancellationToken) == null)
             return ApiNotFound($"Run journal not found: {runId}");
 
         return Ok(new
@@ -56,7 +57,7 @@ public sealed class RunJournalController : BaseApiController
         Guid runId,
         CancellationToken cancellationToken = default)
     {
-        var journal = await _repository.LoadCommitsAsync(runId, cancellationToken);
+        var journal = await _projections.ReadRunAsync(runId, 0, int.MaxValue, cancellationToken);
         if (journal.Count == 0)
             return ApiNotFound($"Run commits not found: {runId}");
 
@@ -88,7 +89,7 @@ public sealed class RunJournalController : BaseApiController
         if (sequence < 1)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid commit", "Sequence must be positive");
 
-        var commit = await _repository.LoadCommitAsync(runId, sequence, cancellationToken);
+        var commit = await _commits.LoadCommitAsync(runId, sequence, cancellationToken);
         return commit == null
             ? ApiNotFound($"Run commit not found: {runId}/{sequence}")
             : Ok(commit);
@@ -103,10 +104,7 @@ public sealed class RunJournalController : BaseApiController
     {
         if (afterSequence < 0 || limit is < 1 or > 1000)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
-        var items = (await _repository.LoadCommitsAsync(runId, cancellationToken))
-            .Where(commit => commit.Sequence > afterSequence)
-            .OrderBy(commit => commit.Sequence)
-            .Take(limit)
+        var items = (await _projections.ReadRunAsync(runId, afterSequence, limit, cancellationToken))
             .Select(commit => new
             {
                 commit.Sequence,
@@ -119,7 +117,7 @@ public sealed class RunJournalController : BaseApiController
                 frames = commit.Frames
             })
             .ToArray();
-        if (items.Length == 0 && await _repository.LoadLatestStateAsync(runId, cancellationToken) == null)
+        if (items.Length == 0 && await _commits.LoadLatestStateAsync(runId, cancellationToken) == null)
             return ApiNotFound($"Run timeline not found: {runId}");
         return Ok(new
         {

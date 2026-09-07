@@ -5,18 +5,18 @@ using System.Text.Json;
 namespace API.Controllers;
 
 /// <summary>
-/// Controller para consulta de eventos do sistema (Event Sourcing).
+/// Read-only view of best-effort operational telemetry for diagnostics.
 /// </summary>
 [ApiController]
-[Route("api/v1/admin/events")]
-public class EventsController : ControllerBase
+[Route("api/v1/admin/telemetry")]
+public class TelemetryController : ControllerBase
 {
     private static readonly JsonSerializerOptions EventJsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly IEventBus _eventBus;
-    private readonly ILogger<EventsController> _logger;
+    private readonly IOperationalEventBus _eventBus;
+    private readonly ILogger<TelemetryController> _logger;
     private readonly IWebHostEnvironment _environment;
 
-    public EventsController(IEventBus eventBus, ILogger<EventsController> logger, IWebHostEnvironment environment)
+    public TelemetryController(IOperationalEventBus eventBus, ILogger<TelemetryController> logger, IWebHostEnvironment environment)
     {
         _eventBus = eventBus ?? throw new ArgumentNullException(nameof(eventBus));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -82,7 +82,7 @@ public class EventsController : ControllerBase
         }
     }
 
-    [HttpGet("~/api/v1/admin/combats/{combatId:guid}/events")]
+    [HttpGet("~/api/v1/admin/telemetry/combats/{combatId:guid}")]
     public IActionResult GetCombatEvents(
         Guid combatId,
         [FromQuery] int? afterSequence = null,
@@ -129,7 +129,7 @@ public class EventsController : ControllerBase
         }
     }
 
-    [HttpGet("~/api/v1/admin/combats/{combatId:guid}/events/stream")]
+    [HttpGet("~/api/v1/admin/telemetry/combats/{combatId:guid}/stream")]
     public Task StreamCombatEvents(
         Guid combatId,
         [FromQuery] int afterSequence = -1,

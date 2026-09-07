@@ -3,6 +3,7 @@ using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Determinism;
+using Core.Run.Projections;
 
 namespace Core.Run.Sandbox;
 
@@ -11,6 +12,7 @@ public sealed record CombatTimelineItem
     public int RunSequence { get; init; }
     public ulong CombatStep { get; init; }
     public int Turn { get; init; }
+    public int? Activation { get; init; }
     public string? Phase { get; init; }
     public string? ActorId { get; init; }
     public string CommandType { get; init; } = string.Empty;
@@ -20,18 +22,24 @@ public sealed record CombatTimelineItem
     public string? ResolutionFingerprint { get; init; }
     public string PreviousStateHash { get; init; } = string.Empty;
     public string StateHash { get; init; } = string.Empty;
-    public bool SnapshotAvailable { get; init; }
+    public bool StateAvailable { get; init; }
+    public IReadOnlyList<RunCommitFrame> Frames { get; init; } = [];
     public JsonElement Summary { get; init; }
 }
 
 public sealed record CombatTimelineTurnGroup
 {
     private ImmutableArray<CombatTimelineItem> _items = [];
+    private ImmutableArray<CombatTimelineActivationGroup> _activations = [];
 
-    public CombatTimelineTurnGroup(int turn, IReadOnlyList<CombatTimelineItem> items)
+    public CombatTimelineTurnGroup(
+        int turn,
+        IReadOnlyList<CombatTimelineItem> items,
+        IReadOnlyList<CombatTimelineActivationGroup>? activations = null)
     {
         Turn = turn;
         Items = items;
+        Activations = activations ?? [];
     }
 
     public int Turn { get; init; }
@@ -40,6 +48,25 @@ public sealed record CombatTimelineTurnGroup
         get => _items;
         init => _items = value?.ToImmutableArray() ?? [];
     }
+    public IReadOnlyList<CombatTimelineActivationGroup> Activations
+    {
+        get => _activations;
+        init => _activations = value?.ToImmutableArray() ?? [];
+    }
+}
+
+public sealed record CombatTimelineActivationGroup
+{
+    public int? Activation { get; init; }
+    public string? ActorId { get; init; }
+    public IReadOnlyList<CombatTimelinePhaseGroup> Phases { get; init; } = [];
+    public IReadOnlyList<CombatTimelineItem> Items { get; init; } = [];
+}
+
+public sealed record CombatTimelinePhaseGroup
+{
+    public string? Phase { get; init; }
+    public IReadOnlyList<CombatTimelineItem> Items { get; init; } = [];
 }
 
 public sealed record CombatTimelinePage
@@ -94,12 +121,17 @@ public interface ICombatTimelineProjectionService
 public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionService
 {
     private readonly IRunManager _runs;
-    private readonly IRunCommitStore _repository;
+    private readonly IRunCommitReader _commits;
+    private readonly IRunCommitProjectionReader _projections;
 
-    public CombatTimelineProjectionService(IRunManager runs, IRunCommitStore repository)
+    public CombatTimelineProjectionService(
+        IRunManager runs,
+        IRunCommitReader commits,
+        IRunCommitProjectionReader projections)
     {
         _runs = runs;
-        _repository = repository;
+        _commits = commits;
+        _projections = projections;
     }
 
     public async Task<Result<CombatTimelinePage>> GetAsync(
@@ -117,27 +149,39 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         if (access.IsFailure)
             return Result<CombatTimelinePage>.Failure(access.Error);
 
-        var retained = (await _repository.ListCommitSequencesAsync(run.Value.RunId, cancellationToken)
-                .ConfigureAwait(false))
-            .ToHashSet();
         var pageLimit = System.Math.Min(limit, run.Value.ResolvedMode!.TimelinePolicy.MaxItemsPerPage);
-        var items = (await _repository.LoadCommitsAsync(run.Value.RunId, cancellationToken)
-                .ConfigureAwait(false))
-            .Where(commit => commit.Sequence > afterSequence)
-            .Where(commit => commit.StateAfter.GetEncounter(combatId) != null)
-            .Where(commit => IsCombatTimelineEntry(commit.RootCommand.Type))
-            .OrderBy(commit => commit.Sequence)
-            .Take(pageLimit)
-            .Select(commit => Map(
-                commit,
-                run.Value,
+        var items = (await _projections.ReadCombatAsync(
+                run.Value.RunId,
                 combatId,
-                retained.Contains(commit.Sequence)))
+                afterSequence,
+                pageLimit,
+                cancellationToken).ConfigureAwait(false))
+            .Select(commit => Map(commit, combatId))
             .ToArray();
         var groups = run.Value.ResolvedMode!.TimelinePolicy.GroupByTurn
             ? items.GroupBy(item => item.Turn)
                 .OrderBy(group => group.Key)
-                .Select(group => new CombatTimelineTurnGroup(group.Key, group.ToArray()))
+                .Select(group => new CombatTimelineTurnGroup(
+                    group.Key,
+                    group.ToArray(),
+                    group.GroupBy(item => new { item.Activation, item.ActorId })
+                        .OrderBy(activation => activation.Key.Activation)
+                        .ThenBy(activation => activation.Key.ActorId, StringComparer.Ordinal)
+                        .Select(activation => new CombatTimelineActivationGroup
+                        {
+                            Activation = activation.Key.Activation,
+                            ActorId = activation.Key.ActorId,
+                            Items = activation.ToArray(),
+                            Phases = activation.GroupBy(item => item.Phase, StringComparer.Ordinal)
+                                .OrderBy(phase => phase.Key, StringComparer.Ordinal)
+                                .Select(phase => new CombatTimelinePhaseGroup
+                                {
+                                    Phase = phase.Key,
+                                    Items = phase.ToArray()
+                                })
+                                .ToArray()
+                        })
+                        .ToArray()))
                 .ToArray()
             : [];
         return Result<CombatTimelinePage>.Success(new CombatTimelinePage
@@ -164,7 +208,7 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         var access = ValidateTimelineAccess(run.Value, historical: true, limit: 1);
         if (access.IsFailure)
             return Result<CombatTimelineHistoricalState>.Failure(access.Error);
-        var state = await _repository.LoadStateAsync(run.Value.RunId, sequence, cancellationToken).ConfigureAwait(false);
+        var state = await _commits.LoadStateAsync(run.Value.RunId, sequence, cancellationToken).ConfigureAwait(false);
         var combat = state?.GetEncounter(combatId)?.Combat;
         if (state == null || combat == null)
             return Result<CombatTimelineHistoricalState>.Failure($"Combat timeline state not found: {combatId}/{sequence}");
@@ -195,28 +239,19 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
         return Result.Success();
     }
 
-    private static bool IsCombatTimelineEntry(string commandType) => commandType is
-        RunCommandTypes.StartEncounter or
-        RunCommandTypes.ResolveCombat or
-        "COMBAT_ACTION" or
-        "PLAY_CARD" or
-        "EXECUTE_ACTION" or
-        "END_TURN";
-
     private static CombatTimelineItem Map(
         RunCommit commit,
-        RunState currentRun,
-        Guid combatId,
-        bool snapshotAvailable)
+        Guid combatId)
     {
         var combat = commit.StateAfter.GetEncounter(combatId)!.Combat;
         var resolutionCommandId = commit.RootCommand.CommandId;
-        var resolution = currentRun.GetCombatResolution(resolutionCommandId);
+        var resolution = commit.StateAfter.GetCombatResolution(resolutionCommandId);
         return new CombatTimelineItem
         {
             RunSequence = commit.Sequence,
             CombatStep = combat.Determinism.Step,
             Turn = combat.CurrentTurn,
+            Activation = combat.ActivationState?.ActivationNumber,
             Phase = combat.PhaseState?.CurrentPhaseId,
             ActorId = combat.ActivationState?.ActiveActorId,
             CommandType = commit.RootCommand.Type,
@@ -226,7 +261,11 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
             ResolutionFingerprint = resolution?.ResolutionFingerprint,
             PreviousStateHash = commit.PreviousStateHash,
             StateHash = commit.StateHash,
-            SnapshotAvailable = snapshotAvailable,
+            StateAvailable = true,
+            Frames = commit.Frames
+                .Where(frame => frame.CombatId == combatId)
+                .OrderBy(frame => frame.FrameIndex)
+                .ToArray(),
             Summary = Summary(commit.Command)
         };
     }

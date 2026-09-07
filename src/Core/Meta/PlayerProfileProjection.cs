@@ -43,9 +43,9 @@ public interface IPlayerProfileProjectionReader
 /// </summary>
 public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionReader
 {
-    private readonly IRunCommitStore _runs;
+    private readonly IRunCommitReader _runs;
 
-    public PlayerProfileProjectionReader(IRunCommitStore runs)
+    public PlayerProfileProjectionReader(IRunCommitReader runs)
     {
         _runs = runs;
     }

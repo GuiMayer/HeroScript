@@ -29,7 +29,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Admin:Enabled", "true");
         builder.UseSetting("Admin:ApiKey", "dev-admin-key");
         builder.UseSetting("Combat:TurnOrderStrategy", "FIXED");
-        builder.UseSetting("Persistence:EventStorePath", Path.Combine(_persistenceRoot, "events"));
+        builder.UseSetting("Persistence:OperationalTelemetryPath", Path.Combine(_persistenceRoot, "telemetry"));
         builder.UseSetting("Persistence:RunStatePath", Path.Combine(_persistenceRoot, "runs"));
         builder.UseSetting("Persistence:ContentStorePath", Path.Combine(_persistenceRoot, "content"));
          

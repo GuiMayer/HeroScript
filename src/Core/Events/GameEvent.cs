@@ -4,7 +4,7 @@ using Core.Abstractions.Events;
 namespace Core.Events;
 
 /// <summary>
-/// Evento imutável do jogo com estrutura completa para Event Sourcing.
+/// Immutable operational event used for diagnostics and in-process notifications.
 /// Baseado na estrutura LogEntry da arquitetura.
 /// </summary>
 public record GameEvent : ICorrelatedEvent
@@ -40,7 +40,7 @@ public record GameEvent : ICorrelatedEvent
             ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
     }
     
-    // Estado (para Event Sourcing e replay)
+    // Optional diagnostic snapshots; authoritative replay never consumes them.
     public IReadOnlyDictionary<string, object>? StateBefore
     {
         get => _stateBefore;
