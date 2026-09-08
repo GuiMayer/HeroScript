@@ -13,11 +13,11 @@ namespace API.Controllers;
 public sealed class RunCommandController : BaseApiController
 {
     private readonly IGameplayCommandGateway _commands;
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
 
     public RunCommandController(
         IGameplayCommandGateway commands,
-        IRunManager runs,
+        IRunQueryService runs,
         ILogger<RunCommandController> logger)
         : base(logger)
     {

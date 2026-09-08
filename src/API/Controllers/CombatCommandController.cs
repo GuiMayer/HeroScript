@@ -12,11 +12,11 @@ namespace API.Controllers;
 [Produces("application/json", "application/problem+json")]
 public sealed class CombatCommandController : BaseApiController
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private readonly IGameplayCommandGateway _commands;
 
     public CombatCommandController(
-        IRunManager runs,
+        IRunQueryService runs,
         IGameplayCommandGateway commands,
         ILogger<CombatCommandController> logger)
         : base(logger)

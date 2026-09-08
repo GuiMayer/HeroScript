@@ -11,12 +11,12 @@ namespace API.Controllers;
 public sealed class DurableEventsController : BaseApiController
 {
     private readonly IRunEventProjectionReader _events;
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private static readonly JsonSerializerOptions StreamJsonOptions = new(JsonSerializerDefaults.Web);
 
     public DurableEventsController(
         IRunEventProjectionReader events,
-        IRunManager runs,
+        IRunQueryService runs,
         ILogger<DurableEventsController> logger)
         : base(logger)
     {

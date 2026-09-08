@@ -7,9 +7,9 @@ namespace API.Controllers;
 [Route("api/v1/runs/{runId:guid}/preparations")]
 public sealed class PreparationController : BaseApiController
 {
-    private readonly IRunManager _runManager;
+    private readonly IRunQueryService _runManager;
 
-    public PreparationController(IRunManager runManager, ILogger<PreparationController> logger)
+    public PreparationController(IRunQueryService runManager, ILogger<PreparationController> logger)
         : base(logger)
     {
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));

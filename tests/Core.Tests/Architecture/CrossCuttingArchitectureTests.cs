@@ -11,6 +11,7 @@ using Core.Events.Domain;
 using Core.Entity.Components;
 using Core.Math;
 using System.Collections.Immutable;
+using System.Collections.Concurrent;
 using Xunit;
 
 namespace Core.Tests.Architecture;
@@ -262,15 +263,39 @@ public sealed class CrossCuttingArchitectureTests
     }
 
     [Fact]
-    public void CommandExecutionContext_IsIsolatedPerAsyncFlow()
+    public void RunCommands_UsePerAggregateCoordinatorWithoutAmbientContext()
     {
-        var field = typeof(RunManager).GetField(
+        var ambient = typeof(RunManager).GetField(
             "_executingCommand",
             BindingFlags.Instance | BindingFlags.NonPublic);
+        var gates = typeof(RunSessionGateProvider).GetField(
+            "_gates",
+            BindingFlags.Instance | BindingFlags.NonPublic);
 
-        Assert.NotNull(field);
-        Assert.True(field.FieldType.IsGenericType);
-        Assert.Equal(typeof(AsyncLocal<>), field.FieldType.GetGenericTypeDefinition());
+        Assert.Null(ambient);
+        Assert.NotNull(gates);
+        Assert.True(gates.FieldType.IsGenericType);
+        Assert.Equal(typeof(ConcurrentDictionary<,>), gates.FieldType.GetGenericTypeDefinition());
+        Assert.Equal(typeof(SemaphoreSlim), gates.FieldType.GetGenericArguments()[1]);
+    }
+
+    [Fact]
+    public void PublicRunManagerSurface_DoesNotExposeLateralMutations()
+    {
+        var methods = typeof(IRunManager)
+            .GetInterfaces()
+            .Append(typeof(IRunManager))
+            .SelectMany(type => type.GetMethods())
+            .Select(method => method.Name)
+            .ToHashSet();
+
+        Assert.DoesNotContain("DrawCards", methods);
+        Assert.DoesNotContain("AdvanceNode", methods);
+        Assert.DoesNotContain("ApplyRunResource", methods);
+        Assert.DoesNotContain("CreateShop", methods);
+        Assert.DoesNotContain("AttachEncounter", methods);
+        Assert.Contains("StartRun", methods);
+        Assert.Contains("GetRun", methods);
     }
 
     private static bool IsInitOnly(MethodInfo setter)

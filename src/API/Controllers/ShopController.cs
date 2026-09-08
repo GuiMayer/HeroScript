@@ -7,9 +7,9 @@ namespace API.Controllers;
 [Route("api/v1/runs/{runId:guid}/shops")]
 public sealed class ShopController : BaseApiController
 {
-    private readonly IRunManager _runManager;
+    private readonly IRunQueryService _runManager;
 
-    public ShopController(IRunManager runManager, ILogger<ShopController> logger)
+    public ShopController(IRunQueryService runManager, ILogger<ShopController> logger)
         : base(logger)
     {
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));

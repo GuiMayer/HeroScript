@@ -477,7 +477,12 @@ builder.Services.AddSingleton<GameplayRuntime>(sp =>
         sp.GetRequiredService<IOperationalEventBus>())));
 builder.Services.AddSingleton<RunManager>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
-builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<IRunQueryService>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<IRunCreationService>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<IRunEncounterRuntime>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<RunSessionCoordinator>(sp => sp.GetRequiredService<GameplayRuntime>().RunCommands);
+builder.Services.AddSingleton<IRunCommandGateway>(sp => sp.GetRequiredService<GameplayRuntime>().RunCommands);
+builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<GameplayRuntime>().RunCommands);
 builder.Services.AddSingleton<CombatRunCoordinator>(sp => sp.GetRequiredService<GameplayRuntime>().Combats);
 builder.Services.AddSingleton<ICombatRunCoordinator>(sp => sp.GetRequiredService<GameplayRuntime>().Combats);
 builder.Services.AddSingleton<GameplayCommandGateway>(sp => sp.GetRequiredService<GameplayRuntime>().Gateway);

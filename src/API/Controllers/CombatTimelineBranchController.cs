@@ -9,11 +9,11 @@ namespace API.Controllers;
 [Route("api/v1/combats/{combatId:guid}/timeline/{sequence:int}/branches")]
 public sealed class CombatTimelineBranchController : BaseApiController
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private readonly IRunBranchService _branches;
 
     public CombatTimelineBranchController(
-        IRunManager runs,
+        IRunQueryService runs,
         IRunBranchService branches,
         ILogger<CombatTimelineBranchController> logger)
         : base(logger)

@@ -34,14 +34,14 @@ public interface IGameplayCommandGateway
 public sealed class GameplayCommandGateway : IGameplayCommandGateway
 {
     private readonly IRunCommandProcessor _commands;
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private readonly ICombatRunCoordinator _combats;
     private readonly IGameEventContextAccessor _eventContext;
     private readonly IGameplayCommandCodec _codec;
 
     public GameplayCommandGateway(
         IRunCommandProcessor commands,
-        IRunManager runs,
+        IRunQueryService runs,
         ICombatRunCoordinator combats,
         IGameEventContextAccessor eventContext,
         IGameplayCommandCodec? codec = null)

@@ -25,6 +25,7 @@ public sealed record GameplayRuntimeOptions(
 
 public sealed record GameplayRuntime(
     RunManager Runs,
+    RunSessionCoordinator RunCommands,
     CombatRunCoordinator Combats,
     GameplayCommandGateway Gateway,
     IReadOnlyList<string> RegisteredCommandTypes);
@@ -85,26 +86,26 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         IGameEventContextAccessor eventContext,
         IGameplayCommandCodec codec)
     {
-        _configManager = configManager;
-        _resourceLoader = resourceLoader;
-        _cardPools = cardPools;
-        _cards = cards;
-        _modifiers = modifiers;
-        _manifests = manifests;
-        _relics = relics;
-        _upgrades = upgrades;
-        _modes = modes;
-        _modeResolver = modeResolver;
-        _publications = publications;
-        _contentRuntimes = contentRuntimes;
-        _resources = resources;
-        _combatFactory = combatFactory;
-        _cardPlay = cardPlay;
-        _flow = flow;
-        _gambits = gambits;
-        _abilities = abilities;
-        _eventContext = eventContext;
-        _codec = codec;
+        _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
+        _cardPools = cardPools ?? throw new ArgumentNullException(nameof(cardPools));
+        _cards = cards ?? throw new ArgumentNullException(nameof(cards));
+        _modifiers = modifiers ?? throw new ArgumentNullException(nameof(modifiers));
+        _manifests = manifests ?? throw new ArgumentNullException(nameof(manifests));
+        _relics = relics ?? throw new ArgumentNullException(nameof(relics));
+        _upgrades = upgrades ?? throw new ArgumentNullException(nameof(upgrades));
+        _modes = modes ?? throw new ArgumentNullException(nameof(modes));
+        _modeResolver = modeResolver ?? throw new ArgumentNullException(nameof(modeResolver));
+        _publications = publications ?? throw new ArgumentNullException(nameof(publications));
+        _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
+        _resources = resources ?? throw new ArgumentNullException(nameof(resources));
+        _combatFactory = combatFactory ?? throw new ArgumentNullException(nameof(combatFactory));
+        _cardPlay = cardPlay ?? throw new ArgumentNullException(nameof(cardPlay));
+        _flow = flow ?? throw new ArgumentNullException(nameof(flow));
+        _gambits = gambits ?? throw new ArgumentNullException(nameof(gambits));
+        _abilities = abilities ?? throw new ArgumentNullException(nameof(abilities));
+        _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
+        _codec = codec ?? throw new ArgumentNullException(nameof(codec));
         _registeredCommandTypes = codec.Descriptors
             .Select(descriptor => descriptor.Type)
             .OrderBy(type => type, StringComparer.Ordinal)
@@ -121,6 +122,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         if (options.PersistenceMode == GameplayPersistenceMode.Ephemeral && options.CommitStore != null)
             throw new InvalidOperationException("Ephemeral gameplay runtime cannot write authoritative commits");
 
+        var sessionGates = new RunSessionGateProvider();
         var runs = new RunManager(
             _configManager,
             _resourceLoader,
@@ -137,7 +139,39 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _publications,
             _contentRuntimes,
             _resources,
+            options.HistoryReader ?? options.CommitStore,
+            sessionGates);
+        RunManager CreatePlanningEngine() => new(
+            _configManager,
+            _resourceLoader,
+            _cardPools,
+            _cards,
+            _modifiers,
+            eventBus: null,
+            repository: null,
+            _manifests,
+            _relics,
+            _upgrades,
+            _modes,
+            _modeResolver,
+            _publications,
+            _contentRuntimes,
+            _resources,
             options.HistoryReader ?? options.CommitStore);
+        var runCommands = new RunSessionCoordinator(
+            runs,
+            _codec,
+            RunCommandHandlers.Create(_codec, CreatePlanningEngine),
+            state =>
+            {
+                var published = runs.HydrateForReplay(state);
+                if (published.IsFailure)
+                    throw new InvalidOperationException(published.Error);
+            },
+            options.CommitStore,
+            options.CommitStore,
+            runs,
+            sessionGates);
         var combats = new CombatRunCoordinator(
             _combatFactory,
             runs,
@@ -146,7 +180,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _gambits,
             options.OperationalTelemetry,
             _abilities);
-        var gateway = new GameplayCommandGateway(runs, runs, combats, _eventContext, _codec);
-        return new GameplayRuntime(runs, combats, gateway, _registeredCommandTypes);
+        var gateway = new GameplayCommandGateway(runCommands, runs, combats, _eventContext, _codec);
+        return new GameplayRuntime(runs, runCommands, combats, gateway, _registeredCommandTypes);
     }
 }

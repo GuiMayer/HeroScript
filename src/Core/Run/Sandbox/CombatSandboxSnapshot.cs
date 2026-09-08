@@ -110,9 +110,9 @@ public interface ICombatSandboxSnapshotService
 /// </summary>
 public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
 
-    public CombatSandboxSnapshotService(IRunManager runs) => _runs = runs;
+    public CombatSandboxSnapshotService(IRunQueryService runs) => _runs = runs;
 
     public Result<SandboxCombatSnapshot> Get(Guid runId)
     {

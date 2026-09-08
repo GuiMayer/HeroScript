@@ -18,7 +18,7 @@ namespace Core.Tests.Combat;
 public sealed class CombatRunCoordinatorTests
 {
     private readonly Mock<ICombatFactory> _combatFactory = new();
-    private readonly Mock<IRunManager> _runManager = new();
+    private readonly Mock<IRunEncounterRuntime> _runManager = new();
     private readonly Mock<ICardPlayExecutor> _cardPlayExecutor = new();
 
     [Fact]

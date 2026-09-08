@@ -23,12 +23,10 @@ using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
-public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatResolutionCommitter
+public sealed class RunManager : IRunManager, IRunEncounterRuntime
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
-    private readonly ICardPoolResolver? _cardPoolResolver;
-    private readonly ICardContentCatalog? _cardContentCatalog;
     private readonly IPinnedContentCatalog<ScriptModifierDefinition>? _scriptModifierCatalog;
     private readonly IOperationalEventBus? _eventBus;
     private readonly IRunCommitStore? _repository;
@@ -41,11 +39,15 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
     private readonly IGameModeResolver? _gameModeResolver;
-    private readonly Dictionary<Guid, RunState> _runs = new();
-    private readonly Dictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
-    private readonly object _lock = new();
+    private readonly RunContentDefinitionResolver _contentDefinitions;
+    private readonly RunOfferGenerator _offerGenerator;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, RunState> _runs = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
+    // Only used by the direct test harness. Production command execution is
+    // owned by RunSessionCoordinator and never consults ambient state.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, GameplayCommandEnvelope> _directCommandScopes = new();
+    private readonly RunSessionGateProvider _sessionGates;
     private readonly JsonSerializerOptions _jsonOptions;
-    private readonly AsyncLocal<GameplayCommandEnvelope?> _executingCommand = new();
 
     public RunManager(
         IConfigManager configManager,
@@ -63,16 +65,16 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         IContentPublicationService? contentPublications = null,
         IContentRuntimeResolver? contentRuntimes = null,
         IResourceManager? resources = null,
-        IRunCommitReader? history = null)
+        IRunCommitReader? history = null,
+        RunSessionGateProvider? sessionGates = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
-        _cardPoolResolver = cardPoolResolver;
-        _cardContentCatalog = cardContentCatalog;
         _scriptModifierCatalog = scriptModifierCatalog;
         _eventBus = eventBus;
         _repository = repository;
         _history = history ?? repository;
+        _sessionGates = sessionGates ?? new RunSessionGateProvider();
         _contentManifestProvider = contentManifestProvider;
         _contentPublications = contentPublications;
         _contentRuntimes = contentRuntimes;
@@ -81,6 +83,11 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
         _gameModeResolver = gameModeResolver;
+        _contentDefinitions = new RunContentDefinitionResolver(contentRuntimes);
+        _offerGenerator = new RunOfferGenerator(
+            cardPoolResolver,
+            cardContentCatalog,
+            useRevisionedContent: contentRuntimes != null);
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -220,7 +227,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             Determinism = initialDraw.Value.Context.AdvanceStep()
         };
 
-        lock (_lock)
+        using (_sessionGates.Enter(state.RunId))
         {
             if (_runs.ContainsKey(state.RunId))
                 return Result<RunState>.Failure($"Run already exists for the deterministic inputs: {state.RunId}");
@@ -358,11 +365,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<RunState> GetRun(Guid runId)
     {
-        lock (_lock)
-        {
-            if (_runs.TryGetValue(runId, out var state))
-                return Result<RunState>.Success(state);
-        }
+        if (_runs.TryGetValue(runId, out var state))
+            return Result<RunState>.Success(state);
 
         // Cache miss — try loading from repository
         if (_repository != null)
@@ -374,7 +378,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 if (compatibility.IsFailure)
                     return Result<RunState>.Failure(compatibility.Error);
 
-                lock (_lock) { _runs[runId] = loaded; }
+                _runs[runId] = loaded;
                 return Result<RunState>.Success(loaded);
             }
         }
@@ -396,7 +400,6 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (commandId == Guid.Empty)
             return Result<RunCommandReceipt?>.Failure("Command id is required");
 
-        lock (_lock)
         {
             if (_commandReceipts.TryGetValue((runId, commandId), out var cached))
                 return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
@@ -447,7 +450,6 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (string.IsNullOrWhiteSpace(identity.Type))
             return Result<RunCommandReceipt>.Failure("Command type is required");
 
-        lock (_lock)
         {
             var existingResult = FindReceipt(runId, identity.CommandId);
             if (existingResult.IsFailure)
@@ -473,8 +475,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                         runResult.Value));
             }
 
-            var previousCommand = _executingCommand.Value;
-            _executingCommand.Value = command;
+            _directCommandScopes[runId] = command;
             try
             {
                 var operation = ExecuteCommandTransition(runId, identity.Type, command.Payload);
@@ -510,12 +511,12 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             }
             finally
             {
-                _executingCommand.Value = previousCommand;
+                _directCommandScopes.TryRemove(runId, out _);
             }
         }
     }
 
-    private Result ExecuteCommandTransition(Guid runId, string commandType, JsonElement payload)
+    internal Result ExecuteCommandTransition(Guid runId, string commandType, JsonElement payload)
     {
         return commandType switch
         {
@@ -642,7 +643,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             return Result.Failure("Relic content catalog is not configured");
         var request = DeserializePayload<RelicCommand>(payload);
         var run = _runs[runId];
-        var definition = GetContentDefinition(
+        var definition = _contentDefinitions.Resolve(
             run,
             "relics",
             request.RelicId,
@@ -686,7 +687,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             return Result.Failure("The current map node does not allow card upgrades");
         if (run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
             return Result.Failure($"Map node already resolved: {currentNode.NodeId}");
-        var definition = GetContentDefinition(
+        var definition = _contentDefinitions.Resolve(
             run,
             "card-upgrades",
             request.UpgradeId,
@@ -837,7 +838,6 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<RunState> GetRunByCombat(Guid combatId)
     {
-        lock (_lock)
         {
             var cached = _runs.Values.FirstOrDefault(state => state.GetEncounter(combatId) != null);
             if (cached != null)
@@ -860,10 +860,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 if (compatibility.IsFailure)
                     return Result<RunState>.Failure(compatibility.Error);
 
-                lock (_lock)
-                {
-                    _runs[runId] = loaded;
-                }
+                _runs[runId] = loaded;
                 return Result<RunState>.Success(loaded);
             }
 
@@ -879,7 +876,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<RunMapNodeState> ResolveCurrentNode(Guid runId, string currentNodeId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
@@ -904,7 +901,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<RunMapNodeState> AdvanceNode(Guid runId, string targetNodeId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
@@ -934,7 +931,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (combatState == null)
             return Result<RunState>.Failure("Combat state is required");
 
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunState>.Failure($"Run not found: {runId}");
@@ -1073,7 +1070,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         ArgumentNullException.ThrowIfNull(nextCombat);
         ArgumentNullException.ThrowIfNull(command);
 
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunState>.Failure($"Run not found: {runId}");
@@ -1159,7 +1156,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (resolution.Steps.Count == 0)
             return Result<RunState>.Failure("Combat resolution requires at least one transition");
 
-        lock (_lock)
+        using (_sessionGates.Enter(resolution.RunId))
         {
             if (!_runs.TryGetValue(resolution.RunId, out var state))
                 return Result<RunState>.Failure($"Run not found: {resolution.RunId}");
@@ -1308,7 +1305,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         RunCommandIdentity? commandIdentity = null,
         JsonElement rootPayload = default)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunState>.Failure($"Run not found: {runId}");
@@ -1425,7 +1422,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         ResourceEffectOperation operation,
         ResourceValueField field = ResourceValueField.Current)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<RunState>.Failure($"Run not found: {runId}");
@@ -1494,7 +1491,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
     public Result<IReadOnlyList<string>> DrawCards(Guid runId, int count)
     {
         ImmutableArray<string> drawn;
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
@@ -1539,7 +1536,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<IReadOnlyList<string>> AddCardsToHand(Guid runId, IReadOnlyList<string> cardIds)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
@@ -1572,7 +1569,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (string.IsNullOrWhiteSpace(cardId))
             return Result<bool>.Failure("Card id is required");
 
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<bool>.Failure($"Run not found: {runId}");
@@ -1584,7 +1581,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<IReadOnlyList<string>> ConsumeCardsFromHand(Guid runId, IReadOnlyList<string> cardIds, CardConsumeDestination destination)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
@@ -1614,7 +1611,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result ShuffleDiscardIntoDrawPile(Guid runId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result.Failure($"Run not found: {runId}");
@@ -1637,7 +1634,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<CardSelectionState> CreateCardSelection(Guid runId, string selectionId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
@@ -1650,7 +1647,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
-            var generated = GenerateCardSelectionOptions(
+            var generated = _offerGenerator.GenerateCardSelection(
                 state,
                 definition,
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase));
@@ -1670,7 +1667,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<CardSelectionState> PickCards(Guid runId, Guid selectionInstanceId, IReadOnlyList<string> cardIds)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
@@ -1687,7 +1684,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<CardSelectionState> RerollCardSelection(Guid runId, Guid selectionInstanceId, IReadOnlyList<string>? lockedCardIds = null)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
@@ -1704,7 +1701,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<CardSelectionState>.Failure(definitionResult.Error);
 
             var locked = new HashSet<string>(lockedCardIds ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-            var generated = GenerateCardSelectionOptions(state, definitionResult.Value, locked);
+            var generated = _offerGenerator.GenerateCardSelection(state, definitionResult.Value, locked);
             if (generated.IsFailure)
                 return Result<CardSelectionState>.Failure(generated.Error);
             var transition = CardSelectionTransitions.Reroll(
@@ -1723,7 +1720,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<CardSelectionState> DecomposeCardSelectionOption(Guid runId, Guid selectionInstanceId, string cardId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
@@ -1740,7 +1737,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<ShopState> CreateShop(Guid runId, string shopId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<ShopState>.Failure($"Run not found: {runId}");
@@ -1753,7 +1750,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<ShopState>.Failure(definitionResult.Error);
 
             var definition = definitionResult.Value;
-            var generated = GenerateShopItems(state, definition);
+            var generated = _offerGenerator.GenerateShop(state, definition);
             if (generated.IsFailure)
                 return Result<ShopState>.Failure(generated.Error);
             var transition = ShopTransitions.Create(
@@ -1770,7 +1767,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<ShopItemState> BuyShopItem(Guid runId, Guid shopInstanceId, string itemId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<ShopItemState>.Failure($"Run not found: {runId}");
@@ -1787,7 +1784,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<ShopState> RerollShop(Guid runId, Guid shopInstanceId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<ShopState>.Failure($"Run not found: {runId}");
@@ -1803,7 +1800,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             if (definitionResult.IsFailure)
                 return Result<ShopState>.Failure(definitionResult.Error);
 
-            var generated = GenerateShopItems(state, definitionResult.Value);
+            var generated = _offerGenerator.GenerateShop(state, definitionResult.Value);
             if (generated.IsFailure)
                 return Result<ShopState>.Failure(generated.Error);
             var transition = ShopTransitions.Reroll(
@@ -1822,7 +1819,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<PreparationState> CreatePreparation(Guid runId, string preparationId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<PreparationState>.Failure($"Run not found: {runId}");
@@ -1844,7 +1841,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
 
     public Result<PreparationOptionState> ApplyPreparationOption(Guid runId, Guid preparationInstanceId, string optionId)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<PreparationOptionState>.Failure($"Run not found: {runId}");
@@ -1903,239 +1900,6 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         return persisted.IsSuccess
             ? Result<T>.Success(transition.Value)
             : Result<T>.Failure(persisted.Error);
-    }
-
-    private Result<CardSelectionOfferGeneration> GenerateCardSelectionOptions(
-        RunState state,
-        CardSelectionDefinition definition,
-        IReadOnlySet<string> lockedCardIds)
-    {
-        var lockedOptions = lockedCardIds
-            .OrderBy(cardId => cardId, StringComparer.Ordinal)
-            .Select(cardId => CreateCardSelectionOption(state, cardId))
-            .Where(option => option != null)
-            .Cast<CardSelectionOptionState>()
-            .ToList();
-        var desiredCount = System.Math.Max(1, definition.OfferCount) - lockedOptions.Count;
-        if (!string.IsNullOrWhiteSpace(definition.CardPoolId))
-        {
-            if (_cardPoolResolver == null)
-            {
-                return Result<CardSelectionOfferGeneration>.Failure(
-                    $"Card pool resolver is unavailable for {definition.CardPoolId}");
-            }
-            var poolResult = _contentRuntimes != null && _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
-                ? revisionedPools.ResolvePool(
-                    definition.CardPoolId,
-                    state.Determinism.ContentRevision,
-                    state.ConfigName)
-                : _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
-            if (poolResult.IsFailure)
-                return Result<CardSelectionOfferGeneration>.Failure(poolResult.Error);
-            var offer = CardOfferResolver.Resolve(
-                poolResult.Value,
-                System.Math.Max(0, desiredCount),
-                state.Determinism,
-                lockedCardIds);
-            if (offer.IsFailure)
-                return Result<CardSelectionOfferGeneration>.Failure(offer.Error);
-            lockedOptions.AddRange(offer.Value.Cards.Select(ToOption));
-            return Result<CardSelectionOfferGeneration>.Success(new(
-                lockedOptions,
-                offer.Value.Context,
-                offer.Value.Fingerprint));
-        }
-
-        var candidates = definition.CardPool
-            .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
-            .Where(cardId => !lockedCardIds.Contains(cardId))
-            .Select(cardId => CreateCardSelectionOption(state, cardId) ?? new CardSelectionOptionState { CardId = cardId })
-            .OrderBy(option => option.CardId, StringComparer.Ordinal)
-            .ToList();
-        lockedOptions.AddRange(candidates.Take(System.Math.Max(0, desiredCount)));
-        return Result<CardSelectionOfferGeneration>.Success(new(
-            lockedOptions,
-            state.Determinism,
-            CanonicalJson.ComputeHash(lockedOptions.Select(option => option.CardId).ToArray())));
-    }
-
-    private CardSelectionOptionState? CreateCardSelectionOption(RunState state, string cardId)
-    {
-        if (_cardContentCatalog == null)
-            return null;
-
-        var cardResult = _contentRuntimes != null && _cardContentCatalog is IRevisionedCardContentCatalog revisionedCards
-            ? revisionedCards.GetCard(
-                cardId,
-                state.Determinism.ContentRevision,
-                state.ConfigName)
-            : _cardContentCatalog.GetCard(cardId, state.ConfigName);
-        return cardResult.IsSuccess ? ToOption(cardResult.Value) : null;
-    }
-
-    private static CardSelectionOptionState ToOption(CardContentDefinition card)
-    {
-        return new CardSelectionOptionState
-        {
-            CardId = card.CardId,
-            Rarity = card.Rarity,
-            Tags = card.Tags.ToList(),
-            DecomposeRewards = card.DecomposeRewards
-        };
-    }
-
-    private Result<ShopOfferGeneration> GenerateShopItems(RunState state, ShopDefinition definition)
-    {
-        if (!string.IsNullOrWhiteSpace(definition.CardPoolId))
-        {
-            if (_cardPoolResolver == null)
-            {
-                return Result<ShopOfferGeneration>.Failure(
-                    $"Card pool resolver is unavailable for {definition.CardPoolId}");
-            }
-            var poolResult = _contentRuntimes != null && _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
-                ? revisionedPools.ResolvePool(
-                    definition.CardPoolId,
-                    state.Determinism.ContentRevision,
-                    state.ConfigName)
-                : _cardPoolResolver.ResolvePool(definition.CardPoolId, state.ConfigName);
-            if (poolResult.IsFailure)
-                return Result<ShopOfferGeneration>.Failure(poolResult.Error);
-            var offer = CardOfferResolver.Resolve(
-                poolResult.Value,
-                System.Math.Max(1, definition.OfferCount),
-                state.Determinism);
-            if (offer.IsFailure)
-                return Result<ShopOfferGeneration>.Failure(offer.Error);
-            return Result<ShopOfferGeneration>.Success(new(
-                offer.Value.Cards
-                    .Select((card, index) => ToShopItem(card, definition.Pricing, index))
-                    .ToList(),
-                offer.Value.Context,
-                offer.Value.Fingerprint));
-        }
-
-        var items = definition.Items
-            .Select((item, index) => ToShopItem(state, item, definition.Pricing, index))
-            .ToList();
-        return Result<ShopOfferGeneration>.Success(new(
-            items,
-            state.Determinism,
-            CanonicalJson.ComputeHash(items.Select(item => item.ItemId).ToArray())));
-    }
-
-    private ShopItemState ToShopItem(RunState state, ShopItemDefinition item, ShopPricingRules pricing, int index)
-    {
-        if (!string.IsNullOrWhiteSpace(item.CardId) && _cardContentCatalog != null)
-        {
-            var cardResult = _cardContentCatalog is IRevisionedCardContentCatalog revisionedCards
-                ? revisionedCards.GetCard(
-                    item.CardId,
-                    state.Determinism.ContentRevision,
-                    state.ConfigName)
-                : _cardContentCatalog.GetCard(item.CardId, state.ConfigName);
-            if (cardResult.IsSuccess)
-                return ToShopItem(cardResult.Value, pricing, index, item.ItemId, item.Costs);
-        }
-
-        return new ShopItemState
-        {
-            ItemId = string.IsNullOrWhiteSpace(item.ItemId) ? $"item_{index + 1}" : item.ItemId,
-            CardId = item.CardId,
-            BaseCosts = item.Costs,
-            Costs = item.Costs
-        };
-    }
-
-    private static ShopItemState ToShopItem(
-        CardContentDefinition card,
-        ShopPricingRules pricing,
-        int index,
-        string? itemId = null,
-        IReadOnlyList<ResourceAmount>? explicitCosts = null)
-    {
-        var calculated = CalculateShopPrices(card, pricing, explicitCosts);
-        return new ShopItemState
-        {
-            ItemId = string.IsNullOrWhiteSpace(itemId) ? $"buy_{card.CardId}_{index + 1}" : itemId,
-            CardId = card.CardId,
-            Rarity = card.Rarity,
-            Tags = card.Tags.ToList(),
-            BaseCosts = calculated.BaseCosts,
-            Costs = calculated.Costs,
-            PricingBreakdowns = calculated.Breakdowns
-        };
-    }
-
-    private sealed record CardSelectionOfferGeneration(
-        IReadOnlyList<CardSelectionOptionState> Options,
-        DeterministicContext Context,
-        string Fingerprint);
-
-    private sealed record ShopOfferGeneration(
-        IReadOnlyList<ShopItemState> Items,
-        DeterministicContext Context,
-        string Fingerprint);
-
-    private sealed record CalculatedShopPrices(
-        ImmutableArray<ResourceAmount> BaseCosts,
-        ImmutableArray<ResourceAmount> Costs,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>> Breakdowns);
-
-    private static CalculatedShopPrices CalculateShopPrices(
-        CardContentDefinition card,
-        ShopPricingRules pricing,
-        IReadOnlyList<ResourceAmount>? explicitCosts)
-    {
-        var baseCosts = (explicitCosts is { Count: > 0 } ? explicitCosts : card.BasePrices)
-            .OrderBy(cost => cost.ResourceId, StringComparer.Ordinal)
-            .ToImmutableArray();
-        var rarityMultiplier = pricing.RarityMultipliers.TryGetValue(card.Rarity, out var rarityValue) ? rarityValue : 1.0;
-        var tagMultiplier = card.Tags
-            .Select(tag => pricing.TagMultipliers.TryGetValue(tag, out var value) ? value : 1.0)
-            .Aggregate(1.0, (current, value) => current * value);
-        var costs = ImmutableArray.CreateBuilder<ResourceAmount>(baseCosts.Length);
-        var breakdowns = new Dictionary<string, IReadOnlyDictionary<string, double>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var baseCost in baseCosts)
-        {
-            var raw = baseCost.Amount * pricing.BaseMultiplier * rarityMultiplier * tagMultiplier;
-            var final = pricing.Rounding switch
-            {
-                ResourcePriceRounding.None => raw,
-                ResourcePriceRounding.Floor => System.Math.Floor(raw),
-                ResourcePriceRounding.Ceiling => System.Math.Ceiling(raw),
-                ResourcePriceRounding.Nearest => System.Math.Round(raw, MidpointRounding.AwayFromZero),
-                _ => throw new InvalidOperationException($"Unsupported price rounding: {pricing.Rounding}")
-            };
-            costs.Add(new ResourceAmount { ResourceId = baseCost.ResourceId, Amount = (float)final });
-            breakdowns[baseCost.ResourceId] = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["base"] = baseCost.Amount,
-                ["baseMultiplier"] = pricing.BaseMultiplier,
-                ["rarityMultiplier"] = rarityMultiplier,
-                ["tagMultiplier"] = tagMultiplier,
-                ["raw"] = raw,
-                ["final"] = final
-            };
-        }
-        return new CalculatedShopPrices(baseCosts, costs.MoveToImmutable(), breakdowns);
-    }
-
-    private Result<T> GetContentDefinition<T>(
-        RunState run,
-        string kind,
-        string definitionId,
-        Func<Result<T>> fallback)
-    {
-        if (_contentRuntimes == null)
-            return fallback();
-
-        var runtime = _contentRuntimes.Resolve(
-            run.Determinism.ContentRevision,
-            run.ConfigName);
-        return runtime.IsFailure
-            ? Result<T>.Failure(runtime.Error)
-            : runtime.Value.GetDefinition<T>(kind, definitionId);
     }
 
     private Result<RunDefinition> LoadDefinition(
@@ -2279,7 +2043,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         IReadOnlyList<string> cardIds,
         CardConsumeDestination destination)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(runId))
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
@@ -2309,7 +2073,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         RunState source,
         int sourceSequence)
     {
-        lock (_lock)
+        using (_sessionGates.Enter(current.RunId))
         {
             var candidate = source with
             {
@@ -2334,10 +2098,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         var compatibility = ValidateLoadedRunCompatibility(state);
         if (compatibility.IsFailure)
             return Result<RunState>.Failure(compatibility.Error);
-        lock (_lock)
-        {
-            _runs[state.RunId] = state;
-        }
+        _runs[state.RunId] = state;
         return Result<RunState>.Success(state);
     }
 
@@ -2356,7 +2117,9 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         _runs.TryGetValue(state.RunId, out var previous);
         try
         {
-            var activeCommand = commandIdentity == null ? _executingCommand.Value : null;
+            var activeCommand = commandIdentity == null && _directCommandScopes.TryGetValue(state.RunId, out var scoped)
+                ? scoped
+                : null;
             var identity = commandIdentity ?? activeCommand?.Identity;
             var effectiveType = identity?.Type ?? commandType;
             var effectiveCommand = activeCommand?.Payload
@@ -2428,7 +2191,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         catch (Exception exception)
         {
             if (previous == null)
-                _runs.Remove(state.RunId);
+                _runs.TryRemove(state.RunId, out _);
             else
                 _runs[state.RunId] = previous;
             return Result<RunState>.Failure(

@@ -9,10 +9,10 @@ namespace API.Controllers;
 [Produces("application/json", "application/problem+json")]
 public sealed class CombatResolutionController : BaseApiController
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
 
     public CombatResolutionController(
-        IRunManager runs,
+        IRunQueryService runs,
         ILogger<CombatResolutionController> logger)
         : base(logger)
     {

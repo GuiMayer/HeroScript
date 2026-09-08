@@ -140,7 +140,7 @@ public interface ICardInspectionService
 /// </summary>
 public sealed class CardInspectionService : ICardInspectionService
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private readonly IContentRuntimeResolver _runtimes;
     private readonly ICardContentCompiler _compiler;
     private readonly IEffectiveCardResolver _effectiveCards;
@@ -148,7 +148,7 @@ public sealed class CardInspectionService : ICardInspectionService
     private readonly ICardPlayExecutor _executor;
 
     public CardInspectionService(
-        IRunManager runs,
+        IRunQueryService runs,
         IContentRuntimeResolver runtimes,
         ICardContentCompiler compiler,
         IEffectiveCardResolver effectiveCards,

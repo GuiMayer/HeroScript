@@ -7,9 +7,9 @@ namespace API.Controllers;
 [Route("api/v1/runs/{runId:guid}/card-selections")]
 public sealed class CardSelectionController : BaseApiController
 {
-    private readonly IRunManager _runManager;
+    private readonly IRunQueryService _runManager;
 
-    public CardSelectionController(IRunManager runManager, ILogger<CardSelectionController> logger)
+    public CardSelectionController(IRunQueryService runManager, ILogger<CardSelectionController> logger)
         : base(logger)
     {
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));

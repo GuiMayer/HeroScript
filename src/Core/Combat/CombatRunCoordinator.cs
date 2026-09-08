@@ -16,7 +16,7 @@ namespace Core.Combat;
 public sealed class CombatRunCoordinator : ICombatRunCoordinator
 {
     private readonly ICombatFactory _combatFactory;
-    private readonly IRunManager _runManager;
+    private readonly IRunEncounterRuntime _runManager;
     private readonly ICardPlayExecutor? _cardPlayExecutor;
     private readonly IAbilityExecutor? _abilityExecutor;
     private readonly IOperationalEventBus? _eventBus;
@@ -27,7 +27,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
     public CombatRunCoordinator(
         ICombatFactory combatFactory,
-        IRunManager runManager,
+        IRunEncounterRuntime runManager,
         ICardPlayExecutor? cardPlayExecutor = null,
         ICombatFlowPlanner? flowPlanner = null,
         IGambitEngine? gambitEngine = null,
@@ -41,7 +41,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         _eventBus = eventBus;
         _flowPlanner = flowPlanner;
         _gambitEngine = gambitEngine;
-        _resolutionCommitter = runManager as IRunCombatResolutionCommitter;
+        _resolutionCommitter = runManager;
     }
 
     public Result<CombatRunEncounterResult> StartEncounter(
@@ -944,10 +944,12 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         RunCommandIdentity? identity,
         Guid? expectedCombatId = null)
     {
-        if (identity == null || _runManager is not IRunCommandProcessor processor)
+        if (identity == null)
             return Result<CombatRunEncounterResult?>.Success(null);
 
-        var receipt = processor.FindReceipt(runId, identity.CommandId);
+        var receipt = _runManager.FindReceipt(runId, identity.CommandId);
+        if (receipt == null)
+            return Result<CombatRunEncounterResult?>.Success(null);
         if (receipt.IsFailure)
             return Result<CombatRunEncounterResult?>.Failure(receipt.Error);
         if (receipt.Value == null)
@@ -977,10 +979,12 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Guid combatId,
         RunCommandIdentity? identity)
     {
-        if (identity == null || _runManager is not IRunCommandProcessor processor)
+        if (identity == null)
             return Result<CombatRunActionResult?>.Success(null);
 
-        var receipt = processor.FindReceipt(runId, identity.CommandId);
+        var receipt = _runManager.FindReceipt(runId, identity.CommandId);
+        if (receipt == null)
+            return Result<CombatRunActionResult?>.Success(null);
         if (receipt.IsFailure)
             return Result<CombatRunActionResult?>.Failure(receipt.Error);
         if (receipt.Value == null)

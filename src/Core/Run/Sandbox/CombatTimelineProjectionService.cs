@@ -120,12 +120,12 @@ public interface ICombatTimelineProjectionService
 /// </summary>
 public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionService
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private readonly IRunCommitReader _commits;
     private readonly IRunCommitProjectionReader _projections;
 
     public CombatTimelineProjectionService(
-        IRunManager runs,
+        IRunQueryService runs,
         IRunCommitReader commits,
         IRunCommitProjectionReader projections)
     {

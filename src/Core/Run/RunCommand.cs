@@ -36,9 +36,21 @@ public sealed record RunCommandReceipt
     public bool Duplicate { get; init; }
 }
 
-public interface IRunCommandProcessor
+public interface IRunCommandReceiptReader
 {
     Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId);
+}
+
+public interface IRunCommandGateway : IRunCommandReceiptReader
+{
+    Task<Result<RunCommandReceipt>> ExecuteAsync(
+        Guid runId,
+        GameplayCommandEnvelope command,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IRunCommandProcessor : IRunCommandGateway
+{
     Result<RunCommandReceipt> Execute(Guid runId, GameplayCommandEnvelope command);
 }
 

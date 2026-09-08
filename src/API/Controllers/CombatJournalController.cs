@@ -12,12 +12,12 @@ namespace API.Controllers;
 [Route("api/v1/combats/{combatId:guid}")]
 public sealed class CombatJournalController : BaseApiController
 {
-    private readonly IRunManager _runs;
+    private readonly IRunQueryService _runs;
     private readonly IRunCommitProjectionReader _commits;
     private readonly IRunReplayService _replay;
 
     public CombatJournalController(
-        IRunManager runs,
+        IRunQueryService runs,
         IRunCommitProjectionReader commits,
         IRunReplayService replay,
         ILogger<CombatJournalController> logger)

@@ -43,6 +43,7 @@ public sealed record GameplayTransitionFrame
 public sealed record GameplayTransitionFact
 {
     public int FactIndex { get; init; }
+    public ulong Step { get; init; }
     public string Scope { get; init; } = "run";
     public string Type { get; init; } = string.Empty;
     public JsonElement Payload { get; init; }
