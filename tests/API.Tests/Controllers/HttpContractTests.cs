@@ -17,7 +17,8 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetActions_ReturnsRevisionedContentContract()
     {
-        using var response = await _client.GetAsync("/api/v1/content/actions");
+        var revision = await GetCurrentRevisionAsync();
+        using var response = await _client.GetAsync($"/api/v1/content/actions?revision={revision}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -36,7 +37,9 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetMissingAction_ReturnsProblemDetails()
     {
-        using var response = await _client.GetAsync("/api/v1/content/actions/missing_action");
+        var revision = await GetCurrentRevisionAsync();
+        using var response = await _client.GetAsync(
+            $"/api/v1/content/actions/missing_action?revision={revision}");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
@@ -51,7 +54,8 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetResources_ReturnsRevisionedContentContract()
     {
-        using var response = await _client.GetAsync("/api/v1/content/resources");
+        var revision = await GetCurrentRevisionAsync();
+        using var response = await _client.GetAsync($"/api/v1/content/resources?revision={revision}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -70,7 +74,9 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task GetResourcesByTag_ReturnsFilteredRevisionedContract()
     {
-        using var response = await _client.GetAsync("/api/v1/content/resources?tag=tactical");
+        var revision = await GetCurrentRevisionAsync();
+        using var response = await _client.GetAsync(
+            $"/api/v1/content/resources?revision={revision}&tag=tactical");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
@@ -81,5 +87,13 @@ public sealed class HttpContractTests : IClassFixture<TestWebApplicationFactory>
         Assert.All(resources, resource => Assert.Equal("TACTICAL", resource.GetProperty("category").GetString()));
         Assert.Contains(resources, resource => resource.GetProperty("resourceId").GetString() == "energy");
         Assert.Contains(resources, resource => resource.GetProperty("resourceId").GetString() == "mana");
+    }
+
+    private async Task<string> GetCurrentRevisionAsync()
+    {
+        using var response = await _client.GetAsync("/api/v1/content/revisions?configName=default");
+        response.EnsureSuccessStatusCode();
+        using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+        return document.RootElement.GetProperty("currentRevision").GetString()!;
     }
 }

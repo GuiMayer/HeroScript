@@ -32,7 +32,7 @@ namespace Core.Math
         {
             // Carregar recursos JSON genéricos
             var rawData = _resourceLoader.LoadResource(
-                "Pipelines/MathFormulas.json",
+                "formulas/math_formulas.json",
                 configChain,
                 strictMode
             );
@@ -96,7 +96,7 @@ namespace Core.Math
         /// </summary>
         public Dictionary<string, string> GetFormulaOrigins()
         {
-            return _resourceLoader.GetResourceOrigins("Pipelines/MathFormulas.json");
+            return _resourceLoader.GetResourceOrigins("formulas/math_formulas.json");
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace Core.Math
         /// </summary>
         public void InvalidateCache()
         {
-            _resourceLoader.InvalidateCache("Pipelines/MathFormulas.json");
+            _resourceLoader.InvalidateCache("formulas/math_formulas.json");
         }
     }
 }

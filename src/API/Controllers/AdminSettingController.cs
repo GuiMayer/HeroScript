@@ -74,8 +74,8 @@ public sealed class AdminSettingController : BaseApiController
             : UnprocessableEntity(validation);
     }
 
-    [HttpPost("{settingId}/publish")]
-    public async Task<IActionResult> Publish(
+    [HttpPost("{settingId}/drafts")]
+    public async Task<IActionResult> CreateDraft(
         string settingId,
         CancellationToken cancellationToken = default)
     {
@@ -85,25 +85,18 @@ public sealed class AdminSettingController : BaseApiController
             return ApiProblem(
                 StatusCodes.Status422UnprocessableEntity,
                 ApiErrorCodes.RuleViolation,
-                "Setting publication rejected",
+                "Setting draft rejected",
                 compiled.Error);
         }
 
-        var published = await _content.PublishBundleAsync(compiled.Value.Bundle, cancellationToken)
+        var draft = await _content.CreateDraftAsync(compiled.Value.Bundle, cancellationToken)
             .ConfigureAwait(false);
-        return published.IsSuccess
-            ? Ok(new
-            {
-                settingId,
-                revision = published.Value.Manifest.Revision,
-                manifest = published.Value.Manifest,
-                compiled.Value.Packages,
-                compiled.Value.Provenance
-            })
+        return draft.IsSuccess
+            ? Created($"/api/v1/admin/content/drafts/{draft.Value.DraftId}", draft.Value)
             : ApiProblem(
                 StatusCodes.Status422UnprocessableEntity,
                 ApiErrorCodes.RuleViolation,
-                "Setting publication rejected",
-                published.Error);
+                "Setting draft rejected",
+                draft.Error);
     }
 }

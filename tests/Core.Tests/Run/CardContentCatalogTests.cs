@@ -59,7 +59,7 @@ public sealed class CardContentCatalogTests
         var catalog = CreateCatalog();
         var resolver = CreateResolver(catalog);
         _resourceLoader
-            .Setup(m => m.LoadResource("card-pools/missing.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("card-pools/missing.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>());
 
         var result = resolver.ResolvePool("missing", "test");
@@ -72,7 +72,7 @@ public sealed class CardContentCatalogTests
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
-            .Setup(m => m.LoadResource("cards/card_catalog.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("cards/card_catalog.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(ParseResource(CardCatalogJson));
 
         return new CardContentCatalog(_configManager.Object, _resourceLoader.Object);
@@ -82,7 +82,7 @@ public sealed class CardContentCatalogTests
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
-            .Setup(m => m.LoadResource("card-pools/basic_rewards.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("card-pools/basic_rewards.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(ParseResource(CardPoolsJson));
 
         return new CardPoolResolver(_configManager.Object, _resourceLoader.Object, catalog);

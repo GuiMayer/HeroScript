@@ -31,11 +31,43 @@ public class EntityFactory
     /// Cria uma entidade a partir de uma definição
     /// </summary>
     public Result<Entity> CreateEntity(string definitionId, string? entityId = null)
+        => CreateEntityCore(
+            _definitionLoader.LoadDefinition(definitionId),
+            definitionId,
+            entityId ?? Guid.NewGuid().ToString(), // nondeterministic-boundary: editor convenience
+            contentRevision: null,
+            configName: null);
+
+    public Result<Entity> CreateEntity(
+        string definitionId,
+        string entityId,
+        string contentRevision,
+        string settingId)
+    {
+        if (string.IsNullOrWhiteSpace(entityId))
+            return Result<Entity>.Failure("Entity id is required");
+        if (string.IsNullOrWhiteSpace(contentRevision))
+            return Result<Entity>.Failure("Content revision is required");
+        if (string.IsNullOrWhiteSpace(settingId))
+            return Result<Entity>.Failure("Setting id is required");
+
+        return CreateEntityCore(
+            _definitionLoader.LoadDefinition(definitionId, contentRevision, settingId),
+            definitionId,
+            entityId,
+            contentRevision,
+            settingId);
+    }
+
+    private Result<Entity> CreateEntityCore(
+        Result<EntityDefinition> defResult,
+        string definitionId,
+        string entityId,
+        string? contentRevision,
+        string? configName)
     {
         try
         {
-            // Carregar definição
-            var defResult = _definitionLoader.LoadDefinition(definitionId);
             if (!defResult.IsSuccess)
             {
                 return Result<Entity>.Failure($"Failed to load definition: {defResult.Error}");
@@ -46,14 +78,14 @@ public class EntityFactory
             // Criar entidade base
             var entity = new Entity
             {
-                EntityId = entityId ?? Guid.NewGuid().ToString(), // nondeterministic-boundary: editor/API convenience
+                EntityId = entityId,
                 Type = definition.Type,
                 DefinitionId = definitionId,
                 DisplayName = definition.DisplayName
             };
             
             // Adicionar componentes
-            entity = AddComponents(entity, definition);
+            entity = AddComponents(entity, definition, contentRevision, configName);
             
             // Adicionar controller
             var controllerResult = CreateController(definition);
@@ -75,12 +107,20 @@ public class EntityFactory
     /// <summary>
     /// Adiciona componentes à entidade baseado na definição
     /// </summary>
-    private Entity AddComponents(Entity entity, EntityDefinition definition)
+    private Entity AddComponents(
+        Entity entity,
+        EntityDefinition definition,
+        string? contentRevision,
+        string? configName)
     {
         // Adicionar ResourceComponent
         if (definition.Resources != null)
         {
-            var resourceComp = CreateResourceComponent(entity.EntityId, definition.Resources);
+            var resourceComp = CreateResourceComponent(
+                entity.EntityId,
+                definition.Resources,
+                contentRevision,
+                configName);
             entity = entity.AddComponent(resourceComp);
         }
         
@@ -104,14 +144,31 @@ public class EntityFactory
     /// <summary>
     /// Cria ResourceComponent a partir da definição
     /// </summary>
-    private ResourceComponent CreateResourceComponent(string entityId, ResourcesDefinition resourcesDef)
+    private ResourceComponent CreateResourceComponent(
+        string entityId,
+        ResourcesDefinition resourcesDef,
+        string? contentRevision,
+        string? configName)
     {
         var pools = new Dictionary<string, ResourcePool>();
         
         foreach (var (resourceId, poolDef) in resourcesDef.Resources)
         {
             // Obter definição do recurso do ResourceManager
-            var resourceDefResult = _resourceManager.GetDefinition(resourceId);
+            Result<ResourceDefinition> resourceDefResult;
+            if (!string.IsNullOrWhiteSpace(contentRevision))
+            {
+                if (_resourceManager is not IRevisionedResourceManager revisioned)
+                {
+                    throw new InvalidOperationException(
+                        "Revisioned resource manager is required for published entity creation");
+                }
+                resourceDefResult = revisioned.GetDefinition(resourceId, contentRevision, configName);
+            }
+            else
+            {
+                resourceDefResult = _resourceManager.GetDefinition(resourceId);
+            }
             if (!resourceDefResult.IsSuccess)
             {
                 throw new InvalidOperationException(

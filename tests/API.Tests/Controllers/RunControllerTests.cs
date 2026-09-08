@@ -29,11 +29,14 @@ public sealed class RunControllerTests
     public void StartRun_ReturnsRunState()
     {
         var state = CreateRun();
+        var expectedOptions = new RunStartOptions(
+            "test", "default_run", "hero", null, "revision", "standard", SettingId: "test");
         _runManager
-            .Setup(m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null, "standard")))
+            .Setup(m => m.StartRun(expectedOptions))
             .Returns(Result<RunState>.Success(state));
 
-        var result = _controller.StartRun(new StartRunRequest("test", "default_run", "hero"));
+        var result = _controller.StartRun(new StartRunRequest(
+            "test", "default_run", "hero", ContentRevision: "revision", ModeId: "standard"));
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
@@ -43,8 +46,28 @@ public sealed class RunControllerTests
         Assert.False(string.IsNullOrWhiteSpace(json.GetProperty("stateHash").GetString()));
         Assert.Equal((ulong)0, json.GetProperty("step").GetUInt64());
         _runManager.Verify(
-            m => m.StartRun(new RunStartOptions("test", "default_run", "hero", null, null, "standard")),
+            m => m.StartRun(expectedOptions),
             Times.Once);
+    }
+
+    [Theory]
+    [InlineData(null, "revision", "standard")]
+    [InlineData("test", null, "standard")]
+    [InlineData("test", "revision", null)]
+    public void StartRun_RequiresSettingRevisionAndMode(
+        string? settingId,
+        string? contentRevision,
+        string? modeId)
+    {
+        var result = _controller.StartRun(new StartRunRequest(
+            settingId,
+            "default_run",
+            "hero",
+            ContentRevision: contentRevision,
+            ModeId: modeId));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _runManager.Verify(manager => manager.StartRun(It.IsAny<RunStartOptions>()), Times.Never);
     }
 
     [Fact]

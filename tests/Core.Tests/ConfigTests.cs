@@ -93,9 +93,9 @@ public class ConfigTests
         };
         
         _mockResourceLoader.Setup(m => m.LoadResource(
-            "Pipelines/MathFormulas.json",
+            "formulas/math_formulas.json",
             It.IsAny<IEnumerable<string>>(),
-            false))
+            true))
             .Returns(mockFormulas);
 
         // Act
@@ -116,7 +116,7 @@ public class ConfigTests
             ["LINEAR_ADDITIVE"] = "dev"
         };
         
-        _mockResourceLoader.Setup(m => m.GetResourceOrigins("Pipelines/MathFormulas.json"))
+        _mockResourceLoader.Setup(m => m.GetResourceOrigins("formulas/math_formulas.json"))
             .Returns(mockOrigins);
 
         // Act

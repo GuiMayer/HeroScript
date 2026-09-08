@@ -93,7 +93,7 @@ public class RuntimeFormulaEvaluatorTests
             Params = new Dictionary<string, float> { ["BONUS"] = 7f },
             Operations = [new OperationDefinition { Op = "ADD", Value = "params.BONUS" }]
         };
-        var path = "Pipelines/MathFormulas.json";
+        var path = "formulas/math_formulas.json";
         var bundle = new ContentBundle
         {
             Manifest = new ContentManifest

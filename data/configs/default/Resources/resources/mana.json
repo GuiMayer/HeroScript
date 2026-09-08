@@ -1,4 +1,5 @@
 {
+  "mana": {
   "resourceId": "mana",
   "displayName": "Mana",
   "shortName": "MP",
@@ -16,4 +17,5 @@
   },
   "costMultiplier": 1.0,
   "tags": ["tactical", "magic"]
+  }
 }

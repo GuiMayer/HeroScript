@@ -19,10 +19,10 @@ public sealed class SettingCompilerTests
             [
                 Package("addon", "1.0.0", dependencies: [Dependency("base", "^1.0.0")], content:
                 [
-                    Patch("patch.json", "cards/cards.json", "card", CanonicalJson.ComputeHash(original))
+                    Patch("patch.json", "boards/cards.json", "card", CanonicalJson.ComputeHash(original))
                 ]),
-                Package("base", "1.0.0", content: [Definition("old.json", "cards", "cards/cards.json")]),
-                Package("base", "1.2.0", content: [Definition("cards.json", "cards", "cards/cards.json")])
+                Package("base", "1.0.0", content: [Definition("old.json", "boards", "boards/cards.json")]),
+                Package("base", "1.2.0", content: [Definition("cards.json", "boards", "boards/cards.json")])
             ],
             settings: [Setting("demo", "addon", "1.0.0")],
             payloads: new Dictionary<string, JsonElement>
@@ -39,7 +39,7 @@ public sealed class SettingCompilerTests
             result.Value.Packages,
             package => Assert.Equal(new CompiledPackageReference("base", "1.2.0"), package),
             package => Assert.Equal(new CompiledPackageReference("addon", "1.0.0"), package));
-        var card = result.Value.Bundle.Artifacts["cards/cards.json"].GetProperty("card");
+        var card = result.Value.Bundle.Artifacts["boards/cards.json"].GetProperty("card");
         Assert.Equal(8, card.GetProperty("damage").GetInt32());
         Assert.Contains(result.Value.Provenance, item =>
             item.PackageId == "addon" && item.JsonPointer == "/card/damage");
@@ -54,11 +54,11 @@ public sealed class SettingCompilerTests
         {
             Package("z-addon", "1.0.0", dependencies: [Dependency("a-base")], content:
             [
-                Definition("b.json", "resources", "resources/b.json")
+                Definition("b.json", "boards", "boards/b.json")
             ]),
             Package("a-base", "1.0.0", content:
             [
-                Definition("a.json", "resources", "resources/a.json")
+                Definition("a.json", "boards", "boards/a.json")
             ])
         };
         var settings = new[] { Setting("stable", "z-addon") };
@@ -130,10 +130,10 @@ public sealed class SettingCompilerTests
         var definitionConflict = new FakeProvider(
             packages:
             [
-                Package("base", "1.0.0", content: [Definition("base.json", "cards", "cards.json")]),
+                Package("base", "1.0.0", content: [Definition("base.json", "boards", "boards/cards.json")]),
                 Package("addon", "1.0.0", dependencies: [Dependency("base")], content:
                 [
-                    Definition("addon.json", "cards", "cards.json")
+                    Definition("addon.json", "boards", "boards/cards.json")
                 ])
             ],
             settings: [Setting("conflicting", "addon")],
@@ -145,10 +145,10 @@ public sealed class SettingCompilerTests
         var invalidPatch = new FakeProvider(
             packages:
             [
-                Package("base", "1.0.0", content: [Definition("base.json", "cards", "cards.json")]),
+                Package("base", "1.0.0", content: [Definition("base.json", "boards", "boards/cards.json")]),
                 Package("addon", "1.0.0", dependencies: [Dependency("base")], content:
                 [
-                    Patch("patch.json", "cards.json", "card", new string('0', 64))
+                    Patch("patch.json", "boards/cards.json", "card", new string('0', 64))
                 ])
             ],
             settings: [Setting("invalid-patch", "addon")],
@@ -278,7 +278,7 @@ public sealed class SettingCompilerTests
             Target = new PackagePatchTarget
             {
                 PackageId = "base",
-                Kind = "cards",
+                Kind = "boards",
                 ArtifactPath = artifact,
                 DefinitionId = definitionId
             }

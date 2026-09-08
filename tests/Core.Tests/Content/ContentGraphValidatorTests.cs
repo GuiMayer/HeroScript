@@ -68,7 +68,7 @@ public sealed class ContentGraphValidatorTests
     public void Validate_RejectsFiniteStatusWithoutExplicitDurationBoundary()
     {
         var bundle = Bundle(
-            ("status-effects", "StatusEffects/status.json", new Dictionary<string, object>
+            ("status-effects", "status-effects/status.json", new Dictionary<string, object>
             {
                 ["burning"] = new
                 {

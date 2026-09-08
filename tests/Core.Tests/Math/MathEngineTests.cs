@@ -24,7 +24,7 @@ namespace Core.Tests.Math
 
             // Setup mock resource loader to return formula data from JSON file
             _mockResourceLoader = new Mock<IResourceLoader>();
-            var formulasPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Resources", "Pipelines", "MathFormulas.json");
+            var formulasPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Resources", "formulas", "math_formulas.json");
             var formulasJson = System.IO.File.ReadAllText(formulasPath);
             var formulasDoc = System.Text.Json.JsonDocument.Parse(formulasJson);
             var formulasDict = new Dictionary<string, System.Text.Json.JsonElement>();
@@ -33,7 +33,7 @@ namespace Core.Tests.Math
                 formulasDict[prop.Name] = prop.Value;
             }
             _mockResourceLoader.Setup(m => m.LoadResource(
-                "Pipelines/MathFormulas.json",
+                "formulas/math_formulas.json",
                 It.IsAny<IEnumerable<string>>(),
                 It.IsAny<bool>()))
                 .Returns(formulasDict);

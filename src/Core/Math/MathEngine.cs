@@ -65,7 +65,7 @@ namespace Core.Math
 
     /// <summary>
     /// Engine para construir MathExpression a partir de fórmulas definidas em JSON.
-    /// Carrega fórmulas de Resources/Pipelines/MathFormulas.json e as converte
+    /// Carrega fórmulas do catálogo canônico e as converte
     /// em objetos MathExpression executáveis.
     /// Suporta herança delta: configs podem herdar fórmulas de configs pai.
     /// </summary>
@@ -135,7 +135,7 @@ namespace Core.Math
                 // Usar FormulaLoader para carregar com herança delta
                 var chain = _configManager.ResolveInheritanceChain(_configManager.CurrentConfig);
                 
-                _formulaCache = _formulaLoader.LoadFormulas(chain, strictMode: false);
+                _formulaCache = _formulaLoader.LoadFormulas(chain, strictMode: true);
                 _formulaOrigins = _formulaLoader.GetFormulaOrigins();
                 
                 _logger.LogInformation($"Loaded {_formulaCache.Count} formulas from config chain");

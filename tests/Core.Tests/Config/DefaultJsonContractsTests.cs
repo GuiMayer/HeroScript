@@ -80,7 +80,7 @@ public class DefaultJsonContractsTests
     {
         var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var pools = LoadResource("card-pools", "basic_rewards.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var modifiers = LoadResource("Modifiers", "script_modifiers.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var modifiers = LoadResource("modifiers", "script_modifiers.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var selections = LoadResource("card-selections", "basic_reward.json");
         foreach (var (selectionId, selection) in selections)
@@ -127,12 +127,12 @@ public class DefaultJsonContractsTests
             .Select(file => LoadSingleResourceId("resources", Path.GetFileName(file), "resourceId"))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        var entityFiles = Directory.GetFiles(Path.Combine(ResourcesRoot, "Entities"), "*.json");
+        var entityFiles = Directory.GetFiles(Path.Combine(ResourcesRoot, "entities"), "*.json");
         Assert.NotEmpty(entityFiles);
 
         foreach (var file in entityFiles)
         {
-            foreach (var (_, entity) in LoadResource("Entities", Path.GetFileName(file)))
+            foreach (var (_, entity) in LoadResource("entities", Path.GetFileName(file)))
             {
                 var resourceContainer = entity.GetProperty("resources");
                 if (resourceContainer.TryGetProperty("resources", out var nestedResources))
@@ -162,7 +162,10 @@ public class DefaultJsonContractsTests
     {
         var path = Path.Combine(ResourcesRoot, directory, fileName);
         using var document = JsonDocument.Parse(File.ReadAllText(path));
-        return RequiredString(document.RootElement, idPropertyName, fileName);
+        var definitions = document.RootElement.EnumerateObject().ToArray();
+        var definition = Assert.Single(definitions);
+        Assert.Equal(Path.GetFileNameWithoutExtension(fileName), definition.Name);
+        return RequiredString(definition.Value, idPropertyName, fileName);
     }
 
     private static string RequiredString(JsonElement element, string propertyName, string ownerId)

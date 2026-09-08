@@ -147,8 +147,8 @@ public sealed class RunEffectTransactionTests
         var pipeline = new CalculationPipelineDefinition { PipelineId = "amount", Channel = "effect_amount", Buckets = [new() { BucketId = "flat" }] };
         var definitions = new (string Kind, string Path, object Value)[]
         {
-            ("modifiers", "Resources/Modifiers/script_modifiers.json", new Dictionary<string, ScriptModifierDefinition> { ["power"] = modifier }),
-            ("calculation-pipelines", "Resources/calculation-pipelines/amount.json", new Dictionary<string, CalculationPipelineDefinition> { ["amount"] = pipeline })
+            ("modifiers", "modifiers/script_modifiers.json", new Dictionary<string, ScriptModifierDefinition> { ["power"] = modifier }),
+            ("calculation-pipelines", "calculation-pipelines/amount.json", new Dictionary<string, CalculationPipelineDefinition> { ["amount"] = pipeline })
         };
         var runtime = ContentRuntime.Create(new()
         {

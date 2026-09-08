@@ -145,7 +145,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task EvaluateFormula_InvalidFormulaName_ReturnsError()
+    public async Task EvaluateFormula_MissingContentRevision_ReturnsBadRequest()
     {
         // Try to evaluate non-existent formula
         var parameters = new Dictionary<string, float>
@@ -160,6 +160,6 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             paramOverrides = parameters
         });
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 }

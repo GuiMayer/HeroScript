@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\src\Core\Resources\Pipelines\MathFormulas.json" CopyToOutputDirectory="PreserveNewest" Link="MathFormulas.json" />
+    <None Include="..\data\configs\default\Resources\formulas\math_formulas.json" CopyToOutputDirectory="PreserveNewest" Link="MathFormulas.json" />
   </ItemGroup>
 
 </Project>

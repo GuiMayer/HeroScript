@@ -22,7 +22,7 @@ public sealed class CombatFlowPlannerTests
     [Fact]
     public void LifecycleDeckChangesSurviveInitializationAndActivationPlanning()
     {
-        const string path = "Resources/phase-sequences/test.json";
+        const string path = "phase-sequences/test.json";
         var runtime = ContentRuntime.Create(new()
         {
             Manifest = new() { Revision = "revision", ConfigName = "default", Artifacts = [new()

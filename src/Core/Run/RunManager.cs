@@ -100,6 +100,15 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
             return Result<RunState>.Failure("Run definition id is required");
         if (string.IsNullOrWhiteSpace(options.PlayerEntityId))
             return Result<RunState>.Failure("Player entity id is required");
+        var publishedRuntimeRequired = _contentPublications != null && _contentRuntimes != null;
+        if (publishedRuntimeRequired && string.IsNullOrWhiteSpace(options.SettingId))
+            return Result<RunState>.Failure("Setting id is required");
+        if (publishedRuntimeRequired && !string.Equals(options.SettingId, options.ConfigName, StringComparison.Ordinal))
+            return Result<RunState>.Failure("Setting id must match the content configuration name");
+        if (publishedRuntimeRequired && string.IsNullOrWhiteSpace(options.ContentRevision))
+            return Result<RunState>.Failure("Published content revision is required");
+        if (publishedRuntimeRequired && string.IsNullOrWhiteSpace(options.ModeId))
+            return Result<RunState>.Failure("Game mode id is required");
 
         ResolvedContentManifest? resolvedContent = null;
         if (_contentManifestProvider != null)
@@ -173,6 +182,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         {
             RunId = runId.Value,
             ConfigName = options.ConfigName,
+            SettingId = options.SettingId ?? options.ConfigName,
             PlayerEntityId = options.PlayerEntityId,
             ModeId = options.ModeId,
             ResolvedMode = resolvedMode,
@@ -225,7 +235,8 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                     ContentRevision = contentRevision,
                     StartingDeck = startingDeck,
                     StartingHandSize = startingHandSize,
-                    Scenario = options.Scenario
+                    Scenario = options.Scenario,
+                    SettingId = options.SettingId ?? options.ConfigName
                 });
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
@@ -266,6 +277,28 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         RunStartOptions options,
         RunDefinition? definition)
     {
+        if (_contentPublications != null && _contentRuntimes != null)
+        {
+            if (string.IsNullOrWhiteSpace(options.ContentRevision))
+                return Result<ResolvedContentManifest>.Failure("Published content revision is required");
+            var published = _contentPublications.GetPublishedAsync(options.ContentRevision).GetAwaiter().GetResult();
+            if (published.IsFailure)
+                return Result<ResolvedContentManifest>.Failure(published.Error);
+            var settingId = options.SettingId ?? options.ConfigName;
+            if (!string.Equals(published.Value.Manifest.ConfigName, settingId, StringComparison.Ordinal))
+            {
+                return Result<ResolvedContentManifest>.Failure(
+                    $"Content revision '{options.ContentRevision}' belongs to setting " +
+                    $"'{published.Value.Manifest.ConfigName}', not '{settingId}'");
+            }
+            var registration = _contentManifestProvider?.RegisterPublishedManifest(published.Value.Manifest);
+            if (registration is { IsFailure: true })
+                return Result<ResolvedContentManifest>.Failure(registration.Error);
+            return Result<ResolvedContentManifest>.Success(new(
+                published.Value.Manifest.Revision,
+                published.Value.Manifest));
+        }
+
         if (_contentManifestProvider == null)
         {
             // Compatibility boundary for isolated callers that have not registered
@@ -1891,7 +1924,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<CardSelectionOfferGeneration>.Failure(
                     $"Card pool resolver is unavailable for {definition.CardPoolId}");
             }
-            var poolResult = _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
+            var poolResult = _contentRuntimes != null && _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
                 ? revisionedPools.ResolvePool(
                     definition.CardPoolId,
                     state.Determinism.ContentRevision,
@@ -1931,7 +1964,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         if (_cardContentCatalog == null)
             return null;
 
-        var cardResult = _cardContentCatalog is IRevisionedCardContentCatalog revisionedCards
+        var cardResult = _contentRuntimes != null && _cardContentCatalog is IRevisionedCardContentCatalog revisionedCards
             ? revisionedCards.GetCard(
                 cardId,
                 state.Determinism.ContentRevision,
@@ -1960,7 +1993,7 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
                 return Result<ShopOfferGeneration>.Failure(
                     $"Card pool resolver is unavailable for {definition.CardPoolId}");
             }
-            var poolResult = _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
+            var poolResult = _contentRuntimes != null && _cardPoolResolver is IRevisionedCardPoolResolver revisionedPools
                 ? revisionedPools.ResolvePool(
                     definition.CardPoolId,
                     state.Determinism.ContentRevision,
@@ -2121,11 +2154,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
-            var data = _resourceLoader.LoadResource($"runs/{runDefinitionId}.json", chain, strictMode: false);
+            var data = _resourceLoader.LoadResource($"runs/{runDefinitionId}.json", chain, strictMode: true);
             if (data.Count == 0)
                 return Result<RunDefinition>.Failure($"Run definition not found: {runDefinitionId}");
 
-            var element = data.TryGetValue(runDefinitionId, out var exact) ? exact : data.Values.First();
+            if (!data.TryGetValue(runDefinitionId, out var element))
+                return Result<RunDefinition>.Failure(
+                    $"Run file must declare definition id: {runDefinitionId}");
             var definition = JsonSerializer.Deserialize<RunDefinition>(element.GetRawText(), _jsonOptions);
             return definition == null
                 ? Result<RunDefinition>.Failure($"Failed to deserialize run definition: {runDefinitionId}")
@@ -2153,11 +2188,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
-            var data = _resourceLoader.LoadResource($"card-selections/{selectionId}.json", chain, strictMode: false);
+            var data = _resourceLoader.LoadResource($"card-selections/{selectionId}.json", chain, strictMode: true);
             if (data.Count == 0)
                 return Result<CardSelectionDefinition>.Failure($"Card selection definition not found: {selectionId}");
 
-            var element = data.TryGetValue(selectionId, out var exact) ? exact : data.Values.First();
+            if (!data.TryGetValue(selectionId, out var element))
+                return Result<CardSelectionDefinition>.Failure(
+                    $"Card selection file must declare definition id: {selectionId}");
             var definition = JsonSerializer.Deserialize<CardSelectionDefinition>(element.GetRawText(), _jsonOptions);
             return definition == null
                 ? Result<CardSelectionDefinition>.Failure($"Failed to deserialize card selection definition: {selectionId}")
@@ -2185,11 +2222,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
-            var data = _resourceLoader.LoadResource($"shops/{shopId}.json", chain, strictMode: false);
+            var data = _resourceLoader.LoadResource($"shops/{shopId}.json", chain, strictMode: true);
             if (data.Count == 0)
                 return Result<ShopDefinition>.Failure($"Shop definition not found: {shopId}");
 
-            var element = data.TryGetValue(shopId, out var exact) ? exact : data.Values.First();
+            if (!data.TryGetValue(shopId, out var element))
+                return Result<ShopDefinition>.Failure(
+                    $"Shop file must declare definition id: {shopId}");
             var definition = JsonSerializer.Deserialize<ShopDefinition>(element.GetRawText(), _jsonOptions);
             return definition == null
                 ? Result<ShopDefinition>.Failure($"Failed to deserialize shop definition: {shopId}")
@@ -2217,11 +2256,13 @@ public sealed class RunManager : IRunManager, IRunCommandProcessor, IRunCombatRe
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName);
-            var data = _resourceLoader.LoadResource($"preparations/{preparationId}.json", chain, strictMode: false);
+            var data = _resourceLoader.LoadResource($"preparations/{preparationId}.json", chain, strictMode: true);
             if (data.Count == 0)
                 return Result<PreparationDefinition>.Failure($"Preparation definition not found: {preparationId}");
 
-            var element = data.TryGetValue(preparationId, out var exact) ? exact : data.Values.First();
+            if (!data.TryGetValue(preparationId, out var element))
+                return Result<PreparationDefinition>.Failure(
+                    $"Preparation file must declare definition id: {preparationId}");
             var definition = JsonSerializer.Deserialize<PreparationDefinition>(element.GetRawText(), _jsonOptions);
             return definition == null
                 ? Result<PreparationDefinition>.Failure($"Failed to deserialize preparation definition: {preparationId}")

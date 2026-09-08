@@ -66,11 +66,12 @@ public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>
         try
         {
             var chain = _configManager.ResolveInheritanceChain(configName).ToArray();
-            var data = _resourceLoader.LoadResource($"{_relativeDirectory}/{id}.json", chain, strictMode: false);
+            var data = _resourceLoader.LoadResource($"{_relativeDirectory}/{id}.json", chain, strictMode: true);
             if (data.Count == 0)
                 return Result<TDefinition>.Failure($"Resource not found: {id}");
 
-            var element = data.TryGetValue(id, out var exact) ? exact : data.Values.First();
+            if (!data.TryGetValue(id, out var element))
+                return Result<TDefinition>.Failure($"Resource file must declare definition id: {id}");
             var definition = JsonSerializer.Deserialize<TDefinition>(element.GetRawText(), _jsonOptions);
             if (definition == null)
                 return Result<TDefinition>.Failure($"Failed to deserialize resource: {id}");
@@ -78,6 +79,11 @@ public sealed class ResourceCatalog<TDefinition> : IResourceCatalog<TDefinition>
             var resolvedId = _idSelector(definition);
             if (string.IsNullOrWhiteSpace(resolvedId))
                 return Result<TDefinition>.Failure($"Resource '{id}' has an empty id");
+            if (!string.Equals(resolvedId, id, StringComparison.Ordinal))
+            {
+                return Result<TDefinition>.Failure(
+                    $"Resource identity mismatch: expected {id}, got {resolvedId}");
+            }
 
             lock (_lock)
             {

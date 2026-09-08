@@ -31,13 +31,23 @@ public sealed class RunController : BaseApiController
     {
         try
         {
+            if (request == null || string.IsNullOrWhiteSpace(request.SettingId) ||
+                string.IsNullOrWhiteSpace(request.ContentRevision) ||
+                string.IsNullOrWhiteSpace(request.ModeId))
+            {
+                return BadRequest(new
+                {
+                    error = "settingId, contentRevision and modeId are required"
+                });
+            }
             var result = _runManager.StartRun(new RunStartOptions(
-                request?.ConfigName ?? "default",
-                request?.RunDefinitionId ?? "default_run",
-                request?.PlayerEntityId ?? "player",
-                request?.Seed,
-                request?.ContentRevision,
-                request?.ModeId ?? "standard"));
+                request.SettingId,
+                request.RunDefinitionId ?? "default_run",
+                request.PlayerEntityId ?? "player",
+                request.Seed,
+                request.ContentRevision,
+                request.ModeId,
+                SettingId: request.SettingId));
 
             return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapRun(result.Value));
         }
@@ -267,6 +277,7 @@ public sealed class RunController : BaseApiController
         {
             run.RunId,
             run.ConfigName,
+            run.SettingId,
             run.PlayerEntityId,
             run.ModeId,
             run.ResolvedMode,
@@ -394,7 +405,7 @@ public sealed class RunController : BaseApiController
 }
 
 public sealed record StartRunRequest(
-    string? ConfigName,
+    string? SettingId,
     string? RunDefinitionId,
     string? PlayerEntityId,
     ulong? Seed = null,

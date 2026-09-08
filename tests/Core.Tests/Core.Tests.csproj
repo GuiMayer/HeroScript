@@ -23,4 +23,10 @@
     <ProjectReference Include="..\..\src\Mods\Mods.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\data\configs\default\Resources\formulas\math_formulas.json"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="Resources\formulas\math_formulas.json" />
+  </ItemGroup>
+
 </Project>

@@ -166,12 +166,12 @@ namespace Core.Config
                 }
             }
 
-            // 6. Verificar que MathFormulas.json existe
-            string mathFormulasPath = Path.Combine(configPath, "Resources", "Pipelines", "MathFormulas.json");
+            // 6. Verificar que o catálogo canônico de fórmulas existe
+            string mathFormulasPath = Path.Combine(configPath, "Resources", "formulas", "math_formulas.json");
             if (!File.Exists(mathFormulasPath))
             {
                 result.IsValid = false;
-                result.AddError("Resources/Pipelines/MathFormulas.json not found");
+                result.AddError("Resources/formulas/math_formulas.json not found");
             }
             else
             {

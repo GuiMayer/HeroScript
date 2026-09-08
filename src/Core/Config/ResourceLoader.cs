@@ -61,7 +61,7 @@ namespace Core.Config
         /// <summary>
         /// Carrega um recurso JSON com herança delta.
         /// </summary>
-        /// <param name="relativePath">Caminho relativo do recurso (ex: "Pipelines/MathFormulas.json")</param>
+        /// <param name="relativePath">Caminho relativo do recurso (ex: "formulas/math_formulas.json")</param>
         /// <param name="configChain">Cadeia de herança (base → mod)</param>
         /// <param name="strictMode">Se true, erros de delta causam exceções</param>
         /// <returns>Dicionário de recursos merged</returns>
@@ -168,7 +168,7 @@ namespace Core.Config
         /// <summary>
         /// Asynchronously loads a JSON resource with delta inheritance.
         /// </summary>
-        /// <param name="relativePath">Relative path to the resource (e.g., "Pipelines/MathFormulas.json")</param>
+        /// <param name="relativePath">Relative path to the resource (e.g., "formulas/math_formulas.json")</param>
         /// <param name="configChain">Inheritance chain (base → mod)</param>
         /// <param name="strictMode">If true, delta errors cause exceptions</param>
         /// <param name="cancellationToken">Cancellation token</param>
@@ -310,17 +310,13 @@ namespace Core.Config
             if (document.RootElement.ValueKind != JsonValueKind.Object)
                 throw new InvalidOperationException($"Resource from {configName} must be a JSON object");
 
-            var properties = document.RootElement.EnumerateObject().ToArray();
-            var isSingleDefinition = properties.Any(property =>
-                property.Value.ValueKind is not JsonValueKind.Object and not JsonValueKind.Array);
-
-            var resources = isSingleDefinition
-                ? new Dictionary<string, JsonElement>(StringComparer.Ordinal)
-                {
-                    ["definition"] = document.RootElement.Clone()
-                }
-                : JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent)
-                    ?? throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
+            var resources = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonContent)
+                ?? throw new InvalidOperationException($"Failed to deserialize resource from {configName}");
+            if (resources.Any(resource => resource.Value.ValueKind != JsonValueKind.Object))
+            {
+                throw new InvalidOperationException(
+                    $"Resource from {configName} must use an explicit definition-id map");
+            }
 
             _logger.LogDebug($"Deserialized {resources.Count} resources from file");
             return resources;

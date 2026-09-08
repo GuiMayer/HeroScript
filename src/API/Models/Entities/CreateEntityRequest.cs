@@ -9,6 +9,10 @@ public class CreateEntityRequest
     /// ID da definição de entidade a ser usada.
     /// </summary>
     public string DefinitionId { get; set; } = string.Empty;
+
+    public string SettingId { get; set; } = string.Empty;
+
+    public string ContentRevision { get; set; } = string.Empty;
     
     /// <summary>
     /// ID único para a entidade. Obrigatório para que a criação seja reproduzível.

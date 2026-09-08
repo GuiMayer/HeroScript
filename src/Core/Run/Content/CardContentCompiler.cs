@@ -42,20 +42,10 @@ public sealed class CardContentCompiler : ICardContentCompiler
                 bundleId);
             if (bundle.IsFailure)
                 return Result<CompiledCardDefinition>.Failure(bundle.Error);
-            bundles[bundleId] = bundle.Value with
-            {
-                BundleId = string.IsNullOrWhiteSpace(bundle.Value.BundleId)
-                    ? bundleId
-                    : bundle.Value.BundleId
-            };
+            bundles[bundleId] = bundle.Value;
         }
 
-        return Compile(
-            card.Value with
-            {
-                CardId = string.IsNullOrWhiteSpace(card.Value.CardId) ? cardId : card.Value.CardId
-            },
-            bundles.ToImmutable());
+        return Compile(card.Value, bundles.ToImmutable());
     }
 
     public Result<CompiledCardDefinition> Compile(

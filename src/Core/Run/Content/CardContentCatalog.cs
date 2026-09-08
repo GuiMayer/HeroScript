@@ -66,15 +66,13 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
         string? configName = null)
     {
         if (_contentRuntimes == null)
-            return GetCard(cardId, configName ?? "default");
+            return Result<CardContentDefinition>.Failure("Revisioned card runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName);
         if (runtime.IsFailure)
             return Result<CardContentDefinition>.Failure(runtime.Error);
         var definition = runtime.Value.GetDefinition<CardContentDefinition>("cards", cardId);
-        return definition.IsFailure
-            ? definition
-            : Result<CardContentDefinition>.Success(Normalize(definition.Value, cardId));
+        return definition;
     }
 
     public Result<IReadOnlyList<CardContentDefinition>> GetAllCards(
@@ -82,7 +80,7 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
         string? configName = null)
     {
         if (_contentRuntimes == null)
-            return GetAllCards(configName ?? "default");
+            return Result<IReadOnlyList<CardContentDefinition>>.Failure("Revisioned card runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName);
         if (runtime.IsFailure)
@@ -94,7 +92,7 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
             var definition = runtime.Value.GetDefinition<CardContentDefinition>("cards", cardId);
             if (definition.IsFailure)
                 return Result<IReadOnlyList<CardContentDefinition>>.Failure(definition.Error);
-            cards.Add(Normalize(definition.Value, cardId));
+            cards.Add(definition.Value);
         }
         return Result<IReadOnlyList<CardContentDefinition>>.Success(cards);
     }
@@ -142,7 +140,7 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
             try
             {
                 var chain = _configManager.ResolveInheritanceChain(configName);
-                var resources = _resourceLoader.LoadResource("cards/card_catalog.json", chain, strictMode: false);
+                var resources = _resourceLoader.LoadResource("cards/card_catalog.json", chain, strictMode: true);
                 if (resources.Count == 0)
                     return Result<IReadOnlyDictionary<string, CardContentDefinition>>.Failure("Card catalog not found: cards/card_catalog.json");
 
@@ -153,8 +151,12 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
                     if (definition == null)
                         return Result<IReadOnlyDictionary<string, CardContentDefinition>>.Failure($"Failed to deserialize card content definition: {key}");
 
-                    var normalized = Normalize(definition, key);
-                    cards[normalized.CardId] = normalized;
+                    if (!string.Equals(definition.CardId, key, StringComparison.Ordinal))
+                    {
+                        return Result<IReadOnlyDictionary<string, CardContentDefinition>>.Failure(
+                            $"Card definition identity mismatch: expected {key}, got {definition.CardId}");
+                    }
+                    cards[key] = definition;
                 }
 
                 _cardsByConfig[configName] = cards;
@@ -167,9 +169,4 @@ public sealed class CardContentCatalog : ICardContentCatalog, IRevisionedCardCon
         }
     }
 
-    private static CardContentDefinition Normalize(CardContentDefinition definition, string fallbackId)
-    {
-        var cardId = string.IsNullOrWhiteSpace(definition.CardId) ? fallbackId : definition.CardId;
-        return definition with { CardId = cardId };
-    }
 }

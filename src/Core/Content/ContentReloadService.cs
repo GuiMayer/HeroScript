@@ -8,7 +8,7 @@ public sealed record ContentReloadReceipt
 {
     public Guid DraftId { get; init; }
     public int DraftVersion { get; init; }
-    public string ConfigName { get; init; } = "default";
+    public string SettingId { get; init; } = "default";
     public string Revision { get; init; } = string.Empty;
     public ImmutableArray<string> Warnings { get; init; } = [];
     public CacheInvalidationReport CacheInvalidation { get; init; } = new([]);
@@ -17,7 +17,14 @@ public sealed record ContentReloadReceipt
 public interface IContentReloadService
 {
     Task<Result<ContentReloadReceipt>> ReloadAsync(
-        string configName,
+        string settingId,
+        CancellationToken cancellationToken = default);
+}
+
+public interface ISettingBundleCompiler
+{
+    Task<Result<ContentBundle>> CompileBundleAsync(
+        string settingId,
         CancellationToken cancellationToken = default);
 }
 
@@ -31,31 +38,39 @@ public sealed class ContentReloadService : IContentReloadService, IDisposable
     private readonly ICacheCoordinator _caches;
     private readonly IContentPublicationService _publications;
     private readonly IContentRuntimeResolver _runtimes;
+    private readonly ISettingBundleCompiler _settings;
     private readonly SemaphoreSlim _reloadGate = new(1, 1);
 
     public ContentReloadService(
         ICacheCoordinator caches,
         IContentPublicationService publications,
-        IContentRuntimeResolver runtimes)
+        IContentRuntimeResolver runtimes,
+        ISettingBundleCompiler settings)
     {
         _caches = caches ?? throw new ArgumentNullException(nameof(caches));
         _publications = publications ?? throw new ArgumentNullException(nameof(publications));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     }
 
     public async Task<Result<ContentReloadReceipt>> ReloadAsync(
-        string configName,
+        string settingId,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(configName))
-            return Result<ContentReloadReceipt>.Failure("Config name is required");
+        if (string.IsNullOrWhiteSpace(settingId))
+            return Result<ContentReloadReceipt>.Failure("Setting id is required");
 
         await _reloadGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var invalidation = _caches.InvalidateAll(includeRevisioned: false);
+            var compiled = await _settings
+                .CompileBundleAsync(settingId, cancellationToken)
+                .ConfigureAwait(false);
+            if (compiled.IsFailure)
+                return Result<ContentReloadReceipt>.Failure(compiled.Error);
             var draft = await _publications
-                .CreateDraftAsync(configName, cancellationToken)
+                .CreateDraftAsync(compiled.Value, cancellationToken)
                 .ConfigureAwait(false);
             if (draft.IsFailure)
                 return Result<ContentReloadReceipt>.Failure(draft.Error);
@@ -84,7 +99,7 @@ public sealed class ContentReloadService : IContentReloadService, IDisposable
             {
                 DraftId = draft.Value.DraftId,
                 DraftVersion = draft.Value.Version,
-                ConfigName = configName,
+                SettingId = settingId,
                 Revision = published.Value.Manifest.Revision,
                 Warnings = validation.Warnings,
                 CacheInvalidation = invalidation

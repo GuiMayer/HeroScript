@@ -49,8 +49,12 @@ public sealed class GambitEngine : IGambitEngine
             var loaded = ImmutableDictionary.CreateBuilder<string, GambitDefinition>(StringComparer.OrdinalIgnoreCase);
             foreach (var (key, definition) in definitions)
             {
-                var gambitId = string.IsNullOrWhiteSpace(definition.GambitId) ? key : definition.GambitId;
-                loaded[gambitId] = definition with { GambitId = gambitId };
+                if (!string.Equals(definition.GambitId, key, StringComparison.Ordinal))
+                {
+                    return Result.Failure(
+                        $"Gambit definition identity mismatch: expected {key}, got {definition.GambitId}");
+                }
+                loaded[key] = definition;
             }
 
             Interlocked.Exchange(ref _definitions, loaded.ToImmutable());
@@ -154,12 +158,7 @@ public sealed class GambitEngine : IGambitEngine
                 var definition = runtime.Value.GetDefinition<GambitDefinition>("gambits", id);
                 if (definition.IsFailure)
                     return Result<IReadOnlyList<GambitDefinition>>.Failure(definition.Error);
-                definitions.Add(definition.Value with
-                {
-                    GambitId = string.IsNullOrWhiteSpace(definition.Value.GambitId)
-                        ? id
-                        : definition.Value.GambitId
-                });
+                definitions.Add(definition.Value);
             }
             return Result<IReadOnlyList<GambitDefinition>>.Success(definitions);
         }
@@ -249,7 +248,7 @@ public sealed class GambitEngine : IGambitEngine
     private Dictionary<string, GambitDefinition>? LoadDefinitionJson(string configName, JsonSerializerOptions options)
     {
         var chain = _configManager.ResolveInheritanceChain(configName);
-        var data = _resourceLoader.LoadResource("Gambits/gambits.json", chain, strictMode: false);
+        var data = _resourceLoader.LoadResource("gambits/gambits.json", chain, strictMode: true);
         if (data.Count == 0)
             return null;
 
@@ -292,7 +291,7 @@ public sealed class GambitEngine : IGambitEngine
             var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(definition, options));
             
             // Save via persister
-            var result = _persister.SaveDefinition("Gambits", definition.GambitId, jsonDoc, configName);
+            var result = _persister.SaveDefinition("gambits", definition.GambitId, jsonDoc, configName);
             if (result.IsFailure)
                 return result;
 
@@ -346,7 +345,7 @@ public sealed class GambitEngine : IGambitEngine
             var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(updatedDefinition, options));
             
             // Update via persister
-            var result = _persister.UpdateDefinition("Gambits", gambitId, jsonDoc, configName);
+            var result = _persister.UpdateDefinition("gambits", gambitId, jsonDoc, configName);
             if (result.IsFailure)
                 return result;
 
@@ -376,7 +375,7 @@ public sealed class GambitEngine : IGambitEngine
         try
         {
             // Delete via persister
-            var result = _persister.DeleteDefinition("Gambits", gambitId, configName);
+            var result = _persister.DeleteDefinition("gambits", gambitId, configName);
             if (result.IsFailure)
                 return result;
 

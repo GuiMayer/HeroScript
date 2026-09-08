@@ -4,7 +4,6 @@
     "type": "ENEMY",
     "displayName": "Orc Warrior",
     "description": "A tough melee fighter with balanced tactics",
-    "baseDefinitionId": "enemy_goblin",
     "resources": {
       "resources": {
         "health": {
@@ -15,11 +14,16 @@
     },
     "stats": {
       "strength": 16,
-      "constitution": 14
+      "dexterity": 14,
+      "intelligence": 6,
+      "constitution": 14,
+      "wisdom": 8,
+      "charisma": 6
     },
     "ai": {
       "behaviorTree": "balanced",
       "decisionResourceId": "health",
+      "actions": ["enemy_basic_attack"],
       "lowResourceThreshold": 0.5,
       "fleeResourceThreshold": 0.3
     },

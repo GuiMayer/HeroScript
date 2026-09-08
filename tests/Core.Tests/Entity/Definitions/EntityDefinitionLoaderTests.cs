@@ -17,7 +17,7 @@ public class EntityDefinitionLoaderTests
         // Assumindo que os testes rodam de tests/Core.Tests/bin/Debug/net10.0
         var workspaceRoot = Path.GetFullPath(
             Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", ".."));
-        _testDataPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Entities");
+        _testDataPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Resources", "entities");
     }
     
     [Fact]
@@ -90,7 +90,7 @@ public class EntityDefinitionLoaderTests
     }
     
     [Fact]
-    public void LoadDefinition_ShouldSupportDeltaInheritance()
+    public void LoadDefinition_ShouldLoadMaterializedDefinition()
     {
         // Arrange
         var loader = CreateLoader();
@@ -102,17 +102,14 @@ public class EntityDefinitionLoaderTests
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
         
-        // Deve herdar tipo de enemy_goblin
+        // O package publica uma definição completa, sem herança em runtime.
         Assert.Equal(Core.Entity.EntityType.ENEMY, result.Value!.Type);
         
-        // Deve sobrescrever nome
         Assert.Equal("Orc Warrior", result.Value.DisplayName);
         
-        // Deve sobrescrever stats específicos mas manter outros
-        Assert.Equal(16, result.Value.Stats!.Strength); // Sobrescrito
-        Assert.Equal(14, result.Value.Stats.Dexterity); // Herdado de goblin
+        Assert.Equal(16, result.Value.Stats!.Strength);
+        Assert.Equal(14, result.Value.Stats.Dexterity);
         
-        // Deve sobrescrever AI behavior
         Assert.Equal("balanced", result.Value.AI!.BehaviorTree);
     }
     
@@ -230,15 +227,15 @@ public class EntityDefinitionLoaderTests
         {
             var json = File.ReadAllText(Path.Combine(_testDataPath, $"{definitionId}.json"));
             resourceLoader
-                .Setup(m => m.LoadResource($"Entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), false))
+                .Setup(m => m.LoadResource($"entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), true))
                 .Returns(ParseResource(definitionId, json));
         }
 
         resourceLoader
-            .Setup(m => m.LoadResource("Entities/nonexistent.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("entities/nonexistent.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>());
         resourceLoader
-            .Setup(m => m.DiscoverResources("Entities", It.IsAny<IEnumerable<string>>(), "*.json"))
+            .Setup(m => m.DiscoverResources("entities", It.IsAny<IEnumerable<string>>(), "*.json"))
             .Returns(new[] { "player_warrior", "enemy_goblin", "enemy_orc_warrior" });
 
         return new EntityDefinitionLoader(configManager.Object, resourceLoader.Object, new ConsoleLogger("Test"), "test");
@@ -246,13 +243,10 @@ public class EntityDefinitionLoaderTests
 
     private static Dictionary<string, JsonElement> ParseResource(string definitionId, string json)
     {
-        using var document = JsonDocument.Parse($$"""
+        using var document = JsonDocument.Parse(json);
+        return new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase)
         {
-          "{{definitionId}}": {{json}}
-        }
-        """);
-
-        return document.RootElement.EnumerateObject()
-            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
+            [definitionId] = document.RootElement.GetProperty(definitionId).Clone()
+        };
     }
 }

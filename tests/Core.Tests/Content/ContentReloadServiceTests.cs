@@ -26,7 +26,7 @@ public sealed class ContentReloadServiceTests
             .Returns(new CacheInvalidationReport(
                 [new CacheInvalidationEntry("raw", CacheLayer.Source, true)]));
         var publications = new Mock<IContentPublicationService>();
-        publications.Setup(service => service.CreateDraftAsync("default", It.IsAny<CancellationToken>()))
+        publications.Setup(service => service.CreateDraftAsync(bundle, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<ContentDraft>.Success(draft));
         publications.Setup(service => service.Validate(bundle))
             .Returns(new ContentValidationResult { Manifest = bundle.Manifest });
@@ -35,7 +35,14 @@ public sealed class ContentReloadServiceTests
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(service => service.Resolve(revision, "default"))
             .Returns(Result<ContentRuntime>.Success(ContentRuntime.Create(bundle).Value));
-        using var service = new ContentReloadService(caches.Object, publications.Object, runtimes.Object);
+        var settings = new Mock<ISettingBundleCompiler>();
+        settings.Setup(service => service.CompileBundleAsync("default", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<ContentBundle>.Success(bundle));
+        using var service = new ContentReloadService(
+            caches.Object,
+            publications.Object,
+            runtimes.Object,
+            settings.Object);
 
         var result = await service.ReloadAsync("default");
 
@@ -61,14 +68,18 @@ public sealed class ContentReloadServiceTests
         caches.Setup(service => service.InvalidateAll(null, false))
             .Returns(new CacheInvalidationReport([]));
         var publications = new Mock<IContentPublicationService>();
-        publications.Setup(service => service.CreateDraftAsync("default", It.IsAny<CancellationToken>()))
+        publications.Setup(service => service.CreateDraftAsync(bundle, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<ContentDraft>.Success(draft));
         publications.Setup(service => service.Validate(bundle))
             .Returns(new ContentValidationResult { Errors = ["invalid"] });
+        var settings = new Mock<ISettingBundleCompiler>();
+        settings.Setup(service => service.CompileBundleAsync("default", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result<ContentBundle>.Success(bundle));
         using var service = new ContentReloadService(
             caches.Object,
             publications.Object,
-            Mock.Of<IContentRuntimeResolver>());
+            Mock.Of<IContentRuntimeResolver>(),
+            settings.Object);
 
         var result = await service.ReloadAsync("default");
 

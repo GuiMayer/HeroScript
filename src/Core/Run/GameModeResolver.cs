@@ -146,7 +146,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     public Result<ResolvedGameMode> Resolve(string modeId, string configName, string contentRevision)
     {
         if (_contentRuntimes == null)
-            return Resolve(modeId, configName);
+            return Result<ResolvedGameMode>.Failure("Revisioned game-mode runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName);
         if (runtime.IsFailure)

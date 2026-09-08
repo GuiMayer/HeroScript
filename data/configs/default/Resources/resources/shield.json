@@ -1,4 +1,5 @@
 {
+  "shield": {
   "resourceId": "shield",
   "displayName": "Shield",
   "shortName": "SH",
@@ -16,4 +17,5 @@
   },
   "costMultiplier": 1.0,
   "tags": ["temporary", "defensive"]
+  }
 }

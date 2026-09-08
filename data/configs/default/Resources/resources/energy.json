@@ -1,4 +1,5 @@
 {
+  "energy": {
   "resourceId": "energy",
   "displayName": "Energy",
   "shortName": "EN",
@@ -16,4 +17,5 @@
   },
   "costMultiplier": 1.0,
   "tags": ["tactical", "primary"]
+  }
 }

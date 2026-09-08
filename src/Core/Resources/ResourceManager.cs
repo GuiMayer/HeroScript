@@ -50,15 +50,17 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
                 try
                 {
                     var relativePath = $"resources/{resourceName}.json";
-                    var resourceData = _resourceLoader.LoadResource(relativePath, configChain, strictMode: false);
+                    var resourceData = _resourceLoader.LoadResource(relativePath, configChain, strictMode: true);
                     
                     if (resourceData.Count == 0)
                         continue;
                     
-                    // Pegar o primeiro elemento (assumindo que é a definição completa)
-                    var firstElement = resourceData.Values.FirstOrDefault();
-                    if (firstElement.ValueKind == System.Text.Json.JsonValueKind.Undefined)
+                    if (!resourceData.TryGetValue(resourceName, out var definitionElement))
+                    {
+                        _logger.LogError(
+                            $"Resource file '{relativePath}' must declare definition id '{resourceName}'");
                         continue;
+                    }
                     
                     var options = new JsonSerializerOptions 
                     { 
@@ -67,12 +69,18 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
                     };
                     
                     var definition = JsonSerializer.Deserialize<ResourceDefinition>(
-                        firstElement.GetRawText(),
+                        definitionElement.GetRawText(),
                         options);
                     
                     if (definition == null)
                     {
                         _logger.LogWarning($"Failed to deserialize resource definition: {resourceName}");
+                        continue;
+                    }
+                    if (!string.Equals(definition.ResourceId, resourceName, StringComparison.Ordinal))
+                    {
+                        _logger.LogError(
+                            $"Resource definition identity mismatch in '{relativePath}': {definition.ResourceId}");
                         continue;
                     }
                     
@@ -118,33 +126,12 @@ public class ResourceManager : IResourceManager, IRevisionedResourceManager
         string? configName = null)
     {
         if (_contentRuntimes == null)
-            return GetDefinition(resourceId);
+            return Result<ResourceDefinition>.Failure("Revisioned resource runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName);
         if (runtime.IsFailure)
             return Result<ResourceDefinition>.Failure(runtime.Error);
-        var definition = runtime.Value.GetDefinition<ResourceDefinition>("resources", resourceId);
-        if (definition.IsFailure)
-        {
-            foreach (var key in runtime.Value.GetDefinitions("resources").Keys)
-            {
-                var candidate = runtime.Value.GetDefinition<ResourceDefinition>("resources", key);
-                if (candidate.IsSuccess &&
-                    string.Equals(candidate.Value.ResourceId, resourceId, StringComparison.Ordinal))
-                {
-                    definition = candidate;
-                    break;
-                }
-            }
-        }
-        return definition.IsFailure
-            ? Result<ResourceDefinition>.Failure(definition.Error)
-            : Result<ResourceDefinition>.Success(definition.Value with
-            {
-                ResourceId = string.IsNullOrWhiteSpace(definition.Value.ResourceId)
-                    ? resourceId
-                    : definition.Value.ResourceId
-            });
+        return runtime.Value.GetDefinition<ResourceDefinition>("resources", resourceId);
     }
     
     public IReadOnlyList<ResourceDefinition> GetAllDefinitions()

@@ -12,7 +12,6 @@ namespace Core.Entity.Definitions;
 
 /// <summary>
 /// Carrega e gerencia definições de entidades de arquivos JSON.
-/// Suporta herança delta (baseDefinitionId).
 /// Thread-safe com cache LRU.
 /// </summary>
 public class EntityDefinitionLoader : ICacheService
@@ -43,7 +42,7 @@ public class EntityDefinitionLoader : ICacheService
         _logger = logger ?? NullLogger.Instance;
         _configName = string.IsNullOrWhiteSpace(configName) ? "default" : configName;
         _cacheName = $"EntityDefinitions_{configName}";
-        _persister = persister; // Optional for backward compatibility
+        _persister = persister; // Authoring-only dependency; gameplay uses published runtimes.
         _contentRuntimes = contentRuntimes;
         
         _cache = new LruCache<string, EntityDefinition>(cacheCapacity);
@@ -68,15 +67,17 @@ public class EntityDefinitionLoader : ICacheService
             // Verificar cache (thread-safe)
             if (_cache.TryGetValue(definitionId, out var cached))
             {
-                return Result<EntityDefinition>.Success(cached);
+                return Result<EntityDefinition>.Success(cached!);
             }
             
             var chain = _configManager.ResolveInheritanceChain(_configName);
-            var data = _resourceLoader.LoadResource($"Entities/{definitionId}.json", chain, strictMode: false);
+            var data = _resourceLoader.LoadResource($"entities/{definitionId}.json", chain, strictMode: true);
             if (data.Count == 0)
                 return Result<EntityDefinition>.Failure($"Definition not found: {definitionId}");
 
-            var root = data.TryGetValue(definitionId, out var exact) ? exact : data.Values.First();
+            if (!data.TryGetValue(definitionId, out var root))
+                return Result<EntityDefinition>.Failure(
+                    $"Entity file must declare definition id: {definitionId}");
             
             var definition = JsonSerializer.Deserialize<EntityDefinition>(root.GetRawText(), _jsonOptions);
             
@@ -84,18 +85,10 @@ public class EntityDefinitionLoader : ICacheService
             {
                 return Result<EntityDefinition>.Failure($"Failed to deserialize definition: {definitionId}");
             }
-            
-            // Aplicar herança delta se necessário
-            if (!string.IsNullOrEmpty(definition.BaseDefinitionId))
+            if (!string.Equals(definition.DefinitionId, definitionId, StringComparison.Ordinal))
             {
-                var baseResult = LoadDefinition(definition.BaseDefinitionId);
-                if (!baseResult.IsSuccess)
-                {
-                    return Result<EntityDefinition>.Failure(
-                        $"Failed to load base definition '{definition.BaseDefinitionId}': {baseResult.Error}");
-                }
-                
-                definition = MergeDefinitions(baseResult.Value!, definition, root);
+                return Result<EntityDefinition>.Failure(
+                    $"Entity definition identity mismatch: expected {definitionId}, got {definition.DefinitionId}");
             }
             
             // Validar definição
@@ -124,22 +117,18 @@ public class EntityDefinitionLoader : ICacheService
         string? configName = null)
     {
         if (_contentRuntimes == null)
-            return LoadDefinition(definitionId);
+            return Result<EntityDefinition>.Failure("Revisioned entity runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName ?? _configName);
         return runtime.IsFailure
             ? Result<EntityDefinition>.Failure(runtime.Error)
-            : LoadRevisionDefinition(definitionId, runtime.Value, new HashSet<string>(StringComparer.Ordinal));
+            : LoadRevisionDefinition(definitionId, runtime.Value);
     }
 
     private Result<EntityDefinition> LoadRevisionDefinition(
         string definitionId,
-        ContentRuntime runtime,
-        HashSet<string> inheritancePath)
+        ContentRuntime runtime)
     {
-        if (!inheritancePath.Add(definitionId))
-            return Result<EntityDefinition>.Failure($"Circular entity inheritance detected: {definitionId}");
-
         try
         {
             var definitions = runtime.GetDefinitions("entities");
@@ -150,16 +139,10 @@ public class EntityDefinitionLoader : ICacheService
             var definition = JsonSerializer.Deserialize<EntityDefinition>(root.GetRawText(), _jsonOptions);
             if (definition == null)
                 return Result<EntityDefinition>.Failure($"Failed to deserialize definition: {definitionId}");
-
-            if (!string.IsNullOrWhiteSpace(definition.BaseDefinitionId))
+            if (!string.Equals(definition.DefinitionId, definitionId, StringComparison.Ordinal))
             {
-                var baseDefinition = LoadRevisionDefinition(
-                    definition.BaseDefinitionId,
-                    runtime,
-                    inheritancePath);
-                if (baseDefinition.IsFailure)
-                    return Result<EntityDefinition>.Failure(baseDefinition.Error);
-                definition = MergeDefinitions(baseDefinition.Value, definition, root);
+                return Result<EntityDefinition>.Failure(
+                    $"Entity definition identity mismatch: expected {definitionId}, got {definition.DefinitionId}");
             }
 
             var validation = ValidateDefinition(definition);
@@ -173,10 +156,6 @@ public class EntityDefinitionLoader : ICacheService
                 $"Error loading revisioned entity definition '{definitionId}': {exception.Message}",
                 exception);
         }
-        finally
-        {
-            inheritancePath.Remove(definitionId);
-        }
     }
     
     /// <summary>
@@ -189,7 +168,7 @@ public class EntityDefinitionLoader : ICacheService
             var definitions = new Dictionary<string, EntityDefinition>();
             
             var chain = _configManager.ResolveInheritanceChain(_configName);
-            var definitionIds = _resourceLoader.DiscoverResources("Entities", chain, "*.json");
+            var definitionIds = _resourceLoader.DiscoverResources("entities", chain, "*.json");
 
             foreach (var definitionId in definitionIds)
             {
@@ -278,92 +257,6 @@ public class EntityDefinitionLoader : ICacheService
     }
     
     /// <summary>
-    /// Mescla definição base com definição derivada (herança delta)
-    /// </summary>
-    private EntityDefinition MergeDefinitions(
-        EntityDefinition baseDefinition, 
-        EntityDefinition derived,
-        JsonElement derivedJson)
-    {
-        // Merge Stats com base nos campos presentes no JSON
-        StatsDefinition? mergedStats = null;
-        if (baseDefinition.Stats != null || derived.Stats != null)
-        {
-            if (derivedJson.TryGetProperty("stats", out var statsJson))
-            {
-                var baseS = baseDefinition.Stats ?? new StatsDefinition();
-                var derivedS = derived.Stats ?? new StatsDefinition();
-                
-                mergedStats = new StatsDefinition
-                {
-                    Strength = statsJson.TryGetProperty("strength", out _) 
-                        ? derivedS.Strength : baseS.Strength,
-                    Dexterity = statsJson.TryGetProperty("dexterity", out _) 
-                        ? derivedS.Dexterity : baseS.Dexterity,
-                    Intelligence = statsJson.TryGetProperty("intelligence", out _) 
-                        ? derivedS.Intelligence : baseS.Intelligence,
-                    Constitution = statsJson.TryGetProperty("constitution", out _) 
-                        ? derivedS.Constitution : baseS.Constitution,
-                    Wisdom = statsJson.TryGetProperty("wisdom", out _) 
-                        ? derivedS.Wisdom : baseS.Wisdom,
-                    Charisma = statsJson.TryGetProperty("charisma", out _) 
-                        ? derivedS.Charisma : baseS.Charisma,
-                    CustomStats = MergeDictionaries(
-                        baseS.CustomStats.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
-                        derivedS.CustomStats.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value))
-                        .ToDictionary(kvp => kvp.Key, kvp => (float)kvp.Value)
-                };
-            }
-            else
-            {
-                mergedStats = baseDefinition.Stats;
-            }
-        }
-        
-        return new EntityDefinition
-        {
-            DefinitionId = derived.DefinitionId,
-            Type = derived.Type != default ? derived.Type : baseDefinition.Type,
-            DisplayName = !string.IsNullOrEmpty(derived.DisplayName) 
-                ? derived.DisplayName 
-                : baseDefinition.DisplayName,
-            Description = !string.IsNullOrEmpty(derived.Description)
-                ? derived.Description
-                : baseDefinition.Description,
-            Resources = derived.Resources ?? baseDefinition.Resources,
-            Stats = mergedStats,
-            Inventory = derived.Inventory ?? baseDefinition.Inventory,
-            AI = derived.AI ?? baseDefinition.AI,
-            Gambits = derived.Gambits ?? baseDefinition.Gambits,
-            IconPath = !string.IsNullOrEmpty(derived.IconPath)
-                ? derived.IconPath
-                : baseDefinition.IconPath,
-            SpritePath = !string.IsNullOrEmpty(derived.SpritePath)
-                ? derived.SpritePath
-                : baseDefinition.SpritePath,
-            CustomData = MergeDictionaries(baseDefinition.CustomData, derived.CustomData),
-            BaseDefinitionId = derived.BaseDefinitionId
-        };
-    }
-    
-    /// <summary>
-    /// Mescla dois dicionários (derived sobrescreve base)
-    /// </summary>
-    private Dictionary<string, object> MergeDictionaries(
-        IReadOnlyDictionary<string, object> baseDict,
-        IReadOnlyDictionary<string, object> derived)
-    {
-        var result = new Dictionary<string, object>(baseDict);
-        
-        foreach (var kvp in derived)
-        {
-            result[kvp.Key] = kvp.Value;
-        }
-        
-        return result;
-    }
-    
-    /// <summary>
     /// Valida uma definição de entidade
     /// </summary>
     private Result ValidateDefinition(EntityDefinition definition)
@@ -443,7 +336,7 @@ public class EntityDefinitionLoader : ICacheService
             var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(definition, _jsonOptions));
             
             // Save via persister
-            var result = _persister.SaveDefinition("Entities", definition.DefinitionId, jsonDoc, configName);
+            var result = _persister.SaveDefinition("entities", definition.DefinitionId, jsonDoc, configName);
             if (result.IsFailure)
                 return result;
 
@@ -489,7 +382,7 @@ public class EntityDefinitionLoader : ICacheService
             var jsonDoc = JsonDocument.Parse(JsonSerializer.Serialize(updatedDefinition, _jsonOptions));
             
             // Update via persister
-            var result = _persister.UpdateDefinition("Entities", definitionId, jsonDoc, configName);
+            var result = _persister.UpdateDefinition("entities", definitionId, jsonDoc, configName);
             if (result.IsFailure)
                 return result;
 
@@ -520,7 +413,7 @@ public class EntityDefinitionLoader : ICacheService
         try
         {
             // Delete via persister
-            var result = _persister.DeleteDefinition("Entities", definitionId, configName);
+            var result = _persister.DeleteDefinition("entities", definitionId, configName);
             if (result.IsFailure)
                 return result;
 

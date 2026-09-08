@@ -20,7 +20,7 @@ public sealed class GambitEngineTests
         var resourceLoader = new Mock<IResourceLoader>();
         configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         resourceLoader
-            .Setup(m => m.LoadResource("Gambits/gambits.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("gambits/gambits.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(ParseResource(TestDefinitionsJson));
 
         _engine = new GambitEngine(configManager.Object, resourceLoader.Object);

@@ -73,6 +73,55 @@ public sealed class RemainingSystemsArchitectureTests
             "Pure reducers must receive all inputs explicitly:\n" + string.Join("\n", violations));
     }
 
+    [Fact]
+    public void GameplaySource_DoesNotUsePermissiveOrLegacyContentPaths()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var sourceRoot = Path.Combine(repositoryRoot, "src");
+        var forbidden = new[]
+        {
+            "strictMode: false",
+            "\"Entities/",
+            "\"Gambits/",
+            "\"Modifiers/",
+            "\"StatusEffects/",
+            "\"Pipelines/",
+            "BaseDefinitionId"
+        };
+        var violations = Directory
+            .EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !path.Contains(
+                $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase))
+            .SelectMany(path => File.ReadLines(path).Select((line, index) => new
+            {
+                Path = Path.GetRelativePath(repositoryRoot, path),
+                Line = line,
+                Number = index + 1
+            }))
+            .Where(candidate => forbidden.Any(candidate.Line.Contains))
+            .Select(candidate => $"{candidate.Path}:{candidate.Number}: {candidate.Line.Trim()}")
+            .ToArray();
+
+        Assert.True(
+            violations.Length == 0,
+            "Gameplay content must use the strict canonical registry:\n" + string.Join("\n", violations));
+
+        var resourcesRoot = Path.Combine(repositoryRoot, "data", "configs", "default", "Resources");
+        var directoryNames = Directory.EnumerateDirectories(resourcesRoot)
+            .Select(Path.GetFileName)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.DoesNotContain("Entities", directoryNames);
+        Assert.DoesNotContain("Gambits", directoryNames);
+        Assert.DoesNotContain("Modifiers", directoryNames);
+        Assert.DoesNotContain("StatusEffects", directoryNames);
+        Assert.DoesNotContain("Pipelines", directoryNames);
+        Assert.Contains("entities", directoryNames);
+        Assert.Contains("gambits", directoryNames);
+        Assert.Contains("modifiers", directoryNames);
+        Assert.Contains("status-effects", directoryNames);
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory);

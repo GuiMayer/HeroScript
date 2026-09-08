@@ -10,6 +10,8 @@ public class FormulaRequest
     /// </summary>
     public string FormulaName { get; set; } = string.Empty;
 
+    public string ContentRevision { get; set; } = string.Empty;
+
     /// <summary>
     /// Input value for the formula
     /// </summary>

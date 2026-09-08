@@ -21,14 +21,14 @@ public sealed class GameplayContentValidationTests
         var result = EffectTransactionTests.Executor().Execute(EffectTransactionTests.Request(parent));
         Assert.True(result.IsFailure);
         Assert.Contains("no executable runtime", result.Error);
-        var published = Validate(("actions", "test", new ActionDefinition { Effects = [parent] }));
+        var published = Validate(("actions", "test", new ActionDefinition { ActionId = "test", Effects = [parent] }));
         Assert.Contains(published.Errors, error => error.Contains("chainedEffects[0]") && error.Contains("no executable runtime"));
     }
 
     [Fact]
     public void RecursiveReferencesAndNumericPoliciesAreCheckedWithoutExecuting()
     {
-        var result = Validate(("actions", "test", new ActionDefinition { Effects = [new()
+        var result = Validate(("actions", "test", new ActionDefinition { ActionId = "test", Effects = [new()
         {
             Type = EffectType.APPLY_MODIFIER, ModifierId = "missing", Chance = 0,
             ModifierOwner = new() { Kind = GameplayOwnerKind.Side }, ChainedEffects = [new()
@@ -49,7 +49,7 @@ public sealed class GameplayContentValidationTests
     [InlineData("stacks + Infinity")]
     public void InvalidFormulaGrammarOrNamespaceIsRejected(string formula)
     {
-        var result = Validate(("actions", "test", new ActionDefinition { Effects = [new()
+        var result = Validate(("actions", "test", new ActionDefinition { ActionId = "test", Effects = [new()
             { Type = EffectType.DRAW_CARD, Condition = formula }] }));
         Assert.False(result.IsValid);
     }
@@ -60,7 +60,7 @@ public sealed class GameplayContentValidationTests
         var result = Validate(("formulas", "scaled", new FormulaDefinition
         {
             Params = new() { ["stacks"] = 1 }, Operations = [new() { Op = "MULTIPLY", Value = "params.stacks" }]
-        }), ("actions", "test", new ActionDefinition { Effects = [new()
+        }), ("actions", "test", new ActionDefinition { ActionId = "test", Effects = [new()
             { Type = EffectType.DRAW_CARD, Condition = "scaled", ChainedEffects = [new()
                 { Type = EffectType.DRAW_CARD, Condition = "stacks / duration" }] }] }));
         Assert.True(result.IsValid, string.Join("; ", result.Errors));
@@ -82,10 +82,12 @@ public sealed class GameplayContentValidationTests
     {
         var result = Validate(("modifiers", "broken", new ScriptModifierDefinition
         {
+            ModifierId = "broken",
             MaxStacks = 0, DurationBoundary = (ModifierDurationBoundary)999,
             Influences = [new() { InfluenceId = "x", Channel = "damage", Bucket = "missing", Value = 1 }]
         }), ("status-effects", "broken", new StatusEffectDefinition
         {
+            StatusId = "broken",
             Stacking = (StackReapplyPolicy)999,
             Triggers = [new() { TriggerId = "x", Boundary = "OnHit", Effects = [new() { Type = EffectType.DRAW_CARD }] }]
         }));

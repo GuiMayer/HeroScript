@@ -1,5 +1,6 @@
 using API.Helpers;
 using API.Models;
+using Core.Content;
 using Core.Math;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -14,12 +15,17 @@ namespace API.Controllers;
 public class FormulaController : ControllerBase
 {
     private readonly IMathEngine _mathEngine;
+    private readonly IContentRuntimeResolver _contentRuntimes;
     private readonly ILogger<FormulaController> _logger;
 
-    public FormulaController(ILogger<FormulaController> logger, IMathEngine mathEngine)
+    public FormulaController(
+        ILogger<FormulaController> logger,
+        IMathEngine mathEngine,
+        IContentRuntimeResolver contentRuntimes)
     {
         _logger = logger;
         _mathEngine = mathEngine;
+        _contentRuntimes = contentRuntimes;
     }
 
     /// <summary>
@@ -28,19 +34,23 @@ public class FormulaController : ControllerBase
     /// <returns>List of formula information</returns>
     [HttpGet]
     [ProducesResponseType(typeof(List<FormulaInfoDto>), StatusCodes.Status200OK)]
-    public IActionResult GetFormulas()
+    public IActionResult GetFormulas([FromQuery] string contentRevision)
     {
         try
         {
-            var formulas = _mathEngine.GetAvailableFormulas();
-            var origins = _mathEngine.GetFormulaOrigins();
-            
-            var result = formulas.Select(name => new FormulaInfoDto
+            var runtime = _contentRuntimes.Resolve(contentRevision);
+            if (runtime.IsFailure)
+                return NotFound(new { error = runtime.Error });
+            var result = runtime.Value.GetDefinitions("formulas").Keys.Select(name =>
             {
-                Name = name,
-                Description = _mathEngine.GetFormulaDescription(name) ?? string.Empty,
-                DefaultParams = _mathEngine.GetFormulaDefaultParams(name) ?? new Dictionary<string, float>(),
-                Origin = origins.TryGetValue(name, out var origin) ? origin : null
+                var definition = runtime.Value.GetDefinition<FormulaDefinition>("formulas", name).Value;
+                return new FormulaInfoDto
+                {
+                    Name = name,
+                    Description = definition.Description,
+                    DefaultParams = new Dictionary<string, float>(definition.Params),
+                    Origin = runtime.Value.Manifest.ConfigName
+                };
             }).ToList();
 
             return Ok(result);
@@ -56,27 +66,27 @@ public class FormulaController : ControllerBase
     /// Get details of a specific formula
     /// </summary>
     /// <param name="name">Formula name</param>
+    /// <param name="contentRevision">Published content revision containing the formula.</param>
     /// <returns>Formula information</returns>
     [HttpGet("{name}")]
     [ProducesResponseType(typeof(FormulaInfoDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public IActionResult GetFormula(string name)
+    public IActionResult GetFormula(string name, [FromQuery] string contentRevision)
     {
         try
         {
-            var description = _mathEngine.GetFormulaDescription(name);
-            if (description == null)
-            {
-                return NotFound(new { error = $"Formula '{name}' not found" });
-            }
-
-            var origins = _mathEngine.GetFormulaOrigins();
+            var runtime = _contentRuntimes.Resolve(contentRevision);
+            if (runtime.IsFailure)
+                return NotFound(new { error = runtime.Error });
+            var definition = runtime.Value.GetDefinition<FormulaDefinition>("formulas", name);
+            if (definition.IsFailure)
+                return NotFound(new { error = definition.Error });
             var result = new FormulaInfoDto
             {
                 Name = name,
-                Description = description,
-                DefaultParams = _mathEngine.GetFormulaDefaultParams(name) ?? new Dictionary<string, float>(),
-                Origin = origins.TryGetValue(name, out var origin) ? origin : null
+                Description = definition.Value.Description,
+                DefaultParams = new Dictionary<string, float>(definition.Value.Params),
+                Origin = runtime.Value.Manifest.ConfigName
             };
 
             return Ok(result);
@@ -104,14 +114,23 @@ public class FormulaController : ControllerBase
         {
             return BadRequest(new { error = validation.ErrorMessage });
         }
+        if (string.IsNullOrWhiteSpace(request.ContentRevision))
+            return BadRequest(new { error = "ContentRevision is required" });
 
         try
         {
             var stopwatch = Stopwatch.StartNew();
 
-            // Build expression from formula
-            var expression = _mathEngine.BuildFromFormula(
+            var runtime = _contentRuntimes.Resolve(request.ContentRevision);
+            if (runtime.IsFailure)
+                return NotFound(new { error = runtime.Error });
+            var definition = runtime.Value.GetDefinition<FormulaDefinition>("formulas", request.FormulaName);
+            if (definition.IsFailure)
+                return NotFound(new { error = definition.Error });
+
+            var expression = _mathEngine.BuildFromDefinition(
                 request.FormulaName,
+                definition.Value,
                 request.InputValue,
                 request.ParamOverrides
             );
@@ -131,15 +150,15 @@ public class FormulaController : ControllerBase
             stopwatch.Stop();
 
             // Get formula info
-            var description = _mathEngine.GetFormulaDescription(request.FormulaName) ?? string.Empty;
-            var paramsResult = _mathEngine.GetMergedParams(request.FormulaName, request.ParamOverrides);
-            var paramsUsed = paramsResult.IsSuccess ? paramsResult.Value : new Dictionary<string, float>();
+            var paramsUsed = new Dictionary<string, float>(definition.Value.Params, StringComparer.OrdinalIgnoreCase);
+            foreach (var (name, value) in request.ParamOverrides ?? [])
+                paramsUsed[name] = value;
 
             var response = new FormulaResponse
             {
                 Result = result,
                 FormulaName = request.FormulaName,
-                Description = description,
+                Description = definition.Value.Description,
                 Steps = steps,
                 ParamsUsed = paramsUsed,
                 ExecutionTimeMs = stopwatch.Elapsed.TotalMilliseconds
@@ -169,25 +188,4 @@ public class FormulaController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Reload formula cache (admin operation)
-    /// </summary>
-    /// <returns>Success message</returns>
-    [HttpPost("reload")]
-    [API.Attributes.AdminEndpoint]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult Reload()
-    {
-        try
-        {
-            _mathEngine.InvalidateCache();
-            _logger.LogInformation("Formula cache invalidated");
-            return Ok(new { message = "Formula cache invalidated successfully. Formulas will be reloaded on next access." });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error invalidating formula cache");
-            return StatusCode(500, new { error = "Failed to invalidate formula cache", details = ex.Message });
-        }
-    }
 }

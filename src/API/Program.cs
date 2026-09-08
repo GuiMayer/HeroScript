@@ -202,18 +202,12 @@ builder.Services.AddSingleton<IPinnedContentCatalog<StatusEffectDefinition>>(sp 
     new PinnedContentCatalog<StatusEffectDefinition>(
         sp.GetRequiredService<IContentRuntimeResolver>(),
         "status-effects",
-        (id, definition) => definition with
-        {
-            StatusId = string.IsNullOrWhiteSpace(definition.StatusId) ? id : definition.StatusId
-        }));
+        (_, definition) => definition));
 builder.Services.AddSingleton<IPinnedContentCatalog<ScriptModifierDefinition>>(sp =>
     new PinnedContentCatalog<ScriptModifierDefinition>(
         sp.GetRequiredService<IContentRuntimeResolver>(),
         "modifiers",
-        (id, definition) => definition with
-        {
-            ModifierId = string.IsNullOrWhiteSpace(definition.ModifierId) ? id : definition.ModifierId
-        }));
+        (_, definition) => definition));
 
 // Register GambitEngine
 builder.Services.AddSingleton<IGambitEngine>(sp =>
@@ -244,6 +238,7 @@ var configuredPackageRoots = builder.Configuration
 var packageRoots = configuredPackageRoots.Length > 0
     ? configuredPackageRoots
     : [Path.Combine(AppContext.BaseDirectory, "Resources")];
+var startupSettingId = builder.Configuration.GetValue<string>("Content:StartupSetting") ?? "default";
 
 builder.Services.AddSingleton<IOperationalEventStore>(sp =>
 {
@@ -262,12 +257,12 @@ builder.Services.AddSingleton<IRunCommitReader>(sp => sp.GetRequiredService<IRun
 builder.Services.AddSingleton<IRunCommitProjectionReader, RunCommitProjectionReader>();
 
 // Register Run content and manager
+builder.Services.AddSingleton<IContentKindRegistry>(_ => ContentKindRegistry.Default);
 builder.Services.AddSingleton<IContentManifestProvider, ContentManifestProvider>();
 builder.Services.AddSingleton<IContentGraphValidator, ContentGraphValidator>();
 builder.Services.AddSingleton<IContentPublicationService>(sp => new ContentPublicationService(
     contentStorePath,
     sp.GetRequiredService<IContentManifestProvider>(),
-    sp.GetRequiredService<IResourceLoader>(),
     sp.GetRequiredService<IContentGraphValidator>()));
 builder.Services.AddSingleton<IContentRuntimeResolver, ContentRuntimeResolver>();
 builder.Services.AddSingleton<IContentReloadService, ContentReloadService>();
@@ -277,7 +272,9 @@ for (var packageRootIndex = 0; packageRootIndex < packageRoots.Length; packageRo
         $"configured:{packageRootIndex:D3}",
         packageRoots[packageRootIndex]));
 }
-builder.Services.AddSingleton<ISettingCompiler, SettingCompiler>();
+builder.Services.AddSingleton<SettingCompiler>();
+builder.Services.AddSingleton<ISettingCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
+builder.Services.AddSingleton<ISettingBundleCompiler>(sp => sp.GetRequiredService<SettingCompiler>());
 builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
@@ -357,7 +354,7 @@ builder.Services.AddSingleton<IResourceCatalog<EnemyPoolDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "enemy-pools",
         definition => definition.EnemyPoolId));
-builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
+builder.Services.AddSingleton<GameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<FlowRulesDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<CombatRulesDefinition>>(),
@@ -369,6 +366,8 @@ builder.Services.AddSingleton<IGameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
     sp.GetRequiredService<IContentRuntimeResolver>(),
     new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("GameModeResolver"))));
+builder.Services.AddSingleton<IGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
+builder.Services.AddSingleton<IRevisionedGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>
     new ResourceCatalog<DailyChallengeDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -417,11 +416,7 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<ICombatRelicLifecycle>(),
     sp.GetRequiredService<ICombatResourceLifecycle>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
-    sp.GetRequiredService<IGameModeResolver>(),
-    sp.GetRequiredService<ICardContentCatalog>(),
-    sp.GetRequiredService<ICardPoolResolver>(),
-    sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<CardUpgradeDefinition>>(),
+    sp.GetRequiredService<IRevisionedGameModeResolver>(),
     sp.GetRequiredService<EntityDefinitionLoader>(),
     sp.GetRequiredService<IResourceManager>(),
     sp.GetRequiredService<IContentManifestProvider>(),
@@ -542,6 +537,21 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// Shipped content crosses the same compile/validate/publish boundary as mods.
+// Startup never exposes loose files directly to gameplay.
+var startupCompilation = app.Services.GetRequiredService<ISettingCompiler>()
+    .CompileAsync(startupSettingId)
+    .GetAwaiter()
+    .GetResult();
+if (startupCompilation.IsFailure)
+    throw new InvalidOperationException($"Startup setting compilation failed: {startupCompilation.Error}");
+var startupPublication = app.Services.GetRequiredService<IContentPublicationService>()
+    .PublishBundleAsync(startupCompilation.Value.Bundle)
+    .GetAwaiter()
+    .GetResult();
+if (startupPublication.IsFailure)
+    throw new InvalidOperationException($"Startup setting publication failed: {startupPublication.Error}");
+
 // Cache membership is explicit and complete. The coordinator orders broad
 // invalidations by dependency and preserves revision-addressed runtimes unless
 // an administrator explicitly requests their removal.
@@ -551,7 +561,6 @@ var applicationCaches = new ICacheService[]
     (ICacheService)app.Services.GetRequiredService<IResourceLoader>(),
     app.Services.GetRequiredService<EntityDefinitionLoader>(),
     (ICacheService)app.Services.GetRequiredService<IMathEngine>(),
-    (ICacheService)app.Services.GetRequiredService<IContentManifestProvider>(),
     (ICacheService)app.Services.GetRequiredService<IContentRuntimeResolver>(),
     (ICacheService)app.Services.GetRequiredService<ICardContentCatalog>(),
     (ICacheService)app.Services.GetRequiredService<ICardPoolResolver>(),
@@ -570,27 +579,6 @@ var applicationCaches = new ICacheService[]
 };
 foreach (var cache in applicationCaches)
     cacheCoordinator.Register(cache);
-
-// Resolve logging through DI; Core services never depend on global factories.
-var loggerFactory = app.Services.GetRequiredService<ILoggerFactory>();
-var coreLogger = new CoreLoggerAdapter(loggerFactory.CreateLogger("Core"));
-
-var resourceManager = app.Services.GetRequiredService<IResourceManager>();
-resourceManager.LoadResourceDefinitions("default");
-var actionManager = app.Services.GetRequiredService<IActionManager>();
-actionManager.LoadActionDefinitions("default");
-var logger = loggerFactory.CreateLogger("Startup");
-
-var gambitEngine = app.Services.GetRequiredService<IGambitEngine>();
-var gambitLoadResult = gambitEngine.LoadDefinitions("default");
-if (gambitLoadResult.IsSuccess)
-{
-    logger.LogInformation("Successfully loaded gambit definitions from config 'default'");
-}
-else
-{
-    logger.LogWarning("Gambit definitions were not loaded: {Error}", gambitLoadResult.Error);
-}
 
 // The machine-readable contract is published in every environment. The
 // interactive UI remains a development aid and never becomes the app root.

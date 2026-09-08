@@ -18,11 +18,14 @@ public interface ISettingCompiler
 /// Resolves a package dependency graph and compiles its data into the same
 /// immutable ContentBundle consumed by gameplay runtimes.
 /// </summary>
-public sealed class SettingCompiler : ISettingCompiler
+public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
 {
     private readonly ImmutableArray<IPackageProvider> _providers;
+    private readonly IContentKindRegistry _kinds;
 
-    public SettingCompiler(IEnumerable<IPackageProvider> providers)
+    public SettingCompiler(
+        IEnumerable<IPackageProvider> providers,
+        IContentKindRegistry? kinds = null)
     {
         ArgumentNullException.ThrowIfNull(providers);
         _providers = providers
@@ -35,6 +38,7 @@ public sealed class SettingCompiler : ISettingCompiler
             .FirstOrDefault(group => group.Count() > 1);
         if (duplicate != null)
             throw new ArgumentException($"Package provider id collision: {duplicate.Key}", nameof(providers));
+        _kinds = kinds ?? ContentKindRegistry.Default;
     }
 
     public async Task<SettingCatalog> GetCatalogAsync(CancellationToken cancellationToken = default)
@@ -88,6 +92,16 @@ public sealed class SettingCompiler : ISettingCompiler
                 .ThenBy(diagnostic => diagnostic.SourcePath, StringComparer.Ordinal)
                 .ToImmutableArray()
         };
+    }
+
+    public async Task<Result<ContentBundle>> CompileBundleAsync(
+        string settingId,
+        CancellationToken cancellationToken = default)
+    {
+        var compiled = await CompileAsync(settingId, cancellationToken).ConfigureAwait(false);
+        return compiled.IsFailure
+            ? Result<ContentBundle>.Failure(compiled.Error)
+            : Result<ContentBundle>.Success(compiled.Value.Bundle);
     }
 
     public async Task<Result<SettingCompilation>> CompileAsync(
@@ -178,16 +192,19 @@ public sealed class SettingCompiler : ISettingCompiler
                         });
                     if (definitionPayload.ValueKind != JsonValueKind.Object)
                         return Result<SettingCompilation>.Failure($"Definition artifact must be a JSON object: {path}");
+                    var normalizedPayload = NormalizeArtifact(envelope.Kind, definitionPayload);
+                    if (normalizedPayload.IsFailure)
+                        return Result<SettingCompilation>.Failure(normalizedPayload.Error);
                     artifactPaths[path] = path;
                     artifacts[path] = new CompiledArtifact(
                         envelope.Kind,
-                        definitionPayload,
+                        normalizedPayload.Value,
                         packageManifest.PackageId);
                     RecordDefinitionProvenance(
                         provenance,
                         path,
                         envelope.Kind,
-                        definitionPayload,
+                        normalizedPayload.Value,
                         package,
                         envelope);
                     continue;
@@ -229,7 +246,10 @@ public sealed class SettingCompiler : ISettingCompiler
                 var updatedPayload = ReplaceTarget(current.Payload, target.DefinitionId, patchedValue);
                 if (updatedPayload.IsFailure)
                     return Result<SettingCompilation>.Failure(updatedPayload.Error);
-                artifacts[canonicalTargetPath] = current with { Payload = updatedPayload.Value };
+                var normalizedPatch = NormalizeArtifact(current.Kind, updatedPayload.Value);
+                if (normalizedPatch.IsFailure)
+                    return Result<SettingCompilation>.Failure(normalizedPatch.Error);
+                artifacts[canonicalTargetPath] = current with { Payload = normalizedPatch.Value };
                 RecordPatchProvenance(
                     provenance,
                     canonicalTargetPath,
@@ -521,7 +541,7 @@ public sealed class SettingCompiler : ISettingCompiler
         }
     }
 
-    private static string? ValidateEnvelope(PackageManifest manifest, PackageContentEnvelope envelope)
+    private string? ValidateEnvelope(PackageManifest manifest, PackageContentEnvelope envelope)
     {
         if (envelope.SchemaVersion != 1)
             return $"Unsupported content envelope schema in {manifest.PackageId}: {envelope.SchemaVersion}";
@@ -529,8 +549,17 @@ public sealed class SettingCompiler : ISettingCompiler
             return $"Invalid content source path in {manifest.PackageId}: {envelope.SourcePath}";
         if (envelope.Operation == PackageContentOperation.Definition)
         {
+            var descriptor = _kinds.Get(envelope.Kind);
+            if (descriptor.IsFailure)
+                return descriptor.Error;
             if (string.IsNullOrWhiteSpace(envelope.Kind) || !IsSafeRelativePath(envelope.ArtifactPath))
                 return $"Definition envelope requires kind and artifactPath in {manifest.PackageId}";
+            if (!NormalizeArtifactPath(envelope.ArtifactPath!).StartsWith(
+                    descriptor.Value.CanonicalDirectory + "/",
+                    StringComparison.Ordinal))
+            {
+                return $"Definition artifact path is not canonical for {envelope.Kind}: {envelope.ArtifactPath}";
+            }
             if (envelope.DefinitionId != null && !IsIdentifier(envelope.DefinitionId))
                 return $"Definition envelope has an invalid definitionId in {manifest.PackageId}";
             if (envelope.Target != null || envelope.ExpectedHash != null)
@@ -542,11 +571,38 @@ public sealed class SettingCompiler : ISettingCompiler
         {
             return $"Patch envelope requires an explicit target in {manifest.PackageId}";
         }
+        var targetDescriptor = _kinds.Get(envelope.Target.Kind);
+        if (targetDescriptor.IsFailure)
+            return targetDescriptor.Error;
+        if (!NormalizeArtifactPath(envelope.Target.ArtifactPath).StartsWith(
+                targetDescriptor.Value.CanonicalDirectory + "/",
+                StringComparison.Ordinal))
+        {
+            return $"Patch artifact path is not canonical for {envelope.Target.Kind}: {envelope.Target.ArtifactPath}";
+        }
         if (!IsSha256(envelope.ExpectedHash))
             return $"Patch envelope requires a lowercase SHA-256 expectedHash in {manifest.PackageId}";
         if (!string.IsNullOrWhiteSpace(envelope.Kind) || envelope.ArtifactPath != null || envelope.DefinitionId != null)
             return $"Patch envelope must describe content through target, not definition fields, in {manifest.PackageId}";
         return null;
+    }
+
+    private Result<JsonElement> NormalizeArtifact(string kind, JsonElement payload)
+    {
+        if (payload.ValueKind != JsonValueKind.Object)
+            return Result<JsonElement>.Failure($"Content artifact for '{kind}' must be an object");
+        var definitions = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var definition in payload.EnumerateObject())
+        {
+            var normalized = _kinds.Normalize(kind, definition.Name, definition.Value);
+            if (normalized.IsFailure)
+                return Result<JsonElement>.Failure(normalized.Error);
+            var validation = _kinds.Validate(kind, definition.Name, normalized.Value);
+            if (validation.IsFailure)
+                return Result<JsonElement>.Failure(validation.Error);
+            definitions[definition.Name] = normalized.Value;
+        }
+        return Result<JsonElement>.Success(JsonSerializer.SerializeToElement(definitions));
     }
 
     private static Result<JsonElement> SelectTarget(JsonElement artifact, string? definitionId)

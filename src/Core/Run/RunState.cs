@@ -16,6 +16,7 @@ public sealed record RunState
     public Guid RunId { get; init; }
     public int Sequence { get; init; }
     public string ConfigName { get; init; } = "default";
+    public string SettingId { get; init; } = "default";
     public string PlayerEntityId { get; init; } = "player";
     public string? ModeId { get; init; }
     public ResolvedGameMode? ResolvedMode { get; init; }

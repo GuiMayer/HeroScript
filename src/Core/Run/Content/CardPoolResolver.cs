@@ -86,18 +86,13 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
         string? configName = null)
     {
         if (_contentRuntimes == null)
-            return GetPool(poolId, configName ?? "default");
+            return Result<CardPoolDefinition>.Failure("Revisioned card-pool runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName);
         if (runtime.IsFailure)
             return Result<CardPoolDefinition>.Failure(runtime.Error);
         var definition = runtime.Value.GetDefinition<CardPoolDefinition>("card-pools", poolId);
-        return definition.IsFailure
-            ? definition
-            : Result<CardPoolDefinition>.Success(definition.Value with
-            {
-                PoolId = string.IsNullOrWhiteSpace(definition.Value.PoolId) ? poolId : definition.Value.PoolId
-            });
+        return definition;
     }
 
     public Result<CardPoolResult> ResolvePool(
@@ -109,9 +104,9 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
         if (poolResult.IsFailure)
             return Result<CardPoolResult>.Failure(poolResult.Error);
 
-        var cardsResult = _catalog is IRevisionedCardContentCatalog revisionedCatalog
-            ? revisionedCatalog.GetAllCards(contentRevision, configName)
-            : _catalog.GetAllCards(configName ?? "default");
+        if (_catalog is not IRevisionedCardContentCatalog revisionedCatalog)
+            return Result<CardPoolResult>.Failure("Revisioned card catalog is not configured");
+        var cardsResult = revisionedCatalog.GetAllCards(contentRevision, configName);
         return cardsResult.IsFailure
             ? Result<CardPoolResult>.Failure(cardsResult.Error)
             : ResolvePool(poolResult.Value, cardsResult.Value);
@@ -162,19 +157,23 @@ public sealed class CardPoolResolver : ICardPoolResolver, IRevisionedCardPoolRes
             {
                 var chain = _configManager.ResolveInheritanceChain(configName);
                 var relativePath = $"card-pools/{poolId}.json";
-                var resources = _resourceLoader.LoadResource(relativePath, chain, strictMode: false);
+                var resources = _resourceLoader.LoadResource(relativePath, chain, strictMode: true);
                 if (resources.Count == 0)
                     return Result<CardPoolDefinition>.Failure($"Card pool definition not found: {poolId}");
 
-                var element = resources.TryGetValue(poolId, out var exact)
-                    ? exact
-                    : resources.Values.First();
+                if (!resources.TryGetValue(poolId, out var element))
+                    return Result<CardPoolDefinition>.Failure(
+                        $"Card pool file must declare definition id: {poolId}");
                 var definition = JsonSerializer.Deserialize<CardPoolDefinition>(element.GetRawText(), _jsonOptions);
                 if (definition == null)
                     return Result<CardPoolDefinition>.Failure($"Failed to deserialize card pool definition: {poolId}");
 
-                var resolvedPoolId = string.IsNullOrWhiteSpace(definition.PoolId) ? poolId : definition.PoolId;
-                var pool = definition with { PoolId = resolvedPoolId };
+                if (!string.Equals(definition.PoolId, poolId, StringComparison.Ordinal))
+                {
+                    return Result<CardPoolDefinition>.Failure(
+                        $"Card pool identity mismatch: expected {poolId}, got {definition.PoolId}");
+                }
+                var pool = definition;
                 _poolsByConfigAndId[cacheKey] = pool;
                 return Result<CardPoolDefinition>.Success(pool);
             }

@@ -42,17 +42,17 @@ public sealed class AdminContentReloadController : BaseApiController
                 "Set ALLOW_CONFIG_RELOAD=true to enable authoring reloads");
         }
 
-        var configName = request?.ConfigName ?? "default";
-        if (!ValidationHelper.IsValidConfigName(configName))
+        var settingId = request?.SettingId ?? "default";
+        if (!ValidationHelper.IsValidConfigName(settingId))
         {
             return ApiProblem(
                 StatusCodes.Status400BadRequest,
                 ApiErrorCodes.InvalidRequest,
-                "Invalid configuration",
-                "ConfigName contains unsupported characters");
+                "Invalid setting",
+                "SettingId contains unsupported characters");
         }
 
-        var result = await _reloads.ReloadAsync(configName, cancellationToken);
+        var result = await _reloads.ReloadAsync(settingId, cancellationToken);
         return result.IsSuccess
             ? Ok(result.Value)
             : ApiProblem(
@@ -63,4 +63,4 @@ public sealed class AdminContentReloadController : BaseApiController
     }
 }
 
-public sealed record ReloadContentRequest(string? ConfigName);
+public sealed record ReloadContentRequest(string? SettingId);

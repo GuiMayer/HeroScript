@@ -30,17 +30,30 @@ public class GameEngineClientSimulator
         string playerEntityId = "player",
         ulong? seed = null)
     {
+        var contentRevision = await GetCurrentContentRevisionAsync(configName);
         var response = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName,
+            settingId = configName,
             runDefinitionId,
             playerEntityId,
-            seed
+            seed,
+            contentRevision,
+            modeId = "standard"
         });
 
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         return json.GetProperty("runId").GetGuid();
+    }
+
+    public async Task<string> GetCurrentContentRevisionAsync(string settingId = "default")
+    {
+        var response = await _client.GetAsync(
+            $"/api/v1/content/revisions?configName={Uri.EscapeDataString(settingId)}");
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return json.GetProperty("currentRevision").GetString()
+            ?? throw new InvalidOperationException("Current content revision was not returned");
     }
 
     public async Task<JsonElement> GetRunStateAsync(Guid runId)
@@ -360,11 +373,13 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> EvaluateFormulaAsync(string formulaName, Dictionary<string, float> parameters)
     {
+        var contentRevision = await GetCurrentContentRevisionAsync();
         var request = new
         {
             formulaName,
             inputValue = 0f,
-            paramOverrides = parameters
+            paramOverrides = parameters,
+            contentRevision
         };
 
         var response = await _client.PostAsJsonAsync("/api/v1/simulations/formulas/evaluate", request);
@@ -384,11 +399,14 @@ public class GameEngineClientSimulator
         string entityId,
         string? displayName = null)
     {
+        var contentRevision = await GetCurrentContentRevisionAsync();
         var request = new
         {
             definitionId,
             entityId,
-            displayName
+            displayName,
+            settingId = "default",
+            contentRevision
         };
 
         var response = await _client.PostAsJsonAsync("/api/v1/entities/create", request);

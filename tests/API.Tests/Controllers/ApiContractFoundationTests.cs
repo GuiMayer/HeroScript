@@ -78,9 +78,10 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     public async Task ContentLookupError_IsNormalizedToProblemDetails()
     {
         const string correlationId = "content-error-contract";
+        var revision = await GetCurrentRevisionAsync();
         using var request = new HttpRequestMessage(
             HttpMethod.Get,
-            "/api/v1/content/actions/does_not_exist");
+            $"/api/v1/content/actions/does_not_exist?revision={revision}");
         request.Headers.Add("X-Correlation-ID", correlationId);
 
         using var response = await _client.SendAsync(request);
@@ -135,12 +136,15 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task VersionedRunReadModel_SupportsReconnectAndPersistedListing()
     {
+        var revision = await GetCurrentRevisionAsync();
         var playerEntityId = $"reconnect-test-player-{Guid.NewGuid():N}";
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
-            playerEntityId
+            playerEntityId,
+            contentRevision = revision,
+            modeId = "standard"
         });
         var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
 
@@ -172,7 +176,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             upgradeOptions.GetProperty("options").EnumerateArray(),
             option => option.GetProperty("upgradeId").GetString() == "sharpened_edge");
 
-        using var relicCatalogResponse = await _client.GetAsync("/api/v1/content/relics");
+        using var relicCatalogResponse = await _client.GetAsync($"/api/v1/content/relics?revision={revision}");
         var relicCatalog = await relicCatalogResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, relicCatalogResponse.StatusCode);
         Assert.Contains(
@@ -235,12 +239,15 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task RunEncounter_InheritsRunDeterminismAndIsReconnectable()
     {
+        var revision = await GetCurrentRevisionAsync();
         var playerEntityId = $"encounter-player-{Guid.NewGuid():N}";
         using var startRunResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
-            playerEntityId
+            playerEntityId,
+            contentRevision = revision,
+            modeId = "standard"
         });
         var run = await startRunResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, startRunResponse.StatusCode);
@@ -288,13 +295,15 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task P2Contracts_ProjectProfileBranchSimulateAndVerifyDailyAttempt()
     {
+        var revision = await GetCurrentRevisionAsync();
         var playerId = $"p2-player-{Guid.NewGuid():N}";
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
             playerEntityId = playerId,
             seed = 778899UL,
+            contentRevision = revision,
             modeId = "combat_sandbox"
         });
         var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -406,13 +415,16 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task RunCommandGateway_IsIdempotentAndRejectsStaleVersion()
     {
+        var revision = await GetCurrentRevisionAsync();
         var player = $"command-player-{Guid.NewGuid():N}";
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
             playerEntityId = player,
-            seed = 778899UL
+            seed = 778899UL,
+            contentRevision = revision,
+            modeId = "standard"
         });
         var run = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
@@ -478,13 +490,16 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task CombatCommandGateway_CommitsActionOnceInsideRunAggregate()
     {
+        var revision = await GetCurrentRevisionAsync();
         var player = $"combat-command-player-{Guid.NewGuid():N}";
         using var startRunResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
             playerEntityId = player,
-            seed = 998877UL
+            seed = 998877UL,
+            contentRevision = revision,
+            modeId = "standard"
         });
         var started = await startRunResponse.Content.ReadFromJsonAsync<JsonElement>();
         var runId = started.GetProperty("runId").GetGuid();
@@ -532,13 +547,16 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task DurableJournal_SurvivesSnapshotPolicyAndSemanticReplayMatches()
     {
+        var revision = await GetCurrentRevisionAsync();
         var player = $"replay-player-{Guid.NewGuid():N}";
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
             playerEntityId = player,
-            seed = 443322UL
+            seed = 443322UL,
+            contentRevision = revision,
+            modeId = "standard"
         });
         var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
         var runId = started.GetProperty("runId").GetGuid();
@@ -722,10 +740,9 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task ContentDraft_PublishesImmutableQueryableRevision()
     {
-        using var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/content/drafts")
-        {
-            Content = JsonContent.Create(new { configName = "default" })
-        };
+        using var createRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/v1/admin/settings/default/drafts");
         createRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
         using var createResponse = await _client.SendAsync(createRequest);
         var createBody = await createResponse.Content.ReadAsStringAsync();
@@ -784,11 +801,13 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     [Fact]
     public async Task PackageSetting_ValidatesPublishesAndDoesNotRebindActiveRun()
     {
+        var initialRevision = await GetCurrentRevisionAsync();
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
-            configName = "default",
+            settingId = "default",
             runDefinitionId = "default_run",
             playerEntityId = $"setting-publication-{Guid.NewGuid():N}",
+            contentRevision = initialRevision,
             modeId = "standard"
         });
         var startBody = await startResponse.Content.ReadAsStringAsync();
@@ -812,9 +831,31 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var validateBody = await validateResponse.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, validateResponse.StatusCode);
 
+        using var draftRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            "/api/v1/admin/settings/default/drafts");
+        draftRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var draftResponse = await _client.SendAsync(draftRequest);
+        var draftBody = await draftResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Created, draftResponse.StatusCode);
+        var draftId = draftBody.GetProperty("draftId").GetGuid();
+        var draftVersion = draftBody.GetProperty("version").GetInt32();
+
+        using var draftValidationRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/v1/admin/content/drafts/{draftId}/validate");
+        draftValidationRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
+        using var draftValidationResponse = await _client.SendAsync(draftValidationRequest);
+        var draftValidation = await draftValidationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, draftValidationResponse.StatusCode);
+        Assert.True(draftValidation.GetProperty("isValid").GetBoolean());
+
         using var publishRequest = new HttpRequestMessage(
             HttpMethod.Post,
-            "/api/v1/admin/settings/default/publish");
+            $"/api/v1/admin/content/drafts/{draftId}/publish")
+        {
+            Content = JsonContent.Create(new { expectedVersion = draftVersion })
+        };
         publishRequest.Headers.Add("X-Admin-Key", "dev-admin-key");
         using var publishResponse = await _client.SendAsync(publishRequest);
         var publishBody = await publishResponse.Content.ReadAsStringAsync();
@@ -831,5 +872,13 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
 
         using var revisionResponse = await _client.GetAsync($"/api/v1/content/revisions/{revision}");
         Assert.Equal(HttpStatusCode.OK, revisionResponse.StatusCode);
+    }
+
+    private async Task<string> GetCurrentRevisionAsync()
+    {
+        using var response = await _client.GetAsync("/api/v1/content/revisions?configName=default");
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return content.GetProperty("currentRevision").GetString()!;
     }
 }

@@ -7,11 +7,22 @@ using Xunit;
 namespace API.Tests.Controllers;
 
 [Trait("Category", "Integration")]
-public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplicationFactory>
+public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplicationFactory>, IAsyncLifetime
 {
     private readonly HttpClient _client;
+    private string _contentRevision = string.Empty;
 
     public CombatSandboxIntegrationTests(TestWebApplicationFactory factory) => _client = factory.CreateClient();
+
+    public async Task InitializeAsync()
+    {
+        using var response = await _client.GetAsync("/api/v1/content/revisions?configName=default");
+        response.EnsureSuccessStatusCode();
+        var content = await response.Content.ReadFromJsonAsync<JsonElement>();
+        _contentRevision = content.GetProperty("currentRevision").GetString()!;
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
     public async Task IdenticalCompleteSandboxFlow_IsBitwiseStableAcrossTenFreshRuntimes()
@@ -601,13 +612,14 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         return result.Clone();
     }
 
-    private static object CreateScenario(
+    private object CreateScenario(
         string attemptKey,
         object? initialState = null,
         string modeId = "combat_sandbox") => new
     {
         schemaVersion = 1,
         modeId,
+        contentRevision = _contentRevision,
         seed = 983744UL,
         attemptKey,
         hero = new { alias = "hero", entityDefinitionId = "player_warrior" },
@@ -626,7 +638,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         initialState = initialState ?? new { heroResources = new { energy = 3 } }
     };
 
-    private static async Task<DeterministicFlowEvidence> ExecuteDeterministicFlow(HttpClient client)
+    private async Task<DeterministicFlowEvidence> ExecuteDeterministicFlow(HttpClient client)
     {
         using var launchResponse = await client.PostAsJsonAsync(
             "/api/v1/sandbox/runs",

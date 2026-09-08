@@ -1,4 +1,5 @@
 {
+  "health": {
   "resourceId": "health",
   "displayName": "Health Points",
   "shortName": "HP",
@@ -25,4 +26,5 @@
       "priority": 100
     }
   ]
+  }
 }

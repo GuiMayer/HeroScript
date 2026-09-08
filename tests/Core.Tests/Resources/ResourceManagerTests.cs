@@ -401,7 +401,7 @@ public class ResourceManagerTests
         var configChain = new List<string> { "empty_config" };
         _mockConfigManager.Setup(m => m.ResolveInheritanceChain(It.IsAny<string>()))
             .Returns(configChain);
-        _mockResourceLoader.Setup(m => m.LoadResource(It.IsAny<string>(), It.IsAny<List<string>>(), false))
+        _mockResourceLoader.Setup(m => m.LoadResource(It.IsAny<string>(), It.IsAny<List<string>>(), true))
             .Returns(new Dictionary<string, System.Text.Json.JsonElement>());
 
         // Act

@@ -63,7 +63,7 @@ public sealed class ContentRuntimeTests
     }
 
     [Fact]
-    public void StandaloneArtifacts_UseTheirFileNamesAsDefinitionIds()
+    public void StandaloneArtifacts_DoNotInferDefinitionIdsFromFileNames()
     {
         var revision = new string('c', 64);
         var healthPath = "resources/health.json";
@@ -95,9 +95,64 @@ public sealed class ContentRuntimeTests
 
         var runtime = ContentRuntime.Create(bundle);
 
-        Assert.True(runtime.IsSuccess, runtime.IsFailure ? runtime.Error : null);
-        Assert.Equal("health", runtime.Value.GetDefinition<ResourceDefinition>("resources", "health").Value.ResourceId);
-        Assert.Equal("energy", runtime.Value.GetDefinition<ResourceDefinition>("resources", "energy").Value.ResourceId);
+        Assert.True(runtime.IsFailure);
+        Assert.Contains("must declare resourceId='definition'", runtime.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_RejectsUnknownDefinitionProperties()
+    {
+        var revision = new string('d', 64);
+        const string path = "actions/strike.json";
+        using var document = JsonDocument.Parse("""
+        {
+          "strike": {
+            "actionId": "strike",
+            "displayName": "Strike",
+            "actionType": "BASIC_ATTACK",
+            "requiresTarget": true,
+            "unexpectedRule": 7
+          }
+        }
+        """);
+        var bundle = new ContentBundle
+        {
+            Manifest = new ContentManifest
+            {
+                ConfigName = "default",
+                Revision = revision,
+                Artifacts = [new ContentArtifactManifest { Kind = "actions", Path = path }]
+            },
+            Artifacts = ImmutableDictionary<string, JsonElement>.Empty
+                .WithComparers(StringComparer.Ordinal)
+                .Add(path, document.RootElement.Clone())
+        };
+
+        var runtime = ContentRuntime.Create(bundle);
+
+        Assert.True(runtime.IsFailure);
+        Assert.Contains("does not match its declared schema", runtime.Error, StringComparison.Ordinal);
+        Assert.Contains("unexpectedRule", runtime.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Resolve_UnavailableRevision_DoesNotFallBackToLiveContent()
+    {
+        var revision = new string('e', 64);
+        var publication = new Mock<IContentPublicationService>();
+        publication
+            .Setup(service => service.ResolveBundleAsync(
+                revision,
+                "default",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Core.Common.Result<ContentBundle>.Failure(
+                $"Published content revision not found: {revision}"));
+        var resolver = new ContentRuntimeResolver(publication.Object);
+
+        var result = resolver.Resolve(revision, "default");
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Published content revision not found", result.Error, StringComparison.Ordinal);
     }
 
     private static ContentBundle CreateBundle(string revision, float damage)

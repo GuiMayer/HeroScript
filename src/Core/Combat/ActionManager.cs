@@ -58,22 +58,31 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
                 try
                 {
                     var relativePath = $"actions/{actionName}.json";
-                    var actionData = _resourceLoader.LoadResource(relativePath, configChain, strictMode: false);
+                    var actionData = _resourceLoader.LoadResource(relativePath, configChain, strictMode: true);
                     
                     if (actionData.Count == 0)
                         continue;
                     
-                    var firstElement = actionData.Values.FirstOrDefault();
-                    if (firstElement.ValueKind == System.Text.Json.JsonValueKind.Undefined)
+                    if (!actionData.TryGetValue(actionName, out var definitionElement))
+                    {
+                        _logger.LogError(
+                            $"Action file '{relativePath}' must declare definition id '{actionName}'");
                         continue;
+                    }
                     
                     var definition = JsonSerializer.Deserialize<ActionDefinition>(
-                        firstElement.GetRawText(),
+                        definitionElement.GetRawText(),
                         CreateJsonOptions());
                     
                     if (definition == null)
                     {
                         _logger.LogWarning($"Failed to deserialize action definition: {actionName}");
+                        continue;
+                    }
+                    if (!string.Equals(definition.ActionId, actionName, StringComparison.Ordinal))
+                    {
+                        _logger.LogError(
+                            $"Action definition identity mismatch in '{relativePath}': {definition.ActionId}");
                         continue;
                     }
 
@@ -136,7 +145,7 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
         if (string.IsNullOrWhiteSpace(contentRevision))
             return Result<ActionDefinition>.Failure("Content revision cannot be empty");
         if (_contentRuntimes == null)
-            return GetDefinition(actionId);
+            return Result<ActionDefinition>.Failure("Revisioned action runtime is not configured");
 
         var runtime = _contentRuntimes.Resolve(contentRevision, configName);
         if (runtime.IsFailure)
@@ -250,17 +259,20 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
         try
         {
             var configChain = _configManager.ResolveInheritanceChain(configName);
-            var actionData = _resourceLoader.LoadResource($"actions/{actionId}.json", configChain, strictMode: false);
+            var actionData = _resourceLoader.LoadResource($"actions/{actionId}.json", configChain, strictMode: true);
             if (actionData.Count == 0)
                 return Result<ActionDefinition>.Failure($"Action not found: {actionId}");
 
-            var element = actionData.TryGetValue(actionId, out var exact)
-                ? exact
-                : actionData.Values.First();
+            if (!actionData.TryGetValue(actionId, out var element))
+                return Result<ActionDefinition>.Failure(
+                    $"Action file must declare definition id: {actionId}");
 
             var definition = JsonSerializer.Deserialize<ActionDefinition>(element.GetRawText(), CreateJsonOptions());
             if (definition == null)
                 return Result<ActionDefinition>.Failure($"Failed to deserialize action definition: {actionId}");
+            if (!string.Equals(definition.ActionId, actionId, StringComparison.Ordinal))
+                return Result<ActionDefinition>.Failure(
+                    $"Action definition identity mismatch: expected {actionId}, got {definition.ActionId}");
 
             definition = NormalizeEffectIds(definition);
 

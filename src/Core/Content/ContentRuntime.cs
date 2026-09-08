@@ -27,8 +27,12 @@ public sealed class ContentRuntime
     public ContentManifest Manifest { get; }
 
     public static Result<ContentRuntime> Create(ContentBundle bundle)
+        => Create(bundle, ContentKindRegistry.Default);
+
+    public static Result<ContentRuntime> Create(ContentBundle bundle, IContentKindRegistry kinds)
     {
         ArgumentNullException.ThrowIfNull(bundle);
+        ArgumentNullException.ThrowIfNull(kinds);
         if (string.IsNullOrWhiteSpace(bundle.Manifest.Revision))
             return Result<ContentRuntime>.Failure("Content bundle revision is required");
 
@@ -39,9 +43,18 @@ public sealed class ContentRuntime
                      .ThenBy(artifact => artifact.Path, StringComparer.Ordinal)
                      .GroupBy(artifact => artifact.Kind, StringComparer.OrdinalIgnoreCase))
         {
+            var descriptor = kinds.Get(kindGroup.Key);
+            if (descriptor.IsFailure)
+                return Result<ContentRuntime>.Failure(descriptor.Error);
             var definitions = ImmutableDictionary.CreateBuilder<string, JsonElement>(StringComparer.Ordinal);
             foreach (var artifact in kindGroup)
             {
+                var canonicalPrefix = descriptor.Value.CanonicalDirectory + "/";
+                if (!artifact.Path.StartsWith(canonicalPrefix, StringComparison.Ordinal))
+                {
+                    return Result<ContentRuntime>.Failure(
+                        $"Content artifact path is not canonical for kind '{kindGroup.Key}': {artifact.Path}");
+                }
                 if (!bundle.Artifacts.TryGetValue(artifact.Path, out var document) ||
                     document.ValueKind != JsonValueKind.Object)
                 {
@@ -50,22 +63,15 @@ public sealed class ContentRuntime
 
                 foreach (var definition in document.EnumerateObject())
                 {
-                    // ResourceLoader wraps a standalone JSON object as
-                    // "definition". That key is local to the artifact and
-                    // cannot identify multiple files of the same kind.
-                    var definitionId = string.Equals(
-                        definition.Name,
-                        "definition",
-                        StringComparison.Ordinal)
-                        ? ResolveStandaloneDefinitionId(
-                            definition.Value,
-                            Path.GetFileNameWithoutExtension(artifact.Path))
-                        : definition.Name;
+                    var definitionId = definition.Name;
                     if (definitions.ContainsKey(definitionId))
                     {
                         return Result<ContentRuntime>.Failure(
                             $"Duplicate definition '{definitionId}' of kind '{kindGroup.Key}' in revision {bundle.Manifest.Revision}");
                     }
+                    var validation = kinds.Validate(kindGroup.Key, definitionId, definition.Value);
+                    if (validation.IsFailure)
+                        return Result<ContentRuntime>.Failure(validation.Error);
                     definitions[definitionId] = definition.Value.Clone();
                 }
             }
@@ -109,32 +115,6 @@ public sealed class ContentRuntime
             ? definitions
             : ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.Ordinal);
 
-    private static string ResolveStandaloneDefinitionId(JsonElement definition, string fallback)
-    {
-        if (definition.ValueKind != JsonValueKind.Object)
-            return fallback;
-
-        var preferredNames = new[]
-        {
-            "pipelineId", "resourceId", "entityId", "statusId", "modifierId",
-            "actionId", "modeId", "runId", "poolId", "sequenceId"
-        };
-        foreach (var preferred in preferredNames)
-        {
-            foreach (var property in definition.EnumerateObject())
-            {
-                if (property.Name.Equals(preferred, StringComparison.OrdinalIgnoreCase) &&
-                    property.Value.ValueKind == JsonValueKind.String &&
-                    !string.IsNullOrWhiteSpace(property.Value.GetString()))
-                {
-                    return property.Value.GetString()!;
-                }
-            }
-        }
-
-        return fallback;
-    }
-
     private static JsonSerializerOptions CreateSerializerOptions()
     {
         var options = new JsonSerializerOptions
@@ -160,6 +140,7 @@ public interface IContentRuntimeResolver
 public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheService
 {
     private readonly IContentPublicationService _publications;
+    private readonly IContentKindRegistry _kinds;
     private readonly ConcurrentDictionary<string, ContentRuntime> _runtimes =
         new(StringComparer.Ordinal);
     private long _hits;
@@ -170,9 +151,12 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheServ
     public CacheLayer Layer => CacheLayer.Revisioned;
     public bool PreserveAcrossGlobalInvalidation => true;
 
-    public ContentRuntimeResolver(IContentPublicationService publications)
+    public ContentRuntimeResolver(
+        IContentPublicationService publications,
+        IContentKindRegistry? kinds = null)
     {
         _publications = publications ?? throw new ArgumentNullException(nameof(publications));
+        _kinds = kinds ?? ContentKindRegistry.Default;
     }
 
     public Result<ContentRuntime> Resolve(string revision, string? configName = null)
@@ -202,7 +186,7 @@ public sealed class ContentRuntimeResolver : IContentRuntimeResolver, ICacheServ
         if (bundle.IsFailure)
             return Result<ContentRuntime>.Failure(bundle.Error);
 
-        var runtime = ContentRuntime.Create(bundle.Value);
+        var runtime = ContentRuntime.Create(bundle.Value, _kinds);
         if (runtime.IsFailure)
             return runtime;
 

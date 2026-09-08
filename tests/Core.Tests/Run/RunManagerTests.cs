@@ -1062,25 +1062,25 @@ public sealed class RunManagerTests
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
-            .Setup(m => m.LoadResource("runs/default_run.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("runs/default_run.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["default_run"] = JsonDocument.Parse(runJson ?? RunJson).RootElement.GetProperty("default_run").Clone()
             });
         _resourceLoader
-            .Setup(m => m.LoadResource("card-selections/basic_reward.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("card-selections/basic_reward.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["basic_reward"] = JsonDocument.Parse(CardSelectionJson).RootElement.GetProperty("basic_reward").Clone()
             });
         _resourceLoader
-            .Setup(m => m.LoadResource("shops/basic_shop.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("shops/basic_shop.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["basic_shop"] = JsonDocument.Parse(ShopJson).RootElement.GetProperty("basic_shop").Clone()
             });
         _resourceLoader
-            .Setup(m => m.LoadResource("preparations/basic_preparation.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("preparations/basic_preparation.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["basic_preparation"] = JsonDocument.Parse(PreparationJson).RootElement.GetProperty("basic_preparation").Clone()
@@ -1128,25 +1128,25 @@ public sealed class RunManagerTests
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
-            .Setup(m => m.LoadResource("runs/default_run.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("runs/default_run.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["default_run"] = JsonDocument.Parse(RunJson).RootElement.GetProperty("default_run").Clone()
             });
         _resourceLoader
-            .Setup(m => m.LoadResource("card-selections/pool_reward.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("card-selections/pool_reward.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["pool_reward"] = JsonDocument.Parse(PoolCardSelectionJson).RootElement.GetProperty("pool_reward").Clone()
             });
         _resourceLoader
-            .Setup(m => m.LoadResource("cards/card_catalog.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("cards/card_catalog.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(ParseResource(CardCatalogJson));
         _resourceLoader
-            .Setup(m => m.LoadResource("card-pools/basic_rewards.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("card-pools/basic_rewards.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(ParseResource(CardPoolsJson));
         _resourceLoader
-            .Setup(m => m.LoadResource("shops/dynamic_shop.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("shops/dynamic_shop.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["dynamic_shop"] = JsonDocument.Parse(DynamicShopJson).RootElement.GetProperty("dynamic_shop").Clone()

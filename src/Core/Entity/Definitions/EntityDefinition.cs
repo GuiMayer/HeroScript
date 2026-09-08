@@ -169,8 +169,4 @@ public record EntityDefinition
             ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
     }
     
-    /// <summary>
-    /// ID da definição base (para herança delta)
-    /// </summary>
-    public string? BaseDefinitionId { get; init; }
 }

@@ -1,4 +1,5 @@
 {
+  "block": {
   "resourceId": "block",
   "displayName": "Block",
   "shortName": "BL",
@@ -16,4 +17,5 @@
   },
   "costMultiplier": 1.0,
   "tags": ["temporary", "defensive", "slay-the-spire"]
+  }
 }

@@ -1,4 +1,5 @@
 {
+  "gold": {
   "resourceId": "gold",
   "displayName": "Gold",
   "shortName": "G",
@@ -10,4 +11,5 @@
   "canExceedMax": true,
   "costMultiplier": 1.0,
   "tags": ["run", "currency"]
+  }
 }

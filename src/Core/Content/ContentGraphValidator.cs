@@ -33,12 +33,19 @@ public interface IContentGraphValidator
 /// </summary>
 public sealed class ContentGraphValidator : IContentGraphValidator
 {
+    private readonly IContentKindRegistry _kinds;
+
+    public ContentGraphValidator(IContentKindRegistry? kinds = null)
+    {
+        _kinds = kinds ?? ContentKindRegistry.Default;
+    }
+
     public ContentGraphValidationResult Validate(ContentBundle bundle)
     {
         ArgumentNullException.ThrowIfNull(bundle);
         var errors = ImmutableArray.CreateBuilder<string>();
         var warnings = ImmutableArray.CreateBuilder<string>();
-        var created = ContentRuntime.Create(bundle);
+        var created = ContentRuntime.Create(bundle, _kinds);
         if (created.IsFailure)
         {
             errors.Add(created.Error);
@@ -394,8 +401,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add($"entities/{id} requires definitionId");
                 else if (!string.Equals(entity.DefinitionId, id, StringComparison.Ordinal))
                     errors.Add($"entities/{id} definitionId does not match its content key");
-                if (!string.IsNullOrWhiteSpace(entity.BaseDefinitionId))
-                    Require(runtime, errors, "entities", id, entity.BaseDefinitionId, "entities");
                 foreach (var (resourceId, pool) in entity.Resources?.Resources ??
                          new Dictionary<string, ResourcePoolDefinition>())
                 {
@@ -574,10 +579,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add($"card-upgrades/{id} is invalid");
                     continue;
                 }
-                upgrade = upgrade with
-                {
-                    UpgradeId = string.IsNullOrWhiteSpace(upgrade.UpgradeId) ? id : upgrade.UpgradeId
-                };
                 var cardIds = upgrade.CardDefinitionIds.Count == 0
                     ? runtime.GetDefinitions("cards").Keys.OrderBy(value => value, StringComparer.Ordinal)
                     : upgrade.CardDefinitionIds.OrderBy(value => value, StringComparer.Ordinal);
@@ -726,10 +727,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add($"calculation-pipelines/{id} is invalid");
                     continue;
                 }
-                pipeline = pipeline with
-                {
-                    PipelineId = string.IsNullOrWhiteSpace(pipeline.PipelineId) ? id : pipeline.PipelineId
-                };
                 var validation = engine.Calculate(new CalculationRequest
                 {
                     CalculationId = $"validation:{id}",

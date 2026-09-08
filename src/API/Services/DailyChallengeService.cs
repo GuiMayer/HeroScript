@@ -130,13 +130,22 @@ public sealed class DailyChallengeService
                 "Current daily challenge is not configured");
         }
 
+        var manifest = _content.GetManifest(challenge.ConfigName);
+        if (manifest.IsFailure)
+        {
+            return DailyChallengeResult<DailyAttempt>.Failure(
+                DailyChallengeErrorKind.ChallengeNotConfigured,
+                manifest.Error);
+        }
         var result = _runs.StartRun(new RunStartOptions(
             challenge.ConfigName,
             challenge.RunDefinitionId,
             playerId,
             challenge.Seed,
+            manifest.Value.Revision,
             ModeId: challenge.ModeId,
-            ChallengeId: challenge.ChallengeId));
+            ChallengeId: challenge.ChallengeId,
+            SettingId: challenge.ConfigName));
         if (result.IsSuccess)
             return DailyChallengeResult<DailyAttempt>.Success(MapAttempt(challenge, result.Value));
 

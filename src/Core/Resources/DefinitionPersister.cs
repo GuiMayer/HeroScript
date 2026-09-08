@@ -55,10 +55,7 @@ public sealed class DefinitionPersister : IDefinitionPersister
                 _logger.LogDebug($"Created directory: {directory}");
             }
 
-            var jsonString = JsonSerializer.Serialize(definition, new JsonSerializerOptions 
-            { 
-                WriteIndented = true 
-            });
+            var jsonString = SerializeDefinitionEnvelope(resourceId, definition);
             
             File.WriteAllText(filePath, jsonString);
             _logger.LogInformation($"Saved definition '{resourceId}' to {filePath}");
@@ -112,10 +109,7 @@ public sealed class DefinitionPersister : IDefinitionPersister
 
             try
             {
-                var jsonString = JsonSerializer.Serialize(definition, new JsonSerializerOptions 
-                { 
-                    WriteIndented = true 
-                });
+                var jsonString = SerializeDefinitionEnvelope(resourceId, definition);
                 
                 File.WriteAllText(filePath, jsonString);
                 _logger.LogInformation($"Updated definition '{resourceId}' at {filePath}");
@@ -212,6 +206,15 @@ public sealed class DefinitionPersister : IDefinitionPersister
     private string GetResourceFilePath(string configName, string resourceType, string resourceId)
     {
         return Path.Combine(_baseDataPath, configName, "Resources", resourceType, $"{resourceId}.json");
+    }
+
+    private static string SerializeDefinitionEnvelope(string resourceId, JsonDocument definition)
+    {
+        var envelope = new Dictionary<string, JsonElement>(StringComparer.Ordinal)
+        {
+            [resourceId] = definition.RootElement.Clone()
+        };
+        return JsonSerializer.Serialize(envelope, new JsonSerializerOptions { WriteIndented = true });
     }
 
     private static bool IsValidResourceId(string resourceId)

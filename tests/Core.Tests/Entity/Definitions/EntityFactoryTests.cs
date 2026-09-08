@@ -21,7 +21,7 @@ public class EntityFactoryTests
         // Usar o caminho absoluto baseado no workspace root
         var workspaceRoot = Path.GetFullPath(
             Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "..", "..", ".."));
-        _testDataPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Entities");
+        _testDataPath = Path.Combine(workspaceRoot, "data", "configs", "default", "Resources", "entities");
         
         _mockResourceManager = new Mock<IResourceManager>();
         SetupMockResourceManager();
@@ -56,6 +56,18 @@ public class EntityFactoryTests
         _mockResourceManager
             .Setup(m => m.GetDefinition("energy"))
             .Returns(Result<ResourceDefinition>.Success(energyDef));
+
+        var blockDef = new ResourceDefinition
+        {
+            ResourceId = "block",
+            DisplayName = "Block",
+            Category = ResourceCategory.TEMPORARY,
+            DefaultCurrent = 0,
+            DefaultMax = 999
+        };
+        _mockResourceManager
+            .Setup(m => m.GetDefinition("block"))
+            .Returns(Result<ResourceDefinition>.Success(blockDef));
     }
     
     [Fact]
@@ -252,7 +264,7 @@ public class EntityFactoryTests
     }
     
     [Fact]
-    public void CreateEntity_ShouldSupportDeltaInheritance()
+    public void CreateEntity_ShouldUseMaterializedPackageDefinition()
     {
         // Arrange
         var loader = CreateLoader();
@@ -265,10 +277,10 @@ public class EntityFactoryTests
         Assert.True(result.IsSuccess);
         var entity = result.Value!;
         
-        // Deve ter stats sobrescritos
+        // A definição publicada já contém o estado completo.
         var statsComp = entity.GetComponent<StatsComponent>()!;
-        Assert.Equal(16, statsComp.Strength); // Sobrescrito
-        Assert.Equal(14, statsComp.Dexterity); // Herdado
+        Assert.Equal(16, statsComp.Strength);
+        Assert.Equal(14, statsComp.Dexterity);
         
         // Deve ter AI configurado
         Assert.NotNull(entity.Controller);
@@ -285,12 +297,12 @@ public class EntityFactoryTests
         {
             var json = File.ReadAllText(Path.Combine(_testDataPath, $"{definitionId}.json"));
             resourceLoader
-                .Setup(m => m.LoadResource($"Entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), false))
+                .Setup(m => m.LoadResource($"entities/{definitionId}.json", It.IsAny<IEnumerable<string>>(), true))
                 .Returns(ParseResource(definitionId, json));
         }
 
         resourceLoader
-            .Setup(m => m.LoadResource("Entities/nonexistent.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("entities/nonexistent.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>());
 
         return new EntityDefinitionLoader(configManager.Object, resourceLoader.Object, new ConsoleLogger("Test"), "test");
@@ -298,13 +310,10 @@ public class EntityFactoryTests
 
     private static Dictionary<string, JsonElement> ParseResource(string definitionId, string json)
     {
-        using var document = JsonDocument.Parse($$"""
+        using var document = JsonDocument.Parse(json);
+        return new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase)
         {
-          "{{definitionId}}": {{json}}
-        }
-        """);
-
-        return document.RootElement.EnumerateObject()
-            .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
+            [definitionId] = document.RootElement.GetProperty(definitionId).Clone()
+        };
     }
 }

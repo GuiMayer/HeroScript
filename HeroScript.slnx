@@ -19,43 +19,6 @@
     <File Path=".gitignore" />
     <File Path="HeroScript.slnx" />
   </Folder>
-  <Folder Name="/data/default/">
-    <File Path="data/configs/default/Entities/player_warrior.json" />
-    <File Path="data/configs/default/Entities/enemy_goblin.json" />
-    <File Path="data/configs/default/Entities/enemy_orc_warrior.json" />
-    <File Path="data/configs/default/Actions/basic_attack.json" />
-    <File Path="data/configs/default/Actions/conditional_heal.json" />
-    <File Path="data/configs/default/Actions/draw_cards.json" />
-    <File Path="data/configs/default/Actions/fireball.json" />
-    <File Path="data/configs/default/Actions/heal.json" />
-    <File Path="data/configs/default/Actions/poison_strike.json" />
-    <File Path="data/configs/default/Actions/whirlwind.json" />
-    <File Path="data/configs/default/Resources/cards/card_catalog.json" />
-    <File Path="data/configs/default/Resources/card-pools/basic_rewards.json" />
-    <File Path="data/configs/default/Resources/card-selections/basic_reward.json" />
-    <File Path="data/configs/default/Resources/preparations/basic_preparation.json" />
-    <File Path="data/configs/default/Resources/runs/default_run.json" />
-    <File Path="data/configs/default/Resources/shops/basic_shop.json" />
-    <File Path="data/configs/default/Resources/resources/block.json" />
-    <File Path="data/configs/default/Resources/resources/energy.json" />
-    <File Path="data/configs/default/Resources/resources/health.json" />
-    <File Path="data/configs/default/Resources/resources/mana.json" />
-    <File Path="data/configs/default/Resources/resources/shield.json" />
-    <File Path="data/configs/default/Resources/Pipelines/DamagePipeline.json" />
-    <File Path="data/configs/default/Resources/Pipelines/DamagePipeline.example.json" />
-    <File Path="data/configs/default/Resources/Pipelines/DamagePipeline.high-crit.json" />
-    <File Path="data/configs/default/StatusEffects/status_effects.json" />
-    <File Path="data/configs/default/StatusEffects/README.md" />
-    <File Path="data/configs/default/StatusEffects/examples/buff_effects.json" />
-    <File Path="data/configs/default/StatusEffects/examples/debuff_effects.json" />
-    <File Path="data/configs/default/StatusEffects/examples/dot_effects.json" />
-    <File Path="data/configs/default/StatusEffects/examples/special_effects.json" />
-  </Folder>
-  <Folder Name="/UserData/default/">
-    <File Path="UserData/Configs/default/Gambits/gambits.json" />
-    <File Path="UserData/Configs/default/Modifiers/script_modifiers.json" />
-    <File Path="UserData/Configs/default/StatusEffects/status_effects.json" />
-  </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md" />
     <File Path="docs/MOVED.md" />

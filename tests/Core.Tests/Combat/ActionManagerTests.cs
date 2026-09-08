@@ -134,7 +134,7 @@ public class ActionManagerTests
         """;
 
         _mockResourceLoader
-            .Setup(m => m.LoadResource("actions/new_json_action.json", It.IsAny<IEnumerable<string>>(), false))
+            .Setup(m => m.LoadResource("actions/new_json_action.json", It.IsAny<IEnumerable<string>>(), true))
             .Returns(new Dictionary<string, JsonElement>
             {
                 ["new_json_action"] = JsonDocument.Parse(json).RootElement.Clone()
@@ -390,7 +390,7 @@ public class ActionManagerTests
         var configChain = new List<string> { "empty_config" };
         _mockConfigManager.Setup(m => m.ResolveInheritanceChain(It.IsAny<string>()))
             .Returns(configChain);
-        _mockResourceLoader.Setup(m => m.LoadResource(It.IsAny<string>(), It.IsAny<List<string>>(), false))
+        _mockResourceLoader.Setup(m => m.LoadResource(It.IsAny<string>(), It.IsAny<List<string>>(), true))
             .Returns(new Dictionary<string, System.Text.Json.JsonElement>());
 
         // Act

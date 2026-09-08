@@ -35,8 +35,7 @@ public sealed record ContentValidationResult
 
 public interface IContentPublicationService
 {
-    Task<Result<ContentDraft>> CreateDraftAsync(string configName, CancellationToken cancellationToken = default);
-    Task<Result<ContentDraft>> RefreshDraftAsync(Guid draftId, int expectedVersion, CancellationToken cancellationToken = default);
+    Task<Result<ContentDraft>> CreateDraftAsync(ContentBundle bundle, CancellationToken cancellationToken = default);
     Task<Result<ContentDraft>> GetDraftAsync(Guid draftId, CancellationToken cancellationToken = default);
     ContentValidationResult Validate(ContentBundle bundle);
     Task<ContentValidationResult> ValidateDraftAsync(Guid draftId, CancellationToken cancellationToken = default);
@@ -64,7 +63,6 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
 {
     private readonly string _storePath;
     private readonly IContentManifestProvider _manifests;
-    private readonly IResourceLoader _resourceLoader;
     private readonly IContentGraphValidator _graphValidator;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly JsonSerializerOptions _jsonOptions;
@@ -72,12 +70,10 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
     public ContentPublicationService(
         string storePath,
         IContentManifestProvider manifests,
-        IResourceLoader resourceLoader,
         IContentGraphValidator? graphValidator = null)
     {
         _storePath = storePath;
         _manifests = manifests;
-        _resourceLoader = resourceLoader;
         _graphValidator = graphValidator ?? new ContentGraphValidator();
         Directory.CreateDirectory(GetDraftDirectory());
         Directory.CreateDirectory(GetPublishedDirectory());
@@ -90,20 +86,20 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
     }
 
     public async Task<Result<ContentDraft>> CreateDraftAsync(
-        string configName,
+        ContentBundle bundle,
         CancellationToken cancellationToken = default)
     {
-        var captured = Capture(configName);
-        if (captured.IsFailure)
-            return Result<ContentDraft>.Failure(captured.Error);
+        ArgumentNullException.ThrowIfNull(bundle);
+        if (string.IsNullOrWhiteSpace(bundle.Manifest.ConfigName))
+            return Result<ContentDraft>.Failure("Draft bundle setting id is required");
 
         var now = DateTime.UtcNow; // nondeterministic-boundary: admin authoring metadata
         var draft = new ContentDraft
         {
             DraftId = Guid.NewGuid(), // nondeterministic-boundary: admin authoring identity
             Version = 1,
-            ConfigName = configName,
-            Bundle = captured.Value,
+            ConfigName = bundle.Manifest.ConfigName,
+            Bundle = bundle,
             CreatedAtUtc = now,
             UpdatedAtUtc = now
         };
@@ -116,41 +112,6 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         catch (Exception exception)
         {
             return Result<ContentDraft>.Failure($"Failed to create content draft: {exception.Message}", exception);
-        }
-    }
-
-    public async Task<Result<ContentDraft>> RefreshDraftAsync(
-        Guid draftId,
-        int expectedVersion,
-        CancellationToken cancellationToken = default)
-    {
-        var loaded = await GetDraftAsync(draftId, cancellationToken).ConfigureAwait(false);
-        if (loaded.IsFailure)
-            return loaded;
-        if (loaded.Value.PublishedRevision != null)
-            return Result<ContentDraft>.Failure($"Published draft is immutable: {draftId}");
-        if (loaded.Value.Version != expectedVersion)
-            return Result<ContentDraft>.Failure(
-                $"VERSION_CONFLICT: expected draft version {expectedVersion}, current is {loaded.Value.Version}");
-
-        var captured = Capture(loaded.Value.ConfigName);
-        if (captured.IsFailure)
-            return Result<ContentDraft>.Failure(captured.Error);
-        var updated = loaded.Value with
-        {
-            Version = checked(loaded.Value.Version + 1),
-            Bundle = captured.Value,
-            UpdatedAtUtc = DateTime.UtcNow // nondeterministic-boundary: admin authoring metadata
-        };
-
-        try
-        {
-            await SaveDraftAsync(updated, overwrite: true, cancellationToken).ConfigureAwait(false);
-            return Result<ContentDraft>.Success(updated);
-        }
-        catch (Exception exception)
-        {
-            return Result<ContentDraft>.Failure($"Failed to refresh content draft: {exception.Message}", exception);
         }
     }
 
@@ -316,7 +277,20 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             var bundle = JsonSerializer.Deserialize<ContentBundle>(json, _jsonOptions);
             if (bundle == null)
                 return Result<ContentBundle>.Failure($"Published content revision is invalid: {revision}");
-            _manifests.RegisterPublishedManifest(bundle.Manifest);
+            if (!string.Equals(bundle.Manifest.Revision, revision, StringComparison.Ordinal))
+            {
+                return Result<ContentBundle>.Failure(
+                    $"Published content revision identity mismatch: expected {revision}, got {bundle.Manifest.Revision}");
+            }
+            var validation = Validate(bundle);
+            if (!validation.IsValid)
+            {
+                return Result<ContentBundle>.Failure(
+                    $"Published content revision is corrupt: {string.Join("; ", validation.Errors)}");
+            }
+            var registration = _manifests.RegisterPublishedManifest(bundle.Manifest);
+            if (registration.IsFailure)
+                return Result<ContentBundle>.Failure(registration.Error);
             return Result<ContentBundle>.Success(bundle);
         }
         catch (Exception exception)
@@ -352,35 +326,16 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
             return Result<ContentBundle>.Failure("Content revision is required");
 
         var published = await GetPublishedAsync(revision, cancellationToken).ConfigureAwait(false);
-        if (published.IsSuccess)
-        {
-            if (!string.IsNullOrWhiteSpace(configName) &&
-                !string.Equals(published.Value.Manifest.ConfigName, configName, StringComparison.OrdinalIgnoreCase))
-            {
-                return Result<ContentBundle>.Failure(
-                    $"Content revision '{revision}' belongs to configuration " +
-                    $"'{published.Value.Manifest.ConfigName}', not '{configName}'");
-            }
-
+        if (published.IsFailure)
             return published;
-        }
-
-        var effectiveConfigName = configName;
-        if (string.IsNullOrWhiteSpace(effectiveConfigName))
+        if (!string.IsNullOrWhiteSpace(configName) &&
+            !string.Equals(published.Value.Manifest.ConfigName, configName, StringComparison.OrdinalIgnoreCase))
         {
-            var knownManifest = _manifests.GetByRevision(revision);
-            if (knownManifest.IsFailure)
-                return Result<ContentBundle>.Failure(published.Error);
-            effectiveConfigName = knownManifest.Value.ConfigName;
+            return Result<ContentBundle>.Failure(
+                $"Content revision '{revision}' belongs to setting " +
+                $"'{published.Value.Manifest.ConfigName}', not '{configName}'");
         }
-
-        var current = Capture(effectiveConfigName);
-        if (current.IsFailure)
-            return Result<ContentBundle>.Failure(current.Error);
-        if (!string.Equals(current.Value.Manifest.Revision, revision, StringComparison.Ordinal))
-            return Result<ContentBundle>.Failure(published.Error);
-
-        return current;
+        return published;
     }
 
     public async Task<Result<IReadOnlyDictionary<string, JsonElement>>> GetDefinitionsAsync(
@@ -392,21 +347,12 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
         if (string.IsNullOrWhiteSpace(kind))
             return Result<IReadOnlyDictionary<string, JsonElement>>.Failure("Content kind is required");
 
-        ContentBundle bundle;
         if (string.IsNullOrWhiteSpace(revision))
-        {
-            var current = Capture(configName);
-            if (current.IsFailure)
-                return Result<IReadOnlyDictionary<string, JsonElement>>.Failure(current.Error);
-            bundle = current.Value;
-        }
-        else
-        {
-            var resolved = await ResolveBundleAsync(revision, configName, cancellationToken).ConfigureAwait(false);
-            if (resolved.IsFailure)
-                return Result<IReadOnlyDictionary<string, JsonElement>>.Failure(resolved.Error);
-            bundle = resolved.Value;
-        }
+            return Result<IReadOnlyDictionary<string, JsonElement>>.Failure("Published content revision is required");
+        var resolved = await ResolveBundleAsync(revision, configName, cancellationToken).ConfigureAwait(false);
+        if (resolved.IsFailure)
+            return Result<IReadOnlyDictionary<string, JsonElement>>.Failure(resolved.Error);
+        var bundle = resolved.Value;
 
         var runtime = ContentRuntime.Create(bundle);
         return runtime.IsFailure
@@ -416,36 +362,6 @@ public sealed class ContentPublicationService : IContentPublicationService, IDis
     }
 
     public void Dispose() => _semaphore.Dispose();
-
-    private Result<ContentBundle> Capture(string configName)
-    {
-        var manifestResult = _manifests.BuildCandidate(configName);
-        if (manifestResult.IsFailure)
-            return Result<ContentBundle>.Failure(manifestResult.Error);
-
-        try
-        {
-            var artifacts = ImmutableDictionary.CreateBuilder<string, JsonElement>(StringComparer.Ordinal);
-            foreach (var artifact in manifestResult.Value.Artifacts)
-            {
-                var definitions = _resourceLoader.LoadResource(
-                    artifact.Path,
-                    manifestResult.Value.ConfigChain,
-                    strictMode: false);
-                artifacts[artifact.Path] = JsonSerializer.SerializeToElement(definitions).Clone();
-            }
-
-            return Result<ContentBundle>.Success(new ContentBundle
-            {
-                Manifest = manifestResult.Value,
-                Artifacts = artifacts.ToImmutable()
-            });
-        }
-        catch (Exception exception)
-        {
-            return Result<ContentBundle>.Failure($"Failed to capture content bundle: {exception.Message}", exception);
-        }
-    }
 
     private ContentValidationResult ValidateBundle(ContentBundle bundle)
     {

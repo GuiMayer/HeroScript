@@ -82,6 +82,11 @@ public class EntityController : BaseApiController
         {
             if (string.IsNullOrWhiteSpace(request.EntityId))
                 return BadRequest(new { error = "EntityId is required for deterministic entity creation" });
+            if (string.IsNullOrWhiteSpace(request.SettingId) ||
+                string.IsNullOrWhiteSpace(request.ContentRevision))
+            {
+                return BadRequest(new { error = "SettingId and ContentRevision are required" });
+            }
             if (request.InitialResources is { Count: > 0 })
             {
                 return BadRequest(new
@@ -90,7 +95,11 @@ public class EntityController : BaseApiController
                 });
             }
 
-            var result = _entityFactory.CreateEntity(request.DefinitionId, request.EntityId);
+            var result = _entityFactory.CreateEntity(
+                request.DefinitionId,
+                request.EntityId,
+                request.ContentRevision,
+                request.SettingId);
             if (result.IsFailure)
                 return NotFound(new { error = result.Error });
 
@@ -212,7 +221,7 @@ public class EntityController : BaseApiController
         {
             DefinitionId = dto.DefinitionId,
             DisplayName = dto.DisplayName,
-            Description = dto.Description,
+            Description = dto.Description ?? string.Empty,
             Type = Enum.TryParse<Core.Entity.EntityType>(dto.Type, true, out var entityType) 
                 ? entityType 
                 : Core.Entity.EntityType.NPC,
