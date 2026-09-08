@@ -162,6 +162,11 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 var validation = PhaseSequenceValidator.Validate(sequence);
                 if (validation.IsFailure)
                     errors.Add($"phase-sequences/{id}: {validation.Error}");
+                if (sequence.Phases.Any(phase => phase.AllowPriority))
+                {
+                    errors.Add(
+                        $"phase-sequences/{id} enables priority before the transactional priority runtime is available");
+                }
             }
             catch (Exception exception)
             {
@@ -227,24 +232,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                             formula => runtime.GetDefinitions("formulas").ContainsKey(formula));
                         if (syntax.IsFailure)
                             errors.Add($"combat-rules/{id} conditional turnOrder: {syntax.Error}");
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
-                {
-                    var selectedSequence = runtime.GetDefinition<PhaseSequenceDefinition>(
-                        "phase-sequences",
-                        combat.DefaultPhaseSequenceId);
-                    if (selectedSequence.IsSuccess)
-                    {
-                        var operationalSequence = PhaseSequenceValidator.ValidateCanonicalActivationSequence(
-                            selectedSequence.Value);
-                        if (operationalSequence.IsFailure)
-                        {
-                            errors.Add(
-                                $"combat-rules/{id} selects unsupported phase sequence " +
-                                $"'{combat.DefaultPhaseSequenceId}': {operationalSequence.Error}");
-                        }
                     }
                 }
 

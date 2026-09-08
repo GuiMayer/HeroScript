@@ -61,6 +61,16 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (item.EncounterRetry == RunEncounterRetryPolicy.Disabled && item.RetryableEncounterOutcomes.Count > 0)
                 Error(path, "retryableEncounterOutcomes requires encounterRetry RestartActivity");
         });
+        Visit<Core.Combat.TurnPhase.PhaseSequenceDefinition>("phase-sequences", (path, item) =>
+        {
+            foreach (var phase in item.Phases)
+            {
+                Effects($"{path}/phases/{phase.PhaseId}/entryEffects", phase.EntryEffects);
+                Effects($"{path}/phases/{phase.PhaseId}/exitEffects", phase.ExitEffects);
+                foreach (var edge in phase.Edges)
+                    Formula($"{path}/phases/{phase.PhaseId}/edges/{edge.EdgeId}", edge.Condition);
+            }
+        });
         Visit<ActionDefinition>("actions", (path, item) => Effects(path, item.Effects));
         Visit<Core.Resources.ResourceDefinition>("resources", (path, item) =>
         {
@@ -221,6 +231,8 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
     private bool IsGameplayVariable(string token)
     {
         if (token is "stacks" or "duration" or "repeat_index" or "target_index") return true;
+        if (token is "turn" or "round" or "activation" or "actions_taken" or "phase_order" or
+            "command_type" || token.StartsWith("tag_", StringComparison.Ordinal)) return true;
         foreach (var owner in new[] { "source", "target", "owner", "run" })
         {
             var prefix = $"{owner}.resources.";

@@ -252,7 +252,7 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
             CombatStep = combat.Determinism.Step,
             Turn = combat.CurrentTurn,
             Activation = combat.ActivationState?.ActivationNumber,
-            Phase = combat.PhaseState?.CurrentPhaseId,
+            Phase = combat.PhaseState?.Cursor,
             ActorId = combat.ActivationState?.ActiveActorId,
             CommandType = commit.RootCommand.Type,
             CommandId = commit.RootCommand.CommandId,

@@ -7,10 +7,14 @@ using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
+using Core.Effects;
+using Core.Math;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Moq;
+using System.Collections.Immutable;
+using System.Text.Json;
 using Xunit;
 
 namespace Core.Tests.Combat.LegalActions;
@@ -85,10 +89,27 @@ public sealed class LegalActionResolverTests
         }, CombatCommandOrigin.AutomaticController);
 
         Assert.True(first.Value.IsLegal);
-        Assert.Equal("canonical-preview", first.Value.Candidate!.ResolutionFingerprint);
+        Assert.Equal(64, first.Value.Candidate!.ResolutionFingerprint.Length);
+        Assert.NotEqual("canonical-preview", first.Value.Candidate.ResolutionFingerprint);
         Assert.Equal(first.Value.Candidate.ResolutionFingerprint, second.Value.Candidate!.ResolutionFingerprint);
         Assert.Same(preview, first.Value.Candidate.Ability);
         Assert.Same(successor, first.Value.Candidate.SuccessorCombat);
+    }
+
+    [Fact]
+    public void Evaluate_PassReturnsThePostPhaseSnapshotAndTrace()
+    {
+        var (run, combat) = State(includeAbility: false);
+        var resolver = Resolver(new Mock<IAbilityExecutor>());
+
+        var result = resolver.Evaluate(run, combat, new CombatActionCommand
+        {
+            RunId = run.RunId, ActorId = "enemy", ActionType = ActionType.PASS
+        }, CombatCommandOrigin.AutomaticController);
+
+        Assert.True(result.Value.IsLegal);
+        Assert.Equal("second", result.Value.Candidate!.SuccessorCombat.PhaseState!.Cursor);
+        Assert.Equal("main-second", Assert.Single(result.Value.Candidate.PhaseTransitions).EdgeId);
     }
 
     private static LegalActionResolver Resolver(Mock<IAbilityExecutor> abilities)
@@ -99,14 +120,18 @@ public sealed class LegalActionResolverTests
             {
                 ActionId = "slash", ActionType = ActionType.POWER, RequiresTarget = true
             }));
+        var runtimes = new Mock<IContentRuntimeResolver>();
+        runtimes.Setup(service => service.Resolve("revision", "default"))
+            .Returns(Result<ContentRuntime>.Success(Runtime()));
         return new LegalActionResolver(
             actions.Object,
-            Mock.Of<IContentRuntimeResolver>(),
+            runtimes.Object,
             Mock.Of<ICardContentCompiler>(),
             Mock.Of<IEffectiveCardResolver>(),
             Mock.Of<ICardPlayEvaluator>(),
             Mock.Of<ICardPlayExecutor>(),
-            abilities.Object);
+            abilities.Object,
+            new PhaseGraphReducer(Mock.Of<IRuntimeFormulaEvaluator>(), Mock.Of<IEffectTriggerExecutor>()));
     }
 
     private static (RunState Run, CombatState Combat) State(bool includeAbility)
@@ -120,18 +145,9 @@ public sealed class LegalActionResolverTests
             ActivationState = new ActivationState { ActiveActorId = "enemy", WaitingForInput = false },
             PhaseState = new PhaseState
             {
-                CurrentPhaseId = "main",
-                PhaseSequence = new PhaseSequenceDefinition
-                {
-                    Phases =
-                    [
-                        new PhaseDefinition
-                        {
-                            PhaseId = "main", Role = PhaseRole.Middle,
-                            AllowedActions = [ActionType.POWER, ActionType.PASS, ActionType.END_TURN]
-                        }
-                    ]
-                }
+                SequenceId = "test",
+                ContentRevision = "revision",
+                Cursor = "main"
             },
             Determinism = DeterministicContext.Create(7, "revision")
         };
@@ -144,6 +160,7 @@ public sealed class LegalActionResolverTests
             {
                 CombatRules = new CombatRulesDefinition
                 {
+                    DefaultPhaseSequenceId = "test",
                     Flow = new CombatFlowPoliciesDefinition
                     {
                         ActionBudget = new ActionBudgetPolicyDefinition
@@ -159,6 +176,70 @@ public sealed class LegalActionResolverTests
             }
         };
         return (run, combat);
+    }
+
+    private static ContentRuntime Runtime()
+    {
+        const string path = "phase-sequences/test.json";
+        var sequence = new PhaseSequenceDefinition
+        {
+            SequenceId = "test",
+            EntryPhaseId = "start",
+            Phases =
+            [
+                new PhaseDefinition
+                {
+                    PhaseId = "start", Role = PhaseRole.Start, Order = 10,
+                    Edges = [new()
+                    {
+                        EdgeId = "start-main", TargetPhaseId = "main",
+                        Trigger = PhaseEdgeTrigger.Automatic
+                    }]
+                },
+                new PhaseDefinition
+                {
+                    PhaseId = "main", Role = PhaseRole.Middle, Order = 20,
+                    AllowedActions = [ActionType.POWER, ActionType.PASS, ActionType.END_TURN],
+                    Edges =
+                    [
+                        new()
+                        {
+                            EdgeId = "main-second", TargetPhaseId = "second",
+                            Trigger = PhaseEdgeTrigger.Command, ActionTypes = [ActionType.PASS]
+                        },
+                        new()
+                        {
+                            EdgeId = "main-end", TargetPhaseId = "end",
+                            Trigger = PhaseEdgeTrigger.ActivationExit
+                        }
+                    ]
+                },
+                new PhaseDefinition
+                {
+                    PhaseId = "second", Role = PhaseRole.Middle, Order = 25,
+                    AllowedActions = [ActionType.END_TURN],
+                    Edges = [new()
+                    {
+                        EdgeId = "second-end", TargetPhaseId = "end",
+                        Trigger = PhaseEdgeTrigger.ActivationExit
+                    }]
+                },
+                new PhaseDefinition { PhaseId = "end", Role = PhaseRole.End, Order = 30 }
+            ]
+        };
+        return ContentRuntime.Create(new ContentBundle
+        {
+            Manifest = new ContentManifest
+            {
+                Revision = "revision", ConfigName = "default",
+                Artifacts = [new() { Kind = "phase-sequences", Path = path, DefinitionCount = 1 }]
+            },
+            Artifacts = ImmutableDictionary<string, JsonElement>.Empty.Add(path,
+                JsonSerializer.SerializeToElement(new Dictionary<string, PhaseSequenceDefinition>
+                {
+                    ["test"] = sequence
+                }))
+        }).Value;
     }
 
     private static CombatActorState Actor(string id, bool player, IReadOnlyList<string> abilities) => new()

@@ -173,19 +173,9 @@ public sealed class CardInspectionServiceTests
             },
             PhaseState = new PhaseState
             {
-                CurrentPhaseId = "main",
-                PhaseSequence = new PhaseSequenceDefinition
-                {
-                    Phases =
-                    [
-                        new PhaseDefinition
-                        {
-                            PhaseId = "main",
-                            Role = PhaseRole.Middle,
-                            AllowedActions = [ActionType.PLAY_CARD]
-                        }
-                    ]
-                }
+                SequenceId = "phases",
+                ContentRevision = Revision,
+                Cursor = "main"
             },
             StatusEffects = new Dictionary<string, ImmutableArray<StatusEffectInstance>>
             {

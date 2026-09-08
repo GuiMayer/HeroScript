@@ -2267,7 +2267,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                     Kind = effectiveType,
                     CombatId = combatId,
                     ActorId = scopedCombat?.ActivationState?.ActiveActorId,
-                    PhaseId = scopedCombat?.PhaseState?.CurrentPhaseId,
+                    PhaseId = scopedCombat?.PhaseState?.Cursor,
                     Round = scopedCombat?.ActivationState?.Round ?? scopedCombat?.CurrentTurn,
                     Activation = scopedCombat?.ActivationState?.ActivationNumber,
                     ResultHash = scopedCombat == null
@@ -2343,7 +2343,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 Kind = candidate.Step.TransitionType,
                 CombatId = candidate.Step.Combat.CombatId,
                 ActorId = candidate.Step.Combat.ActivationState?.ActiveActorId,
-                PhaseId = candidate.Step.Combat.PhaseState?.CurrentPhaseId,
+                PhaseId = candidate.Step.Combat.PhaseState?.Cursor,
                 Round = candidate.Step.Combat.ActivationState?.Round ?? candidate.Step.Combat.CurrentTurn,
                 Activation = candidate.Step.Combat.ActivationState?.ActivationNumber,
                 ResultHash = CanonicalJson.ComputeHash(candidate.Step.Combat),

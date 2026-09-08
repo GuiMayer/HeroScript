@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Core.Calculations;
 using Core.Combat.Flow;
 using Core.Combat.Models;
+using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
@@ -23,6 +24,7 @@ public sealed record LegalActionCandidate
     private ImmutableArray<EffectApplicationRecord> _applications = [];
     private ImmutableArray<CalculationResult> _calculations = [];
     private ImmutableArray<EffectExecutionStep> _steps = [];
+    private ImmutableArray<PhaseTransitionRecord> _phaseTransitions = [];
 
     public string CandidateId { get; init; } = string.Empty;
     public LegalActionSource Source { get; init; }
@@ -43,6 +45,11 @@ public sealed record LegalActionCandidate
     {
         get => _steps;
         init => _steps = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<PhaseTransitionRecord> PhaseTransitions
+    {
+        get => _phaseTransitions;
+        init => _phaseTransitions = value?.ToImmutableArray() ?? [];
     }
     public string ResolutionFingerprint { get; init; } = string.Empty;
     public bool OutcomeUncertain { get; init; }
@@ -145,6 +152,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
     private readonly ICardPlayEvaluator _cardLegality;
     private readonly ICardPlayExecutor _cardExecutor;
     private readonly IAbilityExecutor _abilityExecutor;
+    private readonly IPhaseGraphReducer _phases;
 
     public LegalActionResolver(
         IActionManager actions,
@@ -153,7 +161,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
         IEffectiveCardResolver effectiveCards,
         ICardPlayEvaluator cardLegality,
         ICardPlayExecutor cardExecutor,
-        IAbilityExecutor abilityExecutor)
+        IAbilityExecutor abilityExecutor,
+        IPhaseGraphReducer phases)
     {
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
@@ -162,6 +171,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
         _cardLegality = cardLegality ?? throw new ArgumentNullException(nameof(cardLegality));
         _cardExecutor = cardExecutor ?? throw new ArgumentNullException(nameof(cardExecutor));
         _abilityExecutor = abilityExecutor ?? throw new ArgumentNullException(nameof(abilityExecutor));
+        _phases = phases ?? throw new ArgumentNullException(nameof(phases));
     }
 
     public Result<LegalActionEvaluation> Evaluate(
@@ -176,7 +186,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
         if (run.ResolvedMode == null)
             return Result<LegalActionEvaluation>.Failure("Run has no resolved game mode");
 
-        var flow = ValidateFlow(combat, command, origin);
+        var flow = ValidateActivation(combat, command, origin);
         if (flow.IsFailure)
             return Illegal(flow.Error);
         var budget = CombatFlowTransitions.ValidateActionBudget(
@@ -278,6 +288,12 @@ public sealed class LegalActionResolver : ILegalActionResolver
         var effective = _effectiveCards.Resolve(compiled.Value, instance);
         if (effective.IsFailure)
             return Result<LegalActionEvaluation>.Failure(effective.Error);
+        var tags = effective.Value.Tags
+            .Append("card")
+            .Append(ActionType.PLAY_CARD.ToString())
+            .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);
+        var phase = ValidatePhase(run, combat, command, tags);
+        if (phase.IsFailure) return Illegal(phase.Error);
         var evaluation = _cardLegality.Evaluate(effective.Value, combat, new CardPlayRequest
         {
             ActorId = command.ActorId,
@@ -302,7 +318,9 @@ public sealed class LegalActionResolver : ILegalActionResolver
         });
         if (executed.IsFailure)
             return Illegal(executed.Error);
-        return Legal(CreateCandidate(run, command, executed.Value), evaluation.Value);
+        var candidate = ApplyPhase(run, combat, CreateCandidate(run, command, executed.Value), tags);
+        return candidate.IsFailure ? Result<LegalActionEvaluation>.Failure(candidate.Error)
+            : Legal(candidate.Value, evaluation.Value);
     }
 
     private Result<LegalActionEvaluation> EvaluateAbility(
@@ -333,6 +351,12 @@ public sealed class LegalActionResolver : ILegalActionResolver
         if (definition.Value.ActionType != command.ActionType && command.ActionType != ActionType.ACTIVATE_ABILITY)
             return Illegal($"Action {actionId} is configured as {definition.Value.ActionType}, not {command.ActionType}");
         var effectiveCommand = command with { PowerId = actionId };
+        var tags = definition.Value.Tags
+            .Append("ability")
+            .Append(command.ActionType.ToString())
+            .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);
+        var phase = ValidatePhase(run, combat, effectiveCommand, tags);
+        if (phase.IsFailure) return Illegal(phase.Error);
         var executed = _abilityExecutor.Execute(new AbilityExecutionRequest
         {
             Run = run,
@@ -345,14 +369,19 @@ public sealed class LegalActionResolver : ILegalActionResolver
         });
         if (executed.IsFailure)
             return Illegal(executed.Error);
-        return Legal(CreateCandidate(run, effectiveCommand, executed.Value));
+        var candidate = ApplyPhase(run, combat, CreateCandidate(run, effectiveCommand, executed.Value), tags);
+        return candidate.IsFailure ? Result<LegalActionEvaluation>.Failure(candidate.Error) : Legal(candidate.Value);
     }
 
-    private static Result<LegalActionEvaluation> EvaluatePassive(
+    private Result<LegalActionEvaluation> EvaluatePassive(
         RunState run,
         CombatState combat,
         CombatActionCommand command)
     {
+        var tags = new[] { "system", command.ActionType.ToString() }
+            .ToImmutableHashSet(StringComparer.OrdinalIgnoreCase);
+        var phase = ValidatePhase(run, combat, command, tags);
+        if (phase.IsFailure) return Illegal(phase.Error);
         var executed = CombatFlowTransitions.AppendPassiveCommand(combat, command);
         if (executed.IsFailure)
             return Illegal(executed.Error);
@@ -362,7 +391,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             before = CanonicalJson.ComputeHash(combat),
             after = CanonicalJson.ComputeHash(executed.Value)
         });
-        return Legal(new LegalActionCandidate
+        var candidate = new LegalActionCandidate
         {
             CandidateId = fingerprint,
             Source = LegalActionSource.System,
@@ -370,7 +399,11 @@ public sealed class LegalActionResolver : ILegalActionResolver
             SuccessorCombat = executed.Value,
             SuccessorRun = run,
             ResolutionFingerprint = fingerprint
-        });
+        };
+        var transitioned = ApplyPhase(run, combat, candidate, tags);
+        return transitioned.IsFailure
+            ? Result<LegalActionEvaluation>.Failure(transitioned.Error)
+            : Legal(transitioned.Value);
     }
 
     private IEnumerable<CombatActionCommand> EnumerateCommands(
@@ -470,7 +503,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             ? revisioned.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
             : _actions.GetDefinition(actionId);
 
-    private static Result ValidateFlow(
+    private static Result ValidateActivation(
         CombatState combat,
         CombatActionCommand command,
         CombatCommandOrigin origin)
@@ -490,12 +523,70 @@ public sealed class LegalActionResolver : ILegalActionResolver
         if (origin == CombatCommandOrigin.AutomaticController &&
             (activation.WaitingForInput || combat.ControllerOf(actor) != ControllerKind.AI))
             return Result.Failure("Automatic command requires the active AI controller");
-        var phase = combat.PhaseState?.PhaseSequence.Find(combat.PhaseState.CurrentPhaseId);
-        if (phase == null)
-            return Result.Failure("Combat phase has not been initialized");
-        return phase.AllowedActions.Contains(command.ActionType)
-            ? Result.Success()
-            : Result.Failure($"Action '{command.ActionType}' is not allowed in phase '{phase.PhaseId}'");
+        return Result.Success();
+    }
+
+    private Result ValidatePhase(
+        RunState run,
+        CombatState combat,
+        CombatActionCommand command,
+        IReadOnlySet<string> tags)
+    {
+        var sequence = ResolveSequence(run);
+        return sequence.IsFailure
+            ? Result.Failure(sequence.Error)
+            : _phases.ValidateCommand(combat, sequence.Value, command, tags);
+    }
+
+    private Result<LegalActionCandidate> ApplyPhase(
+        RunState run,
+        CombatState originalCombat,
+        LegalActionCandidate candidate,
+        IReadOnlySet<string> tags)
+    {
+        var sequence = ResolveSequence(run);
+        if (sequence.IsFailure) return Result<LegalActionCandidate>.Failure(sequence.Error);
+        var transitioned = _phases.HandleCommand(
+            candidate.SuccessorRun,
+            candidate.SuccessorCombat,
+            sequence.Value,
+            candidate.Command,
+            tags);
+        if (transitioned.IsFailure) return Result<LegalActionCandidate>.Failure(transitioned.Error);
+        var steps = candidate.Steps.Concat(transitioned.Value.Steps)
+            .Select((step, index) => step with { Index = index }).ToImmutableArray();
+        var calculations = candidate.Calculations.Concat(transitioned.Value.Calculations).ToImmutableArray();
+        var applications = candidate.Applications.Concat(transitioned.Value.Applications).ToImmutableArray();
+        var fingerprint = CanonicalJson.ComputeHash(new
+        {
+            command = candidate.Command,
+            before = CanonicalJson.ComputeHash(originalCombat),
+            action = candidate.ResolutionFingerprint,
+            phase = transitioned.Value.Fingerprint,
+            after = CanonicalJson.ComputeHash(transitioned.Value.Combat)
+        });
+        return Result<LegalActionCandidate>.Success(candidate with
+        {
+            Steps = steps,
+            Calculations = calculations,
+            Applications = applications,
+            PhaseTransitions = transitioned.Value.Transitions,
+            SuccessorCombat = transitioned.Value.Combat,
+            SuccessorRun = transitioned.Value.Run,
+            ResolutionFingerprint = fingerprint,
+            CandidateId = fingerprint
+        });
+    }
+
+    private Result<PhaseSequenceDefinition> ResolveSequence(RunState run)
+    {
+        var sequenceId = run.ResolvedMode?.CombatRules.DefaultPhaseSequenceId;
+        if (string.IsNullOrWhiteSpace(sequenceId))
+            return Result<PhaseSequenceDefinition>.Failure("Combat rules have no phase sequence id");
+        var runtime = _runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        return runtime.IsFailure
+            ? Result<PhaseSequenceDefinition>.Failure(runtime.Error)
+            : runtime.Value.GetDefinition<PhaseSequenceDefinition>("phase-sequences", sequenceId);
     }
 
     private static string CommandType(CombatActionCommand command) => command.ActionType switch

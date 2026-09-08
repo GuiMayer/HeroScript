@@ -3,12 +3,15 @@
     "sequenceId": "hearthstone-style",
     "name": "Hearthstone Style",
     "description": "Draw, action and end phases.",
-    "version": "2.0.0",
-    "allowPhaseSkipping": false,
+    "version": "3.0.0",
+    "entryPhaseId": "draw",
+    "maxAutomaticTransitions": 16,
     "phases": [
-      { "phaseId": "draw", "role": "Start", "order": 10, "name": "Draw", "allowedActions": [], "validNextPhaseIds": ["main"], "autoTransition": true, "allowPriority": false },
-      { "phaseId": "main", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "PASS", "END_TURN"], "validNextPhaseIds": ["end"], "autoTransition": false, "allowPriority": false },
-      { "phaseId": "end", "role": "End", "order": 30, "name": "End", "allowedActions": [], "validNextPhaseIds": ["draw"], "autoTransition": true, "allowPriority": false }
+      { "phaseId": "draw", "role": "Start", "order": 10, "name": "Draw", "allowedActions": [], "allowPriority": false,
+        "edges": [{ "edgeId": "draw-to-main", "targetPhaseId": "main", "trigger": "Automatic", "priority": 0 }] },
+      { "phaseId": "main", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "ACTIVATE_ABILITY", "PASS", "END_TURN"], "allowPriority": false,
+        "edges": [{ "edgeId": "main-to-end", "targetPhaseId": "end", "trigger": "ActivationExit", "priority": 0 }] },
+      { "phaseId": "end", "role": "End", "order": 30, "name": "End", "allowedActions": [], "allowPriority": false, "edges": [] }
     ]
   }
 }

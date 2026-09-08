@@ -14,13 +14,13 @@ public sealed record PhaseSequenceDefinition
     public string Name { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public string Version { get; init; } = "1.0.0";
+    public string EntryPhaseId { get; init; } = string.Empty;
+    public int MaxAutomaticTransitions { get; init; } = 32;
     public IReadOnlyList<PhaseDefinition> Phases
     {
         get => _phases;
         init => _phases = value?.ToImmutableArray() ?? [];
     }
-    public bool AllowPhaseSkipping { get; init; }
-
     public PhaseDefinition? Find(string phaseId) =>
         _phases.FirstOrDefault(phase =>
             string.Equals(phase.PhaseId, phaseId, StringComparison.Ordinal));

@@ -184,22 +184,6 @@ public sealed class CombatRunCoordinatorTests
 
     private static CombatState WithActivation(CombatState combat, string actorId, bool waiting)
     {
-        var sequence = new PhaseSequenceDefinition
-        {
-            SequenceId = "test",
-            Phases =
-            [
-                new PhaseDefinition { PhaseId = "start", Role = PhaseRole.Start, Order = 10 },
-                new PhaseDefinition
-                {
-                    PhaseId = "action",
-                    Role = PhaseRole.Middle,
-                    Order = 20,
-                    AllowedActions = [ActionType.BASIC_ATTACK, ActionType.POWER, ActionType.PASS, ActionType.END_TURN]
-                },
-                new PhaseDefinition { PhaseId = "end", Role = PhaseRole.End, Order = 30 }
-            ]
-        };
         return combat with
         {
             ActivationState = new ActivationState
@@ -210,8 +194,9 @@ public sealed class CombatRunCoordinatorTests
             },
             PhaseState = new PhaseState
             {
-                CurrentPhaseId = "action",
-                PhaseSequence = sequence
+                SequenceId = "test",
+                ContentRevision = combat.Determinism.ContentRevision,
+                Cursor = "action"
             }
         };
     }

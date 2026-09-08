@@ -58,13 +58,9 @@ public static class CombatFlowTransitions
             return Result.Failure("Combat is resolving automatic actions");
         if (!string.Equals(activation.ActiveActorId, command.ActorId, StringComparison.Ordinal))
             return Result.Failure($"Actor '{command.ActorId}' is not the active actor");
-        var phase = combat.PhaseState?.PhaseSequence.Find(combat.PhaseState.CurrentPhaseId);
-        if (phase == null)
+        if (combat.PhaseState == null)
             return Result.Failure("Combat phase has not been initialized");
-        return phase.AllowedActions.Contains(command.ActionType)
-            ? Result.Success()
-            : Result.Failure(
-                $"Action '{command.ActionType}' is not allowed in phase '{phase.PhaseId}'");
+        return Result.Success();
     }
 
     public static Result ValidateActionBudget(

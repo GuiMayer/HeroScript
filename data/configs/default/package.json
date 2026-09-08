@@ -38,8 +38,6 @@
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/modifiers/script_modifiers.json", "kind": "modifiers", "artifactPath": "modifiers/script_modifiers.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/phase-sequences/classic-style.json", "kind": "phase-sequences", "artifactPath": "phase-sequences/classic-style.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/phase-sequences/hearthstone-style.json", "kind": "phase-sequences", "artifactPath": "phase-sequences/hearthstone-style.json" },
-    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/phase-sequences/magic-style.json", "kind": "phase-sequences", "artifactPath": "phase-sequences/magic-style.json" },
-    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/phase-sequences/yugioh-style.json", "kind": "phase-sequences", "artifactPath": "phase-sequences/yugioh-style.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/preparations/basic_preparation.json", "kind": "preparations", "artifactPath": "preparations/basic_preparation.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/relics/ember_core.json", "kind": "relics", "artifactPath": "relics/ember_core.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/replay-policies/sandbox_replay.json", "kind": "replay-policies", "artifactPath": "replay-policies/sandbox_replay.json" },

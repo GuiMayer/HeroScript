@@ -3,12 +3,15 @@
     "sequenceId": "classic-style",
     "name": "Classic Actor Activation",
     "description": "Minimum configurable START, MIDDLE and END activation flow.",
-    "version": "2.0.0",
-    "allowPhaseSkipping": false,
+    "version": "3.0.0",
+    "entryPhaseId": "activation_start",
+    "maxAutomaticTransitions": 16,
     "phases": [
-      { "phaseId": "activation_start", "role": "Start", "order": 10, "name": "Activation Start", "allowedActions": [], "validNextPhaseIds": ["action"], "autoTransition": true, "allowPriority": false },
-      { "phaseId": "action", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "PASS", "END_TURN"], "validNextPhaseIds": ["activation_end"], "autoTransition": false, "allowPriority": false },
-      { "phaseId": "activation_end", "role": "End", "order": 30, "name": "Activation End", "allowedActions": [], "validNextPhaseIds": ["activation_start"], "autoTransition": true, "allowPriority": false }
+      { "phaseId": "activation_start", "role": "Start", "order": 10, "name": "Activation Start", "allowedActions": [], "allowPriority": false,
+        "edges": [{ "edgeId": "start-to-action", "targetPhaseId": "action", "trigger": "Automatic", "priority": 0 }] },
+      { "phaseId": "action", "role": "Middle", "order": 20, "name": "Action", "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "ACTIVATE_ABILITY", "PASS", "END_TURN"], "allowPriority": false,
+        "edges": [{ "edgeId": "action-to-end", "targetPhaseId": "activation_end", "trigger": "ActivationExit", "priority": 0 }] },
+      { "phaseId": "activation_end", "role": "End", "order": 30, "name": "Activation End", "allowedActions": [], "allowPriority": false, "edges": [] }
     ]
   }
 }

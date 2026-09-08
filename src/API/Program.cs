@@ -381,6 +381,9 @@ builder.Services.AddSingleton<Core.Run.Branching.IRunSimulationService, Core.Run
 
 builder.Services.AddSingleton<ITurnOrderResolver>(sp => new TurnOrderResolver(
     sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
+builder.Services.AddSingleton<IPhaseGraphReducer>(sp => new PhaseGraphReducer(
+    sp.GetRequiredService<IRuntimeFormulaEvaluator>(),
+    sp.GetRequiredService<IEffectTriggerExecutor>()));
 
 builder.Services.AddSingleton<ICombatFactory>(sp => new CombatFactory(
     sp.GetRequiredService<IResourceManager>(),
@@ -394,7 +397,8 @@ builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IIntentResolver>(),
     sp.GetRequiredService<ICombatStatusLifecycle>(),
     sp.GetRequiredService<ICombatRelicLifecycle>(),
-    sp.GetRequiredService<ICombatResourceLifecycle>()));
+    sp.GetRequiredService<ICombatResourceLifecycle>(),
+    sp.GetRequiredService<IPhaseGraphReducer>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IRevisionedGameModeResolver>(),
     sp.GetRequiredService<EntityDefinitionLoader>(),

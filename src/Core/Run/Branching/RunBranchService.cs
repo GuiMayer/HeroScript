@@ -154,7 +154,7 @@ public sealed class RunBranchService : IRunBranchService
                 Kind = RunCommandTypes.CreateBranchFromHistory,
                 CombatId = activeCombat?.CombatId,
                 ActorId = activeCombat?.ActivationState?.ActiveActorId,
-                PhaseId = activeCombat?.PhaseState?.CurrentPhaseId,
+                PhaseId = activeCombat?.PhaseState?.Cursor,
                 Round = activeCombat?.ActivationState?.Round ?? activeCombat?.CurrentTurn,
                 Activation = activeCombat?.ActivationState?.ActivationNumber,
                 ResultHash = CanonicalJson.ComputeHash(created.Value),

@@ -1,6 +1,9 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Core.Combat.Models;
+using Core.Combat.TurnPhase;
 using Core.Content;
+using Core.Effects;
 using Xunit;
 
 namespace Core.Tests.Content;
@@ -408,6 +411,83 @@ public sealed class ContentGraphValidatorTests
             error.Contains("conditional turnOrder", StringComparison.Ordinal) &&
             error.Contains("Unknown formula, variable", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Validate_RejectsPhaseEffectsWithMissingReferences()
+    {
+        var sequence = PhaseSequence() with
+        {
+            Phases = PhaseSequence().Phases.Select(phase => phase.PhaseId == "start"
+                ? phase with
+                {
+                    EntryEffects = [new EffectDefinition
+                    {
+                        Type = EffectType.APPLY_STATUS,
+                        Target = EffectTarget.SELF,
+                        StatusId = "missing_status"
+                    }]
+                }
+                : phase).ToArray()
+        };
+        var bundle = Bundle(("phase-sequences", "phase-sequences/test.json",
+            new Dictionary<string, object> { ["test"] = sequence }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains(
+            "references missing status-effects/missing_status", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_RejectsPhaseConditionOutsideSharedFormulaVariables()
+    {
+        var sequence = PhaseSequence() with
+        {
+            Phases = PhaseSequence().Phases.Select(phase => phase.PhaseId == "start"
+                ? phase with
+                {
+                    Edges = [phase.Edges[0] with { Condition = "ambient_clock" }]
+                }
+                : phase).ToArray()
+        };
+        var bundle = Bundle(("phase-sequences", "phase-sequences/test.json",
+            new Dictionary<string, object> { ["test"] = sequence }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("Unknown formula, variable", StringComparison.Ordinal));
+    }
+
+    private static PhaseSequenceDefinition PhaseSequence() => new()
+    {
+        SequenceId = "test",
+        EntryPhaseId = "start",
+        Phases =
+        [
+            new PhaseDefinition
+            {
+                PhaseId = "start", Role = PhaseRole.Start, Order = 10,
+                Edges = [new()
+                {
+                    EdgeId = "start-main", TargetPhaseId = "main",
+                    Trigger = PhaseEdgeTrigger.Automatic
+                }]
+            },
+            new PhaseDefinition
+            {
+                PhaseId = "main", Role = PhaseRole.Middle, Order = 20,
+                AllowedActions = [ActionType.END_TURN],
+                Edges = [new()
+                {
+                    EdgeId = "main-end", TargetPhaseId = "end",
+                    Trigger = PhaseEdgeTrigger.ActivationExit
+                }]
+            },
+            new PhaseDefinition { PhaseId = "end", Role = PhaseRole.End, Order = 30 }
+        ]
+    };
 
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)

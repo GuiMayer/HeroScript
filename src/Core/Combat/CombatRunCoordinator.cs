@@ -306,6 +306,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             combatId,
             run,
             encounter.Combat,
+            candidate,
             candidate.Command with { DeferTurnLifecycle = true },
             candidate.Command.CardInstanceId?.ToString(),
             candidate.CardPlay?.Destination ?? CardConsumeDestination.None,
@@ -319,6 +320,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Guid combatId,
         RunState run,
         CombatState previousCombat,
+        LegalActionCandidate candidate,
         CombatActionCommand command,
         string? consumedCardId,
         CardConsumeDestination destination,
@@ -330,6 +332,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             combatId,
             run,
             previousCombat,
+            candidate,
             command,
             consumedCardId,
             destination,
@@ -342,6 +345,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Guid combatId,
         RunState run,
         CombatState previousCombat,
+        LegalActionCandidate candidate,
         CombatActionCommand command,
         string? consumedCardId,
         CardConsumeDestination destination,
@@ -371,7 +375,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure(budgetValidation.Error);
 
         var commandModifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
-        run = cardPlay?.Run ?? ability?.Run ?? run;
+        run = candidate.SuccessorRun;
         var rootDeck = Result<DeckTransition>.Success(
             new DeckTransition(run.Deck, run.Determinism, []));
         if (!string.IsNullOrWhiteSpace(consumedCardId) && destination != CardConsumeDestination.None)
@@ -391,11 +395,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
             DeferTurnLifecycle = true
         };
-        var executed = cardPlay != null
-            ? Result<CombatState>.Success(cardPlay.Combat)
-            : ability != null
-                ? Result<CombatState>.Success(ability.Combat)
-                : CombatFlowTransitions.AppendPassiveCommand(previousCombat, effectiveCommand);
+        var executed = Result<CombatState>.Success(candidate.SuccessorCombat);
         if (executed.IsFailure)
             return Result<CombatRunActionResult>.Failure(executed.Error);
 
@@ -433,7 +433,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 calculations = ability.Calculations,
                 applications = ability.Applications,
                 steps = ability.Steps
-            }
+            },
+            phaseTransitions = candidate.PhaseTransitions,
+            candidate.ResolutionFingerprint
         });
         var rootPayload = commandPayload.ValueKind == JsonValueKind.Undefined
             ? resolutionPayload
@@ -449,9 +451,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 Deck = rootDeck.Value.State,
                 RunDeterminism = rootDeck.Value.Context,
                 RunSnapshot = run,
-                EffectSteps = cardPlay?.Steps ?? ability?.Steps ?? [],
-                Calculations = cardPlay?.Calculations ?? ability?.Calculations ?? [],
-                Applications = cardPlay?.Applications ?? ability?.Applications ?? [],
+                EffectSteps = candidate.Steps,
+                Calculations = candidate.Calculations,
+                Applications = candidate.Applications,
                 Payload = resolutionPayload
             }
         };
@@ -716,13 +718,15 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             Deck = deck,
             RunDeterminism = determinism,
             RunSnapshot = run,
-            EffectSteps = ability?.Steps ?? [],
-            Calculations = ability?.Calculations ?? [],
-            Applications = ability?.Applications ?? [],
+            EffectSteps = candidate.Steps,
+            Calculations = candidate.Calculations,
+            Applications = candidate.Applications,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 command,
                 decisionRuleId,
+                phaseTransitions = candidate.PhaseTransitions,
+                candidate.ResolutionFingerprint,
                 abilityResolution = ability == null ? null : new
                 {
                     ability.Definition.ActionId,
@@ -764,7 +768,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         Payload = JsonSerializer.SerializeToElement(new
         {
             activeActorId = initialized.Combat.ActivationState?.ActiveActorId,
-            phaseId = initialized.Combat.PhaseState?.CurrentPhaseId,
+            phaseId = initialized.Combat.PhaseState?.Cursor,
+            phaseTransitions = initialized.PhaseTransitions,
             initializationFingerprint = initialized.Fingerprint
         })
     };

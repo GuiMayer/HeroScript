@@ -39,7 +39,7 @@ public sealed class CombatFlowPlannerTests
         var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
         var planner = new CombatFlowPlanner(runtimes.Object, TurnOrders(), actions.Object, Mock.Of<IIntentResolver>(),
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
-            new CombatResourceLifecycle(triggers));
+            new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers));
         var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
         var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
             { InitialHandSize = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
@@ -99,11 +99,11 @@ public sealed class CombatFlowPlannerTests
         var policies = Policies();
 
         var initialized = CombatFlowPlanner.Initialize(
-            run, combat, sequence, policies, TurnPolicy(), TurnOrders());
+            run, combat, sequence, policies, TurnPolicy(), TurnOrders(), Phases());
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
         Assert.Equal("hero", initialized.Value.ActivationState!.ActiveActorId);
         Assert.True(initialized.Value.ActivationState.WaitingForInput);
-        Assert.Equal("action", initialized.Value.PhaseState!.CurrentPhaseId);
+        Assert.Equal("action", initialized.Value.PhaseState!.Cursor);
         Assert.Equal(3, initialized.Value.GetActor("hero")!.GetResource("energy")!.Current);
         Assert.Equal(0, combat.GetActor("hero")!.GetResource("energy")!.Current);
 
@@ -116,9 +116,10 @@ public sealed class CombatFlowPlannerTests
             policies,
             ResolveAction,
             TurnPolicy(),
-            TurnOrders());
+            TurnOrders(),
+            Phases());
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
-        Assert.Equal(2, first.Value.Steps.Count);
+        Assert.Equal(3, first.Value.Steps.Count);
         Assert.Equal("enemy", first.Value.Combat.ActivationState!.ActiveActorId);
         Assert.False(first.Value.Combat.ActivationState.WaitingForInput);
         Assert.Equal(["retain"], first.Value.Deck.Hand);
@@ -133,7 +134,8 @@ public sealed class CombatFlowPlannerTests
             policies,
             ResolveAction,
             TurnPolicy(),
-            TurnOrders());
+            TurnOrders(),
+            Phases());
         Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
         Assert.Equal("hero", second.Value.Combat.ActivationState!.ActiveActorId);
         Assert.True(second.Value.Combat.ActivationState.WaitingForInput);
@@ -155,7 +157,7 @@ public sealed class CombatFlowPlannerTests
             [Entity("hero", true, 3), Entity("enemy", false, 3)],
             DeterministicContext.Create(8UL, "revision"));
         combat = CombatFlowPlanner.Initialize(
-            run, combat, Sequence(), Policies(), TurnPolicy(), TurnOrders()).Value;
+            run, combat, Sequence(), Policies(), TurnPolicy(), TurnOrders(), Phases()).Value;
         var deck = new DeckState { Hand = ["ethereal", "strike", "retain"] };
 
         var result = CombatFlowPlanner.AdvanceActivation(
@@ -167,7 +169,8 @@ public sealed class CombatFlowPlannerTests
             Policies(),
             ResolveAction,
             TurnPolicy(),
-            TurnOrders());
+            TurnOrders(),
+            Phases());
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(["retain"], result.Value.Deck.Hand);
@@ -190,6 +193,7 @@ public sealed class CombatFlowPlannerTests
     private static PhaseSequenceDefinition Sequence() => new()
     {
         SequenceId = "test",
+        EntryPhaseId = "start",
         Phases =
         [
             new PhaseDefinition
@@ -197,23 +201,28 @@ public sealed class CombatFlowPlannerTests
                 PhaseId = "start",
                 Role = PhaseRole.Start,
                 Order = 10,
-                ValidNextPhaseIds = ["action"],
-                AutoTransition = true
+                Edges = [new()
+                {
+                    EdgeId = "start-action", TargetPhaseId = "action",
+                    Trigger = PhaseEdgeTrigger.Automatic
+                }]
             },
             new PhaseDefinition
             {
                 PhaseId = "action",
                 Role = PhaseRole.Middle,
                 Order = 20,
-                ValidNextPhaseIds = ["end"]
+                Edges = [new()
+                {
+                    EdgeId = "action-end", TargetPhaseId = "end",
+                    Trigger = PhaseEdgeTrigger.ActivationExit
+                }]
             },
             new PhaseDefinition
             {
                 PhaseId = "end",
                 Role = PhaseRole.End,
-                Order = 30,
-                ValidNextPhaseIds = ["start"],
-                AutoTransition = true
+                Order = 30
             }
         ]
     };
@@ -249,6 +258,9 @@ public sealed class CombatFlowPlannerTests
 
     private static ITurnOrderResolver TurnOrders() =>
         new TurnOrderResolver(Mock.Of<IRuntimeFormulaEvaluator>());
+
+    private static IPhaseGraphReducer Phases() =>
+        new PhaseGraphReducer(Mock.Of<IRuntimeFormulaEvaluator>(), Mock.Of<IEffectTriggerExecutor>());
 
     private static CombatActorState Entity(string id, bool isHero, float energy)
     {
