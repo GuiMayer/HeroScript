@@ -74,7 +74,7 @@ public class EntityDefinitionLoaderTests
     }
     
     [Fact]
-    public void LoadDefinition_ShouldLoadAI()
+    public void LoadDefinition_ShouldKeepControllerPolicyOutOfEntityContent()
     {
         // Arrange
         var loader = CreateLoader();
@@ -84,10 +84,9 @@ public class EntityDefinitionLoaderTests
         
         // Assert
         Assert.True(result.IsSuccess);
-        var ai = Assert.IsType<AiBindingEntityComponentDefinition>(
-            result.Value!.Component<AiBindingEntityComponentDefinition>());
-        Assert.Equal("gambit", ai.PolicyId);
-        Assert.Equal(["enemy_basic_attack"], ai.GambitIds);
+        Assert.Null(result.Value!.Components.FirstOrDefault(component => component.ComponentId == "ai"));
+        Assert.Equal(["enemy_basic_attack"],
+            result.Value.Component<AbilityEntityComponentDefinition>()!.AbilityIds);
     }
     
     [Fact]
@@ -107,7 +106,8 @@ public class EntityDefinitionLoaderTests
         var stats = result.Value.Component<StatEntityComponentDefinition>();
         Assert.Equal(16, stats!.Values["strength"]);
         Assert.Equal(14, stats.Values["dexterity"]);
-        Assert.Equal("gambit", result.Value.Component<AiBindingEntityComponentDefinition>()!.PolicyId);
+        Assert.Equal(["enemy_basic_attack"],
+            result.Value.Component<AbilityEntityComponentDefinition>()!.AbilityIds);
     }
     
     [Fact]

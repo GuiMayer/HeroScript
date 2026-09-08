@@ -32,7 +32,7 @@ combate e são registradas na mesma run.
 
 - identidade do combate e da run;
 - contexto determinístico e turno atual;
-- herói e inimigos materializados;
+- roster genérico de atores, lados, relações e controller bindings;
 - recursos genéricos de cada participante;
 - status ativos;
 - board, fases, ativação e dados da estratégia de ordem de turno;
@@ -160,6 +160,7 @@ do combate. Serviços singleton não armazenam progresso de gameplay.
 | --- | --- |
 | Encontro atual da run | `GET /api/v1/runs/{runId}/encounters/current` |
 | Estado do combate | `GET /api/v1/combats/{combatId}` |
+| Ações legais e previews | `GET /api/v1/combats/{combatId}/legal-actions` |
 | Avaliar toda a mão | `GET /api/v1/combats/{combatId}/cards/evaluations` |
 | Inspecionar uma carta | `GET /api/v1/combats/{combatId}/cards/{cardInstanceId}/evaluation` |
 | Retomar fila visual | `GET /api/v1/combats/{combatId}/resolutions/{commandId}` |

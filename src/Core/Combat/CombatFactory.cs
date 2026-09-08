@@ -85,6 +85,12 @@ public sealed class CombatFactory : ICombatFactory
         if (participants.Any(item => item == null || string.IsNullOrWhiteSpace(item.InstanceId) ||
             string.IsNullOrWhiteSpace(item.DefinitionId) || string.IsNullOrWhiteSpace(item.SideId) || item.ControllerBinding == null))
             return Result.Failure("Every participant requires instanceId, definitionId, sideId and controllerBinding");
+        foreach (var participant in participants)
+        {
+            var binding = ControllerBindingValidator.Validate(participant.ControllerBinding);
+            if (binding.IsFailure)
+                return Result.Failure($"Combat participant '{participant.InstanceId}': {binding.Error}");
+        }
         return ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
     }
 
@@ -98,6 +104,12 @@ public sealed class CombatFactory : ICombatFactory
             return Result.Failure("Every combat actor requires immutable identity, content, side and controller binding");
         if (participants.Any(item => !string.Equals(item.ContentRevision, options.ContentRevision, StringComparison.Ordinal)))
             return Result.Failure("Every combat actor must use the combat content revision");
+        foreach (var participant in participants)
+        {
+            var binding = ControllerBindingValidator.Validate(participant.ControllerBinding);
+            if (binding.IsFailure)
+                return Result.Failure($"Combat participant '{participant.InstanceId}': {binding.Error}");
+        }
         return ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
     }
 

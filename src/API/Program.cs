@@ -15,6 +15,7 @@ using Core.Combat.Activation;
 using Core.Combat.Intents;
 using Core.Combat.Modifiers;
 using Core.Combat.Gambits;
+using Core.Combat.LegalActions;
 using Core.Combat.TurnPhase;
 using Core.Combat.TurnOrder;
 using Core.Resources;
@@ -209,20 +210,6 @@ builder.Services.AddSingleton<IPinnedContentCatalog<ScriptModifierDefinition>>(s
         "modifiers",
         (_, definition) => definition));
 
-// Register GambitEngine
-builder.Services.AddSingleton<IGambitEngine>(sp =>
-{
-    var configManager = sp.GetRequiredService<IConfigManager>();
-    var resourceLoader = sp.GetRequiredService<IResourceLoader>();
-    var persister = sp.GetRequiredService<IDefinitionPersister>();
-    return new GambitEngine(
-        configManager,
-        resourceLoader,
-        persister,
-        sp.GetRequiredService<IContentRuntimeResolver>(),
-        sp.GetRequiredService<IRuntimeFormulaEvaluator>());
-});
-builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 builder.Services.AddSingleton<ICombatStatusLifecycle>(sp => new CombatStatusLifecycle(
     sp.GetRequiredService<IEffectTriggerExecutor>()));
 builder.Services.AddSingleton<ICombatRelicLifecycle>(sp => new CombatRelicLifecycle(
@@ -472,6 +459,11 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
 builder.Services.AddSingleton<ICardPlayExecutor, CardPlayExecutor>();
 builder.Services.AddSingleton<ICardInspectionService, CardInspectionService>();
 builder.Services.AddSingleton<IAbilityExecutor, AbilityExecutor>();
+builder.Services.AddSingleton<ILegalActionResolver, LegalActionResolver>();
+builder.Services.AddSingleton<ILegalActionQueryService, LegalActionQueryService>();
+builder.Services.AddSingleton<IDecisionPolicy, GambitDecisionPolicy>();
+builder.Services.AddSingleton<IDecisionPolicyRegistry, DecisionPolicyRegistry>();
+builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
 builder.Services.AddSingleton<IGameplayRuntimeFactory, GameplayRuntimeFactory>();
 builder.Services.AddSingleton<GameplayRuntime>(sp =>
     sp.GetRequiredService<IGameplayRuntimeFactory>().Create(new GameplayRuntimeOptions(

@@ -32,6 +32,9 @@ public sealed class EntityMaterializer
             return Result<CombatActorState>.Failure("Combat participant sideId is required");
         if (!Enum.IsDefined(controllerBinding.Kind))
             return Result<CombatActorState>.Failure("Combat participant controller binding is invalid");
+        var controllerValidation = ControllerBindingValidator.Validate(controllerBinding);
+        if (controllerValidation.IsFailure)
+            return Result<CombatActorState>.Failure(controllerValidation.Error);
 
         var states = ImmutableDictionary.CreateBuilder<string, EntityComponentState>(StringComparer.Ordinal);
         foreach (var component in definition.Components.OrderBy(item => item.ComponentId, StringComparer.Ordinal))
@@ -79,12 +82,6 @@ public sealed class EntityMaterializer
             {
                 ComponentId = abilities.ComponentId,
                 AbilityIds = abilities.AbilityIds
-            }),
-            AiBindingEntityComponentDefinition ai => Result<EntityComponentState>.Success(new AiBindingEntityComponentState
-            {
-                ComponentId = ai.ComponentId,
-                PolicyId = ai.PolicyId,
-                GambitIds = ai.GambitIds
             }),
             _ => Result<EntityComponentState>.Failure($"Unknown entity component: {component.GetType().Name}")
         };

@@ -10,7 +10,6 @@ namespace Core.Combat.Models;
 [JsonDerivedType(typeof(StatEntityComponentState), "stats")]
 [JsonDerivedType(typeof(InventoryEntityComponentState), "inventory")]
 [JsonDerivedType(typeof(AbilityEntityComponentState), "abilities")]
-[JsonDerivedType(typeof(AiBindingEntityComponentState), "aiBinding")]
 public abstract record EntityComponentState
 {
     public string ComponentId { get; init; } = string.Empty;
@@ -51,17 +50,6 @@ public sealed record AbilityEntityComponentState : EntityComponentState
     {
         get => _abilityIds;
         init => _abilityIds = value?.ToImmutableArray() ?? [];
-    }
-}
-
-public sealed record AiBindingEntityComponentState : EntityComponentState
-{
-    private ImmutableArray<string> _gambitIds = [];
-    public string PolicyId { get; init; } = string.Empty;
-    public IReadOnlyList<string> GambitIds
-    {
-        get => _gambitIds;
-        init => _gambitIds = value?.ToImmutableArray() ?? [];
     }
 }
 

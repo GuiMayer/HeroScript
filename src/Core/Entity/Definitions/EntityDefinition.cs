@@ -41,7 +41,6 @@ public sealed record EntityDefinition
 [JsonDerivedType(typeof(StatEntityComponentDefinition), "stats")]
 [JsonDerivedType(typeof(InventoryEntityComponentDefinition), "inventory")]
 [JsonDerivedType(typeof(AbilityEntityComponentDefinition), "abilities")]
-[JsonDerivedType(typeof(AiBindingEntityComponentDefinition), "aiBinding")]
 public abstract record EntityComponentDefinition
 {
     public string ComponentId { get; init; } = string.Empty;
@@ -101,18 +100,5 @@ public sealed record AbilityEntityComponentDefinition : EntityComponentDefinitio
     {
         get => _abilityIds;
         init => _abilityIds = value?.ToImmutableArray() ?? [];
-    }
-}
-
-/// <summary>Optional AI data; participant configuration still chooses the controller.</summary>
-[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record AiBindingEntityComponentDefinition : EntityComponentDefinition
-{
-    private ImmutableArray<string> _gambitIds = [];
-    public string PolicyId { get; init; } = string.Empty;
-    public IReadOnlyList<string> GambitIds
-    {
-        get => _gambitIds;
-        init => _gambitIds = value?.ToImmutableArray() ?? [];
     }
 }

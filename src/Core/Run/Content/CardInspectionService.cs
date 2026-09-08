@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Calculations;
 using Core.Combat;
 using Core.Combat.Flow;
+using Core.Combat.LegalActions;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Combat.TurnPhase;
@@ -144,23 +145,20 @@ public sealed class CardInspectionService : ICardInspectionService
     private readonly IContentRuntimeResolver _runtimes;
     private readonly ICardContentCompiler _compiler;
     private readonly IEffectiveCardResolver _effectiveCards;
-    private readonly ICardPlayEvaluator _legality;
-    private readonly ICardPlayExecutor _executor;
+    private readonly ILegalActionResolver _legalActions;
 
     public CardInspectionService(
         IRunQueryService runs,
         IContentRuntimeResolver runtimes,
         ICardContentCompiler compiler,
         IEffectiveCardResolver effectiveCards,
-        ICardPlayEvaluator legality,
-        ICardPlayExecutor executor)
+        ILegalActionResolver legalActions)
     {
         _runs = runs ?? throw new ArgumentNullException(nameof(runs));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
         _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
         _effectiveCards = effectiveCards ?? throw new ArgumentNullException(nameof(effectiveCards));
-        _legality = legality ?? throw new ArgumentNullException(nameof(legality));
-        _executor = executor ?? throw new ArgumentNullException(nameof(executor));
+        _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
     }
 
     public Result<CardInspectionResult> Inspect(CardInspectionRequest request)
@@ -232,71 +230,34 @@ public sealed class CardInspectionService : ICardInspectionService
         var effective = _effectiveCards.Resolve(compiled.Value, instance);
         if (effective.IsFailure)
             return Result<CardInspectionResult>.Failure(effective.Error);
-        var evaluation = _legality.Evaluate(effective.Value, combat, new CardPlayRequest
+        var command = new CombatActionCommand
         {
+            RunId = run.RunId,
             ActorId = actorId,
-            SelectedTargetIds = request.SelectedTargetIds,
-            CostOptionId = request.CostOptionId,
-            ContentRevision = run.Determinism.ContentRevision
-        });
-        if (evaluation.IsFailure)
-            return Result<CardInspectionResult>.Failure(evaluation.Error);
-
-        var resolvedEvaluation = evaluation.Value;
-        if (run.ResolvedMode != null)
+            ActionType = ActionType.PLAY_CARD,
+            CardInstanceId = request.CardInstanceId,
+            TargetIds = request.SelectedTargetIds,
+            CostOptionId = request.CostOptionId
+        };
+        var legal = _legalActions.Evaluate(run, combat, command, CombatCommandOrigin.PlayerInput);
+        if (legal.IsFailure)
+            return Result<CardInspectionResult>.Failure(legal.Error);
+        var resolvedEvaluation = legal.Value.CardEvaluation ?? new CardPlayEvaluation
         {
-            var command = new CombatActionCommand
+            CardInstanceId = request.CardInstanceId,
+            ActorId = actorId,
+            IsLegal = false,
+            FailureReasons = legal.Value.FailureReasons
+        };
+        if (!legal.Value.IsLegal && resolvedEvaluation.IsLegal)
+            resolvedEvaluation = resolvedEvaluation with
             {
-                RunId = run.RunId,
-                ActorId = actorId,
-                ActionType = ActionType.PLAY_CARD,
-                CardInstanceId = request.CardInstanceId,
-                TargetIds = request.SelectedTargetIds,
-                CostOptionId = request.CostOptionId
+                IsLegal = false,
+                FailureReasons = legal.Value.FailureReasons
             };
-            var flowFailures = new[]
-            {
-                CombatFlowTransitions.ValidateCommandInput(combat, command),
-                CombatFlowTransitions.ValidateActionBudget(
-                    run,
-                    combat,
-                    command,
-                    run.ResolvedMode.CombatRules.Flow.ActionBudget,
-                    GameplayCommandTypes.PlayCard)
-            }
-                .Where(result => result.IsFailure)
-                .Select(result => result.Error)
-                .ToArray();
-            if (flowFailures.Length > 0)
-            {
-                resolvedEvaluation = resolvedEvaluation with
-                {
-                    IsLegal = false,
-                    FailureReasons = resolvedEvaluation.FailureReasons
-                        .Concat(flowFailures)
-                        .Distinct(StringComparer.Ordinal)
-                        .ToArray()
-                };
-            }
-        }
 
         var isInHand = run.Deck.HandInstanceIds.Contains(request.CardInstanceId);
-        CardPlayExecutionResult? preview = null;
-        if (isInHand && resolvedEvaluation.IsLegal)
-        {
-            var executed = _executor.Execute(new CardPlayExecutionRequest
-            {
-                Run = run,
-                Combat = combat,
-                CardInstanceId = request.CardInstanceId,
-                ActorId = actorId,
-                SelectedTargetIds = request.SelectedTargetIds,
-                CostOptionId = request.CostOptionId
-            });
-            if (executed.IsFailure)
-                return Result<CardInspectionResult>.Failure(executed.Error);
-            preview = executed.Value;
-        }
+        var preview = legal.Value.Candidate?.CardPlay;
 
         var context = detail == InspectionDetailLevel.Full
             ? BuildContext(run, combat, actor, resolvedEvaluation)

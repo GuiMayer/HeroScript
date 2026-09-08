@@ -26,20 +26,27 @@ public sealed record CombatFlowPoliciesDefinition
 
 public sealed record AiTurnPolicyDefinition
 {
-    private ImmutableArray<string> _gambitIds = [];
+    private ImmutableArray<string> _decisionIds = [];
 
     public bool Enabled { get; init; }
     public bool AutoEndAfterAction { get; init; } = true;
     public bool PublishIntents { get; init; } = true;
-    public IReadOnlyList<string> GambitIds
+    public IntentPolicyDefinition Intent { get; init; } = new();
+    public IReadOnlyList<string> DecisionIds
     {
-        get => _gambitIds;
-        init => _gambitIds = value?
+        get => _decisionIds;
+        init => _decisionIds = value?
             .Where(item => !string.IsNullOrWhiteSpace(item))
             .Select(item => item.Trim())
             .Distinct(StringComparer.Ordinal)
             .ToImmutableArray() ?? [];
     }
+}
+
+public sealed record IntentPolicyDefinition
+{
+    public IntentRefreshStrategy Refresh { get; init; }
+    public InvalidIntentStrategy WhenInvalid { get; init; }
 }
 
 public sealed record AutomaticResolutionPolicyDefinition
@@ -211,6 +218,12 @@ public enum CombatJournalGranularity { Unspecified, Full }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ReactionStrategy { Unspecified, Disabled, Immediate, Stack }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum IntentRefreshStrategy { Unspecified, RecomputeOnPublish, LockUntilActorActivation }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum InvalidIntentStrategy { Unspecified, Fail, Recompute, Hide }
+
 public static class CombatFlowPolicyValidator
 {
     public static Result Validate(CombatFlowPoliciesDefinition policies)
@@ -241,6 +254,11 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Action budget consumingCommands cannot be empty");
         if (!policies.Ai.Enabled)
             return Result.Failure("ToNextPlayerInput automatic resolution requires AI processing to be enabled");
+        if (policies.Ai.DecisionIds.Count == 0)
+            return Result.Failure("AI decisionIds cannot be empty");
+        if (policies.Ai.Intent.Refresh == IntentRefreshStrategy.Unspecified ||
+            policies.Ai.Intent.WhenInvalid == InvalidIntentStrategy.Unspecified)
+            return Result.Failure("AI intent refresh and invalidation policies are required");
         if (policies.DeckCycle.DrawPerActivation < 0 ||
             policies.DeckCycle.HandLimit < 1 ||
             policies.DeckCycle.InitialHandSize < 0 ||

@@ -22,7 +22,11 @@
         "enabled": true,
         "autoEndAfterAction": true,
         "publishIntents": true,
-        "gambitIds": ["enemy_basic_attack"]
+        "decisionIds": ["enemy_basic_attack", "enemy_end_turn"],
+        "intent": {
+          "refresh": "RecomputeOnPublish",
+          "whenInvalid": "Recompute"
+        }
       },
       "deckCycle": {
         "drawPerActivation": 5,

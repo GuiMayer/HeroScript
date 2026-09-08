@@ -802,9 +802,10 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         }
 
         var resolved = _intents.ResolveEnemyIntents(
+            run,
             combat,
-            run.RunId,
-            policies.Ai.GambitIds.Count == 0 ? null : policies.Ai.GambitIds);
+            policies.Ai.DecisionIds,
+            policies.Ai.Intent);
         return resolved.IsFailure
             ? Result<CombatState>.Failure(resolved.Error)
             : Result<CombatState>.Success(combat with

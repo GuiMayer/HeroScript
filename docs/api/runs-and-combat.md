@@ -80,6 +80,8 @@ Uma referência ou override desconhecido rejeita o comando inteiro.
 Dentro do encontro, use:
 
 - `GET /api/v1/combats/{combatId}` para o read model;
+- `GET /api/v1/combats/{combatId}/legal-actions` para todos os comandos legais
+  do ator ativo, já acompanhados do preview canônico;
 - `GET /cards/evaluations` para projetar toda a mão sem N+1;
 - `GET /cards/{cardInstanceId}/evaluation` para custos, alvos, upgrades,
   cálculos e fontes contextuais de uma carta;
@@ -94,8 +96,8 @@ na run. `EXECUTE_ACTION` fica reservado às habilidades configuradas do ator.
 ### Inspeção de cartas
 
 A avaliação individual e a avaliação em lote usam os mesmos compiladores,
-resolvedores de upgrade, verificação de legalidade e executor puro empregados
-por `PLAY_CARD`. `isPlayable` considera condição, custo, alvo, ator ativo, fase
+resolvedores de upgrade e o mesmo `LegalActionResolver` empregado pelo gateway,
+pelas políticas de IA e por `PLAY_CARD`. `isPlayable` considera condição, custo, alvo, ator ativo, fase
 e orçamento de ações. Quando os alvos selecionados tornam a jogada legal, a
 resposta também inclui `previewSteps`, `calculations` e `previewApplications`
 produzidos pela mesma transação pura de `PLAY_CARD`, sem alterar a run.
@@ -105,6 +107,26 @@ traces de buckets; `Full`, usado pelo sandbox, acrescenta ator, candidatos a
 alvo, status, relíquias, modificadores e políticas que podem influenciar a
 carta. `Disabled` bloqueia a projeção. A Godot deve tratar essa resposta como o
 único read model de regras de carta e limitar-se a apresentação e input.
+
+### Ações legais, IA e intents
+
+O endpoint `/legal-actions` devolve candidatos em ordem determinística. Cada
+candidato contém o comando que pode ser reenviado ao gateway, applications,
+cálculos, steps e `resolutionFingerprint` produzidos pelo executor canônico.
+Habilidades que não pertencem ao componente `abilities` do ator nunca aparecem
+e também são rejeitadas se enviadas manualmente.
+
+Uma política de IA recebe exatamente essa coleção e apenas filtra/ordena seus
+itens. Gambits são definições fixadas pela revisão da run; não possuem cache,
+CRUD, loader ou fallback próprios. Predicados usam o runtime comum de fórmulas,
+e seletores de alvo têm desempate ordinal explícito. A ação escolhida é avaliada
+novamente pela mesma fronteira antes de integrar o commit automático.
+
+Os intents no snapshot contêm `previewApplications`, `previewCalculations`,
+`previewFingerprint`, `decisionFingerprint` e `previewUncertain`. O game mode
+escolhe se eles são recalculados na publicação ou ficam travados até a ativação
+do ator, além do comportamento `Fail`, `Recompute` ou `Hide` se um intent travado
+deixar de ser legal.
 
 ### Resolução e trace
 

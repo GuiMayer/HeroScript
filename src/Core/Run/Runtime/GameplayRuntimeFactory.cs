@@ -2,6 +2,7 @@ using Core.Abstractions.Persistence;
 using Core.Combat;
 using Core.Combat.Flow;
 using Core.Combat.Gambits;
+using Core.Combat.LegalActions;
 using Core.Combat.Modifiers;
 using Core.Config;
 using Core.Content;
@@ -57,10 +58,9 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
     private readonly IContentRuntimeResolver _contentRuntimes;
     private readonly IResourceManager _resources;
     private readonly ICombatFactory _combatFactory;
-    private readonly ICardPlayExecutor _cardPlay;
     private readonly ICombatFlowPlanner _flow;
-    private readonly IGambitEngine _gambits;
-    private readonly IAbilityExecutor _abilities;
+    private readonly IDecisionPolicyRegistry _decisions;
+    private readonly ILegalActionResolver _legalActions;
     private readonly IEffectTriggerExecutor _effectTriggers;
     private readonly IGameEventContextAccessor _eventContext;
     private readonly IGameplayCommandCodec _codec;
@@ -81,10 +81,9 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         IContentRuntimeResolver contentRuntimes,
         IResourceManager resources,
         ICombatFactory combatFactory,
-        ICardPlayExecutor cardPlay,
         ICombatFlowPlanner flow,
-        IGambitEngine gambits,
-        IAbilityExecutor abilities,
+        IDecisionPolicyRegistry decisions,
+        ILegalActionResolver legalActions,
         IEffectTriggerExecutor effectTriggers,
         IGameEventContextAccessor eventContext,
         IGameplayCommandCodec codec)
@@ -103,10 +102,9 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
         _resources = resources ?? throw new ArgumentNullException(nameof(resources));
         _combatFactory = combatFactory ?? throw new ArgumentNullException(nameof(combatFactory));
-        _cardPlay = cardPlay ?? throw new ArgumentNullException(nameof(cardPlay));
         _flow = flow ?? throw new ArgumentNullException(nameof(flow));
-        _gambits = gambits ?? throw new ArgumentNullException(nameof(gambits));
-        _abilities = abilities ?? throw new ArgumentNullException(nameof(abilities));
+        _decisions = decisions ?? throw new ArgumentNullException(nameof(decisions));
+        _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
         _effectTriggers = effectTriggers ?? throw new ArgumentNullException(nameof(effectTriggers));
         _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
         _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -185,11 +183,10 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         var combats = new CombatRunCoordinator(
             _combatFactory,
             runs,
-            _cardPlay,
             _flow,
-            _gambits,
-            options.OperationalTelemetry,
-            _abilities);
+            _decisions,
+            _legalActions,
+            options.OperationalTelemetry);
         var gateway = new GameplayCommandGateway(runCommands, runs, combats, _eventContext, _codec);
         return new GameplayRuntime(runs, runCommands, combats, gateway, _registeredCommandTypes);
     }

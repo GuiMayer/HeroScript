@@ -124,6 +124,25 @@
         }
       }
     },
+    "/api/v1/combats/{combatId}/legal-actions": {
+      "get": {
+        "tags": ["Combats"],
+        "operationId": "getLegalCombatActions",
+        "x-heroscript-stability": "experimental",
+        "parameters": [
+          { "$ref": "#/components/parameters/CombatId" },
+          { "name": "actorId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministically ordered legal commands with canonical resolution previews",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LegalActionSet" } } }
+          },
+          "400": { "$ref": "#/components/responses/Problem" },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/api/v1/combats/{combatId}/resolutions/{commandId}": {
       "get": {
         "tags": ["Combats"],
@@ -572,6 +591,35 @@
           "run": { "type": "object", "additionalProperties": true },
           "combat": { "type": "object", "nullable": true, "additionalProperties": true },
           "resolution": { "$ref": "#/components/schemas/CombatResolutionRecord" }
+        }
+      },
+      "LegalActionSet": {
+        "type": "object",
+        "required": ["actorId", "candidates", "determinism", "stateFingerprint"],
+        "properties": {
+          "actorId": { "type": "string" },
+          "stateFingerprint": { "type": "string" },
+          "determinism": { "type": "object", "additionalProperties": true },
+          "candidates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LegalActionCandidate" }
+          }
+        }
+      },
+      "LegalActionCandidate": {
+        "type": "object",
+        "required": ["candidateId", "source", "command", "applications", "calculations", "steps", "resolutionFingerprint", "outcomeUncertain"],
+        "properties": {
+          "candidateId": { "type": "string" },
+          "source": { "type": "string", "enum": ["System", "Ability", "Card"] },
+          "command": { "type": "object", "additionalProperties": true },
+          "actionId": { "type": "string", "nullable": true },
+          "cardDefinitionId": { "type": "string", "nullable": true },
+          "applications": { "type": "array", "items": { "$ref": "#/components/schemas/EffectApplicationRecord" } },
+          "calculations": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationTrace" } },
+          "steps": { "type": "array", "items": { "$ref": "#/components/schemas/EffectExecutionStep" } },
+          "resolutionFingerprint": { "type": "string" },
+          "outcomeUncertain": { "type": "boolean" }
         }
       },
       "CombatResolutionRecord": {

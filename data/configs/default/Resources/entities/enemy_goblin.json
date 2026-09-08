@@ -25,12 +25,6 @@
         "type": "abilities",
         "componentId": "abilities",
         "abilityIds": ["enemy_basic_attack"]
-      },
-      {
-        "type": "aiBinding",
-        "componentId": "ai",
-        "policyId": "gambit",
-        "gambitIds": ["enemy_basic_attack"]
       }
     ],
     "iconPath": "icons/goblin.png",

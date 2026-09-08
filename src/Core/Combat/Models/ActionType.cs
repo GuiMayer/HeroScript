@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace Core.Combat.Models;
 
 /// <summary>
 /// Tipos de ação disponíveis em combate.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ActionType
 {
     /// <summary>

@@ -245,7 +245,16 @@ public sealed class GameModeResolverTests
                 ResourceId = "energy",
                 ConsumingCommands = ["EXECUTE_ACTION"]
             },
-            Ai = new() { Enabled = true },
+            Ai = new()
+            {
+                Enabled = true,
+                DecisionIds = ["decision"],
+                Intent = new()
+                {
+                    Refresh = IntentRefreshStrategy.RecomputeOnPublish,
+                    WhenInvalid = InvalidIntentStrategy.Recompute
+                }
+            },
             DeckCycle = new()
             {
                 HandLimit = 10,

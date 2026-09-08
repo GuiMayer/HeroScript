@@ -4,6 +4,7 @@ using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
+using Core.Combat.LegalActions;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
@@ -61,26 +62,40 @@ public sealed class CardInspectionServiceTests
         var effectiveCards = new Mock<IEffectiveCardResolver>();
         effectiveCards.Setup(service => service.Resolve(compiled, It.IsAny<CardInstanceState>()))
             .Returns(Result<EffectiveCardDefinition>.Success(effective));
-        var legality = new Mock<ICardPlayEvaluator>();
-        legality.Setup(service => service.Evaluate(effective, It.IsAny<CombatState>(), It.IsAny<CardPlayRequest>()))
-            .Returns(Result<CardPlayEvaluation>.Success(evaluation));
-        var executor = new Mock<ICardPlayExecutor>();
-        executor.Setup(service => service.Execute(It.IsAny<CardPlayExecutionRequest>()))
-            .Returns(Result<CardPlayExecutionResult>.Success(new CardPlayExecutionResult
+        var legal = new Mock<ILegalActionResolver>();
+        legal.Setup(service => service.Evaluate(
+                run, It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput))
+            .Returns(Result<LegalActionEvaluation>.Success(new LegalActionEvaluation
             {
-                Combat = run.GetEncounter(CombatId)!.Combat,
-                Card = effective,
-                Evaluation = evaluation,
-                Destination = CardConsumeDestination.Discard,
-                ResolutionFingerprint = "exact-preview"
+                CardEvaluation = evaluation,
+                Candidate = new LegalActionCandidate
+                {
+                    CandidateId = "candidate",
+                    Command = new CombatActionCommand
+                    {
+                        RunId = run.RunId, ActorId = "hero", ActionType = ActionType.PLAY_CARD,
+                        CardInstanceId = CardId, TargetIds = ["enemy"]
+                    },
+                    CardDefinitionId = "strike",
+                    SuccessorRun = run,
+                    SuccessorCombat = run.GetEncounter(CombatId)!.Combat,
+                    ResolutionFingerprint = "exact-preview",
+                    CardPlay = new CardPlayExecutionResult
+                    {
+                        Combat = run.GetEncounter(CombatId)!.Combat,
+                        Card = effective,
+                        Evaluation = evaluation,
+                        Destination = CardConsumeDestination.Discard,
+                        ResolutionFingerprint = "exact-preview"
+                    }
+                }
             }));
         var service = new CardInspectionService(
             runs.Object,
             runtimes.Object,
             compiler.Object,
             effectiveCards.Object,
-            legality.Object,
-            executor.Object);
+            legal.Object);
 
         var first = service.Inspect(new CardInspectionRequest
         {
@@ -111,7 +126,9 @@ public sealed class CardInspectionServiceTests
         Assert.Single(first.Value.ContextSources.Modifiers);
         Assert.Single(first.Value.ContextSources.Statuses["hero"]);
         Assert.Equal("enemy", Assert.Single(first.Value.ContextSources.CandidateTargets).InstanceId);
-        executor.Verify(service => service.Execute(It.IsAny<CardPlayExecutionRequest>()), Times.Exactly(2));
+        legal.Verify(service => service.Evaluate(
+            run, It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput),
+            Times.Exactly(2));
     }
 
     [Fact]
@@ -127,8 +144,7 @@ public sealed class CardInspectionServiceTests
             runtimes.Object,
             Mock.Of<ICardContentCompiler>(),
             Mock.Of<IEffectiveCardResolver>(),
-            Mock.Of<ICardPlayEvaluator>(),
-            Mock.Of<ICardPlayExecutor>());
+            Mock.Of<ILegalActionResolver>());
 
         var result = service.Inspect(new CardInspectionRequest
         {

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Combat.Flow;
+using Core.Combat.Gambits;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Calculations;
@@ -62,6 +63,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateCardComponentBundles(runtime, errors);
         ValidateCards(runtime, errors);
         ValidateActions(runtime, errors);
+        ValidateGambits(runtime, errors);
         ValidateStatusEffects(runtime, errors);
         ValidateRelics(runtime, errors);
         ValidateEnemyPools(runtime, errors);
@@ -269,6 +271,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                         combat.Flow.ActionBudget.ResourceId,
                         "resources");
                 }
+                foreach (var decisionId in combat.Flow.Ai.DecisionIds)
+                    Require(runtime, errors, "combat-rules", id, decisionId, "gambits");
             }
             catch (Exception exception)
             {
@@ -358,6 +362,55 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         }
     }
 
+    private static void ValidateGambits(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
+    {
+        foreach (var (id, _) in runtime.GetDefinitions("gambits"))
+        {
+            var parsed = runtime.GetDefinition<GambitDefinition>("gambits", id);
+            if (parsed.IsFailure)
+            {
+                errors.Add($"gambits/{id}: {parsed.Error}");
+                continue;
+            }
+            var gambit = parsed.Value;
+            if (gambit.Predicates.Count == 0)
+                errors.Add($"gambits/{id} requires at least one predicate");
+            if (!gambit.Action.ActionType.HasValue)
+                errors.Add($"gambits/{id} requires action.actionType");
+            if (gambit.Action.TargetSelector.Strategy is
+                    DecisionTargetSelection.LowestResource or DecisionTargetSelection.HighestResource &&
+                string.IsNullOrWhiteSpace(gambit.Action.TargetSelector.ResourceId))
+                errors.Add($"gambits/{id} resource target selector requires resourceId");
+            if (!string.IsNullOrWhiteSpace(gambit.Action.TargetSelector.ResourceId))
+                Require(runtime, errors, "gambits", id, gambit.Action.TargetSelector.ResourceId, "resources");
+            if (!string.IsNullOrWhiteSpace(gambit.Action.ActionId))
+                Require(runtime, errors, "gambits", id, gambit.Action.ActionId, "actions");
+            if (!string.IsNullOrWhiteSpace(gambit.Action.CardDefinitionId))
+                Require(runtime, errors, "gambits", id, gambit.Action.CardDefinitionId, "cards");
+            foreach (var predicate in gambit.Predicates)
+            {
+                if ((predicate.Minimum.HasValue && !float.IsFinite(predicate.Minimum.Value)) ||
+                    (predicate.Maximum.HasValue && !float.IsFinite(predicate.Maximum.Value)) ||
+                    (predicate.Minimum.HasValue && predicate.Maximum.HasValue &&
+                     predicate.Minimum.Value > predicate.Maximum.Value))
+                {
+                    errors.Add($"gambits/{id} has invalid predicate bounds");
+                    continue;
+                }
+                var syntax = Core.Math.RuntimeFormulaEvaluator.ValidateSyntax(
+                    predicate.Expression,
+                    variable => variable.Equals("turn", StringComparison.OrdinalIgnoreCase) ||
+                                variable.StartsWith("actor_resource_", StringComparison.OrdinalIgnoreCase) ||
+                                variable.StartsWith("target_resource_", StringComparison.OrdinalIgnoreCase) ||
+                                variable.StartsWith("actor_stat_", StringComparison.OrdinalIgnoreCase) ||
+                                variable.StartsWith("target_stat_", StringComparison.OrdinalIgnoreCase),
+                    formula => runtime.GetDefinitions("formulas").ContainsKey(formula));
+                if (syntax.IsFailure)
+                    errors.Add($"gambits/{id} predicate '{predicate.Expression}': {syntax.Error}");
+            }
+        }
+    }
+
     private static void ValidateResources(
         ContentRuntime runtime,
         ImmutableArray<string>.Builder errors)
@@ -416,8 +469,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 }
                 foreach (var actionId in entity.Component<AbilityEntityComponentDefinition>()?.AbilityIds ?? [])
                     Require(runtime, errors, "entities", id, actionId, "actions");
-                foreach (var gambitId in entity.Component<AiBindingEntityComponentDefinition>()?.GambitIds ?? [])
-                    Require(runtime, errors, "entities", id, gambitId, "gambits");
             }
             catch (Exception exception)
             {

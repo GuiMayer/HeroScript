@@ -115,7 +115,9 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Entity.IComponent",
             "Core.Entity.ComponentBase",
             "Core.Entity.Definitions.EntityFactory",
-            "Core.Entity.Integration.EntityCombatAdapter"
+            "Core.Entity.Integration.EntityCombatAdapter",
+            "Core.Combat.Gambits.GambitEngine",
+            "Core.Combat.Gambits.IGambitEngine"
         };
         var present = removedTypes
             .Where(name => coreAssembly.GetType(name) != null)
@@ -128,7 +130,8 @@ public sealed class CrossCuttingArchitectureTests
 
     [Theory]
     [InlineData(typeof(MathEngine))]
-    [InlineData(typeof(GambitEngine))]
+    [InlineData(typeof(GambitDecisionReducer))]
+    [InlineData(typeof(Core.Combat.LegalActions.LegalActionResolver))]
     public void PureEvaluationServices_DoNotPublishEvents(Type serviceType)
     {
         var eventBusType = typeof(Core.Events.IOperationalEventBus);
@@ -147,6 +150,58 @@ public sealed class CrossCuttingArchitectureTests
         Assert.True(
             eventFields.Length == 0 && eventParameters.Length == 0,
             $"{serviceType.Name} can publish events during evaluation");
+    }
+
+    [Fact]
+    public void PlayerPreviewIntentAndCoordinatorShareOneLegalActionBoundary()
+    {
+        var boundary = typeof(Core.Combat.LegalActions.ILegalActionResolver);
+        var consumers = new[]
+        {
+            typeof(Core.Run.Content.CardInspectionService),
+            typeof(Core.Combat.Intents.IntentResolver),
+            typeof(Core.Combat.CombatRunCoordinator)
+        };
+
+        Assert.All(consumers, consumer => Assert.Contains(
+            consumer.GetFields(BindingFlags.Instance | BindingFlags.NonPublic),
+            field => boundary.IsAssignableFrom(field.FieldType)));
+    }
+
+    [Fact]
+    public void DecisionPoliciesDoNotOwnMutableAuthoringOrRuntimeCaches()
+    {
+        var forbidden = new[]
+        {
+            typeof(Core.Config.IConfigManager),
+            typeof(Core.Config.IResourceLoader),
+            typeof(Core.Resources.IDefinitionPersister),
+            typeof(Core.Caching.ICacheService)
+        };
+        var services = new[]
+        {
+            typeof(GambitDecisionPolicy),
+            typeof(GambitDecisionReducer),
+            typeof(Core.Combat.Intents.IntentResolver)
+        };
+
+        Assert.All(services, service => Assert.DoesNotContain(
+            service.GetFields(BindingFlags.Instance | BindingFlags.NonPublic),
+            field => forbidden.Any(type => type.IsAssignableFrom(field.FieldType))));
+    }
+
+    [Fact]
+    public void CombatCoordinatorCannotBypassCanonicalActionExecutors()
+    {
+        var fields = typeof(Core.Combat.CombatRunCoordinator)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
+
+        Assert.DoesNotContain(fields,
+            field => typeof(Core.Run.Content.IAbilityExecutor).IsAssignableFrom(field.FieldType));
+        Assert.DoesNotContain(fields,
+            field => typeof(Core.Run.Content.ICardPlayExecutor).IsAssignableFrom(field.FieldType));
+        Assert.Contains(fields,
+            field => typeof(Core.Combat.LegalActions.ILegalActionResolver).IsAssignableFrom(field.FieldType));
     }
 
     [Fact]
@@ -249,7 +304,6 @@ public sealed class CrossCuttingArchitectureTests
 
     [Theory]
     [InlineData(typeof(ActionManager), "_definitions")]
-    [InlineData(typeof(GambitEngine), "_definitions")]
     [InlineData(typeof(ResourceManager), "_definitions")]
     public void ReloadableSingletonCatalogs_PublishImmutableSnapshots(
         Type serviceType,

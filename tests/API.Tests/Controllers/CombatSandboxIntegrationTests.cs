@@ -250,9 +250,18 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             .ToArray();
         Assert.Single(intents);
         Assert.Equal("goblin_a", intents[0].GetProperty("actorId").GetString());
-        Assert.Equal("hero", intents[0].GetProperty("targetId").GetString());
+        Assert.Equal("hero", intents[0].GetProperty("targetIds")[0].GetString());
         Assert.Equal("Attack", intents[0].GetProperty("telegraphType").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(intents[0].GetProperty("previewFingerprint").GetString()));
         var originalEnemyHealth = Health(snapshot, "goblin_a");
+
+        using var legalResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/legal-actions?actorId=hero");
+        var legal = await legalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, legalResponse.StatusCode);
+        Assert.Equal("hero", legal.GetProperty("actorId").GetString());
+        Assert.Contains(legal.GetProperty("candidates").EnumerateArray(), candidate =>
+            candidate.GetProperty("command").GetProperty("actionType").GetString() == "PLAY_CARD");
 
         var basicAttack = snapshot.GetProperty("hand").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");

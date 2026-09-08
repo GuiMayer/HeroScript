@@ -1,19 +1,16 @@
-using Core.Combat.Models;
+using Core.Combat.LegalActions;
+using Core.Determinism;
 
 namespace Core.Combat.Gambits;
 
-public sealed record GambitDecision
+public sealed record DecisionPolicyResult
 {
-    public EntityAction Action { get; init; } = new();
-    public string? GambitId { get; init; }
+    public LegalActionCandidate Candidate { get; init; } = null!;
+    public string PolicyId { get; init; } = string.Empty;
+    public string RuleId { get; init; } = string.Empty;
     public int Priority { get; init; }
     public GambitIntentDefinition Intent { get; init; } = new();
-}
-
-public sealed record EntityAction
-{
-    public ActionType ActionType { get; init; }
-    public string? PowerId { get; init; }
-    public string? TargetId { get; init; }
-    public int? CostOptionId { get; init; }
+    public DeterministicContext Determinism { get; init; } = null!;
+    public string StateFingerprint { get; init; } = string.Empty;
+    public string DecisionFingerprint { get; init; } = string.Empty;
 }

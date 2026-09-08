@@ -52,12 +52,6 @@ internal static class CombatParticipantTestFixture
                             {
                                 ComponentId = "abilities",
                                 AbilityIds = ["basic_attack"]
-                            },
-                            new AiBindingEntityComponentDefinition
-                            {
-                                ComponentId = "ai",
-                                PolicyId = "gambit",
-                                GambitIds = ["enemy_basic_attack"]
                             }
                         ]
                 };

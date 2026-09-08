@@ -1,9 +1,15 @@
 using Core.Combat;
+using Core.Combat.Activation;
+using Core.Combat.Flow;
 using Core.Combat.Gambits;
 using Core.Combat.Intents;
+using Core.Combat.LegalActions;
 using Core.Combat.Models;
+using Core.Common;
+using Core.Determinism;
 using Core.Effects;
 using Core.Resources;
+using Core.Run;
 using Moq;
 using Xunit;
 
@@ -11,172 +17,191 @@ namespace Core.Tests.Combat.Intents;
 
 public sealed class IntentResolverTests
 {
-    private readonly Mock<IGambitEngine> _gambitEngine = new();
-    private readonly Mock<IActionManager> _actionManager = new();
+    private readonly Mock<IDecisionPolicyRegistry> _decisions = new();
+    private readonly Mock<IActionManager> _actions = new();
+    private readonly Mock<ILegalActionResolver> _legal = new();
 
     [Fact]
-    public void ResolveIntent_UsesGambitDecisionAndActionDefinition()
+    public void ResolveIntent_UsesCanonicalPreviewInsteadOfParallelDamageEstimate()
     {
-        var state = CreateState();
-        _gambitEngine
-            .Setup(engine => engine.DecideActionWithMetadata(
-                It.IsAny<CombatActorState>(),
-                state,
-                It.IsAny<IEnumerable<string>>()))
-            .Returns(Core.Common.Result<GambitDecision>.Success(new GambitDecision
+        var (run, combat) = State();
+        var candidate = Candidate(run, combat);
+        _decisions.Setup(service => service.Decide(
+                It.IsAny<ControllerBinding>(), It.IsAny<DecisionPolicyRequest>()))
+            .Returns(Result<DecisionPolicyResult>.Success(new DecisionPolicyResult
             {
-                GambitId = "enemy_attack",
+                Candidate = candidate,
+                PolicyId = "gambit",
+                RuleId = "enemy_attack",
                 Priority = 50,
-                Action = new EntityAction
-                {
-                    ActionType = ActionType.POWER,
-                    PowerId = "slash",
-                    TargetId = "hero"
-                },
                 Intent = new GambitIntentDefinition
                 {
                     DisplayName = "Enemy raises blade",
                     TelegraphType = "Attack",
-                    Tags = new List<string> { "intent" }
-                }
+                    Tags = ["intent"]
+                },
+                Determinism = run.Determinism,
+                StateFingerprint = "state",
+                DecisionFingerprint = "decision"
             }));
-        _actionManager
-            .Setup(manager => manager.GetDefinition("slash"))
-            .Returns(Core.Common.Result<ActionDefinition>.Success(new ActionDefinition
+        _actions.Setup(manager => manager.GetDefinition("slash"))
+            .Returns(Result<ActionDefinition>.Success(new ActionDefinition
             {
-                ActionId = "slash",
-                DisplayName = "Slash",
-                Description = "Deal damage.",
-                ActionType = ActionType.POWER,
-                Tags = new List<string> { "physical" },
-                Effects = new List<EffectDefinition>
-                {
-                    new() { Type = EffectType.DAMAGE, FlatValue = 8, Repeat = 2 }
-                }
+                ActionId = "slash", DisplayName = "Slash", Description = "Deal damage.",
+                ActionType = ActionType.POWER, Tags = ["physical"]
             }));
 
-        var resolver = new IntentResolver(_gambitEngine.Object, _actionManager.Object);
-
-        var result = resolver.ResolveIntent(state, "enemy-1");
+        var result = Resolver().ResolveIntent(run, combat, "enemy-1", ["enemy_attack"]);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal("enemy-1", result.Value.ActorId);
-        Assert.Equal(ActionType.POWER, result.Value.ActionType);
-        Assert.Equal("slash", result.Value.PowerId);
-        Assert.Equal("hero", result.Value.TargetId);
-        Assert.Equal("Enemy raises blade", result.Value.DisplayName);
-        Assert.Equal("Attack", result.Value.TelegraphType);
-        Assert.Equal(16, result.Value.EstimatedDamage);
-        Assert.Equal("enemy_attack", result.Value.SourceGambitId);
+        Assert.Equal("slash", result.Value.ActionId);
+        Assert.Equal(["hero"], result.Value.TargetIds);
+        Assert.Equal("preview", result.Value.PreviewFingerprint);
+        Assert.Single(result.Value.PreviewApplications);
+        Assert.Equal(84, result.Value.PreviewApplications[0].CurrentValue);
+        Assert.Equal("decision", result.Value.DecisionFingerprint);
+        Assert.Equal("enemy_attack", result.Value.RuleId);
         Assert.Contains("intent", result.Value.Tags);
         Assert.Contains("physical", result.Value.Tags);
     }
 
     [Fact]
-    public void ResolveEnemyIntents_ReturnsAliveEnemyIntentsOnly()
+    public void ResolveEnemyIntents_LockKeepsStillLegalIntentUntilActorActs()
     {
-        var state = CreateState(includeDeadEnemy: true);
-        _gambitEngine
-            .Setup(engine => engine.DecideActionWithMetadata(It.IsAny<CombatActorState>(), state, It.IsAny<IEnumerable<string>>()))
-            .Returns(Core.Common.Result<GambitDecision>.Success(new GambitDecision
+        var (run, initial) = State();
+        var locked = new CombatIntent
+        {
+            ActorId = "enemy-1", ActionType = ActionType.POWER, ActionId = "slash",
+            TargetIds = ["hero"], ActorActionCount = 0, RuleId = "enemy_attack"
+        };
+        var combat = initial with
+        {
+            ActivationState = initial.ActivationState! with { Intents = [locked] }
+        };
+        _legal.Setup(service => service.Evaluate(
+                run, combat, It.IsAny<CombatActionCommand>(), CombatCommandOrigin.AutomaticController))
+            .Returns(Result<LegalActionEvaluation>.Success(new LegalActionEvaluation
             {
-                Action = new EntityAction { ActionType = ActionType.PASS }
+                Candidate = Candidate(run, combat)
             }));
 
-        var resolver = new IntentResolver(_gambitEngine.Object, _actionManager.Object);
-
-        var result = resolver.ResolveEnemyIntents(state);
+        var result = Resolver().ResolveEnemyIntents(run, combat, ["enemy_attack"], new IntentPolicyDefinition
+        {
+            Refresh = IntentRefreshStrategy.LockUntilActorActivation,
+            WhenInvalid = InvalidIntentStrategy.Recompute
+        });
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Single(result.Value);
-        Assert.Equal("enemy-1", result.Value[0].ActorId);
+        Assert.Same(locked, result.Value.Single());
+        _decisions.Verify(service => service.Decide(
+            It.IsAny<ControllerBinding>(), It.IsAny<DecisionPolicyRequest>()), Times.Never);
     }
 
     [Fact]
-    public void ResolveIntent_LeavesEstimatedDamageEmptyForFormulaDamage()
+    public void ResolveEnemyIntents_InvalidLockedIntentRecomputesWhenConfigured()
     {
-        var state = CreateState();
-        _gambitEngine
-            .Setup(engine => engine.DecideActionWithMetadata(It.IsAny<CombatActorState>(), state, It.IsAny<IEnumerable<string>>()))
-            .Returns(Core.Common.Result<GambitDecision>.Success(new GambitDecision
+        var (run, initial) = State();
+        var locked = new CombatIntent
+        {
+            ActorId = "enemy-1", ActionType = ActionType.POWER, ActionId = "slash",
+            TargetIds = ["hero"], ActorActionCount = 0
+        };
+        var combat = initial with
+        {
+            ActivationState = initial.ActivationState! with { Intents = [locked] }
+        };
+        _legal.Setup(service => service.Evaluate(
+                run, combat, It.IsAny<CombatActionCommand>(), CombatCommandOrigin.AutomaticController))
+            .Returns(Result<LegalActionEvaluation>.Success(new LegalActionEvaluation
             {
-                Action = new EntityAction
-                {
-                    ActionType = ActionType.POWER,
-                    PowerId = "formula_attack",
-                    TargetId = "hero"
-                }
+                FailureReasons = ["stunned"]
             }));
-        _actionManager
-            .Setup(manager => manager.GetDefinition("formula_attack"))
-            .Returns(Core.Common.Result<ActionDefinition>.Success(new ActionDefinition
+        _decisions.Setup(service => service.Decide(
+                It.IsAny<ControllerBinding>(), It.IsAny<DecisionPolicyRequest>()))
+            .Returns(Result<DecisionPolicyResult>.Success(new DecisionPolicyResult
             {
-                ActionId = "formula_attack",
-                Effects = new List<EffectDefinition>
+                Candidate = Candidate(run, combat) with
                 {
-                    new() { Type = EffectType.DAMAGE, FormulaValue = "actor_power * 2" }
-                }
+                    Command = new CombatActionCommand
+                    {
+                        RunId = run.RunId, ActorId = "enemy-1", ActionType = ActionType.END_TURN
+                    },
+                    ActionId = null
+                },
+                PolicyId = "gambit", RuleId = "end", Determinism = run.Determinism,
+                StateFingerprint = "state", DecisionFingerprint = "recomputed"
             }));
 
-        var resolver = new IntentResolver(_gambitEngine.Object, _actionManager.Object);
-
-        var result = resolver.ResolveIntent(state, "enemy-1");
+        var result = Resolver().ResolveEnemyIntents(run, combat, ["enemy_attack", "end"],
+            new IntentPolicyDefinition
+            {
+                Refresh = IntentRefreshStrategy.LockUntilActorActivation,
+                WhenInvalid = InvalidIntentStrategy.Recompute
+            });
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Null(result.Value.EstimatedDamage);
+        Assert.Equal(ActionType.END_TURN, result.Value.Single().ActionType);
+        Assert.Equal("recomputed", result.Value.Single().DecisionFingerprint);
     }
 
-    private static CombatState CreateState(bool includeDeadEnemy = false)
-    {
-        var enemies = new List<CombatActorState> { CreateEntity("enemy-1", "Enemy", isHero: false, health: 40) };
-        if (includeDeadEnemy)
-            enemies.Add(CreateEntity("enemy-2", "Dead Enemy", isHero: false, health: 0));
+    private IntentResolver Resolver() => new(_decisions.Object, _actions.Object, _legal.Object);
 
-        var hero = CreateEntity("hero", "Hero", isHero: true, health: 100);
-        return new CombatState
-        {
-            Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal)
-        };
-    }
-
-    private static CombatActorState CreateEntity(string entityId, string name, bool isHero, float health)
+    private static LegalActionCandidate Candidate(RunState run, CombatState combat) => new()
     {
-        return new CombatActorState
+        CandidateId = "candidate", Source = LegalActionSource.Ability, ActionId = "slash",
+        Command = new CombatActionCommand
         {
-            InstanceId = entityId,
-            Name = name,
-            SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
-            ResourceState = new ResourceSet
+            RunId = run.RunId, ActorId = "enemy-1", ActionType = ActionType.POWER,
+            PowerId = "slash", TargetId = "hero", TargetIds = ["hero"]
+        },
+        Applications =
+        [
+            new EffectApplicationRecord
             {
-                OwnerId = entityId,
-                Resources = new Dictionary<string, ResourcePool>
+                EffectInstanceId = "damage", EffectType = EffectType.DAMAGE,
+                TargetEntityId = "hero", ResourceId = "health", PreviousValue = 100, CurrentValue = 84
+            }
+        ],
+        ResolutionFingerprint = "preview", SuccessorRun = run, SuccessorCombat = combat
+    };
+
+    private static (RunState Run, CombatState Combat) State()
+    {
+        var actors = new[] { Actor("enemy-1", false), Actor("hero", true) };
+        var combat = new CombatState
+        {
+            Actors = actors.ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
+            ActivationState = new ActivationState { ActiveActorId = "enemy-1", WaitingForInput = false }
+        };
+        var run = new RunState
+        {
+            RunId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
+            PlayerEntityId = "hero",
+            Determinism = DeterministicContext.Create(42, "revision")
+        };
+        return (run, combat);
+    }
+
+    private static CombatActorState Actor(string id, bool player) => new()
+    {
+        InstanceId = id, DefinitionId = id, ContentRevision = "revision", Name = id,
+        SideId = player ? "player" : "opposition",
+        ControllerBinding = new ControllerBinding
+        {
+            Kind = player ? ControllerKind.Player : ControllerKind.AI,
+            PolicyId = player ? null : "gambit"
+        },
+        ResourceState = new ResourceSet
+        {
+            OwnerId = id,
+            Resources = new Dictionary<string, ResourcePool>
+            {
+                ["health"] = new()
                 {
-                    ["health"] = new()
-                    {
-                        ResourceId = "health",
-                        Current = health,
-                        Maximum = 100,
-                        Minimum = 0,
-                        Definition = new ResourceDefinition
-                        {
-                            ResourceId = "health",
-                            Category = ResourceCategory.VITAL,
-                            DefaultMax = 100,
-                            DefaultMin = 0,
-                            ThresholdPolicies =
-                            [
-                                new ResourceThresholdPolicy
-                                {
-                                    PolicyId = "defeat_when_depleted",
-                                    Comparison = ResourceThresholdComparison.LessThanOrEqual,
-                                    ThresholdSource = ResourceThresholdSource.Minimum,
-                                    Consequence = ResourceThresholdConsequence.DefeatOwner
-                                }
-                            ]
-                        }
-                    }
+                    ResourceId = "health", Current = 100, Maximum = 100, Minimum = 0,
+                    Definition = new ResourceDefinition { ResourceId = "health" }
                 }
             }
-        };
-    }
+        }
+    };
 }

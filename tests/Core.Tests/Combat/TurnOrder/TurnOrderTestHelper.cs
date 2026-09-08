@@ -87,7 +87,7 @@ public static class TurnOrderTestHelper
                 DefinitionId = "test-opponent",
                 ContentRevision = new string('a', 64),
                 Name = $"Enemy-{id}",
-                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI, PolicyId = "gambit" },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = id,
@@ -149,7 +149,7 @@ public static class TurnOrderTestHelper
                 DefinitionId = "test-opponent",
                 ContentRevision = new string('a', 64),
                 Name = $"Enemy-{data.id}",
-                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI, PolicyId = "gambit" },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = data.id,
@@ -209,7 +209,7 @@ public static class TurnOrderTestHelper
                 DefinitionId = "test-opponent",
                 ContentRevision = new string('a', 64),
                 Name = $"Enemy-{data.id}",
-                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI, PolicyId = "gambit" },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = data.id,
@@ -273,7 +273,7 @@ public static class TurnOrderTestHelper
                 DefinitionId = "test-opponent",
                 ContentRevision = new string('a', 64),
                 Name = $"Enemy-{data.id}",
-                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI, PolicyId = "gambit" },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = data.id,

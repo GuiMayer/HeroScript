@@ -2,6 +2,7 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Flow;
 using Core.Combat.Gambits;
+using Core.Combat.LegalActions;
 using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
 using Core.Common;
@@ -18,14 +19,13 @@ public sealed class CombatRunCoordinatorTests
 {
     private readonly Mock<ICombatFactory> _combatFactory = new();
     private readonly Mock<IRunEncounterRuntime> _runManager = new();
-    private readonly Mock<ICardPlayExecutor> _cardPlayExecutor = new();
 
     [Fact]
     public void EndTurn_CanonicalFlowResolvesEnemyAndCommitsOneBatch()
     {
         var flowPlanner = new Mock<ICombatFlowPlanner>();
-        var gambits = new Mock<IGambitEngine>();
-        var abilities = new Mock<IAbilityExecutor>();
+        var decisions = new Mock<IDecisionPolicyRegistry>();
+        var legalActions = new Mock<ILegalActionResolver>();
         var committer = _runManager.As<IRunCombatResolutionCommitter>();
         var run = CreateRunState(Guid.NewGuid(), []) with
         {
@@ -55,23 +55,27 @@ public sealed class CombatRunCoordinatorTests
 
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
-        abilities.Setup(executor => executor.Execute(It.IsAny<AbilityExecutionRequest>()))
-            .Returns(Result<AbilityExecutionResult>.Success(new AbilityExecutionResult
+        legalActions.Setup(resolver => resolver.Evaluate(
+                It.IsAny<RunState>(), It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(),
+                It.IsAny<CombatCommandOrigin>()))
+            .Returns((RunState snapshot, CombatState state, CombatActionCommand submitted, CombatCommandOrigin _) =>
             {
-                Combat = attackedState,
-                Definition = new ActionDefinition
+                var successor = submitted.ActorId == "hero"
+                    ? rootState
+                    : submitted.ActionType == ActionType.END_TURN ? endedState : attackedState;
+                var candidate = new LegalActionCandidate
                 {
-                    ActionId = "basic_attack",
-                    ActionType = ActionType.BASIC_ATTACK
-                },
-                Evaluation = new CardPlayEvaluation
-                {
-                    IsLegal = true,
-                    ActorId = "enemy",
-                    ResolvedTargetIds = ["hero"]
-                },
-                ResolutionFingerprint = "ability-resolution"
-            }));
+                    CandidateId = submitted.ActionType.ToString(),
+                    Source = submitted.ActionType is ActionType.PASS or ActionType.END_TURN
+                        ? LegalActionSource.System : LegalActionSource.Ability,
+                    Command = submitted,
+                    ActionId = submitted.PowerId,
+                    SuccessorCombat = successor,
+                    SuccessorRun = snapshot,
+                    ResolutionFingerprint = "resolution"
+                };
+                return Result<LegalActionEvaluation>.Success(new LegalActionEvaluation { Candidate = candidate });
+            });
         flowPlanner.SetupSequence(planner => planner.AdvanceActivation(
                 It.Is<RunState>(snapshot => snapshot.RunId == run.RunId),
                 It.IsAny<CombatState>(),
@@ -79,18 +83,20 @@ public sealed class CombatRunCoordinatorTests
                 It.IsAny<DeterministicContext>()))
             .Returns(Result<CombatFlowAdvanceResult>.Success(Plan(enemyState, run.Deck)))
             .Returns(Result<CombatFlowAdvanceResult>.Success(Plan(playerState, run.Deck)));
-        gambits.Setup(engine => engine.DecideActionWithMetadata(
-                It.IsAny<CombatActorState>(),
-                enemyState,
-                It.IsAny<IEnumerable<string>>()))
-            .Returns(Result<GambitDecision>.Success(new GambitDecision
+        decisions.Setup(engine => engine.Decide(
+                It.IsAny<ControllerBinding>(), It.IsAny<DecisionPolicyRequest>()))
+            .Returns(Result<DecisionPolicyResult>.Success(new DecisionPolicyResult
             {
-                GambitId = "enemy_basic_attack",
-                Action = new EntityAction
+                RuleId = "enemy_basic_attack",
+                Candidate = new LegalActionCandidate
                 {
-                    ActionType = ActionType.BASIC_ATTACK,
-                    TargetId = "hero"
-                }
+                    Command = new CombatActionCommand
+                    {
+                        RunId = run.RunId, ActorId = "enemy", ActionType = ActionType.POWER,
+                        PowerId = "enemy_basic_attack", TargetId = "hero", TargetIds = ["hero"]
+                    }
+                },
+                Determinism = run.Determinism
             }));
         CombatResolutionCommit? captured = null;
         committer.Setup(service => service.CommitCombatResolution(It.IsAny<CombatResolutionCommit>()))
@@ -107,10 +113,9 @@ public sealed class CombatRunCoordinatorTests
         var coordinator = new CombatRunCoordinator(
             _combatFactory.Object,
             _runManager.Object,
-            _cardPlayExecutor.Object,
             flowPlanner.Object,
-            gambits.Object,
-            abilityExecutor: abilities.Object);
+            decisions.Object,
+            legalActions.Object);
         var result = coordinator.ExecuteAction(previous.CombatId, command, identity);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
@@ -165,7 +170,7 @@ public sealed class CombatRunCoordinatorTests
     }
 
     private CombatRunCoordinator CreateCoordinator() =>
-        new(_combatFactory.Object, _runManager.Object, _cardPlayExecutor.Object);
+        new(_combatFactory.Object, _runManager.Object);
 
     private static CombatState CreateCombatState(Guid runId, string nodeId, ulong seed) => new()
     {
@@ -249,7 +254,12 @@ public sealed class CombatRunCoordinatorTests
         {
             Enabled = true,
             AutoEndAfterAction = true,
-            GambitIds = ["enemy_basic_attack"]
+            DecisionIds = ["enemy_basic_attack"],
+            Intent = new()
+            {
+                Refresh = IntentRefreshStrategy.RecomputeOnPublish,
+                WhenInvalid = InvalidIntentStrategy.Recompute
+            }
         },
         Outcome = new()
         {
@@ -262,7 +272,11 @@ public sealed class CombatRunCoordinatorTests
     {
         InstanceId = id,
         Name = id,
-        SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
+        SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding
+        {
+            Kind = isHero ? ControllerKind.Player : ControllerKind.AI,
+            PolicyId = isHero ? null : "gambit"
+        },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

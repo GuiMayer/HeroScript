@@ -47,15 +47,10 @@ public static class EntityDefinitionValidator
                 case AbilityEntityComponentDefinition abilities when
                     HasInvalidOrDuplicateIds(abilities.AbilityIds):
                     return Result.Failure("Entity ability IDs must be non-empty and unique");
-                case AiBindingEntityComponentDefinition ai when string.IsNullOrWhiteSpace(ai.PolicyId):
-                    return Result.Failure("AI binding policyId is required");
-                case AiBindingEntityComponentDefinition ai when HasInvalidOrDuplicateIds(ai.GambitIds):
-                    return Result.Failure("AI binding gambit IDs must be non-empty and unique");
                 case not ResourceEntityComponentDefinition and
                     not StatEntityComponentDefinition and
                     not InventoryEntityComponentDefinition and
-                    not AbilityEntityComponentDefinition and
-                    not AiBindingEntityComponentDefinition:
+                    not AbilityEntityComponentDefinition:
                     return Result.Failure($"Unsupported entity component type: {component.GetType().Name}");
             }
         }

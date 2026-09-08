@@ -20,6 +20,39 @@ public sealed record ControllerBinding
     public string? PolicyId { get; init; }
 }
 
+/// <summary>Serializable authored binding; materialization creates runtime state from it.</summary>
+public sealed record ControllerBindingDefinition
+{
+    public ControllerKind Kind { get; init; } = ControllerKind.None;
+    public string? PolicyId { get; init; }
+
+    public ControllerBinding Materialize() => new() { Kind = Kind, PolicyId = PolicyId };
+}
+
+public static class ControllerBindingDefinitionValidator
+{
+    public static Result Validate(ControllerBindingDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        return ControllerBindingValidator.Validate(definition.Materialize());
+    }
+}
+
+public static class ControllerBindingValidator
+{
+    public static Result Validate(ControllerBinding binding)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        if (!Enum.IsDefined(binding.Kind))
+            return Result.Failure("Controller kind is invalid");
+        if (binding.Kind == ControllerKind.AI && string.IsNullOrWhiteSpace(binding.PolicyId))
+            return Result.Failure("AI controller requires policyId");
+        if (binding.Kind != ControllerKind.AI && !string.IsNullOrWhiteSpace(binding.PolicyId))
+            return Result.Failure("Only an AI controller can declare policyId");
+        return Result.Success();
+    }
+}
+
 /// <summary>Serializable identity; it never points at a mutable runtime object.</summary>
 public sealed record GameplayOwner
 {

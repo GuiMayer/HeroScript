@@ -1,34 +1,36 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Core.Combat.Models;
 
 namespace Core.Combat.Gambits;
 
-public record GambitDefinition
+/// <summary>A pinned rule that only filters and ranks already-legal candidates.</summary>
+public sealed record GambitDefinition
 {
-    private ImmutableArray<GambitCondition> _conditions = ImmutableArray<GambitCondition>.Empty;
-    private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+    private ImmutableArray<DecisionPredicateDefinition> _predicates = [];
+    private ImmutableArray<string> _tags = [];
 
     public string GambitId { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public int Priority { get; init; }
-    public IReadOnlyList<GambitCondition> Conditions
+    public IReadOnlyList<DecisionPredicateDefinition> Predicates
     {
-        get => _conditions;
-        init => _conditions = value?.ToImmutableArray() ?? ImmutableArray<GambitCondition>.Empty;
+        get => _predicates;
+        init => _predicates = value?.ToImmutableArray() ?? [];
     }
-    public GambitActionDefinition Action { get; init; } = new();
+    public GambitActionMatcher Action { get; init; } = new();
     public GambitIntentDefinition Intent { get; init; } = new();
     public IReadOnlyList<string> Tags
     {
         get => _tags;
-        init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+        init => _tags = value?.ToImmutableArray() ?? [];
     }
 }
 
-public record GambitIntentDefinition
+public sealed record GambitIntentDefinition
 {
-    private ImmutableArray<string> _tags = ImmutableArray<string>.Empty;
+    private ImmutableArray<string> _tags = [];
 
     public string? DisplayName { get; init; }
     public string? Description { get; init; }
@@ -36,33 +38,43 @@ public record GambitIntentDefinition
     public IReadOnlyList<string> Tags
     {
         get => _tags;
-        init => _tags = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+        init => _tags = value?.ToImmutableArray() ?? [];
     }
 }
 
-public record GambitCondition
+/// <summary>
+/// Formula-backed predicate over the generic decision variable map. Bounds are
+/// inclusive and the expression is handled by the shared math runtime.
+/// </summary>
+public sealed record DecisionPredicateDefinition
 {
-    public GambitConditionType Type { get; init; } = GambitConditionType.ALWAYS;
-    public string? Target { get; init; }
+    public string Expression { get; init; } = "1";
+    public float? Minimum { get; init; }
+    public float? Maximum { get; init; }
+}
+
+public sealed record GambitActionMatcher
+{
+    public ActionType? ActionType { get; init; }
+    public string? ActionId { get; init; }
+    public string? CardDefinitionId { get; init; }
+    public DecisionTargetSelectorDefinition TargetSelector { get; init; } = new();
+    public string? CostOptionId { get; init; }
+}
+
+public sealed record DecisionTargetSelectorDefinition
+{
+    public DecisionTargetSelection Strategy { get; init; } = DecisionTargetSelection.None;
+    public SideRelationship? Relationship { get; init; }
     public string? ResourceId { get; init; }
-    public float? LessThanOrEqual { get; init; }
-    public float? GreaterThanOrEqual { get; init; }
 }
 
-public record GambitActionDefinition
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum DecisionTargetSelection
 {
-    public ActionType ActionType { get; init; } = ActionType.PASS;
-    public string? PowerId { get; init; }
-    public string? Target { get; init; }
-    public int? CostOptionId { get; init; }
-}
-
-public enum GambitConditionType
-{
-    ALWAYS,
-    SELF_RESOURCE_PERCENT,
-    ACTOR_RESOURCE_PERCENT,
-    TARGET_RESOURCE_PERCENT,
-    ANY_OPPONENT_ALIVE,
-    TURN_GREATER_THAN_OR_EQUAL
+    None,
+    Self,
+    FirstOrdinal,
+    LowestResource,
+    HighestResource
 }

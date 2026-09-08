@@ -2,24 +2,43 @@
   "enemy_basic_attack": {
     "gambitId": "enemy_basic_attack",
     "displayName": "Enemy Basic Attack",
-    "description": "Default enemy attack against the hero.",
+    "description": "Use the configured attack against the first legal enemy.",
     "priority": 100,
-    "conditions": [
-      {
-        "type": "ANY_OPPONENT_ALIVE"
-      }
+    "predicates": [
+      { "expression": "1" }
     ],
     "action": {
       "actionType": "POWER",
-      "powerId": "enemy_basic_attack",
-      "target": "FIRST_ALIVE_OPPONENT"
+      "actionId": "enemy_basic_attack",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
     },
     "intent": {
       "displayName": "Preparing to strike",
-      "description": "This enemy intends to attack the hero.",
+      "description": "This actor intends to use its configured attack.",
       "telegraphType": "Attack",
       "tags": ["attack", "physical"]
     },
     "tags": ["enemy", "default", "attack"]
+  },
+  "enemy_end_turn": {
+    "gambitId": "enemy_end_turn",
+    "displayName": "Enemy End Turn",
+    "description": "Explicit terminal rule used when no configured ability is legal.",
+    "priority": 0,
+    "predicates": [
+      { "expression": "1" }
+    ],
+    "action": {
+      "actionType": "END_TURN",
+      "targetSelector": { "strategy": "None" }
+    },
+    "intent": {
+      "displayName": "Waiting",
+      "telegraphType": "EndTurn"
+    },
+    "tags": ["enemy", "terminal"]
   }
 }

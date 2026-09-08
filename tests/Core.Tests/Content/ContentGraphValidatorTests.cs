@@ -296,6 +296,55 @@ public sealed class ContentGraphValidatorTests
         Assert.Contains(result.Errors, error => error.Contains("unknown bucket", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Validate_RejectsGambitWithMissingActionReference()
+    {
+        var bundle = Bundle(
+            ("gambits", "gambits/rules.json", new Dictionary<string, object>
+            {
+                ["attack"] = new
+                {
+                    gambitId = "attack",
+                    predicates = new[] { new { expression = "1" } },
+                    action = new
+                    {
+                        actionType = "POWER",
+                        actionId = "missing",
+                        targetSelector = new { strategy = "FirstOrdinal", relationship = "Enemy" }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("gambits/attack references missing actions/missing", result.Errors);
+    }
+
+    [Fact]
+    public void Validate_RejectsGambitPredicateOutsideSharedFormulaVariables()
+    {
+        var bundle = Bundle(
+            ("gambits", "gambits/rules.json", new Dictionary<string, object>
+            {
+                ["wait"] = new
+                {
+                    gambitId = "wait",
+                    predicates = new[] { new { expression = "hardcoded_health" } },
+                    action = new
+                    {
+                        actionType = "END_TURN",
+                        targetSelector = new { strategy = "None" }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("Unknown formula, variable", StringComparison.Ordinal));
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

@@ -61,7 +61,7 @@ public sealed record ScenarioParticipantDefinition
     public string InstanceId { get; init; } = string.Empty;
     public string EntityDefinitionId { get; init; } = string.Empty;
     public string SideId { get; init; } = string.Empty;
-    public ControllerBinding ControllerBinding { get; init; } = new();
+    public ControllerBindingDefinition ControllerBinding { get; init; } = new();
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -263,9 +263,17 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 !Enum.IsDefined(participant.ControllerBinding.Kind))
                 return Result<CompiledCombatScenario>.Failure(
                     "Every scenario participant requires instanceId, entityDefinitionId, sideId and controllerBinding");
+            var controllerValidation = ControllerBindingDefinitionValidator.Validate(participant.ControllerBinding);
+            if (controllerValidation.IsFailure)
+                return Result<CompiledCombatScenario>.Failure(
+                    $"Scenario participant '{participant.InstanceId}': {controllerValidation.Error}");
             if (!participantIds.Add(participant.InstanceId))
                 return Result<CompiledCombatScenario>.Failure(
                     $"Scenario participant instanceId is duplicated: {participant.InstanceId}");
+            if (participant.ControllerBinding.Kind == ControllerKind.AI &&
+                string.IsNullOrWhiteSpace(participant.ControllerBinding.PolicyId))
+                return Result<CompiledCombatScenario>.Failure(
+                    $"AI participant requires controllerBinding.policyId: {participant.InstanceId}");
             if (participant.ControllerBinding.Kind == ControllerKind.AI &&
                 !allowedAiActors.Value.Contains(participant.EntityDefinitionId))
                 return Result<CompiledCombatScenario>.Failure(
@@ -511,7 +519,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         if (definition.IsFailure)
             return Result<CombatActorState>.Failure(definition.Error);
         return materializer.Materialize(definition.Value, participant.InstanceId, contentRevision,
-            participant.SideId, participant.ControllerBinding, configName);
+            participant.SideId, participant.ControllerBinding.Materialize(), configName);
     }
 
     private Result<T> GetContent<T>(

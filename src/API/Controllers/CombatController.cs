@@ -5,6 +5,7 @@ using Core.Combat.Models;
 using Core.Common;
 using API.Models.Combat;
 using Core.Determinism;
+using Core.Combat.LegalActions;
 
 namespace API.Controllers;
 
@@ -17,13 +18,25 @@ namespace API.Controllers;
 public class CombatController : BaseApiController
 {
     private readonly ICombatRunCoordinator _combatRunCoordinator;
+    private readonly ILegalActionQueryService _legalActions;
 
     public CombatController(
         ICombatRunCoordinator combatRunCoordinator,
+        ILegalActionQueryService legalActions,
         ILogger<CombatController> logger)
         : base(logger)
     {
         _combatRunCoordinator = combatRunCoordinator ?? throw new ArgumentNullException(nameof(combatRunCoordinator));
+        _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
+    }
+
+    [HttpGet("/api/v1/combats/{combatId:guid}/legal-actions")]
+    public IActionResult GetLegalActions(Guid combatId, [FromQuery] string? actorId = null)
+    {
+        var result = _legalActions.Get(combatId, actorId);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : ApiBadRequest(ApiErrorCodes.InvalidOperation, "Legal action query failed", result.Error);
     }
 
     [HttpGet("/api/v1/runs/{runId:guid}/encounters/current")]
