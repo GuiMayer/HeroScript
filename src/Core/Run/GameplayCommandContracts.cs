@@ -255,6 +255,7 @@ public static class GameplayCommandDescriptors
         Run<RunResourceCommand>(RunCommandTypes.ApplyRunResource),
         Run<CardIdsCommand>(RunCommandTypes.AddCardsToHand),
         Run<MoveCardsCommand>(RunCommandTypes.MoveCards),
+        Run<EmptyGameplayCommand>(RunCommandTypes.AbandonRun),
         new(RunCommandTypes.StartEncounter, typeof(StartEncounterCommand), GameplayCommandRoute.StartEncounter),
         new(GameplayCommandTypes.StartSandboxEncounter, typeof(StartSandboxEncounterCommand), GameplayCommandRoute.SandboxEncounter),
         new(RunCommandTypes.ResolveCombat, typeof(ResolveCombatCommand), GameplayCommandRoute.ResolveEncounter),

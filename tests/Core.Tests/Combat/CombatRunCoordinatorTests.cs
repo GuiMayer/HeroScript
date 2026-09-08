@@ -293,7 +293,11 @@ public sealed class CombatRunCoordinatorTests
     {
         var map = RunMapTransitions.Create(
         [
-            new RunMapNodeDefinition { NodeId = "combat", NodeType = "combat" }
+            new RunMapNodeDefinition
+            {
+                NodeId = "combat",
+                Activity = new RunActivityDefinition { Type = RunActivityType.Encounter }
+            }
         ]).Value;
         var context = DeterministicContext.Create(44, new string('c', 64));
         var combat = CreateCombatState(runId, "combat", context.DrawUInt64().Value);

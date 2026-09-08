@@ -28,7 +28,8 @@ public class GameEngineClientSimulator
         string configName = "default",
         string runDefinitionId = "default_run",
         string playerEntityId = "player",
-        ulong? seed = null)
+        ulong? seed = null,
+        string modeId = "standard")
     {
         var contentRevision = await GetCurrentContentRevisionAsync(configName);
         var response = await _client.PostAsJsonAsync("/api/v1/runs", new
@@ -38,7 +39,7 @@ public class GameEngineClientSimulator
             playerEntityId,
             seed,
             contentRevision,
-            modeId = "standard"
+            modeId
         });
 
         response.EnsureSuccessStatusCode();

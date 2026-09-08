@@ -13,6 +13,7 @@ public sealed record ProfileRunSummary
     public string? ChallengeId { get; init; }
     public string? CurrentNodeId { get; init; }
     public bool Completed { get; init; }
+    public Core.Run.RunLifecycleState Lifecycle { get; init; }
     public ulong Seed { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
     public string StateHash { get; init; } = string.Empty;
@@ -74,6 +75,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
                 ChallengeId = state.ChallengeId,
                 CurrentNodeId = state.CurrentNodeId,
                 Completed = IsCompleted(state),
+                Lifecycle = state.Lifecycle,
                 Seed = state.Determinism.Seed,
                 ContentRevision = state.Determinism.ContentRevision,
                 StateHash = CanonicalJson.ComputeHash(state)
@@ -107,22 +109,15 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
             Revision = CanonicalJson.ComputeHash(payload),
             TotalRuns = ordered.Length,
             CompletedRuns = completed,
-            ActiveRuns = ordered.Length - completed,
+            ActiveRuns = ordered.Count(run => run.Lifecycle == Core.Run.RunLifecycleState.Active),
             Unlocks = unlocks,
             Achievements = payload.Achievements,
             Runs = ordered
         };
     }
 
-    private static bool IsCompleted(Core.Run.RunState state)
-    {
-        if (state.ActiveEncounterId != null || state.CurrentNodeId == null)
-            return false;
-        var node = state.Map.Nodes.FirstOrDefault(item =>
-            string.Equals(item.NodeId, state.CurrentNodeId, StringComparison.Ordinal));
-        return node != null && node.NextNodeIds.Count == 0 &&
-               state.Map.ResolvedNodeIds.Contains(node.NodeId, StringComparer.Ordinal);
-    }
+    private static bool IsCompleted(Core.Run.RunState state) =>
+        state.Lifecycle == Core.Run.RunLifecycleState.Completed;
 
     private sealed record ProfileRevisionPayload(
         string PlayerId,

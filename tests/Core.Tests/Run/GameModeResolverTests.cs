@@ -21,7 +21,8 @@ public sealed class GameModeResolverTests
             ReplayPolicyId = "replay",
             TimelinePolicyId = "timeline",
             ContentBindingPolicyId = "binding",
-            CapabilityPolicyId = "capabilities"
+            CapabilityPolicyId = "capabilities",
+            ProgressionPolicyId = "progression"
         });
 
         var result = resolver.Resolve("sandbox", "test");
@@ -31,6 +32,26 @@ public sealed class GameModeResolverTests
         Assert.Equal("flow", result.Value.FlowRules.FlowRulesId);
         Assert.Equal("combat", result.Value.CombatRules.CombatRulesId);
         Assert.True(result.Value.CapabilityPolicy.AllowTimelineFork);
+    }
+
+    [Fact]
+    public void Resolve_RequiresExplicitProgressionPolicy()
+    {
+        var resolver = CreateResolver(new GameModeDefinition
+        {
+            ModeId = "missing-progression",
+            FlowRulesId = "flow",
+            CombatRulesId = "combat",
+            ReplayPolicyId = "replay",
+            TimelinePolicyId = "timeline",
+            ContentBindingPolicyId = "binding",
+            CapabilityPolicyId = "capabilities"
+        });
+
+        var result = resolver.Resolve("missing-progression", "test");
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("progression policy", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -45,7 +66,8 @@ public sealed class GameModeResolverTests
                 ReplayPolicyId = "replay",
                 TimelinePolicyId = "timeline",
                 ContentBindingPolicyId = "binding",
-                CapabilityPolicyId = "capabilities"
+                CapabilityPolicyId = "capabilities",
+                ProgressionPolicyId = "progression"
             },
             replay: new ReplayPolicyDefinition
             {
@@ -71,7 +93,8 @@ public sealed class GameModeResolverTests
                 ReplayPolicyId = "replay",
                 TimelinePolicyId = "timeline",
                 ContentBindingPolicyId = "binding",
-                CapabilityPolicyId = "capabilities"
+                CapabilityPolicyId = "capabilities",
+                ProgressionPolicyId = "progression"
             },
             binding: new ContentBindingPolicyDefinition
             {
@@ -106,7 +129,8 @@ public sealed class GameModeResolverTests
                 ReplayPolicyId = "replay",
                 TimelinePolicyId = "timeline",
                 ContentBindingPolicyId = "binding",
-                CapabilityPolicyId = "capabilities"
+                CapabilityPolicyId = "capabilities",
+                ProgressionPolicyId = "progression"
             },
             combat: combat,
             logger: logger.Object);
@@ -144,7 +168,8 @@ public sealed class GameModeResolverTests
                 ReplayPolicyId = "replay",
                 TimelinePolicyId = "timeline",
                 ContentBindingPolicyId = "binding",
-                CapabilityPolicyId = "capabilities"
+                CapabilityPolicyId = "capabilities",
+                ProgressionPolicyId = "progression"
             },
             combat: combat,
             logger: logger.Object);
@@ -188,6 +213,10 @@ public sealed class GameModeResolverTests
                 CapabilityPolicyId = "capabilities",
                 AllowTimelineFork = true,
                 AllowHotReloadActivation = true
+            }),
+            new Catalog<RunProgressionPolicyDefinition>(new RunProgressionPolicyDefinition
+            {
+                ProgressionPolicyId = "progression"
             }),
             logger: logger);
     }

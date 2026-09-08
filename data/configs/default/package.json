@@ -51,6 +51,7 @@
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/resources/mana.json", "kind": "resources", "artifactPath": "resources/mana.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/resources/power_points.json", "kind": "resources", "artifactPath": "resources/power_points.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/resources/shield.json", "kind": "resources", "artifactPath": "resources/shield.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/run-progression-policies/default.json", "kind": "run-progression-policies", "artifactPath": "run-progression-policies/default.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/runs/default_run.json", "kind": "runs", "artifactPath": "runs/default_run.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/shops/basic_shop.json", "kind": "shops", "artifactPath": "shops/basic_shop.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/status-effects/status_effects.json", "kind": "status-effects", "artifactPath": "status-effects/status_effects.json" },

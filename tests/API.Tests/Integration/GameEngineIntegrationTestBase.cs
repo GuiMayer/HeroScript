@@ -141,9 +141,13 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
 
     // ==================== WORKFLOW HELPERS ====================
 
-    protected async Task<(Guid runId, JsonElement runState)> SetupRunAsync()
+    protected async Task<(Guid runId, JsonElement runState)> SetupRunAsync(string modeId = "standard")
     {
-        var runId = await Client.StartRunAsync("default", "default_run", "player");
+        var runId = await Client.StartRunAsync(
+            "default",
+            "default_run",
+            "player",
+            modeId: modeId);
         var runState = await Client.GetRunStateAsync(runId);
         return (runId, runState);
     }

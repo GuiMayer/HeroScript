@@ -12,6 +12,7 @@
     "timelinePolicyId": "standard_timeline",
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "standard_progression",
     "rules": {
       "dailyEligible": true
     }

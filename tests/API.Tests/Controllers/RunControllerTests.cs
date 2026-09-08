@@ -119,11 +119,22 @@ public sealed class RunControllerTests
         var map = RunMapTransitions.Create(
         [
             new RunMapNodeDefinition { NodeId = "start", NextNodeIds = ["reward"] },
-            new RunMapNodeDefinition { NodeId = "reward", NodeType = "card_selection" }
+            new RunMapNodeDefinition
+            {
+                NodeId = "reward",
+                Activity = new RunActivityDefinition
+                {
+                    Type = RunActivityType.CardSelection,
+                    DefinitionId = "reward"
+                }
+            }
         ]).Value;
         var state = CreateRun() with { CurrentNodeId = "start", Map = map };
         _runManager.Setup(manager => manager.GetRun(state.RunId))
             .Returns(Result<RunState>.Success(state));
+        _runManager.Setup(manager => manager.GetAvailableCommands(state.RunId))
+            .Returns(Result<IReadOnlyList<RunAvailableCommand>>.Success(
+                RunMapTransitions.GetAvailableCommands(state)));
 
         var mapResult = Assert.IsType<OkObjectResult>(_controller.GetMap(state.RunId));
         var commandsResult = Assert.IsType<OkObjectResult>(

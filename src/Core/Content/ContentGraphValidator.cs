@@ -107,6 +107,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "timelinePolicyId", "timeline-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "contentBindingPolicyId", "content-binding-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "capabilityPolicyId", "capability-policies");
+            RequireProperty(runtime, errors, "modes", id, definition, "progressionPolicyId", "run-progression-policies");
             RequireArray(runtime, errors, "modes", id, definition, "cardPoolIds", "card-pools");
             RequireArray(runtime, errors, "modes", id, definition, "enemyPoolIds", "enemy-pools");
         }
@@ -774,6 +775,10 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         foreach (var node in nodes.EnumerateArray())
         {
             var nodeId = TryGetString(node, "nodeId") ?? "<unknown>";
+            if (!TryGetProperty(node, "activity", out var activity) || activity.ValueKind != JsonValueKind.Object)
+                errors.Add($"runs/{runId} map node '{nodeId}' requires an activity object");
+            if (!TryGetProperty(node, "completionPolicy", out var completion) || completion.ValueKind != JsonValueKind.String)
+                errors.Add($"runs/{runId} map node '{nodeId}' requires completionPolicy");
             foreach (var next in FindStringArrayItems(node, "nextNodeIds").Where(next => !known.Contains(next)))
                 errors.Add($"runs/{runId} map node '{nodeId}' references missing next node '{next}'");
         }

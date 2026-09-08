@@ -59,6 +59,7 @@ public sealed record CardSelectionState
 
     public Guid SelectionInstanceId { get; init; }
     public Guid RunId { get; init; }
+    public string NodeId { get; init; } = string.Empty;
     public string SelectionId { get; init; } = string.Empty;
     public int PickCount { get; init; }
     public int OfferCount { get; init; } = 3;

@@ -10,13 +10,15 @@ public static class CardSelectionTransitions
         RunState state,
         CardSelectionDefinition definition,
         IReadOnlyList<CardSelectionOptionState> options,
-        string offerFingerprint = "")
+        string offerFingerprint = "",
+        string nodeId = "")
     {
         var instanceId = state.Determinism.AllocateId("card-selection");
         var selection = new CardSelectionState
         {
             SelectionInstanceId = instanceId.Value,
             RunId = state.RunId,
+            NodeId = nodeId,
             SelectionId = definition.SelectionId,
             PickCount = definition.PickCount,
             OfferCount = definition.OfferCount,

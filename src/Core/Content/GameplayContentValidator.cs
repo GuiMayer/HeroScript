@@ -31,6 +31,36 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                     "influence is not reachable through a calculation pipeline enabled by this mode");
             }
         });
+        Visit<RunDefinition>("runs", (path, item) =>
+        {
+            var activities = RunActivityRegistry.CreateDefault();
+            foreach (var node in item.MapNodes)
+            {
+                var address = $"{path}/mapNodes/{node.NodeId}";
+                var valid = activities.Validate(node.Activity);
+                if (valid.IsFailure) Error(address, valid.Error);
+                if (!Enum.IsDefined(node.CompletionPolicy)) Error(address, "invalid completionPolicy");
+                var handler = activities.Resolve(node.Activity.Type);
+                var kind = handler.IsSuccess ? handler.Value.DefinitionKind : null;
+                if (kind != null) Reference(address, kind, node.Activity.DefinitionId, required: true);
+                RunBoundaryEffects($"{address}/entryEffects", node.EntryEffects);
+                RunBoundaryEffects($"{address}/exitEffects", node.ExitEffects);
+            }
+        });
+        Visit<RunProgressionPolicyDefinition>("run-progression-policies", (path, item) =>
+        {
+            if (string.IsNullOrWhiteSpace(item.ProgressionPolicyId)) Error(path, "progressionPolicyId is required");
+            if (!Enum.IsDefined(item.EncounterVictory) || !Enum.IsDefined(item.EncounterDefeat) ||
+                !Enum.IsDefined(item.EncounterDraw) || !Enum.IsDefined(item.EncounterAbandoned) ||
+                !Enum.IsDefined(item.EndOfMap))
+                Error(path, "invalid lifecycle transition");
+            if (!Enum.IsDefined(item.EncounterRetry)) Error(path, "invalid encounterRetry policy");
+            if (item.RetryableEncounterOutcomes.Any(outcome =>
+                    !Enum.IsDefined(outcome) || outcome == CombatStatus.ACTIVE))
+                Error(path, "retryableEncounterOutcomes must contain only terminal combat outcomes");
+            if (item.EncounterRetry == RunEncounterRetryPolicy.Disabled && item.RetryableEncounterOutcomes.Count > 0)
+                Error(path, "retryableEncounterOutcomes requires encounterRetry RestartActivity");
+        });
         Visit<ActionDefinition>("actions", (path, item) => Effects(path, item.Effects));
         Visit<Core.Resources.ResourceDefinition>("resources", (path, item) =>
         {
@@ -124,6 +154,20 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             Formula(address, effect.FormulaValue);
             Formula(address, effect.Condition);
         }).Select(error => $"{path}/{error}"));
+    }
+
+    private void RunBoundaryEffects(string path, IReadOnlyList<EffectDefinition> effects)
+    {
+        Effects(path, effects);
+        foreach (var effect in effects)
+        {
+            if (effect.Chance != 1)
+                Error(path, $"effect '{effect.EffectId}' must have chance 1 at a run boundary");
+            if (effect.Target is not (EffectTarget.SELF or EffectTarget.TARGET))
+                Error(path, $"effect '{effect.EffectId}' must target the run owner");
+            if (effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS)
+                Error(path, $"effect '{effect.EffectId}' does not persist in run state");
+        }
     }
 
     private void Triggers(string path, IReadOnlyList<EffectTriggerDefinition> triggers, bool relic)

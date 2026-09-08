@@ -110,7 +110,7 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
     public async Task PreparationPhase_ApplyUpgrade_StatsIncrease()
     {
         // Setup run
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
 
         // Start preparation phase (between missions)
         var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");

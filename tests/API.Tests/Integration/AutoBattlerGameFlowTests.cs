@@ -21,7 +21,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     public async Task ShopRound_BuyUnits_TeamComposition()
     {
         // Simulate auto-battler shop round
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
         var initialGold = GetRunResource(runState, "gold");
 
         // Open shop (unit shop)
@@ -52,7 +52,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     public async Task RerollShop_FindDesiredUnit_GoldCost()
     {
         // Setup shop
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
         var initialGold = GetRunResource(runState, "gold");
 
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
@@ -79,7 +79,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     public async Task PreparationRound_PreservesValidEconomyState()
     {
         // Simulate multiple combat rounds with income
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
         var startGold = GetRunResource(runState, "gold");
 
         // Income/preparation phase
@@ -103,7 +103,7 @@ public sealed class AutoBattlerGameFlowTests : GameEngineIntegrationTestBase
     public async Task LevelUp_IncreaseTeamSize_PreparationOption()
     {
         // Setup
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
 
         // Start preparation for level up
         var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");

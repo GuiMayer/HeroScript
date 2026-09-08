@@ -10,13 +10,15 @@ public static class ShopTransitions
         RunState state,
         ShopDefinition definition,
         IReadOnlyList<ShopItemState> items,
-        string offerFingerprint = "")
+        string offerFingerprint = "",
+        string nodeId = "")
     {
         var instanceId = state.Determinism.AllocateId("shop");
         var shop = new ShopState
         {
             ShopInstanceId = instanceId.Value,
             RunId = state.RunId,
+            NodeId = nodeId,
             ShopId = definition.ShopId,
             CardPoolId = definition.CardPoolId,
             OfferCount = definition.OfferCount,

@@ -10,17 +10,16 @@ namespace Core.Run;
 /// </summary>
 public static class RunMapTransitions
 {
-    public static Result<RunMapState> Create(IReadOnlyList<RunMapNodeDefinition> definitions)
+    public static Result<RunMapState> Create(
+        IReadOnlyList<RunMapNodeDefinition> definitions,
+        RunActivityRegistry? activities = null)
     {
         ArgumentNullException.ThrowIfNull(definitions);
+        activities ??= RunActivityRegistry.CreateDefault();
 
         var invalid = definitions.FirstOrDefault(node => string.IsNullOrWhiteSpace(node.NodeId));
         if (invalid != null)
             return Result<RunMapState>.Failure("Map node id is required");
-
-        invalid = definitions.FirstOrDefault(node => string.IsNullOrWhiteSpace(node.NodeType));
-        if (invalid != null)
-            return Result<RunMapState>.Failure($"Map node type is required: {invalid.NodeId}");
 
         var duplicateNode = definitions
             .GroupBy(node => node.NodeId, StringComparer.Ordinal)
@@ -33,6 +32,12 @@ public static class RunMapTransitions
             .ToHashSet(StringComparer.Ordinal);
         foreach (var definition in definitions)
         {
+            var activity = activities.Validate(definition.Activity);
+            if (activity.IsFailure)
+                return Result<RunMapState>.Failure($"Map node '{definition.NodeId}': {activity.Error}");
+            if (!Enum.IsDefined(definition.CompletionPolicy))
+                return Result<RunMapState>.Failure($"Map node '{definition.NodeId}' has invalid completion policy");
+
             var duplicateEdge = definition.NextNodeIds
                 .GroupBy(nodeId => nodeId, StringComparer.Ordinal)
                 .FirstOrDefault(group => group.Count() > 1);
@@ -64,6 +69,8 @@ public static class RunMapTransitions
         string currentNodeId)
     {
         ArgumentNullException.ThrowIfNull(state);
+        if (state.Lifecycle != RunLifecycleState.Active)
+            return Result<RunStateTransition<RunMapNodeState>>.Failure($"Run is not active: {state.Lifecycle}");
         if (string.IsNullOrWhiteSpace(currentNodeId))
             return Result<RunStateTransition<RunMapNodeState>>.Failure("Current node id is required");
         if (!string.Equals(state.CurrentNodeId, currentNodeId, StringComparison.Ordinal))
@@ -90,9 +97,6 @@ public static class RunMapTransitions
             Map = map,
             Determinism = state.Determinism.AdvanceStep()
         };
-        next = Core.Combat.Modifiers.ModifierTransitions.Tick(next, Core.Combat.Modifiers.ModifierDurationBoundary.Node);
-        if (current.NextNodeIds.Count == 0)
-            next = Core.Combat.Modifiers.ModifierTransitions.Tick(next, Core.Combat.Modifiers.ModifierDurationBoundary.Run);
         return Result<RunStateTransition<RunMapNodeState>>.Success(new(next, current));
     }
 
@@ -101,6 +105,8 @@ public static class RunMapTransitions
         string targetNodeId)
     {
         ArgumentNullException.ThrowIfNull(state);
+        if (state.Lifecycle != RunLifecycleState.Active)
+            return Result<RunStateTransition<RunMapNodeState>>.Failure($"Run is not active: {state.Lifecycle}");
         if (string.IsNullOrWhiteSpace(targetNodeId))
             return Result<RunStateTransition<RunMapNodeState>>.Failure("Target node id is required");
         if (state.CurrentNodeId == null)
@@ -144,75 +150,9 @@ public static class RunMapTransitions
 
     public static IReadOnlyList<RunAvailableCommand> GetAvailableCommands(RunState state)
     {
-        ArgumentNullException.ThrowIfNull(state);
-        if (state.CurrentNodeId == null)
-            return [];
-
-        var current = FindNode(state.Map, state.CurrentNodeId);
-        if (current == null)
-            return [];
-
-        var activeEncounter = state.GetActiveEncounter();
-        if (activeEncounter != null)
-        {
-            return activeEncounter.Combat.IsActive
-                ? []
-                :
-                [
-                    new RunAvailableCommand
-                    {
-                        Type = RunCommandTypes.ResolveCombat,
-                        CurrentNodeId = current.NodeId
-                    }
-                ];
-        }
-
-        if (!Contains(state.Map.ResolvedNodeIds, current.NodeId))
-        {
-            var nodeType = current.NodeType.ToLowerInvariant();
-            if (nodeType is "upgrade" or "card_upgrade" or "rest" or "forge")
-            {
-                return
-                [
-                    new RunAvailableCommand
-                    {
-                        Type = RunCommandTypes.UpgradeCard,
-                        CurrentNodeId = current.NodeId
-                    },
-                    new RunAvailableCommand
-                    {
-                        Type = RunCommandTypes.ResolveNode,
-                        CurrentNodeId = current.NodeId
-                    }
-                ];
-            }
-
-            return
-            [
-                new RunAvailableCommand
-                {
-                    Type = IsEncounterNode(current.NodeType)
-                        ? RunCommandTypes.StartEncounter
-                        : RunCommandTypes.ResolveNode,
-                    CurrentNodeId = current.NodeId
-                }
-            ];
-        }
-
-        var targets = current.NextNodeIds
-            .Where(nodeId => !Contains(state.Map.VisitedNodeIds, nodeId))
-            .ToImmutableList();
-        return targets.Count == 0
-            ? []
-            :
-            [
-                new RunAvailableCommand
-                {
-                    Type = RunCommandTypes.AdvanceNode,
-                    CurrentNodeId = current.NodeId,
-                    TargetNodeIds = targets
-                }
-            ];
+        var result = new RunProgressionService(RunActivityRegistry.CreateDefault())
+            .GetAvailableCommands(state);
+        return result.IsSuccess ? result.Value : [];
     }
 
     public static IReadOnlyList<string> GetLegalNextNodeIds(RunState state)
@@ -222,19 +162,15 @@ public static class RunMapTransitions
         return advance?.TargetNodeIds ?? [];
     }
 
-    public static bool IsEncounterNode(string nodeType)
-    {
-        return string.Equals(nodeType, "combat", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(nodeType, "elite", StringComparison.OrdinalIgnoreCase) ||
-               string.Equals(nodeType, "boss", StringComparison.OrdinalIgnoreCase);
-    }
-
     private static RunMapNodeState ToState(RunMapNodeDefinition definition)
     {
         return new RunMapNodeState
         {
             NodeId = definition.NodeId,
-            NodeType = definition.NodeType,
+            Activity = definition.Activity,
+            CompletionPolicy = definition.CompletionPolicy,
+            EntryEffects = definition.EntryEffects,
+            ExitEffects = definition.ExitEffects,
             NextNodeIds = definition.NextNodeIds,
             Metadata = definition.Metadata.ToImmutableDictionary(
                 entry => entry.Key,

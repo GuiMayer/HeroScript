@@ -69,6 +69,7 @@ public sealed record PreparationState
 
     public Guid PreparationInstanceId { get; init; }
     public Guid RunId { get; init; }
+    public string NodeId { get; init; } = string.Empty;
     public string PreparationId { get; init; } = string.Empty;
     public IReadOnlyList<PreparationOptionState> Options
     {

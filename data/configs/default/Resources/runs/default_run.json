@@ -21,22 +21,50 @@
     "mapNodes": [
       {
         "nodeId": "start",
-        "nodeType": "combat",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
         "nextNodeIds": ["reward_1"]
       },
       {
         "nodeId": "reward_1",
-        "nodeType": "card_selection",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "basic_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
         "nextNodeIds": ["shop_1"]
       },
       {
         "nodeId": "shop_1",
-        "nodeType": "shop",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "basic_shop",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "entryEffects": [],
+        "exitEffects": [],
         "nextNodeIds": ["boss_1"]
       },
       {
         "nodeId": "boss_1",
-        "nodeType": "combat",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "tier": "boss"
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
         "nextNodeIds": []
       }
     ],

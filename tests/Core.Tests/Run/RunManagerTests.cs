@@ -1177,8 +1177,17 @@ public sealed class RunManagerTests
         "startingHandSize": 2,
         "startingDeck": ["strike", "defend", "zap"],
         "mapNodes": [
-          { "nodeId": "start", "nodeType": "event", "nextNodeIds": ["reward"] },
-          { "nodeId": "reward", "nodeType": "card_selection", "nextNodeIds": [] }
+          {
+            "nodeId": "start",
+            "activity": { "type": "Preparation", "definitionId": "event" },
+            "completionPolicy": "Optional",
+            "nextNodeIds": ["reward"]
+          },
+          {
+            "nodeId": "reward",
+            "activity": { "type": "CardSelection", "definitionId": "basic_reward" },
+            "nextNodeIds": []
+          }
         ]
       }
     }
@@ -1192,8 +1201,16 @@ public sealed class RunManagerTests
         "startingHandSize": 1,
         "startingDeck": ["strike", "defend"],
         "mapNodes": [
-          { "nodeId": "start", "nodeType": "combat", "nextNodeIds": ["reward"] },
-          { "nodeId": "reward", "nodeType": "card_selection", "nextNodeIds": [] }
+          {
+            "nodeId": "start",
+            "activity": { "type": "Encounter" },
+            "nextNodeIds": ["reward"]
+          },
+          {
+            "nodeId": "reward",
+            "activity": { "type": "CardSelection", "definitionId": "basic_reward" },
+            "nextNodeIds": []
+          }
         ]
       }
     }

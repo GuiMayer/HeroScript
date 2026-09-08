@@ -24,6 +24,7 @@ public sealed record GameModeDefinition
     public string? TimelinePolicyId { get; init; }
     public string? ContentBindingPolicyId { get; init; }
     public string? CapabilityPolicyId { get; init; }
+    public string? ProgressionPolicyId { get; init; }
 
     public IReadOnlyList<string> CalculationPipelineIds
     {
@@ -153,6 +154,7 @@ public sealed record ResolvedGameMode
     public TimelinePolicyDefinition TimelinePolicy { get; init; } = new();
     public ContentBindingPolicyDefinition ContentBindingPolicy { get; init; } = new();
     public CapabilityPolicyDefinition CapabilityPolicy { get; init; } = new();
+    public RunProgressionPolicyDefinition ProgressionPolicy { get; init; } = new();
 }
 
 public sealed record DailyChallengeDefinition

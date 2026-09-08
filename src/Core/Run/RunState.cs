@@ -13,8 +13,10 @@ public sealed record RunState
 {
     private ImmutableDictionary<Guid, CombatResolutionRecord> _combatResolutions =
         ImmutableDictionary<Guid, CombatResolutionRecord>.Empty;
+    private ImmutableList<string> _completedActivityNodeIds = [];
     public Guid RunId { get; init; }
     public int Sequence { get; init; }
+    public RunLifecycleState Lifecycle { get; init; } = RunLifecycleState.Active;
     public string ConfigName { get; init; } = "default";
     public string SettingId { get; init; } = "default";
     public string PlayerEntityId { get; init; } = "player";
@@ -35,6 +37,11 @@ public sealed record RunState
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
+    public IReadOnlyList<string> CompletedActivityNodeIds
+    {
+        get => _completedActivityNodeIds;
+        init => _completedActivityNodeIds = value?.ToImmutableList() ?? [];
+    }
     public ImmutableArray<RunRelicState> Relics { get; init; } = [];
     public ImmutableArray<ScriptModifierInstance> Modifiers { get; init; } = [];
     public IReadOnlyDictionary<Guid, CombatResolutionRecord> CombatResolutions

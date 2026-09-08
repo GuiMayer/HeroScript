@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Core.Effects;
 
 namespace Core.Run;
 
@@ -36,9 +37,22 @@ public sealed record RunMapNodeState
     private ImmutableList<string> _nextNodeIds = [];
     private ImmutableDictionary<string, JsonElement> _metadata =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
+    private ImmutableArray<EffectDefinition> _entryEffects = [];
+    private ImmutableArray<EffectDefinition> _exitEffects = [];
 
     public string NodeId { get; init; } = string.Empty;
-    public string NodeType { get; init; } = "combat";
+    public RunActivityDefinition Activity { get; init; } = new();
+    public RunActivityCompletionPolicy CompletionPolicy { get; init; } = RunActivityCompletionPolicy.Required;
+    public IReadOnlyList<EffectDefinition> EntryEffects
+    {
+        get => _entryEffects;
+        init => _entryEffects = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectDefinition> ExitEffects
+    {
+        get => _exitEffects;
+        init => _exitEffects = value?.ToImmutableArray() ?? [];
+    }
 
     public IReadOnlyList<string> NextNodeIds
     {
@@ -60,6 +74,10 @@ public sealed record RunAvailableCommand
 
     public string Type { get; init; } = string.Empty;
     public string CurrentNodeId { get; init; } = string.Empty;
+    public int ExpectedSequence { get; init; }
+    public ulong ExpectedStep { get; init; }
+    public JsonElement PayloadSchema { get; init; }
+    public JsonElement ValidPayload { get; init; }
 
     public IReadOnlyList<string> TargetNodeIds
     {
@@ -96,4 +114,5 @@ public static class RunCommandTypes
     public const string ApplyRunResource = "APPLY_RUN_RESOURCE";
     public const string AddCardsToHand = "ADD_CARDS_TO_HAND";
     public const string MoveCards = "MOVE_CARDS";
+    public const string AbandonRun = "ABANDON_RUN";
 }

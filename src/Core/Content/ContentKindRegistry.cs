@@ -160,6 +160,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("replay-policies", "replay-policies", typeof(ReplayPolicyDefinition), "replayPolicyId"),
         new("resources", "resources", typeof(ResourceDefinition), "resourceId"),
         new("run-events", "run-events", typeof(JsonElement)),
+        new("run-progression-policies", "run-progression-policies", typeof(RunProgressionPolicyDefinition), "progressionPolicyId"),
         new("runs", "runs", typeof(RunDefinition), "runId"),
         new("shops", "shops", typeof(ShopDefinition), "shopId"),
         new("status-effects", "status-effects", typeof(StatusEffectDefinition), "statusId"),

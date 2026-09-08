@@ -106,7 +106,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
     public async Task ResourceGeneration_MatchGems_GainMana()
     {
         // Setup run with mana system
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
 
         // Simulate gem match generating mana (via preparation/event)
         var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");

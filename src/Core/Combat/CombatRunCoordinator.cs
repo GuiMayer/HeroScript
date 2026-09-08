@@ -82,7 +82,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 string.Equals(item.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
             if (node == null)
                 return Result<CombatRunEncounterResult>.Failure($"Map node not found: {run.CurrentNodeId}");
-            if (!RunMapTransitions.IsEncounterNode(node.NodeType))
+            if (node.Activity.Type != RunActivityType.Encounter)
                 return Result<CombatRunEncounterResult>.Failure($"Current map node is not an encounter: {node.NodeId}");
 
             var seed = run.Determinism.DrawUInt64();
@@ -167,7 +167,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var node = run.Map.Nodes.FirstOrDefault(item =>
                 string.Equals(item.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
-            if (node == null || !RunMapTransitions.IsEncounterNode(node.NodeType))
+            if (node == null || node.Activity.Type != RunActivityType.Encounter)
                 return Result<CombatRunEncounterResult>.Failure("Current map node is not an encounter");
 
             var seed = run.Determinism.DrawUInt64();

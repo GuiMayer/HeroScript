@@ -35,6 +35,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     private readonly IResourceCatalog<EnemyPoolDefinition>? _enemyPools;
     private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly ILogger? _logger;
+    private readonly IResourceCatalog<RunProgressionPolicyDefinition> _progressionPolicies;
 
     public GameModeResolver(
         IResourceCatalog<GameModeDefinition> modes,
@@ -44,6 +45,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         IResourceCatalog<TimelinePolicyDefinition> timelinePolicies,
         IResourceCatalog<ContentBindingPolicyDefinition> contentBindingPolicies,
         IResourceCatalog<CapabilityPolicyDefinition> capabilityPolicies,
+        IResourceCatalog<RunProgressionPolicyDefinition> progressionPolicies,
         ICardPoolResolver? cardPools = null,
         IResourceCatalog<EnemyPoolDefinition>? enemyPools = null,
         IContentRuntimeResolver? contentRuntimes = null,
@@ -60,6 +62,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         _enemyPools = enemyPools;
         _contentRuntimes = contentRuntimes;
         _logger = logger;
+        _progressionPolicies = progressionPolicies ?? throw new ArgumentNullException(nameof(progressionPolicies));
     }
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName)
@@ -84,9 +87,14 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             mode.Value.CapabilityPolicyId,
             "capability policy",
             configName);
+        var progression = GetRequired(
+            _progressionPolicies,
+            mode.Value.ProgressionPolicyId,
+            "run progression policy",
+            configName);
 
         if (flow.IsFailure || combat.IsFailure || replay.IsFailure || timeline.IsFailure ||
-            binding.IsFailure || capabilities.IsFailure)
+            binding.IsFailure || capabilities.IsFailure || progression.IsFailure)
         {
             var errors = new[]
             {
@@ -95,7 +103,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
                 replay.IsFailure ? replay.Error : null,
                 timeline.IsFailure ? timeline.Error : null,
                 binding.IsFailure ? binding.Error : null,
-                capabilities.IsFailure ? capabilities.Error : null
+                capabilities.IsFailure ? capabilities.Error : null,
+                progression.IsFailure ? progression.Error : null
             };
             return Result<ResolvedGameMode>.Failure(string.Join("; ", errors.Where(error => error != null)));
         }
@@ -106,7 +115,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             replay.Value,
             timeline.Value,
             binding.Value,
-            capabilities.Value);
+            capabilities.Value,
+            progression.Value);
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
@@ -139,7 +149,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             ReplayPolicy = replay.Value,
             TimelinePolicy = timeline.Value,
             ContentBindingPolicy = binding.Value,
-            CapabilityPolicy = capabilities.Value
+            CapabilityPolicy = capabilities.Value,
+            ProgressionPolicy = progression.Value
         });
     }
 
@@ -172,9 +183,14 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             mode.Value.CapabilityPolicyId,
             "capability policy",
             "capability-policies");
+        var progression = GetRequired<RunProgressionPolicyDefinition>(
+            runtime.Value,
+            mode.Value.ProgressionPolicyId,
+            "run progression policy",
+            "run-progression-policies");
 
         if (flow.IsFailure || combat.IsFailure || replay.IsFailure || timeline.IsFailure ||
-            binding.IsFailure || capabilities.IsFailure)
+            binding.IsFailure || capabilities.IsFailure || progression.IsFailure)
         {
             var errors = new[]
             {
@@ -183,7 +199,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
                 replay.IsFailure ? replay.Error : null,
                 timeline.IsFailure ? timeline.Error : null,
                 binding.IsFailure ? binding.Error : null,
-                capabilities.IsFailure ? capabilities.Error : null
+                capabilities.IsFailure ? capabilities.Error : null,
+                progression.IsFailure ? progression.Error : null
             };
             return Result<ResolvedGameMode>.Failure(string.Join("; ", errors.Where(error => error != null)));
         }
@@ -194,7 +211,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             replay.Value,
             timeline.Value,
             binding.Value,
-            capabilities.Value);
+            capabilities.Value,
+            progression.Value);
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
@@ -221,7 +239,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             ReplayPolicy = replay.Value,
             TimelinePolicy = timeline.Value,
             ContentBindingPolicy = binding.Value,
-            CapabilityPolicy = capabilities.Value
+            CapabilityPolicy = capabilities.Value,
+            ProgressionPolicy = progression.Value
         });
     }
 
@@ -230,7 +249,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         ReplayPolicyDefinition replay,
         TimelinePolicyDefinition timeline,
         ContentBindingPolicyDefinition binding,
-        CapabilityPolicyDefinition capabilities)
+        CapabilityPolicyDefinition capabilities,
+        RunProgressionPolicyDefinition progression)
     {
         if (string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
             return Result.Failure("Combat rules require a phase sequence id");
@@ -252,6 +272,19 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             return Result.Failure(
                 "Capability policy enables hot reload activation but content binding policy rejects active runs");
         }
+        if (!Enum.IsDefined(progression.EncounterVictory) ||
+            !Enum.IsDefined(progression.EncounterDefeat) ||
+            !Enum.IsDefined(progression.EncounterDraw) ||
+            !Enum.IsDefined(progression.EncounterAbandoned) ||
+            !Enum.IsDefined(progression.EndOfMap))
+            return Result.Failure("Run progression policy contains an invalid transition");
+        if (!Enum.IsDefined(progression.EncounterRetry) ||
+            progression.RetryableEncounterOutcomes.Any(outcome =>
+                !Enum.IsDefined(outcome) || outcome == Core.Combat.Models.CombatStatus.ACTIVE))
+            return Result.Failure("Run progression policy contains an invalid retry policy");
+        if (progression.EncounterRetry == RunEncounterRetryPolicy.Disabled &&
+            progression.RetryableEncounterOutcomes.Count > 0)
+            return Result.Failure("Disabled encounter retry cannot declare retryable outcomes");
 
         return Result.Success();
     }

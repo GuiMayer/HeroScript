@@ -41,6 +41,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
     private readonly IGameModeResolver? _gameModeResolver;
     private readonly RunContentDefinitionResolver _contentDefinitions;
     private readonly RunOfferGenerator _offerGenerator;
+    private readonly RunActivityRegistry _activities;
+    private readonly RunProgressionService _progression;
+    private readonly IRunActivityEffectExecutor? _activityEffects;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, RunState> _runs = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     // Only used by the direct test harness. Production command execution is
@@ -66,7 +69,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         IContentRuntimeResolver? contentRuntimes = null,
         IResourceManager? resources = null,
         IRunCommitReader? history = null,
-        RunSessionGateProvider? sessionGates = null)
+        RunSessionGateProvider? sessionGates = null,
+        RunActivityRegistry? activities = null,
+        IRunActivityEffectExecutor? activityEffects = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -88,6 +93,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             cardPoolResolver,
             cardContentCatalog,
             useRevisionedContent: contentRuntimes != null);
+        _activities = activities ?? RunActivityRegistry.CreateDefault();
+        _progression = new RunProgressionService(_activities);
+        _activityEffects = activityEffects;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -154,7 +162,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             return Result<RunState>.Failure(definitionResult.Error);
 
         var definition = definitionResult.Value;
-        var mapResult = RunMapTransitions.Create(definition.MapNodes);
+        var mapResult = RunMapTransitions.Create(definition.MapNodes, _activities);
         if (mapResult.IsFailure)
             return Result<RunState>.Failure(mapResult.Error);
 
@@ -226,6 +234,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             Deck = initialDraw.Value.State,
             Determinism = initialDraw.Value.Context.AdvanceStep()
         };
+        var initialNode = state.Map.Nodes.FirstOrDefault(node => node.NodeId == state.CurrentNodeId);
+        if (initialNode != null)
+        {
+            var entry = ApplyActivityBoundary(state, initialNode, RunActivityBoundary.Entry);
+            if (entry.IsFailure)
+                return Result<RunState>.Failure(entry.Error);
+            state = entry.Value;
+        }
 
         using (_sessionGates.Enter(state.RunId))
         {
@@ -391,8 +407,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         var run = GetRun(runId);
         return run.IsFailure
             ? Result<IReadOnlyList<RunAvailableCommand>>.Failure(run.Error)
-            : Result<IReadOnlyList<RunAvailableCommand>>.Success(
-                RunMapTransitions.GetAvailableCommands(run.Value));
+            : _progression.GetAvailableCommands(run.Value);
     }
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId)
@@ -549,6 +564,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             RunCommandTypes.ApplyRunResource => ExecuteApplyRunResource(runId, payload),
             RunCommandTypes.AddCardsToHand => ExecuteAddCardsToHand(runId, payload),
             RunCommandTypes.MoveCards => ExecuteMoveCards(runId, payload),
+            RunCommandTypes.AbandonRun => ExecuteAbandonRun(runId),
             RunCommandTypes.ResolveCombat => Result.Failure(
                 "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
             RunCommandTypes.RestoreHeadFromHistory => ExecuteRestoreHeadFromHistory(runId, payload),
@@ -556,6 +572,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 "START_ENCOUNTER must be executed through the run encounter coordinator"),
             _ => Result.Failure($"Unsupported run command type: {commandType}")
         };
+    }
+
+    private Result ExecuteAbandonRun(Guid runId)
+    {
+        var transition = _progression.Abandon(_runs[runId]);
+        return transition.IsFailure
+            ? Result.Failure(transition.Error)
+            : ToResult(Persist(transition.Value, RunCommandTypes.AbandonRun, new { }));
     }
 
     private Result ExecuteCreateCardSelection(Guid runId, JsonElement payload)
@@ -682,10 +706,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         var run = _runs[runId];
         var currentNode = run.Map.Nodes.FirstOrDefault(node =>
             string.Equals(node.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
-        var nodeType = currentNode?.NodeType.ToLowerInvariant();
-        if (currentNode == null || nodeType is not ("upgrade" or "card_upgrade" or "rest" or "forge"))
+        if (run.ResolvedMode?.ProgressionPolicy.AllowOutOfActivityCommands != true &&
+            (currentNode == null || currentNode.Activity.Type != RunActivityType.CardUpgrade))
             return Result.Failure("The current map node does not allow card upgrades");
-        if (run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
+        if (currentNode != null &&
+            run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
             return Result.Failure($"Map node already resolved: {currentNode.NodeId}");
         var definition = _contentDefinitions.Resolve(
             run,
@@ -707,7 +732,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         var candidate = run with
         {
             Deck = transition.Value.State,
-            Determinism = transition.Value.Context.AdvanceStep()
+            Determinism = transition.Value.Context.AdvanceStep(),
+            CompletedActivityNodeIds = currentNode?.Activity.Type == RunActivityType.CardUpgrade
+                ? run.CompletedActivityNodeIds
+                    .Append(currentNode.NodeId)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(nodeId => nodeId, StringComparer.Ordinal)
+                    .ToArray()
+                : run.CompletedActivityNodeIds
         };
         return ToResult(Persist(
             candidate,
@@ -883,13 +915,29 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
 
             var current = state.Map.Nodes.FirstOrDefault(node =>
                 string.Equals(node.NodeId, state.CurrentNodeId, StringComparison.Ordinal));
-            if (current != null && RunMapTransitions.IsEncounterNode(current.NodeType))
+            if (current?.Activity.Type == RunActivityType.Encounter)
             {
                 return Result<RunMapNodeState>.Failure(
                     $"Encounter map nodes must be resolved through their combat: {current.NodeId}");
             }
 
-            var transition = RunMapTransitions.Resolve(state, currentNodeId);
+            if (current == null)
+                return Result<RunMapNodeState>.Failure($"Map node not found: {currentNodeId}");
+            var canResolve = _progression.CanResolve(state, current);
+            if (canResolve.IsFailure)
+                return Result<RunMapNodeState>.Failure(canResolve.Error);
+            var exit = ApplyActivityBoundary(state, current, RunActivityBoundary.Exit);
+            if (exit.IsFailure)
+                return Result<RunMapNodeState>.Failure(exit.Error);
+            var transition = RunMapTransitions.Resolve(exit.Value, currentNodeId);
+            if (transition.IsSuccess)
+            {
+                transition = Result<RunStateTransition<RunMapNodeState>>.Success(
+                    transition.Value with
+                    {
+                        State = _progression.ApplyNodeExit(transition.Value.State, current)
+                    });
+            }
             return transition.IsFailure
                 ? Result<RunMapNodeState>.Failure(transition.Error)
                 : CommitTransition(
@@ -907,6 +955,17 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
 
             var transition = RunMapTransitions.Advance(state, targetNodeId);
+            if (transition.IsSuccess)
+            {
+                var entry = ApplyActivityBoundary(
+                    transition.Value.State,
+                    transition.Value.Value,
+                    RunActivityBoundary.Entry);
+                if (entry.IsFailure)
+                    return Result<RunMapNodeState>.Failure(entry.Error);
+                transition = Result<RunStateTransition<RunMapNodeState>>.Success(
+                    transition.Value with { State = entry.Value });
+            }
             return transition.IsFailure
                 ? Result<RunMapNodeState>.Failure(transition.Error)
                 : CommitTransition(
@@ -952,7 +1011,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 string.Equals(node.NodeId, state.CurrentNodeId, StringComparison.Ordinal));
             if (currentNode == null)
                 return Result<RunState>.Failure($"Map node not found: {state.CurrentNodeId}");
-            if (!RunMapTransitions.IsEncounterNode(currentNode.NodeType))
+            if (currentNode.Activity.Type != RunActivityType.Encounter)
                 return Result<RunState>.Failure($"Current map node is not an encounter: {currentNode.NodeId}");
             if (state.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
                 return Result<RunState>.Failure($"Map node already resolved: {currentNode.NodeId}");
@@ -1343,20 +1402,53 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 };
             }
 
-            var mapTransition = RunMapTransitions.Resolve(cleanedState, encounter.NodeId);
-            if (mapTransition.IsFailure)
-                return Result<RunState>.Failure(mapTransition.Error);
-
+            var currentNode = cleanedState.Map.Nodes.First(node => node.NodeId == encounter.NodeId);
             var resolved = encounter with
             {
                 Resolved = true,
                 Outcome = encounter.Combat.Status.ToString()
             };
+            if (_progression.ShouldRestartEncounterActivity(cleanedState, encounter.Combat.Status))
+            {
+                var retryable = cleanedState with
+                {
+                    ActiveEncounterId = null,
+                    Encounters = state.Encounters.SetItem(encounterIndex, resolved),
+                    Determinism = cleanedState.Determinism.AdvanceStep()
+                };
+                return Persist(
+                    retryable,
+                    RunCommandTypes.ResolveCombat,
+                    rootPayload.ValueKind == JsonValueKind.Undefined
+                        ? JsonSerializer.SerializeToElement(new
+                    {
+                        combatId,
+                        nodeId = encounter.NodeId,
+                        outcome = resolved.Outcome,
+                        retryActivity = true,
+                        combatStateHash = CanonicalJson.ComputeHash(encounter.Combat)
+                    }, _jsonOptions)
+                        : rootPayload,
+                    commandIdentity,
+                    scope: "combat",
+                    combatId: combatId);
+            }
+
+            var exit = ApplyActivityBoundary(cleanedState, currentNode, RunActivityBoundary.Exit);
+            if (exit.IsFailure)
+                return Result<RunState>.Failure(exit.Error);
+            cleanedState = exit.Value;
+            var mapTransition = RunMapTransitions.Resolve(cleanedState, encounter.NodeId);
+            if (mapTransition.IsFailure)
+                return Result<RunState>.Failure(mapTransition.Error);
+
             var candidate = mapTransition.Value.State with
             {
                 ActiveEncounterId = null,
                 Encounters = state.Encounters.SetItem(encounterIndex, resolved)
             };
+            candidate = _progression.ApplyNodeExit(candidate, mapTransition.Value.Value);
+            candidate = _progression.ApplyEncounterOutcome(candidate, encounter.Combat.Status);
             return Persist(
                 candidate,
                 RunCommandTypes.ResolveCombat,
@@ -1373,6 +1465,22 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 scope: "combat",
                 combatId: combatId);
         }
+    }
+
+    private Result<RunState> ApplyActivityBoundary(
+        RunState state,
+        RunMapNodeState node,
+        RunActivityBoundary boundary)
+    {
+        var configured = boundary == RunActivityBoundary.Entry ? node.EntryEffects : node.ExitEffects;
+        if (configured.Count == 0)
+            return Result<RunState>.Success(state);
+        if (_activityEffects == null)
+            return Result<RunState>.Failure("Run activity effect executor is not configured");
+        var result = _activityEffects.Execute(state, node, boundary);
+        return result.IsFailure
+            ? Result<RunState>.Failure(result.Error)
+            : Result<RunState>.Success(result.Value.State);
     }
 
     private Result ValidateLoadedRunCompatibility(RunState state)
@@ -1657,7 +1765,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 state with { Determinism = generated.Value.Context },
                 definition,
                 generated.Value.Options,
-                generated.Value.Fingerprint);
+                generated.Value.Fingerprint,
+                state.CurrentNodeId ?? string.Empty);
             return CommitTransition(
                 transition,
                 RunCommandTypes.CreateCardSelection,
@@ -1757,7 +1866,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 state with { Determinism = generated.Value.Context },
                 definition,
                 generated.Value.Items,
-                generated.Value.Fingerprint);
+                generated.Value.Fingerprint,
+                state.CurrentNodeId ?? string.Empty);
             return CommitTransition(
                 transition,
                 RunCommandTypes.CreateShop,
@@ -1831,7 +1941,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             if (definitionResult.IsFailure)
                 return Result<PreparationState>.Failure(definitionResult.Error);
 
-            var transition = PreparationTransitions.Create(state, definitionResult.Value);
+            var transition = PreparationTransitions.Create(
+                state,
+                definitionResult.Value,
+                state.CurrentNodeId ?? string.Empty);
             return CommitTransition(
                 transition,
                 RunCommandTypes.CreatePreparation,

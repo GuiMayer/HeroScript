@@ -318,6 +318,12 @@ builder.Services.AddSingleton<IResourceCatalog<FlowRulesDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "flow-rules",
         definition => definition.FlowRulesId));
+builder.Services.AddSingleton<IResourceCatalog<RunProgressionPolicyDefinition>>(sp =>
+    new ResourceCatalog<RunProgressionPolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "run-progression-policies",
+        definition => definition.ProgressionPolicyId));
 builder.Services.AddSingleton<IResourceCatalog<CombatRulesDefinition>>(sp =>
     new ResourceCatalog<CombatRulesDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -362,6 +368,7 @@ builder.Services.AddSingleton<GameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<TimelinePolicyDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<ContentBindingPolicyDefinition>>(),
     sp.GetRequiredService<IResourceCatalog<CapabilityPolicyDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<RunProgressionPolicyDefinition>>(),
     sp.GetRequiredService<ICardPoolResolver>(),
     sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
     sp.GetRequiredService<IContentRuntimeResolver>(),
@@ -574,6 +581,7 @@ var applicationCaches = new ICacheService[]
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CalculationPipelineDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<GameModeDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<FlowRulesDefinition>>(),
+    (ICacheService)app.Services.GetRequiredService<IResourceCatalog<RunProgressionPolicyDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<CombatRulesDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<ReplayPolicyDefinition>>(),
     (ICacheService)app.Services.GetRequiredService<IResourceCatalog<TimelinePolicyDefinition>>(),

@@ -349,7 +349,11 @@ public class RunModelsTests
             StartingDeck = new List<string> { "strike", "strike", "defend", "bash" },
             MapNodes = new List<RunMapNodeDefinition>
             {
-                new() { NodeId = "start", NodeType = "rest" }
+                new()
+                {
+                    NodeId = "start",
+                    Activity = new RunActivityDefinition { Type = RunActivityType.CardUpgrade }
+                }
             },
             Metadata = new Dictionary<string, object> { ["difficulty"] = 1 }
         };
@@ -425,7 +429,7 @@ public class RunModelsTests
         
         // Assert
         Assert.Equal(string.Empty, node.NodeId);
-        Assert.Equal("combat", node.NodeType);
+        Assert.Equal(RunActivityType.Encounter, node.Activity.Type);
         Assert.Empty(node.NextNodeIds);
         Assert.Empty(node.Metadata);
     }
@@ -437,14 +441,19 @@ public class RunModelsTests
         var node = new RunMapNodeDefinition
         {
             NodeId = "node_shop_1",
-            NodeType = "shop",
+            Activity = new RunActivityDefinition
+            {
+                Type = RunActivityType.Shop,
+                DefinitionId = "basic_shop"
+            },
             NextNodeIds = new List<string> { "node_combat_5", "node_rest_2" },
             Metadata = new Dictionary<string, object> { ["shopkeeper"] = "merchant" }
         };
         
         // Assert
         Assert.Equal("node_shop_1", node.NodeId);
-        Assert.Equal("shop", node.NodeType);
+        Assert.Equal(RunActivityType.Shop, node.Activity.Type);
+        Assert.Equal("basic_shop", node.Activity.DefinitionId);
         Assert.Equal(2, node.NextNodeIds.Count);
         Assert.Contains("node_combat_5", node.NextNodeIds);
         Assert.Contains("node_rest_2", node.NextNodeIds);
@@ -452,13 +461,13 @@ public class RunModelsTests
     }
     
     [Fact]
-    public void RunMapNodeDefinition_NodeType_DefaultsToCombat()
+    public void RunMapNodeDefinition_Activity_DefaultsToEncounter()
     {
         // Arrange & Act
         var node = new RunMapNodeDefinition();
         
         // Assert
-        Assert.Equal("combat", node.NodeType);
+        Assert.Equal(RunActivityType.Encounter, node.Activity.Type);
     }
     
     [Fact]
@@ -496,15 +505,25 @@ public class RunModelsTests
         var original = new RunMapNodeDefinition
         {
             NodeId = "node_1",
-            NodeType = "combat"
+            Activity = new RunActivityDefinition { Type = RunActivityType.Encounter }
         };
         
         // Act
-        var modified = original with { NodeType = "elite" };
+        var modified = original with
+        {
+            Activity = new RunActivityDefinition
+            {
+                Type = RunActivityType.Encounter,
+                Parameters = new Dictionary<string, System.Text.Json.JsonElement>
+                {
+                    ["tier"] = System.Text.Json.JsonSerializer.SerializeToElement("elite")
+                }
+            }
+        };
         
         // Assert
-        Assert.Equal("combat", original.NodeType);
-        Assert.Equal("elite", modified.NodeType);
+        Assert.Empty(original.Activity.Parameters);
+        Assert.Equal("elite", modified.Activity.Parameters["tier"].GetString());
         Assert.Equal("node_1", modified.NodeId);
     }
     
@@ -602,21 +621,28 @@ public class RunModelsTests
         var node1 = new RunMapNodeDefinition
         {
             NodeId = "start",
-            NodeType = "combat",
+            Activity = new RunActivityDefinition { Type = RunActivityType.Encounter },
             NextNodeIds = new List<string> { "node2" }
         };
         
         var node2 = new RunMapNodeDefinition
         {
             NodeId = "node2",
-            NodeType = "rest",
+            Activity = new RunActivityDefinition { Type = RunActivityType.CardUpgrade },
             NextNodeIds = new List<string> { "node3" }
         };
         
         var node3 = new RunMapNodeDefinition
         {
             NodeId = "node3",
-            NodeType = "boss",
+            Activity = new RunActivityDefinition
+            {
+                Type = RunActivityType.Encounter,
+                Parameters = new Dictionary<string, System.Text.Json.JsonElement>
+                {
+                    ["tier"] = System.Text.Json.JsonSerializer.SerializeToElement("boss")
+                }
+            },
             NextNodeIds = new List<string>()
         };
         
@@ -633,7 +659,11 @@ public class RunModelsTests
         var fork = new RunMapNodeDefinition
         {
             NodeId = "fork_node",
-            NodeType = "event",
+            Activity = new RunActivityDefinition
+            {
+                Type = RunActivityType.Preparation,
+                DefinitionId = "event"
+            },
             NextNodeIds = new List<string> { "combat_path", "shop_path", "rest_path" }
         };
         

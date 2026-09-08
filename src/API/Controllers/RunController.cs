@@ -3,6 +3,7 @@ using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 using Core.Determinism;
 using Core.Config;
+using API.Contracts;
 
 namespace API.Controllers;
 
@@ -95,13 +96,16 @@ public sealed class RunController : BaseApiController
             var run = _runManager.GetRun(runId);
             if (run.IsFailure)
                 return ApiNotFound(run.Error);
+            var commands = _runManager.GetAvailableCommands(runId);
+            if (commands.IsFailure)
+                return ApiBadRequest(ApiErrorCodes.InvalidOperation, "Available commands failed", commands.Error);
 
             return Ok(new
             {
                 runId,
                 run.Value.Sequence,
                 run.Value.Determinism.Step,
-                commands = RunMapTransitions.GetAvailableCommands(run.Value)
+                commands = commands.Value
             });
         }
         catch (Exception ex)
@@ -147,6 +151,7 @@ public sealed class RunController : BaseApiController
                     state.ConfigName,
                     state.PlayerEntityId,
                     state.CurrentNodeId,
+                    state.Lifecycle,
                     state.Determinism.Step,
                     state.Determinism.ContentRevision,
                     CanonicalJson.ComputeHash(state),
@@ -299,6 +304,7 @@ public sealed class RunController : BaseApiController
                 StringComparer.OrdinalIgnoreCase),
             run.CurrentNodeId,
             run.Sequence,
+            run.Lifecycle,
             seed = run.Determinism.Seed,
             run.Determinism.ContentRevision,
             run.ContentManifest,
@@ -331,7 +337,10 @@ public sealed class RunController : BaseApiController
             nodes = run.Map.Nodes.Select(node => new
             {
                 node.NodeId,
-                node.NodeType,
+                node.Activity,
+                node.CompletionPolicy,
+                node.EntryEffects,
+                node.ExitEffects,
                 node.NextNodeIds,
                 visited = visited.Contains(node.NodeId),
                 resolved = resolved.Contains(node.NodeId),
@@ -346,6 +355,7 @@ public sealed class RunController : BaseApiController
         string ConfigName,
         string PlayerEntityId,
         string? CurrentNodeId,
+        RunLifecycleState Lifecycle,
         ulong Step,
         string ContentRevision,
         string StateHash,

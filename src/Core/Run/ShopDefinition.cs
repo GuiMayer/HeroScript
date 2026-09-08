@@ -101,6 +101,7 @@ public sealed record ShopState
 
     public Guid ShopInstanceId { get; init; }
     public Guid RunId { get; init; }
+    public string NodeId { get; init; } = string.Empty;
     public string ShopId { get; init; } = string.Empty;
     public string? CardPoolId { get; init; }
     public string OfferFingerprint { get; init; } = string.Empty;

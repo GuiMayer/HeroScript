@@ -90,7 +90,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     [Fact]
     public async Task BuyShopItem_InsufficientGold_ReturnsError()
     {
-        var (runId, _) = await SetupRunAsync();
+        var (runId, _) = await SetupRunAsync("combat_sandbox");
 
         // Buy a published offer and a paid preparation option, leaving less
         // gold than every item in the next basic-shop offer.

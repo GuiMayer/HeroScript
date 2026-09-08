@@ -12,8 +12,8 @@ public sealed class RunMapTransitionsTests
         var nextNodeIds = new List<string> { "reward" };
         var definitions = new List<RunMapNodeDefinition>
         {
-            new() { NodeId = "start", NodeType = "combat", NextNodeIds = nextNodeIds },
-            new() { NodeId = "reward", NodeType = "card_selection" }
+            new() { NodeId = "start", Activity = Encounter(), NextNodeIds = nextNodeIds },
+            new() { NodeId = "reward", Activity = CardSelection() }
         };
 
         var result = RunMapTransitions.Create(definitions);
@@ -85,7 +85,7 @@ public sealed class RunMapTransitionsTests
         Assert.Empty(beforeResolution.TargetNodeIds);
         Assert.Equal(RunCommandTypes.AdvanceNode, afterResolution.Type);
         Assert.Equal(new[] { "reward" }, afterResolution.TargetNodeIds);
-        Assert.Equal(RunCommandTypes.ResolveNode,
+        Assert.Equal(RunCommandTypes.CreateCardSelection,
             Assert.Single(RunMapTransitions.GetAvailableCommands(terminal)).Type);
     }
 
@@ -96,16 +96,16 @@ public sealed class RunMapTransitionsTests
             new RunMapNodeDefinition
             {
                 NodeId = "start",
-                NodeType = "combat",
+                Activity = Encounter(),
                 NextNodeIds = ["reward"]
             },
             new RunMapNodeDefinition
             {
                 NodeId = "reward",
-                NodeType = "card_selection",
+                Activity = CardSelection(),
                 NextNodeIds = ["boss"]
             },
-            new RunMapNodeDefinition { NodeId = "boss", NodeType = "combat" }
+            new RunMapNodeDefinition { NodeId = "boss", Activity = Encounter() }
         ]).Value;
 
         return new RunState
@@ -116,4 +116,11 @@ public sealed class RunMapTransitionsTests
             Determinism = DeterministicContext.Create(42, new string('a', 64))
         };
     }
+
+    private static RunActivityDefinition Encounter() => new() { Type = RunActivityType.Encounter };
+    private static RunActivityDefinition CardSelection() => new()
+    {
+        Type = RunActivityType.CardSelection,
+        DefinitionId = "reward"
+    };
 }

@@ -26,13 +26,15 @@ public static class PreparationTransitions
 {
     public static RunStateTransition<PreparationState> Create(
         RunState state,
-        PreparationDefinition definition)
+        PreparationDefinition definition,
+        string nodeId = "")
     {
         var instanceId = state.Determinism.AllocateId("preparation");
         var preparation = new PreparationState
         {
             PreparationInstanceId = instanceId.Value,
             RunId = state.RunId,
+            NodeId = nodeId,
             PreparationId = definition.PreparationId,
             Options = definition.Options.Select(option => new PreparationOptionState
             {

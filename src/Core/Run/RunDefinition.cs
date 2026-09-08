@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.Effects;
 
 namespace Core.Run;
 
@@ -40,9 +41,22 @@ public sealed record RunMapNodeDefinition
 {
     private ImmutableList<string> _nextNodeIds = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
+    private ImmutableArray<EffectDefinition> _entryEffects = [];
+    private ImmutableArray<EffectDefinition> _exitEffects = [];
 
     public string NodeId { get; init; } = string.Empty;
-    public string NodeType { get; init; } = "combat";
+    public RunActivityDefinition Activity { get; init; } = new();
+    public RunActivityCompletionPolicy CompletionPolicy { get; init; } = RunActivityCompletionPolicy.Required;
+    public IReadOnlyList<EffectDefinition> EntryEffects
+    {
+        get => _entryEffects;
+        init => _entryEffects = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectDefinition> ExitEffects
+    {
+        get => _exitEffects;
+        init => _exitEffects = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<string> NextNodeIds
     {
         get => _nextNodeIds;

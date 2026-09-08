@@ -97,7 +97,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     public async Task CardSelection_PickReward_AddsToDeck()
     {
         // Setup run
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
 
         // Open card selection (simulate post-combat reward)
         var selectionResponse = await Client.StartCardSelectionAsync(runId, "basic_reward");
@@ -122,7 +122,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     public async Task Shop_BuyItem_GoldDecreases()
     {
         // Setup run
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
         var initialGold = GetRunResource(runState, "gold");
 
         // Open shop
@@ -154,7 +154,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     public async Task Preparation_ApplyOption_StateUpdates()
     {
         // Setup run
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
 
         // Start preparation (rest, upgrade, etc.)
         var prepResponse = await Client.StartPreparationAsync(runId, "basic_preparation");
@@ -205,7 +205,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     public async Task RerollCardSelection_ChangesOptions_CostsGold()
     {
         // Setup run
-        var (runId, runState) = await SetupRunAsync();
+        var (runId, runState) = await SetupRunAsync("combat_sandbox");
         var initialGold = GetRunResource(runState, "gold");
 
         // Open card selection

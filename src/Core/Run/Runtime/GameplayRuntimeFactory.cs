@@ -6,6 +6,7 @@ using Core.Combat.Modifiers;
 using Core.Config;
 using Core.Content;
 using Core.Events;
+using Core.Effects;
 using Core.Resources;
 using Core.Run.Content;
 
@@ -60,6 +61,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
     private readonly ICombatFlowPlanner _flow;
     private readonly IGambitEngine _gambits;
     private readonly IAbilityExecutor _abilities;
+    private readonly IEffectTriggerExecutor _effectTriggers;
     private readonly IGameEventContextAccessor _eventContext;
     private readonly IGameplayCommandCodec _codec;
     private readonly IReadOnlyList<string> _registeredCommandTypes;
@@ -83,6 +85,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         ICombatFlowPlanner flow,
         IGambitEngine gambits,
         IAbilityExecutor abilities,
+        IEffectTriggerExecutor effectTriggers,
         IGameEventContextAccessor eventContext,
         IGameplayCommandCodec codec)
     {
@@ -104,6 +107,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         _flow = flow ?? throw new ArgumentNullException(nameof(flow));
         _gambits = gambits ?? throw new ArgumentNullException(nameof(gambits));
         _abilities = abilities ?? throw new ArgumentNullException(nameof(abilities));
+        _effectTriggers = effectTriggers ?? throw new ArgumentNullException(nameof(effectTriggers));
         _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
         _codec = codec ?? throw new ArgumentNullException(nameof(codec));
         _registeredCommandTypes = codec.Descriptors
@@ -123,6 +127,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             throw new InvalidOperationException("Ephemeral gameplay runtime cannot write authoritative commits");
 
         var sessionGates = new RunSessionGateProvider();
+        var activities = RunActivityRegistry.CreateDefault();
+        var activityEffects = new RunActivityEffectExecutor(_effectTriggers);
         var runs = new RunManager(
             _configManager,
             _resourceLoader,
@@ -140,7 +146,9 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _contentRuntimes,
             _resources,
             options.HistoryReader ?? options.CommitStore,
-            sessionGates);
+            sessionGates,
+            activities,
+            activityEffects);
         RunManager CreatePlanningEngine() => new(
             _configManager,
             _resourceLoader,
@@ -157,11 +165,13 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _publications,
             _contentRuntimes,
             _resources,
-            options.HistoryReader ?? options.CommitStore);
+            options.HistoryReader ?? options.CommitStore,
+            activities: activities,
+            activityEffects: activityEffects);
         var runCommands = new RunSessionCoordinator(
             runs,
             _codec,
-            RunCommandHandlers.Create(_codec, CreatePlanningEngine),
+            RunCommandHandlers.Create(_codec, CreatePlanningEngine, activities),
             state =>
             {
                 var published = runs.HydrateForReplay(state);
