@@ -61,9 +61,11 @@ public sealed record SandboxActorSnapshot
     private ImmutableArray<StatusEffectInstance> _statuses = [];
     private ImmutableArray<ScriptModifierInstance> _modifiers = [];
 
-    public string EntityId { get; init; } = string.Empty;
+    public string InstanceId { get; init; } = string.Empty;
+    public string DefinitionId { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
-    public bool IsHero { get; init; }
+    public string SideId { get; init; } = string.Empty;
+    public ControllerBinding ControllerBinding { get; init; } = new();
     public bool IsAlive { get; init; }
     public IReadOnlyDictionary<string, SandboxResourceSnapshot> Resources
     {
@@ -126,10 +128,8 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
             return Result<SandboxCombatSnapshot>.Failure($"Sandbox run has no active combat: {runId}");
 
         var combat = encounter.Combat;
-        var actors = combat.GetAllEntities()
+        var actors = combat.GetAllActors()
             .Select(entity => MapActor(entity, combat.StatusEffects, run.Value.Modifiers))
-            .OrderBy(actor => actor.IsHero ? 0 : 1)
-            .ThenBy(actor => actor.EntityId, StringComparer.Ordinal)
             .ToArray();
         return Result<SandboxCombatSnapshot>.Success(new SandboxCombatSnapshot
         {
@@ -162,16 +162,18 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
     }
 
     private SandboxActorSnapshot MapActor(
-        CombatEntity entity,
+        CombatActorState entity,
         IReadOnlyDictionary<string, ImmutableArray<StatusEffectInstance>> statusEffects,
         IReadOnlyList<ScriptModifierInstance> modifiers)
     {
-        var statuses = statusEffects.TryGetValue(entity.EntityId, out var active) ? active : [];
+        var statuses = statusEffects.TryGetValue(entity.InstanceId, out var active) ? active : [];
         return new SandboxActorSnapshot
         {
-            EntityId = entity.EntityId,
+            InstanceId = entity.InstanceId,
+            DefinitionId = entity.DefinitionId,
             Name = entity.Name,
-            IsHero = entity.IsHero,
+            SideId = entity.SideId,
+            ControllerBinding = entity.ControllerBinding,
             IsAlive = entity.IsAlive,
             Resources = entity.ResourceState.Resources
                 .OrderBy(item => item.Key, StringComparer.Ordinal)
@@ -181,7 +183,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                     StringComparer.Ordinal),
             Statuses = statuses,
             Modifiers = modifiers.Where(modifier =>
-                    modifier.IsActive && string.Equals(modifier.OwnerId, entity.EntityId, StringComparison.Ordinal))
+                    modifier.IsActive && string.Equals(modifier.OwnerId, entity.InstanceId, StringComparison.Ordinal))
                 .OrderBy(modifier => modifier.InstanceId)
                 .ToArray()
         };

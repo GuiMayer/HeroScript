@@ -49,12 +49,12 @@ public sealed class ActivationStateTests
     {
         return new CombatState
         {
-            Hero = CreateEntity("hero"),
-            Enemies = new[] { CreateEntity("enemy") }
+            Actors = new[] { CreateEntity("hero"), CreateEntity("enemy") }
+                .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal)
         };
     }
 
-    private static CombatEntity CreateEntity(string id)
+    private static CombatActorState CreateEntity(string id)
     {
         var healthDefinition = new ResourceDefinition
         {
@@ -66,9 +66,9 @@ public sealed class ActivationStateTests
             DefaultCurrent = 10
         };
 
-        return new CombatEntity
+        return new CombatActorState
         {
-            EntityId = id,
+            InstanceId = id,
             Name = id,
             ResourceState = new ResourceSet
             {

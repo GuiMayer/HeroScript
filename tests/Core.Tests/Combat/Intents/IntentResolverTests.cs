@@ -3,7 +3,6 @@ using Core.Combat.Gambits;
 using Core.Combat.Intents;
 using Core.Combat.Models;
 using Core.Effects;
-using Core.Entity.Controllers;
 using Core.Resources;
 using Moq;
 using Xunit;
@@ -21,7 +20,7 @@ public sealed class IntentResolverTests
         var state = CreateState();
         _gambitEngine
             .Setup(engine => engine.DecideActionWithMetadata(
-                It.IsAny<Core.Entity.Entity>(),
+                It.IsAny<CombatActorState>(),
                 state,
                 It.IsAny<IEnumerable<string>>()))
             .Returns(Core.Common.Result<GambitDecision>.Success(new GambitDecision
@@ -78,7 +77,7 @@ public sealed class IntentResolverTests
     {
         var state = CreateState(includeDeadEnemy: true);
         _gambitEngine
-            .Setup(engine => engine.DecideActionWithMetadata(It.IsAny<Core.Entity.Entity>(), state, It.IsAny<IEnumerable<string>>()))
+            .Setup(engine => engine.DecideActionWithMetadata(It.IsAny<CombatActorState>(), state, It.IsAny<IEnumerable<string>>()))
             .Returns(Core.Common.Result<GambitDecision>.Success(new GambitDecision
             {
                 Action = new EntityAction { ActionType = ActionType.PASS }
@@ -98,7 +97,7 @@ public sealed class IntentResolverTests
     {
         var state = CreateState();
         _gambitEngine
-            .Setup(engine => engine.DecideActionWithMetadata(It.IsAny<Core.Entity.Entity>(), state, It.IsAny<IEnumerable<string>>()))
+            .Setup(engine => engine.DecideActionWithMetadata(It.IsAny<CombatActorState>(), state, It.IsAny<IEnumerable<string>>()))
             .Returns(Core.Common.Result<GambitDecision>.Success(new GambitDecision
             {
                 Action = new EntityAction
@@ -129,24 +128,24 @@ public sealed class IntentResolverTests
 
     private static CombatState CreateState(bool includeDeadEnemy = false)
     {
-        var enemies = new List<CombatEntity> { CreateEntity("enemy-1", "Enemy", isHero: false, health: 40) };
+        var enemies = new List<CombatActorState> { CreateEntity("enemy-1", "Enemy", isHero: false, health: 40) };
         if (includeDeadEnemy)
             enemies.Add(CreateEntity("enemy-2", "Dead Enemy", isHero: false, health: 0));
 
+        var hero = CreateEntity("hero", "Hero", isHero: true, health: 100);
         return new CombatState
         {
-            Hero = CreateEntity("hero", "Hero", isHero: true, health: 100),
-            Enemies = enemies
+            Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal)
         };
     }
 
-    private static CombatEntity CreateEntity(string entityId, string name, bool isHero, float health)
+    private static CombatActorState CreateEntity(string entityId, string name, bool isHero, float health)
     {
-        return new CombatEntity
+        return new CombatActorState
         {
-            EntityId = entityId,
+            InstanceId = entityId,
             Name = name,
-            IsHero = isHero,
+            SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
             ResourceState = new ResourceSet
             {
                 OwnerId = entityId,

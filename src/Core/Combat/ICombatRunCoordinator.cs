@@ -10,15 +10,13 @@ public interface ICombatRunCoordinator
 {
     Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,
-        CombatParticipantReference hero,
-        IReadOnlyList<CombatParticipantReference> enemies,
+        IReadOnlyList<CombatParticipantReference> participants,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? initialResourceValues = null,
         RunCommandIdentity? commandIdentity = null,
         JsonElement commandPayload = default);
     Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,
-        CombatEntity hero,
-        IReadOnlyList<CombatEntity> enemies,
+        IReadOnlyList<CombatActorState> participants,
         RunCommandIdentity? commandIdentity = null,
         IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatusEffects = null,
         JsonElement commandPayload = default);

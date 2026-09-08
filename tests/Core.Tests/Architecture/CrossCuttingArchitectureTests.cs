@@ -8,7 +8,6 @@ using Core.Resources;
 using Core.Run;
 using Core.StatusEffects;
 using Core.Events.Domain;
-using Core.Entity.Components;
 using Core.Math;
 using System.Collections.Immutable;
 using System.Collections.Concurrent;
@@ -111,7 +110,12 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Combat.TurnPhase.PrioritySystem",
             "Core.Combat.TurnPhase.ActionStackManager",
             "Core.Combat.TurnPhase.PhaseSystemFactory",
-            "Core.Combat.TurnPhase.PhaseSequenceLoader"
+            "Core.Combat.TurnPhase.PhaseSequenceLoader",
+            "Core.Entity.Entity",
+            "Core.Entity.IComponent",
+            "Core.Entity.ComponentBase",
+            "Core.Entity.Definitions.EntityFactory",
+            "Core.Entity.Integration.EntityCombatAdapter"
         };
         var present = removedTypes
             .Where(name => coreAssembly.GetType(name) != null)
@@ -180,7 +184,7 @@ public sealed class CrossCuttingArchitectureTests
         var ownerTypes = new[]
         {
             typeof(ResourceSet),
-            typeof(CombatEntity)
+            typeof(CombatActorState)
         };
         var exposed = ownerTypes
             .SelectMany(type => type
@@ -195,8 +199,8 @@ public sealed class CrossCuttingArchitectureTests
         Assert.NotNull(typeof(ResourceSet).GetMethod(
             nameof(ResourceSet.Apply),
             BindingFlags.Instance | BindingFlags.Public));
-        Assert.NotNull(typeof(CombatEntity).GetMethod(
-            nameof(CombatEntity.ApplyResourceMutation),
+        Assert.NotNull(typeof(CombatActorState).GetMethod(
+            nameof(CombatActorState.ApplyResourceMutation),
             BindingFlags.Instance | BindingFlags.Public));
     }
 
@@ -240,7 +244,7 @@ public sealed class CrossCuttingArchitectureTests
         Assert.Null(coreAssembly.GetType("Core.Combat.IEntityFactory"));
         Assert.Null(coreAssembly.GetType("Core.Combat.EntityFactory"));
         Assert.Null(typeof(ResourceSet).GetMethod("FirstInCategory"));
-        Assert.Null(typeof(ResourceComponent).GetMethod("GetVitalResource"));
+        Assert.Null(coreAssembly.GetType("Core.Entity.Components.ResourceComponent"));
     }
 
     [Theory]

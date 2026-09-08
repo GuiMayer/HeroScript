@@ -42,10 +42,10 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
     public Result<CombatState> InitializeState(CombatState state)
     {
         var context = state.Determinism;
-        var entities = new List<(string EntityId, int Initiative)>();
+        var entities = new List<(string InstanceId, int Initiative)>();
 
-        var actors = state.GetAllEntities()
-            .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+        var actors = state.GetAllActors()
+            .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
             .ToArray();
         var modifiers = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var entity in actors)
@@ -53,20 +53,20 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
             var modifier = GetResourceModifier(entity);
             if (modifier.IsFailure)
                 return Result<CombatState>.Failure(modifier.Error);
-            modifiers[entity.EntityId] = modifier.Value;
+            modifiers[entity.InstanceId] = modifier.Value;
         }
 
         foreach (var entity in actors)
         {
             var roll = context.DrawInt32(_dieSides);
             context = roll.Context;
-            entities.Add((entity.EntityId, roll.Value + 1 + modifiers[entity.EntityId]));
+            entities.Add((entity.InstanceId, roll.Value + 1 + modifiers[entity.InstanceId]));
         }
 
         var order = entities
             .OrderByDescending(entity => entity.Initiative)
-            .ThenBy(entity => entity.EntityId, StringComparer.Ordinal)
-            .Select(entity => entity.EntityId)
+            .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal)
+            .Select(entity => entity.InstanceId)
             .ToList();
 
         _logger?.LogDebug($"Initiative turn order calculated: {string.Join(", ", order)}");
@@ -111,13 +111,13 @@ public class InitiativeTurnOrderCalculator : ITurnOrderCalculator
         return Result.Success();
     }
     
-    private Result<int> GetResourceModifier(CombatEntity entity)
+    private Result<int> GetResourceModifier(CombatActorState entity)
     {
         if (entity.ResourceState.Resources.TryGetValue(_modifierResourceId, out var resource))
             return Result<int>.Success((int)(resource.Current / _resourcePerModifier));
         return _missingResourceValue.HasValue
             ? Result<int>.Success((int)(_missingResourceValue.Value / _resourcePerModifier))
             : Result<int>.Failure(
-                $"Initiative resource '{_modifierResourceId}' is missing from actor '{entity.EntityId}'");
+                $"Initiative resource '{_modifierResourceId}' is missing from actor '{entity.InstanceId}'");
     }
 }

@@ -1,172 +1,118 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 
 namespace Core.Entity.Definitions;
 
 /// <summary>
-/// Definição de recursos para uma entidade
+/// An entity definition is a role-free container of immutable components.
+/// Combat ownership and control belong to the participant that materializes it.
 /// </summary>
-public record ResourcesDefinition
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record EntityDefinition
 {
-    private ImmutableDictionary<string, ResourcePoolDefinition> _resources =
-        ImmutableDictionary<string, ResourcePoolDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableArray<EntityComponentDefinition> _components = [];
+    private ImmutableDictionary<string, object> _metadata =
+        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
 
-    public IReadOnlyDictionary<string, ResourcePoolDefinition> Resources
+    public string DefinitionId { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public string IconPath { get; init; } = string.Empty;
+    public string SpritePath { get; init; } = string.Empty;
+    public IReadOnlyList<EntityComponentDefinition> Components
     {
-        get => _resources;
-        init => _resources = value?.ToImmutableDictionary(StringComparer.Ordinal)
+        get => _components;
+        init => _components = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyDictionary<string, object> Metadata
+    {
+        get => _metadata;
+        init => _metadata = value?.ToImmutableDictionary(StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
+    }
+
+    public T? Component<T>(string? componentId = null) where T : EntityComponentDefinition =>
+        _components.OfType<T>().FirstOrDefault(component =>
+            componentId == null || string.Equals(component.ComponentId, componentId, StringComparison.Ordinal));
+}
+
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(ResourceEntityComponentDefinition), "resources")]
+[JsonDerivedType(typeof(StatEntityComponentDefinition), "stats")]
+[JsonDerivedType(typeof(InventoryEntityComponentDefinition), "inventory")]
+[JsonDerivedType(typeof(AbilityEntityComponentDefinition), "abilities")]
+[JsonDerivedType(typeof(AiBindingEntityComponentDefinition), "aiBinding")]
+public abstract record EntityComponentDefinition
+{
+    public string ComponentId { get; init; } = string.Empty;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ResourceEntityComponentDefinition : EntityComponentDefinition
+{
+    private ImmutableDictionary<string, ResourcePoolDefinition> _pools =
+        ImmutableDictionary<string, ResourcePoolDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+    public IReadOnlyDictionary<string, ResourcePoolDefinition> Pools
+    {
+        get => _pools;
+        init => _pools = value?.ToImmutableDictionary(StringComparer.Ordinal)
             ?? ImmutableDictionary<string, ResourcePoolDefinition>.Empty.WithComparers(StringComparer.Ordinal);
     }
 }
 
-/// <summary>
-/// Definição de um pool de recurso
-/// </summary>
-public record ResourcePoolDefinition
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ResourcePoolDefinition
 {
     public float Current { get; init; }
     public float Max { get; init; }
 }
 
-/// <summary>
-/// Definição de stats para uma entidade
-/// </summary>
-public record StatsDefinition
+/// <summary>Stats have no built-in semantics; formulas opt into values by ID.</summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record StatEntityComponentDefinition : EntityComponentDefinition
 {
-    private ImmutableDictionary<string, float> _customStats =
+    private ImmutableDictionary<string, float> _values =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
-
-    public float Strength { get; init; } = 10;
-    public float Dexterity { get; init; } = 10;
-    public float Intelligence { get; init; } = 10;
-    public float Constitution { get; init; } = 10;
-    public float Wisdom { get; init; } = 10;
-    public float Charisma { get; init; } = 10;
-    public IReadOnlyDictionary<string, float> CustomStats
+    public IReadOnlyDictionary<string, float> Values
     {
-        get => _customStats;
-        init => _customStats = value?.ToImmutableDictionary(StringComparer.Ordinal)
+        get => _values;
+        init => _values = value?.ToImmutableDictionary(StringComparer.Ordinal)
             ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
     }
 }
 
-/// <summary>
-/// Definição de inventário para uma entidade
-/// </summary>
-public record InventoryDefinition
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record InventoryEntityComponentDefinition : EntityComponentDefinition
 {
-    private ImmutableArray<string> _startingItems = ImmutableArray<string>.Empty;
-
-    public int MaxCapacity { get; init; } = -1;
+    private ImmutableArray<string> _startingItems = [];
+    public int Capacity { get; init; } = -1;
     public IReadOnlyList<string> StartingItems
     {
         get => _startingItems;
-        init => _startingItems = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+        init => _startingItems = value?.ToImmutableArray() ?? [];
     }
 }
 
-/// <summary>
-/// Definição de AI para inimigos
-/// </summary>
-public record AIDefinition
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record AbilityEntityComponentDefinition : EntityComponentDefinition
 {
-    private ImmutableArray<string> _actions = ImmutableArray<string>.Empty;
-
-    public string BehaviorTree { get; init; } = string.Empty;
-    public string DecisionResourceId { get; init; } = string.Empty;
-    public IReadOnlyList<string> Actions
+    private ImmutableArray<string> _abilityIds = [];
+    public IReadOnlyList<string> AbilityIds
     {
-        get => _actions;
-        init => _actions = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+        get => _abilityIds;
+        init => _abilityIds = value?.ToImmutableArray() ?? [];
     }
-    public float LowResourceThreshold { get; init; } = 0.5f;
-    public float FleeResourceThreshold { get; init; } = 0.3f;
 }
 
-/// <summary>
-/// Definição de Gambits para companions
-/// </summary>
-public record GambitDefinition
+/// <summary>Optional AI data; participant configuration still chooses the controller.</summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record AiBindingEntityComponentDefinition : EntityComponentDefinition
 {
-    private ImmutableArray<string> _gambitIds = ImmutableArray<string>.Empty;
-
+    private ImmutableArray<string> _gambitIds = [];
+    public string PolicyId { get; init; } = string.Empty;
     public IReadOnlyList<string> GambitIds
     {
         get => _gambitIds;
-        init => _gambitIds = value?.ToImmutableArray() ?? ImmutableArray<string>.Empty;
+        init => _gambitIds = value?.ToImmutableArray() ?? [];
     }
-}
-
-/// <summary>
-/// Definição completa de uma entidade configurável via JSON
-/// </summary>
-public record EntityDefinition
-{
-    private ImmutableDictionary<string, object> _customData =
-        ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
-
-    /// <summary>
-    /// ID único da definição
-    /// </summary>
-    public string DefinitionId { get; init; } = string.Empty;
-    
-    /// <summary>
-    /// Tipo da entidade
-    /// </summary>
-    public EntityType Type { get; init; }
-    
-    /// <summary>
-    /// Nome para exibição
-    /// </summary>
-    public string DisplayName { get; init; } = string.Empty;
-    
-    /// <summary>
-    /// Descrição da entidade
-    /// </summary>
-    public string Description { get; init; } = string.Empty;
-    
-    /// <summary>
-    /// Definição de recursos (HP, energia, etc.)
-    /// </summary>
-    public ResourcesDefinition? Resources { get; init; }
-    
-    /// <summary>
-    /// Definição de stats (STR, DEX, etc.)
-    /// </summary>
-    public StatsDefinition? Stats { get; init; }
-    
-    /// <summary>
-    /// Definição de inventário
-    /// </summary>
-    public InventoryDefinition? Inventory { get; init; }
-    
-    /// <summary>
-    /// Definição de AI (para inimigos)
-    /// </summary>
-    public AIDefinition? AI { get; init; }
-    
-    /// <summary>
-    /// Definição de Gambits (para companions)
-    /// </summary>
-    public GambitDefinition? Gambits { get; init; }
-    
-    /// <summary>
-    /// Caminho do ícone
-    /// </summary>
-    public string IconPath { get; init; } = string.Empty;
-    
-    /// <summary>
-    /// Caminho do sprite
-    /// </summary>
-    public string SpritePath { get; init; } = string.Empty;
-    
-    /// <summary>
-    /// Dados customizados adicionais
-    /// </summary>
-    public IReadOnlyDictionary<string, object> CustomData
-    {
-        get => _customData;
-        init => _customData = value?.ToImmutableDictionary(StringComparer.Ordinal)
-            ?? ImmutableDictionary<string, object>.Empty.WithComparers(StringComparer.Ordinal);
-    }
-    
 }

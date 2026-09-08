@@ -110,7 +110,7 @@ public sealed class CardInspectionServiceTests
         Assert.Single(first.Value.ContextSources!.Relics);
         Assert.Single(first.Value.ContextSources.Modifiers);
         Assert.Single(first.Value.ContextSources.Statuses["hero"]);
-        Assert.Equal("enemy", Assert.Single(first.Value.ContextSources.CandidateTargets).EntityId);
+        Assert.Equal("enemy", Assert.Single(first.Value.ContextSources.CandidateTargets).InstanceId);
         executor.Verify(service => service.Execute(It.IsAny<CardPlayExecutionRequest>()), Times.Exactly(2));
     }
 
@@ -148,8 +148,8 @@ public sealed class CardInspectionServiceTests
         var combat = new CombatState
         {
             CombatId = CombatId,
-            Hero = Entity("hero", true),
-            Enemies = [Entity("enemy", false)],
+            Actors = new[] { Entity("hero", true), Entity("enemy", false) }
+                .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
             ActivationState = new ActivationState
             {
                 ActiveActorId = "hero",
@@ -261,10 +261,10 @@ public sealed class CardInspectionServiceTests
         return result.Value;
     }
 
-    private static CombatEntity Entity(string id, bool hero) => new()
+    private static CombatActorState Entity(string id, bool hero) => new()
     {
-        EntityId = id,
-        IsHero = hero,
+        InstanceId = id,
+        SideId = hero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = hero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet { OwnerId = id }
     };
 }

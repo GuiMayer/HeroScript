@@ -73,7 +73,7 @@ public sealed class StatusPolicyTests
             StatusTriggerBoundary.EndActivation, "enemy");
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Single(result.Value.Events);
-        Assert.Equal(10, result.Value.Combat.GetEntity("enemy")!.GetResource("focus")!.Current);
+        Assert.Equal(10, result.Value.Combat.GetActor("enemy")!.GetResource("focus")!.Current);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public sealed class StatusPolicyTests
     {
         var state = Apply(GameplayOwnershipTests.State(), new() { StatusId = "silence",
             ActionConstraints = [new() { ConstraintId = "no-spells", RequiredActionTags = ["spell"] }] }, 1, -1);
-        Assert.Single(StatusActionConstraints.Evaluate(state, state.GetEntity("enemy")!, new HashSet<string> { "spell" }, null, "revision").Value);
-        Assert.Empty(StatusActionConstraints.Evaluate(state, state.GetEntity("enemy")!, new HashSet<string> { "attack" }, null, "revision").Value);
+        Assert.Single(StatusActionConstraints.Evaluate(state, state.GetActor("enemy")!, new HashSet<string> { "spell" }, null, "revision").Value);
+        Assert.Empty(StatusActionConstraints.Evaluate(state, state.GetActor("enemy")!, new HashSet<string> { "attack" }, null, "revision").Value);
     }
 
     private static CombatState Apply(CombatState state, StatusEffectDefinition definition, int stacks, int duration)

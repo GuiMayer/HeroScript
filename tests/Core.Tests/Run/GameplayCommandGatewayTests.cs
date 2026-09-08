@@ -72,11 +72,13 @@ public sealed class GameplayCommandGatewayTests
         var combats = new Mock<ICombatRunCoordinator>();
         combats.Setup(service => service.StartEncounter(
                 runId,
-                new CombatParticipantReference("hero", "player_warrior"),
-                It.Is<IReadOnlyList<CombatParticipantReference>>(enemies =>
-                    enemies.SequenceEqual(new[]
+                It.Is<IReadOnlyList<CombatParticipantReference>>(participants =>
+                    participants.SequenceEqual(new[]
                     {
-                        new CombatParticipantReference("enemy", "enemy_goblin")
+                        new CombatParticipantReference("hero", "player_warrior", "player",
+                            new ControllerBinding { Kind = ControllerKind.Player }),
+                        new CombatParticipantReference("enemy", "enemy_goblin", "opposition",
+                            new ControllerBinding { Kind = ControllerKind.AI, PolicyId = "gambit" })
                     })),
                 It.Is<IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>>(values =>
                     values["hero"]["energy"] == 3),
@@ -95,10 +97,12 @@ public sealed class GameplayCommandGatewayTests
                 new RunCommandIdentity(commandId, RunCommandTypes.StartEncounter, 1, 0),
                 JsonSerializer.SerializeToElement(new
                 {
-                    hero = new { entityId = "hero", definitionId = "player_warrior" },
-                    enemies = new[]
+                    participants = new object[]
                     {
-                        new { entityId = "enemy", definitionId = "enemy_goblin" }
+                        new { instanceId = "hero", definitionId = "player_warrior", sideId = "player",
+                            controllerBinding = new { kind = "Player" } },
+                        new { instanceId = "enemy", definitionId = "enemy_goblin", sideId = "opposition",
+                            controllerBinding = new { kind = "AI", policyId = "gambit" } }
                     },
                     initialResourceValues = new Dictionary<string, IReadOnlyDictionary<string, float>>
                     {
@@ -123,7 +127,10 @@ public sealed class GameplayCommandGatewayTests
         var combat = new CombatState
         {
             CombatId = combatId,
-            Hero = new CombatEntity { EntityId = "hero" }
+            Actors = new Dictionary<string, CombatActorState>
+            {
+                ["hero"] = new() { InstanceId = "hero", SideId = "player", ControllerBinding = new() { Kind = ControllerKind.Player } }
+            }
         };
         var run = new RunState
         {

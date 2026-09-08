@@ -23,8 +23,8 @@ public sealed class CombatFactoryTests
             RunNodeId: "encounter",
             IdScope: "factory-test");
 
-        var first = factory.Create(participants.Hero, participants.Enemies, options);
-        var replay = factory.Create(participants.Hero, participants.Enemies, options);
+        var first = factory.Create(participants.GetAllActors().ToArray(), options);
+        var replay = factory.Create(participants.GetAllActors().ToArray(), options);
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.True(replay.IsSuccess, replay.IsFailure ? replay.Error : null);
@@ -40,11 +40,10 @@ public sealed class CombatFactoryTests
             new FixedTurnOrderCalculator(NullLogger.Instance));
 
         var result = factory.Create(
-            participants.Hero,
-            participants.Enemies,
+            participants.GetAllActors().ToArray(),
             new CombatStartOptions(ContentRevision: new string('a', 64)));
 
         Assert.True(result.IsFailure);
-        Assert.Contains("seed is required", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("seed", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 }

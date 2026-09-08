@@ -62,7 +62,7 @@ public sealed class RunBranchTransitionsTests
                         CombatId = combatId,
                         RunId = Guid.Parse("10000000-0000-0000-0000-000000000011"),
                         Determinism = DeterministicContext.Create(987, "content-v1"),
-                        Hero = CreateHero()
+                        Actors = new Dictionary<string, CombatActorState> { ["hero"] = CreateHero() }
                     }
                 }
             ],
@@ -142,7 +142,7 @@ public sealed class RunBranchTransitionsTests
                         CombatId = combatId,
                         RunId = runId,
                         Determinism = DeterministicContext.Create(987, "content-v1"),
-                        Hero = CreateHero(),
+                        Actors = new Dictionary<string, CombatActorState> { ["hero"] = CreateHero() },
                         ActivationState = new ActivationState { RunId = runId }
                     }
                 }
@@ -180,11 +180,11 @@ public sealed class RunBranchTransitionsTests
         Assert.Single(source.CombatResolutions);
     }
 
-    private static CombatEntity CreateHero() => new()
+    private static CombatActorState CreateHero() => new()
     {
-        EntityId = "hero",
+        InstanceId = "hero",
         Name = "Hero",
-        IsHero = true,
+        SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
         ResourceState = new ResourceSet
         {
             OwnerId = "hero",

@@ -25,8 +25,8 @@ public sealed class ImmutableEffectProcessorTests
         var result = _processor.Apply(state, [effect]);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(5, result.Value.State.GetEntity("enemy")!.GetResource("mana")!.Current);
-        Assert.Equal(8, state.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(5, result.Value.State.GetActor("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(8, state.GetActor("enemy")!.GetResource("mana")!.Current);
         Assert.Equal("mana", Assert.Single(result.Value.Records).ResourceId);
     }
 
@@ -45,8 +45,8 @@ public sealed class ImmutableEffectProcessorTests
 
         Assert.True(card.IsSuccess && status.IsSuccess);
         Assert.Equal(
-            card.Value.State.GetEntity("enemy")!.GetResource("focus")!.Current,
-            status.Value.State.GetEntity("enemy")!.GetResource("focus")!.Current);
+            card.Value.State.GetActor("enemy")!.GetResource("focus")!.Current,
+            status.Value.State.GetActor("enemy")!.GetResource("focus")!.Current);
         Assert.Equal(EffectProvenanceKind.Card, card.Value.Records[0].Provenance.Kind);
         Assert.Equal(EffectProvenanceKind.Status, status.Value.Records[0].Provenance.Kind);
     }
@@ -63,7 +63,7 @@ public sealed class ImmutableEffectProcessorTests
         ]);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(8, state.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(8, state.GetActor("enemy")!.GetResource("mana")!.Current);
     }
 
     [Fact]
@@ -116,8 +116,8 @@ public sealed class ImmutableEffectProcessorTests
         var effect = ResourceEffect("signed", EffectType.MODIFY_RESOURCE, "focus", amount, EffectProvenanceKind.Rule);
         var result = _processor.Apply(state, [effect with { Definition = effect.Definition with { Operation = operation } }]);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(expected, result.Value.State.Enemies[0].GetResource("focus")!.Current);
-        Assert.Equal(8, state.Enemies[0].GetResource("focus")!.Current);
+        Assert.Equal(expected, result.Value.State.GetActor("enemy")!.GetResource("focus")!.Current);
+        Assert.Equal(8, state.GetActor("enemy")!.GetResource("focus")!.Current);
     }
 
     private static ResolvedEffectCommand ResourceEffect(
@@ -144,21 +144,20 @@ public sealed class ImmutableEffectProcessorTests
         }
     };
 
-    private static CombatState State(CombatEntity hero, params CombatEntity[] enemies) => new()
+    private static CombatState State(CombatActorState hero, params CombatActorState[] enemies) => new()
     {
         CombatId = Guid.Parse("20000000-0000-8000-8000-000000000001"),
-        Hero = hero,
-        Enemies = enemies,
+        Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
         Determinism = DeterministicContext.Create(44, "content-v1")
     };
 
-    private static CombatEntity Entity(
+    private static CombatActorState Entity(
         string id,
         bool isHero,
         params (string Id, float Current)[] resources) => new()
     {
-        EntityId = id,
-        IsHero = isHero,
+        InstanceId = id,
+        SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

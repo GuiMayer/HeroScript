@@ -57,10 +57,19 @@ public abstract class GameEngineIntegrationTestBase : IClassFixture<TestWebAppli
     protected static void AssertCombatStateValid(JsonElement combatState)
     {
         AssertJsonPropertyExists(combatState, "combatId");
-        AssertJsonPropertyExists(combatState, "hero");
-        AssertJsonPropertyExists(combatState, "enemies");
+        AssertJsonPropertyExists(combatState, "actors");
         AssertJsonPropertyExists(combatState, "currentTurn");
     }
+
+    protected static JsonElement GetActor(JsonElement combatState, string instanceId) => combatState
+        .GetProperty("actors")
+        .EnumerateArray()
+        .Single(actor => actor.GetProperty("instanceId").GetString() == instanceId);
+
+    protected static JsonElement GetPlayerActor(JsonElement combatState) => combatState
+        .GetProperty("actors")
+        .EnumerateArray()
+        .First(actor => actor.GetProperty("controllerBinding").GetProperty("kind").GetString() == "Player");
 
     protected static void AssertRunStateValid(JsonElement runState)
     {

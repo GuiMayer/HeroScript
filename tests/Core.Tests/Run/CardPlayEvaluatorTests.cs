@@ -90,7 +90,7 @@ public sealed class CardPlayEvaluatorTests
         Assert.Contains("Card is disabled", result.Value.FailureReasons);
         Assert.Contains("Costs for cost.mana cannot be paid", result.Value.FailureReasons);
         Assert.Contains("Selection contains an illegal target", result.Value.FailureReasons);
-        Assert.Equal(1, combat.Hero.GetResource("mana")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("mana")!.Current);
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public sealed class CardPlayEvaluatorTests
         Assert.Contains(
             result.Value.FailureReasons,
             reason => reason.Contains("Selected card costs", StringComparison.Ordinal));
-        Assert.Equal(3, combat.Hero.GetResource("mana")!.Current);
+        Assert.Equal(3, combat.GetActor("hero")!.GetResource("mana")!.Current);
     }
 
     private CardPlayEvaluator CreateEvaluator() =>
@@ -231,20 +231,19 @@ public sealed class CardPlayEvaluatorTests
         MaximumTargets = 1
     };
 
-    private static CombatState Combat(CombatEntity hero, params CombatEntity[] enemies) => new()
+    private static CombatState Combat(CombatActorState hero, params CombatActorState[] enemies) => new()
     {
         CombatId = Guid.Parse("20000000-0000-8000-8000-000000000001"),
-        Hero = hero,
-        Enemies = enemies
+        Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal)
     };
 
-    private static CombatEntity Entity(
+    private static CombatActorState Entity(
         string id,
         bool isHero,
         params (string Id, float Current)[] resources) => new()
     {
-        EntityId = id,
-        IsHero = isHero,
+        InstanceId = id,
+        SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

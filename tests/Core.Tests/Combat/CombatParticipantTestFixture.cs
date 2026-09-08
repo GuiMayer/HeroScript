@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Core.Combat;
 using Core.Config;
-using Core.Entity;
 using Core.Entity.Definitions;
 using Core.Logging;
 using Core.Resources;
@@ -20,7 +19,7 @@ internal static class CombatParticipantTestFixture
         resources.Setup(loader => loader.LoadResource(
                 It.IsAny<string>(),
                 It.IsAny<IEnumerable<string>>(),
-                false))
+                true))
             .Returns((string path, IEnumerable<string> _, bool __) =>
             {
                 var entityId = Path.GetFileNameWithoutExtension(path);
@@ -43,19 +42,24 @@ internal static class CombatParticipantTestFixture
                 var definition = new EntityDefinition
                 {
                     DefinitionId = entityId,
-                    Type = isHero ? EntityType.PLAYER : EntityType.ENEMY,
                     DisplayName = entityId,
-                    Resources = new ResourcesDefinition { Resources = pools },
-                    AI = isHero
-                        ? null
-                        : new AIDefinition
-                        {
-                            BehaviorTree = "aggressive",
-                            DecisionResourceId = "health",
-                            Actions = ["basic_attack"],
-                            LowResourceThreshold = 0.3f,
-                            FleeResourceThreshold = 0.2f
-                        }
+                    Components = isHero
+                        ? [new ResourceEntityComponentDefinition { ComponentId = "resources", Pools = pools }]
+                        :
+                        [
+                            new ResourceEntityComponentDefinition { ComponentId = "resources", Pools = pools },
+                            new AbilityEntityComponentDefinition
+                            {
+                                ComponentId = "abilities",
+                                AbilityIds = ["basic_attack"]
+                            },
+                            new AiBindingEntityComponentDefinition
+                            {
+                                ComponentId = "ai",
+                                PolicyId = "gambit",
+                                GambitIds = ["enemy_basic_attack"]
+                            }
+                        ]
                 };
                 using var document = JsonDocument.Parse(JsonSerializer.Serialize(definition));
                 return new Dictionary<string, JsonElement>(StringComparer.Ordinal)

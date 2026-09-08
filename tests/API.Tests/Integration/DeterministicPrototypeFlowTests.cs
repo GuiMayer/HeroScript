@@ -48,7 +48,7 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
             new[] { "prototype-enemy" },
             runId: runId);
         var beforeAction = await Client.GetCombatStateAsync(combatId);
-        var initialEnemyHealth = beforeAction.GetProperty("enemies")[0]
+        var initialEnemyHealth = GetActor(beforeAction, "prototype-enemy")
             .GetProperty("resources")
             .GetProperty("health")
             .GetProperty("current")
@@ -65,7 +65,7 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
         AssertJsonPropertyEquals(afterAction, "combatId", combatId);
         var reconnectedCombat = await Client.GetCombatStateAsync(combatId);
         Assert.True(
-            reconnectedCombat.GetProperty("enemies")[0]
+            GetActor(reconnectedCombat, "prototype-enemy")
                 .GetProperty("resources")
                 .GetProperty("health")
                 .GetProperty("current")
@@ -100,16 +100,16 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
     }
 
     [Fact]
-    public async Task EntityCreation_RequiresAndPreservesClientChosenIdentity()
+    public async Task EntityCatalog_ExposesImmutableComponentDefinition()
     {
-        const string entityId = "prototype-warrior-001";
+        var entity = await Client.GetEntityDefinitionAsync("player_warrior");
 
-        var entity = await Client.CreateEntityAsync("player_warrior", entityId, "Prototype Warrior");
-
-        AssertJsonPropertyEquals(entity, "entityId", entityId);
         AssertJsonPropertyEquals(entity, "definitionId", "player_warrior");
-        AssertJsonPropertyEquals(entity, "displayName", "Prototype Warrior");
-        Assert.Equal(150, GetJsonInt(entity.GetProperty("resources").GetProperty("health"), "maximum"));
-        Assert.Equal(10, GetJsonInt(entity.GetProperty("resources").GetProperty("energy"), "maximum"));
+        AssertJsonPropertyEquals(entity, "displayName", "Warrior");
+        var resources = entity.GetProperty("components").EnumerateArray()
+            .Single(component => component.GetProperty("type").GetString() == "resources")
+            .GetProperty("pools");
+        Assert.Equal(150, GetJsonInt(resources.GetProperty("health"), "max"));
+        Assert.Equal(10, GetJsonInt(resources.GetProperty("energy"), "max"));
     }
 }

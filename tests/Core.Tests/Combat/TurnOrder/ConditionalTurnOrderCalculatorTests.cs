@@ -57,10 +57,10 @@ public class ConditionalTurnOrderCalculatorTests
     }
     
     [Fact]
-    public void CreateEnemiesFirstCalculator_ShouldOrderEnemiesBeforeHero()
+    public void CreateAiFirstCalculator_ShouldOrderAiActorsBeforePlayerActors()
     {
         // Arrange
-        var calculator = ConditionalTurnOrderCalculator.CreateEnemiesFirstCalculator(_logger);
+        var calculator = ConditionalTurnOrderCalculator.CreateAiFirstCalculator(_logger);
         var state = CreateTestCombatState("hero1", new[] { "enemy1", "enemy2", "enemy3" });
         
         // Act

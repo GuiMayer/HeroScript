@@ -4,70 +4,50 @@ using Core.Determinism;
 
 namespace Core.Combat;
 
-/// <summary>
-/// Transições puras do agregado de combate. IDs, tempo e avanço de passo são
-/// derivados exclusivamente do contexto armazenado no snapshot de entrada.
-/// </summary>
 public static class CombatTransitions
 {
     public static CombatState Create(
-        CombatEntity hero,
-        IEnumerable<CombatEntity> enemies,
+        IEnumerable<CombatActorState> actors,
         DeterministicContext context,
         string idScope = "combat")
     {
-        ArgumentNullException.ThrowIfNull(hero);
-        ArgumentNullException.ThrowIfNull(enemies);
+        ArgumentNullException.ThrowIfNull(actors);
         ArgumentNullException.ThrowIfNull(context);
-
+        var ordered = actors.ToImmutableArray();
+        var roster = ordered
+            .ToImmutableSortedDictionary(actor => actor.InstanceId, actor => actor, StringComparer.Ordinal);
         var combatId = context.AllocateId(idScope);
-        var materializedHero = string.IsNullOrWhiteSpace(hero.SideId) ? hero with { SideId = "player" } : hero;
-        var materializedEnemies = enemies.Select(entity => string.IsNullOrWhiteSpace(entity.SideId)
-            ? entity with { SideId = "opposition" } : entity).ToImmutableArray();
-        var sides = materializedEnemies.Select(entity => entity.SideId)
-            .Append(materializedHero.SideId)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(sideId => sideId, StringComparer.Ordinal)
-            .Select(sideId => new CombatSide
-            {
-                SideId = sideId,
-                Controller = string.Equals(sideId, materializedHero.SideId, StringComparison.Ordinal)
-                    ? ControllerKind.Player
-                    : ControllerKind.AI
-            })
-            .ToImmutableArray();
         return new CombatState
         {
             CombatId = combatId.Value,
             StartedAt = combatId.Context.LogicalTimestamp.UtcDateTime,
             Determinism = combatId.Context,
-            Hero = materializedHero,
-            Enemies = materializedEnemies,
-            Sides = sides,
+            Actors = roster,
+            ActorOrder = ordered.Select(actor => actor.InstanceId).ToImmutableArray(),
+            Sides = roster.Values.Select(actor => actor.SideId)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(sideId => sideId, StringComparer.Ordinal)
+                .Select(sideId => new CombatSide { SideId = sideId })
+                .ToImmutableArray(),
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };
     }
 
-    public static (CombatState State, CombatAction Action) AppendAction(
-        CombatState state,
-        CombatAction action)
+    public static (CombatState State, CombatAction Action) AppendAction(CombatState state, CombatAction action)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(action);
-
         var actionId = state.Determinism.AllocateId("combat-action");
         var materialized = action with
         {
             ActionId = actionId.Value,
             Timestamp = actionId.Context.LogicalTimestamp.UtcDateTime
         };
-        var context = actionId.Context.AdvanceStep();
-        var next = state with
+        return (state with
         {
             ActionHistory = state.ActionHistory.Append(materialized).ToImmutableList(),
-            Determinism = context
-        };
-        return (next, materialized);
+            Determinism = actionId.Context.AdvanceStep()
+        }, materialized);
     }
 }

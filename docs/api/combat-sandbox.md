@@ -8,7 +8,7 @@ e renderiza os read models retornados pela API.
 
 | Engine HeroScript | Cliente Godot |
 | --- | --- |
-| Seed, IDs de instância, embaralhamento e hashes | Cenas, animações, sons e layout |
+| Seed, validação de identidades, IDs derivados, embaralhamento e hashes | Cenas, animações, sons e layout |
 | Regras de carta, dano, custos, status e turnos | Clique, seleção de alvo e feedback de input |
 | Legalidade de ações e alvos | Habilitar opções devolvidas pela API |
 | Journal, replay, timeline, branches e simulações | Navegar snapshots e escolher uma branch |
@@ -51,21 +51,20 @@ Exemplo de ação de carta:
   "commandId": "6ba5a0e2-0a56-4d43-bdf7-4950e950eac1",
   "expectedSequence": 2,
   "expectedStep": 6,
-  "type": "EXECUTE_ACTION",
+  "type": "PLAY_CARD",
   "payload": {
     "actorId": "hero",
-    "actionId": "basic_attack",
-    "cardId": "c104ff7d-3f3c-4874-a697-645f27424d1d",
-    "targetId": "goblin_a"
+    "cardInstanceId": "c104ff7d-3f3c-4874-a697-645f27424d1d",
+    "targetIds": ["goblin_a"]
   }
 }
 ```
 
-`cardId` é a instância em `snapshot.hand[].cardInstanceId`, não o ID da
+`cardInstanceId` vem de `snapshot.hand[].cardInstanceId`, não do ID da
 definição. Assim cópias iguais podem ter upgrades, histórico e destino próprios.
 
-`initialState.effects` pode declarar status iniciais para aliases do cenário
-(por exemplo, `{"targetAlias":"goblin_a","statusId":"poison","stacks":2}`).
+`initialState.effects` pode declarar status iniciais para atores do cenário
+(por exemplo, `{"targetActorId":"goblin_a","statusId":"poison","stacks":2}`).
 Eles são validados pela capability do modo e ficam no snapshot imutável de
 combate, portanto também aparecem na timeline, branches e replay.
 

@@ -34,8 +34,7 @@ public sealed class CombatSandboxController : BaseApiController
                 compiled.Value.ScenarioHash,
                 contentRevision = compiled.Value.ContentManifest.Revision,
                 deck = compiled.Value.RunStart.StartingDeck,
-                hero = compiled.Value.Hero,
-                enemies = compiled.Value.Enemies
+                actors = compiled.Value.Participants
             })
             : ApiProblem(
                 StatusCodes.Status422UnprocessableEntity,

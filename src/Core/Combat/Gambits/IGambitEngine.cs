@@ -1,6 +1,5 @@
 using Core.Common;
-using Core.Entity;
-using Core.Entity.Controllers;
+using Core.Combat.Models;
 
 namespace Core.Combat.Gambits;
 
@@ -9,8 +8,8 @@ public interface IGambitEngine
     Result LoadDefinitions(string configName);
     Result<GambitDefinition> GetDefinition(string gambitId);
     IReadOnlyList<GambitDefinition> GetAllDefinitions();
-    Result<EntityAction> DecideAction(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null);
-    Result<GambitDecision> DecideActionWithMetadata(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null);
+    Result<EntityAction> DecideAction(CombatActorState controlledActor, CombatState combatState, IEnumerable<string>? gambitIds = null);
+    Result<GambitDecision> DecideActionWithMetadata(CombatActorState controlledActor, CombatState combatState, IEnumerable<string>? gambitIds = null);
     
     /// <summary>
     /// Salva uma nova definição de gambit.

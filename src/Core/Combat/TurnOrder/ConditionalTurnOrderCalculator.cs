@@ -69,37 +69,29 @@ public class ConditionalTurnOrderCalculator : ITurnOrderCalculator
         ValidateResourceConfiguration(resourceId, missingResourceValue);
         return new ConditionalTurnOrderCalculator(state =>
         {
-            return state.GetAllEntities()
+            return state.GetAllActors()
                 .Select(entity => (
-                    entity.EntityId,
+                    entity.InstanceId,
                     Percent: GetResourcePercent(entity, resourceId, missingResourceValue)))
                 .OrderBy(e => e.Percent)
-                .ThenBy(e => e.EntityId, StringComparer.Ordinal)
-                .Select(e => e.EntityId)
+                .ThenBy(e => e.InstanceId, StringComparer.Ordinal)
+                .Select(e => e.InstanceId)
                 .ToList();
         }, logger);
     }
     
     /// <summary>
-    /// Cria uma calculadora condicional com regra baseada em tipo de entidade
-    /// Inimigos agem primeiro, depois o hero
+    /// Creates a controller-priority order without assigning semantic roles to definitions.
     /// </summary>
-    public static ConditionalTurnOrderCalculator CreateEnemiesFirstCalculator(ILogger? logger = null)
+    public static ConditionalTurnOrderCalculator CreateAiFirstCalculator(ILogger? logger = null)
     {
         return new ConditionalTurnOrderCalculator(state =>
         {
-            var turnOrder = new List<string>();
-            
-            // Inimigos agem primeiro
-            foreach (var enemy in state.Enemies)
-            {
-                turnOrder.Add(enemy.EntityId);
-            }
-            
-            // Hero age por último
-            turnOrder.Add(state.Hero.EntityId);
-            
-            return turnOrder;
+            return state.GetAllActors()
+                .OrderBy(actor => actor.ControllerBinding.Kind == ControllerKind.AI ? 0 : 1)
+                .ThenBy(actor => actor.InstanceId, StringComparer.Ordinal)
+                .Select(actor => actor.InstanceId)
+                .ToList();
         }, logger);
     }
     
@@ -120,25 +112,25 @@ public class ConditionalTurnOrderCalculator : ITurnOrderCalculator
             throw new ArgumentOutOfRangeException(nameof(priorityThreshold));
         return new ConditionalTurnOrderCalculator(state =>
         {
-            return state.GetAllEntities()
+            return state.GetAllActors()
                 .Select(entity =>
                 {
                     var priority = GetResourcePercent(entity, priorityResourceId, missingResourceValue);
                     return (
-                        entity.EntityId,
+                        entity.InstanceId,
                         Order: GetResourceCurrent(entity, orderResourceId, missingResourceValue),
                         HasPriority: priority < priorityThreshold);
                 })
                 .OrderByDescending(e => e.HasPriority)
                 .ThenByDescending(e => e.Order)
-                .ThenBy(e => e.EntityId, StringComparer.Ordinal)
-                .Select(e => e.EntityId)
+                .ThenBy(e => e.InstanceId, StringComparer.Ordinal)
+                .Select(e => e.InstanceId)
                 .ToList();
         }, logger);
     }
 
     private static float GetResourcePercent(
-        CombatEntity entity,
+        CombatActorState entity,
         string resourceId,
         float? missingResourceValue)
     {
@@ -147,11 +139,11 @@ public class ConditionalTurnOrderCalculator : ITurnOrderCalculator
         if (missingResourceValue.HasValue)
             return missingResourceValue.Value;
         throw new InvalidOperationException(
-            $"Conditional turn-order resource '{resourceId}' is missing from actor '{entity.EntityId}'");
+            $"Conditional turn-order resource '{resourceId}' is missing from actor '{entity.InstanceId}'");
     }
 
     private static float GetResourceCurrent(
-        CombatEntity entity,
+        CombatActorState entity,
         string resourceId,
         float? missingResourceValue)
     {
@@ -160,7 +152,7 @@ public class ConditionalTurnOrderCalculator : ITurnOrderCalculator
         if (missingResourceValue.HasValue)
             return missingResourceValue.Value;
         throw new InvalidOperationException(
-            $"Conditional turn-order resource '{resourceId}' is missing from actor '{entity.EntityId}'");
+            $"Conditional turn-order resource '{resourceId}' is missing from actor '{entity.InstanceId}'");
     }
 
     private static void ValidateResourceConfiguration(

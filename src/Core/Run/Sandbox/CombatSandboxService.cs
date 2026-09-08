@@ -74,8 +74,7 @@ public sealed class CombatSandboxService : ICombatSandboxService
         }
 
         var payload = JsonSerializer.SerializeToElement(new StartSandboxEncounterCommand(
-            compiled.Value.Hero,
-            compiled.Value.Enemies,
+            compiled.Value.Participants,
             compiled.Value.InitialStatusEffects));
         var encounterResult = _commands.Execute(
             started.Value.RunId,

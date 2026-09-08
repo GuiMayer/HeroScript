@@ -22,9 +22,9 @@ public sealed class GameplayOwnershipTests
                 Rules = [new() { FromSideId = "blue", ToSideId = "green", Relationship = SideRelationship.Neutral }]
             }
         };
-        Assert.Equal(SideRelationship.Ally, state.Relationship(state.Hero, state.GetEntity("ally")!));
-        Assert.Equal(SideRelationship.Enemy, state.Relationship(state.Hero, state.GetEntity("enemy")!));
-        Assert.Equal(SideRelationship.Neutral, state.Relationship(state.Hero, state.GetEntity("neutral")!));
+        Assert.Equal(SideRelationship.Ally, state.Relationship(state.GetActor("hero")!, state.GetActor("ally")!));
+        Assert.Equal(SideRelationship.Enemy, state.Relationship(state.GetActor("hero")!, state.GetActor("enemy")!));
+        Assert.Equal(SideRelationship.Neutral, state.Relationship(state.GetActor("hero")!, state.GetActor("neutral")!));
     }
 
     [Fact]
@@ -33,9 +33,9 @@ public sealed class GameplayOwnershipTests
         var state = State();
         var run = new RunState { RunId = Guid.Parse("11111111-1111-1111-1111-111111111111"), PlayerEntityId = "hero" };
         var owner = new GameplayOwner { Kind = GameplayOwnerKind.Run, Id = run.RunId.ToString() };
-        Assert.True(owner.Includes(state.Hero, state, run));
-        Assert.False(owner.Includes(state.GetEntity("enemy")!, state, run));
-        Assert.False(owner.Includes(state.GetEntity("ally")!, state, run));
+        Assert.True(owner.Includes(state.GetActor("hero")!, state, run));
+        Assert.False(owner.Includes(state.GetActor("enemy")!, state, run));
+        Assert.False(owner.Includes(state.GetActor("ally")!, state, run));
     }
 
     [Fact]
@@ -52,12 +52,14 @@ public sealed class GameplayOwnershipTests
     }
 
     internal static CombatState State() => CombatTransitions.Create(
-        Entity("hero", "blue"), [Entity("ally", "blue"), Entity("enemy", "red"), Entity("neutral", "green")],
+        [Entity("hero", "blue"), Entity("ally", "blue"), Entity("enemy", "red"), Entity("neutral", "green")],
         DeterministicContext.Create(123, "revision"));
 
-    private static CombatEntity Entity(string id, string side) => new()
+    private static CombatActorState Entity(string id, string side) => new()
     {
-        EntityId = id, SideId = side, IsHero = false,
+        InstanceId = id,
+        SideId = side,
+        ControllerBinding = new ControllerBinding { Kind = id == "hero" ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new() { OwnerId = id, Resources = new Dictionary<string, ResourcePool>
         {
             ["focus"] = ResourcePool.Materialize(new ResourceDefinition { ResourceId = "focus", DisplayName = "Focus", DefaultMax = 20 }, 10, 20)

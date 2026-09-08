@@ -24,10 +24,10 @@ public sealed class AbilityExecutorTests
         var result = Executor(ability).Execute(Request(combat));
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(2, result.Value.Combat.GetEntity("hero")!.GetResource("energy")!.Current);
-        Assert.Equal(13, result.Value.Combat.GetEntity("enemy")!.GetResource("health")!.Current);
-        Assert.Equal(3, combat.GetEntity("hero")!.GetResource("energy")!.Current);
-        Assert.Equal(20, combat.GetEntity("enemy")!.GetResource("health")!.Current);
+        Assert.Equal(2, result.Value.Combat.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(13, result.Value.Combat.GetActor("enemy")!.GetResource("health")!.Current);
+        Assert.Equal(3, combat.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(20, combat.GetActor("enemy")!.GetResource("health")!.Current);
         Assert.Equal(2, result.Value.Applications.Count);
         var action = Assert.Single(result.Value.Combat.ActionHistory);
         Assert.Equal(ActionType.POWER, action.ActionType);
@@ -111,18 +111,19 @@ public sealed class AbilityExecutorTests
     private static CombatState Combat() => new()
     {
         CombatId = Guid.Parse("20000000-0000-8000-8000-000000000001"),
-        Hero = Entity("hero", true, ("energy", 3), ("health", 30)),
-        Enemies = [Entity("enemy", false, ("health", 20))],
+        Actors = new[] { Entity("hero", true, ("energy", 3), ("health", 30)),
+                Entity("enemy", false, ("health", 20)) }
+            .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
         Determinism = DeterministicContext.Create(47, Revision)
     };
 
-    private static CombatEntity Entity(
+    private static CombatActorState Entity(
         string id,
         bool hero,
         params (string Id, float Current)[] resources) => new()
     {
-        EntityId = id,
-        IsHero = hero,
+        InstanceId = id,
+        SideId = hero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = hero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

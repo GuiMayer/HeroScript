@@ -441,10 +441,6 @@ builder.Services.AddSingleton<ICombatTimelineProjectionService>(sp => new Combat
     sp.GetRequiredService<IRunCommitReader>(),
     sp.GetRequiredService<IRunCommitProjectionReader>()));
 
-builder.Services.AddSingleton<Core.Entity.Definitions.EntityFactory>(sp => new Core.Entity.Definitions.EntityFactory(
-    sp.GetRequiredService<EntityDefinitionLoader>(),
-    sp.GetRequiredService<IResourceManager>(),
-    new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("EntityDefinitionFactory"))));
 builder.Services.AddSingleton<API.Services.DailyChallengeService>();
 
 builder.Services.AddSingleton<IActionCostEvaluator, ActionCostEvaluator>();

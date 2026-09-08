@@ -195,7 +195,7 @@ Uma política combina:
 - `priority` e `policyId` para resolução determinística.
 
 Somente a política alcançada de maior prioridade de cada recurso é autoritativa.
-Empates usam `policyId` ordinal. `CombatEntity.IsAlive` consulta essas políticas;
+Empates usam `policyId` ordinal. `CombatActorState.IsAlive` consulta essas políticas;
 não procura `health`, o primeiro recurso `VITAL` ou um limite igual a zero.
 
 ## Recursos como influência de cálculo
@@ -253,9 +253,15 @@ participante:
 
 ```json
 {
-  "hero": { "entityId": "player", "definitionId": "player_warrior" },
-  "enemies": [
-    { "entityId": "enemy_1", "definitionId": "enemy_goblin" }
+  "participants": [
+    {
+      "instanceId": "player", "definitionId": "player_warrior",
+      "sideId": "player", "controllerBinding": { "kind": "Player" }
+    },
+    {
+      "instanceId": "enemy_1", "definitionId": "enemy_goblin",
+      "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+    }
   ],
   "initialResourceValues": {
     "player": { "energy": 3 }
@@ -263,7 +269,7 @@ participante:
 }
 ```
 
-`entityId` identifica a instância no combate; `definitionId` seleciona o JSON.
+`instanceId` identifica a instância no combate; `definitionId` seleciona o JSON.
 Vários participantes podem usar a mesma definição com aliases diferentes.
 
 ## Regras para extensões

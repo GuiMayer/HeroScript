@@ -10,287 +10,143 @@ using Core.StatusEffects;
 
 namespace Core.Combat;
 
-/// <summary>
-/// Creates an immutable initial combat snapshot from explicit deterministic
-/// inputs. The owning RunState is the only authoritative session store.
-/// </summary>
+/// <summary>Pure initial-snapshot boundary from explicit deterministic inputs.</summary>
 public sealed class CombatFactory : ICombatFactory
 {
     private readonly ITurnOrderCalculator _turnOrder;
     private readonly EntityDefinitionLoader? _entities;
-    private readonly EntityCombatAdapter _adapter;
+    private readonly EntityMaterializer _materializer;
 
-    public CombatFactory(
-        IResourceManager resources,
-        ITurnOrderCalculator turnOrder,
-        EntityDefinitionLoader? entities = null)
+    public CombatFactory(IResourceManager resources, ITurnOrderCalculator turnOrder, EntityDefinitionLoader? entities = null)
     {
-        ArgumentNullException.ThrowIfNull(resources);
         _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
         _entities = entities;
-        _adapter = new EntityCombatAdapter(resources);
+        _materializer = new EntityMaterializer(resources ?? throw new ArgumentNullException(nameof(resources)));
     }
 
-    public Result<CombatState> Create(
-        CombatParticipantReference hero,
-        IReadOnlyList<CombatParticipantReference> enemies,
-        CombatStartOptions options)
+    public Result<CombatState> Create(IReadOnlyList<CombatParticipantReference> participants, CombatStartOptions options)
     {
-        if (hero == null || string.IsNullOrWhiteSpace(hero.EntityId))
-            return Result<CombatState>.Failure("Hero entity ID cannot be empty");
-        if (string.IsNullOrWhiteSpace(hero.DefinitionId))
-            return Result<CombatState>.Failure("Hero definition ID cannot be empty");
-        if (enemies == null || enemies.Count == 0)
-            return Result<CombatState>.Failure("At least one enemy is required");
-        if (enemies.Any(enemy => enemy == null ||
-                                 string.IsNullOrWhiteSpace(enemy.EntityId) ||
-                                 string.IsNullOrWhiteSpace(enemy.DefinitionId)))
-            return Result<CombatState>.Failure("Every enemy requires an entity ID and definition ID");
+        var validation = ValidateReferences(participants, options);
+        if (validation.IsFailure)
+            return Result<CombatState>.Failure(validation.Error);
+        if (_entities == null)
+            return Result<CombatState>.Failure("Entity definition catalog is unavailable");
 
-        var unique = ValidateUniqueParticipantIds(
-            enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
-        if (unique.IsFailure)
-            return Result<CombatState>.Failure(unique.Error);
-
-        var validated = ValidateOptions(
-            options,
-            enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
-        if (validated.IsFailure)
-            return Result<CombatState>.Failure(validated.Error);
-
-        var materializedHero = CreateConfiguredEntity(
-            hero.EntityId,
-            hero.DefinitionId,
-            expectHero: true,
-            options.ContentRevision);
-        if (materializedHero.IsFailure)
-            return Result<CombatState>.Failure(materializedHero.Error);
-
-        var materializedEnemies = new List<CombatEntity>(enemies.Count);
-        foreach (var enemy in enemies)
+        var actors = new List<CombatActorState>(participants.Count);
+        foreach (var participant in participants)
         {
-            var materialized = CreateConfiguredEntity(
-                enemy.EntityId,
-                enemy.DefinitionId,
-                expectHero: false,
-                options.ContentRevision);
-            if (materialized.IsFailure)
-                return Result<CombatState>.Failure(materialized.Error);
-            materializedEnemies.Add(materialized.Value);
+            var definition = _entities.LoadDefinition(participant.DefinitionId, options.ContentRevision);
+            if (definition.IsFailure)
+                return Result<CombatState>.Failure(definition.Error);
+            var actor = _materializer.Materialize(definition.Value, participant.InstanceId,
+                options.ContentRevision, participant.SideId, participant.ControllerBinding);
+            if (actor.IsFailure)
+                return Result<CombatState>.Failure(actor.Error);
+            actors.Add(actor.Value);
         }
-
-        return Create(materializedHero.Value, materializedEnemies, options);
+        return Create(actors, options);
     }
 
-    public Result<CombatState> Create(
-        Entity.Entity hero,
-        IReadOnlyList<Entity.Entity> enemies,
-        CombatStartOptions options)
+    public Result<CombatState> Create(IReadOnlyList<CombatActorState> participants, CombatStartOptions options)
     {
-        if (hero == null)
-            return Result<CombatState>.Failure("Hero entity cannot be null");
-        if (enemies == null || enemies.Count == 0)
-            return Result<CombatState>.Failure("At least one enemy is required");
-        if (enemies.Any(enemy => enemy == null))
-            return Result<CombatState>.Failure("Enemy entity cannot be null");
+        var validation = ValidateActors(participants, options);
+        if (validation.IsFailure)
+            return Result<CombatState>.Failure(validation.Error);
 
-        return Create(
-            _adapter.ToCombatEntity(hero),
-            _adapter.ToCombatEntities(enemies).ToArray(),
-            options);
-    }
-
-    public Result<CombatState> Create(
-        CombatEntity hero,
-        IReadOnlyList<CombatEntity> enemies,
-        CombatStartOptions options)
-    {
-        if (hero == null)
-            return Result<CombatState>.Failure("Hero combat entity cannot be null");
-        if (!hero.IsHero)
-            return Result<CombatState>.Failure("Scenario hero must be a hero entity");
-        if (enemies == null || enemies.Count == 0)
-            return Result<CombatState>.Failure("At least one enemy is required");
-        if (enemies.Any(enemy => enemy == null || enemy.IsHero))
-            return Result<CombatState>.Failure("Scenario enemies must be non-hero entities");
-
-        var unique = ValidateUniqueParticipantIds(
-            enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
-        if (unique.IsFailure)
-            return Result<CombatState>.Failure(unique.Error);
-
-        var validated = ValidateOptions(
-            options,
-            enemies.Select(enemy => enemy.EntityId).Append(hero.EntityId));
-        if (validated.IsFailure)
-            return Result<CombatState>.Failure(validated.Error);
-
-        var heroOverride = ApplyInitialResourceValues(hero, options.InitialResourceValues);
-        if (heroOverride.IsFailure)
-            return Result<CombatState>.Failure(heroOverride.Error);
-        var overriddenEnemies = new List<CombatEntity>(enemies.Count);
-        foreach (var enemy in enemies)
+        var actors = new List<CombatActorState>(participants.Count);
+        foreach (var actor in participants)
         {
-            var overridden = ApplyInitialResourceValues(enemy, options.InitialResourceValues);
+            var overridden = ApplyInitialResourceValues(actor, options.InitialResourceValues);
             if (overridden.IsFailure)
                 return Result<CombatState>.Failure(overridden.Error);
-            overriddenEnemies.Add(overridden.Value);
+            actors.Add(overridden.Value);
         }
 
-        var context = DeterministicContext.Create(options.Seed!.Value, options.ContentRevision);
-        var combat = CombatTransitions.Create(
-            heroOverride.Value,
-            overriddenEnemies,
-            context,
-            options.IdScope ?? "combat") with
+        var combat = CombatTransitions.Create(actors,
+            DeterministicContext.Create(options.Seed!.Value, options.ContentRevision), options.IdScope ?? "combat") with
         {
             RunId = options.RunId,
             RunNodeId = options.RunNodeId
         };
         combat = ApplyInitialStatusEffects(combat, options.InitialStatusEffects);
-        return InitializeTurnOrder(combat);
-    }
-
-    private Result<CombatEntity> CreateConfiguredEntity(
-        string entityId,
-        string definitionId,
-        bool expectHero,
-        string contentRevision)
-    {
-        if (_entities == null)
-            return Result<CombatEntity>.Failure("Entity definition catalog is unavailable");
-        var definition = _entities.LoadDefinition(definitionId, contentRevision);
-        if (definition.IsFailure)
-            return Result<CombatEntity>.Failure(definition.Error);
-
-        var entity = _adapter.CreateCombatEntityFromDefinition(
-            entityId,
-            definition.Value,
-            contentRevision);
-        return entity.IsHero == expectHero
-            ? Result<CombatEntity>.Success(entity)
-            : Result<CombatEntity>.Failure(
-                $"Entity {entityId} is not a valid {(expectHero ? "hero" : "enemy")} participant");
-    }
-
-    private Result<CombatState> InitializeTurnOrder(CombatState combat)
-    {
         var initialized = _turnOrder.InitializeState(combat);
         if (initialized.IsFailure)
-        {
-            return Result<CombatState>.Failure(
-                $"Failed to initialize turn order calculator: {initialized.Error}");
-        }
-
+            return Result<CombatState>.Failure($"Failed to initialize turn order calculator: {initialized.Error}");
         var calculated = _turnOrder.Calculate(initialized.Value);
         return calculated.IsFailure
             ? Result<CombatState>.Failure($"Failed to calculate turn order: {calculated.Error}")
-            : Result<CombatState>.Success(
-                calculated.Value.State with { TurnOrder = calculated.Value.Order });
+            : Result<CombatState>.Success(calculated.Value.State with { TurnOrder = calculated.Value.Order });
     }
 
-    private static Result ValidateOptions(
-        CombatStartOptions? options,
-        IEnumerable<string> participantIds)
+    private static Result ValidateReferences(IReadOnlyList<CombatParticipantReference>? participants, CombatStartOptions options)
     {
-        if (options == null)
-            return Result.Failure("Combat start options are required");
-        if (!options.Seed.HasValue)
-            return Result.Failure("Combat seed is required");
-        if (string.IsNullOrWhiteSpace(options.ContentRevision))
-            return Result.Failure("Content revision cannot be empty");
-        return ValidateInitialResourceValueOwners(options.InitialResourceValues, participantIds);
+        if (participants == null || participants.Count < 1)
+            return Result.Failure("At least one combat participant is required");
+        if (participants.Any(item => item == null || string.IsNullOrWhiteSpace(item.InstanceId) ||
+            string.IsNullOrWhiteSpace(item.DefinitionId) || string.IsNullOrWhiteSpace(item.SideId) || item.ControllerBinding == null))
+            return Result.Failure("Every participant requires instanceId, definitionId, sideId and controllerBinding");
+        return ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
     }
 
-    private static Result ValidateUniqueParticipantIds(IEnumerable<string> participantIds)
+    private static Result ValidateActors(IReadOnlyList<CombatActorState>? participants, CombatStartOptions options)
     {
-        var duplicates = participantIds
-            .GroupBy(id => id, StringComparer.Ordinal)
-            .Where(group => group.Count() > 1)
-            .Select(group => group.Key)
-            .OrderBy(id => id, StringComparer.Ordinal)
-            .ToArray();
-        return duplicates.Length == 0
-            ? Result.Success()
-            : Result.Failure(
-                $"Combat participant entity IDs must be unique: {string.Join(", ", duplicates)}");
+        if (participants == null || participants.Count < 1)
+            return Result.Failure("At least one combat participant is required");
+        if (participants.Any(item => item == null || string.IsNullOrWhiteSpace(item.InstanceId) ||
+            string.IsNullOrWhiteSpace(item.DefinitionId) || string.IsNullOrWhiteSpace(item.ContentRevision) ||
+            string.IsNullOrWhiteSpace(item.SideId) || item.ControllerBinding == null || !Enum.IsDefined(item.ControllerBinding.Kind)))
+            return Result.Failure("Every combat actor requires immutable identity, content, side and controller binding");
+        if (participants.Any(item => !string.Equals(item.ContentRevision, options.ContentRevision, StringComparison.Ordinal)))
+            return Result.Failure("Every combat actor must use the combat content revision");
+        return ValidateCommon(participants.Select(item => item.InstanceId), participants.Select(item => item.SideId), options);
     }
 
-    private static Result<CombatEntity> ApplyInitialResourceValues(
-        CombatEntity entity,
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? valuesByEntity)
+    private static Result ValidateCommon(IEnumerable<string> instanceIds, IEnumerable<string> sideIds, CombatStartOptions? options)
     {
-        if (valuesByEntity == null || !valuesByEntity.TryGetValue(entity.EntityId, out var values))
-            return Result<CombatEntity>.Success(entity);
-
-        var current = entity;
-        foreach (var (resourceId, value) in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
-        {
-            if (!float.IsFinite(value))
-            {
-                return Result<CombatEntity>.Failure(
-                    $"Initial resource value must be finite: {entity.EntityId}/{resourceId}");
-            }
-            if (current.GetResource(resourceId) == null)
-            {
-                return Result<CombatEntity>.Failure(
-                    $"Initial resource override references an unknown resource: {entity.EntityId}/{resourceId}");
-            }
-
-            var applied = current.ApplyResourceMutation(
-                $"combat-start:{entity.EntityId}:{resourceId}",
-                resourceId,
-                ResourceMutationOperation.Set,
-                value);
-            if (applied.IsFailure)
-                return Result<CombatEntity>.Failure(applied.Error);
-            current = applied.Value;
-        }
-
-        return Result<CombatEntity>.Success(current);
-    }
-
-    private static Result ValidateInitialResourceValueOwners(
-        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? valuesByEntity,
-        IEnumerable<string> participantIds)
-    {
-        if (valuesByEntity == null)
-            return Result.Success();
-
-        var knownParticipants = participantIds.ToHashSet(StringComparer.Ordinal);
-        foreach (var (entityId, resourceValues) in valuesByEntity)
-        {
-            if (string.IsNullOrWhiteSpace(entityId) || !knownParticipants.Contains(entityId))
-            {
-                return Result.Failure(
-                    $"Initial resource override references an unknown combat participant: {entityId}");
-            }
-            if (resourceValues == null)
-            {
-                return Result.Failure(
-                    $"Initial resource values are required for combat participant: {entityId}");
-            }
-        }
-
+        if (options == null || !options.Seed.HasValue || string.IsNullOrWhiteSpace(options.ContentRevision))
+            return Result.Failure("Combat seed and contentRevision are required");
+        var ids = instanceIds.ToArray();
+        var duplicate = ids.GroupBy(id => id, StringComparer.Ordinal).FirstOrDefault(group => group.Count() > 1);
+        if (duplicate != null)
+            return Result.Failure($"Combat participant instance IDs must be unique: {duplicate.Key}");
+        if (sideIds.Any(string.IsNullOrWhiteSpace))
+            return Result.Failure("Every combat participant requires a sideId");
+        if (options.InitialResourceValues?.Keys.Any(id => !ids.Contains(id, StringComparer.Ordinal)) == true)
+            return Result.Failure("Initial resource override references an unknown combat participant");
         return Result.Success();
     }
 
-    private static CombatState ApplyInitialStatusEffects(
-        CombatState combat,
+    private static Result<CombatActorState> ApplyInitialResourceValues(
+        CombatActorState actor,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? valuesByActor)
+    {
+        if (valuesByActor == null || !valuesByActor.TryGetValue(actor.InstanceId, out var values))
+            return Result<CombatActorState>.Success(actor);
+        var current = actor;
+        foreach (var (resourceId, value) in values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (!float.IsFinite(value) || current.GetResource(resourceId) == null)
+                return Result<CombatActorState>.Failure($"Invalid initial resource override: {actor.InstanceId}/{resourceId}");
+            var applied = current.ApplyResourceMutation($"combat-start:{actor.InstanceId}:{resourceId}", resourceId,
+                ResourceMutationOperation.Set, value);
+            if (applied.IsFailure)
+                return Result<CombatActorState>.Failure(applied.Error);
+            current = applied.Value;
+        }
+        return Result<CombatActorState>.Success(current);
+    }
+
+    private static CombatState ApplyInitialStatusEffects(CombatState combat,
         IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatuses)
     {
         if (initialStatuses == null || initialStatuses.Count == 0)
             return combat;
-
-        var statuses = initialStatuses
-            .OrderBy(item => item.Key, StringComparer.Ordinal)
-            .ToImmutableDictionary(
-                item => item.Key,
-                item => item.Value
-                    .Where(status => status.IsActive)
-                    .OrderBy(status => status.InstanceId)
-                    .ToImmutableArray(),
-                StringComparer.Ordinal);
-        return combat with { StatusEffects = statuses };
+        return combat with
+        {
+            StatusEffects = initialStatuses.OrderBy(item => item.Key, StringComparer.Ordinal)
+                .ToImmutableDictionary(item => item.Key,
+                    item => item.Value.Where(status => status.IsActive).OrderBy(status => status.InstanceId).ToImmutableArray(),
+                    StringComparer.Ordinal)
+        };
     }
 }

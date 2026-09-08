@@ -14,19 +14,25 @@ public enum ControllerKind { Player, AI, None }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum SideRelationship { Ally, Enemy, Neutral }
 
+public sealed record ControllerBinding
+{
+    public ControllerKind Kind { get; init; } = ControllerKind.None;
+    public string? PolicyId { get; init; }
+}
+
 /// <summary>Serializable identity; it never points at a mutable runtime object.</summary>
 public sealed record GameplayOwner
 {
     public GameplayOwnerKind Kind { get; init; } = GameplayOwnerKind.Entity;
     public string Id { get; init; } = string.Empty;
 
-    public bool Includes(CombatEntity entity, CombatState combat, RunState? run) => Kind switch
+    public bool Includes(CombatActorState entity, CombatState combat, RunState? run) => Kind switch
     {
-        GameplayOwnerKind.Entity => StringComparer.Ordinal.Equals(Id, entity.EntityId),
+        GameplayOwnerKind.Entity => StringComparer.Ordinal.Equals(Id, entity.InstanceId),
         GameplayOwnerKind.Side => StringComparer.Ordinal.Equals(Id, combat.GetSideId(entity)),
         // A run-scoped item belongs to the run's player, not every combat participant.
         GameplayOwnerKind.Run => run != null && StringComparer.Ordinal.Equals(Id, run.RunId.ToString()) &&
-            StringComparer.Ordinal.Equals(entity.EntityId, run.PlayerEntityId),
+            StringComparer.Ordinal.Equals(entity.InstanceId, run.PlayerEntityId),
         GameplayOwnerKind.Global => true,
         _ => false
     };
@@ -35,7 +41,6 @@ public sealed record GameplayOwner
 public sealed record CombatSide
 {
     public string SideId { get; init; } = string.Empty;
-    public ControllerKind Controller { get; init; }
 }
 
 public sealed record SideRelationshipRule
@@ -69,9 +74,9 @@ public static class GameplayRelationshipValidator
     {
         var participantSides = participantSideIds.ToArray();
         if (participantSides.Any(string.IsNullOrWhiteSpace)) return Result.Failure("Every participant requires a sideId");
-        if (sides.Count == 0) return Result.Failure("Every combat requires an explicit side controller catalog");
-        if (sides.Any(side => side == null || string.IsNullOrWhiteSpace(side.SideId) || !Enum.IsDefined(side.Controller)))
-            return Result.Failure("Invalid side identity or controller");
+        if (sides.Count == 0) return Result.Failure("Every combat requires an explicit side catalog");
+        if (sides.Any(side => side == null || string.IsNullOrWhiteSpace(side.SideId)))
+            return Result.Failure("Invalid side identity");
         if (sides.Select(side => side.SideId).Distinct(StringComparer.Ordinal).Count() != sides.Count)
             return Result.Failure("Duplicate sideId");
         var known = sides.Select(side => side.SideId).ToHashSet(StringComparer.Ordinal);

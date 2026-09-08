@@ -73,10 +73,10 @@ com `commandId`, `expectedSequence`, `expectedStep`, `type` e `payload`.
 ## 4. Início de combate
 
 - [ ] `START_ENCOUNTER` cria o encontro dentro da run.
-- [ ] `entityId` é tratado como alias da instância.
+- [ ] `instanceId` identifica a instância no roster.
 - [ ] `definitionId` é resolvido na revisão fixada pela run.
-- [ ] Dois aliases podem usar a mesma definição.
-- [ ] Aliases duplicados são rejeitados.
+- [ ] Duas instâncias podem usar a mesma definição.
+- [ ] IDs de instância duplicados são rejeitados.
 - [ ] Definição desconhecida é rejeitada atomicamente.
 - [ ] Overrides aceitam qualquer recurso presente na entidade.
 - [ ] Participante ou recurso desconhecido no override é rejeitado atomicamente.
@@ -89,9 +89,15 @@ com `commandId`, `expectedSequence`, `expectedStep`, `type` e `payload`.
   "expectedStep": 1,
   "type": "START_ENCOUNTER",
   "payload": {
-    "hero": { "entityId": "player", "definitionId": "player_warrior" },
-    "enemies": [
-      { "entityId": "enemy_1", "definitionId": "enemy_goblin" }
+    "participants": [
+      {
+        "instanceId": "player", "definitionId": "player_warrior",
+        "sideId": "player", "controllerBinding": { "kind": "Player" }
+      },
+      {
+        "instanceId": "enemy_1", "definitionId": "enemy_goblin",
+        "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+      }
     ],
     "initialResourceValues": {
       "player": { "energy": 3 }

@@ -80,7 +80,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
         ArgumentNullException.ThrowIfNull(request.Combat);
         if (string.IsNullOrWhiteSpace(request.ActionId))
             return Result<AbilityExecutionResult>.Failure("ActionId is required");
-        var actor = request.Combat.GetEntity(request.ActorId);
+        var actor = request.Combat.GetActor(request.ActorId);
         if (actor == null || !actor.IsAlive)
             return Result<AbilityExecutionResult>.Failure($"Active actor not found: {request.ActorId}");
         var definition = _actions is IRevisionedActionCatalog revisioned

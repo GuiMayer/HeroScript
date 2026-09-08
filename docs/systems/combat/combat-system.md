@@ -38,7 +38,7 @@ combate e são registradas na mesma run.
 - board, fases, ativação e dados da estratégia de ordem de turno;
 - histórico de ações.
 
-`CombatEntity` não possui HP ou energia especializados. Seu estado numérico é um
+`CombatActorState` não possui HP ou energia especializados. Seu estado numérico é um
 `ResourceSet`. `IsAlive` é derivado somente das políticas de limite configuradas
 nas definições dos recursos.
 
@@ -58,14 +58,14 @@ Content-Type: application/json
   "expectedStep": 1,
   "type": "START_ENCOUNTER",
   "payload": {
-    "hero": {
-      "entityId": "player",
-      "definitionId": "player_warrior"
-    },
-    "enemies": [
+    "participants": [
       {
-        "entityId": "enemy_1",
-        "definitionId": "enemy_goblin"
+        "instanceId": "player", "definitionId": "player_warrior",
+        "sideId": "player", "controllerBinding": { "kind": "Player" }
+      },
+      {
+        "instanceId": "enemy_1", "definitionId": "enemy_goblin",
+        "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
       }
     ],
     "initialResourceValues": {
@@ -75,7 +75,7 @@ Content-Type: application/json
 }
 ```
 
-`entityId` é o alias único usado durante esse combate. `definitionId` aponta
+`instanceId` é a identidade única usada durante esse combate. `definitionId` aponta
 para a entidade na revisão de conteúdo da run. Isso permite criar `enemy_1` e
 `enemy_2` a partir de `enemy_goblin` sem duplicar JSON.
 

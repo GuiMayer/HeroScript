@@ -226,23 +226,29 @@ Não haverá hot reload silencioso de estado ativo. Isso permitiria que a mesma 
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "modeId": "combat_sandbox",
   "contentRevision": "<hash-publicado>",
   "seed": 12345,
   "attemptKey": "poison-fireball-01",
-  "hero": { "entityDefinitionId": "player_warrior" },
+  "participants": [
+    {
+      "instanceId": "player", "entityDefinitionId": "player_warrior",
+      "sideId": "player", "controllerBinding": { "kind": "Player" }
+    },
+    {
+      "instanceId": "goblin_a", "entityDefinitionId": "enemy_goblin",
+      "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+    }
+  ],
   "deck": [
     { "definitionId": "basic_attack" },
     { "definitionId": "fireball", "upgradeIds": ["sharpened_edge"] }
   ],
-  "enemies": [
-    { "alias": "goblin_a", "entityDefinitionId": "enemy_goblin" }
-  ],
   "initialState": {
-    "heroResources": { "energy": 3 },
+    "resourcesByActor": { "player": { "energy": 3 } },
     "effects": [
-      { "targetAlias": "goblin_a", "statusId": "poison", "stacks": 2 }
+      { "targetActorId": "goblin_a", "statusId": "poison", "stacks": 2 }
     ]
   }
 }
@@ -253,7 +259,7 @@ O compilador de cenário deve:
 - validar schema e limites da política;
 - resolver IDs na revisão fixada;
 - normalizar ordem para cálculo de hash;
-- gerar IDs de instância determinísticos para cartas e entidades;
+- validar IDs explícitos de atores e gerar IDs determinísticos para instâncias de cartas;
 - rejeitar overrides não autorizados;
 - produzir `scenarioHash` e uma entrada de journal inicial;
 - criar run e encontro em uma operação autoritativa.

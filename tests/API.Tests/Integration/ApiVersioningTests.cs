@@ -47,6 +47,7 @@ public sealed class ApiVersioningTests : IClassFixture<TestWebApplicationFactory
 
     [Theory]
     [InlineData("/api/v1/actions")]
+    [InlineData("/api/v1/entities/create")]
     [InlineData("/api/v1/entities/definitions")]
     [InlineData("/api/v1/statuses/definitions")]
     [InlineData("/api/v1/gambits/definitions")]

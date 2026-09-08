@@ -12,27 +12,20 @@ public class CombatStateResponse
     public string StateHash { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public int CurrentTurn { get; set; }
-    public HeroStateDto Hero { get; set; } = null!;
-    public List<EnemyStateDto> Enemies { get; set; } = new();
+    public List<ActorStateDto> Actors { get; set; } = new();
     public int TotalActions { get; set; }
     public Core.Combat.Models.CombatBoardState Board { get; set; } = new();
     public Core.Combat.TurnPhase.PhaseState? Phase { get; set; }
     public Core.Combat.Activation.ActivationState? Activation { get; set; }
 }
 
-public class HeroStateDto
+public class ActorStateDto
 {
-    public string EntityId { get; set; } = string.Empty;
+    public string InstanceId { get; set; } = string.Empty;
+    public string DefinitionId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public bool IsAlive { get; set; }
-    public IReadOnlyDictionary<string, ResourcePoolDto> Resources { get; set; }
-        = new Dictionary<string, ResourcePoolDto>();
-}
-
-public class EnemyStateDto
-{
-    public string EntityId { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
+    public string SideId { get; set; } = string.Empty;
+    public Core.Combat.Models.ControllerBinding ControllerBinding { get; set; } = new();
     public bool IsAlive { get; set; }
     public IReadOnlyDictionary<string, ResourcePoolDto> Resources { get; set; }
         = new Dictionary<string, ResourcePoolDto>();

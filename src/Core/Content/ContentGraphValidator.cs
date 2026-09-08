@@ -398,19 +398,26 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add($"entities/{id} is invalid");
                     continue;
                 }
-                if (string.IsNullOrWhiteSpace(entity.DefinitionId))
-                    errors.Add($"entities/{id} requires definitionId");
-                else if (!string.Equals(entity.DefinitionId, id, StringComparison.Ordinal))
+                var entityValidation = EntityDefinitionValidator.Validate(entity);
+                if (entityValidation.IsFailure)
+                {
+                    errors.Add($"entities/{id}: {entityValidation.Error}");
+                    continue;
+                }
+                if (!string.Equals(entity.DefinitionId, id, StringComparison.Ordinal))
                     errors.Add($"entities/{id} definitionId does not match its content key");
-                foreach (var (resourceId, pool) in entity.Resources?.Resources ??
+                var resourceComponent = entity.Component<ResourceEntityComponentDefinition>();
+                foreach (var (resourceId, pool) in resourceComponent?.Pools ??
                          new Dictionary<string, ResourcePoolDefinition>())
                 {
                     Require(runtime, errors, "entities", id, resourceId, "resources");
                     if (!IsFinite(pool.Current) || !IsFinite(pool.Max) || pool.Max < 0)
                         errors.Add($"entities/{id} resource {resourceId} has invalid current/max values");
                 }
-                foreach (var actionId in entity.AI?.Actions ?? [])
+                foreach (var actionId in entity.Component<AbilityEntityComponentDefinition>()?.AbilityIds ?? [])
                     Require(runtime, errors, "entities", id, actionId, "actions");
+                foreach (var gambitId in entity.Component<AiBindingEntityComponentDefinition>()?.GambitIds ?? [])
+                    Require(runtime, errors, "entities", id, gambitId, "gambits");
             }
             catch (Exception exception)
             {

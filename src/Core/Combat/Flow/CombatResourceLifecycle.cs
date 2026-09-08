@@ -40,7 +40,7 @@ public sealed class CombatResourceLifecycle(IEffectTriggerExecutor triggers) : I
         ArgumentNullException.ThrowIfNull(combat);
         if (!Enum.IsDefined(timing))
             return Result<CombatResourceLifecycleResult>.Failure($"Unsupported resource lifecycle timing: {timing}");
-        var actor = combat.GetEntity(actorId);
+        var actor = combat.GetActor(actorId);
         if (actor == null)
             return Result<CombatResourceLifecycleResult>.Failure($"Resource lifecycle actor not found: {actorId}");
         var excluded = excludedResourceIds?.ToImmutableHashSet(StringComparer.OrdinalIgnoreCase)

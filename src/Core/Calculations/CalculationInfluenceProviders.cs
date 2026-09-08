@@ -176,7 +176,7 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
                 SourceKind = binding.Scope == CalculationEntityScope.Actor
                     ? CalculationSourceKind.Actor
                     : CalculationSourceKind.Target,
-                SourceId = $"{entity!.EntityId}:{binding.ResourceId}",
+                SourceId = $"{entity!.InstanceId}:{binding.ResourceId}",
                 Channel = binding.Channel,
                 Bucket = binding.Bucket,
                 Value = sourceValue * binding.Scale + binding.Offset,
@@ -255,7 +255,7 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
             StringComparer.Ordinal);
         variables["stacks"] = modifier.Stacks;
         variables["duration"] = modifier.Duration;
-        var owner = context.Combat?.GetAllEntities().OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+        var owner = context.Combat?.GetAllActors().OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
             .FirstOrDefault(entity => modifier.Owner.Includes(entity, context.Combat, context.Run));
         if (owner != null) ResourceFormulaVariables.AddOwner(variables, "owner", owner.ResourceState);
         return !string.IsNullOrWhiteSpace(modifier.ContentRevision) &&
@@ -322,7 +322,7 @@ public sealed class StatusCalculationInfluenceProvider : ICalculationInfluencePr
                     var scoped = definition.Scope == CalculationEntityScope.Actor
                         ? context.Actor
                         : context.Target;
-                    if (!string.Equals(ownerId, scoped?.EntityId, StringComparison.Ordinal) ||
+                    if (!string.Equals(ownerId, scoped?.InstanceId, StringComparison.Ordinal) ||
                         !definition.RequiredTags.All(context.Tags.Contains) ||
                         definition.ExcludedTags.Any(context.Tags.Contains))
                         continue;
@@ -443,7 +443,7 @@ public sealed class RelicCalculationInfluenceProvider : ICalculationInfluencePro
         variables["stacks"] = relic.Stacks;
         if (context.Combat != null)
         {
-            var owner = context.Combat.GetAllEntities().OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
+            var owner = context.Combat.GetAllActors().OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
                 .FirstOrDefault(entity => relic.Owner.Includes(entity, context.Combat, context.Run));
             if (owner != null) ResourceFormulaVariables.AddOwner(variables, "owner", owner.ResourceState);
         }

@@ -493,16 +493,37 @@
       },
       "CombatScenarioDefinition": {
         "type": "object",
-        "required": ["schemaVersion", "modeId", "seed", "attemptKey", "hero", "deck", "enemies"],
+        "required": ["schemaVersion", "modeId", "seed", "attemptKey", "participants", "deck"],
         "properties": {
-          "schemaVersion": { "type": "integer", "const": 1 },
+          "schemaVersion": { "type": "integer", "const": 2 },
           "modeId": { "type": "string" },
           "contentRevision": { "type": "string", "description": "Published content revision; omitted means the current revision." },
           "seed": { "type": "integer", "format": "uint64" },
           "attemptKey": { "type": "string", "description": "Changes the deterministic identity of a new attempt." },
-          "hero": { "type": "object" },
+          "participants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["instanceId", "entityDefinitionId", "sideId", "controllerBinding"],
+              "properties": {
+                "instanceId": { "type": "string" },
+                "entityDefinitionId": { "type": "string" },
+                "sideId": { "type": "string" },
+                "controllerBinding": {
+                  "type": "object",
+                  "required": ["kind"],
+                  "properties": {
+                    "kind": { "type": "string", "enum": ["Player", "AI", "None"] },
+                    "policyId": { "type": ["string", "null"] }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
           "deck": { "type": "array", "items": { "type": "object" } },
-          "enemies": { "type": "array", "items": { "type": "object" } },
           "initialState": { "type": "object" }
         }
       },

@@ -291,12 +291,10 @@ public sealed record RunResourceCommand(
     Core.Resources.ResourceValueField Field = Core.Resources.ResourceValueField.Current);
 public sealed record MoveCardsCommand(IReadOnlyList<string> CardIds, string Destination);
 public sealed record StartEncounterCommand(
-    CombatParticipantReference Hero,
-    IReadOnlyList<CombatParticipantReference> Enemies,
+    IReadOnlyList<CombatParticipantReference> Participants,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? InitialResourceValues = null);
 public sealed record StartSandboxEncounterCommand(
-    CombatEntity Hero,
-    IReadOnlyList<CombatEntity> Enemies,
+    IReadOnlyList<CombatActorState> Participants,
     IReadOnlyDictionary<string, IReadOnlyList<Core.StatusEffects.StatusEffectInstance>>? InitialStatusEffects = null);
 public sealed record ResolveCombatCommand(Guid CombatId = default);
 public sealed record CombatGameplayCommand(

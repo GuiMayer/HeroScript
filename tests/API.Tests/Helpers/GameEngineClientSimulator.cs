@@ -133,12 +133,22 @@ public class GameEngineClientSimulator
         var ownerRunId = runId ?? await StartRunAsync(playerEntityId: heroId);
         var state = await ExecuteRunCommandStateAsync(ownerRunId, "START_ENCOUNTER", new
         {
-            hero = new { entityId = heroId, definitionId = heroDefinitionId },
-            enemies = enemyIds.Select(entityId => new
+            participants = new[]
             {
-                entityId,
-                definitionId = enemyDefinitionId
-            }),
+                new
+                {
+                    instanceId = heroId,
+                    definitionId = heroDefinitionId,
+                    sideId = "player",
+                    controllerBinding = new { kind = "Player", policyId = (string?)null }
+                }
+            }.Concat(enemyIds.Select(instanceId => new
+            {
+                instanceId,
+                definitionId = enemyDefinitionId,
+                sideId = "opposition",
+                controllerBinding = new { kind = "AI", policyId = (string?)"gambit" }
+            })),
             initialResourceValues = initialHeroResourceValues == null
                 ? null
                 : new Dictionary<string, IReadOnlyDictionary<string, float>>(StringComparer.Ordinal)
@@ -217,7 +227,12 @@ public class GameEngineClientSimulator
             expectedSequence = run.GetProperty("sequence").GetInt32(),
             expectedStep = combat.GetProperty("step").GetUInt64(),
             type = "END_TURN",
-            payload = new { actorId = combat.GetProperty("hero").GetProperty("entityId").GetString() }
+            payload = new
+            {
+                actorId = combat.GetProperty("actors").EnumerateArray()
+                    .First(actor => actor.GetProperty("controllerBinding").GetProperty("kind").GetString() == "Player")
+                    .GetProperty("instanceId").GetString()
+            }
         });
         commandResponse.EnsureSuccessStatusCode();
         var receipt = await commandResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -395,22 +410,9 @@ public class GameEngineClientSimulator
 
     // ==================== ENTITIES ====================
 
-    public async Task<JsonElement> CreateEntityAsync(
-        string definitionId,
-        string entityId,
-        string? displayName = null)
+    public async Task<JsonElement> GetEntityDefinitionAsync(string definitionId)
     {
-        var contentRevision = await GetCurrentContentRevisionAsync();
-        var request = new
-        {
-            definitionId,
-            entityId,
-            displayName,
-            settingId = "default",
-            contentRevision
-        };
-
-        var response = await _client.PostAsJsonAsync("/api/v1/entities/create", request);
+        var response = await _client.GetAsync($"/api/v1/entities/definitions/{definitionId}");
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<JsonElement>();
     }

@@ -219,7 +219,7 @@ public sealed class CalculationEngineTests
     {
         var runId = Guid.Parse("20000000-0000-8000-8000-000000000001");
         var actor = Entity("player", "focus", 10);
-        var combat = new CombatState { Hero = actor };
+        var combat = new CombatState { Actors = new Dictionary<string, CombatActorState> { [actor.InstanceId] = actor } };
         var run = new RunState
         {
             RunId = runId,
@@ -280,7 +280,7 @@ public sealed class CalculationEngineTests
         {
             InstanceId = Guid.Parse("30000000-0000-8000-8000-000000000001"),
             StatusId = "strength",
-            TargetId = actor.EntityId,
+            TargetId = actor.InstanceId,
             Stacks = 2,
             IsActive = true,
             Definition = new StatusEffectDefinition
@@ -301,13 +301,12 @@ public sealed class CalculationEngineTests
             }
         };
         var combat = CombatTransitions.Create(
-            actor,
-            [target],
+            [actor, target],
             Core.Determinism.DeterministicContext.Create(1, "revision")) with
         {
             StatusEffects = new Dictionary<string, System.Collections.Immutable.ImmutableArray<StatusEffectInstance>>
             {
-                [actor.EntityId] = [status]
+                [actor.InstanceId] = [status]
             }.ToImmutableDictionary(StringComparer.Ordinal)
         };
         var provider = new StatusCalculationInfluenceProvider(Mock.Of<IRuntimeFormulaEvaluator>());
@@ -329,8 +328,8 @@ public sealed class CalculationEngineTests
     [Fact]
     public void RelicProvider_AppliesOnlyToConfiguredOwnerScope()
     {
-        var hero = Entity("hero", "energy", 3) with { IsHero = true };
-        var enemy = Entity("enemy", "health", 20) with { IsHero = false };
+        var hero = Entity("hero", "energy", 3) with { SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player } };
+        var enemy = Entity("enemy", "health", 20) with { SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI } };
         var run = new RunState
         {
             Relics =
@@ -361,7 +360,7 @@ public sealed class CalculationEngineTests
         var heroResult = provider.Collect(new CalculationSourceContext
         {
             Run = run,
-            Combat = new() { Hero = hero, Enemies = [enemy] },
+            Combat = new() { Actors = new[] { hero, enemy }.ToDictionary(item => item.InstanceId, StringComparer.Ordinal) },
             Actor = hero,
             Target = enemy,
             Tags = new HashSet<string> { "fire" }
@@ -369,7 +368,7 @@ public sealed class CalculationEngineTests
         var enemyResult = provider.Collect(new CalculationSourceContext
         {
             Run = run,
-            Combat = new() { Hero = hero, Enemies = [enemy] },
+            Combat = new() { Actors = new[] { hero, enemy }.ToDictionary(item => item.InstanceId, StringComparer.Ordinal) },
             Actor = enemy,
             Target = hero,
             Tags = new HashSet<string> { "fire" }
@@ -470,9 +469,9 @@ public sealed class CalculationEngineTests
         Priority = priority
     };
 
-    private static CombatEntity Entity(string id, string resourceId, float value) => new()
+    private static CombatActorState Entity(string id, string resourceId, float value) => new()
     {
-        EntityId = id,
+        InstanceId = id,
         ResourceState = new ResourceSet
         {
             Resources = new Dictionary<string, ResourcePool>

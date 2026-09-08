@@ -1072,8 +1072,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 Determinism = encounterDeck.Value.Context.AdvanceStep()
             };
             var journalCommand = initialCommand ?? new RunEncounterStartCommand(
-                combatState.Hero,
-                combatState.Enemies.ToArray(),
+                combatState.GetAllActors().ToArray(),
                 combatState.StatusEffects.ToDictionary(
                     item => item.Key,
                     item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),

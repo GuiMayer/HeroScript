@@ -53,7 +53,7 @@ public sealed class RunEffectTransactionTests
             EffectTransactionTests.Resource(EffectType.DAMAGE, 1)) with { Run = run };
         var result = executor.Execute(request);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(5, result.Value.State.GetEntity("enemy")!.GetResource("focus")!.Current);
+        Assert.Equal(5, result.Value.State.GetActor("enemy")!.GetResource("focus")!.Current);
         var instance = Assert.Single(result.Value.Run!.Modifiers);
         Assert.Equal("revision", instance.ContentRevision);
         Assert.Equal("hero", instance.Owner.Id);
@@ -63,7 +63,7 @@ public sealed class RunEffectTransactionTests
             SelectedTargetEntityIds = ["hero"]
         });
         Assert.True(enemy.IsSuccess, enemy.IsFailure ? enemy.Error : null);
-        Assert.Equal(9, enemy.Value.State.Hero.GetResource("focus")!.Current);
+        Assert.Equal(9, enemy.Value.State.GetActor("hero")!.GetResource("focus")!.Current);
         Assert.Empty(run.Modifiers);
     }
 

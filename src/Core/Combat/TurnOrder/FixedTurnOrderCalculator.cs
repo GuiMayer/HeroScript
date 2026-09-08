@@ -5,7 +5,7 @@ using Core.Logging;
 namespace Core.Combat.TurnOrder;
 
 /// <summary>
-/// Calculadora de ordem fixa: Hero sempre age primeiro, depois inimigos na ordem de criação
+/// Deterministic fixed order based on canonical actor instance IDs.
 /// </summary>
 public class FixedTurnOrderCalculator : ITurnOrderCalculator
 {
@@ -20,16 +20,9 @@ public class FixedTurnOrderCalculator : ITurnOrderCalculator
     
     public Result<List<string>> CalculateTurnOrder(CombatState state)
     {
-        var turnOrder = new List<string>();
-        
-        // Hero sempre age primeiro
-        turnOrder.Add(state.Hero.EntityId);
-        
-        // Inimigos agem na ordem de criação
-        foreach (var enemy in state.Enemies)
-        {
-            turnOrder.Add(enemy.EntityId);
-        }
+        var turnOrder = state.GetAllActors()
+            .Select(actor => actor.InstanceId)
+            .ToList();
         
         _logger?.LogDebug($"Fixed turn order calculated: {string.Join(", ", turnOrder)}");
         

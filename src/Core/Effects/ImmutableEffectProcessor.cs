@@ -184,7 +184,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         ResolvedEffectCommand effect,
         string targetId)
     {
-        var target = state.GetEntity(targetId);
+        var target = state.GetActor(targetId);
         if (target == null)
             return Result<EffectTargetApplication>.Failure($"Effect target not found: {targetId}");
         return effect.Definition.Type switch
@@ -214,7 +214,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
 
     private Result<EffectTargetApplication> ApplyResource(
         CombatState state,
-        CombatEntity target,
+        CombatActorState target,
         ResolvedEffectCommand effect,
         ResourceEffectOperation operation)
     {
@@ -222,7 +222,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         var resource = target.GetResource(resourceId);
         if (resource == null)
             return Result<EffectTargetApplication>.Failure(
-                $"Resource {resourceId} not found on effect target {target.EntityId}");
+                $"Resource {resourceId} not found on effect target {target.InstanceId}");
         var mutationOperation = operation switch
         {
             ResourceEffectOperation.ADD => ResourceMutationOperation.Add,
@@ -251,14 +251,14 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             _resources);
         if (reduced.IsFailure)
             return Result<EffectTargetApplication>.Failure(reduced.Error);
-        var updated = state.ReplaceEntity(target with { ResourceState = reduced.Value.State });
+        var updated = state.ReplaceActor(target.WithResourceState(reduced.Value.State));
         return Result<EffectTargetApplication>.Success(new EffectTargetApplication(
             updated,
             new EffectApplicationRecord
             {
                 EffectInstanceId = effect.EffectInstanceId,
                 EffectType = effect.Definition.Type,
-                TargetEntityId = target.EntityId,
+                TargetEntityId = target.InstanceId,
                 ResourceId = resourceId,
                 ResourceField = reduced.Value.Records[0].Field,
                 ResourceOperation = reduced.Value.Records[0].Operation,
@@ -270,7 +270,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
 
     private static Result<EffectTargetApplication> ApplyStatus(
         CombatState state,
-        CombatEntity target,
+        CombatActorState target,
         ResolvedEffectCommand effect)
     {
         var definition = effect.StatusDefinition!;
@@ -289,7 +289,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         if (validatedStacks.IsFailure || !InstancePolicies.ValidDuration(incomingDuration) ||
             !InstancePolicies.ValidDuration(definition.DefaultDuration) || !Enum.IsDefined(definition.DurationReapply))
             return Result<EffectTargetApplication>.Failure($"Status {statusId} has invalid stacks or duration policy");
-        var statuses = state.StatusEffects.GetValueOrDefault(target.EntityId, []);
+        var statuses = state.StatusEffects.GetValueOrDefault(target.InstanceId, []);
         var index = definition.Stacking == StackReapplyPolicy.Independent ? -1 : FindStatus(statuses, statusId);
         StatusEffectInstance applied;
         var context = state.Determinism;
@@ -312,14 +312,14 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         }
         else
         {
-            var allocated = context.AllocateId($"status:{target.EntityId}:{statusId}");
+            var allocated = context.AllocateId($"status:{target.InstanceId}:{statusId}");
             context = allocated.Context;
             applied = new StatusEffectInstance
             {
                 InstanceId = allocated.Value,
                 StatusId = statusId,
                 Definition = definition,
-                TargetId = target.EntityId,
+                TargetId = target.InstanceId,
                 SourceId = effect.SourceEntityId,
                 ContentRevision = effect.ContentRevision ?? state.Determinism.ContentRevision,
                 Stacks = validatedStacks.Value,
@@ -332,7 +332,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         }
         var updated = state with
         {
-            StatusEffects = state.StatusEffects.SetItem(target.EntityId, statuses),
+            StatusEffects = state.StatusEffects.SetItem(target.InstanceId, statuses),
             Determinism = context
         };
         return Result<EffectTargetApplication>.Success(new EffectTargetApplication(
@@ -341,7 +341,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             {
                 EffectInstanceId = effect.EffectInstanceId,
                 EffectType = effect.Definition.Type,
-                TargetEntityId = target.EntityId,
+                TargetEntityId = target.InstanceId,
                 StatusId = statusId,
                 StatusInstanceId = applied.InstanceId,
                 Provenance = effect.Provenance
@@ -350,11 +350,11 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
 
     private static Result<EffectTargetApplication> RemoveStatus(
         CombatState state,
-        CombatEntity target,
+        CombatActorState target,
         ResolvedEffectCommand effect,
         bool removeAll)
     {
-        var statuses = state.StatusEffects.GetValueOrDefault(target.EntityId, []);
+        var statuses = state.StatusEffects.GetValueOrDefault(target.InstanceId, []);
         var statusId = effect.Definition.StatusId;
         var filter = effect.Definition.Dispel;
         if (!removeAll && string.IsNullOrWhiteSpace(statusId))
@@ -377,15 +377,15 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         var removed = ordered.Take(filter.MaximumInstances).Select(status => status.InstanceId).ToImmutableArray();
         statuses = statuses.Where(status => !removed.Contains(status.InstanceId)).ToImmutableArray();
         var updatedStatuses = statuses.IsEmpty
-            ? state.StatusEffects.Remove(target.EntityId)
-            : state.StatusEffects.SetItem(target.EntityId, statuses);
+            ? state.StatusEffects.Remove(target.InstanceId)
+            : state.StatusEffects.SetItem(target.InstanceId, statuses);
         return Result<EffectTargetApplication>.Success(new EffectTargetApplication(
             state with { StatusEffects = updatedStatuses },
             new EffectApplicationRecord
             {
                 EffectInstanceId = effect.EffectInstanceId,
                 EffectType = effect.Definition.Type,
-                TargetEntityId = target.EntityId,
+                TargetEntityId = target.InstanceId,
                 StatusId = removeAll ? "*" : statusId,
                 RemovedStatusInstanceIds = removed,
                 Provenance = effect.Provenance

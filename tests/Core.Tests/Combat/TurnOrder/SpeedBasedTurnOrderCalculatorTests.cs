@@ -124,17 +124,16 @@ public class SpeedBasedTurnOrderCalculatorTests
     
     private CombatState ModifyEntitySpeed(CombatState state, string entityId, float newSpeed)
     {
-        if (state.Hero.EntityId == entityId)
+        if (state.GetActor(entityId) is { } actor)
         {
-            var speedPool = state.Hero.ResourceState.Resources["speed"];
+            var speedPool = actor.ResourceState.Resources["speed"];
             var updatedPool = speedPool with { Current = newSpeed };
-            var updatedResources = new Dictionary<string, ResourcePool>(state.Hero.ResourceState.Resources)
+            var updatedResources = new Dictionary<string, ResourcePool>(actor.ResourceState.Resources)
             {
                 ["speed"] = updatedPool
             };
-            var updatedResourceState = state.Hero.ResourceState with { Resources = updatedResources };
-            var updatedHero = state.Hero with { ResourceState = updatedResourceState };
-            return state with { Hero = updatedHero };
+            var updatedResourceState = actor.ResourceState with { Resources = updatedResources };
+            return state.ReplaceActor(actor.WithResourceState(updatedResourceState));
         }
         
         return state;

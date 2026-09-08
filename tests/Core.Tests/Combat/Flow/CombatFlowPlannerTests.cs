@@ -59,7 +59,7 @@ public sealed class CombatFlowPlannerTests
                 }).ToImmutableArray()
             }]
         };
-        var combat = CombatTransitions.Create(Entity("hero", true, 0), [Entity("enemy", false, 0)],
+        var combat = CombatTransitions.Create([Entity("hero", true, 0), Entity("enemy", false, 0)],
             DeterministicContext.Create(42, "revision")) with { TurnOrder = ["hero", "enemy"] };
         var initialized = planner.InitializeTransaction(run, combat);
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
@@ -84,8 +84,7 @@ public sealed class CombatFlowPlannerTests
     {
         var context = DeterministicContext.Create(42UL, "revision");
         var combat = CombatTransitions.Create(
-            Entity("hero", isHero: true, energy: 0),
-            [Entity("enemy", isHero: false, energy: 0)],
+            [Entity("hero", isHero: true, energy: 0), Entity("enemy", isHero: false, energy: 0)],
             context) with
         {
             TurnOrder = ["hero", "enemy"]
@@ -105,8 +104,8 @@ public sealed class CombatFlowPlannerTests
         Assert.Equal("hero", initialized.Value.ActivationState!.ActiveActorId);
         Assert.True(initialized.Value.ActivationState.WaitingForInput);
         Assert.Equal("action", initialized.Value.PhaseState!.CurrentPhaseId);
-        Assert.Equal(3, initialized.Value.Hero.GetResource("energy")!.Current);
-        Assert.Equal(0, combat.Hero.GetResource("energy")!.Current);
+        Assert.Equal(3, initialized.Value.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(0, combat.GetActor("hero")!.GetResource("energy")!.Current);
 
         var first = CombatFlowPlanner.AdvanceActivation(
             run,
@@ -149,8 +148,7 @@ public sealed class CombatFlowPlannerTests
             Determinism = DeterministicContext.Create(7UL, "revision")
         };
         var combat = CombatTransitions.Create(
-            Entity("hero", true, 3),
-            [Entity("enemy", false, 3)],
+            [Entity("hero", true, 3), Entity("enemy", false, 3)],
             DeterministicContext.Create(8UL, "revision")) with
         {
             TurnOrder = ["hero", "enemy"]
@@ -243,7 +241,7 @@ public sealed class CombatFlowPlannerTests
         }
     };
 
-    private static CombatEntity Entity(string id, bool isHero, float energy)
+    private static CombatActorState Entity(string id, bool isHero, float energy)
     {
         static ResourcePool Pool(string id, float current, float maximum, ResourceCategory category) => new()
         {
@@ -260,11 +258,11 @@ public sealed class CombatFlowPlannerTests
             }
         };
 
-        return new CombatEntity
+        return new CombatActorState
         {
-            EntityId = id,
+            InstanceId = id,
             Name = id,
-            IsHero = isHero,
+            SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
             ResourceState = new ResourceSet
             {
                 OwnerId = id,

@@ -4,8 +4,6 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Config;
 using Core.Effects;
-using Core.Entity;
-using Core.Entity.Components;
 using Core.Events;
 using Core.Logging;
 using Core.Resources;
@@ -129,34 +127,36 @@ public static class TestDataBuilders
     
     // ==================== ENTITY BUILDERS ====================
     
-    public static CombatEntityBuilder CombatEntity() => new();
+    public static CombatActorStateBuilder CombatActorState() => new();
     
-    public class CombatEntityBuilder
+    public class CombatActorStateBuilder
     {
         private string _id = "test_entity";
         private string _name = "Test Entity";
-        private bool _isHero = true;
+        private string _sideId = "player";
+        private ControllerKind _controller = ControllerKind.Player;
         private Dictionary<string, ResourcePool> _resources = new();
         
-        public CombatEntityBuilder WithId(string id)
+        public CombatActorStateBuilder WithId(string id)
         {
             _id = id;
             return this;
         }
         
-        public CombatEntityBuilder WithName(string name)
+        public CombatActorStateBuilder WithName(string name)
         {
             _name = name;
             return this;
         }
         
-        public CombatEntityBuilder AsEnemy()
+        public CombatActorStateBuilder AsAiOpponent()
         {
-            _isHero = false;
+            _sideId = "opposition";
+            _controller = ControllerKind.AI;
             return this;
         }
         
-        public CombatEntityBuilder WithResource(string resourceId, float current, float max = 100f)
+        public CombatActorStateBuilder WithResource(string resourceId, float current, float max = 100f)
         {
             _resources[resourceId] = new ResourcePool
             {
@@ -174,27 +174,33 @@ public static class TestDataBuilders
             return this;
         }
         
-        public CombatEntityBuilder WithHealth(float current = 100f, float max = 100f)
+        public CombatActorStateBuilder WithHealth(float current = 100f, float max = 100f)
         {
             return WithResource("health", current, max);
         }
         
-        public CombatEntity Build()
+        public CombatActorState Build()
         {
             if (!_resources.ContainsKey("health"))
             {
                 WithHealth();
             }
             
-            return new CombatEntity
+            return new CombatActorState
             {
-                EntityId = _id,
+                InstanceId = _id,
+                DefinitionId = "test-actor",
+                ContentRevision = "test-revision",
                 Name = _name,
-                IsHero = _isHero,
-                ResourceState = new ResourceSet
+                SideId = _sideId,
+                ControllerBinding = new ControllerBinding { Kind = _controller },
+                Components = new Dictionary<string, EntityComponentState>
                 {
-                    OwnerId = _id,
-                    Resources = _resources
+                    ["resources"] = new ResourceEntityComponentState
+                    {
+                        ComponentId = "resources",
+                        State = new ResourceSet { OwnerId = _id, Resources = _resources }
+                    }
                 }
             };
         }

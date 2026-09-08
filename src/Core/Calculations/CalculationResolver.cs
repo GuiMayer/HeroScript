@@ -111,8 +111,8 @@ public sealed class CalculationResolver(
 
 public static class GameplayFormulaContext
 {
-    public static Dictionary<string, float> Build(CombatEntity source, CombatEntity? target,
-        CombatEntity owner, RunState? run = null, IReadOnlyDictionary<string, float>? supplied = null)
+    public static Dictionary<string, float> Build(CombatActorState source, CombatActorState? target,
+        CombatActorState owner, RunState? run = null, IReadOnlyDictionary<string, float>? supplied = null)
     {
         var variables = supplied?.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)
             ?? new Dictionary<string, float>(StringComparer.Ordinal);

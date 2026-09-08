@@ -5,5 +5,7 @@ namespace Core.Combat;
 /// definition used to materialize that participant.
 /// </summary>
 public sealed record CombatParticipantReference(
-    string EntityId,
-    string DefinitionId);
+    string InstanceId,
+    string DefinitionId,
+    string SideId,
+    Models.ControllerBinding ControllerBinding);

@@ -180,9 +180,9 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
         }
         return Result<IReadOnlyList<string>>.Success(
             (combat.ActivationState?.ActivationOrder ?? combat.TurnOrder ?? [])
-            .Concat(combat.GetAllEntities().Select(entity => entity.EntityId))
+            .Concat(combat.GetAllActors().Select(entity => entity.InstanceId))
             .Distinct(StringComparer.Ordinal)
-            .Where(actorId => combat.GetEntity(actorId) != null)
+            .Where(actorId => combat.GetActor(actorId) != null)
             .ToArray());
     }
 }

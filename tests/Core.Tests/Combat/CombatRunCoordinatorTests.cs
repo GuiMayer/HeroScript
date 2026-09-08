@@ -6,7 +6,6 @@ using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Determinism;
-using Core.Entity.Controllers;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
@@ -81,7 +80,7 @@ public sealed class CombatRunCoordinatorTests
             .Returns(Result<CombatFlowAdvanceResult>.Success(Plan(enemyState, run.Deck)))
             .Returns(Result<CombatFlowAdvanceResult>.Success(Plan(playerState, run.Deck)));
         gambits.Setup(engine => engine.DecideActionWithMetadata(
-                It.IsAny<Core.Entity.Entity>(),
+                It.IsAny<CombatActorState>(),
                 enemyState,
                 It.IsAny<IEnumerable<string>>()))
             .Returns(Result<GambitDecision>.Success(new GambitDecision
@@ -173,8 +172,8 @@ public sealed class CombatRunCoordinatorTests
         CombatId = Guid.Parse("30000000-0000-0000-0000-000000000001"),
         RunId = runId,
         RunNodeId = nodeId,
-        Hero = CreateEntity("hero", true),
-        Enemies = [CreateEntity("enemy", false)],
+        Actors = new[] { CreateEntity("hero", true), CreateEntity("enemy", false) }
+            .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
         Determinism = DeterministicContext.Create(seed, new string('c', 64))
     };
 
@@ -259,11 +258,11 @@ public sealed class CombatRunCoordinatorTests
         }
     };
 
-    private static CombatEntity CreateEntity(string id, bool isHero) => new()
+    private static CombatActorState CreateEntity(string id, bool isHero) => new()
     {
-        EntityId = id,
+        InstanceId = id,
         Name = id,
-        IsHero = isHero,
+        SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

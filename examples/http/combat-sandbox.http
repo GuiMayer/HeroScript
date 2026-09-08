@@ -9,11 +9,20 @@ POST {{baseUrl}}/api/v1/sandbox/scenarios/validate
 Content-Type: application/json
 
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "modeId": "combat_sandbox",
   "seed": 983744,
   "attemptKey": "godot-smoke-test-01",
-  "hero": { "alias": "hero", "entityDefinitionId": "player_warrior" },
+  "participants": [
+    {
+      "instanceId": "hero", "entityDefinitionId": "player_warrior",
+      "sideId": "player", "controllerBinding": { "kind": "Player" }
+    },
+    {
+      "instanceId": "goblin_a", "entityDefinitionId": "enemy_goblin",
+      "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+    }
+  ],
   "deck": [
     { "definitionId": "basic_attack" },
     { "definitionId": "basic_attack" },
@@ -21,10 +30,7 @@ Content-Type: application/json
     { "definitionId": "fireball" },
     { "definitionId": "heal" }
   ],
-  "enemies": [
-    { "alias": "goblin_a", "entityDefinitionId": "enemy_goblin" }
-  ],
-  "initialState": { "heroResources": { "energy": 3 } }
+  "initialState": { "resourcesByActor": { "hero": { "energy": 3 } } }
 }
 
 ### Launch; identical normalized input plus attemptKey reopens the same run
@@ -32,11 +38,20 @@ POST {{baseUrl}}/api/v1/sandbox/runs
 Content-Type: application/json
 
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "modeId": "combat_sandbox",
   "seed": 983744,
   "attemptKey": "godot-smoke-test-01",
-  "hero": { "alias": "hero", "entityDefinitionId": "player_warrior" },
+  "participants": [
+    {
+      "instanceId": "hero", "entityDefinitionId": "player_warrior",
+      "sideId": "player", "controllerBinding": { "kind": "Player" }
+    },
+    {
+      "instanceId": "goblin_a", "entityDefinitionId": "enemy_goblin",
+      "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+    }
+  ],
   "deck": [
     { "definitionId": "basic_attack" },
     { "definitionId": "basic_attack" },
@@ -44,10 +59,7 @@ Content-Type: application/json
     { "definitionId": "fireball" },
     { "definitionId": "heal" }
   ],
-  "enemies": [
-    { "alias": "goblin_a", "entityDefinitionId": "enemy_goblin" }
-  ],
-  "initialState": { "heroResources": { "energy": 3 } }
+  "initialState": { "resourcesByActor": { "hero": { "energy": 3 } } }
 }
 
 ### Render this consolidated snapshot
@@ -61,12 +73,11 @@ Content-Type: application/json
   "commandId": "{{commandId}}",
   "expectedSequence": 2,
   "expectedStep": 6,
-  "type": "EXECUTE_ACTION",
+  "type": "PLAY_CARD",
   "payload": {
     "actorId": "hero",
-    "actionId": "basic_attack",
-    "cardId": "{{cardInstanceId}}",
-    "targetId": "goblin_a"
+    "cardInstanceId": "{{cardInstanceId}}",
+    "targetIds": ["goblin_a"]
   }
 }
 
@@ -94,12 +105,11 @@ Content-Type: application/json
   "sourceSequence": 2,
   "commands": [
     {
-      "type": "EXECUTE_ACTION",
+      "type": "PLAY_CARD",
       "payload": {
         "actorId": "hero",
-        "actionId": "basic_attack",
-        "cardId": "{{cardInstanceId}}",
-        "targetId": "goblin_a"
+        "cardInstanceId": "{{cardInstanceId}}",
+        "targetIds": ["goblin_a"]
       }
     },
     { "type": "END_TURN", "payload": { "actorId": "hero" } }

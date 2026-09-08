@@ -4,8 +4,7 @@ using Core.StatusEffects;
 namespace Core.Run;
 
 public sealed record RunEncounterStartCommand(
-    CombatEntity InitialHero,
-    IReadOnlyList<CombatEntity> InitialEnemies,
+    IReadOnlyList<CombatActorState> InitialParticipants,
     IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? InitialStatusEffects = null);
 
 /// <summary>

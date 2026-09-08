@@ -1,32 +1,38 @@
 {
   "enemy_goblin": {
     "definitionId": "enemy_goblin",
-    "type": "ENEMY",
     "displayName": "Goblin",
-    "description": "A weak but aggressive enemy",
-    "resources": {
-      "resources": {
-        "health": {
-          "current": 50,
-          "max": 50
+    "description": "A weak but aggressive actor",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": { "health": { "current": 50, "max": 50 } }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 8,
+          "dexterity": 14,
+          "intelligence": 6,
+          "constitution": 10,
+          "wisdom": 8,
+          "charisma": 6
         }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_basic_attack"]
+      },
+      {
+        "type": "aiBinding",
+        "componentId": "ai",
+        "policyId": "gambit",
+        "gambitIds": ["enemy_basic_attack"]
       }
-    },
-    "stats": {
-      "strength": 8,
-      "dexterity": 14,
-      "intelligence": 6,
-      "constitution": 10,
-      "wisdom": 8,
-      "charisma": 6
-    },
-    "ai": {
-      "behaviorTree": "aggressive",
-      "decisionResourceId": "health",
-      "actions": ["enemy_basic_attack"],
-      "lowResourceThreshold": 0.3,
-      "fleeResourceThreshold": 0.2
-    },
+    ],
     "iconPath": "icons/goblin.png",
     "spritePath": "sprites/goblin.png"
   }

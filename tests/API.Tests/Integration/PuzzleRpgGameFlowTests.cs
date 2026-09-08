@@ -50,7 +50,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1" }, runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
 
-        var hero = combatState.GetProperty("hero");
+        var hero = GetPlayerActor(combatState);
         AssertEntityHasResource(hero, "energy");
 
         // Get initial energy
@@ -67,7 +67,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
 
         // Verify the exact cost from the published Fireball definition was spent.
         var updatedState = await Client.GetCombatStateAsync(combatId);
-        var updatedHero = updatedState.GetProperty("hero");
+        var updatedHero = GetPlayerActor(updatedState);
         var updatedResources = updatedHero.GetProperty("resources");
         var updatedEnergy = updatedResources.GetProperty("energy");
         var newEnergy = GetJsonInt(updatedEnergy, "current");
@@ -140,7 +140,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
             runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
 
-        var hero = combatState.GetProperty("hero");
+        var hero = GetPlayerActor(combatState);
         var resources = hero.GetProperty("resources");
         var energy = resources.GetProperty("energy");
         var currentEnergy = GetJsonInt(energy, "current");

@@ -3,8 +3,6 @@ using Core.Caching;
 using Core.Common;
 using Core.Config;
 using Core.Content;
-using Core.Entity.Components;
-using Core.Entity.Controllers;
 using Core.Logging;
 using Core.Resources;
 
@@ -52,6 +50,7 @@ public class EntityDefinitionLoader : ICacheService
             PropertyNameCaseInsensitive = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
+            UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         };
     }
@@ -92,7 +91,7 @@ public class EntityDefinitionLoader : ICacheService
             }
             
             // Validar definição
-            var validationResult = ValidateDefinition(definition);
+            var validationResult = EntityDefinitionValidator.Validate(definition);
             if (!validationResult.IsSuccess)
             {
                 return Result<EntityDefinition>.Failure(validationResult.Error);
@@ -145,7 +144,7 @@ public class EntityDefinitionLoader : ICacheService
                     $"Entity definition identity mismatch: expected {definitionId}, got {definition.DefinitionId}");
             }
 
-            var validation = ValidateDefinition(definition);
+            var validation = EntityDefinitionValidator.Validate(definition);
             return validation.IsFailure
                 ? Result<EntityDefinition>.Failure(validation.Error)
                 : Result<EntityDefinition>.Success(definition);
@@ -257,64 +256,6 @@ public class EntityDefinitionLoader : ICacheService
     }
     
     /// <summary>
-    /// Valida uma definição de entidade
-    /// </summary>
-    private Result ValidateDefinition(EntityDefinition definition)
-    {
-        if (string.IsNullOrEmpty(definition.DefinitionId))
-        {
-            return Result.Failure("DefinitionId is required");
-        }
-        
-        if (string.IsNullOrEmpty(definition.DisplayName))
-        {
-            return Result.Failure("DisplayName is required");
-        }
-        
-        if (definition.Type == EntityType.ENEMY && definition.AI == null)
-        {
-            return Result.Failure($"Enemy {definition.DefinitionId} requires an AI definition");
-        }
-        if (definition.AI != null)
-        {
-            if (definition.AI.BehaviorTree is not ("aggressive" or "defensive" or "balanced"))
-            {
-                return Result.Failure(
-                    $"AI for {definition.DefinitionId} has an unsupported behaviorTree: " +
-                    definition.AI.BehaviorTree);
-            }
-            if (string.IsNullOrWhiteSpace(definition.AI.DecisionResourceId))
-            {
-                return Result.Failure(
-                    $"AI for {definition.DefinitionId} requires decisionResourceId");
-            }
-            if (definition.Resources?.Resources.ContainsKey(definition.AI.DecisionResourceId) != true)
-            {
-                return Result.Failure(
-                    $"AI decision resource for {definition.DefinitionId} is not defined on the entity: " +
-                    definition.AI.DecisionResourceId);
-            }
-            if (!IsNormalizedThreshold(definition.AI.LowResourceThreshold) ||
-                !IsNormalizedThreshold(definition.AI.FleeResourceThreshold))
-            {
-                return Result.Failure(
-                    $"AI resource thresholds for {definition.DefinitionId} must be finite values between 0 and 1");
-            }
-        }
-        
-        // Validar que companions têm Gambits
-        if (definition.Type == EntityType.COMPANION && definition.Gambits == null)
-        {
-            _logger.LogWarning($"Companion {definition.DefinitionId} has no Gambit definition");
-        }
-        
-        return Result.Success();
-    }
-
-    private static bool IsNormalizedThreshold(float value) =>
-        !float.IsNaN(value) && !float.IsInfinity(value) && value is >= 0f and <= 1f;
-
-    /// <summary>
     /// Salva uma nova definição de entidade.
     /// </summary>
     public Result SaveDefinition(EntityDefinition definition, string configName = "default")
@@ -326,7 +267,7 @@ public class EntityDefinitionLoader : ICacheService
             return Result.Failure("Definition cannot be null");
 
         // Validate definition first
-        var validation = ValidateDefinition(definition);
+        var validation = EntityDefinitionValidator.Validate(definition);
         if (validation.IsFailure)
             return validation;
 
@@ -372,7 +313,7 @@ public class EntityDefinitionLoader : ICacheService
             return Result.Failure($"DefinitionId mismatch: URL has '{definitionId}' but definition has '{updatedDefinition.DefinitionId}'");
 
         // Validate updated definition
-        var validation = ValidateDefinition(updatedDefinition);
+        var validation = EntityDefinitionValidator.Validate(updatedDefinition);
         if (validation.IsFailure)
             return validation;
 

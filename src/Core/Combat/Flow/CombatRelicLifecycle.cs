@@ -72,10 +72,10 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                          .OrderByDescending(item => item.Priority)
                          .ThenBy(item => item.TriggerId, StringComparer.Ordinal))
             {
-                var owners = current.GetAllEntities().Where(entity => relic.Owner.Includes(entity, current, run))
+                var owners = current.GetAllActors().Where(entity => relic.Owner.Includes(entity, current, run))
                     .Where(entity => boundary is not ("StartActivation" or "EndActivation") ||
-                        entity.EntityId == current.ActivationState?.ActiveActorId)
-                    .OrderBy(entity => entity.EntityId, StringComparer.Ordinal).ToArray();
+                        entity.InstanceId == current.ActivationState?.ActiveActorId)
+                    .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal).ToArray();
                 foreach (var owner in owners)
                 {
                 var executed = _triggers.Execute(new EffectTriggerExecutionRequest
@@ -83,8 +83,8 @@ public sealed class CombatRelicLifecycle : ICombatRelicLifecycle
                     Combat = current,
                     Run = run,
                     Trigger = trigger,
-                    OwnerEntityId = owner.EntityId,
-                    SourceEntityId = owner.EntityId,
+                    OwnerEntityId = owner.InstanceId,
+                    SourceEntityId = owner.InstanceId,
                     ContentRevision = relic.ContentRevision,
                     Variables = new Dictionary<string, float>(StringComparer.Ordinal)
                     {

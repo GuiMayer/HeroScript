@@ -25,6 +25,24 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     public Task DisposeAsync() => Task.CompletedTask;
 
     [Fact]
+    public async Task LegacyRoleBasedScenarioShape_IsRejected()
+    {
+        using var response = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", new
+        {
+            schemaVersion = 1,
+            modeId = "combat_sandbox",
+            contentRevision = _contentRevision,
+            seed = 1UL,
+            attemptKey = $"legacy-{Guid.NewGuid():N}",
+            hero = new { alias = "hero", entityDefinitionId = "player_warrior" },
+            enemies = new[] { new { alias = "enemy", entityDefinitionId = "enemy_goblin" } },
+            deck = new[] { new { definitionId = "basic_attack" } }
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task IdenticalCompleteSandboxFlow_IsBitwiseStableAcrossTenFreshRuntimes()
     {
         DeterministicFlowEvidence? baseline = null;
@@ -78,7 +96,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.True(evaluation.GetProperty("isPlayable").GetBoolean());
         Assert.Equal("basic_attack", evaluation.GetProperty("baseContainer").GetProperty("cardId").GetString());
         Assert.Equal(cardInstanceId, evaluation.GetProperty("effectiveBase").GetProperty("cardInstanceId").GetGuid());
-        Assert.Equal("hero", evaluation.GetProperty("contextSources").GetProperty("actor").GetProperty("entityId").GetString());
+        Assert.Equal("hero", evaluation.GetProperty("contextSources").GetProperty("actor").GetProperty("instanceId").GetString());
         Assert.NotEmpty(evaluation.GetProperty("calculations").EnumerateArray());
         Assert.Equal(2, evaluation.GetProperty("previewApplications").GetArrayLength());
         Assert.NotEmpty(evaluation.GetProperty("previewSteps").EnumerateArray());
@@ -188,7 +206,9 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var validated = await validation.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, validation.StatusCode);
         Assert.Equal(64, validated.GetProperty("scenarioHash").GetString()!.Length);
-        Assert.Equal("hero", validated.GetProperty("hero").GetProperty("entityId").GetString());
+        Assert.Equal("hero", validated.GetProperty("actors").EnumerateArray()
+            .First(actor => actor.GetProperty("controllerBinding").GetProperty("kind").GetString() == "Player")
+            .GetProperty("instanceId").GetString());
 
         using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
         var first = await launch.Content.ReadFromJsonAsync<JsonElement>();
@@ -197,7 +217,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var runId = first.GetProperty("run").GetProperty("runId").GetGuid();
         var combatId = first.GetProperty("combat").GetProperty("combatId").GetGuid();
         Assert.Equal("combat_sandbox", first.GetProperty("run").GetProperty("modeId").GetString());
-        Assert.Equal("goblin_a", first.GetProperty("combat").GetProperty("enemies")[0].GetProperty("entityId").GetString());
+        Assert.Equal("goblin_a", first.GetProperty("combat").GetProperty("actors")
+            .GetProperty("goblin_a").GetProperty("instanceId").GetString());
 
         using var repeated = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
         var second = await repeated.Content.ReadFromJsonAsync<JsonElement>();
@@ -221,7 +242,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(5, snapshot.GetProperty("hand").GetArrayLength());
         Assert.Contains(
             snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
-            actor => actor.GetProperty("entityId").GetString() == "goblin_a");
+            actor => actor.GetProperty("instanceId").GetString() == "goblin_a");
         var intents = snapshot.GetProperty("combat")
             .GetProperty("activation")
             .GetProperty("intents")
@@ -437,8 +458,11 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             $"api-sandbox-status-{Guid.NewGuid():N}",
             new
             {
-                heroResources = new { energy = 3 },
-                effects = new[] { new { targetAlias = "goblin_a", statusId = "poison", stacks = 2 } }
+                resourcesByActor = new Dictionary<string, object>
+                {
+                    ["hero"] = new { energy = 3 }
+                },
+                effects = new[] { new { targetActorId = "goblin_a", statusId = "poison", stacks = 2 } }
             });
 
         using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
@@ -450,7 +474,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
         var status = snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray()
-            .First(actor => actor.GetProperty("entityId").GetString() == "goblin_a")
+            .First(actor => actor.GetProperty("instanceId").GetString() == "goblin_a")
             .GetProperty("statuses").EnumerateArray()
             .Single(item => item.GetProperty("statusId").GetString() == "poison");
         Assert.Equal(2, status.GetProperty("stacks").GetInt32());
@@ -466,7 +490,13 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     {
         var scenario = CreateScenario(
             $"api-fixed-actions-{Guid.NewGuid():N}",
-            new { heroResources = new { energy = 0 } },
+            new
+            {
+                resourcesByActor = new Dictionary<string, object>
+                {
+                    ["hero"] = new { energy = 0 }
+                }
+            },
             modeId: "combat_sandbox_fixed_actions");
 
         using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
@@ -514,7 +544,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var afterFirstSnapshot = await afterFirstSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         var appliedBurning = afterFirstSnapshot.GetProperty("combat").GetProperty("actors")
             .EnumerateArray()
-            .Single(actor => actor.GetProperty("entityId").GetString() == "goblin_a")
+            .Single(actor => actor.GetProperty("instanceId").GetString() == "goblin_a")
             .GetProperty("statuses")[0];
         Assert.Equal(
             "EndActivation",
@@ -535,7 +565,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(28, Health(lifecycleSnapshot, "goblin_a"));
         var burning = lifecycleSnapshot.GetProperty("combat").GetProperty("actors")
             .EnumerateArray()
-            .Single(actor => actor.GetProperty("entityId").GetString() == "goblin_a")
+            .Single(actor => actor.GetProperty("instanceId").GetString() == "goblin_a")
             .GetProperty("statuses")
             .EnumerateArray()
             .Single(status => status.GetProperty("statusId").GetString() == "burning");
@@ -552,7 +582,13 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     {
         var scenario = CreateScenario(
             $"api-heal-{Guid.NewGuid():N}",
-            new { heroResources = new { energy = 3, health = 20 } });
+            new
+            {
+                resourcesByActor = new Dictionary<string, object>
+                {
+                    ["hero"] = new { energy = 3, health = 20 }
+                }
+            });
         using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
         var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
@@ -617,12 +653,28 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         object? initialState = null,
         string modeId = "combat_sandbox") => new
     {
-        schemaVersion = 1,
+        schemaVersion = 2,
         modeId,
         contentRevision = _contentRevision,
         seed = 983744UL,
         attemptKey,
-        hero = new { alias = "hero", entityDefinitionId = "player_warrior" },
+        participants = new object[]
+        {
+            new
+            {
+                instanceId = "hero",
+                entityDefinitionId = "player_warrior",
+                sideId = "player",
+                controllerBinding = new { kind = "Player" }
+            },
+            new
+            {
+                instanceId = "goblin_a",
+                entityDefinitionId = "enemy_goblin",
+                sideId = "opposition",
+                controllerBinding = new { kind = "AI", policyId = "gambit" }
+            }
+        },
         deck = new[]
         {
             new { definitionId = "basic_attack" },
@@ -631,11 +683,13 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             new { definitionId = "fireball" },
             new { definitionId = "heal" }
         },
-        enemies = new[]
+        initialState = initialState ?? new
         {
-            new { alias = "goblin_a", entityDefinitionId = "enemy_goblin" }
-        },
-        initialState = initialState ?? new { heroResources = new { energy = 3 } }
+            resourcesByActor = new Dictionary<string, object>
+            {
+                ["hero"] = new { energy = 3 }
+            }
+        }
     };
 
     private async Task<DeterministicFlowEvidence> ExecuteDeterministicFlow(HttpClient client)
@@ -718,15 +772,18 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         .GetProperty("combat")
         .GetProperty("actors")
         .EnumerateArray()
-        .First(actor => actor.GetProperty("entityId").GetString() == entityId)
+        .First(actor => actor.GetProperty("instanceId").GetString() == entityId)
         .GetProperty("resources")
         .GetProperty("health")
         .GetProperty("current")
         .GetDouble();
 
     private static double Energy(JsonElement combat) => combat
+        .GetProperty("actors")
         .GetProperty("hero")
-        .GetProperty("resourceState")
+        .GetProperty("components")
+        .GetProperty("resources")
+        .GetProperty("state")
         .GetProperty("resources")
         .GetProperty("energy")
         .GetProperty("current")

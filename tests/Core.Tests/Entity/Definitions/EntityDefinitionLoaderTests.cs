@@ -34,7 +34,7 @@ public class EntityDefinitionLoaderTests
         Assert.NotNull(result.Value);
         Assert.Equal("player_warrior", result.Value!.DefinitionId);
         Assert.Equal("Warrior", result.Value.DisplayName);
-        Assert.Equal(Core.Entity.EntityType.PLAYER, result.Value.Type);
+        Assert.DoesNotContain(result.Value.Components, component => component.ComponentId == "ai");
     }
     
     [Fact]
@@ -48,10 +48,11 @@ public class EntityDefinitionLoaderTests
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Value!.Resources);
-        Assert.True(result.Value.Resources.Resources.ContainsKey("health"));
-        Assert.Equal(150, result.Value.Resources.Resources["health"].Current);
-        Assert.Equal(150, result.Value.Resources.Resources["health"].Max);
+        var resources = Assert.IsType<ResourceEntityComponentDefinition>(
+            result.Value!.Component<ResourceEntityComponentDefinition>());
+        Assert.True(resources.Pools.ContainsKey("health"));
+        Assert.Equal(150, resources.Pools["health"].Current);
+        Assert.Equal(150, resources.Pools["health"].Max);
     }
     
     [Fact]
@@ -65,10 +66,11 @@ public class EntityDefinitionLoaderTests
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Value!.Stats);
-        Assert.Equal(18, result.Value.Stats.Strength);
-        Assert.Equal(12, result.Value.Stats.Dexterity);
-        Assert.Equal(16, result.Value.Stats.Constitution);
+        var stats = Assert.IsType<StatEntityComponentDefinition>(
+            result.Value!.Component<StatEntityComponentDefinition>());
+        Assert.Equal(18, stats.Values["strength"]);
+        Assert.Equal(12, stats.Values["dexterity"]);
+        Assert.Equal(16, stats.Values["constitution"]);
     }
     
     [Fact]
@@ -82,11 +84,10 @@ public class EntityDefinitionLoaderTests
         
         // Assert
         Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Value!.AI);
-        Assert.Equal("aggressive", result.Value.AI.BehaviorTree);
-        Assert.Equal("health", result.Value.AI.DecisionResourceId);
-        Assert.Equal(0.3f, result.Value.AI.LowResourceThreshold);
-        Assert.Equal(0.2f, result.Value.AI.FleeResourceThreshold);
+        var ai = Assert.IsType<AiBindingEntityComponentDefinition>(
+            result.Value!.Component<AiBindingEntityComponentDefinition>());
+        Assert.Equal("gambit", ai.PolicyId);
+        Assert.Equal(["enemy_basic_attack"], ai.GambitIds);
     }
     
     [Fact]
@@ -102,15 +103,11 @@ public class EntityDefinitionLoaderTests
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Value);
         
-        // O package publica uma definição completa, sem herança em runtime.
-        Assert.Equal(Core.Entity.EntityType.ENEMY, result.Value!.Type);
-        
         Assert.Equal("Orc Warrior", result.Value.DisplayName);
-        
-        Assert.Equal(16, result.Value.Stats!.Strength);
-        Assert.Equal(14, result.Value.Stats.Dexterity);
-        
-        Assert.Equal("balanced", result.Value.AI!.BehaviorTree);
+        var stats = result.Value.Component<StatEntityComponentDefinition>();
+        Assert.Equal(16, stats!.Values["strength"]);
+        Assert.Equal(14, stats.Values["dexterity"]);
+        Assert.Equal("gambit", result.Value.Component<AiBindingEntityComponentDefinition>()!.PolicyId);
     }
     
     [Fact]

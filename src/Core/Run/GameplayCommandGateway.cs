@@ -122,8 +122,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             return Result<GameplayCommandResult>.Failure(duplicate.Error);
         var started = _combats.StartEncounter(
             runId,
-            payload.Hero,
-            payload.Enemies,
+            payload.Participants,
             payload.InitialResourceValues,
             command.Identity,
             command.Payload);
@@ -178,8 +177,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             return Result<GameplayCommandResult>.Failure(duplicate.Error);
         var started = _combats.StartEncounter(
             runId,
-            payload.Hero,
-            payload.Enemies,
+            payload.Participants,
             command.Identity,
             payload.InitialStatusEffects,
             command.Payload);
@@ -237,7 +235,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         {
             return Result<CombatActionCommand>.Success(new CombatActionCommand
             {
-                ActorId = request.ActorId ?? combat.Hero.EntityId,
+                ActorId = ResolveInputActor(request.ActorId, combat),
                 ActionType = ActionType.END_TURN,
                 RunId = run.RunId
             });
@@ -249,7 +247,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
                 return Result<CombatActionCommand>.Failure("CardInstanceId is required for PLAY_CARD");
             return Result<CombatActionCommand>.Success(new CombatActionCommand
             {
-                ActorId = request.ActorId ?? combat.Hero.EntityId,
+                ActorId = ResolveInputActor(request.ActorId, combat),
                 ActionType = ActionType.PLAY_CARD,
                 CardInstanceId = request.CardInstanceId,
                 TargetIds = request.TargetIds ?? [],
@@ -265,7 +263,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
 
         return Result<CombatActionCommand>.Success(new CombatActionCommand
         {
-            ActorId = request.ActorId ?? combat.Hero.EntityId,
+            ActorId = ResolveInputActor(request.ActorId, combat),
             ActionType = actionType.Value,
             PowerId = powerId,
             TargetId = request.TargetId,
@@ -273,6 +271,13 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
             RunId = run.RunId
         });
     }
+
+    private static string ResolveInputActor(string? requestedActorId, CombatState combat) =>
+        requestedActorId
+        ?? combat.ActivationState?.ActiveActorId
+        ?? combat.GetAllActors()
+            .FirstOrDefault(actor => actor.ControllerBinding.Kind == ControllerKind.Player)?.InstanceId
+        ?? combat.GetAllActors().First().InstanceId;
 
     private Result<GameplayCommandResult> LoadReceipt(
         Guid runId,

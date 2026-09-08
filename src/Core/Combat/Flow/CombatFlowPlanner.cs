@@ -416,18 +416,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             return Result<CombatState>.Failure(validation.Error);
 
         if (run.Scenario is { } scenario)
-        {
-            combat = combat with
-            {
-                Relationships = scenario.Relationships,
-                Sides = scenario.Sides,
-                Hero = combat.Hero with { SideId = scenario.Hero.SideId },
-                Enemies = combat.Enemies.Select(entity => entity with
-                {
-                    SideId = scenario.Enemies.First(item => item.Alias == entity.EntityId).SideId
-                }).ToArray()
-            };
-        }
+            combat = combat with { Relationships = scenario.Relationships, Sides = scenario.Sides };
 
         var order = CombatFlowTransitions.CreateRoundSnapshotOrder(combat, policies.ActivationOrder);
         if (order.Count == 0)
@@ -544,7 +533,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var completed = activation.CompletedActorIds;
         var combat = endedCombat;
         var eligibleOrder = activation.ActivationOrder
-            .Where(actorId => combat.GetEntity(actorId)?.IsAlive == true)
+            .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
             .ToArray();
         var nextIndex = Array.FindIndex(
             eligibleOrder,
@@ -747,7 +736,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     {
         var activation = combat.ActivationState;
         return activation != null && activation.ActivationOrder
-            .Where(actorId => combat.GetEntity(actorId)?.IsAlive == true)
+            .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
             .All(actorId => activation.CompletedActorIds.Contains(actorId, StringComparer.Ordinal));
     }
 
@@ -940,7 +929,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             policy.StartActivation == ResourceRefreshStrategy.Preserve)
             return Result<CombatState>.Success(combat);
 
-        var actor = combat.GetEntity(actorId);
+        var actor = combat.GetActor(actorId);
         if (actor == null)
             return Result<CombatState>.Failure($"Actor not found: {actorId}");
         var resource = actor.GetResource(policy.ResourceId);
@@ -966,7 +955,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (reduced.IsFailure)
             return Result<CombatState>.Failure(reduced.Error);
         var resources = actor.ResourceState with { Resources = reduced.Value.Resources };
-        return Result<CombatState>.Success(combat.ReplaceEntity(actor with { ResourceState = resources }));
+        return Result<CombatState>.Success(combat.ReplaceActor(actor.WithResourceState(resources)));
     }
 
     private static PhaseState CreatePhaseState(
@@ -984,7 +973,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         RunState run,
         string actorId)
     {
-        var actor = combat.GetEntity(actorId);
+        var actor = combat.GetActor(actorId);
         if (actor == null)
             return false;
         return scope switch
@@ -998,7 +987,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
     }
 
     private static bool IsPlayerActor(CombatState combat, string actorId) =>
-        combat.GetEntity(actorId) is { } actor &&
+        combat.GetActor(actorId) is { } actor &&
         combat.ControllerOf(actor) == ControllerKind.Player;
 
     private sealed record EndDeckCycleResult(

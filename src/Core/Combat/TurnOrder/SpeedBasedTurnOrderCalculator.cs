@@ -31,24 +31,24 @@ public class SpeedBasedTurnOrderCalculator : ITurnOrderCalculator
     
     public Result<List<string>> CalculateTurnOrder(CombatState state)
     {
-        var entities = new List<(string EntityId, float Value)>();
-        foreach (var entity in state.GetAllEntities().OrderBy(item => item.EntityId, StringComparer.Ordinal))
+        var entities = new List<(string InstanceId, float Value)>();
+        foreach (var entity in state.GetAllActors().OrderBy(item => item.InstanceId, StringComparer.Ordinal))
         {
             var value = GetOrderValue(entity);
             if (value.IsFailure)
                 return Result<List<string>>.Failure(value.Error);
-            entities.Add((entity.EntityId, value.Value));
+            entities.Add((entity.InstanceId, value.Value));
         }
 
         var turnOrder = entities
             .OrderByDescending(e => e.Value)
-            .ThenBy(e => e.EntityId, StringComparer.Ordinal)
-            .Select(e => e.EntityId)
+            .ThenBy(e => e.InstanceId, StringComparer.Ordinal)
+            .Select(e => e.InstanceId)
             .ToList();
         
         _logger?.LogDebug(
             $"Resource-based turn order calculated from {_orderResourceId}: " +
-            string.Join(", ", turnOrder.Select(id => $"{id}({entities.First(e => e.EntityId == id).Value})")));
+            string.Join(", ", turnOrder.Select(id => $"{id}({entities.First(e => e.InstanceId == id).Value})")));
         
         return Result<List<string>>.Success(turnOrder);
     }
@@ -65,13 +65,13 @@ public class SpeedBasedTurnOrderCalculator : ITurnOrderCalculator
         return Result.Success();
     }
     
-    private Result<float> GetOrderValue(CombatEntity entity)
+    private Result<float> GetOrderValue(CombatActorState entity)
     {
         if (entity.ResourceState.Resources.TryGetValue(_orderResourceId, out var resource))
             return Result<float>.Success(resource.Current);
         return _missingResourceValue.HasValue
             ? Result<float>.Success(_missingResourceValue.Value)
             : Result<float>.Failure(
-                $"Turn-order resource '{_orderResourceId}' is missing from actor '{entity.EntityId}'");
+                $"Turn-order resource '{_orderResourceId}' is missing from actor '{entity.InstanceId}'");
     }
 }

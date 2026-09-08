@@ -247,8 +247,7 @@ public sealed class RunManagerTests
             "test", "default_run", "hero", Seed: 91UL, ContentRevision: "test")).Value;
         var combatSeed = run.Determinism.DrawUInt64().Value;
         var combat = CombatTransitions.Create(
-            CreateCombatEntity("hero", isHero: true),
-            [CreateCombatEntity("enemy", isHero: false)],
+            [CreateCombatActorState("hero", isHero: true), CreateCombatActorState("enemy", isHero: false)],
             DeterministicContext.Create(combatSeed, run.Determinism.ContentRevision)) with
         {
             RunId = run.RunId,
@@ -317,8 +316,7 @@ public sealed class RunManagerTests
                 "test", "default_run", "hero", Seed: 93UL, ContentRevision: "test")).Value;
             var combatSeed = run.Determinism.DrawUInt64().Value;
             var combat = CombatTransitions.Create(
-                CreateCombatEntity("hero", isHero: true),
-                [CreateCombatEntity("enemy", isHero: false)],
+                [CreateCombatActorState("hero", isHero: true), CreateCombatActorState("enemy", isHero: false)],
                 DeterministicContext.Create(combatSeed, run.Determinism.ContentRevision)) with
             {
                 RunId = run.RunId,
@@ -426,8 +424,7 @@ public sealed class RunManagerTests
                 "test", "default_run", "hero", Seed: 92UL, ContentRevision: "test")).Value;
             var combatSeed = run.Determinism.DrawUInt64().Value;
             var combat = CombatTransitions.Create(
-                CreateCombatEntity("hero", isHero: true),
-                [CreateCombatEntity("enemy", isHero: false)],
+                [CreateCombatActorState("hero", isHero: true), CreateCombatActorState("enemy", isHero: false)],
                 DeterministicContext.Create(combatSeed, run.Determinism.ContentRevision)) with
             {
                 RunId = run.RunId,
@@ -1095,13 +1092,13 @@ public sealed class RunManagerTests
             resources: TestDataBuilders.MockResourceManager().Object);
     }
 
-    private static CombatEntity CreateCombatEntity(string entityId, bool isHero)
+    private static CombatActorState CreateCombatActorState(string entityId, bool isHero)
     {
-        return new CombatEntity
+        return new CombatActorState
         {
-            EntityId = entityId,
+            InstanceId = entityId,
             Name = entityId,
-            IsHero = isHero,
+            SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
             ResourceState = new ResourceSet
             {
                 OwnerId = entityId,

@@ -1,37 +1,37 @@
 {
   "player_warrior": {
     "definitionId": "player_warrior",
-    "type": "PLAYER",
     "displayName": "Warrior",
     "description": "A strong melee fighter with high health and physical damage",
-    "resources": {
-      "resources": {
-        "health": {
-          "current": 150,
-          "max": 150
-        },
-        "energy": {
-          "current": 10,
-          "max": 10
-        },
-        "block": {
-          "current": 0,
-          "max": 999
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 150, "max": 150 },
+          "energy": { "current": 10, "max": 10 },
+          "block": { "current": 0, "max": 999 }
         }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 18,
+          "dexterity": 12,
+          "intelligence": 8,
+          "constitution": 16,
+          "wisdom": 10,
+          "charisma": 10
+        }
+      },
+      {
+        "type": "inventory",
+        "componentId": "inventory",
+        "capacity": 20,
+        "startingItems": []
       }
-    },
-    "stats": {
-      "strength": 18,
-      "dexterity": 12,
-      "intelligence": 8,
-      "constitution": 16,
-      "wisdom": 10,
-      "charisma": 10
-    },
-    "inventory": {
-      "maxCapacity": 20,
-      "startingItems": []
-    },
+    ],
     "iconPath": "icons/warrior.png",
     "spritePath": "sprites/warrior.png"
   }

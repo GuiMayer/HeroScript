@@ -134,17 +134,20 @@ public class DefaultJsonContractsTests
         {
             foreach (var (_, entity) in LoadResource("entities", Path.GetFileName(file)))
             {
-                var resourceContainer = entity.GetProperty("resources");
-                if (resourceContainer.TryGetProperty("resources", out var nestedResources))
-                    resourceContainer = nestedResources;
-
-                foreach (var resource in resourceContainer.EnumerateObject())
-                    Assert.Contains(resource.Name, resources);
-
-                if (entity.TryGetProperty("actions", out var entityActions))
+                foreach (var component in entity.GetProperty("components").EnumerateArray())
                 {
-                    foreach (var actionId in entityActions.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
-                        Assert.Contains(actionId!, actions);
+                    var type = component.GetProperty("type").GetString();
+                    if (type == "resources")
+                    {
+                        foreach (var resource in component.GetProperty("pools").EnumerateObject())
+                            Assert.Contains(resource.Name, resources);
+                    }
+                    if (type == "abilities")
+                    {
+                        foreach (var actionId in component.GetProperty("abilityIds").EnumerateArray()
+                                     .Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
+                            Assert.Contains(actionId!, actions);
+                    }
                 }
             }
         }

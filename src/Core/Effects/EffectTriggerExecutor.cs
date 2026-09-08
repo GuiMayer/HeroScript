@@ -80,7 +80,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         ArgumentNullException.ThrowIfNull(request.Trigger);
         if (string.IsNullOrWhiteSpace(request.Trigger.TriggerId))
             return Result<EffectBatchResult>.Failure("TriggerId is required");
-        if (request.Combat.GetEntity(request.OwnerEntityId) == null)
+        if (request.Combat.GetActor(request.OwnerEntityId) == null)
             return Result<EffectBatchResult>.Failure($"Trigger owner not found: {request.OwnerEntityId}");
         var definitionErrors = EffectDefinitionValidator.Validate(
             (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects));
@@ -264,8 +264,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 {
                     ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
                     ComponentId = componentId,
-                    Actor = request.Combat.GetEntity(request.SourceEntityId) ?? request.Combat.GetEntity(request.OwnerEntityId),
-                    Target = request.Combat.GetEntity(targetId), Variables = variables,
+                    Actor = request.Combat.GetActor(request.SourceEntityId) ?? request.Combat.GetActor(request.OwnerEntityId),
+                    Target = request.Combat.GetActor(targetId), Variables = variables,
                     Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
                 });
         return resolved.IsFailure ? Result<ResolvedAmount>.Failure(resolved.Error)
@@ -299,15 +299,15 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         CombatState combat,
         string targetId)
     {
-        var source = combat.GetEntity(request.SourceEntityId) ?? combat.GetEntity(request.OwnerEntityId)!;
-        return GameplayFormulaContext.Build(source, combat.GetEntity(targetId),
-            combat.GetEntity(request.OwnerEntityId)!, request.Run, request.Variables);
+        var source = combat.GetActor(request.SourceEntityId) ?? combat.GetActor(request.OwnerEntityId)!;
+        return GameplayFormulaContext.Build(source, combat.GetActor(targetId),
+            combat.GetActor(request.OwnerEntityId)!, request.Run, request.Variables);
     }
 
     private static void AddResources(
         IDictionary<string, float> variables,
         string prefix,
-        CombatEntity entity)
+        CombatActorState entity)
     {
         ResourceFormulaVariables.AddOwner(variables, prefix, entity.ResourceState);
     }
@@ -320,7 +320,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         string? selectionResourceId,
         DeterministicContext context)
     {
-        var owner = combat.GetEntity(ownerId)!;
+        var owner = combat.GetActor(ownerId)!;
         var candidates = target switch
         {
             EffectTarget.SELF => [ownerId],
@@ -328,39 +328,39 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     .Distinct(StringComparer.Ordinal)
                     .ToArray(),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or
-                EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => combat.GetAllEntities()
+                EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => combat.GetAllActors()
                 .Where(entity => entity.IsAlive && combat.Relationship(owner, entity) == SideRelationship.Enemy)
-                .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
-                .Select(entity => entity.EntityId)
+                .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
+                .Select(entity => entity.InstanceId)
                 .ToArray(),
-            EffectTarget.ALL_ALLIES => combat.GetAllEntities()
+            EffectTarget.ALL_ALLIES => combat.GetAllActors()
                 .Where(entity => entity.IsAlive && combat.Relationship(owner, entity) == SideRelationship.Ally)
-                .OrderBy(entity => entity.EntityId, StringComparer.Ordinal)
-                .Select(entity => entity.EntityId)
+                .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
+                .Select(entity => entity.InstanceId)
                 .ToArray(),
             _ => []
         };
         if (candidates.Length == 0)
             return Result<ResolvedTargets>.Failure($"Trigger target {target} resolved no entities");
-        if (target != EffectTarget.SELF && candidates.Any(id => combat.GetEntity(id)?.IsAlive != true))
+        if (target != EffectTarget.SELF && candidates.Any(id => combat.GetActor(id)?.IsAlive != true))
             return Result<ResolvedTargets>.Failure("Selection contains an invalid or defeated target");
         if (target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {
             if (string.IsNullOrWhiteSpace(selectionResourceId))
                 return Result<ResolvedTargets>.Failure($"Trigger target {target} requires selectionResourceId");
             var withResource = candidates
-                .Select(combat.GetEntity)
+                .Select(combat.GetActor)
                 .Where(entity => entity?.GetResource(selectionResourceId) != null)
-                .Cast<CombatEntity>();
+                .Cast<CombatActorState>();
             var selected = target == EffectTarget.LOWEST_RESOURCE_ENEMY
                 ? withResource.OrderBy(entity => entity.GetResource(selectionResourceId)!.Current)
-                    .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault()
+                    .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal).FirstOrDefault()
                 : withResource.OrderByDescending(entity => entity.GetResource(selectionResourceId)!.Current)
-                    .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).FirstOrDefault();
+                    .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal).FirstOrDefault();
             return selected == null
                 ? Result<ResolvedTargets>.Failure(
                     $"No candidate exposes selection resource {selectionResourceId}")
-                : Result<ResolvedTargets>.Success(new([selected.EntityId], context));
+                : Result<ResolvedTargets>.Success(new([selected.InstanceId], context));
         }
         if (target != EffectTarget.RANDOM_ENEMY)
             return Result<ResolvedTargets>.Success(new(candidates, context));

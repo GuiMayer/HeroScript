@@ -112,19 +112,15 @@ public class CombatController : BaseApiController
             StateHash = CanonicalJson.ComputeHash(state),
             Status = state.Status.ToString(),
             CurrentTurn = state.CurrentTurn,
-            Hero = new HeroStateDto
+            Actors = state.GetAllActors().Select(actor => new ActorStateDto
             {
-                EntityId = state.Hero.EntityId,
-                Name = state.Hero.Name,
-                IsAlive = state.Hero.IsAlive,
-                Resources = MapResources(state.Hero)
-            },
-            Enemies = state.Enemies.Select(e => new EnemyStateDto
-            {
-                EntityId = e.EntityId,
-                Name = e.Name,
-                IsAlive = e.IsAlive,
-                Resources = MapResources(e)
+                InstanceId = actor.InstanceId,
+                DefinitionId = actor.DefinitionId,
+                Name = actor.Name,
+                SideId = actor.SideId,
+                ControllerBinding = actor.ControllerBinding,
+                IsAlive = actor.IsAlive,
+                Resources = MapResources(actor)
             }).ToList(),
             TotalActions = state.ActionHistory.Count,
             Board = state.Board,
@@ -133,7 +129,7 @@ public class CombatController : BaseApiController
         };
     }
 
-    private static IReadOnlyDictionary<string, ResourcePoolDto> MapResources(CombatEntity entity)
+    private static IReadOnlyDictionary<string, ResourcePoolDto> MapResources(CombatActorState entity)
     {
         return entity.ResourceState.Resources
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)

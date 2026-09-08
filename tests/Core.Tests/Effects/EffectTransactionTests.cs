@@ -16,8 +16,8 @@ public sealed class EffectTransactionTests
         { FormulaValue = "target.resources.focus.current" });
         var result = Executor().Execute(request);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(0, result.Value.State.GetEntity("enemy")!.GetResource("focus")!.Current);
-        Assert.Equal(10, request.Combat.GetEntity("enemy")!.GetResource("focus")!.Current);
+        Assert.Equal(0, result.Value.State.GetActor("enemy")!.GetResource("focus")!.Current);
+        Assert.Equal(10, request.Combat.GetActor("enemy")!.GetResource("focus")!.Current);
         Assert.Equal(2, result.Value.Steps.Length);
         Assert.Equal(result.Value.Steps[0].StateAfterHash, result.Value.Steps[1].StateBeforeHash);
     }

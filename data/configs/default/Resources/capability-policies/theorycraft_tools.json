@@ -10,7 +10,7 @@
     "allowHotReloadActivation": true,
     "cardInspectionDetail": "Full",
     "maxCards": 100,
-    "maxEnemies": 5,
+    "maxActors": 6,
     "maxBranchesPerRoot": 50,
     "maxSimulationCommands": 250
   }

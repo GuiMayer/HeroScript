@@ -55,24 +55,35 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
                 $"Run activity effects must be guaranteed, target the run owner, and persist in run state: {invalid.EffectId}");
         }
 
-        var owner = new CombatEntity
+        var owner = new CombatActorState
         {
-            EntityId = run.PlayerEntityId,
+            InstanceId = run.PlayerEntityId,
+            DefinitionId = "run-owner",
+            ContentRevision = run.Determinism.ContentRevision,
             Name = run.PlayerEntityId,
-            IsHero = true,
             SideId = "run-owner",
-            ResourceState = run.ResourceState
+            ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
+            Components = new Dictionary<string, EntityComponentState>(StringComparer.Ordinal)
+            {
+                ["resources"] = new ResourceEntityComponentState
+                {
+                    ComponentId = "resources",
+                    State = run.ResourceState
+                }
+            }
         };
         var synthetic = new CombatState
         {
             CombatId = Guid.Empty,
             RunId = run.RunId,
             RunNodeId = node.NodeId,
-            Hero = owner,
-            Enemies = [],
+            Actors = new Dictionary<string, CombatActorState>(StringComparer.Ordinal)
+            {
+                [owner.InstanceId] = owner
+            },
             Determinism = run.Determinism,
             Status = CombatStatus.ACTIVE,
-            Sides = [new CombatSide { SideId = "run-owner", Controller = ControllerKind.Player }]
+            Sides = [new CombatSide { SideId = "run-owner" }]
         };
         var trigger = new EffectTriggerDefinition
         {
@@ -101,7 +112,7 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
 
         var state = (executed.Value.Run ?? run) with
         {
-            ResourceState = executed.Value.State.Hero.ResourceState,
+            ResourceState = executed.Value.State.GetActor(run.PlayerEntityId)!.ResourceState,
             Determinism = executed.Value.Run?.Determinism ?? executed.Value.State.Determinism
         };
         return Result<RunActivityEffectResult>.Success(new RunActivityEffectResult

@@ -55,26 +55,21 @@ public static class RunContentCompatibilityValidator
         var encounters = new List<RunEncounterState>(run.Encounters.Length);
         foreach (var encounter in run.Encounters)
         {
-            var heroResources = Rebind(encounter.Combat.Hero.ResourceState, runtime);
-            if (heroResources.IsFailure)
-                return Result<RunState>.Failure(heroResources.Error);
-
-            var enemies = new List<Core.Combat.Models.CombatEntity>(encounter.Combat.Enemies.Count);
-            foreach (var enemy in encounter.Combat.Enemies)
+            var actors = new Dictionary<string, Core.Combat.Models.CombatActorState>(StringComparer.Ordinal);
+            foreach (var actor in encounter.Combat.GetAllActors())
             {
-                var enemyResources = Rebind(enemy.ResourceState, runtime);
-                if (enemyResources.IsFailure)
-                    return Result<RunState>.Failure(enemyResources.Error);
-                enemies.Add(enemy with { ResourceState = enemyResources.Value });
+                var resources = Rebind(actor.ResourceState, runtime);
+                if (resources.IsFailure)
+                    return Result<RunState>.Failure(resources.Error);
+                actors[actor.InstanceId] = (actor with
+                {
+                    ContentRevision = runtime.Manifest.Revision
+                }).WithResourceState(resources.Value);
             }
 
             encounters.Add(encounter with
             {
-                Combat = encounter.Combat with
-                {
-                    Hero = encounter.Combat.Hero with { ResourceState = heroResources.Value },
-                    Enemies = enemies
-                }
+                Combat = encounter.Combat with { Actors = actors }
             });
         }
 
@@ -88,7 +83,7 @@ public static class RunContentCompatibilityValidator
     public static bool RequiresRuntime(RunState run) =>
         run.Deck.CardInstances.Count > 0 ||
         run.ResourceState.Resources.Count > 0 ||
-        run.Encounters.Any(encounter => encounter.Combat.GetAllEntities()
+        run.Encounters.Any(encounter => encounter.Combat.GetAllActors()
             .Any(entity => entity.ResourceState.Resources.Count > 0));
 
     private static Result<ResourceSet> Rebind(ResourceSet resources, ContentRuntime runtime)

@@ -1,8 +1,6 @@
 using Core.Combat.Gambits;
 using Core.Combat.Models;
 using Core.Config;
-using Core.Entity;
-using Core.Entity.Controllers;
 using Core.Resources;
 using Moq;
 using System.Text.Json;
@@ -32,7 +30,7 @@ public sealed class GambitEngineTests
     public void DecideAction_UsesHighestPriorityMatchingGambit()
     {
         var state = CreateState(heroHealth: 20, enemyHealth: 50);
-        var entity = new Core.Entity.Entity { EntityId = "hero" };
+        var entity = state.GetActor("hero")!;
 
         var action = _engine.DecideAction(entity, state);
 
@@ -46,7 +44,7 @@ public sealed class GambitEngineTests
     public void DecideAction_FallsBackToAttackWhenHealConditionDoesNotMatch()
     {
         var state = CreateState(heroHealth: 80, enemyHealth: 50);
-        var entity = new Core.Entity.Entity { EntityId = "hero" };
+        var entity = state.GetActor("hero")!;
 
         var action = _engine.DecideAction(entity, state);
 
@@ -59,7 +57,7 @@ public sealed class GambitEngineTests
     public void DecideAction_ActorConditionAndOpponentTarget_WorkForEnemyActors()
     {
         var state = CreateState(heroHealth: 80, enemyHealth: 20);
-        var entity = new Core.Entity.Entity { EntityId = "enemy-1" };
+        var entity = state.GetActor("enemy-1")!;
 
         var action = _engine.DecideAction(entity, state, new[] { "enemy_actor_attack" });
 
@@ -72,7 +70,7 @@ public sealed class GambitEngineTests
     public void DecideActionWithMetadata_ReturnsSelectedGambitIntentMetadata()
     {
         var state = CreateState(heroHealth: 80, enemyHealth: 50);
-        var entity = new Core.Entity.Entity { EntityId = "enemy-1" };
+        var entity = state.GetActor("enemy-1")!;
 
         var decision = _engine.DecideActionWithMetadata(entity, state, new[] { "enemy_actor_attack" });
 
@@ -85,35 +83,23 @@ public sealed class GambitEngineTests
         Assert.Contains("attack", decision.Value.Intent.Tags);
     }
 
-    [Fact]
-    public async Task GambitController_DelegatesDecisionToEngine()
-    {
-        var state = CreateState(heroHealth: 80, enemyHealth: 50);
-        var entity = new Core.Entity.Entity { EntityId = "hero" };
-        var controller = new GambitController(_engine, gambitIds: new[] { "attack_first" });
-
-        var action = await controller.DecideAction(entity, state);
-
-        Assert.True(action.IsSuccess, action.IsFailure ? action.Error : null);
-        Assert.Equal(ActionType.BASIC_ATTACK, action.Value.ActionType);
-    }
-
     private static CombatState CreateState(float heroHealth, float enemyHealth)
     {
-        return new CombatState
+        var actors = new[]
         {
-            Hero = CreateEntity("hero", "Hero", isHero: true, heroHealth),
-            Enemies = new[] { CreateEntity("enemy-1", "Enemy", isHero: false, enemyHealth) }
+            CreateEntity("hero", "Hero", isHero: true, heroHealth),
+            CreateEntity("enemy-1", "Enemy", isHero: false, enemyHealth)
         };
+        return new CombatState { Actors = actors.ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal) };
     }
 
-    private static CombatEntity CreateEntity(string entityId, string name, bool isHero, float health)
+    private static CombatActorState CreateEntity(string entityId, string name, bool isHero, float health)
     {
-        return new CombatEntity
+        return new CombatActorState
         {
-            EntityId = entityId,
+            InstanceId = entityId,
             Name = name,
-            IsHero = isHero,
+            SideId = isHero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = isHero ? ControllerKind.Player : ControllerKind.AI },
             ResourceState = new ResourceSet
             {
                 OwnerId = entityId,

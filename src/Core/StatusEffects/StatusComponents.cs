@@ -30,11 +30,11 @@ public sealed record StatusDispelDefinition
 
 public static class StatusActionConstraints
 {
-    public static Result<ImmutableArray<string>> Evaluate(CombatState combat, CombatEntity actor,
+    public static Result<ImmutableArray<string>> Evaluate(CombatState combat, CombatActorState actor,
         IReadOnlySet<string> actionTags, IRuntimeFormulaEvaluator? formulas, string revision)
     {
         var failures = ImmutableArray.CreateBuilder<string>();
-        foreach (var status in combat.StatusEffects.GetValueOrDefault(actor.EntityId, [])
+        foreach (var status in combat.StatusEffects.GetValueOrDefault(actor.InstanceId, [])
                      .Where(item => item.IsActive).OrderBy(item => item.InstanceId))
         foreach (var constraint in status.Definition.ActionConstraints.OrderBy(item => item.ConstraintId, StringComparer.Ordinal))
         {
@@ -42,7 +42,7 @@ public static class StatusActionConstraints
             if (!string.IsNullOrWhiteSpace(constraint.Condition))
             {
                 if (formulas == null) return Result<ImmutableArray<string>>.Failure("Constraint formula evaluator is unavailable");
-                var variables = GameplayFormulaContext.Build(combat.GetEntity(status.SourceId ?? actor.EntityId) ?? actor, actor, actor);
+                var variables = GameplayFormulaContext.Build(combat.GetActor(status.SourceId ?? actor.InstanceId) ?? actor, actor, actor);
                 variables["stacks"] = status.Stacks;
                 variables["duration"] = status.Duration;
                 var result = GameplayFormulaContext.Evaluate(formulas, constraint.Condition, status.ContentRevision ?? revision, variables);

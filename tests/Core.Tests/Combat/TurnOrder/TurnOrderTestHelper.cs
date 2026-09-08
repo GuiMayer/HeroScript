@@ -59,11 +59,13 @@ public static class TurnOrderTestHelper
             ["health"] = heroHealthPool
         };
         
-        var hero = new CombatEntity
+        var hero = new CombatActorState
         {
-            EntityId = heroId,
+            InstanceId = heroId,
+            DefinitionId = "test-player",
+            ContentRevision = new string('a', 64),
             Name = "Hero",
-            IsHero = true,
+            SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
             ResourceState = new ResourceSet
             {
                 OwnerId = heroId,
@@ -79,11 +81,13 @@ public static class TurnOrderTestHelper
                 ["health"] = enemyHealthPool
             };
             
-            return new CombatEntity
+            return new CombatActorState
             {
-                EntityId = id,
+                InstanceId = id,
+                DefinitionId = "test-opponent",
+                ContentRevision = new string('a', 64),
                 Name = $"Enemy-{id}",
-                IsHero = false,
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = id,
@@ -94,8 +98,8 @@ public static class TurnOrderTestHelper
         
         return new CombatState
         {
-            Hero = hero,
-            Enemies = enemies,
+            Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
+            ActorOrder = enemies.Select(actor => actor.InstanceId).Prepend(hero.InstanceId).ToArray(),
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };
@@ -115,11 +119,13 @@ public static class TurnOrderTestHelper
             ["speed"] = heroSpeedPool
         };
         
-        var hero = new CombatEntity
+        var hero = new CombatActorState
         {
-            EntityId = heroData.id,
+            InstanceId = heroData.id,
+            DefinitionId = "test-player",
+            ContentRevision = new string('a', 64),
             Name = "Hero",
-            IsHero = true,
+            SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
             ResourceState = new ResourceSet
             {
                 OwnerId = heroData.id,
@@ -137,11 +143,13 @@ public static class TurnOrderTestHelper
                 ["speed"] = enemySpeedPool
             };
             
-            return new CombatEntity
+            return new CombatActorState
             {
-                EntityId = data.id,
+                InstanceId = data.id,
+                DefinitionId = "test-opponent",
+                ContentRevision = new string('a', 64),
                 Name = $"Enemy-{data.id}",
-                IsHero = false,
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = data.id,
@@ -152,8 +160,8 @@ public static class TurnOrderTestHelper
         
         return new CombatState
         {
-            Hero = hero,
-            Enemies = enemies,
+            Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
+            ActorOrder = enemies.Select(actor => actor.InstanceId).Prepend(hero.InstanceId).ToArray(),
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };
@@ -172,11 +180,13 @@ public static class TurnOrderTestHelper
             ["health"] = heroHealthPool
         };
         
-        var hero = new CombatEntity
+        var hero = new CombatActorState
         {
-            EntityId = heroData.id,
+            InstanceId = heroData.id,
+            DefinitionId = "test-player",
+            ContentRevision = new string('a', 64),
             Name = "Hero",
-            IsHero = true,
+            SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
             ResourceState = new ResourceSet
             {
                 OwnerId = heroData.id,
@@ -193,11 +203,13 @@ public static class TurnOrderTestHelper
                 ["health"] = enemyHealthPool
             };
             
-            return new CombatEntity
+            return new CombatActorState
             {
-                EntityId = data.id,
+                InstanceId = data.id,
+                DefinitionId = "test-opponent",
+                ContentRevision = new string('a', 64),
                 Name = $"Enemy-{data.id}",
-                IsHero = false,
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = data.id,
@@ -208,8 +220,8 @@ public static class TurnOrderTestHelper
         
         return new CombatState
         {
-            Hero = hero,
-            Enemies = enemies,
+            Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
+            ActorOrder = enemies.Select(actor => actor.InstanceId).Prepend(hero.InstanceId).ToArray(),
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };
@@ -230,11 +242,13 @@ public static class TurnOrderTestHelper
             ["speed"] = heroSpeedPool
         };
         
-        var hero = new CombatEntity
+        var hero = new CombatActorState
         {
-            EntityId = heroData.id,
+            InstanceId = heroData.id,
+            DefinitionId = "test-player",
+            ContentRevision = new string('a', 64),
             Name = "Hero",
-            IsHero = true,
+            SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
             ResourceState = new ResourceSet
             {
                 OwnerId = heroData.id,
@@ -253,11 +267,13 @@ public static class TurnOrderTestHelper
                 ["speed"] = enemySpeedPool
             };
             
-            return new CombatEntity
+            return new CombatActorState
             {
-                EntityId = data.id,
+                InstanceId = data.id,
+                DefinitionId = "test-opponent",
+                ContentRevision = new string('a', 64),
                 Name = $"Enemy-{data.id}",
-                IsHero = false,
+                SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
                 ResourceState = new ResourceSet
                 {
                     OwnerId = data.id,
@@ -268,8 +284,8 @@ public static class TurnOrderTestHelper
         
         return new CombatState
         {
-            Hero = hero,
-            Enemies = enemies,
+            Actors = enemies.Append(hero).ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
+            ActorOrder = enemies.Select(actor => actor.InstanceId).Prepend(hero.InstanceId).ToArray(),
             CurrentTurn = 1,
             Status = CombatStatus.ACTIVE
         };

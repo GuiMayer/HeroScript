@@ -16,7 +16,7 @@ public class FixedTurnOrderCalculatorTests
     }
     
     [Fact]
-    public void CalculateTurnOrder_ShouldReturnHeroFirst_ThenEnemiesInOrder()
+    public void CalculateTurnOrder_ShouldPreserveDeclaredActorOrder()
     {
         // Arrange
         var calculator = new FixedTurnOrderCalculator(_logger);

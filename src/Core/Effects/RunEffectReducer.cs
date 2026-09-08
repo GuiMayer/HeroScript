@@ -32,8 +32,8 @@ public static class RunEffectReducer
             var owner = effect.ModifierOwner ?? new GameplayOwner { Kind = GameplayOwnerKind.Entity, Id = targetId };
             if (owner.Kind == GameplayOwnerKind.Run && string.IsNullOrWhiteSpace(owner.Id)) owner = owner with { Id = run.RunId.ToString() };
             if (owner.Kind == GameplayOwnerKind.Run && owner.Id != run.RunId.ToString() ||
-                owner.Kind == GameplayOwnerKind.Entity && combat.GetEntity(owner.Id) == null ||
-                owner.Kind == GameplayOwnerKind.Side && !combat.GetAllEntities().Any(entity => combat.GetSideId(entity) == owner.Id))
+                owner.Kind == GameplayOwnerKind.Entity && combat.GetActor(owner.Id) == null ||
+                owner.Kind == GameplayOwnerKind.Side && !combat.GetAllActors().Any(entity => combat.GetSideId(entity) == owner.Id))
                 return Result<RunEffectApplication>.Failure("Modifier owner is outside this run/combat");
             if (effect.Type == EffectType.REMOVE_MODIFIER)
             {

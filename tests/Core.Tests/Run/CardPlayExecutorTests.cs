@@ -38,7 +38,7 @@ public sealed class CardPlayExecutorTests
             ActorId = "hero", SelectedTargetIds = ["enemy"]
         });
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(19, result.Value.Combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(19, result.Value.Combat.GetActor("enemy")!.GetResource("mana")!.Current);
         Assert.Equal(2, result.Value.Steps.Length);
         Assert.Equal("cost", result.Value.Steps[0].Provenance.ComponentId);
         Assert.Equal("effect", result.Value.Steps[1].Provenance.ComponentId);
@@ -112,10 +112,10 @@ public sealed class CardPlayExecutorTests
         });
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(1, result.Value.Combat.GetEntity("hero")!.GetResource("energy")!.Current);
-        Assert.Equal(10, result.Value.Combat.GetEntity("enemy")!.GetResource("mana")!.Current);
-        Assert.Equal(3, combat.GetEntity("hero")!.GetResource("energy")!.Current);
-        Assert.Equal(20, combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(1, result.Value.Combat.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(10, result.Value.Combat.GetActor("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(3, combat.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(20, combat.GetActor("enemy")!.GetResource("mana")!.Current);
         Assert.Equal(7, Assert.Single(result.Value.Calculations).BaseValue);
         Assert.Equal(10, result.Value.Calculations[0].Value);
         Assert.Equal(2, result.Value.Calculations[0].BaseTrace.Count);
@@ -222,7 +222,7 @@ public sealed class CardPlayExecutorTests
         });
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(5, result.Value.Combat.GetEntity("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(5, result.Value.Combat.GetActor("enemy")!.GetResource("mana")!.Current);
         var calculation = Assert.Single(result.Value.Calculations);
         var contribution = Assert.Single(Assert.Single(calculation.Buckets).Contributions);
         Assert.Equal("actor.mana.flat", contribution.InfluenceId);
@@ -272,7 +272,7 @@ public sealed class CardPlayExecutorTests
 
         Assert.True(result.IsFailure);
         Assert.Contains("missing", result.Error);
-        Assert.Equal(3, combat.GetEntity("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(3, combat.GetActor("hero")!.GetResource("energy")!.Current);
         Assert.Empty(combat.ActionHistory);
     }
 
@@ -408,18 +408,19 @@ public sealed class CardPlayExecutorTests
     private static CombatState Combat() => new()
     {
         CombatId = Guid.Parse("30000000-0000-8000-8000-000000000001"),
-        Hero = Entity("hero", true, ("energy", 3), ("mana", 10)),
-        Enemies = [Entity("enemy", false, ("mana", 20))],
+        Actors = new[] { Entity("hero", true, ("energy", 3), ("mana", 10)),
+                Entity("enemy", false, ("mana", 20)) }
+            .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
         Determinism = DeterministicContext.Create(77, Revision)
     };
 
-    private static CombatEntity Entity(
+    private static CombatActorState Entity(
         string id,
         bool hero,
         params (string Id, float Current)[] resources) => new()
     {
-        EntityId = id,
-        IsHero = hero,
+        InstanceId = id,
+        SideId = hero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = hero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

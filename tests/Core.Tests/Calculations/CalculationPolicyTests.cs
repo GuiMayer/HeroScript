@@ -44,7 +44,7 @@ public sealed class CalculationPolicyTests
     {
         var result = new EntityResourceInfluenceProvider().Collect(new()
         {
-            Actor = GameplayOwnershipTests.State().Hero,
+            Actor = GameplayOwnershipTests.State().GetActor("hero")!,
             Pipeline = Pipeline() with { ResourceInfluenceBindings = [new()
             { BindingId = "missing", ResourceId = "other", Channel = "amount", Bucket = "value", MissingResource = policy, Offset = 4 }] }
         });

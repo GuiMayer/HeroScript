@@ -41,9 +41,9 @@ vencido a corrida, a resposta é `409` e informa a sequência e o step atuais.
 `START_ENCOUNTER` e `RESOLVE_COMBAT` são comandos de run porque modificam
 simultaneamente a progressão.
 
-O início do encontro separa o alias da instância (`entityId`) da definição de
-conteúdo (`definitionId`). Recursos iniciais opcionais são um dicionário genérico
-por alias; não existe campo especializado para energia ou vida:
+O início do encontro separa a identidade da instância (`instanceId`) da definição
+de conteúdo (`definitionId`). Cada participante declara lado e controlador;
+recursos iniciais opcionais são um dicionário genérico por instância:
 
 ```http
 POST /api/v1/runs/{runId}/commands
@@ -57,9 +57,15 @@ Content-Type: application/json
   "expectedStep": 1,
   "type": "START_ENCOUNTER",
   "payload": {
-    "hero": { "entityId": "player", "definitionId": "player_warrior" },
-    "enemies": [
-      { "entityId": "enemy_1", "definitionId": "enemy_goblin" }
+    "participants": [
+      {
+        "instanceId": "player", "definitionId": "player_warrior",
+        "sideId": "player", "controllerBinding": { "kind": "Player" }
+      },
+      {
+        "instanceId": "enemy_1", "definitionId": "enemy_goblin",
+        "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+      }
     ],
     "initialResourceValues": {
       "player": { "energy": 3 }
@@ -68,7 +74,7 @@ Content-Type: application/json
 }
 ```
 
-Aliases devem ser únicos, mas vários aliases podem compartilhar a mesma definição.
+IDs de instância devem ser únicos, mas várias instâncias podem compartilhar a mesma definição.
 Uma referência ou override desconhecido rejeita o comando inteiro.
 
 Dentro do encontro, use:

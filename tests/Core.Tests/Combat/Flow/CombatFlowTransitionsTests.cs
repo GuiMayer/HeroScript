@@ -124,12 +124,14 @@ public sealed class CombatFlowTransitionsTests
         var original = TurnOrderTestHelper.CreateTestCombatState("hero", ["enemy_b", "enemy_a"]);
         var combat = original with
         {
-            Hero = original.Hero with { SideId = "red" },
-            Enemies = original.Enemies.Select(enemy => enemy with { SideId = "blue" }).ToArray(),
+            Actors = original.GetAllActors().Select(actor => actor.InstanceId == "hero"
+                    ? actor with { SideId = "red", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI } }
+                    : actor with { SideId = "blue", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player } })
+                .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
             Sides =
             [
-                new() { SideId = "red", Controller = ControllerKind.AI },
-                new() { SideId = "blue", Controller = ControllerKind.Player }
+                new() { SideId = "red" },
+                new() { SideId = "blue" }
             ]
         };
 

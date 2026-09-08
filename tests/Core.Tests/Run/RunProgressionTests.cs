@@ -298,13 +298,15 @@ public sealed class RunProgressionTests
                 {
                     CombatId = combatId,
                     Status = CombatStatus.DEFEAT,
-                    Hero = new CombatEntity
+                    Actors = new Dictionary<string, CombatActorState>
                     {
-                        EntityId = "player",
-                        IsHero = true,
-                        ResourceState = new ResourceSet { OwnerId = "player" }
-                    },
-                    Enemies = []
+                        ["player"] = new()
+                        {
+                            InstanceId = "player",
+                            SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
+                            ResourceState = new ResourceSet { OwnerId = "player" }
+                        }
+                    }
                 }
             }]
         };

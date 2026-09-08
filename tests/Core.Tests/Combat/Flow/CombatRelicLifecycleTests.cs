@@ -52,8 +52,7 @@ public sealed class CombatRelicLifecycleTests
             ]
         };
         var combat = CombatTransitions.Create(
-            Entity("hero", true, 1),
-            [Entity("enemy", false, 1)],
+            [Entity("hero", true, 1), Entity("enemy", false, 1)],
             DeterministicContext.Create(2, "revision"));
         var lifecycle = new CombatRelicLifecycle(new EffectTriggerExecutor(
             Mock.Of<IRuntimeFormulaEvaluator>(),
@@ -62,16 +61,16 @@ public sealed class CombatRelicLifecycleTests
         var result = lifecycle.Process(run, combat, CombatTriggerBoundaries.CombatStart);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(3, result.Value.Combat.Hero.GetResource("energy")!.Current);
+        Assert.Equal(3, result.Value.Combat.GetActor("hero")!.GetResource("energy")!.Current);
         var application = Assert.Single(Assert.Single(result.Value.Events).Applications);
         Assert.Equal(EffectProvenanceKind.Relic, application.Provenance.Kind);
         Assert.Equal(relicId.ToString(), application.Provenance.SourceId);
     }
 
-    private static CombatEntity Entity(string id, bool hero, float energy) => new()
+    private static CombatActorState Entity(string id, bool hero, float energy) => new()
     {
-        EntityId = id,
-        IsHero = hero,
+        InstanceId = id,
+        SideId = hero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = hero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

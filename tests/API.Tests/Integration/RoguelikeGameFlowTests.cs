@@ -72,10 +72,10 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         // Verify combat started
         AssertCombatStateValid(combatState);
-        Assert.Equal(2, GetArrayLength(combatState, "enemies"));
+        Assert.Equal(3, GetArrayLength(combatState, "actors"));
 
         // Verify hero has energy
-        var hero = combatState.GetProperty("hero");
+        var hero = GetPlayerActor(combatState);
         AssertEntityHasResource(hero, "energy");
 
         // Play a card (simulate Strike)

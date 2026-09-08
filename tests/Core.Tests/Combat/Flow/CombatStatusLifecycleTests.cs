@@ -24,8 +24,7 @@ public sealed class CombatStatusLifecycleTests
             formulas.Object,
             new ImmutableEffectProcessor()));
         var combat = CombatTransitions.Create(
-            Entity("hero", true, 50),
-            [Entity("enemy", false, 50)],
+            [Entity("hero", true, 50), Entity("enemy", false, 50)],
             DeterministicContext.Create(1, "revision")) with
         {
             ActivationState = new()
@@ -51,8 +50,8 @@ public sealed class CombatStatusLifecycleTests
             "enemy");
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(45, result.Value.Combat.Enemies.Single().GetResource("health")!.Current);
-        Assert.Equal(50, result.Value.Combat.Hero.GetResource("health")!.Current);
+        Assert.Equal(45, result.Value.Combat.GetActor("enemy")!.GetResource("health")!.Current);
+        Assert.Equal(50, result.Value.Combat.GetActor("hero")!.GetResource("health")!.Current);
         Assert.Equal(["high", "low"], result.Value.Events
             .Where(item => item.Kind == CombatStatusLifecycleEventKind.Triggered)
             .Select(item => item.StatusId));
@@ -110,11 +109,11 @@ public sealed class CombatStatusLifecycleTests
             Stacks = 2
         };
 
-    private static CombatEntity Entity(string id, bool hero, float health) => new()
+    private static CombatActorState Entity(string id, bool hero, float health) => new()
     {
-        EntityId = id,
+        InstanceId = id,
         Name = id,
-        IsHero = hero,
+        SideId = hero ? "player" : "opposition", ControllerBinding = new ControllerBinding { Kind = hero ? ControllerKind.Player : ControllerKind.AI },
         ResourceState = new ResourceSet
         {
             OwnerId = id,

@@ -189,8 +189,8 @@ public sealed record CalculationSourceContext
     public string? ComponentId { get; init; }
     public RunState? Run { get; init; }
     public CombatState? Combat { get; init; }
-    public CombatEntity? Actor { get; init; }
-    public CombatEntity? Target { get; init; }
+    public CombatActorState? Actor { get; init; }
+    public CombatActorState? Target { get; init; }
     public CalculationPipelineDefinition? Pipeline { get; init; }
     public IReadOnlySet<string> Tags
     {

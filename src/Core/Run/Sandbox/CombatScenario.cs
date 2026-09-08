@@ -10,6 +10,7 @@ using Core.Resources;
 using Core.Run.Content;
 using Core.StatusEffects;
 using Core.Calculations;
+using System.Text.Json.Serialization;
 
 namespace Core.Run.Sandbox;
 
@@ -18,23 +19,23 @@ namespace Core.Run.Sandbox;
 /// not a mutable combat snapshot: the compiler resolves it into authoritative
 /// run and combat state.
 /// </summary>
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CombatScenarioDefinition
 {
     private ImmutableArray<ScenarioCardDefinition> _deck = [];
-    private ImmutableArray<ScenarioEnemyDefinition> _enemies = [];
+    private ImmutableArray<ScenarioParticipantDefinition> _participants = [];
     private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
 
-    public int SchemaVersion { get; init; } = 1;
+    public int SchemaVersion { get; init; } = 2;
     public string ModeId { get; init; } = string.Empty;
     public string? ContentRevision { get; init; }
     public ulong Seed { get; init; }
     public string AttemptKey { get; init; } = string.Empty;
-    public ScenarioHeroDefinition Hero { get; init; } = new();
     public CombatRelationshipPolicy Relationships { get; init; } = new();
     public ImmutableArray<CombatSide> Sides { get; init; } =
     [
-        new() { SideId = "player", Controller = ControllerKind.Player },
-        new() { SideId = "opposition", Controller = ControllerKind.AI }
+        new() { SideId = "player" },
+        new() { SideId = "opposition" }
     ];
     public IReadOnlyList<ContextualInfluenceDefinition> Influences
     {
@@ -46,28 +47,24 @@ public sealed record CombatScenarioDefinition
         get => _deck;
         init => _deck = value?.ToImmutableArray() ?? [];
     }
-    public IReadOnlyList<ScenarioEnemyDefinition> Enemies
+    public IReadOnlyList<ScenarioParticipantDefinition> Participants
     {
-        get => _enemies;
-        init => _enemies = value?.ToImmutableArray() ?? [];
+        get => _participants;
+        init => _participants = value?.ToImmutableArray() ?? [];
     }
     public ScenarioInitialState InitialState { get; init; } = new();
 }
 
-public sealed record ScenarioHeroDefinition
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ScenarioParticipantDefinition
 {
-    public string SideId { get; init; } = "player";
-    public string Alias { get; init; } = "hero";
+    public string InstanceId { get; init; } = string.Empty;
     public string EntityDefinitionId { get; init; } = string.Empty;
+    public string SideId { get; init; } = string.Empty;
+    public ControllerBinding ControllerBinding { get; init; } = new();
 }
 
-public sealed record ScenarioEnemyDefinition
-{
-    public string SideId { get; init; } = "opposition";
-    public string Alias { get; init; } = string.Empty;
-    public string EntityDefinitionId { get; init; } = string.Empty;
-}
-
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ScenarioCardDefinition
 {
     private ImmutableArray<string> _upgradeIds = [];
@@ -79,24 +76,29 @@ public sealed record ScenarioCardDefinition
     }
 }
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ScenarioInitialEffectDefinition
 {
-    public string TargetAlias { get; init; } = string.Empty;
+    public string TargetActorId { get; init; } = string.Empty;
     public string StatusId { get; init; } = string.Empty;
     public int Stacks { get; init; } = 1;
 }
 
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record ScenarioInitialState
 {
-    private ImmutableDictionary<string, float> _heroResources =
-        ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    private ImmutableDictionary<string, IReadOnlyDictionary<string, float>> _resourcesByActor =
+        ImmutableDictionary<string, IReadOnlyDictionary<string, float>>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableArray<ScenarioInitialEffectDefinition> _effects = [];
 
-    public IReadOnlyDictionary<string, float> HeroResources
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>> ResourcesByActor
     {
-        get => _heroResources;
-        init => _heroResources = value?.ToImmutableDictionary(StringComparer.Ordinal)
-            ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+        get => _resourcesByActor;
+        init => _resourcesByActor = value?.ToImmutableDictionary(
+            item => item.Key,
+            item => (IReadOnlyDictionary<string, float>)item.Value.ToImmutableDictionary(StringComparer.Ordinal),
+            StringComparer.Ordinal)
+            ?? ImmutableDictionary<string, IReadOnlyDictionary<string, float>>.Empty.WithComparers(StringComparer.Ordinal);
     }
     public IReadOnlyList<ScenarioInitialEffectDefinition> Effects
     {
@@ -107,7 +109,7 @@ public sealed record ScenarioInitialState
 
 public sealed record CompiledCombatScenario
 {
-    private ImmutableArray<CombatEntity> _enemies = [];
+    private ImmutableArray<CombatActorState> _participants = [];
     private ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>> _initialStatusEffects =
         ImmutableDictionary<string, IReadOnlyList<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
 
@@ -115,11 +117,10 @@ public sealed record CompiledCombatScenario
     public string ScenarioHash { get; init; } = string.Empty;
     public ContentManifest ContentManifest { get; init; } = new();
     public RunStartOptions RunStart { get; init; } = new();
-    public CombatEntity Hero { get; init; } = new();
-    public IReadOnlyList<CombatEntity> Enemies
+    public IReadOnlyList<CombatActorState> Participants
     {
-        get => _enemies;
-        init => _enemies = value?.ToImmutableArray() ?? [];
+        get => _participants;
+        init => _participants = value?.ToImmutableArray() ?? [];
     }
     public IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>> InitialStatusEffects
     {
@@ -171,20 +172,14 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
     public Result<CompiledCombatScenario> Compile(CombatScenarioDefinition scenario, string configName = "default")
     {
         ArgumentNullException.ThrowIfNull(scenario);
-        if (scenario.SchemaVersion != 1)
+        if (scenario.SchemaVersion != 2)
             return Result<CompiledCombatScenario>.Failure($"Unsupported combat scenario schema: {scenario.SchemaVersion}");
         if (string.IsNullOrWhiteSpace(scenario.ModeId))
             return Result<CompiledCombatScenario>.Failure("Scenario modeId is required");
         if (string.IsNullOrWhiteSpace(scenario.AttemptKey))
             return Result<CompiledCombatScenario>.Failure("Scenario attemptKey is required");
-        if (string.IsNullOrWhiteSpace(scenario.Hero.Alias) ||
-            string.IsNullOrWhiteSpace(scenario.Hero.EntityDefinitionId))
-        {
-            return Result<CompiledCombatScenario>.Failure("Scenario hero alias and entityDefinitionId are required");
-        }
-
         var relationships = GameplayRelationshipValidator.Validate(
-            scenario.Enemies.Select(enemy => enemy.SideId).Prepend(scenario.Hero.SideId), scenario.Sides, scenario.Relationships);
+            scenario.Participants.Select(participant => participant.SideId), scenario.Sides, scenario.Relationships);
         if (relationships.IsFailure) return Result<CompiledCombatScenario>.Failure(relationships.Error);
 
         var manifest = ResolveManifest(scenario.ContentRevision, configName);
@@ -202,9 +197,9 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             return Result<CompiledCombatScenario>.Failure($"Game mode does not allow custom decks: {scenario.ModeId}");
         if (scenario.Deck.Count < 1 || scenario.Deck.Count > mode.Value.CapabilityPolicy.MaxCards)
             return Result<CompiledCombatScenario>.Failure($"Scenario deck must contain between 1 and {mode.Value.CapabilityPolicy.MaxCards} cards");
-        if (scenario.Enemies.Count < 1 || scenario.Enemies.Count > mode.Value.CapabilityPolicy.MaxEnemies)
-            return Result<CompiledCombatScenario>.Failure($"Scenario must contain between 1 and {mode.Value.CapabilityPolicy.MaxEnemies} enemies");
-        if (scenario.InitialState.HeroResources.Count > 0 && !mode.Value.CapabilityPolicy.AllowResourceOverrides)
+        if (scenario.Participants.Count < 1 || scenario.Participants.Count > mode.Value.CapabilityPolicy.MaxActors)
+            return Result<CompiledCombatScenario>.Failure($"Scenario must contain between 1 and {mode.Value.CapabilityPolicy.MaxActors} actors");
+        if (scenario.InitialState.ResourcesByActor.Count > 0 && !mode.Value.CapabilityPolicy.AllowResourceOverrides)
             return Result<CompiledCombatScenario>.Failure("Game mode does not allow initial resource overrides");
         if (scenario.InitialState.Effects.Count > 0 && !mode.Value.CapabilityPolicy.AllowInitialEffects)
             return Result<CompiledCombatScenario>.Failure("Game mode does not allow initial status effects");
@@ -251,46 +246,46 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             startingCards.Add(new RunStartingCard { DefinitionId = definition.Value.CardId, Upgrades = resolvedUpgrades });
         }
 
-        var allowedEnemies = ResolveAllowedEnemies(
+        var allowedAiActors = ResolveAllowedEnemies(
             mode.Value.Definition.EnemyPoolIds,
             configName,
             manifest.Value.Revision);
-        if (allowedEnemies.IsFailure)
-            return Result<CompiledCombatScenario>.Failure(allowedEnemies.Error);
-        var aliases = new HashSet<string>(StringComparer.Ordinal) { scenario.Hero.Alias };
-        var factory = new EntityCombatAdapter(_resources);
-        var hero = MaterializeParticipant(
-            factory,
-            scenario.Hero.Alias,
-            scenario.Hero.EntityDefinitionId,
-            true,
-            manifest.Value.Revision,
-            configName);
-        if (hero.IsFailure)
-            return Result<CompiledCombatScenario>.Failure(hero.Error);
-        var heroWithResources = ApplyResources(hero.Value, scenario.InitialState.HeroResources);
-        if (heroWithResources.IsFailure)
-            return Result<CompiledCombatScenario>.Failure(heroWithResources.Error);
-        var enemies = new List<CombatEntity>();
-        foreach (var enemy in scenario.Enemies.OrderBy(item => item.Alias, StringComparer.Ordinal))
+        if (allowedAiActors.IsFailure)
+            return Result<CompiledCombatScenario>.Failure(allowedAiActors.Error);
+        var participantIds = new HashSet<string>(StringComparer.Ordinal);
+        var materializer = new EntityMaterializer(_resources);
+        var participants = new List<CombatActorState>();
+        foreach (var participant in scenario.Participants)
         {
-            if (string.IsNullOrWhiteSpace(enemy.Alias) || string.IsNullOrWhiteSpace(enemy.EntityDefinitionId))
-                return Result<CompiledCombatScenario>.Failure("Scenario enemy alias and entityDefinitionId are required");
-            if (!aliases.Add(enemy.Alias))
-                return Result<CompiledCombatScenario>.Failure($"Scenario participant alias is duplicated: {enemy.Alias}");
-            if (!allowedEnemies.Value.Contains(enemy.EntityDefinitionId))
-                return Result<CompiledCombatScenario>.Failure($"Enemy is not allowed by the game mode: {enemy.EntityDefinitionId}");
+            if (string.IsNullOrWhiteSpace(participant.InstanceId) ||
+                string.IsNullOrWhiteSpace(participant.EntityDefinitionId) ||
+                string.IsNullOrWhiteSpace(participant.SideId) || participant.ControllerBinding == null ||
+                !Enum.IsDefined(participant.ControllerBinding.Kind))
+                return Result<CompiledCombatScenario>.Failure(
+                    "Every scenario participant requires instanceId, entityDefinitionId, sideId and controllerBinding");
+            if (!participantIds.Add(participant.InstanceId))
+                return Result<CompiledCombatScenario>.Failure(
+                    $"Scenario participant instanceId is duplicated: {participant.InstanceId}");
+            if (participant.ControllerBinding.Kind == ControllerKind.AI &&
+                !allowedAiActors.Value.Contains(participant.EntityDefinitionId))
+                return Result<CompiledCombatScenario>.Failure(
+                    $"AI actor is not allowed by the game mode: {participant.EntityDefinitionId}");
             var materialized = MaterializeParticipant(
-                factory,
-                enemy.Alias,
-                enemy.EntityDefinitionId,
-                false,
+                materializer,
+                participant,
                 manifest.Value.Revision,
                 configName);
             if (materialized.IsFailure)
                 return Result<CompiledCombatScenario>.Failure(materialized.Error);
-            enemies.Add(materialized.Value with { SideId = enemy.SideId });
+            var overrides = scenario.InitialState.ResourcesByActor.GetValueOrDefault(participant.InstanceId)
+                ?? ImmutableDictionary<string, float>.Empty;
+            var withResources = ApplyResources(materialized.Value, overrides);
+            if (withResources.IsFailure)
+                return Result<CompiledCombatScenario>.Failure(withResources.Error);
+            participants.Add(withResources.Value);
         }
+        if (scenario.InitialState.ResourcesByActor.Keys.Any(id => !participantIds.Contains(id)))
+            return Result<CompiledCombatScenario>.Failure("Resource override references an unknown scenario participant");
 
         var normalized = scenario with
         {
@@ -299,20 +294,23 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             {
                 UpgradeIds = card.UpgradeIds.OrderBy(id => id, StringComparer.Ordinal).ToArray()
             }).ToArray(),
-            Enemies = scenario.Enemies.OrderBy(item => item.Alias, StringComparer.Ordinal).ToArray(),
+            Participants = scenario.Participants.ToArray(),
             InitialState = scenario.InitialState with
             {
                 Effects = scenario.InitialState.Effects
-                    .OrderBy(effect => effect.TargetAlias, StringComparer.Ordinal)
+                    .OrderBy(effect => effect.TargetActorId, StringComparer.Ordinal)
                     .ThenBy(effect => effect.StatusId, StringComparer.Ordinal)
                     .ThenBy(effect => effect.Stacks)
                     .ToArray()
             }
         };
-        var initialStatuses = CompileInitialStatusEffects(normalized, aliases, manifest.Value.Revision);
+        var initialStatuses = CompileInitialStatusEffects(normalized, participantIds, manifest.Value.Revision);
         if (initialStatuses.IsFailure)
             return Result<CompiledCombatScenario>.Failure(initialStatuses.Error);
         var scenarioHash = CanonicalJson.ComputeHash(normalized);
+        var runOwner = normalized.Participants.FirstOrDefault(
+            participant => participant.ControllerBinding.Kind == ControllerKind.Player)
+            ?? normalized.Participants[0];
         return Result<CompiledCombatScenario>.Success(new CompiledCombatScenario
         {
             Scenario = normalized,
@@ -321,7 +319,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             RunStart = new RunStartOptions(
                 configName,
                 mode.Value.Definition.RunDefinitionId ?? "default_run",
-                normalized.Hero.Alias,
+                runOwner.InstanceId,
                 normalized.Seed,
                 manifest.Value.Revision,
                 normalized.ModeId,
@@ -333,8 +331,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 AttemptKey: normalized.AttemptKey,
                 Scenario: normalized,
                 SettingId: configName),
-            Hero = heroWithResources.Value with { SideId = scenario.Hero.SideId },
-            Enemies = enemies.ToImmutableArray(),
+            Participants = participants.ToImmutableArray(),
             InitialStatusEffects = initialStatuses.Value
         });
     }
@@ -363,7 +360,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
 
     private Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>> CompileInitialStatusEffects(
         CombatScenarioDefinition scenario,
-        IReadOnlySet<string> participantAliases,
+        IReadOnlySet<string> participantIds,
         string contentRevision)
     {
         if (scenario.InitialState.Effects.Count == 0)
@@ -378,31 +375,31 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         for (var index = 0; index < scenario.InitialState.Effects.Count; index++)
         {
             var effect = scenario.InitialState.Effects[index];
-            if (!participantAliases.Contains(effect.TargetAlias))
+            if (!participantIds.Contains(effect.TargetActorId))
             {
                 return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(
-                    $"Initial status target is not a scenario participant: {effect.TargetAlias}");
+                    $"Initial status target is not a scenario participant: {effect.TargetActorId}");
             }
             if (string.IsNullOrWhiteSpace(effect.StatusId) || effect.Stacks < 1)
             {
                 return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(
                     "Initial status requires a statusId and positive stacks");
             }
-            if (!seen.Add($"{effect.TargetAlias}\n{effect.StatusId}"))
+            if (!seen.Add($"{effect.TargetActorId}\n{effect.StatusId}"))
             {
                 return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(
-                    $"Initial status is duplicated for target: {effect.TargetAlias}/{effect.StatusId}");
+                    $"Initial status is duplicated for target: {effect.TargetActorId}/{effect.StatusId}");
             }
 
             var definition = _statuses.Get(effect.StatusId, contentRevision);
             if (definition.IsFailure)
                 return Result<IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>>.Failure(definition.Error);
-            var allocated = context.AllocateId($"scenario-status:{scenario.AttemptKey}:{effect.TargetAlias}:{effect.StatusId}:{index}");
+            var allocated = context.AllocateId($"scenario-status:{scenario.AttemptKey}:{effect.TargetActorId}:{effect.StatusId}:{index}");
             context = allocated.Context;
-            if (!statuses.TryGetValue(effect.TargetAlias, out var targetStatuses))
+            if (!statuses.TryGetValue(effect.TargetActorId, out var targetStatuses))
             {
                 targetStatuses = [];
-                statuses[effect.TargetAlias] = targetStatuses;
+                statuses[effect.TargetActorId] = targetStatuses;
             }
             targetStatuses.Add(new StatusEffectInstance
             {
@@ -410,7 +407,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 StatusId = definition.Value.StatusId,
                 Definition = definition.Value,
                 ContentRevision = contentRevision,
-                TargetId = effect.TargetAlias,
+                TargetId = effect.TargetActorId,
                 Stacks = System.Math.Min(effect.Stacks, definition.Value.MaxStacks),
                 Duration = definition.Value.DefaultDuration,
                 AppliedAt = allocated.Context.LogicalTimestamp.UtcDateTime,
@@ -504,25 +501,17 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         return Result<HashSet<string>>.Success(ids);
     }
 
-    private Result<CombatEntity> MaterializeParticipant(
-        EntityCombatAdapter factory,
-        string alias,
-        string definitionId,
-        bool hero,
+    private Result<CombatActorState> MaterializeParticipant(
+        EntityMaterializer materializer,
+        ScenarioParticipantDefinition participant,
         string contentRevision,
         string configName)
     {
-        var definition = _entities.LoadDefinition(definitionId, contentRevision, configName);
+        var definition = _entities.LoadDefinition(participant.EntityDefinitionId, contentRevision, configName);
         if (definition.IsFailure)
-            return Result<CombatEntity>.Failure(definition.Error);
-        var entity = factory.CreateCombatEntityFromDefinition(
-            alias,
-            definition.Value,
-            contentRevision,
-            configName);
-        if (entity.IsHero != hero)
-            return Result<CombatEntity>.Failure($"Entity definition has an invalid scenario role: {definitionId}");
-        return Result<CombatEntity>.Success(entity);
+            return Result<CombatActorState>.Failure(definition.Error);
+        return materializer.Materialize(definition.Value, participant.InstanceId, contentRevision,
+            participant.SideId, participant.ControllerBinding, configName);
     }
 
     private Result<T> GetContent<T>(
@@ -537,27 +526,27 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             : runtime.Value.GetDefinition<T>(kind, id);
     }
 
-    private static Result<CombatEntity> ApplyResources(
-        CombatEntity participant,
+    private static Result<CombatActorState> ApplyResources(
+        CombatActorState participant,
         IReadOnlyDictionary<string, float> overrides)
     {
         var current = participant;
         foreach (var (resourceId, value) in overrides.OrderBy(item => item.Key, StringComparer.Ordinal))
         {
             if (float.IsNaN(value) || float.IsInfinity(value))
-                return Result<CombatEntity>.Failure($"Resource override must be finite: {resourceId}");
+                return Result<CombatActorState>.Failure($"Resource override must be finite: {resourceId}");
             var resource = current.GetResource(resourceId);
             if (resource == null)
-                return Result<CombatEntity>.Failure($"Resource is not present on scenario hero: {resourceId}");
+                return Result<CombatActorState>.Failure($"Resource is not present on scenario actor: {resourceId}");
             var updated = current.ApplyResourceMutation(
-                $"scenario-override:{current.EntityId}:{resourceId}",
+                $"scenario-override:{current.InstanceId}:{resourceId}",
                 resourceId,
                 ResourceMutationOperation.Set,
                 value);
             if (updated.IsFailure)
-                return Result<CombatEntity>.Failure(updated.Error);
+                return Result<CombatActorState>.Failure(updated.Error);
             current = updated.Value;
         }
-        return Result<CombatEntity>.Success(current);
+        return Result<CombatActorState>.Success(current);
     }
 }

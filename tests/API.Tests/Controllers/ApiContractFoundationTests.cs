@@ -441,10 +441,22 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             type = RunCommandTypes.StartEncounter,
             payload = new
             {
-                hero = new { entityId = player, definitionId = "player_warrior" },
-                enemies = new[]
+                participants = new object[]
                 {
-                    new { entityId = "enemy_1", definitionId = "enemy_goblin" }
+                    new
+                    {
+                        instanceId = player,
+                        definitionId = "player_warrior",
+                        sideId = "player",
+                        controllerBinding = new { kind = "Player" }
+                    },
+                    new
+                    {
+                        instanceId = "enemy_1",
+                        definitionId = "enemy_goblin",
+                        sideId = "opposition",
+                        controllerBinding = new { kind = "AI", policyId = "gambit" }
+                    }
                 },
                 initialResourceValues = new Dictionary<string, IReadOnlyDictionary<string, float>>
                 {
@@ -518,7 +530,12 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             expectedSequence,
             expectedStep,
             type = "END_TURN",
-            payload = new { actorId = encounter.GetProperty("hero").GetProperty("entityId").GetString() }
+            payload = new
+            {
+                actorId = encounter.GetProperty("actors").EnumerateArray()
+                    .First(actor => actor.GetProperty("controllerBinding").GetProperty("kind").GetString() == "Player")
+                    .GetProperty("instanceId").GetString()
+            }
         };
 
         using var firstResponse = await _client.PostAsJsonAsync(
@@ -575,7 +592,12 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
                 expectedSequence = currentRun.GetProperty("sequence").GetInt32(),
                 expectedStep = encounter.GetProperty("step").GetUInt64(),
                 type = "END_TURN",
-                payload = new { actorId = encounter.GetProperty("hero").GetProperty("entityId").GetString() }
+                payload = new
+                {
+                    actorId = encounter.GetProperty("actors").EnumerateArray()
+                        .First(actor => actor.GetProperty("controllerBinding").GetProperty("kind").GetString() == "Player")
+                        .GetProperty("instanceId").GetString()
+                }
             });
         var actionBody = await actionResponse.Content.ReadAsStringAsync();
         Assert.True(actionResponse.IsSuccessStatusCode, actionBody);
@@ -712,12 +734,22 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             type = RunCommandTypes.StartEncounter,
             payload = new
             {
-                hero = new { entityId = heroId, definitionId = "player_warrior" },
-                enemies = enemyIds.Select(entityId => new
+                participants = new object[]
                 {
-                    entityId,
-                    definitionId = "enemy_goblin"
-                }),
+                    new
+                    {
+                        instanceId = heroId,
+                        definitionId = "player_warrior",
+                        sideId = "player",
+                        controllerBinding = new { kind = "Player" }
+                    }
+                }.Concat(enemyIds.Select(instanceId => (object)new
+                {
+                    instanceId,
+                    definitionId = "enemy_goblin",
+                    sideId = "opposition",
+                    controllerBinding = new { kind = "AI", policyId = "gambit" }
+                })),
                 initialResourceValues = initialHeroResourceValues == null
                     ? null
                     : new Dictionary<string, IReadOnlyDictionary<string, float>>

@@ -46,8 +46,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
     public Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,
-        CombatParticipantReference hero,
-        IReadOnlyList<CombatParticipantReference> enemies,
+        IReadOnlyList<CombatParticipantReference> participants,
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? initialResourceValues = null,
         RunCommandIdentity? commandIdentity = null,
         JsonElement commandPayload = default)
@@ -87,8 +86,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var seed = run.Determinism.DrawUInt64();
             var combatResult = _combatFactory.Create(
-                hero,
-                enemies,
+                participants,
                 new CombatStartOptions(
                     seed.Value,
                     run.Determinism.ContentRevision,
@@ -132,14 +130,12 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
     public Result<CombatRunEncounterResult> StartEncounter(
         Guid runId,
-        CombatEntity hero,
-        IReadOnlyList<CombatEntity> enemies,
+        IReadOnlyList<CombatActorState> participants,
         RunCommandIdentity? commandIdentity = null,
         IReadOnlyDictionary<string, IReadOnlyList<StatusEffectInstance>>? initialStatusEffects = null,
         JsonElement commandPayload = default)
     {
-        ArgumentNullException.ThrowIfNull(hero);
-        ArgumentNullException.ThrowIfNull(enemies);
+        ArgumentNullException.ThrowIfNull(participants);
         var runLock = _runLocks.GetOrAdd(runId, _ => new object());
         lock (runLock)
         {
@@ -172,8 +168,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
 
             var seed = run.Determinism.DrawUInt64();
             var combatResult = _combatFactory.Create(
-                hero,
-                enemies,
+                participants,
                 new CombatStartOptions(
                     seed.Value,
                     run.Determinism.ContentRevision,
@@ -296,14 +291,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (versionValidation.IsFailure)
             return Result<CombatRunActionResult>.Failure(versionValidation.Error);
 
-        var actor = encounter.Combat.GetEntity(command.ActorId);
+        var actor = encounter.Combat.GetActor(command.ActorId);
         if (actor == null)
             return Result<CombatRunActionResult>.Failure($"Actor not found: {command.ActorId}");
 
         if (command.ActionType == ActionType.PLAY_CARD)
         {
             if (encounter.Combat.ControllerOf(actor) != ControllerKind.Player ||
-                !string.Equals(actor.EntityId, run.PlayerEntityId, StringComparison.Ordinal))
+                !string.Equals(actor.InstanceId, run.PlayerEntityId, StringComparison.Ordinal))
                 return Result<CombatRunActionResult>.Failure("Only the configured run owner can play cards from its deck");
             if (_cardPlayExecutor == null)
                 return Result<CombatRunActionResult>.Failure("Card play executor is unavailable");
@@ -571,13 +566,13 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 }
                 if (string.IsNullOrWhiteSpace(activation.ActiveActorId))
                     return Fail<CombatRunActionResult>("Automatic activation has no actor");
-                var actor = currentCombat.GetEntity(activation.ActiveActorId);
+                var actor = currentCombat.GetActor(activation.ActiveActorId);
                 if (actor == null || currentCombat.ControllerOf(actor) != ControllerKind.AI)
                     return Fail<CombatRunActionResult>(
                         $"Automatic activation actor is invalid: {activation.ActiveActorId}");
 
                 var decision = _gambitEngine.DecideActionWithMetadata(
-                    new Entity.Entity { EntityId = actor.EntityId, DisplayName = actor.Name },
+                    actor,
                     currentCombat,
                     policies.Ai.GambitIds.Count == 0 ? null : policies.Ai.GambitIds);
                 if (decision.IsFailure)
@@ -586,7 +581,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 var aiCommand = new CombatActionCommand
                 {
                     RunId = run.RunId,
-                    ActorId = actor.EntityId,
+                    ActorId = actor.InstanceId,
                     ActionType = decision.Value.Action.ActionType,
                     PowerId = decision.Value.Action.PowerId,
                     TargetId = decision.Value.Action.TargetId,
@@ -622,7 +617,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                         new CombatActionCommand
                         {
                             RunId = run.RunId,
-                            ActorId = actor.EntityId,
+                            ActorId = actor.InstanceId,
                             ActionType = ActionType.END_TURN
                         },
                         "combat.ai.end_turn",
@@ -842,7 +837,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         return initialized;
     }
 
-    private static RunEncounterStartCommand InitialCommand(CombatState combat) => new(combat.Hero, combat.Enemies.ToArray(),
+    private static RunEncounterStartCommand InitialCommand(CombatState combat) => new(combat.GetAllActors().ToArray(),
         combat.StatusEffects.ToDictionary(item => item.Key, item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),
             StringComparer.Ordinal));
 

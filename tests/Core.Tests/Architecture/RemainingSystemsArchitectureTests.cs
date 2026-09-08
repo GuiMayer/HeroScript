@@ -1,5 +1,5 @@
 using Core.Abstractions.Persistence;
-using Core.Entity;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Core.Tests.Architecture;
@@ -29,23 +29,58 @@ public sealed class RemainingSystemsArchitectureTests
     }
 
     [Fact]
-    public void MutableComponents_CannotGrowBeyondMigrationAllowlist()
+    public void MutableEntityComponentAuthority_IsRemoved()
     {
-        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        var removed = new[]
         {
             "Core.Entity.Components.InventoryComponent",
             "Core.Entity.Components.ResourceComponent",
-            "Core.Entity.Components.StatsComponent"
+            "Core.Entity.Components.StatsComponent",
+            "Core.Entity.IComponent",
+            "Core.Entity.ComponentBase"
         };
-        var implementations = typeof(IComponent).Assembly
-            .GetTypes()
-            .Where(type => !type.IsAbstract && typeof(IComponent).IsAssignableFrom(type))
-            .Select(type => type.FullName!)
-            .ToHashSet(StringComparer.Ordinal);
+        var present = typeof(Core.Combat.Models.EntityState).Assembly.GetTypes()
+            .Where(type => type.FullName != null && removed.Contains(type.FullName, StringComparer.Ordinal))
+            .Select(type => type.FullName)
+            .ToArray();
+
+        Assert.Empty(present);
+    }
+
+    [Fact]
+    public void GameplaySource_UsesOnlyTheGenericImmutableActorModel()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var sourceRoot = Path.Combine(repositoryRoot, "src");
+        var forbidden = new[]
+        {
+            @"\.Hero\b",
+            @"\.Enemies\b",
+            @"\bIsHero\b",
+            @"\bEntityCombatAdapter\b",
+            @"\bUpdateEntityFromCombat\b",
+            @"\bCore\.Entity\.Entity\b",
+            @"\bIComponent\b",
+            @"\b(?:ResourceComponent|StatsComponent|InventoryComponent)\b"
+        }.Select(pattern => new Regex(pattern, RegexOptions.CultureInvariant)).ToArray();
+        var violations = Directory
+            .EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !path.Contains(
+                $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase))
+            .SelectMany(path => File.ReadLines(path).Select((line, index) => new
+            {
+                Path = Path.GetRelativePath(repositoryRoot, path),
+                Line = line,
+                Number = index + 1
+            }))
+            .Where(candidate => forbidden.Any(pattern => pattern.IsMatch(candidate.Line)))
+            .Select(candidate => $"{candidate.Path}:{candidate.Number}: {candidate.Line.Trim()}")
+            .ToArray();
 
         Assert.True(
-            implementations.IsSubsetOf(allowed),
-            $"A new mutable component was introduced: {string.Join(", ", implementations.Except(allowed))}");
+            violations.Length == 0,
+            "Gameplay source bypasses the generic immutable actor model:\n" + string.Join("\n", violations));
     }
 
     [Fact]

@@ -18,8 +18,7 @@ public sealed class CombatResourceLifecycleTests
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
             new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
-        var combat = CombatTransitions.Create(
-            Entity(
+        var combat = CombatTransitions.Create([Entity(
                 Pool("energy", 1, 3, new RegenerationConfig
                 {
                     Enabled = true,
@@ -31,9 +30,7 @@ public sealed class CombatResourceLifecycleTests
                     Enabled = true,
                     AmountPerTurn = -999,
                     Timing = RegenerationTiming.END_TURN
-                })),
-            [],
-            DeterministicContext.Create(42, "revision"));
+                }))], DeterministicContext.Create(42, "revision"));
         var run = Run();
 
         var first = lifecycle.Process(run, combat, "hero", RegenerationTiming.START_TURN);
@@ -41,9 +38,9 @@ public sealed class CombatResourceLifecycleTests
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.True(repeated.IsSuccess, repeated.IsFailure ? repeated.Error : null);
-        Assert.Equal(3, first.Value.Combat.Hero.GetResource("energy")!.Current);
-        Assert.Equal(8, first.Value.Combat.Hero.GetResource("block")!.Current);
-        Assert.Equal(1, combat.Hero.GetResource("energy")!.Current);
+        Assert.Equal(3, first.Value.Combat.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal(8, first.Value.Combat.GetActor("hero")!.GetResource("block")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("energy")!.Current);
         Assert.Single(first.Value.Records);
         Assert.Equal(EffectProvenanceKind.Rule, first.Value.Records[0].Provenance.Kind);
         Assert.Equal("resource:energy:regeneration", first.Value.Records[0].Provenance.SourceId);
@@ -55,21 +52,18 @@ public sealed class CombatResourceLifecycleTests
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
             new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
-        var combat = CombatTransitions.Create(
-            Entity(Pool("block", 8, 999, new RegenerationConfig
+        var combat = CombatTransitions.Create([Entity(Pool("block", 8, 999, new RegenerationConfig
             {
                 Enabled = true,
                 AmountPerTurn = -999,
                 Timing = RegenerationTiming.END_TURN
-            })),
-            [],
-            DeterministicContext.Create(42, "revision"));
+            }))], DeterministicContext.Create(42, "revision"));
 
         var result = lifecycle.Process(Run(), combat, "hero", RegenerationTiming.END_TURN);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(0, result.Value.Combat.Hero.GetResource("block")!.Current);
-        Assert.Equal(8, combat.Hero.GetResource("block")!.Current);
+        Assert.Equal(0, result.Value.Combat.GetActor("hero")!.GetResource("block")!.Current);
+        Assert.Equal(8, combat.GetActor("hero")!.GetResource("block")!.Current);
     }
 
     [Fact]
@@ -77,15 +71,12 @@ public sealed class CombatResourceLifecycleTests
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
             new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
-        var combat = CombatTransitions.Create(
-            Entity(Pool("energy", 1, 3, new RegenerationConfig
+        var combat = CombatTransitions.Create([Entity(Pool("energy", 1, 3, new RegenerationConfig
             {
                 Enabled = true,
                 AmountPerTurn = 2,
                 Timing = RegenerationTiming.START_TURN
-            })),
-            [],
-            DeterministicContext.Create(42, "revision"));
+            }))], DeterministicContext.Create(42, "revision"));
 
         var result = lifecycle.Process(
             Run(),
@@ -104,22 +95,19 @@ public sealed class CombatResourceLifecycleTests
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
             new StubFormulaEvaluator(Result<float>.Failure("invalid formula")), new ImmutableEffectProcessor()));
-        var combat = CombatTransitions.Create(
-            Entity(Pool("mana", 1, 10, new RegenerationConfig
+        var combat = CombatTransitions.Create([Entity(Pool("mana", 1, 10, new RegenerationConfig
             {
                 Enabled = true,
                 AmountPerTurn = 5,
                 Formula = "missing_formula",
                 Timing = RegenerationTiming.START_TURN
-            })),
-            [],
-            DeterministicContext.Create(42, "revision"));
+            }))], DeterministicContext.Create(42, "revision"));
 
         var result = lifecycle.Process(Run(), combat, "hero", RegenerationTiming.START_TURN);
 
         Assert.True(result.IsFailure);
         Assert.Contains("invalid formula", result.Error);
-        Assert.Equal(1, combat.Hero.GetResource("mana")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("mana")!.Current);
     }
 
     [Fact]
@@ -128,20 +116,19 @@ public sealed class CombatResourceLifecycleTests
         var formulas = new StubFormulaEvaluator(evaluate: variables =>
             Result<float>.Success(variables!["source.resources.a.current"]));
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor()));
-        var combat = CombatTransitions.Create(Entity(
+        var combat = CombatTransitions.Create([Entity(
             Pool("a", 1, 10, new() { Enabled = true, AmountPerTurn = 2, Timing = RegenerationTiming.START_TURN }),
-            Pool("b", 1, 10, new() { Enabled = true, Formula = "source.resources.a.current", Timing = RegenerationTiming.START_TURN })),
-            [], DeterministicContext.Create(42, "revision"));
+            Pool("b", 1, 10, new() { Enabled = true, Formula = "source.resources.a.current", Timing = RegenerationTiming.START_TURN }))], DeterministicContext.Create(42, "revision"));
 
         var result = lifecycle.Process(Run(), combat, "hero", RegenerationTiming.START_TURN);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(3, result.Value.Combat.Hero.GetResource("a")!.Current);
-        Assert.Equal(4, result.Value.Combat.Hero.GetResource("b")!.Current);
+        Assert.Equal(3, result.Value.Combat.GetActor("hero")!.GetResource("a")!.Current);
+        Assert.Equal(4, result.Value.Combat.GetActor("hero")!.GetResource("b")!.Current);
         Assert.Equal(2, result.Value.Steps.Length);
         Assert.All(result.Value.Steps, step => Assert.Equal(EffectProvenanceKind.Rule, step.Provenance.Kind));
-        Assert.Equal(1, combat.Hero.GetResource("a")!.Current);
-        Assert.Equal(1, combat.Hero.GetResource("b")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("a")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("b")!.Current);
     }
 
     [Fact]
@@ -149,14 +136,13 @@ public sealed class CombatResourceLifecycleTests
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
             new StubFormulaEvaluator(Result<float>.Failure("broken")), new ImmutableEffectProcessor()));
-        var combat = CombatTransitions.Create(Entity(
+        var combat = CombatTransitions.Create([Entity(
             Pool("a", 1, 10, new() { Enabled = true, AmountPerTurn = 2, Timing = RegenerationTiming.START_TURN }),
-            Pool("b", 1, 10, new() { Enabled = true, Formula = "broken", Timing = RegenerationTiming.START_TURN })),
-            [], DeterministicContext.Create(42, "revision"));
+            Pool("b", 1, 10, new() { Enabled = true, Formula = "broken", Timing = RegenerationTiming.START_TURN }))], DeterministicContext.Create(42, "revision"));
 
         Assert.True(lifecycle.Process(Run(), combat, "hero", RegenerationTiming.START_TURN).IsFailure);
-        Assert.Equal(1, combat.Hero.GetResource("a")!.Current);
-        Assert.Equal(1, combat.Hero.GetResource("b")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("a")!.Current);
+        Assert.Equal(1, combat.GetActor("hero")!.GetResource("b")!.Current);
     }
 
     private static RunState Run() => new()
@@ -166,11 +152,11 @@ public sealed class CombatResourceLifecycleTests
         Determinism = DeterministicContext.Create(42, "revision")
     };
 
-    private static CombatEntity Entity(params ResourcePool[] pools) => new()
+    private static CombatActorState Entity(params ResourcePool[] pools) => new()
     {
-        EntityId = "hero",
+        InstanceId = "hero",
         Name = "Hero",
-        IsHero = true,
+        SideId = "player", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
         ResourceState = new ResourceSet
         {
             OwnerId = "hero",

@@ -32,10 +32,10 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
 
         // Verify combat state
         AssertCombatStateValid(combatState);
-        Assert.Equal(3, GetArrayLength(combatState, "enemies"));
+        Assert.Equal(4, GetArrayLength(combatState, "actors"));
 
         // Verify hero has tactical resources
-        var hero = combatState.GetProperty("hero");
+        var hero = GetActor(combatState, "squad_leader");
         AssertEntityHasResource(hero, "energy");
         Assert.False(hero.TryGetProperty("currentHp", out _));
         Assert.False(hero.TryGetProperty("maxHp", out _));
@@ -79,7 +79,7 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         var playerEntityId = GetJsonString(runState, "playerEntityId");
         var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1", "enemy_2" }, runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
-        var initialHealth = combatState.GetProperty("enemies")[0]
+        var initialHealth = GetActor(combatState, "enemy_1")
             .GetProperty("resources")
             .GetProperty("health")
             .GetProperty("current")
@@ -93,7 +93,7 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
 
         AssertJsonPropertyEquals(actionResult, "combatId", combatId);
         var updatedState = await Client.GetCombatStateAsync(combatId);
-        var updatedHealth = updatedState.GetProperty("enemies")[0]
+        var updatedHealth = GetActor(updatedState, "enemy_1")
             .GetProperty("resources")
             .GetProperty("health")
             .GetProperty("current")

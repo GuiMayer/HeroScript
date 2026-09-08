@@ -127,7 +127,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         ArgumentNullException.ThrowIfNull(card);
         ArgumentNullException.ThrowIfNull(combat);
         ArgumentNullException.ThrowIfNull(request);
-        var actor = combat.GetEntity(request.ActorId);
+        var actor = combat.GetActor(request.ActorId);
         if (actor == null)
             return Result<CardPlayEvaluation>.Failure($"Actor not found: {request.ActorId}");
 
@@ -141,7 +141,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         if (constraints.IsFailure) return Result<CardPlayEvaluation>.Failure(constraints.Error);
         failures.AddRange(constraints.Value);
         var conditionTarget = request.SelectedTargetIds.Count > 0
-            ? combat.GetEntity(request.SelectedTargetIds[0])
+            ? combat.GetActor(request.SelectedTargetIds[0])
             : null;
         var variables = BuildVariables(actor, conditionTarget, request.Variables);
 
@@ -233,7 +233,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         return Result<CardPlayEvaluation>.Success(new CardPlayEvaluation
         {
             CardInstanceId = card.CardInstanceId,
-            ActorId = actor.EntityId,
+            ActorId = actor.InstanceId,
             IsLegal = failureArray.IsEmpty,
             Conditions = conditionTraces.ToImmutable(),
             Costs = resolvedCosts.ToImmutable(),
@@ -249,7 +249,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         string componentId,
         string? optionId,
         IReadOnlyList<ResourceCost> costs,
-        CombatEntity actor,
+        CombatActorState actor,
         string contentRevision)
     {
         var result = ImmutableArray.CreateBuilder<ResolvedCardCost>();
@@ -277,7 +277,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
     private Result<TargetResolution> ResolveTargets(
         EffectiveCardDefinition card,
         CombatState combat,
-        CombatEntity actor,
+        CombatActorState actor,
         IReadOnlyList<string> selectedTargetIds)
     {
         var targeting = card.SingleOrDefault<CardTargetingComponentDefinition>();
@@ -291,23 +291,23 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                     ["Card does not accept targets"]));
         }
 
-        var entities = combat.GetAllEntities().Where(entity => entity.IsAlive).ToArray();
+        var entities = combat.GetAllActors().Where(entity => entity.IsAlive).ToArray();
         var enemies = entities.Where(entity => combat.Relationship(actor, entity) == SideRelationship.Enemy);
         var allies = entities.Where(entity => combat.Relationship(actor, entity) == SideRelationship.Ally);
-        IEnumerable<CombatEntity> legal = targeting.Target switch
+        IEnumerable<CombatActorState> legal = targeting.Target switch
         {
             EffectTarget.SELF => [actor],
             EffectTarget.TARGET => targeting.AllowSelf
                 ? entities
-                : entities.Where(entity => entity.EntityId != actor.EntityId),
+                : entities.Where(entity => entity.InstanceId != actor.InstanceId),
             EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or
                 EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => enemies,
             EffectTarget.ALL_ALLIES => targeting.AllowSelf
                 ? allies
-                : allies.Where(entity => entity.EntityId != actor.EntityId),
+                : allies.Where(entity => entity.InstanceId != actor.InstanceId),
             _ => []
         };
-        var legalEntities = legal.OrderBy(entity => entity.EntityId, StringComparer.Ordinal).ToArray();
+        var legalEntities = legal.OrderBy(entity => entity.InstanceId, StringComparer.Ordinal).ToArray();
         if (targeting.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {
             if (string.IsNullOrWhiteSpace(targeting.SelectionResourceId))
@@ -320,14 +320,14 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
                 .ToArray();
             legalEntities = targeting.Target == EffectTarget.LOWEST_RESOURCE_ENEMY
                 ? legalEntities.OrderBy(entity => entity.GetResource(targeting.SelectionResourceId)!.Current)
-                    .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).Take(1).ToArray()
+                    .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal).Take(1).ToArray()
                 : legalEntities.OrderByDescending(entity => entity.GetResource(targeting.SelectionResourceId)!.Current)
-                    .ThenBy(entity => entity.EntityId, StringComparer.Ordinal).Take(1).ToArray();
+                    .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal).Take(1).ToArray();
         }
 
-        var legalIds = legalEntities.Select(entity => entity.EntityId).ToImmutableArray();
+        var legalIds = legalEntities.Select(entity => entity.InstanceId).ToImmutableArray();
         if (targeting.Target == EffectTarget.SELF)
-            return Result<TargetResolution>.Success(new TargetResolution(legalIds, [actor.EntityId], []));
+            return Result<TargetResolution>.Success(new TargetResolution(legalIds, [actor.InstanceId], []));
         if (targeting.Target is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES or
             EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
         {
@@ -360,8 +360,8 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             : _formulas.Evaluate(expression, variables);
 
     private static Dictionary<string, float> BuildVariables(
-        CombatEntity actor,
-        CombatEntity? target,
+        CombatActorState actor,
+        CombatActorState? target,
         IReadOnlyDictionary<string, float> supplied)
     {
         var variables = supplied

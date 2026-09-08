@@ -4,9 +4,9 @@ using Xunit;
 
 namespace Core.Tests.Combat;
 
-public class CombatEntityTests
+public class CombatActorStateTests
 {
-    private static CombatEntity CreateTestEntity(
+    private static CombatActorState CreateTestEntity(
         string entityId,
         float currentValue,
         float maximum,
@@ -56,11 +56,11 @@ public class CombatEntityTests
             Resources = resources
         };
 
-        return new CombatEntity
+        return new CombatActorState
         {
-            EntityId = entityId,
+            InstanceId = entityId,
             Name = "Test Entity",
-            IsHero = false,
+            SideId = "opposition", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI },
             ResourceState = resourceState
         };
     }
@@ -210,9 +210,9 @@ public class CombatEntityTests
                 }
             ]
         };
-        var entity = new CombatEntity
+        var entity = new CombatActorState
         {
-            EntityId = "test-1",
+            InstanceId = "test-1",
             Name = "Test Entity",
             ResourceState = new ResourceSet
             {
@@ -273,9 +273,9 @@ public class CombatEntityTests
             Minimum = 0,
             Maximum = 10
         };
-        var entity = new CombatEntity
+        var entity = new CombatActorState
         {
-            EntityId = "test-1",
+            InstanceId = "test-1",
             Name = "Test Entity",
             ResourceState = new ResourceSet
             {

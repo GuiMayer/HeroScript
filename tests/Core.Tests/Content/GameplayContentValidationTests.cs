@@ -124,8 +124,8 @@ public sealed class GameplayContentValidationTests
         var rule = new SideRelationshipRule { FromSideId = "a", ToSideId = "b", Relationship = SideRelationship.Neutral };
         var sides = new[]
         {
-            new CombatSide { SideId = "a", Controller = ControllerKind.Player },
-            new CombatSide { SideId = "b", Controller = ControllerKind.AI }
+            new CombatSide { SideId = "a" },
+            new CombatSide { SideId = "b" }
         };
         Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], sides, new() { Rules = [rule] }).IsSuccess);
         Assert.True(GameplayRelationshipValidator.Validate(["a", "b"], sides, new() { Rules = [rule, rule] }).IsFailure);

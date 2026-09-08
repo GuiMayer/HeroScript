@@ -62,7 +62,7 @@ public static class ModifierTransitions
             if (!item.IsActive || item.Duration < 0 || item.Definition.DurationBoundary != boundary ||
                 eligibleIds != null && !eligibleIds.Contains(item.InstanceId)) return item;
             if (boundary == ModifierDurationBoundary.Activation &&
-                (combat?.GetEntity(actorId ?? "") is not { } actor || !item.Owner.Includes(actor, combat, run))) return item;
+                (combat?.GetActor(actorId ?? "") is not { } actor || !item.Owner.Includes(actor, combat, run))) return item;
             return item with { Duration = item.Duration - 1, IsActive = item.Duration > 1 };
         }).Where(item => item.IsActive).ToImmutableArray()
     };

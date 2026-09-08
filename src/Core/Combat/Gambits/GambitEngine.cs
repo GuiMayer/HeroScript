@@ -4,8 +4,6 @@ using Core.Common;
 using Core.Combat.Models;
 using Core.Config;
 using Core.Content;
-using Core.Entity;
-using Core.Entity.Controllers;
 using Core.Resources;
 using System.Collections.Immutable;
 
@@ -88,25 +86,25 @@ public sealed class GambitEngine : IGambitEngine
         return _definitions.Values.OrderByDescending(g => g.Priority).ToList();
     }
 
-    public Result<EntityAction> DecideAction(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
+    public Result<EntityAction> DecideAction(CombatActorState controlledActor, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
     {
-        var decision = DecideActionWithMetadata(controlledEntity, combatState, gambitIds);
+        var decision = DecideActionWithMetadata(controlledActor, combatState, gambitIds);
         return decision.IsSuccess
             ? Result<EntityAction>.Success(decision.Value.Action)
             : Result<EntityAction>.Failure(decision.Error);
     }
 
-    public Result<GambitDecision> DecideActionWithMetadata(Entity.Entity controlledEntity, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
+    public Result<GambitDecision> DecideActionWithMetadata(CombatActorState controlledActor, Models.CombatState combatState, IEnumerable<string>? gambitIds = null)
     {
-        var actorId = controlledEntity.EntityId;
+        var actorId = controlledActor.InstanceId;
         var candidates = ResolveCandidates(gambitIds, combatState.Determinism.ContentRevision);
         if (candidates.IsFailure)
             return Result<GambitDecision>.Failure(candidates.Error);
         foreach (var gambit in candidates.Value.OrderByDescending(g => g.Priority))
         {
-            if (gambit.Conditions.All(condition => Matches(condition, controlledEntity, combatState, gambit.Action)))
+            if (gambit.Conditions.All(condition => Matches(condition, controlledActor, combatState, gambit.Action)))
             {
-                var action = MapAction(gambit.Action, controlledEntity, combatState);
+                var action = MapAction(gambit.Action, controlledActor, combatState);
                 if (action.ActionType is not (Models.ActionType.PASS or Models.ActionType.END_TURN))
                 {
                     var actionTags = new HashSet<string>(StringComparer.Ordinal) { "action", "ability" };
@@ -119,7 +117,7 @@ public sealed class GambitEngine : IGambitEngine
                         actionTags.UnionWith(definition.Value.Tags);
                     }
                     var constraint = Core.StatusEffects.StatusActionConstraints.Evaluate(combatState,
-                        combatState.GetEntity(actorId)!, actionTags, _formulas, combatState.Determinism.ContentRevision);
+                        combatState.GetActor(actorId)!, actionTags, _formulas, combatState.Determinism.ContentRevision);
                     if (constraint.IsFailure) return Result<GambitDecision>.Failure(constraint.Error);
                     if (!constraint.Value.IsEmpty) continue;
                 }
@@ -174,58 +172,58 @@ public sealed class GambitEngine : IGambitEngine
             .ToList());
     }
 
-    private static bool Matches(GambitCondition condition, Entity.Entity controlledEntity, Models.CombatState state, GambitActionDefinition action)
+    private static bool Matches(GambitCondition condition, CombatActorState controlledActor, Models.CombatState state, GambitActionDefinition action)
     {
         return condition.Type switch
         {
             GambitConditionType.ALWAYS => true,
-            GambitConditionType.ANY_OPPONENT_ALIVE => FirstAliveOpponent(controlledEntity, state) != null,
+            GambitConditionType.ANY_OPPONENT_ALIVE => FirstAliveOpponent(controlledActor, state) != null,
             GambitConditionType.TURN_GREATER_THAN_OR_EQUAL => Compare(state.CurrentTurn, condition),
-            GambitConditionType.SELF_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetEntity(controlledEntity.EntityId), condition.ResourceId), condition),
-            GambitConditionType.ACTOR_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetEntity(controlledEntity.EntityId), condition.ResourceId), condition),
-            GambitConditionType.TARGET_RESOURCE_PERCENT => Compare(ResourcePercent(ResolveTarget(action.Target, controlledEntity, state), condition.ResourceId), condition),
+            GambitConditionType.SELF_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetActor(controlledActor.InstanceId), condition.ResourceId), condition),
+            GambitConditionType.ACTOR_RESOURCE_PERCENT => Compare(ResourcePercent(state.GetActor(controlledActor.InstanceId), condition.ResourceId), condition),
+            GambitConditionType.TARGET_RESOURCE_PERCENT => Compare(ResourcePercent(ResolveTarget(action.Target, controlledActor, state), condition.ResourceId), condition),
             _ => false
         };
     }
 
-    private static EntityAction MapAction(GambitActionDefinition action, Entity.Entity controlledEntity, Models.CombatState state)
+    private static EntityAction MapAction(GambitActionDefinition action, CombatActorState controlledActor, Models.CombatState state)
     {
         return new EntityAction
         {
             ActionType = action.ActionType,
             PowerId = action.PowerId,
-            TargetId = ResolveTarget(action.Target, controlledEntity, state)?.EntityId,
+            TargetId = ResolveTarget(action.Target, controlledActor, state)?.InstanceId,
             CostOptionId = action.CostOptionId
         };
     }
 
-    private static Models.CombatEntity? ResolveTarget(string? target, Entity.Entity controlledEntity, Models.CombatState state)
+    private static CombatActorState? ResolveTarget(string? target, CombatActorState controlledActor, Models.CombatState state)
     {
         return target?.ToUpperInvariant() switch
         {
-            "SELF" => state.GetEntity(controlledEntity.EntityId),
-            "ACTOR" => state.GetEntity(controlledEntity.EntityId),
-            "FIRST_ALIVE_OPPONENT" or "TARGET" => FirstAliveOpponent(controlledEntity, state),
-            _ when !string.IsNullOrWhiteSpace(target) => state.GetEntity(target),
+            "SELF" => state.GetActor(controlledActor.InstanceId),
+            "ACTOR" => state.GetActor(controlledActor.InstanceId),
+            "FIRST_ALIVE_OPPONENT" or "TARGET" => FirstAliveOpponent(controlledActor, state),
+            _ when !string.IsNullOrWhiteSpace(target) => state.GetActor(target),
             _ => null
         };
     }
 
-    private static Models.CombatEntity? FirstAliveOpponent(Entity.Entity controlledEntity, Models.CombatState state)
+    private static CombatActorState? FirstAliveOpponent(CombatActorState controlledActor, Models.CombatState state)
     {
-        var actor = state.GetEntity(controlledEntity.EntityId);
+        var actor = state.GetActor(controlledActor.InstanceId);
         if (actor == null)
             return null;
 
-        return state.GetAllEntities()
+        return state.GetAllActors()
             .Where(candidate => candidate.IsAlive &&
-                                !string.Equals(candidate.EntityId, actor.EntityId, StringComparison.Ordinal) &&
+                                !string.Equals(candidate.InstanceId, actor.InstanceId, StringComparison.Ordinal) &&
                                 state.Relationship(actor, candidate) == SideRelationship.Enemy)
-            .OrderBy(candidate => candidate.EntityId, StringComparer.Ordinal)
+            .OrderBy(candidate => candidate.InstanceId, StringComparer.Ordinal)
             .FirstOrDefault();
     }
 
-    private static float ResourcePercent(Models.CombatEntity? entity, string? resourceId)
+    private static float ResourcePercent(CombatActorState? entity, string? resourceId)
     {
         if (entity == null || string.IsNullOrWhiteSpace(resourceId))
             return 0f;

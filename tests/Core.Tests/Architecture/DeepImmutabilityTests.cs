@@ -12,8 +12,10 @@ public sealed class DeepImmutabilityTests
 {
     [Theory]
     [InlineData(typeof(EntityDefinition))]
-    [InlineData(typeof(ResourcesDefinition))]
-    [InlineData(typeof(StatsDefinition))]
+    [InlineData(typeof(ResourceEntityComponentDefinition))]
+    [InlineData(typeof(StatEntityComponentDefinition))]
+    [InlineData(typeof(Core.Combat.Models.CombatActorState))]
+    [InlineData(typeof(Core.Combat.Models.StatEntityComponentState))]
     [InlineData(typeof(Core.Combat.Gambits.GambitDefinition))]
     [InlineData(typeof(ScriptModifierDefinition))]
     [InlineData(typeof(ResourceDefinition))]
@@ -36,18 +38,18 @@ public sealed class DeepImmutabilityTests
     public void EntityDefinition_DefensivelyCopiesNestedCollections()
     {
         var customStats = new Dictionary<string, float> { ["luck"] = 10f };
-        var customData = new Dictionary<string, object> { ["faction"] = "hero" };
+        var metadata = new Dictionary<string, object> { ["faction"] = "red" };
         var definition = new EntityDefinition
         {
-            Stats = new StatsDefinition { CustomStats = customStats },
-            CustomData = customData
+            Components = [new StatEntityComponentDefinition { ComponentId = "stats", Values = customStats }],
+            Metadata = metadata
         };
 
         customStats["luck"] = 999f;
-        customData["faction"] = "enemy";
+        metadata["faction"] = "blue";
 
-        Assert.Equal(10f, definition.Stats!.CustomStats["luck"]);
-        Assert.Equal("hero", definition.CustomData["faction"]);
+        Assert.Equal(10f, definition.Component<StatEntityComponentDefinition>()!.Values["luck"]);
+        Assert.Equal("red", definition.Metadata["faction"]);
     }
 
     [Fact]

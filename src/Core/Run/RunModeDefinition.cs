@@ -116,7 +116,7 @@ public sealed record CapabilityPolicyDefinition
     public bool AllowHotReloadActivation { get; init; }
     public InspectionDetailLevel CardInspectionDetail { get; init; } = InspectionDetailLevel.Resolved;
     public int MaxCards { get; init; } = 100;
-    public int MaxEnemies { get; init; } = 5;
+    public int MaxActors { get; init; } = 6;
     public int MaxBranchesPerRoot { get; init; } = 50;
     public int MaxSimulationCommands { get; init; } = 100;
 }

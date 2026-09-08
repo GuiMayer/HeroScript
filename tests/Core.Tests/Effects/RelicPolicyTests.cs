@@ -33,8 +33,8 @@ public sealed class RelicPolicyTests
         var lifecycle = new CombatRelicLifecycle(EffectTransactionTests.Executor());
         var first = lifecycle.Process(run, state, CombatTriggerBoundaries.CombatEnd);
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
-        Assert.Equal(7, first.Value.Combat.GetEntity("enemy")!.GetResource("focus")!.Current);
-        Assert.Equal(10, first.Value.Combat.Hero.GetResource("focus")!.Current);
+        Assert.Equal(7, first.Value.Combat.GetActor("enemy")!.GetResource("focus")!.Current);
+        Assert.Equal(10, first.Value.Combat.GetActor("hero")!.GetResource("focus")!.Current);
         Assert.Single(first.Value.Events);
         var repeated = lifecycle.Process(run, first.Value.Combat, CombatTriggerBoundaries.CombatEnd);
         Assert.Empty(repeated.Value.Events);

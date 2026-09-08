@@ -43,15 +43,15 @@ public sealed record CardInspectionVersion
 
 public sealed record CardInspectionContext
 {
-    private ImmutableArray<CombatEntity> _candidateTargets = [];
+    private ImmutableArray<CombatActorState> _candidateTargets = [];
     private ImmutableArray<RunRelicState> _relics = [];
     private ImmutableArray<ScriptModifierInstance> _modifiers = [];
     private ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>> _statuses =
         ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableArray<string> _calculationPipelineIds = [];
 
-    public CombatEntity Actor { get; init; } = null!;
-    public IReadOnlyList<CombatEntity> CandidateTargets
+    public CombatActorState Actor { get; init; } = null!;
+    public IReadOnlyList<CombatActorState> CandidateTargets
     {
         get => _candidateTargets;
         init => _candidateTargets = value?.ToImmutableArray() ?? [];
@@ -212,9 +212,11 @@ public sealed class CardInspectionService : ICardInspectionService
         if (instance == null)
             return Result<CardInspectionResult>.Failure($"Card instance not found: {request.CardInstanceId}");
         var actorId = string.IsNullOrWhiteSpace(request.ActorId)
-            ? combat.ActivationState?.ActiveActorId ?? combat.Hero.EntityId
+            ? combat.ActivationState?.ActiveActorId
+                ?? combat.GetAllActors().FirstOrDefault(actor => actor.ControllerBinding.Kind == ControllerKind.Player)?.InstanceId
+                ?? combat.GetAllActors().First().InstanceId
             : request.ActorId;
-        var actor = combat.GetEntity(actorId);
+        var actor = combat.GetActor(actorId);
         if (actor == null)
             return Result<CardInspectionResult>.Failure($"Actor not found: {actorId}");
 
@@ -362,7 +364,7 @@ public sealed class CardInspectionService : ICardInspectionService
     private static CardInspectionContext BuildContext(
         RunState run,
         CombatState combat,
-        CombatEntity actor,
+        CombatActorState actor,
         CardPlayEvaluation evaluation)
     {
         var targetIds = evaluation.ResolvedTargetIds.Count > 0
@@ -373,9 +375,9 @@ public sealed class CardInspectionService : ICardInspectionService
             Actor = actor,
             CandidateTargets = targetIds
                 .Distinct(StringComparer.Ordinal)
-                .Select(combat.GetEntity)
+                .Select(combat.GetActor)
                 .Where(entity => entity != null)
-                .Cast<CombatEntity>()
+                .Cast<CombatActorState>()
                 .ToArray(),
             Relics = run.Relics.OrderBy(relic => relic.RelicInstanceId).ToArray(),
             Modifiers = run.Modifiers.OrderBy(modifier => modifier.InstanceId).ToArray(),

@@ -23,11 +23,11 @@ public sealed class IntentResolver : IIntentResolver
         if (string.IsNullOrWhiteSpace(actorId))
             return Result<CombatIntent>.Failure("Actor id is required");
 
-        var actor = combat.GetEntity(actorId);
+        var actor = combat.GetActor(actorId);
         if (actor == null)
             return Result<CombatIntent>.Failure($"Actor not found: {actorId}");
 
-        var decision = _gambitEngine.DecideActionWithMetadata(new Entity.Entity { EntityId = actor.EntityId, DisplayName = actor.Name }, combat, gambitIds);
+        var decision = _gambitEngine.DecideActionWithMetadata(actor, combat, gambitIds);
         if (decision.IsFailure)
             return Result<CombatIntent>.Failure(decision.Error);
 
@@ -40,9 +40,11 @@ public sealed class IntentResolver : IIntentResolver
             return Result<IReadOnlyList<CombatIntent>>.Failure("Combat state is required");
 
         var intents = new List<CombatIntent>();
-        foreach (var enemy in combat.Enemies.Where(enemy => enemy.IsAlive))
+        foreach (var enemy in combat.GetAllActors()
+                     .Where(actor => actor.IsAlive && combat.ControllerOf(actor) == ControllerKind.AI)
+                     .OrderBy(actor => actor.InstanceId, StringComparer.Ordinal))
         {
-            var intent = ResolveIntent(combat, enemy.EntityId, runId, gambitIds);
+            var intent = ResolveIntent(combat, enemy.InstanceId, runId, gambitIds);
             if (intent.IsFailure)
                 return Result<IReadOnlyList<CombatIntent>>.Failure(intent.Error);
 
@@ -52,7 +54,7 @@ public sealed class IntentResolver : IIntentResolver
         return Result<IReadOnlyList<CombatIntent>>.Success(intents);
     }
 
-    private CombatIntent BuildIntent(CombatEntity actor, CombatState combat, GambitDecision decision)
+    private CombatIntent BuildIntent(CombatActorState actor, CombatState combat, GambitDecision decision)
     {
         var action = decision.Action;
         var actionId = action.PowerId;
@@ -65,12 +67,12 @@ public sealed class IntentResolver : IIntentResolver
             if (definitionResult.IsSuccess)
                 actionDefinition = definitionResult.Value;
         }
-        var target = string.IsNullOrWhiteSpace(action.TargetId) ? null : combat.GetEntity(action.TargetId);
+        var target = string.IsNullOrWhiteSpace(action.TargetId) ? null : combat.GetActor(action.TargetId);
         var intentTags = MergeTags(decision.Intent.Tags, actionDefinition?.Tags);
 
         return new CombatIntent
         {
-            ActorId = actor.EntityId,
+            ActorId = actor.InstanceId,
             ActionType = action.ActionType,
             PowerId = action.PowerId,
             TargetId = action.TargetId,
@@ -117,7 +119,7 @@ public sealed class IntentResolver : IIntentResolver
         return decision.Action.ActionType == ActionType.PASS ? "Pass" : "Action";
     }
 
-    private static float? EstimateDamage(ActionDefinition? actionDefinition, CombatEntity actor, CombatEntity? target)
+    private static float? EstimateDamage(ActionDefinition? actionDefinition, CombatActorState actor, CombatActorState? target)
     {
         if (actionDefinition == null || target == null)
             return null;

@@ -52,8 +52,8 @@ public class ATBTurnOrderCalculator : ITurnOrderCalculator
 
     public Result<CombatState> InitializeState(CombatState state)
     {
-        var gauges = state.GetAllEntities()
-            .ToImmutableDictionary(entity => entity.EntityId, _ => 0f, StringComparer.Ordinal);
+        var gauges = state.GetAllActors()
+            .ToImmutableDictionary(entity => entity.InstanceId, _ => 0f, StringComparer.Ordinal);
         _logger?.LogDebug($"ATB calculator initialized with {gauges.Count} entities");
         return Result<CombatState>.Success(state with { TurnOrderValues = gauges });
     }
@@ -70,14 +70,14 @@ public class ATBTurnOrderCalculator : ITurnOrderCalculator
             gauges = state.TurnOrderValues;
         }
 
-        foreach (var entity in state.GetAllEntities())
+        foreach (var entity in state.GetAllActors())
         {
             var rate = GetRateValue(entity);
             if (rate.IsFailure)
                 return Result<TurnOrderTransition>.Failure(rate.Error);
-            var current = gauges.GetValueOrDefault(entity.EntityId);
+            var current = gauges.GetValueOrDefault(entity.InstanceId);
             gauges = gauges.SetItem(
-                entity.EntityId,
+                entity.InstanceId,
                 current + _atbFillRate * (rate.Value / _referenceResourceValue));
         }
 
@@ -119,13 +119,13 @@ public class ATBTurnOrderCalculator : ITurnOrderCalculator
             : Result.Failure("Failed to update ATB");
     }
     
-    private Result<float> GetRateValue(CombatEntity entity)
+    private Result<float> GetRateValue(CombatActorState entity)
     {
         if (entity.ResourceState.Resources.TryGetValue(_rateResourceId, out var resource))
             return Result<float>.Success(resource.Current);
         return _missingResourceValue.HasValue
             ? Result<float>.Success(_missingResourceValue.Value)
             : Result<float>.Failure(
-                $"ATB rate resource '{_rateResourceId}' is missing from actor '{entity.EntityId}'");
+                $"ATB rate resource '{_rateResourceId}' is missing from actor '{entity.InstanceId}'");
     }
 }

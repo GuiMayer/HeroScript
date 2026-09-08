@@ -144,13 +144,17 @@ public sealed class ContentGraphValidatorTests
                 ["mage"] = new
                 {
                     definitionId = "mage",
-                    type = "PLAYER",
                     displayName = "Mage",
-                    resources = new
+                    components = new object[]
                     {
-                        resources = new Dictionary<string, object>
+                        new
                         {
-                            ["arcane_charge"] = new { current = 2, max = 3 }
+                            type = "resources",
+                            componentId = "resources",
+                            pools = new Dictionary<string, object>
+                            {
+                                ["arcane_charge"] = new { current = 2, max = 3 }
+                            }
                         }
                     }
                 }

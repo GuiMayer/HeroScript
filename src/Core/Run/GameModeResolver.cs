@@ -259,7 +259,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             return combatFlow;
         if (timeline.MaxItemsPerPage is < 1 or > 1000)
             return Result.Failure("Timeline policy maxItemsPerPage must be between 1 and 1000");
-        if (capabilities.MaxCards < 0 || capabilities.MaxEnemies < 1 ||
+        if (capabilities.MaxCards < 0 || capabilities.MaxActors < 1 ||
             capabilities.MaxBranchesPerRoot < 0 || capabilities.MaxSimulationCommands < 0)
             return Result.Failure("Capability policy limits are invalid");
         if (replay.AllowForkFromHistory && !timeline.Enabled)
