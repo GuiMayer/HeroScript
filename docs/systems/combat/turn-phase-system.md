@@ -2,7 +2,7 @@
 
 **Status:** implementado pelo fluxo canônico de ativações
 
-**Atualizado em:** 2026-09-06
+**Atualizado em:** 2026-09-08
 
 ## Responsabilidade
 
@@ -47,13 +47,13 @@ sequência materializada. Cada avanço substitui o snapshot; a definição usada
 
 ## Políticas do modo
 
-`CombatFlowPoliciesDefinition`, selecionada pelas regras de combate do modo,
-define em JSON:
+`CombatRulesDefinition`, selecionada pelo modo e fixada na revisão da run,
+declara `turnOrder` e o restante das políticas de fluxo em JSON:
 
 | Política | Decisão |
 | --- | --- |
 | `automaticResolution` | Até onde a engine avança sem novo input. |
-| `activationOrder` | Estratégia de ordem e desempate entre atores. |
+| `turnOrder` | Estratégia, boundary de recálculo e desempate entre atores. |
 | `actionBudget` | Limite por recurso ou quantidade fixa de ações. |
 | `ai` | Gambits habilitados e encerramento automático. |
 | `deckCycle` | Compra, descarte, retenção e persistência das zonas. |
@@ -76,7 +76,7 @@ encerrar fase Middle do ator atual
   -> lifecycle EndActivation
   -> descarte/ethereal e duração de modifiers da ativação
   -> lifecycle EndRound, se a rodada terminou
-  -> construir ordem estável da próxima rodada
+  -> recalcular a ordem no boundary configurado
   -> lifecycle StartRound, se aplicável
   -> selecionar próximo ator elegível
   -> fase Start + refresh/regeneração
@@ -91,14 +91,43 @@ cursor determinístico.
 
 ## Ordem e desempates
 
-A implementação disponível usa `RoundSnapshot`: atores elegíveis são capturados
-no começo do round e ordenados pela configuração. Empates podem usar ID estável,
-controller do lado ou aleatoriedade seedada. Toda alternativa tem desempate
-explícito e reproduzível.
+A engine implementa cinco estratégias etiquetadas:
 
-As políticas expõem opções futuras nos enums, mas o validador rejeita estratégias
-ainda não executáveis. Isso evita que um JSON aparentemente válido selecione um
-caminho sem autoridade real.
+- `Fixed`: preserva a ordem declarada dos participantes;
+- `Resource`: ordena pelo valor atual de qualquer resource, crescente ou
+  decrescente;
+- `Initiative`: combina um resource configurável com uma rolagem seedada;
+- `Atb`: mantém gauges no snapshot e avança ticks determinísticos até existir
+  ator pronto;
+- `Conditional`: calcula o score com o runtime comum de fórmulas e variáveis de
+  ator, sem callbacks C#.
+
+`recalculateAt` explicita o boundary: `CombatStart`, `RoundStart`,
+`ActivationEnd` ou `ContinuousTick`. Empates usam ID estável, preferência por
+controller ou aleatoriedade seedada. Quando há RNG real, o contexto sucessor e a
+geração do epoch ficam persistidos em `CombatState.turnOrderState` junto com
+ordem, scores, rolls e gauges. Assim replay e branch retomam exatamente do mesmo
+ponto.
+
+Não existe configuração de ordem no `appsettings` nem calculadora singleton. Duas
+runs no mesmo processo podem usar estratégias diferentes porque o resolvedor é
+sem estado e recebe a política fixada em cada transição.
+
+Exemplo mínimo:
+
+```json
+{
+  "turnOrder": {
+    "strategy": "Resource",
+    "recalculateAt": "RoundStart",
+    "tieBreak": { "strategy": "StableActorId" },
+    "resource": {
+      "resourceId": "speed",
+      "direction": "Descending"
+    }
+  }
+}
+```
 
 ## Reações e prioridade
 
@@ -121,6 +150,9 @@ na velocidade desejada, mas não confirma transições internas nem executa regr
 
 - `src/Core/Combat/Flow/CombatFlowPlanner.cs`
 - `src/Core/Combat/Flow/CombatFlowPolicyDefinitions.cs`
+- `src/Core/Combat/TurnOrder/TurnOrderPolicy.cs`
+- `src/Core/Combat/TurnOrder/TurnOrderResolver.cs`
+- `src/Core/Combat/TurnOrder/TurnOrderState.cs`
 - `src/Core/Combat/TurnPhase/PhaseSequenceDefinition.cs`
 - `src/Core/Combat/TurnPhase/PhaseSequenceValidator.cs`
 - `src/Core/Combat/TurnPhase/PhaseState.cs`

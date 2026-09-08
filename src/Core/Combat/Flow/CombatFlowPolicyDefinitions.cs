@@ -11,7 +11,6 @@ namespace Core.Combat.Flow;
 public sealed record CombatFlowPoliciesDefinition
 {
     public AutomaticResolutionPolicyDefinition AutomaticResolution { get; init; } = new();
-    public ActivationOrderPolicyDefinition ActivationOrder { get; init; } = new();
     public ActionBudgetPolicyDefinition ActionBudget { get; init; } = new();
     public AiTurnPolicyDefinition Ai { get; init; } = new();
     public DeckCyclePolicyDefinition DeckCycle { get; init; } = new();
@@ -53,12 +52,6 @@ public sealed record AutomaticResolutionPolicyDefinition
 {
     public AutomaticResolutionStrategy Strategy { get; init; }
     public int MaxAutomaticSteps { get; init; }
-}
-
-public sealed record ActivationOrderPolicyDefinition
-{
-    public ActivationOrderStrategy Strategy { get; init; }
-    public ActivationTieBreak TieBreak { get; init; }
 }
 
 public sealed record ActionBudgetPolicyDefinition
@@ -159,12 +152,6 @@ public sealed record ReactionPolicyDefinition
 public enum AutomaticResolutionStrategy { Unspecified, ToNextPlayerInput }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ActivationOrderStrategy { Unspecified, RoundSnapshot }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ActivationTieBreak { Unspecified, StableActorId, PlayerControlledFirst, AiControlledFirst, SeededRandom }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ActionBudgetStrategy { Unspecified, ResourceLimited, FixedCount }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -234,10 +221,6 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Only automatic resolution strategy 'ToNextPlayerInput' is implemented");
         if (policies.AutomaticResolution.MaxAutomaticSteps is < 1 or > 10_000)
             return Result.Failure("Automatic resolution maxAutomaticSteps must be between 1 and 10000");
-        if (policies.ActivationOrder.Strategy != ActivationOrderStrategy.RoundSnapshot)
-            return Result.Failure("Only activation order strategy 'RoundSnapshot' is implemented");
-        if (policies.ActivationOrder.TieBreak == ActivationTieBreak.Unspecified)
-            return Result.Failure("Activation order tieBreak is required");
         if (policies.ActionBudget.Strategy == ActionBudgetStrategy.Unspecified)
             return Result.Failure("Action budget strategy is required");
         if (policies.ActionBudget.ActionCosts == ActionCostStrategy.Unspecified)

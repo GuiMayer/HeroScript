@@ -345,6 +345,70 @@ public sealed class ContentGraphValidatorTests
         Assert.Contains(result.Errors, error => error.Contains("Unknown formula, variable", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Validate_RejectsTurnOrderResourceOutsidePublishedGraph()
+    {
+        var bundle = Bundle(
+            ("combat-rules", "combat-rules/test.json", new Dictionary<string, object>
+            {
+                ["test"] = new
+                {
+                    combatRulesId = "test",
+                    defaultPhaseSequenceId = "phases",
+                    turnOrder = new
+                    {
+                        strategy = "Resource",
+                        recalculateAt = "RoundStart",
+                        tieBreak = new { strategy = "StableActorId" },
+                        resource = new
+                        {
+                            resourceId = "missing_speed",
+                            direction = "Descending"
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(
+            "combat-rules/test references missing resources/missing_speed",
+            result.Errors);
+    }
+
+    [Fact]
+    public void Validate_RejectsConditionalTurnOrderOutsideSharedFormulaVariables()
+    {
+        var bundle = Bundle(
+            ("combat-rules", "combat-rules/test.json", new Dictionary<string, object>
+            {
+                ["test"] = new
+                {
+                    combatRulesId = "test",
+                    defaultPhaseSequenceId = "phases",
+                    turnOrder = new
+                    {
+                        strategy = "Conditional",
+                        recalculateAt = "ActivationEnd",
+                        tieBreak = new { strategy = "StableActorId" },
+                        conditional = new
+                        {
+                            scoreExpression = "ambient_clock",
+                            direction = "Descending"
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error =>
+            error.Contains("conditional turnOrder", StringComparison.Ordinal) &&
+            error.Contains("Unknown formula, variable", StringComparison.Ordinal));
+    }
+
     private static ContentBundle Bundle(
         params (string Kind, string Path, Dictionary<string, object> Definitions)[] artifacts)
     {

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Combat.Activation;
+using Core.Combat.TurnOrder;
 using Core.Combat.TurnPhase;
 using Core.Determinism;
 using Core.StatusEffects;
@@ -12,7 +13,6 @@ public sealed record CombatState
     private ImmutableSortedDictionary<string, CombatActorState> _actors =
         ImmutableSortedDictionary<string, CombatActorState>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableList<CombatAction> _actionHistory = [];
-    private ImmutableList<string>? _turnOrder;
     private ImmutableArray<string> _actorOrder = [];
 
     public Guid CombatId { get; init; } = Guid.Empty;
@@ -42,13 +42,7 @@ public sealed record CombatState
         get => _actionHistory;
         init => _actionHistory = value?.ToImmutableList() ?? [];
     }
-    public IReadOnlyList<string>? TurnOrder
-    {
-        get => _turnOrder;
-        init => _turnOrder = value?.ToImmutableList();
-    }
-    public ImmutableDictionary<string, float> TurnOrderValues { get; init; } =
-        ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
+    public TurnOrderState TurnOrderState { get; init; } = new();
     public PhaseState? PhaseState { get; init; }
     public CombatBoardState Board { get; init; } = new();
     public ActivationState? ActivationState { get; init; }

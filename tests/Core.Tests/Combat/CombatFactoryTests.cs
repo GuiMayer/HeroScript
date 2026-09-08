@@ -1,7 +1,5 @@
 using Core.Combat;
-using Core.Combat.TurnOrder;
 using Core.Determinism;
-using Core.Logging;
 using Core.Tests.Combat.TurnOrder;
 using Xunit;
 
@@ -14,8 +12,7 @@ public sealed class CombatFactoryTests
     {
         var participants = TurnOrderTestHelper.CreateTestCombatState("hero", ["enemy"]);
         var factory = new CombatFactory(
-            TestDataBuilders.MockResourceManager().Object,
-            new FixedTurnOrderCalculator(NullLogger.Instance));
+            TestDataBuilders.MockResourceManager().Object);
         var options = new CombatStartOptions(
             Seed: 123,
             ContentRevision: new string('a', 64),
@@ -36,8 +33,7 @@ public sealed class CombatFactoryTests
     {
         var participants = TurnOrderTestHelper.CreateTestCombatState("hero", ["enemy"]);
         var factory = new CombatFactory(
-            TestDataBuilders.MockResourceManager().Object,
-            new FixedTurnOrderCalculator(NullLogger.Instance));
+            TestDataBuilders.MockResourceManager().Object);
 
         var result = factory.Create(
             participants.GetAllActors().ToArray(),

@@ -29,7 +29,6 @@ using Core.Run.Runtime;
 using Core.Run.Sandbox;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 using API.Contracts;
@@ -380,30 +379,17 @@ builder.Services.AddSingleton<Core.Run.Branching.IRunBranchService>(sp =>
         sp.GetRequiredService<Core.Run.Branching.IRunLineageIndex>()));
 builder.Services.AddSingleton<Core.Run.Branching.IRunSimulationService, Core.Run.Branching.RunSimulationService>();
 
-// Register CombatOptions
-builder.Services.Configure<CombatOptions>(builder.Configuration.GetSection("Combat"));
-
-// Register TurnOrderCalculator
-builder.Services.AddSingleton<ITurnOrderCalculator>(sp =>
-{
-    var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("TurnOrderCalculator"));
-    var combatOptions = sp.GetRequiredService<IOptions<CombatOptions>>();
-    var calculator = new TurnOrderCalculatorFactory(logger)
-        .CreateCalculator(combatOptions.Value.ToTurnOrderConfiguration());
-    return calculator.IsSuccess
-        ? calculator.Value
-        : throw new InvalidOperationException(calculator.Error);
-});
+builder.Services.AddSingleton<ITurnOrderResolver>(sp => new TurnOrderResolver(
+    sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 
 builder.Services.AddSingleton<ICombatFactory>(sp => new CombatFactory(
     sp.GetRequiredService<IResourceManager>(),
-    sp.GetRequiredService<ITurnOrderCalculator>(),
     sp.GetRequiredService<EntityDefinitionLoader>()));
 
 // Register CombatRunCoordinator
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
+    sp.GetRequiredService<ITurnOrderResolver>(),
     sp.GetRequiredService<IActionManager>(),
     sp.GetRequiredService<IIntentResolver>(),
     sp.GetRequiredService<ICombatStatusLifecycle>(),

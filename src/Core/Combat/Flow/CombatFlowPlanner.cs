@@ -3,6 +3,7 @@ using System.Text.Json;
 using Core.Combat.Activation;
 using Core.Combat.Intents;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Calculations;
@@ -76,6 +77,7 @@ public interface ICombatFlowPlanner
 public sealed class CombatFlowPlanner : ICombatFlowPlanner
 {
     private readonly IContentRuntimeResolver _contentRuntimes;
+    private readonly ITurnOrderResolver _turnOrder;
     private readonly IActionManager _actions;
     private readonly IIntentResolver _intents;
     private readonly ICombatStatusLifecycle _statusLifecycle;
@@ -84,6 +86,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
 
     public CombatFlowPlanner(
         IContentRuntimeResolver contentRuntimes,
+        ITurnOrderResolver turnOrder,
         IActionManager actions,
         IIntentResolver intents,
         ICombatStatusLifecycle statusLifecycle,
@@ -91,6 +94,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         ICombatResourceLifecycle resourceLifecycle)
     {
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
+        _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _intents = intents ?? throw new ArgumentNullException(nameof(intents));
         _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
@@ -115,7 +119,13 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var deck = DeckTransitions.BeginEncounter(run.Deck, context.Value.Policies.DeckCycle, run.Determinism);
         if (deck.IsFailure) return Result<CombatInitializationResult>.Failure(deck.Error);
         run = run with { Deck = deck.Value.State, Determinism = deck.Value.Context };
-        var initialized = Initialize(run, combat, context.Value.Sequence, context.Value.Policies);
+        var initialized = Initialize(
+            run,
+            combat,
+            context.Value.Sequence,
+            context.Value.Policies,
+            context.Value.TurnOrder,
+            _turnOrder);
         if (initialized.IsFailure) return Result<CombatInitializationResult>.Failure(initialized.Error);
         var regenerated = ApplyResourceLifecycle(run, initialized.Value,
             initialized.Value.ActivationState!.ActiveActorId!, RegenerationTiming.START_TURN, context.Value.Policies);
@@ -186,7 +196,8 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             deck,
             runDeterminism,
             context.Value.Sequence,
-            context.Value.Policies);
+            context.Value.Policies,
+            context.Value.TurnOrder);
         if (advanced.IsFailure)
             return advanced;
 
@@ -204,7 +215,8 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         DeckState deck,
         DeterministicContext runDeterminism,
         PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies,
+        TurnOrderPolicyDefinition turnOrderPolicy)
     {
         var planned = EndActivation(
             run,
@@ -273,6 +285,15 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             if (!current.IsActive)
                 return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
         }
+
+        var reordered = _turnOrder.CompleteActivation(
+            current,
+            turnOrderPolicy,
+            endedActorId,
+            startsNewRound);
+        if (reordered.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(reordered.Error);
+        current = reordered.Value.State;
 
         var recalculated = StartActivation(run, current, endedDeck, run.Determinism, sequence, policies);
         if (recalculated.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(recalculated.Error);
@@ -409,7 +430,9 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         RunState run,
         CombatState combat,
         PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies)
+        CombatFlowPoliciesDefinition policies,
+        TurnOrderPolicyDefinition turnOrderPolicy,
+        ITurnOrderResolver turnOrder)
     {
         var validation = PhaseSequenceValidator.ValidateCanonicalActivationSequence(sequence);
         if (validation.IsFailure)
@@ -418,7 +441,11 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (run.Scenario is { } scenario)
             combat = combat with { Relationships = scenario.Relationships, Sides = scenario.Sides };
 
-        var order = CombatFlowTransitions.CreateRoundSnapshotOrder(combat, policies.ActivationOrder);
+        var resolvedOrder = turnOrder.Initialize(combat, turnOrderPolicy);
+        if (resolvedOrder.IsFailure)
+            return Result<CombatState>.Failure(resolvedOrder.Error);
+        combat = resolvedOrder.Value.State;
+        var order = resolvedOrder.Value.Order;
         if (order.Count == 0)
             return Result<CombatState>.Failure("No alive actors are available for combat activation");
 
@@ -456,11 +483,21 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         DeterministicContext runDeterminism,
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies,
-        Func<string, Result<ActionDefinition>> resolveAction)
+        Func<string, Result<ActionDefinition>> resolveAction,
+        TurnOrderPolicyDefinition turnOrderPolicy,
+        ITurnOrderResolver turnOrder)
     {
         var ended = EndActivation(run, combat, deck, runDeterminism, sequence, policies, resolveAction);
         if (ended.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(ended.Error);
-        var started = StartActivation(run, ended.Value.Combat, ended.Value.Deck,
+        var startsNewRound = StartsNewRound(ended.Value.Combat);
+        var reordered = turnOrder.CompleteActivation(
+            ended.Value.Combat,
+            turnOrderPolicy,
+            combat.ActivationState!.ActiveActorId!,
+            startsNewRound);
+        if (reordered.IsFailure)
+            return Result<CombatFlowAdvanceResult>.Failure(reordered.Error);
+        var started = StartActivation(run, reordered.Value.State, ended.Value.Deck,
             ended.Value.RunDeterminism!.AdvanceStep(), sequence, policies);
         return started.IsFailure ? Result<CombatFlowAdvanceResult>.Failure(started.Error)
             : Result<CombatFlowAdvanceResult>.Success(new() { Steps = [ended.Value, started.Value] });
@@ -532,7 +569,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var activation = endedCombat.ActivationState!;
         var completed = activation.CompletedActorIds;
         var combat = endedCombat;
-        var eligibleOrder = activation.ActivationOrder
+        var eligibleOrder = endedCombat.TurnOrderState.Order
             .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
             .ToArray();
         var nextIndex = Array.FindIndex(
@@ -544,7 +581,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         if (nextIndex < 0)
         {
             round = checked(round + 1);
-            nextOrder = CombatFlowTransitions.CreateRoundSnapshotOrder(endedCombat, policies.ActivationOrder);
+            nextOrder = eligibleOrder;
             nextCompleted = [];
             nextIndex = 0;
         }
@@ -757,27 +794,30 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         _ => "unknown"
     };
 
-    private Result<(PhaseSequenceDefinition Sequence, CombatFlowPoliciesDefinition Policies)> ResolveContext(
+    private Result<(
+        PhaseSequenceDefinition Sequence,
+        CombatFlowPoliciesDefinition Policies,
+        TurnOrderPolicyDefinition TurnOrder)> ResolveContext(
         RunState run)
     {
         var combatRules = run.ResolvedMode?.CombatRules;
         if (combatRules == null)
-            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition)>.Failure(
+            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(
                 "Run has no resolved combat rules");
         if (string.IsNullOrWhiteSpace(combatRules.DefaultPhaseSequenceId))
-            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition)>.Failure(
+            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(
                 "Combat rules have no phase sequence id");
 
         var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (runtime.IsFailure)
-            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition)>.Failure(runtime.Error);
+            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(runtime.Error);
         var sequence = runtime.Value.GetDefinition<PhaseSequenceDefinition>(
             "phase-sequences",
             combatRules.DefaultPhaseSequenceId);
         return sequence.IsFailure
-            ? Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition)>.Failure(sequence.Error)
-            : Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition)>.Success(
-                (sequence.Value, combatRules.Flow));
+            ? Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(sequence.Error)
+            : Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Success(
+                (sequence.Value, combatRules.Flow, combatRules.TurnOrder));
     }
 
     private Result<ActionDefinition> ResolveAction(RunState run, string actionId) =>

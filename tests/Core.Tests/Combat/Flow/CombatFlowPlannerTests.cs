@@ -13,6 +13,7 @@ using Core.Content;
 using Core.Effects;
 using Core.Math;
 using Core.Combat.Intents;
+using Core.Combat.TurnOrder;
 using Moq;
 
 namespace Core.Tests.Combat.Flow;
@@ -36,7 +37,7 @@ public sealed class CombatFlowPlannerTests
         actions.Setup(item => item.GetDefinition(It.IsAny<string>())).Returns((string id) => ResolveAction(id));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
-        var planner = new CombatFlowPlanner(runtimes.Object, actions.Object, Mock.Of<IIntentResolver>(),
+        var planner = new CombatFlowPlanner(runtimes.Object, TurnOrders(), actions.Object, Mock.Of<IIntentResolver>(),
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers));
         var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
@@ -47,7 +48,8 @@ public sealed class CombatFlowPlannerTests
         {
             RunId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), PlayerEntityId = "hero", Deck = deck.State,
             Determinism = deck.Context,
-            ResolvedMode = new() { CombatRules = new() { DefaultPhaseSequenceId = "test", Flow = policies } },
+            ResolvedMode = new() { CombatRules = new()
+                { DefaultPhaseSequenceId = "test", TurnOrder = TurnPolicy(), Flow = policies } },
             Relics = [new()
             {
                 RelicInstanceId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), DefinitionId = "draw-on-boundary",
@@ -60,7 +62,7 @@ public sealed class CombatFlowPlannerTests
             }]
         };
         var combat = CombatTransitions.Create([Entity("hero", true, 0), Entity("enemy", false, 0)],
-            DeterministicContext.Create(42, "revision")) with { TurnOrder = ["hero", "enemy"] };
+            DeterministicContext.Create(42, "revision"));
         var initialized = planner.InitializeTransaction(run, combat);
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
         Assert.Single(initialized.Value.Run.Deck.HandInstanceIds);
@@ -85,10 +87,7 @@ public sealed class CombatFlowPlannerTests
         var context = DeterministicContext.Create(42UL, "revision");
         var combat = CombatTransitions.Create(
             [Entity("hero", isHero: true, energy: 0), Entity("enemy", isHero: false, energy: 0)],
-            context) with
-        {
-            TurnOrder = ["hero", "enemy"]
-        };
+            context);
         var run = new RunState
         {
             RunId = Guid.NewGuid(),
@@ -99,7 +98,8 @@ public sealed class CombatFlowPlannerTests
         var sequence = Sequence();
         var policies = Policies();
 
-        var initialized = CombatFlowPlanner.Initialize(run, combat, sequence, policies);
+        var initialized = CombatFlowPlanner.Initialize(
+            run, combat, sequence, policies, TurnPolicy(), TurnOrders());
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
         Assert.Equal("hero", initialized.Value.ActivationState!.ActiveActorId);
         Assert.True(initialized.Value.ActivationState.WaitingForInput);
@@ -114,7 +114,9 @@ public sealed class CombatFlowPlannerTests
             run.Determinism,
             sequence,
             policies,
-            ResolveAction);
+            ResolveAction,
+            TurnPolicy(),
+            TurnOrders());
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.Equal(2, first.Value.Steps.Count);
         Assert.Equal("enemy", first.Value.Combat.ActivationState!.ActiveActorId);
@@ -129,7 +131,9 @@ public sealed class CombatFlowPlannerTests
             first.Value.Steps[^1].RunDeterminism!.AdvanceStep(),
             sequence,
             policies,
-            ResolveAction);
+            ResolveAction,
+            TurnPolicy(),
+            TurnOrders());
         Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
         Assert.Equal("hero", second.Value.Combat.ActivationState!.ActiveActorId);
         Assert.True(second.Value.Combat.ActivationState.WaitingForInput);
@@ -149,11 +153,9 @@ public sealed class CombatFlowPlannerTests
         };
         var combat = CombatTransitions.Create(
             [Entity("hero", true, 3), Entity("enemy", false, 3)],
-            DeterministicContext.Create(8UL, "revision")) with
-        {
-            TurnOrder = ["hero", "enemy"]
-        };
-        combat = CombatFlowPlanner.Initialize(run, combat, Sequence(), Policies()).Value;
+            DeterministicContext.Create(8UL, "revision"));
+        combat = CombatFlowPlanner.Initialize(
+            run, combat, Sequence(), Policies(), TurnPolicy(), TurnOrders()).Value;
         var deck = new DeckState { Hand = ["ethereal", "strike", "retain"] };
 
         var result = CombatFlowPlanner.AdvanceActivation(
@@ -163,7 +165,9 @@ public sealed class CombatFlowPlannerTests
             run.Determinism,
             Sequence(),
             Policies(),
-            ResolveAction);
+            ResolveAction,
+            TurnPolicy(),
+            TurnOrders());
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(["retain"], result.Value.Deck.Hand);
@@ -216,11 +220,6 @@ public sealed class CombatFlowPlannerTests
 
     private static CombatFlowPoliciesDefinition Policies() => new()
     {
-        ActivationOrder = new()
-        {
-            Strategy = ActivationOrderStrategy.RoundSnapshot,
-            TieBreak = ActivationTieBreak.StableActorId
-        },
         DeckCycle = new()
         {
             DrawPerActivation = 1,
@@ -240,6 +239,16 @@ public sealed class CombatFlowPlannerTests
             StartActivation = ResourceRefreshStrategy.ResetToMax
         }
     };
+
+    private static TurnOrderPolicyDefinition TurnPolicy() => new()
+    {
+        Strategy = TurnOrderStrategy.Fixed,
+        RecalculateAt = TurnOrderRecalculationBoundary.CombatStart,
+        TieBreak = new() { Strategy = TurnOrderTieBreakStrategy.StableActorId }
+    };
+
+    private static ITurnOrderResolver TurnOrders() =>
+        new TurnOrderResolver(Mock.Of<IRuntimeFormulaEvaluator>());
 
     private static CombatActorState Entity(string id, bool isHero, float energy)
     {

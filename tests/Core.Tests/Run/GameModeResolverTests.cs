@@ -1,5 +1,6 @@
 using Core.Common;
 using Core.Combat.Flow;
+using Core.Combat.TurnOrder;
 using Core.Config;
 using Core.Logging;
 using Core.Run;
@@ -225,17 +226,18 @@ public sealed class GameModeResolverTests
     {
         CombatRulesId = "combat",
         DefaultPhaseSequenceId = "phases",
+        TurnOrder = new()
+        {
+            Strategy = TurnOrderStrategy.Fixed,
+            RecalculateAt = TurnOrderRecalculationBoundary.CombatStart,
+            TieBreak = new() { Strategy = TurnOrderTieBreakStrategy.StableActorId }
+        },
         Flow = new CombatFlowPoliciesDefinition
         {
             AutomaticResolution = new()
             {
                 Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,
                 MaxAutomaticSteps = 100
-            },
-            ActivationOrder = new()
-            {
-                Strategy = ActivationOrderStrategy.RoundSnapshot,
-                TieBreak = ActivationTieBreak.StableActorId
             },
             ActionBudget = new()
             {

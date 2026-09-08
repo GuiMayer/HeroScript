@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using Core.Combat.Models;
-using Core.Combat.TurnOrder;
 using Core.Common;
 using Core.Determinism;
 using Core.Entity.Definitions;
@@ -13,13 +12,11 @@ namespace Core.Combat;
 /// <summary>Pure initial-snapshot boundary from explicit deterministic inputs.</summary>
 public sealed class CombatFactory : ICombatFactory
 {
-    private readonly ITurnOrderCalculator _turnOrder;
     private readonly EntityDefinitionLoader? _entities;
     private readonly EntityMaterializer _materializer;
 
-    public CombatFactory(IResourceManager resources, ITurnOrderCalculator turnOrder, EntityDefinitionLoader? entities = null)
+    public CombatFactory(IResourceManager resources, EntityDefinitionLoader? entities = null)
     {
-        _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
         _entities = entities;
         _materializer = new EntityMaterializer(resources ?? throw new ArgumentNullException(nameof(resources)));
     }
@@ -69,13 +66,7 @@ public sealed class CombatFactory : ICombatFactory
             RunNodeId = options.RunNodeId
         };
         combat = ApplyInitialStatusEffects(combat, options.InitialStatusEffects);
-        var initialized = _turnOrder.InitializeState(combat);
-        if (initialized.IsFailure)
-            return Result<CombatState>.Failure($"Failed to initialize turn order calculator: {initialized.Error}");
-        var calculated = _turnOrder.Calculate(initialized.Value);
-        return calculated.IsFailure
-            ? Result<CombatState>.Failure($"Failed to calculate turn order: {calculated.Error}")
-            : Result<CombatState>.Success(calculated.Value.State with { TurnOrder = calculated.Value.Order });
+        return Result<CombatState>.Success(combat);
     }
 
     private static Result ValidateReferences(IReadOnlyList<CombatParticipantReference>? participants, CombatStartOptions options)

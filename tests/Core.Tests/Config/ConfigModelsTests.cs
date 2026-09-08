@@ -1,62 +1,17 @@
 using System;
 using Core.Config;
 using Core.Config.Delta;
-using Core.Combat.TurnOrder;
 using Xunit;
 
 namespace Core.Tests.Config;
 
 /// <summary>
 /// Comprehensive tests for Config namespace models
-/// Covers CombatOptions, ConfigMetadata, ResourceConfiguration, ResourceMode, DeltaOperationType
+/// Covers ConfigMetadata, ResourceConfiguration, ResourceMode and DeltaOperationType.
 /// </summary>
 [Trait("Category", "Unit")]
 public class ConfigModelsTests
 {
-    // ==================== COMBAT OPTIONS TESTS ====================
-    
-    [Fact]
-    public void CombatOptions_DefaultConstruction_LeavesTurnOrderUnspecified()
-    {
-        // Arrange & Act
-        var options = new CombatOptions();
-        
-        // Assert
-        Assert.Equal(TurnStrategy.UNSPECIFIED, options.ToTurnOrderConfiguration().Strategy);
-    }
-    
-    [Fact]
-    public void CombatOptions_TurnOrderConfiguration_CanBeSet()
-    {
-        // Arrange & Act
-        var options = new CombatOptions
-        {
-            TurnOrderStrategy = "SPEED_BASED",
-            TurnOrderResourceId = "tempo"
-        };
-        
-        // Assert
-        Assert.Equal(TurnStrategy.SPEED_BASED, options.ToTurnOrderConfiguration().Strategy);
-        Assert.Equal("tempo", options.ToTurnOrderConfiguration().OrderResourceId);
-    }
-    
-    [Fact]
-    public void CombatOptions_TurnOrderStrategy_SupportsAllValidValues()
-    {
-        // Arrange
-        var validStrategies = Enum.GetValues<TurnStrategy>();
-        
-        // Act & Assert
-        foreach (var strategy in validStrategies)
-        {
-            var options = new CombatOptions
-            {
-                TurnOrderStrategy = strategy.ToString()
-            };
-            Assert.Equal(strategy, options.ToTurnOrderConfiguration().Strategy);
-        }
-    }
-    
     // ==================== CONFIG METADATA TESTS ====================
     
     [Fact]
@@ -321,21 +276,6 @@ public class ConfigModelsTests
     }
     
     // ==================== REALISTIC SCENARIOS ====================
-    
-    [Fact]
-    public void CombatOptions_SpeedBasedTurnOrder_Configuration()
-    {
-        // Arrange & Act - Configure speed-based turn order
-        var options = new CombatOptions
-        {
-            TurnOrderStrategy = "speed_based",
-            TurnOrderResourceId = "speed"
-        };
-        
-        // Assert
-        Assert.Equal(TurnStrategy.SPEED_BASED, options.ToTurnOrderConfiguration().Strategy);
-        Assert.Equal("speed", options.ToTurnOrderConfiguration().OrderResourceId);
-    }
     
     [Fact]
     public void ConfigMetadata_BaseConfigScenario_NoParent()

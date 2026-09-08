@@ -2,6 +2,7 @@ using System.Reflection;
 using Core.Combat.Models;
 using Core.Combat;
 using Core.Combat.Gambits;
+using Core.Combat.TurnOrder;
 using Core.Caching;
 using Core.Determinism;
 using Core.Resources;
@@ -26,6 +27,7 @@ public sealed class CrossCuttingArchitectureTests
     [InlineData(typeof(RunState))]
     [InlineData(typeof(CombatState))]
     [InlineData(typeof(DeterministicContext))]
+    [InlineData(typeof(TurnOrderState))]
     public void AuthoritativeGameplayState_DoesNotExposeMutableSetters(Type stateType)
     {
         var mutableProperties = stateType
@@ -117,7 +119,11 @@ public sealed class CrossCuttingArchitectureTests
             "Core.Entity.Definitions.EntityFactory",
             "Core.Entity.Integration.EntityCombatAdapter",
             "Core.Combat.Gambits.GambitEngine",
-            "Core.Combat.Gambits.IGambitEngine"
+            "Core.Combat.Gambits.IGambitEngine",
+            "Core.Config.CombatOptions",
+            "Core.Combat.TurnOrder.ITurnOrderCalculator",
+            "Core.Combat.TurnOrder.TurnOrderCalculatorFactory",
+            "Core.Combat.TurnOrder.ConditionalTurnOrderCalculator"
         };
         var present = removedTypes
             .Where(name => coreAssembly.GetType(name) != null)
@@ -132,6 +138,7 @@ public sealed class CrossCuttingArchitectureTests
     [InlineData(typeof(MathEngine))]
     [InlineData(typeof(GambitDecisionReducer))]
     [InlineData(typeof(Core.Combat.LegalActions.LegalActionResolver))]
+    [InlineData(typeof(TurnOrderResolver))]
     public void PureEvaluationServices_DoNotPublishEvents(Type serviceType)
     {
         var eventBusType = typeof(Core.Events.IOperationalEventBus);
@@ -150,6 +157,24 @@ public sealed class CrossCuttingArchitectureTests
         Assert.True(
             eventFields.Length == 0 && eventParameters.Length == 0,
             $"{serviceType.Name} can publish events during evaluation");
+    }
+
+    [Fact]
+    public void TurnOrderUsesPinnedPolicyAndOwnsNoMutableRuntimeState()
+    {
+        var plannerFields = typeof(Core.Combat.Flow.CombatFlowPlanner)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
+        var resolverFields = typeof(TurnOrderResolver)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
+        var policyProperties = typeof(TurnOrderPolicyDefinition)
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public);
+
+        Assert.Contains(plannerFields,
+            field => typeof(ITurnOrderResolver).IsAssignableFrom(field.FieldType));
+        Assert.DoesNotContain(resolverFields,
+            field => field.FieldType == typeof(CombatState) || field.FieldType == typeof(TurnOrderState));
+        Assert.DoesNotContain(policyProperties,
+            property => typeof(Delegate).IsAssignableFrom(property.PropertyType));
     }
 
     [Fact]

@@ -128,6 +128,12 @@ escolhe se eles são recalculados na publicação ou ficam travados até a ativa
 do ator, além do comportamento `Fail`, `Recompute` ou `Hide` se um intent travado
 deixar de ser legal.
 
+A ordem de ativação também pertence ao conteúdo fixado da run. O campo
+`resolvedMode.combatRules.turnOrder` descreve a estratégia e o boundary de
+recálculo; `combat.turnOrderState` expõe a ordem, scores e, quando aplicável,
+rolls de iniciativa ou gauges de ATB. A API não consulta configuração global do
+servidor para tomar essa decisão.
+
 ### Resolução e trace
 
 Cada resolução informa `initialCombatStateHash`, `finalCombatStateHash` e

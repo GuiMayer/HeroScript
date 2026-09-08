@@ -1,6 +1,5 @@
 using Core.Combat.Models;
 using Core.Common;
-using Core.Determinism;
 using Core.Run;
 
 namespace Core.Combat.Flow;
@@ -125,25 +124,6 @@ public static class CombatFlowTransitions
         };
     }
 
-    public static IReadOnlyList<string> CreateRoundSnapshotOrder(
-        CombatState combat,
-        ActivationOrderPolicyDefinition policy)
-    {
-        ArgumentNullException.ThrowIfNull(combat);
-        ArgumentNullException.ThrowIfNull(policy);
-        var alive = combat.GetAllActors().Where(entity => entity.IsAlive).ToArray();
-        var indexedOrder = (combat.TurnOrder ?? [])
-            .Select((id, index) => (id, index))
-            .ToDictionary(item => item.id, item => item.index, StringComparer.Ordinal);
-
-        return alive
-            .OrderBy(entity => indexedOrder.TryGetValue(entity.InstanceId, out var index) ? index : int.MaxValue)
-            .ThenBy(entity => TieRank(combat, entity, policy.TieBreak))
-            .ThenBy(entity => TieKey(combat, entity, policy.TieBreak), StringComparer.Ordinal)
-            .Select(entity => entity.InstanceId)
-            .ToArray();
-    }
-
     public static CombatState EvaluateOutcome(
         CombatState combat,
         OutcomePolicyDefinition policy,
@@ -208,17 +188,4 @@ public static class CombatFlowTransitions
         _ => false
     };
 
-    private static int TieRank(CombatState combat, CombatActorState entity, ActivationTieBreak tieBreak) => tieBreak switch
-    {
-        ActivationTieBreak.PlayerControlledFirst => combat.ControllerOf(entity) == ControllerKind.Player ? 0 : 1,
-        ActivationTieBreak.AiControlledFirst => combat.ControllerOf(entity) == ControllerKind.AI ? 0 : 1,
-        _ => 0
-    };
-
-    private static string TieKey(
-        CombatState combat,
-        CombatActorState entity,
-        ActivationTieBreak tieBreak) => tieBreak == ActivationTieBreak.SeededRandom
-        ? CanonicalJson.ComputeHash(new { combat.Determinism.Seed, entity.InstanceId })
-        : entity.InstanceId;
 }

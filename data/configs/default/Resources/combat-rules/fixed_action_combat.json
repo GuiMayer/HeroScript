@@ -2,14 +2,18 @@
   "fixed_action_combat": {
     "combatRulesId": "fixed_action_combat",
     "defaultPhaseSequenceId": "classic-style",
+    "turnOrder": {
+      "strategy": "Fixed",
+      "recalculateAt": "CombatStart",
+      "tieBreak": {
+        "strategy": "StableActorId",
+        "epoch": "Unspecified"
+      }
+    },
     "flow": {
       "automaticResolution": {
         "strategy": "ToNextPlayerInput",
         "maxAutomaticSteps": 100
-      },
-      "activationOrder": {
-        "strategy": "RoundSnapshot",
-        "tieBreak": "StableActorId"
       },
       "actionBudget": {
         "strategy": "FixedCount",

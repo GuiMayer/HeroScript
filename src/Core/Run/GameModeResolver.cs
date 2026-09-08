@@ -1,5 +1,6 @@
 using Core.Common;
 using Core.Combat.Flow;
+using Core.Combat.TurnOrder;
 using Core.Config;
 using Core.Content;
 using Core.Logging;
@@ -254,6 +255,9 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     {
         if (string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))
             return Result.Failure("Combat rules require a phase sequence id");
+        var turnOrder = TurnOrderPolicyValidator.Validate(combat.TurnOrder);
+        if (turnOrder.IsFailure)
+            return turnOrder;
         var combatFlow = CombatFlowPolicyValidator.Validate(combat.Flow);
         if (combatFlow.IsFailure)
             return combatFlow;

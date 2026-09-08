@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Core.Combat.Flow;
 using Core.Combat.Gambits;
 using Core.Combat.Models;
+using Core.Combat.TurnOrder;
 using Core.Combat.TurnPhase;
 using Core.Calculations;
 using Core.Effects;
@@ -194,6 +195,39 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 {
                     errors.Add($"combat-rules/{id} is invalid");
                     continue;
+                }
+
+                var turnOrderValidation = TurnOrderPolicyValidator.Validate(combat.TurnOrder);
+                if (turnOrderValidation.IsFailure)
+                {
+                    errors.Add($"combat-rules/{id} turnOrder: {turnOrderValidation.Error}");
+                }
+                else
+                {
+                    var resourceId = combat.TurnOrder.Strategy switch
+                    {
+                        TurnOrderStrategy.Resource => combat.TurnOrder.Resource?.ResourceId,
+                        TurnOrderStrategy.Initiative => combat.TurnOrder.Initiative?.ModifierResourceId,
+                        TurnOrderStrategy.Atb => combat.TurnOrder.Atb?.RateResourceId,
+                        _ => null
+                    };
+                    if (!string.IsNullOrWhiteSpace(resourceId))
+                        Require(runtime, errors, "combat-rules", id, resourceId, "resources");
+                    if (combat.TurnOrder.Strategy == TurnOrderStrategy.Conditional)
+                    {
+                        var expression = combat.TurnOrder.Conditional!.ScoreExpression;
+                        var syntax = Core.Math.RuntimeFormulaEvaluator.ValidateSyntax(
+                            expression,
+                            variable => variable.Equals("turn", StringComparison.OrdinalIgnoreCase) ||
+                                        variable.Equals("round", StringComparison.OrdinalIgnoreCase) ||
+                                        variable.Equals("activation", StringComparison.OrdinalIgnoreCase) ||
+                                        variable.Equals("actor_index", StringComparison.OrdinalIgnoreCase) ||
+                                        variable.StartsWith("actor_resource_", StringComparison.OrdinalIgnoreCase) ||
+                                        variable.StartsWith("actor_stat_", StringComparison.OrdinalIgnoreCase),
+                            formula => runtime.GetDefinitions("formulas").ContainsKey(formula));
+                        if (syntax.IsFailure)
+                            errors.Add($"combat-rules/{id} conditional turnOrder: {syntax.Error}");
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId))

@@ -1,6 +1,4 @@
 using Core.Combat.Models;
-using Core.Config;
-using Core.Logging;
 using Core.Resources;
 using Moq;
 
@@ -11,11 +9,6 @@ namespace Core.Tests.Combat.TurnOrder;
 /// </summary>
 public static class TurnOrderTestHelper
 {
-    public static ILogger CreateTestLogger()
-    {
-        return new ConsoleLogger("TurnOrderTests", enableDebug: false);
-    }
-    
     public static IResourceManager CreateTestResourceManager()
     {
         var mockResourceManager = new Mock<IResourceManager>();

@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Combat.Flow;
+using Core.Combat.TurnOrder;
 using Core.Calculations;
 
 namespace Core.Run;
@@ -71,6 +72,7 @@ public sealed record CombatRulesDefinition
 {
     public string CombatRulesId { get; init; } = string.Empty;
     public string? DefaultPhaseSequenceId { get; init; }
+    public TurnOrderPolicyDefinition TurnOrder { get; init; } = new();
     public CombatFlowPoliciesDefinition Flow { get; init; } = new();
 }
 

@@ -118,31 +118,4 @@ public sealed class CombatFlowTransitionsTests
         Assert.Equal(1, updated.ActivationState!.ActionsTaken);
     }
 
-    [Fact]
-    public void RoundSnapshot_UsesConfiguredControllerTieBias()
-    {
-        var original = TurnOrderTestHelper.CreateTestCombatState("hero", ["enemy_b", "enemy_a"]);
-        var combat = original with
-        {
-            Actors = original.GetAllActors().Select(actor => actor.InstanceId == "hero"
-                    ? actor with { SideId = "red", ControllerBinding = new ControllerBinding { Kind = ControllerKind.AI } }
-                    : actor with { SideId = "blue", ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player } })
-                .ToDictionary(actor => actor.InstanceId, StringComparer.Ordinal),
-            Sides =
-            [
-                new() { SideId = "red" },
-                new() { SideId = "blue" }
-            ]
-        };
-
-        var order = CombatFlowTransitions.CreateRoundSnapshotOrder(
-            combat,
-            new ActivationOrderPolicyDefinition
-            {
-                Strategy = ActivationOrderStrategy.RoundSnapshot,
-                TieBreak = ActivationTieBreak.PlayerControlledFirst
-            });
-
-        Assert.Equal(["enemy_a", "enemy_b", "hero"], order);
-    }
 }

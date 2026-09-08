@@ -80,11 +80,6 @@ public sealed class CombatFlowPolicyValidatorTests
             Strategy = AutomaticResolutionStrategy.ToNextPlayerInput,
             MaxAutomaticSteps = 100
         },
-        ActivationOrder = new()
-        {
-            Strategy = ActivationOrderStrategy.RoundSnapshot,
-            TieBreak = ActivationTieBreak.StableActorId
-        },
         ActionBudget = new()
         {
             Strategy = ActionBudgetStrategy.ResourceLimited,
