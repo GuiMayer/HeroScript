@@ -46,8 +46,7 @@ public sealed record CombatResolutionRecord
     public Guid CombatId { get; init; }
     public string CommandType { get; init; } = string.Empty;
     public AnimationFrameMode Mode { get; init; }
-    public int FirstSequence { get; init; }
-    public int FinalSequence { get; init; }
+    public int RootSequence { get; init; }
     public string InitialCombatStateHash { get; init; } = string.Empty;
     public string FinalCombatStateHash { get; init; } = string.Empty;
     public string ResolutionFingerprint { get; init; } = string.Empty;

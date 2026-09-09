@@ -7,6 +7,8 @@ public sealed record CommandResultEnvelope<TState>
 {
     /// <summary>Idempotency key supplied by the client.</summary>
     public Guid CommandId { get; init; }
+    /// <summary>Canonical root command type.</summary>
+    public string Type { get; init; } = string.Empty;
     /// <summary>Persisted sequence after the accepted transition.</summary>
     public int? Sequence { get; init; }
     /// <summary>Deterministic step after the accepted transition.</summary>
@@ -15,6 +17,8 @@ public sealed record CommandResultEnvelope<TState>
     public string PreviousStateHash { get; init; } = string.Empty;
     /// <summary>Canonical hash of the resulting state.</summary>
     public string StateHash { get; init; } = string.Empty;
+    /// <summary>True when the same command envelope returned its stored receipt.</summary>
+    public bool Duplicate { get; init; }
     /// <summary>Immutable aggregate read model after the transition.</summary>
     public TState State { get; init; } = default!;
     /// <summary>Events projected from the accepted transition.</summary>

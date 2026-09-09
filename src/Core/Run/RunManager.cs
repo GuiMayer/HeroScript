@@ -1340,8 +1340,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             CombatId = previousCombat.CombatId,
             CommandType = rootCommand.Type,
             Mode = mode,
-            FirstSequence = frames[0].RunSequence,
-            FinalSequence = frames[^1].RunSequence,
+            RootSequence = frames[0].RunSequence,
             InitialCombatStateHash = CanonicalJson.ComputeHash(previousCombat),
             FinalCombatStateHash = CanonicalJson.ComputeHash(candidates[^1].Step.Combat),
             ResolutionFingerprint = CanonicalJson.ComputeHash(new

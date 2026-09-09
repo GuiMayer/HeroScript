@@ -94,7 +94,7 @@ public class MyService : IMyService
 
 **Exemplos:**
 ```csharp
-Result<CombatState> StartCombat(string heroId, List<string> enemyIds);
+Result<CombatState> StartCombat(IReadOnlyList<CombatParticipantDefinition> participants);
 Result<ActionDefinition> GetDefinition(string actionId);
 Result<float> Evaluate(ExpressionEvaluationRequest request);
 ```
@@ -150,7 +150,7 @@ catch (Exception ex)
 
 ```csharp
 // Início de operação
-_logger.LogDebug($"Starting combat with hero {heroId}");
+_logger.LogDebug($"Starting combat with {participants.Count} actors");
 
 // Evento importante
 _logger.LogInformation($"Combat {combatId} started successfully");

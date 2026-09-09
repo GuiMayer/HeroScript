@@ -21,8 +21,7 @@ public sealed class CombatResolutionControllerTests
             CombatId = combatId,
             CommandType = "END_TURN",
             Mode = AnimationFrameMode.CompactWithSnapshotLookup,
-            FirstSequence = 3,
-            FinalSequence = 4,
+            RootSequence = 3,
             Frames =
             [
                 new CombatAnimationFrame

@@ -2,6 +2,17 @@
 
 ## v1 — 2026-09-09
 
+- O read model de combate agora documenta e expõe atores, lados, relações,
+  cursor de fase, ativação, prioridade e stack pendente na mesma resposta.
+- Resoluções usam uma única `rootSequence`; `firstSequence`/`finalSequence`
+  foram removidos porque um comando externo produz exatamente um commit.
+- A timeline expõe `stateAvailable`, frames e facts por item, e a árvore de
+  branches possui schema de linhagem explícito.
+- O catálogo paralelo `/entities/definitions` e seus DTOs foram removidos.
+  Entidades são conteúdo em `/api/v1/content/entities`.
+- `/runs/{runId}/commits` substitui a documentação antiga de checkpoints e o
+  cliente Godot de referência passa a ser orientado a receipts/snapshots.
+
 - O snapshot de combate passou a expor `priorityWindow` e `pendingActions` como
   estado imutável; não foi reintroduzido endpoint paralelo `/stack`.
 - Ações legais e previews agora informam `reactionTransition`, comando resolvido

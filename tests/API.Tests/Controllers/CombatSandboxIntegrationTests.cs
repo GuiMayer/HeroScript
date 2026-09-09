@@ -44,6 +44,93 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     }
 
     [Fact]
+    public async Task ThinGodotClient_CanDriveReceiptPlaybackHistoryAndBranchingFromRestOnly()
+    {
+        using var launchResponse = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario($"godot-client-{Guid.NewGuid():N}"));
+        var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
+        var runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
+
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
+        var combat = snapshot.GetProperty("combat");
+        var combatId = combat.GetProperty("combatId").GetGuid();
+        var player = combat.GetProperty("actors").EnumerateArray().Single(actor =>
+            actor.GetProperty("controllerBinding").GetProperty("kind").GetString() == "Player");
+        var playerId = player.GetProperty("instanceId").GetString()!;
+        Assert.True(combat.GetProperty("activation").GetProperty("waitingForInput").GetBoolean());
+        Assert.Equal(playerId, combat.GetProperty("activation").GetProperty("activeActorId").GetString());
+
+        using var legalResponse = await _client.GetAsync(
+            $"/api/v1/combats/{combatId}/legal-actions?actorId={playerId}");
+        var legal = await legalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, legalResponse.StatusCode);
+        var candidate = legal.GetProperty("candidates").EnumerateArray().First(item =>
+            item.GetProperty("command").GetProperty("actionType").GetString() == "PLAY_CARD");
+        var candidateCommand = candidate.GetProperty("command");
+        var commandId = Guid.NewGuid();
+        using var commandResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            new
+            {
+                commandId,
+                expectedSequence = snapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
+                expectedStep = combat.GetProperty("step").GetUInt64(),
+                type = "PLAY_CARD",
+                payload = new
+                {
+                    actorId = candidateCommand.GetProperty("actorId").GetString(),
+                    cardInstanceId = candidateCommand.GetProperty("cardInstanceId").GetGuid(),
+                    targetIds = candidateCommand.GetProperty("targetIds").EnumerateArray()
+                        .Select(item => item.GetString()).ToArray()
+                }
+            });
+        var receipt = await commandResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(commandResponse.StatusCode == HttpStatusCode.OK, receipt.GetRawText());
+        var resolution = receipt.GetProperty("state").GetProperty("resolution");
+        Assert.Equal(receipt.GetProperty("sequence").GetInt32(), resolution.GetProperty("rootSequence").GetInt32());
+        var animationFrames = resolution.GetProperty("frames").EnumerateArray().ToArray();
+        Assert.NotEmpty(animationFrames);
+        Assert.Equal(Enumerable.Range(0, animationFrames.Length),
+            animationFrames.Select(frame => frame.GetProperty("index").GetInt32()));
+
+        using var refreshedResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var refreshed = await refreshedResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(receipt.GetProperty("stateHash").GetString(),
+            refreshed.GetProperty("run").GetProperty("stateHash").GetString());
+
+        using var timelineResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/timeline?limit=50");
+        var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var item = timeline.GetProperty("items").EnumerateArray().Single(entry =>
+            entry.GetProperty("commandId").ValueKind == JsonValueKind.String &&
+            entry.GetProperty("commandId").GetGuid() == commandId);
+        Assert.True(item.GetProperty("stateAvailable").GetBoolean());
+        Assert.NotEmpty(item.GetProperty("frames").EnumerateArray());
+        Assert.NotEmpty(item.GetProperty("facts").EnumerateArray());
+        var sequence = item.GetProperty("runSequence").GetInt32();
+
+        using var branchResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/timeline/{sequence}/branches",
+            new { branchKey = "godot-alternative" });
+        var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(branchResponse.StatusCode == HttpStatusCode.OK, branch.GetRawText());
+        var branchRunId = branch.GetProperty("runId").GetGuid();
+        using var branchSnapshotResponse = await _client.GetAsync(
+            $"/api/v1/sandbox/runs/{branchRunId}/snapshot");
+        Assert.Equal(HttpStatusCode.OK, branchSnapshotResponse.StatusCode);
+
+        using var treeResponse = await _client.GetAsync($"/api/v1/runs/{branchRunId}/branch-tree");
+        var tree = await treeResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, treeResponse.StatusCode);
+        Assert.Contains(tree.GetProperty("children").EnumerateArray(), child =>
+            child.GetProperty("runId").GetGuid() == branchRunId &&
+            child.GetProperty("sourceSequence").GetInt32() == sequence);
+    }
+
+    [Fact]
     public async Task IdenticalCompleteSandboxFlow_IsBitwiseStableAcrossTenFreshRuntimes()
     {
         DeterministicFlowEvidence? baseline = null;
@@ -317,7 +404,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(1, proposalCombat.GetProperty("priorityWindow").GetProperty("consecutivePasses").GetInt32());
         Assert.Single(proposalCombat.GetProperty("pendingActions").EnumerateArray());
         Assert.Equal(initialHealth, CombatResource(proposalCombat, "goblin_a", "health"));
-        Assert.Equal((int)CombatStatus.ACTIVE, proposalCombat.GetProperty("status").GetInt32());
+        Assert.Equal("ACTIVE", proposalCombat.GetProperty("status").GetString());
         var proposalFrames = proposal.GetProperty("state").GetProperty("resolution")
             .GetProperty("frames").EnumerateArray().ToArray();
         Assert.Contains(proposalFrames,
@@ -380,7 +467,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(JsonValueKind.Null, resolvedCombat.GetProperty("priorityWindow").ValueKind);
         Assert.Empty(resolvedCombat.GetProperty("pendingActions").EnumerateArray());
         Assert.True(CombatResource(resolvedCombat, "goblin_a", "health") < initialHealth);
-        Assert.Equal((int)CombatStatus.VICTORY, resolvedCombat.GetProperty("status").GetInt32());
+        Assert.Equal("VICTORY", resolvedCombat.GetProperty("status").GetString());
         Assert.Contains(resolved.GetProperty("state").GetProperty("resolution")
                 .GetProperty("frames").EnumerateArray(),
             frame => frame.GetProperty("transitionType").GetString() == "combat.reaction.resolved");
@@ -720,7 +807,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             firstCommandId);
         var afterFirst = firstResult.GetProperty("state").GetProperty("combat");
         Assert.Equal(0, Energy(afterFirst));
-        Assert.Equal(1, afterFirst.GetProperty("activationState").GetProperty("actionsTaken").GetInt32());
+        Assert.Equal(1, afterFirst.GetProperty("activation").GetProperty("actionsTaken").GetInt32());
         var compactResolution = firstResult.GetProperty("state").GetProperty("resolution");
         Assert.Equal("CompactWithSnapshotLookup", compactResolution.GetProperty("mode").GetString());
         var compactFrame = compactResolution.GetProperty("frames").EnumerateArray().Single();
@@ -732,8 +819,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var durableResolution = await resolutionResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, resolutionResponse.StatusCode);
         Assert.Equal(
-            compactResolution.GetProperty("finalSequence").GetInt32(),
-            durableResolution.GetProperty("finalSequence").GetInt32());
+            compactResolution.GetProperty("rootSequence").GetInt32(),
+            durableResolution.GetProperty("rootSequence").GetInt32());
         using var compactStateResponse = await _client.GetAsync(
             $"/api/v1/combats/{combatId}/timeline/{compactFrame.GetProperty("snapshotSequence").GetInt32()}/state");
         var compactState = await compactStateResponse.Content.ReadFromJsonAsync<JsonElement>();
@@ -749,10 +836,10 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             "EndActivation",
             appliedBurning.GetProperty("definition").GetProperty("triggers")[0]
                 .GetProperty("boundary").GetString());
-        var firstActivation = afterFirst.GetProperty("activationState").GetProperty("activationNumber").GetInt32();
+        var firstActivation = afterFirst.GetProperty("activation").GetProperty("activationNumber").GetInt32();
 
         var afterSecond = await ExecuteCardCommand(runId, combatId, basicAttack, "goblin_a");
-        var nextActivation = afterSecond.GetProperty("activationState");
+        var nextActivation = afterSecond.GetProperty("activation");
         Assert.Equal("hero", nextActivation.GetProperty("activeActorId").GetString());
         Assert.Equal(0, nextActivation.GetProperty("actionsTaken").GetInt32());
         Assert.True(nextActivation.GetProperty("activationNumber").GetInt32() > firstActivation);
@@ -989,10 +1076,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
 
     private static double Energy(JsonElement combat) => combat
         .GetProperty("actors")
-        .GetProperty("hero")
-        .GetProperty("components")
-        .GetProperty("resources")
-        .GetProperty("state")
+        .EnumerateArray()
+        .Single(actor => actor.GetProperty("instanceId").GetString() == "hero")
         .GetProperty("resources")
         .GetProperty("energy")
         .GetProperty("current")
@@ -1000,10 +1085,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
 
     private static double CombatResource(JsonElement combat, string actorId, string resourceId) => combat
         .GetProperty("actors")
-        .GetProperty(actorId)
-        .GetProperty("components")
-        .GetProperty("resources")
-        .GetProperty("state")
+        .EnumerateArray()
+        .Single(actor => actor.GetProperty("instanceId").GetString() == actorId)
         .GetProperty("resources")
         .GetProperty(resourceId)
         .GetProperty("current")

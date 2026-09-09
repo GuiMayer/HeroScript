@@ -24,6 +24,7 @@ public sealed record CombatTimelineItem
     public string StateHash { get; init; } = string.Empty;
     public bool StateAvailable { get; init; }
     public IReadOnlyList<RunCommitFrame> Frames { get; init; } = [];
+    public IReadOnlyList<RunCommitFact> Facts { get; init; } = [];
     public JsonElement Summary { get; init; }
 }
 
@@ -266,6 +267,10 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
                 .Where(frame => frame.CombatId == combatId)
                 .OrderBy(frame => frame.FrameIndex)
                 .ToArray(),
+            Facts = commit.Facts
+                .Where(fact => fact.CombatId == combatId)
+                .OrderBy(fact => fact.FactIndex)
+                .ToArray(),
             Summary = Summary(commit.Command)
         };
     }
@@ -276,14 +281,22 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
             return JsonSerializer.SerializeToElement(new { });
 
         var selected = new SortedDictionary<string, JsonElement>(StringComparer.Ordinal);
-        foreach (var name in new[] { "combatId", "cardId", "consumedCardId", "destination", "heroId", "enemyIds" })
+        foreach (var name in new[]
+        {
+            "combatId", "actorId", "actionType", "actionId", "cardInstanceId",
+            "targetIds", "costOptionId", "consumedCardId", "destination",
+            "participants", "initialResourceValues"
+        })
         {
             if (TryGetProperty(command, name, out var value))
                 selected[name] = value.Clone();
         }
         if (TryGetProperty(command, "command", out var nested) && nested.ValueKind == JsonValueKind.Object)
         {
-            foreach (var name in new[] { "actorId", "actionType", "powerId", "targetId", "cardId" })
+            foreach (var name in new[]
+            {
+                "actorId", "actionType", "actionId", "cardInstanceId", "targetIds", "costOptionId"
+            })
             {
                 if (TryGetProperty(nested, name, out var value))
                     selected[name] = value.Clone();

@@ -59,9 +59,9 @@ Task<JsonElement> DiscardCardsAsync(Guid runId, IEnumerable<string> cardIds);
 Task<List<string>> GetHandAsync(Guid runId);
 
 Task<Guid> StartCombatAsync(
-    string heroId,
-    IEnumerable<string> enemies,
-    IReadOnlyDictionary<string, float>? initialHeroResourceValues = null,
+    string playerActorId,
+    IEnumerable<string> otherActorIds,
+    IReadOnlyDictionary<string, float>? initialPlayerResourceValues = null,
     Guid? runId = null,
     string heroDefinitionId = "player_warrior",
     string enemyDefinitionId = "enemy_goblin");
@@ -77,7 +77,8 @@ Task<JsonElement> ExecuteActionAsync(
 Task<JsonElement> EndTurnAsync(Guid combatId, Guid? runId = null);
 ```
 
-O parâmetro `initialHeroResourceValues` é genérico:
+O parâmetro de recursos iniciais é genérico; os nomes do helper de teste não
+definem papéis no contrato da engine:
 
 ```csharp
 var overrides = new Dictionary<string, float>

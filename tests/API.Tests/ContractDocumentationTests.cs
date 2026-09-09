@@ -20,7 +20,8 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/runs/{runId}/commands", "post", "stable");
         AssertOperation(paths, "/api/v1/combats/{combatId}/commands", "post", "stable");
         AssertOperation(paths, "/api/v1/combats/{combatId}/resolutions/{commandId}", "get", "stable");
-        AssertOperation(paths, "/api/v1/runs/{runId}/checkpoints", "get", "stable");
+        AssertOperation(paths, "/api/v1/runs/{runId}/commits", "get", "stable");
+        AssertOperation(paths, "/api/v1/runs/{runId}/commits/{sequence}", "get", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/timeline", "get", "experimental");
         AssertOperation(paths, "/api/v1/runs/{runId}/branches", "post", "experimental");
         AssertOperation(paths, "/api/v1/runs/{runId}/verify", "post", "stable");
@@ -40,6 +41,8 @@ public sealed class ContractDocumentationTests
         AssertOperation(paths, "/api/v1/simulations/{simulationId}", "get", "experimental");
         AssertOperation(paths, "/api/v1/simulations/{simulationId}/result", "get", "experimental");
         Assert.False(paths.TryGetProperty("/api/v1/combats/{combatId}/stack", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/entities/definitions", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/runs/{runId}/checkpoints", out _));
 
         var commandType = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CommandEnvelope").GetProperty("properties").GetProperty("type");
@@ -52,6 +55,9 @@ public sealed class ContractDocumentationTests
             resolution.GetProperty("properties").GetProperty("mode").GetProperty("enum")
                 .EnumerateArray().Select(item => item.GetString()));
         var resolutionProperties = resolution.GetProperty("properties");
+        Assert.True(resolutionProperties.TryGetProperty("rootSequence", out _));
+        Assert.False(resolutionProperties.TryGetProperty("firstSequence", out _));
+        Assert.False(resolutionProperties.TryGetProperty("finalSequence", out _));
         Assert.True(resolutionProperties.TryGetProperty("initialCombatStateHash", out _));
         Assert.True(resolutionProperties.TryGetProperty("finalCombatStateHash", out _));
         Assert.True(resolutionProperties.TryGetProperty("resolutionFingerprint", out _));
@@ -64,20 +70,31 @@ public sealed class ContractDocumentationTests
         Assert.True(root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CardInspectionResult").GetProperty("properties")
             .TryGetProperty("previewSteps", out _));
-        Assert.True(root.GetProperty("components").GetProperty("schemas")
-            .GetProperty("CombatTimelineItem").GetProperty("properties")
-            .TryGetProperty("resolutionCommandId", out _));
+        var timelineProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatTimelineItem").GetProperty("properties");
+        Assert.True(timelineProperties.TryGetProperty("resolutionCommandId", out _));
+        Assert.True(timelineProperties.TryGetProperty("stateAvailable", out _));
+        Assert.True(timelineProperties.TryGetProperty("frames", out _));
+        Assert.True(timelineProperties.TryGetProperty("facts", out _));
+        Assert.False(timelineProperties.TryGetProperty("snapshotAvailable", out _));
         var combatSnapshotProperties = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CombatStateSnapshot").GetProperty("properties");
+        Assert.True(combatSnapshotProperties.TryGetProperty("actors", out _));
+        Assert.True(combatSnapshotProperties.TryGetProperty("sides", out _));
+        Assert.True(combatSnapshotProperties.TryGetProperty("relationships", out _));
+        Assert.True(combatSnapshotProperties.TryGetProperty("phase", out _));
+        Assert.True(combatSnapshotProperties.TryGetProperty("activation", out _));
         Assert.True(combatSnapshotProperties.TryGetProperty("priorityWindow", out _));
         Assert.True(combatSnapshotProperties.TryGetProperty("pendingActions", out _));
+        Assert.True(root.GetProperty("components").GetProperty("schemas").TryGetProperty("RunLineage", out _));
+        Assert.True(root.GetProperty("components").GetProperty("schemas").TryGetProperty("RunBranchTreeNode", out _));
         Assert.Equal(
             "#/components/schemas/SandboxCombatSnapshot",
             paths.GetProperty("/api/v1/sandbox/runs/{runId}/snapshot").GetProperty("get")
                 .GetProperty("responses").GetProperty("200").GetProperty("content")
                 .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString());
         Assert.Equal(
-            "#/components/schemas/CombatStateSnapshot",
+            "#/components/schemas/SandboxCombatStateSnapshot",
             root.GetProperty("components").GetProperty("schemas")
                 .GetProperty("SandboxCombatSnapshot").GetProperty("properties")
                 .GetProperty("combat").GetProperty("$ref").GetString());
@@ -138,6 +155,7 @@ public sealed class ContractDocumentationTests
             "docs/api/events.md",
             "docs/api/content-and-platform.md",
             "docs/api/changelog.md",
+            "docs/content/packages-and-settings.md",
             "docs/architecture/cross-cutting-systems.md",
             "docs/systems/calculations/calculation-system.md",
             "docs/systems/effects/effect-system.md",
@@ -147,7 +165,9 @@ public sealed class ContractDocumentationTests
             "examples/http/deterministic-run.http",
             "examples/http/replay-and-events.http",
             "examples/http/content-publication.http",
-            "examples/http/combat-sandbox.http"
+            "examples/http/combat-sandbox.http",
+            "examples/godot-combat-client/addons/heroscript/HeroScriptClient.gd",
+            "examples/godot-combat-client/README.md"
         };
 
         foreach (var relativePath in files)

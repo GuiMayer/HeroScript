@@ -13,10 +13,58 @@ public class CombatStateResponse
     public string Status { get; set; } = string.Empty;
     public int CurrentTurn { get; set; }
     public List<ActorStateDto> Actors { get; set; } = new();
+    public IReadOnlyList<Core.Combat.Models.CombatSide> Sides { get; set; }
+        = Array.Empty<Core.Combat.Models.CombatSide>();
+    public Core.Combat.Models.CombatRelationshipPolicy Relationships { get; set; } = new();
     public int TotalActions { get; set; }
     public Core.Combat.Models.CombatBoardState Board { get; set; } = new();
     public Core.Combat.TurnPhase.PhaseState? Phase { get; set; }
     public Core.Combat.Activation.ActivationState? Activation { get; set; }
+    public Core.Combat.Reactions.PriorityWindowState? PriorityWindow { get; set; }
+    public IReadOnlyList<Core.Combat.Reactions.PendingActionState> PendingActions { get; set; }
+        = Array.Empty<Core.Combat.Reactions.PendingActionState>();
+
+    public static CombatStateResponse From(Core.Combat.Models.CombatState state) => new()
+    {
+        CombatId = state.CombatId,
+        RunId = state.RunId,
+        RunNodeId = state.RunNodeId,
+        Seed = state.Determinism.Seed,
+        Step = state.Determinism.Step,
+        ContentRevision = state.Determinism.ContentRevision,
+        EngineVersion = state.Determinism.EngineVersion,
+        StateHash = Core.Determinism.CanonicalJson.ComputeHash(state),
+        Status = state.Status.ToString(),
+        CurrentTurn = state.CurrentTurn,
+        Actors = state.GetAllActors().Select(actor => new ActorStateDto
+        {
+            InstanceId = actor.InstanceId,
+            DefinitionId = actor.DefinitionId,
+            Name = actor.Name,
+            SideId = actor.SideId,
+            ControllerBinding = actor.ControllerBinding,
+            IsAlive = actor.IsAlive,
+            Resources = actor.ResourceState.Resources
+                .OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => new ResourcePoolDto
+                    {
+                        Current = pair.Value.Current,
+                        Maximum = pair.Value.Maximum,
+                        Minimum = pair.Value.Minimum
+                    },
+                    StringComparer.Ordinal)
+        }).ToList(),
+        Sides = state.Sides,
+        Relationships = state.Relationships,
+        TotalActions = state.ActionHistory.Count,
+        Board = state.Board,
+        Phase = state.PhaseState,
+        Activation = state.ActivationState,
+        PriorityWindow = state.PriorityWindow,
+        PendingActions = state.PendingActions
+    };
 }
 
 public class ActorStateDto

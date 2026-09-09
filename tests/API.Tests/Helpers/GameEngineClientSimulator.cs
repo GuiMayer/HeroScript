@@ -412,9 +412,15 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> GetEntityDefinitionAsync(string definitionId)
     {
-        var response = await _client.GetAsync($"/api/v1/entities/definitions/{definitionId}");
+        var revisionsResponse = await _client.GetAsync("/api/v1/content/revisions?configName=default");
+        revisionsResponse.EnsureSuccessStatusCode();
+        var revisions = await revisionsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var revision = revisions.GetProperty("currentRevision").GetString();
+        var response = await _client.GetAsync(
+            $"/api/v1/content/entities/{definitionId}?revision={revision}&configName=default");
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<JsonElement>();
+        var publication = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return publication.GetProperty("definition").Clone();
     }
 
     // ==================== HELPERS ====================

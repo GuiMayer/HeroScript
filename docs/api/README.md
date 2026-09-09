@@ -13,8 +13,10 @@ ferramentas de QA. O contrato de máquina está em `/openapi/v1.json` e em
 | [Combat sandbox para Godot](combat-sandbox.md) | Cenários, snapshots, timeline, branches e simulações. |
 | [Eventos](events.md) | Paginação e SSE. |
 | [Conteúdo e plataforma](content-and-platform.md) | Revisões, administração e recursos futuros. |
+| [Packages e settings](../content/packages-and-settings.md) | Criar jogos/mods data-only e publicar revisões. |
 | [Autenticação](authentication.md) | Usar administração sem expor a chave. |
 | [Changelog](changelog.md) | Mudanças publicadas no contrato. |
 
 Os arquivos em `examples/http/` são requests para extensões compatíveis com o
 formato `.http`. Substitua IDs e a chave administrativa quando necessário.
+Um cliente Godot reutilizável está em `examples/godot-combat-client`.

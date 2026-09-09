@@ -137,7 +137,8 @@ servidor para tomar essa decisão.
 ### Resolução e trace
 
 Cada resolução informa `initialCombatStateHash`, `finalCombatStateHash` e
-`resolutionFingerprint`. Cada frame contém três visões complementares:
+`resolutionFingerprint`. `rootSequence` aponta para o único commit que contém
+o comando e todos os seus frames. Cada frame contém três visões complementares:
 
 - `effectSteps`: ordem, condição/chance, alvo, proveniência e hashes de cada efeito;
 - `calculations`: buckets e contribuições numéricas usados pelo frame;
@@ -178,7 +179,7 @@ Use os seguintes recursos depois de reconectar ou para suporte:
 | --- | --- |
 | Estado completo | `GET /api/v1/runs/{runId}` |
 | Histórico de comandos | `GET /api/v1/runs/{runId}/journal` |
-| Checkpoints e timeline | `/checkpoints` e `/timeline` |
+| Commits e timeline | `/commits`, `/commits/{sequence}` e `/timeline` |
 | Replay semântico | `POST /api/v1/runs/{runId}/verify` |
 | Auditoria de encontro | `/api/v1/combats/{combatId}/journal` e `/verify` |
 

@@ -4,7 +4,6 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
 using API.Models.Combat;
-using Core.Determinism;
 using Core.Combat.LegalActions;
 
 namespace API.Controllers;
@@ -47,7 +46,7 @@ public class CombatController : BaseApiController
             var result = _combatRunCoordinator.GetCurrentEncounter(runId);
             return result.IsFailure
                 ? NotFound(new { error = result.Error })
-                : Ok(MapToStateResponse(result.Value.CombatState));
+                : Ok(CombatStateResponse.From(result.Value.CombatState));
         }
         catch (Exception ex)
         {
@@ -68,7 +67,7 @@ public class CombatController : BaseApiController
             if (result.IsFailure)
                 return NotFound(new { error = result.Error });
 
-            return Ok(MapToStateResponse(result.Value));
+            return Ok(CombatStateResponse.From(result.Value));
         }
         catch (Exception ex)
         {
@@ -108,53 +107,6 @@ public class CombatController : BaseApiController
         return recovered.IsSuccess
             ? Result<CombatState>.Success(recovered.Value.CombatState)
             : Result<CombatState>.Failure(recovered.Error);
-    }
-
-    // Mappers
-    private CombatStateResponse MapToStateResponse(CombatState state)
-    {
-        return new CombatStateResponse
-        {
-            CombatId = state.CombatId,
-            RunId = state.RunId,
-            RunNodeId = state.RunNodeId,
-            Seed = state.Determinism.Seed,
-            Step = state.Determinism.Step,
-            ContentRevision = state.Determinism.ContentRevision,
-            EngineVersion = state.Determinism.EngineVersion,
-            StateHash = CanonicalJson.ComputeHash(state),
-            Status = state.Status.ToString(),
-            CurrentTurn = state.CurrentTurn,
-            Actors = state.GetAllActors().Select(actor => new ActorStateDto
-            {
-                InstanceId = actor.InstanceId,
-                DefinitionId = actor.DefinitionId,
-                Name = actor.Name,
-                SideId = actor.SideId,
-                ControllerBinding = actor.ControllerBinding,
-                IsAlive = actor.IsAlive,
-                Resources = MapResources(actor)
-            }).ToList(),
-            TotalActions = state.ActionHistory.Count,
-            Board = state.Board,
-            Phase = state.PhaseState,
-            Activation = state.ActivationState
-        };
-    }
-
-    private static IReadOnlyDictionary<string, ResourcePoolDto> MapResources(CombatActorState entity)
-    {
-        return entity.ResourceState.Resources
-            .OrderBy(pair => pair.Key, StringComparer.Ordinal)
-            .ToDictionary(
-                pair => pair.Key,
-                pair => new ResourcePoolDto
-                {
-                    Current = pair.Value.Current,
-                    Maximum = pair.Value.Maximum,
-                    Minimum = pair.Value.Minimum
-                },
-                StringComparer.Ordinal);
     }
 
     private ActionDto MapToActionDto(CombatAction action)

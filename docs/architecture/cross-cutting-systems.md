@@ -8,7 +8,7 @@ de cache, logging, matemática, conteúdo, mutação ou tratamento de erro.
 
 | Camada | Papel | Pode decidir regra? |
 | --- | --- | --- |
-| Journal e checkpoints | Histórico autoritativo append-only | Registra a decisão já aceita |
+| Journal e commits | Histórico autoritativo append-only | Registra a decisão já aceita |
 | Snapshot imutável | Projeção atual de uma run | Sim, como entrada da próxima transição |
 | `ContentManifest` | Conteúdo publicado e endereçado por revisão | Sim |
 | Gateway de comandos | Única entrada de mutações de gameplay | Valida e coordena |

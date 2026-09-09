@@ -41,7 +41,8 @@ atual; após `422`, mostre o diagnóstico e não tente corrigir o estado local.
    animar efeitos de abertura.
 4. Leia `GET /api/v1/sandbox/runs/{runId}/snapshot` para montar a tela.
 5. Envie intenção ao gateway canônico de combate usando as versões observadas.
-6. Reproduza em ordem os frames de `state.resolution.frames`.
+6. Trate o receipt como uma confirmação atômica e reproduza em ordem os frames
+   de `state.resolution.frames`; `rootSequence` identifica o commit da unidade.
 7. Atualize a tela pelo último frame ou releia o snapshot.
 
 Exemplo de ação de carta:
@@ -99,6 +100,10 @@ Use `GET /api/v1/combats/{combatId}/timeline` para uma lista compacta de
 comandos e `GET /api/v1/combats/{combatId}/timeline/{sequence}/state` para
 mostrar um momento passado em modo somente-leitura.
 
+Na interface, identifique a seleção por `(runSequence, frameIndex)`. A primeira
+coordenada escolhe o commit/estado; a segunda escolhe a transição visual dentro
+do comando. `frames` e `facts` já acompanham cada item da timeline.
+
 Quando `resolutionCommandId` estiver presente em um item, ele pode ser usado
 diretamente em `GET /api/v1/combats/{combatId}/resolutions/{resolutionCommandId}`.
 Transições internas do mesmo comando compartilham o `rootCommandId`; a Godot
@@ -141,6 +146,8 @@ run já iniciada.
 
 - Gere um novo `commandId` para cada intenção; reutilize-o somente para retry.
 - Termine de consumir `resolution.frames` antes de liberar o próximo input visual.
+- Decida se há input apenas por `priorityWindow.holderActorId` ou por
+  `activation.waitingForInput`/`activeActorId`, cruzados com `controllerBinding`.
 - Use `expectedSequence` da run e `expectedStep` do combate atual.
 - Use IDs retornados, sobretudo `cardInstanceId`; não gere IDs no cliente.
 - Habilite botões e alvos somente a partir das leituras legais da API.

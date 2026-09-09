@@ -1,203 +1,64 @@
-# Persistência - HeroScript Engine
+# Persistência autoritativa e telemetria
 
-HeroScript suporta persistência em disco via duas implementações de repositório JSON.
+HeroScript separa estado de gameplay de observabilidade.
 
-## Arquitetura
+## Run commits
 
-```
-Core.Abstractions.Persistence/
-├── IEventStore           # Interface para event sourcing
-├── IRunStateRepository   # Interface para snapshots de run
-└── ISnapshotStore        # Interface para snapshots genéricos (futuro)
+`IRunCommitStore` é a autoridade persistente. `FileRunCommitStore` grava um
+commit append-only para cada comando externo aceito. O commit contém envelope,
+estado posterior, hashes, steps, frames e facts. Append, índice idempotente e
+head da run avançam como uma única operação observável; um conflito de versão
+não publica estado parcial.
 
-Core.Infrastructure.Persistence/
-├── JsonFileEventStore           # Implementação .jsonl
-└── JsonFileRunStateRepository   # Implementação {runId}.json
-```
+O caminho é configurado por `Persistence:RunStatePath` (padrão `data/runs`). A
+recuperação lê o último commit; a inspeção histórica lê uma sequence específica;
+replay reexecuta os comandos e compara o resultado canônico.
 
-## Configuração
+Não existe mutação direta de arquivo de snapshot. Snapshots são otimizações de
+leitura substituíveis e podem ser reconstruídos dos commits.
 
-**appsettings.json:**
-```json
-{
-  "Persistence": {
-    "EventStorePath": "data/events/",
-    "RunStatePath": "data/runs/"
-  }
-}
-```
+## Conteúdo
 
-**Variáveis de ambiente (sobrescrevem appsettings):**
-```bash
-export HERESCRIPT_EVENT_STORE_PATH="/var/data/events/"
-export HERESCRIPT_RUN_STATE_PATH="/var/data/runs/"
-```
+Bundles publicados vivem em `Persistence:ContentStorePath` (padrão
+`data/content`). A revisão é o hash do manifest canônico. Runs fixam
+`settingId`, `contentRevision` e `engineVersion`; apagar caches não muda essas
+coordenadas.
 
-## JsonFileEventStore
+## Telemetria operacional
 
-### Formato
+`IOperationalEventStore` e `JsonFileOperationalEventStore` usam
+`Persistence:OperationalTelemetryPath` (padrão `data/telemetry`). Esses eventos
+servem a logs e diagnóstico. Eles não são a origem de replay e sua perda não
+altera gameplay.
 
-Eventos são salvos em formato **JSON line-delimited** (`.jsonl`):
+Os eventos SSE de run/combate são projeções duráveis de commits, não o histórico
+em memória do EventBus.
 
-```jsonl
-{"eventType":"CombatStartedEvent","timestamp":"2026-07-05T12:00:00Z","combatId":"abc123",...}
-{"eventType":"ActionExecutedEvent","timestamp":"2026-07-05T12:00:05Z","actionId":"fireball",...}
-{"eventType":"CombatEndedEvent","timestamp":"2026-07-05T12:01:30Z","combatId":"abc123",...}
-```
+## REST de recuperação
 
-### Características
+| Objetivo | Endpoint |
+| --- | --- |
+| Estado atual | `GET /api/v1/runs/{runId}` |
+| Journal | `GET /api/v1/runs/{runId}/journal` |
+| Commits | `GET /api/v1/runs/{runId}/commits` |
+| Commit | `GET /api/v1/runs/{runId}/commits/{sequence}` |
+| Verificar replay | `POST /api/v1/runs/{runId}/verify` |
+| Eventos retomáveis | `GET /api/v1/runs/{runId}/events/stream` |
 
-- **Append-only**: Novos eventos são sempre adicionados ao final
-- **Auditoria completa**: Histórico nunca é modificado
-- **Filtros suportados**: `eventType`, `runId`, `afterSequence`
-- **Thread-safe**: Usa lock para append concorrente
+Clientes devem reenviar o mesmo envelope e `commandId` após uma resposta
+incerta. O store devolve o receipt persistido com `duplicate: true`; gerar outro
+ID representa uma nova intenção.
 
-### API
+## Requisitos de implementação alternativa
 
-```csharp
-// Adicionar evento
-await eventStore.AppendAsync(new CombatStartedEvent { ... });
+Um backend de produção pode substituir `FileRunCommitStore`, desde que preserve:
 
-// Buscar eventos
-var events = await eventStore.GetEventsAsync(
-    eventType: "CombatStartedEvent",
-    runId: Guid.Parse("..."),
-    afterSequence: 100
-);
+- compare-and-append por `runId + expectedSequence`;
+- idempotência por comando e hash de payload;
+- ordenação exata de frames/facts;
+- leitura por sequence e head;
+- escrita atômica de commit e índices;
+- bytes canônicos independentes do host.
 
-// Buscar por sequência
-var range = await eventStore.GetBySequenceAsync(from: 1, to: 100);
-```
-
-### Dual Write no EventBus
-
-`EventBus` faz **dual write**:
-1. Adiciona ao histórico em memória (para subscribers)
-2. Persiste via `IEventStore` (fire-and-forget)
-
-Falha no store **não propaga** para `Publish<T>()` - eventos continuam sendo publicados mesmo se a persistência falhar.
-
-## JsonFileRunStateRepository
-
-### Formato
-
-Cada run é salva como um arquivo JSON individual:
-
-```
-data/runs/
-├── 3fa85f64-5717-4562-b3fc-2c963f66afa6.json
-├── 7c2b4e89-1234-5678-abcd-ef1234567890.json
-└── ...
-```
-
-**Conteúdo de exemplo:**
-```json
-{
-  "runId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "gold": 150,
-  "powerPoints": 8,
-  "deck": [...],
-  "hand": [...],
-  "discard": [...],
-  "exhaust": [...],
-  "currentNodeId": "node_05",
-  "completedNodes": ["node_01", "node_02", ...]
-}
-```
-
-### Características
-
-- **Write atômico**: Usa temp file + rename para evitar corrupção
-- **Auto-load**: `RunManager.GetRun(runId)` busca do disco se não estiver em memória
-- **Restart-safe**: Processo pode ser reiniciado sem perda de estado
-
-### API
-
-```csharp
-// Salvar run
-await repository.SaveAsync(runState);
-
-// Carregar run
-var runState = await repository.LoadAsync(runId);
-
-// Verificar existência
-bool exists = await repository.ExistsAsync(runId);
-
-// Deletar run
-await repository.DeleteAsync(runId);
-```
-
-### Integração com RunManager
-
-`RunManager` persiste automaticamente em cada mutação de estado:
-
-```csharp
-public void UpdateGold(Guid runId, int delta)
-{
-    var run = GetRun(runId);
-    run.Gold += delta;
-    
-    // Persiste automaticamente
-    _repository?.SaveAsync(run).Wait();
-}
-```
-
-## Retenção e Limpeza
-
-**Eventos (.jsonl):**
-- Crescem indefinidamente por design
-- Implementar política de retenção manualmente (cronjob, archive old files)
-- Considerar migração para banco temporal quando volume crescer
-
-**Run State (.json):**
-- Deletar manualmente runs antigas via `DELETE /api/v1/runs/{runId}`
-- Considerar política de TTL para runs inativas (futuro)
-
-## Migração Futura
-
-A arquitetura baseada em interfaces permite trocar implementação sem alterar Core:
-
-```csharp
-// Trocar de JSON para SQLite
-services.AddSingleton<IEventStore, SqliteEventStore>();
-services.AddSingleton<IRunStateRepository, SqliteRunStateRepository>();
-```
-
-Candidatos para produção:
-- **SQLite**: File-based, boa performance, SQL queries
-- **PostgreSQL**: Produção distribuída, JSONB indexado
-- **EventStoreDB**: Especializado em event sourcing
-
-## Troubleshooting
-
-**Problema**: Eventos não estão sendo persistidos
-
-- Verificar permissões no diretório `EventStorePath`
-- Verificar logs: `ILogger` registra falhas de persistência como Warning
-- Eventos continuam funcionando em memória mesmo se store falhar
-
-**Problema**: RunState não carrega após restart
-
-- Verificar se `RunStatePath` está configurado corretamente
-- Verificar se arquivo `{runId}.json` existe no diretório
-- Testar deserialização manualmente para detectar JSON corrompido
-
-## Performance
-
-**JsonFileEventStore:**
-- Append: ~1ms por evento (I/O sequencial)
-- Read: O(n) - lê todo arquivo e filtra (não indexado)
-- Limite prático: ~100k eventos antes de considerar banco
-
-**JsonFileRunStateRepository:**
-- Save: ~5ms por run (atomic write via rename)
-- Load: ~2ms por run (deserialização)
-- Limite prático: ~10k runs antes de considerar banco
-
-## Implementação
-
-Ver:
-- `src/Core/Infrastructure/Persistence/JsonFileEventStore.cs`
-- `src/Core/Infrastructure/Persistence/JsonFileRunStateRepository.cs`
-- `src/Core/Abstractions/Persistence/IEventStore.cs`
-- `src/Core/Abstractions/Persistence/IRunStateRepository.cs`
+SQLite, PostgreSQL ou outro banco são detalhes de infraestrutura. Um banco de
+event sourcing genérico não substitui esses invariantes automaticamente.

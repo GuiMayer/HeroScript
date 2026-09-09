@@ -11,7 +11,6 @@
   <Folder Name="/tests/">
     <Project Path="tests/Core.Tests/Core.Tests.csproj" />
     <Project Path="tests/API.Tests/API.Tests.csproj" />
-    <Project Path="TestJsonDeserialization/TestJsonDeserialization.csproj" />
   </Folder>
   <Folder Name="/solution-items/">
     <File Path="README.md" />
@@ -21,10 +20,13 @@
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/README.md" />
-    <File Path="docs/MOVED.md" />
   </Folder>
   <Folder Name="/docs/api/">
-    <File Path="docs/api/endpoints.md" />
+    <File Path="docs/api/README.md" />
+    <File Path="docs/api/contracts.md" />
+    <File Path="docs/api/runs-and-combat.md" />
+    <File Path="docs/api/combat-sandbox.md" />
+    <File Path="docs/api/events.md" />
   </Folder>
   <Folder Name="/docs/architecture/">
     <File Path="docs/architecture/overview.md" />
@@ -36,7 +38,7 @@
   </Folder>
   <Folder Name="/docs/roadmap/">
     <File Path="docs/roadmap/README.md" />
-    <File Path="docs/roadmap/strategic.md" />
+    <File Path="docs/roadmap/gdd-mechanics-feasibility.md" />
   </Folder>
   <Folder Name="/docs/roadmap/analysis/">
     <File Path="docs/roadmap/analysis/api-conventions.md" />
@@ -81,5 +83,12 @@
   </Folder>
   <Folder Name="/docs/systems/resources/">
     <File Path="docs/systems/resources/resource-system.md" />
+  </Folder>
+  <Folder Name="/docs/content/">
+    <File Path="docs/content/packages-and-settings.md" />
+  </Folder>
+  <Folder Name="/contracts/">
+    <File Path="openapi/heroscript-v1.json" />
+    <File Path="asyncapi/heroscript-events-v1.json" />
   </Folder>
 </Solution>

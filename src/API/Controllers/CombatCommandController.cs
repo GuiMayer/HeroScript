@@ -1,5 +1,6 @@
 using API.Contracts;
 using Core.Run;
+using API.Models.Combat;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -66,7 +67,7 @@ public sealed class CombatCommandController : BaseApiController
                 new
                 {
                     run = receipt.State,
-                    combat = encounter?.Combat,
+                    combat = encounter == null ? null : CombatStateResponse.From(encounter.Combat),
                     resolution = receipt.State.GetCombatResolution(receipt.CommandId)
                 },
                 step: encounter?.Combat.Determinism.Step));

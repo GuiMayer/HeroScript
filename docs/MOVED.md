@@ -48,7 +48,7 @@ This section will be updated as files are moved during reorganization.
 - `API_ENDPOINTS.md` → `api/endpoints.md`
 
 ### Root → roadmap/
-- `ROADMAP_STRATEGIC.md` → `roadmap/strategic.md`
+- `ROADMAP_STRATEGIC.md` → `roadmap/README.md`
 
 ### roadmap/ → roadmap/phases/
 - `roadmap/PHASE_0.md` → `roadmap/phases/phase-0.md`
@@ -89,4 +89,4 @@ If you have bookmarks or references to old paths, use this table:
 | `docs/CONFIG_SYSTEM.md` | `docs/systems/config/config-system.md` |
 | `docs/CORE_MATH_SYSTEM.md` | `docs/systems/math/math-system.md` |
 | `docs/arquitetura-engine.md` | `docs/architecture/overview.md` |
-| `docs/ROADMAP_STRATEGIC.md` | `docs/roadmap/strategic.md` |
+| `docs/ROADMAP_STRATEGIC.md` | `docs/roadmap/README.md` |

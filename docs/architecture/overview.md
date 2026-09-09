@@ -105,7 +105,7 @@ políticas da definição do recurso, nunca do nome `health`.
 
 Cada comando produz pontos na timeline e, quando aplicável, uma resolução com
 frames ordenados, traces de efeitos/cálculos/aplicações, hashes e fingerprint.
-Branches derivam de checkpoints e nunca reescrevem a origem.
+Branches derivam de commits históricos e nunca reescrevem a origem.
 
 A Godot pode pausar entre frames, consultar snapshots compactos e navegar pela
 árvore de branches. Essa espera é visual: a engine já concluiu a transação.

@@ -386,8 +386,7 @@ public sealed class RunManagerTests
             Assert.NotNull(resolution);
             Assert.Equal(AnimationFrameMode.FullSnapshots, resolution!.Mode);
             Assert.Equal(2, resolution.Frames.Count);
-            Assert.Equal(attached.Sequence + 1, resolution.FirstSequence);
-            Assert.Equal(attached.Sequence + 1, resolution.FinalSequence);
+            Assert.Equal(attached.Sequence + 1, resolution.RootSequence);
             Assert.Equal(CanonicalJson.ComputeHash(combat), resolution.InitialCombatStateHash);
             Assert.Equal(CanonicalJson.ComputeHash(second), resolution.FinalCombatStateHash);
             Assert.Equal(64, resolution.ResolutionFingerprint.Length);

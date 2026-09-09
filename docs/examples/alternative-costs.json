@@ -53,12 +53,10 @@
         }
       },
       "usageExample": {
-        "endpoint": "POST /api/combat/{combatId}/action",
+        "endpoint": "POST /api/v1/combats/{combatId}/commands",
         "requestBody": {
-          "actionType": "POWER",
-          "powerId": "powerful_spell",
-          "targetId": "enemy-1",
-          "costOptionId": "health_cost"
+          "type": "PLAY_CARD",
+          "payload": { "actorId": "player", "cardInstanceId": "<uuid>", "targetIds": ["opponent"], "costOptionId": "health_cost" }
         }
       }
     },
@@ -225,11 +223,10 @@
         }
       },
       "usageExample": {
-        "endpoint": "POST /api/combat/{combatId}/action",
+        "endpoint": "POST /api/v1/combats/{combatId}/commands",
         "requestBody": {
-          "actionType": "POWER",
-          "powerId": "fireball",
-          "targetId": "enemy-1"
+          "type": "PLAY_CARD",
+          "payload": { "actorId": "player", "cardInstanceId": "<uuid>", "targetIds": ["opponent"] }
         },
         "note": "costOptionId is omitted - uses normal costs"
       }
@@ -298,25 +295,23 @@
     "steps": [
       {
         "step": 1,
-        "action": "Start Combat",
-        "endpoint": "POST /api/combat/start",
+        "action": "Launch Sandbox Scenario",
+        "endpoint": "POST /api/v1/sandbox/runs",
         "request": {
-          "heroId": "hero-1",
-          "enemies": ["enemy-1", "enemy-2"],
-          "initialEnergy": 3
+          "schemaVersion": 2,
+          "modeId": "combat_sandbox",
+          "seed": 42,
+          "attemptKey": "alternative-cost-demo",
+          "participants": [
+            { "instanceId": "player", "entityDefinitionId": "player_warrior", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+            { "instanceId": "opponent", "entityDefinitionId": "enemy_goblin", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
+          ],
+          "deck": [{ "definitionId": "powerful_spell" }],
+          "initialState": { "resourcesByActor": { "player": { "energy": 3, "mana": 5, "health": 100 } } }
         },
         "response": {
-          "combatId": "550e8400-e29b-41d4-a716-446655440000",
-          "status": "ACTIVE",
-          "hero": {
-            "entityId": "hero-1",
-            "currentHp": 100,
-            "resources": {
-              "energy": { "current": 3, "maximum": 10 },
-              "mana": { "current": 5, "maximum": 10 },
-              "health": { "current": 100, "maximum": 100 }
-            }
-          }
+          "run": { "runId": "a4c5ba8f-6af4-4d84-96fb-f979c3ad598b", "sequence": 2 },
+          "combat": { "combatId": "550e8400-e29b-41d4-a716-446655440000" }
         }
       },
       {
@@ -355,31 +350,23 @@
       {
         "step": 3,
         "action": "Execute Action with Cost Option",
-        "endpoint": "POST /api/combat/{combatId}/action",
+        "endpoint": "POST /api/v1/combats/{combatId}/commands",
         "request": {
-          "actionType": "POWER",
-          "powerId": "powerful_spell",
-          "targetId": "enemy-1",
-          "costOptionId": "health_cost"
+          "commandId": "6ba5a0e2-0a56-4d43-bdf7-4950e950eac1",
+          "expectedSequence": 2,
+          "expectedStep": 5,
+          "type": "PLAY_CARD",
+          "payload": {
+            "actorId": "player",
+            "cardInstanceId": "c104ff7d-3f3c-4874-a697-645f27424d1d",
+            "targetIds": ["opponent"],
+            "costOptionId": "health_cost"
+          }
         },
         "response": {
-          "combatId": "550e8400-e29b-41d4-a716-446655440000",
-          "status": "ACTIVE",
-          "hero": {
-            "entityId": "hero-1",
-            "currentHp": 80,
-            "resources": {
-              "energy": { "current": 3, "maximum": 10 },
-              "mana": { "current": 5, "maximum": 10 },
-              "health": { "current": 80, "maximum": 100 }
-            }
-          },
-          "lastAction": {
-            "actionType": "POWER",
-            "powerId": "powerful_spell",
-            "targetId": "enemy-1",
-            "damageDealt": 50
-          }
+          "sequence": 3,
+          "duplicate": false,
+          "state": { "combat": { "actors": [] }, "resolution": { "rootSequence": 3, "frames": [] } }
         }
       }
     ]

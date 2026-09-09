@@ -20,7 +20,7 @@
 
 ### Combat & Gameplay
 
-- **[Combat System](systems/combat/combat-system.md)** - Sistema de combate principal com estado imutável e Event Sourcing
+- **[Combat System](systems/combat/combat-system.md)** - Sistema de combate imutável persistido por commits autoritativos
 - **[Turn Phase System](systems/combat/turn-phase-system.md)** - Fluxo canônico e configurável de ativações
 - **[Damage & Calculation Pipeline](systems/damage/damage-pipeline.md)** - Dano como alteração genérica de recurso
 - **[Damage Examples](systems/damage/damage-examples.md)** - Exemplos de efeitos e scaling
@@ -28,8 +28,9 @@
 
 ### Data & Configuration
 
-- **[Config System](systems/config/config-system.md)** - Sistema de configuração com herança delta
-- **[Delta Reference](systems/config/delta-reference.md)** - Referência completa do sistema de deltas
+- **[Config System](systems/config/config-system.md)** - Packages, settings, bundles e revisões
+- **[Composition Reference](systems/config/delta-reference.md)** - Definições e patches explícitos
+- **[Package Authoring](content/packages-and-settings.md)** - Guia de autoria de packages/settings
 - **[Resource System](systems/resources/resource-system.md)** - Gerenciamento de recursos (HP, Mana, Energy, etc.)
 - **[Calculation System](systems/calculations/calculation-system.md)** - Pipelines, buckets, influências e traces
 - **[Math Engine](systems/math/math-system.md)** - Motor de expressões matemáticas configuráveis
@@ -66,7 +67,6 @@
 ### Roadmap
 
 - **[Roadmap Overview](roadmap/README.md)** - Visão geral do roadmap técnico
-- **[Strategic Roadmap](roadmap/strategic.md)** - Roadmap estratégico e visão de produto
 
 ### Phases
 

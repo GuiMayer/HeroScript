@@ -425,7 +425,7 @@ O projeto segue a arquitetura descrita em [`docs/architecture/overview.md`](docs
 
 - **Headless**: Core é completamente independente de UI
 - **Data-driven**: Regras e fórmulas são dados (JSON), não código
-- **Event Sourcing**: EventBus com histórico/replay para auditoria e integração
+- **Journal autoritativo**: commits de run para recuperação/replay; EventBus somente para telemetria
 - **Modular**: Configurações podem ser trocadas em runtime
 
 ## Documentação

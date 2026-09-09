@@ -557,8 +557,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(first.GetProperty("stateHash").GetString(), retry.GetProperty("stateHash").GetString());
         Assert.Equal(first.GetProperty("sequence").GetInt32(), retry.GetProperty("sequence").GetInt32());
         Assert.True(
-            first.GetProperty("state").GetProperty("combat").GetProperty("determinism")
-                .GetProperty("step").GetUInt64() > expectedStep);
+            first.GetProperty("state").GetProperty("combat").GetProperty("step").GetUInt64() > expectedStep);
     }
 
     [Fact]
