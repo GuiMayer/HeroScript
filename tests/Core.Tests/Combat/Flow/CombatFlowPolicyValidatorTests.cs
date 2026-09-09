@@ -15,17 +15,16 @@ public sealed class CombatFlowPolicyValidatorTests
     }
 
     [Fact]
-    public void Validate_RejectsUnimplementedReactionStrategy()
+    public void Validate_AcceptsConfiguredPriorityStack()
     {
         var policies = ValidPolicies() with
         {
-            Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Stack }
+            Reactions = PriorityStack()
         };
 
         var result = CombatFlowPolicyValidator.Validate(policies);
 
-        Assert.True(result.IsFailure);
-        Assert.Contains("not implemented", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -45,16 +44,31 @@ public sealed class CombatFlowPolicyValidatorTests
         Assert.Contains("ManualAck", result.Error, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(OutcomeEvaluationBoundary.Immediate)]
-    [InlineData(OutcomeEvaluationBoundary.AfterResolutionStack)]
-    public void Validate_RejectsReservedOutcomeBoundaries(OutcomeEvaluationBoundary boundary)
+    [Fact]
+    public void Validate_AcceptsImmediateOutcomeBoundary()
     {
         var policies = ValidPolicies() with
         {
             Outcome = new OutcomePolicyDefinition
             {
-                EvaluationBoundary = boundary,
+                EvaluationBoundary = OutcomeEvaluationBoundary.Immediate,
+                TieBreak = OutcomeTieBreak.Draw
+            }
+        };
+
+        var result = CombatFlowPolicyValidator.Validate(policies);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public void Validate_RequiresPriorityStackForDelayedStackOutcome()
+    {
+        var policies = ValidPolicies() with
+        {
+            Outcome = new OutcomePolicyDefinition
+            {
+                EvaluationBoundary = OutcomeEvaluationBoundary.AfterResolutionStack,
                 TieBreak = OutcomeTieBreak.Draw
             }
         };
@@ -62,7 +76,7 @@ public sealed class CombatFlowPolicyValidatorTests
         var result = CombatFlowPolicyValidator.Validate(policies);
 
         Assert.True(result.IsFailure);
-        Assert.Contains("AfterCurrentAction", result.Error, StringComparison.Ordinal);
+        Assert.Contains("PriorityStack", result.Error, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -130,5 +144,17 @@ public sealed class CombatFlowPolicyValidatorTests
         Animation = new() { Mode = AnimationFrameMode.FullSnapshots },
         Journal = new() { Granularity = CombatJournalGranularity.Full },
         Reactions = new() { Strategy = ReactionStrategy.Disabled }
+    };
+
+    private static ReactionPolicyDefinition PriorityStack() => new()
+    {
+        Strategy = ReactionStrategy.PriorityStack,
+        StackOrder = ReactionStackOrder.Lifo,
+        Eligibility = ReactionActorEligibility.AllAlive,
+        TargetLock = ReactionLockTiming.Proposal,
+        CostTiming = ReactionCostTiming.Resolution,
+        Failure = ReactionResolutionFailure.FizzleKeepPaid,
+        MaxStackDepth = 16,
+        ReopenAfterResolution = true
     };
 }

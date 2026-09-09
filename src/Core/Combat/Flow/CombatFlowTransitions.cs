@@ -54,10 +54,11 @@ public static class CombatFlowTransitions
         var activation = combat.ActivationState;
         if (activation == null)
             return Result.Failure("Combat activation has not been initialized");
-        if (!activation.WaitingForInput)
+        if (combat.PriorityWindow == null && !activation.WaitingForInput)
             return Result.Failure("Combat is resolving automatic actions");
-        if (!string.Equals(activation.ActiveActorId, command.ActorId, StringComparison.Ordinal))
-            return Result.Failure($"Actor '{command.ActorId}' is not the active actor");
+        var controllerActorId = combat.PriorityWindow?.HolderActorId ?? activation.ActiveActorId;
+        if (!string.Equals(controllerActorId, command.ActorId, StringComparison.Ordinal))
+            return Result.Failure($"Actor '{command.ActorId}' does not control the current combat input");
         if (combat.PhaseState == null)
             return Result.Failure("Combat phase has not been initialized");
         return Result.Success();
@@ -74,7 +75,7 @@ public static class CombatFlowTransitions
         ArgumentNullException.ThrowIfNull(command);
         ArgumentNullException.ThrowIfNull(policy);
 
-        if (command.ActionType is ActionType.END_TURN or ActionType.PASS ||
+        if (command.ActionType is ActionType.END_TURN or ActionType.PASS or ActionType.PASS_PRIORITY ||
             !policy.ConsumingCommands.Contains(commandType, StringComparer.Ordinal))
             return Result.Success();
 
@@ -104,7 +105,7 @@ public static class CombatFlowTransitions
         string commandType)
     {
         if (policy.Strategy != ActionBudgetStrategy.FixedCount ||
-            command.ActionType is ActionType.END_TURN or ActionType.PASS ||
+            command.ActionType is ActionType.END_TURN or ActionType.PASS or ActionType.PASS_PRIORITY ||
             !policy.ConsumingCommands.Contains(commandType, StringComparer.Ordinal) ||
             combat.ActivationState == null ||
             combat.GetActor(command.ActorId) is not { } actor ||

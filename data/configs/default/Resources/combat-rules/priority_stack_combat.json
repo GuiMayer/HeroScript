@@ -1,0 +1,75 @@
+{
+  "priority_stack_combat": {
+    "combatRulesId": "priority_stack_combat",
+    "defaultPhaseSequenceId": "priority-window",
+    "turnOrder": {
+      "strategy": "Fixed",
+      "recalculateAt": "CombatStart",
+      "tieBreak": { "strategy": "StableActorId", "epoch": "Unspecified" }
+    },
+    "flow": {
+      "automaticResolution": {
+        "strategy": "ToNextPlayerInput",
+        "maxAutomaticSteps": 100
+      },
+      "actionBudget": {
+        "strategy": "ResourceLimited",
+        "actionCosts": "Configured",
+        "actorScope": "PlayerControlled",
+        "resourceId": "energy",
+        "consumingCommands": ["PLAY_CARD"]
+      },
+      "ai": {
+        "enabled": true,
+        "autoEndAfterAction": true,
+        "publishIntents": true,
+        "decisionIds": ["enemy_basic_attack", "enemy_end_turn"],
+        "intent": { "refresh": "RecomputeOnPublish", "whenInvalid": "Recompute" }
+      },
+      "deckCycle": {
+        "drawPerActivation": 5,
+        "handLimit": 10,
+        "initialHandSize": 5,
+        "actorScope": "RunOwner",
+        "encounterStart": "PreserveZones",
+        "encounterCleanup": "ReturnToDrawPile",
+        "exhaustPersistence": "Encounter",
+        "generatedCardPersistence": "Encounter",
+        "endDiscard": "NonRetain",
+        "retainTags": ["retain"],
+        "etherealTag": "ethereal",
+        "shuffleDiscardWhenDrawEmpty": true,
+        "allowPartialDraw": true,
+        "fatigue": "None"
+      },
+      "resourceCycle": {
+        "resourceId": "energy",
+        "actorScope": "PlayerControlled",
+        "startActivation": "ResetToMax"
+      },
+      "statusTiming": {
+        "boundaries": ["StartRound", "StartActivation", "EndActivation", "EndRound"],
+        "ordering": "PriorityThenInstanceId"
+      },
+      "outcome": {
+        "evaluationBoundary": "AfterResolutionStack",
+        "tieBreak": "Draw"
+      },
+      "encounterResolution": { "strategy": "ManualAck" },
+      "animation": { "mode": "FullSnapshots" },
+      "journal": { "granularity": "Full" },
+      "reactions": {
+        "strategy": "PriorityStack",
+        "stackOrder": "Lifo",
+        "eligibility": "AllAlive",
+        "targetLock": "Proposal",
+        "costTiming": "Resolution",
+        "failure": "FizzleRefund",
+        "maxStackDepth": 32,
+        "reopenAfterResolution": true,
+        "openingActionTags": [],
+        "responseActionTags": ["reaction"]
+      }
+    }
+  }
+}

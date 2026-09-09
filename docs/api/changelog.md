@@ -1,5 +1,16 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-09
+
+- O snapshot de combate passou a expor `priorityWindow` e `pendingActions` como
+  estado imutável; não foi reintroduzido endpoint paralelo `/stack`.
+- Ações legais e previews agora informam `reactionTransition`, comando resolvido
+  e ação pendente. `PASS_PRIORITY` usa o mesmo gateway de comandos.
+- Resoluções visuais distinguem proposta, passe, resolução e fizzle; custos
+  pagos na proposta e reembolsos preservam traces de aplicação.
+- O conteúdo opt-in `priority_stack_combat` demonstra LIFO, lock de alvo,
+  pagamento na resolução e outcome após esvaziar a stack.
+
 ## v1 — 2026-09-06
 
 - O vocabulário de `EffectType` agora contém somente primitivas executáveis.
@@ -24,8 +35,8 @@
   `combat.initialized`, preservando triggers de abertura para animação e replay.
 - Itens da timeline apontam para a fila correspondente por
   `resolutionCommandId` e `resolutionFingerprint`.
-- Removido do contrato versionado o endpoint não implementado `/stack`;
-  reações continuam somente como capacidade reservada e desabilitada.
+- Removido do contrato versionado o endpoint não implementado `/stack`; o estado
+  de reação passou posteriormente a integrar o snapshot canônico.
 
 ## v1 — 2026-09-03
 

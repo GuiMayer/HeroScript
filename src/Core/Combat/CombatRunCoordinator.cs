@@ -302,13 +302,14 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (!legal.Value.IsLegal)
             return Result<CombatRunActionResult>.Failure(string.Join("; ", legal.Value.FailureReasons));
         var candidate = legal.Value.Candidate!;
+        var materializedCommand = candidate.ResolvedCommand ?? candidate.Command;
         return ExecuteAndCommit(
             combatId,
             run,
             encounter.Combat,
             candidate,
             candidate.Command with { DeferTurnLifecycle = true },
-            candidate.Command.CardInstanceId?.ToString(),
+            candidate.CardPlay == null ? null : materializedCommand.CardInstanceId?.ToString(),
             candidate.CardPlay?.Destination ?? CardConsumeDestination.None,
             commandIdentity,
             candidate.CardPlay,
@@ -375,6 +376,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatRunActionResult>.Failure(budgetValidation.Error);
 
         var commandModifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
+        var resolvedCommand = candidate.ResolvedCommand;
         run = candidate.SuccessorRun;
         var rootDeck = Result<DeckTransition>.Success(
             new DeckTransition(run.Deck, run.Determinism, []));
@@ -399,16 +401,20 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         if (executed.IsFailure)
             return Result<CombatRunActionResult>.Failure(executed.Error);
 
-        var nextCombat = CombatFlowTransitions.ConsumeActionBudget(
-            run,
-            executed.Value,
-            effectiveCommand,
-            policies.ActionBudget,
-            effectiveCommandType);
-        nextCombat = CombatFlowTransitions.EvaluateOutcome(
+        var nextCombat = resolvedCommand == null
+            ? executed.Value
+            : CombatFlowTransitions.ConsumeActionBudget(
+                run,
+                executed.Value,
+                resolvedCommand,
+                policies.ActionBudget,
+                CommandType(resolvedCommand));
+        nextCombat = EvaluateOutcomeAtConfiguredBoundary(
             nextCombat,
             policies.Outcome,
-            command.ActorId);
+            resolvedCommand?.ActorId ?? command.ActorId,
+            resolvedCommand != null || candidate.ReactionTransition ==
+                Core.Combat.Reactions.ReactionTransitionKind.StackActionFizzled);
 
         var resolutionPayload = JsonSerializer.SerializeToElement(new
         {
@@ -435,6 +441,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 steps = ability.Steps
             },
             phaseTransitions = candidate.PhaseTransitions,
+            reactionTransition = candidate.ReactionTransition,
+            pendingAction = candidate.PendingAction,
+            resolvedCommand,
             candidate.ResolutionFingerprint
         });
         var rootPayload = commandPayload.ValueKind == JsonValueKind.Undefined
@@ -446,7 +455,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         {
             new()
             {
-                TransitionType = "combat.action.applied",
+                TransitionType = ReactionTransitionType(candidate, "combat.action.applied"),
                 Combat = nextCombat,
                 Deck = rootDeck.Value.State,
                 RunDeterminism = rootDeck.Value.Context,
@@ -463,11 +472,21 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         run = run with { Deck = currentDeck, Determinism = currentRunDeterminism };
         var automaticSteps = 0;
 
+        var priorityDriven = AppendAutomaticPriorityActions(
+            combatId, run, currentCombat, currentDeck, currentRunDeterminism,
+            steps, ref automaticSteps, policies);
+        if (priorityDriven.IsFailure)
+            return Fail<CombatRunActionResult>(priorityDriven.Error);
+        (currentCombat, currentDeck, currentRunDeterminism) = priorityDriven.Value;
+        run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
+
         var activationBudgetExhausted =
             policies.ActionBudget.Strategy == ActionBudgetStrategy.FixedCount &&
             currentCombat.ActivationState is { } resolvedActivation &&
             resolvedActivation.ActionsTaken >= policies.ActionBudget.MaxActionsPerActivation;
-        if ((command.ActionType == ActionType.END_TURN || activationBudgetExhausted) && currentCombat.IsActive)
+        var resolvedEndsTurn = (resolvedCommand ?? command).ActionType == ActionType.END_TURN;
+        if ((resolvedEndsTurn || activationBudgetExhausted) && currentCombat.IsActive &&
+            currentCombat.PriorityWindow == null && currentCombat.PendingActions.IsEmpty)
         {
             var advanced = AppendActivationPlan(
                 run,
@@ -481,8 +500,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 return Fail<CombatRunActionResult>(advanced.Error);
             (currentCombat, currentDeck, currentRunDeterminism) = advanced.Value;
             run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
+        }
 
-            while (currentCombat.IsActive &&
+        while (currentCombat.IsActive && currentCombat.PriorityWindow == null &&
                    currentCombat.ActivationState is { WaitingForInput: false } activation)
             {
                 if (automaticSteps >= policies.AutomaticResolution.MaxAutomaticSteps)
@@ -549,6 +569,16 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 if (!currentCombat.IsActive)
                     break;
 
+                priorityDriven = AppendAutomaticPriorityActions(
+                    combatId, run, currentCombat, currentDeck, currentRunDeterminism,
+                    steps, ref automaticSteps, policies);
+                if (priorityDriven.IsFailure)
+                    return Fail<CombatRunActionResult>(priorityDriven.Error);
+                (currentCombat, currentDeck, currentRunDeterminism) = priorityDriven.Value;
+                run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
+                if (currentCombat.PriorityWindow != null)
+                    break;
+
                 if (aiCommand.ActionType != ActionType.END_TURN && policies.Ai.AutoEndAfterAction)
                 {
                     var endTurn = ExecuteAutomaticAction(
@@ -590,7 +620,6 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     (currentCombat, currentDeck, currentRunDeterminism) = aiAdvanced.Value;
                     run = LatestGameplay(run, steps, currentDeck, currentRunDeterminism);
                 }
-            }
         }
 
         if (!currentCombat.IsActive && !currentCombat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd))
@@ -664,6 +693,53 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             (plan.Value.Combat, plan.Value.Deck, determinism));
     }
 
+    private Result<(CombatState Combat, DeckState Deck, DeterministicContext Determinism)>
+        AppendAutomaticPriorityActions(
+            Guid combatId,
+            RunState run,
+            CombatState combat,
+            DeckState deck,
+            DeterministicContext determinism,
+            ICollection<CombatResolutionStep> steps,
+            ref int automaticSteps,
+            CombatFlowPoliciesDefinition policies)
+    {
+        while (combat.IsActive && combat.PriorityWindow is { } window)
+        {
+            var actor = combat.GetActor(window.HolderActorId);
+            if (actor == null || !actor.IsAlive)
+                return Result<(CombatState, DeckState, DeterministicContext)>.Failure(
+                    $"Priority holder is invalid: {window.HolderActorId}");
+            if (combat.ControllerOf(actor) != ControllerKind.AI)
+                break;
+            if (automaticSteps >= policies.AutomaticResolution.MaxAutomaticSteps)
+                return Result<(CombatState, DeckState, DeterministicContext)>.Failure(
+                    $"Automatic resolution exceeded {policies.AutomaticResolution.MaxAutomaticSteps} steps");
+            var decision = _decisions!.Decide(actor.ControllerBinding,
+                new DecisionPolicyRequest(run, combat, actor.InstanceId, policies.Ai.DecisionIds));
+            if (decision.IsFailure)
+                return Result<(CombatState, DeckState, DeterministicContext)>.Failure(decision.Error);
+            var action = ExecuteAutomaticAction(
+                combatId,
+                run,
+                combat,
+                deck,
+                determinism,
+                decision.Value.Candidate.Command,
+                "combat.priority.ai_action",
+                policies,
+                decision.Value.RuleId);
+            if (action.IsFailure)
+                return Result<(CombatState, DeckState, DeterministicContext)>.Failure(action.Error);
+            steps.Add(action.Value.Step);
+            automaticSteps++;
+            (combat, deck, determinism) = action.Value.State;
+            run = LatestGameplay(run, steps, deck, determinism);
+        }
+        return Result<(CombatState, DeckState, DeterministicContext)>.Success(
+            (combat, deck, determinism));
+    }
+
     private static RunState LatestGameplay(RunState run, IEnumerable<CombatResolutionStep> steps,
         DeckState deck, DeterministicContext context) =>
         (steps.LastOrDefault(step => step.RunSnapshot != null)?.RunSnapshot ?? run) with { Deck = deck, Determinism = context };
@@ -691,29 +767,48 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(
                 string.Join("; ", legal.Value.FailureReasons));
         var candidate = legal.Value.Candidate!;
+        var resolvedCommand = candidate.ResolvedCommand;
         command = candidate.Command with
         {
             IgnoreConfiguredCosts = policies.ActionBudget.ActionCosts == ActionCostStrategy.Ignore,
             DeferTurnLifecycle = true
         };
         var ability = candidate.Ability;
+        var cardPlay = candidate.CardPlay;
         var executed = Result<CombatState>.Success(candidate.SuccessorCombat);
-        var next = CombatFlowTransitions.ConsumeActionBudget(
-            run,
-            executed.Value,
-            command,
-            policies.ActionBudget,
-            "EXECUTE_ACTION");
-        next = CombatFlowTransitions.EvaluateOutcome(next, policies.Outcome, command.ActorId);
+        var next = resolvedCommand == null
+            ? executed.Value
+            : CombatFlowTransitions.ConsumeActionBudget(
+                run,
+                executed.Value,
+                resolvedCommand,
+                policies.ActionBudget,
+                CommandType(resolvedCommand));
+        next = EvaluateOutcomeAtConfiguredBoundary(next, policies.Outcome,
+            resolvedCommand?.ActorId ?? command.ActorId,
+            resolvedCommand != null || candidate.ReactionTransition ==
+                Core.Combat.Reactions.ReactionTransitionKind.StackActionFizzled);
         var modifierIds = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
         run = candidate.SuccessorRun;
+        if (cardPlay != null && resolvedCommand?.CardInstanceId is { } resolvedCardId)
+        {
+            var moved = DeckTransitions.MoveFromHand(
+                run.Deck,
+                [resolvedCardId.ToString()],
+                cardPlay.Destination,
+                run.Determinism);
+            if (moved.IsFailure)
+                return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Failure(
+                    moved.Error);
+            run = run with { Deck = moved.Value.State, Determinism = moved.Value.Context };
+        }
         run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
             Core.Combat.Modifiers.ModifierDurationBoundary.Command, combat, command.ActorId, modifierIds);
         deck = run.Deck;
         determinism = run.Determinism;
         var step = new CombatResolutionStep
         {
-            TransitionType = transitionType,
+            TransitionType = ReactionTransitionType(candidate, transitionType),
             Combat = next,
             Deck = deck,
             RunDeterminism = determinism,
@@ -726,7 +821,18 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                 command,
                 decisionRuleId,
                 phaseTransitions = candidate.PhaseTransitions,
+                reactionTransition = candidate.ReactionTransition,
+                pendingAction = candidate.PendingAction,
+                resolvedCommand,
                 candidate.ResolutionFingerprint,
+                cardResolution = cardPlay == null ? null : new
+                {
+                    cardPlay.Card.CardInstanceId,
+                    cardPlay.Card.DefinitionId,
+                    cardPlay.ResolutionFingerprint,
+                    cardPlay.Calculations,
+                    cardPlay.Applications
+                },
                 abilityResolution = ability == null ? null : new
                 {
                     ability.Definition.ActionId,
@@ -739,6 +845,41 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         return Result<(CombatResolutionStep, (CombatState, DeckState, DeterministicContext))>.Success(
             (step, (next, deck, determinism.AdvanceStep())));
     }
+
+    private static CombatState EvaluateOutcomeAtConfiguredBoundary(
+        CombatState combat,
+        OutcomePolicyDefinition policy,
+        string? actorId,
+        bool actionResolved)
+    {
+        var evaluate = policy.EvaluationBoundary switch
+        {
+            OutcomeEvaluationBoundary.Immediate => true,
+            OutcomeEvaluationBoundary.AfterCurrentAction => actionResolved,
+            OutcomeEvaluationBoundary.AfterResolutionStack =>
+                actionResolved && combat.PriorityWindow == null && combat.PendingActions.IsEmpty,
+            _ => false
+        };
+        return evaluate ? CombatFlowTransitions.EvaluateOutcome(combat, policy, actorId) : combat;
+    }
+
+    private static string CommandType(CombatActionCommand command) => command.ActionType switch
+    {
+        ActionType.PLAY_CARD => GameplayCommandTypes.PlayCard,
+        ActionType.END_TURN => GameplayCommandTypes.EndTurn,
+        _ => GameplayCommandTypes.ExecuteAction
+    };
+
+    private static string ReactionTransitionType(
+        LegalActionCandidate candidate,
+        string fallback) => candidate.ReactionTransition switch
+    {
+        Core.Combat.Reactions.ReactionTransitionKind.Proposed => "combat.reaction.proposed",
+        Core.Combat.Reactions.ReactionTransitionKind.PriorityPassed => "combat.priority.passed",
+        Core.Combat.Reactions.ReactionTransitionKind.StackActionResolved => "combat.reaction.resolved",
+        Core.Combat.Reactions.ReactionTransitionKind.StackActionFizzled => "combat.reaction.fizzled",
+        _ => fallback
+    };
 
     private Result<CombatInitializationResult> InitializeCanonicalFlow(RunState run, CombatState combat)
     {

@@ -155,7 +155,6 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("powers", "powers", typeof(JsonElement)),
         new("preparations", "preparations", typeof(PreparationDefinition), "preparationId"),
         new("races", "races", typeof(JsonElement)),
-        new("reaction-rules", "reaction-rules", typeof(JsonElement)),
         new("relics", "relics", typeof(RelicDefinition), "relicId"),
         new("replay-policies", "replay-policies", typeof(ReplayPolicyDefinition), "replayPolicyId"),
         new("resources", "resources", typeof(ResourceDefinition), "resourceId"),

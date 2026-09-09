@@ -2,7 +2,7 @@
 
 **Status:** grafo configurável executável pelo fluxo canônico
 
-**Atualizado em:** 2026-09-08
+**Atualizado em:** 2026-09-09
 
 ## Responsabilidade
 
@@ -139,14 +139,16 @@ composição posterior extrairá esses adaptadores do planner sem mudar a semân
 
 ## Presets suportados
 
-O bundle padrão publica apenas:
+O bundle padrão publica:
 
 - `classic-style`;
-- `hearthstone-style`.
+- `hearthstone-style`;
+- `priority-window`, uma sequência genérica opt-in usada pelas regras
+  `priority_stack_combat`.
 
-Os antigos presets Magic e Yu-Gi-Oh foram removidos porque anunciavam janelas de
-prioridade ainda não implementadas. Eles podem voltar depois que o fluxo de
-reações/stack for integralmente executável; conteúdo publicável não representa
+Os antigos presets Magic e Yu-Gi-Oh continuam removidos: a engine agora suporta
+prioridade, mas esses presets só devem voltar acompanhados de regras e conteúdo
+que representem integralmente esses jogos. Conteúdo publicável não anuncia
 capacidade fictícia.
 
 ## Integração REST
@@ -168,4 +170,5 @@ transação e a Godot decide apenas quando e como animar seus frames.
 - `src/Core/Combat/TurnPhase/PhaseState.cs`
 - `src/Core/Combat/LegalActions/LegalActionResolver.cs`
 - `src/Core/Combat/Flow/CombatFlowPlanner.cs`
+- `docs/systems/combat/reaction-system.md`
 - `data/configs/default/Resources/phase-sequences/`

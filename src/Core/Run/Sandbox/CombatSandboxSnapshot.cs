@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
+using Core.Combat.Reactions;
 using Core.Common;
 using Core.Determinism;
 using Core.Run.Content;
@@ -46,6 +47,8 @@ public sealed record SandboxCombatSnapshotState
     public string? ActiveActorId { get; init; }
     public object? Phase { get; init; }
     public object? Activation { get; init; }
+    public PriorityWindowState? PriorityWindow { get; init; }
+    public ImmutableArray<PendingActionState> PendingActions { get; init; } = [];
     public CombatBoardState Board { get; init; } = new();
     public IReadOnlyList<SandboxActorSnapshot> Actors
     {
@@ -154,6 +157,8 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                 ActiveActorId = combat.ActivationState?.ActiveActorId,
                 Phase = combat.PhaseState,
                 Activation = combat.ActivationState,
+                PriorityWindow = combat.PriorityWindow,
+                PendingActions = combat.PendingActions,
                 Board = combat.Board,
                 Actors = actors
             },

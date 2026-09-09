@@ -7,6 +7,7 @@ using Core.Combat.Models;
 using Core.Combat.TurnOrder;
 using Core.Combat.TurnPhase;
 using Core.Calculations;
+using Core.Common;
 using Core.Effects;
 using Core.Entity.Definitions;
 using Core.Resources;
@@ -79,7 +80,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
         var reservedKinds = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "boards", "zones", "keywords", "reaction-rules", "run-events"
+            "boards", "zones", "keywords", "run-events"
         };
         foreach (var kind in bundle.Manifest.Artifacts
                      .Select(artifact => artifact.Kind)
@@ -162,11 +163,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 var validation = PhaseSequenceValidator.Validate(sequence);
                 if (validation.IsFailure)
                     errors.Add($"phase-sequences/{id}: {validation.Error}");
-                if (sequence.Phases.Any(phase => phase.AllowPriority))
-                {
-                    errors.Add(
-                        $"phase-sequences/{id} enables priority before the transactional priority runtime is available");
-                }
             }
             catch (Exception exception)
             {
@@ -241,40 +237,28 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     continue;
                 }
 
-                if (combat.Flow.Reactions.Strategy != ReactionStrategy.Disabled)
-                {
-                    warnings.Add(
-                        $"combat-rules/{id} selects reaction strategy " +
-                        $"'{combat.Flow.Reactions.Strategy}', which is reserved but not implemented");
-                }
                 if (combat.Flow.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
                 {
                     warnings.Add(
                         $"combat-rules/{id} selects encounter resolution strategy " +
                         $"'{combat.Flow.EncounterResolution.Strategy}', which is reserved but not implemented");
                 }
-                if (combat.Flow.Outcome.EvaluationBoundary != OutcomeEvaluationBoundary.AfterCurrentAction)
-                {
-                    warnings.Add(
-                        $"combat-rules/{id} selects outcome evaluation boundary " +
-                        $"'{combat.Flow.Outcome.EvaluationBoundary}', which is reserved but not implemented");
-                }
-
-                var implementedSubset = combat.Flow with
-                {
-                    Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Disabled },
-                    EncounterResolution = new EncounterResolutionPolicyDefinition
-                    {
-                        Strategy = EncounterResolutionStrategy.ManualAck
-                    },
-                    Outcome = combat.Flow.Outcome with
-                    {
-                        EvaluationBoundary = OutcomeEvaluationBoundary.AfterCurrentAction
-                    }
-                };
-                var validation = CombatFlowPolicyValidator.Validate(implementedSubset);
+                var validation = CombatFlowPolicyValidator.Validate(combat.Flow);
                 if (validation.IsFailure)
                     errors.Add($"combat-rules/{id}: {validation.Error}");
+                if (combat.Flow.Reactions.Strategy == ReactionStrategy.PriorityStack)
+                {
+                    var sequence = string.IsNullOrWhiteSpace(combat.DefaultPhaseSequenceId)
+                        ? Result<PhaseSequenceDefinition>.Failure("Phase sequence id is required")
+                        : runtime.GetDefinition<PhaseSequenceDefinition>(
+                            "phase-sequences", combat.DefaultPhaseSequenceId);
+                    if (sequence.IsSuccess && !sequence.Value.Phases.Any(phase => phase.AllowPriority))
+                    {
+                        errors.Add(
+                            $"combat-rules/{id} uses PriorityStack but phase sequence " +
+                            $"'{combat.DefaultPhaseSequenceId}' has no priority-enabled phase");
+                    }
+                }
                 Require(
                     runtime,
                     errors,

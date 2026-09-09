@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Core.Calculations;
 using Core.Combat.Flow;
 using Core.Combat.Models;
+using Core.Combat.Reactions;
 using Core.Combat.TurnPhase;
 using Core.Common;
 using Core.Content;
@@ -14,7 +15,7 @@ using Core.Run.Content;
 namespace Core.Combat.LegalActions;
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum CombatCommandOrigin { PlayerInput, AutomaticController }
+public enum CombatCommandOrigin { PlayerInput, AutomaticController, PendingResolution }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum LegalActionSource { System, Ability, Card }
@@ -53,6 +54,9 @@ public sealed record LegalActionCandidate
     }
     public string ResolutionFingerprint { get; init; } = string.Empty;
     public bool OutcomeUncertain { get; init; }
+    public ReactionTransitionKind ReactionTransition { get; init; } = ReactionTransitionKind.ResolvedImmediately;
+    public CombatActionCommand? ResolvedCommand { get; init; }
+    public PendingActionState? PendingAction { get; init; }
 
     [JsonIgnore] public CombatState SuccessorCombat { get; init; } = null!;
     [JsonIgnore] public RunState SuccessorRun { get; init; } = null!;
@@ -126,7 +130,8 @@ public sealed class LegalActionQueryService : ILegalActionQueryService
         var encounter = run.Value.GetEncounter(combatId);
         if (encounter == null)
             return Result<LegalActionSet>.Failure($"Combat not found in run: {combatId}");
-        var resolvedActorId = actorId ?? encounter.Combat.ActivationState?.ActiveActorId;
+        var resolvedActorId = actorId ?? encounter.Combat.PriorityWindow?.HolderActorId ??
+            encounter.Combat.ActivationState?.ActiveActorId;
         if (string.IsNullOrWhiteSpace(resolvedActorId))
             return Result<LegalActionSet>.Failure("Actor id is required");
         var actor = encounter.Combat.GetActor(resolvedActorId);
@@ -153,6 +158,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
     private readonly ICardPlayExecutor _cardExecutor;
     private readonly IAbilityExecutor _abilityExecutor;
     private readonly IPhaseGraphReducer _phases;
+    private readonly IReactionFlowReducer _reactions;
+    private readonly IEffectTriggerExecutor _effects;
 
     public LegalActionResolver(
         IActionManager actions,
@@ -162,7 +169,9 @@ public sealed class LegalActionResolver : ILegalActionResolver
         ICardPlayEvaluator cardLegality,
         ICardPlayExecutor cardExecutor,
         IAbilityExecutor abilityExecutor,
-        IPhaseGraphReducer phases)
+        IPhaseGraphReducer phases,
+        IReactionFlowReducer reactions,
+        IEffectTriggerExecutor effects)
     {
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
@@ -172,6 +181,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
         _cardExecutor = cardExecutor ?? throw new ArgumentNullException(nameof(cardExecutor));
         _abilityExecutor = abilityExecutor ?? throw new ArgumentNullException(nameof(abilityExecutor));
         _phases = phases ?? throw new ArgumentNullException(nameof(phases));
+        _reactions = reactions ?? throw new ArgumentNullException(nameof(reactions));
+        _effects = effects ?? throw new ArgumentNullException(nameof(effects));
     }
 
     public Result<LegalActionEvaluation> Evaluate(
@@ -189,6 +200,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
         var flow = ValidateActivation(combat, command, origin);
         if (flow.IsFailure)
             return Illegal(flow.Error);
+        if (command.ActionType == ActionType.PASS_PRIORITY)
+            return EvaluatePriorityPass(run, combat, command);
         var budget = CombatFlowTransitions.ValidateActionBudget(
             run,
             combat,
@@ -200,9 +213,9 @@ public sealed class LegalActionResolver : ILegalActionResolver
 
         return command.ActionType switch
         {
-            ActionType.PLAY_CARD => EvaluateCard(run, combat, command),
-            ActionType.BASIC_ATTACK or ActionType.POWER or ActionType.ACTIVATE_ABILITY =>
-                EvaluateAbility(run, combat, command),
+            ActionType.PLAY_CARD => EvaluateCard(run, combat, command, origin),
+            ActionType.BASIC_ATTACK or ActionType.POWER or ActionType.ACTIVATE_ABILITY or ActionType.PLAY_INSTANT =>
+                EvaluateAbility(run, combat, command, origin),
             ActionType.PASS or ActionType.END_TURN => EvaluatePassive(run, combat, command),
             _ => Illegal($"Unsupported combat action: {command.ActionType}")
         };
@@ -266,7 +279,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
     private Result<LegalActionEvaluation> EvaluateCard(
         RunState run,
         CombatState combat,
-        CombatActionCommand command)
+        CombatActionCommand command,
+        CombatCommandOrigin origin)
     {
         var actor = combat.GetActor(command.ActorId)!;
         if (combat.ControllerOf(actor) != ControllerKind.Player ||
@@ -276,6 +290,9 @@ public sealed class LegalActionResolver : ILegalActionResolver
             return Illegal("CardInstanceId is required for PLAY_CARD");
         if (!run.Deck.HandInstanceIds.Contains(cardInstanceId))
             return Illegal($"Card instance is not in run hand: {cardInstanceId}");
+        if (origin != CombatCommandOrigin.PendingResolution && combat.PendingActions.Any(item =>
+                item.Command.CardInstanceId == cardInstanceId))
+            return Illegal($"Card instance is already reserved by the reaction stack: {cardInstanceId}");
         var instance = run.Deck.GetCard(cardInstanceId);
         if (instance == null)
             return Result<LegalActionEvaluation>.Failure($"Card instance was not found: {cardInstanceId}");
@@ -300,7 +317,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
             ContentRevision = run.Determinism.ContentRevision,
-            IgnoreConfiguredCosts = IgnoreCosts(run)
+            IgnoreConfiguredCosts = IgnoreCosts(run, command)
         });
         if (evaluation.IsFailure)
             return Result<LegalActionEvaluation>.Failure(evaluation.Error);
@@ -314,19 +331,20 @@ public sealed class LegalActionResolver : ILegalActionResolver
             ActorId = command.ActorId,
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
-            IgnoreConfiguredCosts = IgnoreCosts(run)
+            IgnoreConfiguredCosts = IgnoreCosts(run, command)
         });
         if (executed.IsFailure)
             return Illegal(executed.Error);
         var candidate = ApplyPhase(run, combat, CreateCandidate(run, command, executed.Value), tags);
-        return candidate.IsFailure ? Result<LegalActionEvaluation>.Failure(candidate.Error)
-            : Legal(candidate.Value, evaluation.Value);
+        if (candidate.IsFailure) return Result<LegalActionEvaluation>.Failure(candidate.Error);
+        return FinalizeReaction(run, combat, command, origin, tags, candidate.Value, evaluation.Value);
     }
 
     private Result<LegalActionEvaluation> EvaluateAbility(
         RunState run,
         CombatState combat,
-        CombatActionCommand command)
+        CombatActionCommand command,
+        CombatCommandOrigin origin)
     {
         var actor = combat.GetActor(command.ActorId)!;
         var abilityIds = actor.Component<AbilityEntityComponentState>()?.AbilityIds ?? [];
@@ -365,12 +383,14 @@ public sealed class LegalActionResolver : ILegalActionResolver
             ActorId = command.ActorId,
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
-            IgnoreConfiguredCosts = IgnoreCosts(run)
+            IgnoreConfiguredCosts = IgnoreCosts(run, command)
         });
         if (executed.IsFailure)
             return Illegal(executed.Error);
         var candidate = ApplyPhase(run, combat, CreateCandidate(run, effectiveCommand, executed.Value), tags);
-        return candidate.IsFailure ? Result<LegalActionEvaluation>.Failure(candidate.Error) : Legal(candidate.Value);
+        if (candidate.IsFailure) return Result<LegalActionEvaluation>.Failure(candidate.Error);
+        return FinalizeReaction(run, combat, effectiveCommand, origin, tags, candidate.Value,
+            executed.Value.Evaluation);
     }
 
     private Result<LegalActionEvaluation> EvaluatePassive(
@@ -406,13 +426,299 @@ public sealed class LegalActionResolver : ILegalActionResolver
             : Legal(transitioned.Value);
     }
 
+    private Result<LegalActionEvaluation> FinalizeReaction(
+        RunState run,
+        CombatState originalCombat,
+        CombatActionCommand submittedCommand,
+        CombatCommandOrigin origin,
+        IReadOnlySet<string> tags,
+        LegalActionCandidate resolved,
+        CardPlayEvaluation evaluation)
+    {
+        var policy = run.ResolvedMode!.CombatRules.Flow.Reactions;
+        if (origin == CombatCommandOrigin.PendingResolution)
+        {
+            return Legal(resolved with
+            {
+                ResolvedCommand = resolved.Command,
+                ReactionTransition = ReactionTransitionKind.StackActionResolved
+            }, evaluation);
+        }
+        var shouldPropose = _reactions.ShouldPropose(originalCombat, policy, tags);
+        if (originalCombat.PriorityWindow != null &&
+            policy.Strategy == ReactionStrategy.PriorityStack && !shouldPropose)
+        {
+            return Illegal(
+                $"Action '{submittedCommand.ActionType}' is not eligible as a response in the current priority window");
+        }
+        if (!PhaseAllowsPriority(run, originalCombat) || !shouldPropose)
+        {
+            return Legal(resolved with { ResolvedCommand = resolved.Command }, evaluation);
+        }
+
+        var costResult = policy.CostTiming == ReactionCostTiming.Proposal && !IgnoreCosts(run, submittedCommand)
+            ? ApplyPendingCosts(run, originalCombat, resolved, evaluation, refund: false)
+            : Result<EffectBatchResult>.Success(new EffectBatchResult
+            {
+                State = originalCombat,
+                Run = run,
+                Fingerprint = CanonicalJson.ComputeHash(originalCombat)
+            });
+        if (costResult.IsFailure)
+            return Illegal(costResult.Error);
+
+        var storedCommand = policy.TargetLock == ReactionLockTiming.Proposal
+            ? resolved.Command
+            : submittedCommand with { ExpectedStep = null };
+        var paidCosts = policy.CostTiming == ReactionCostTiming.Proposal && !IgnoreCosts(run, submittedCommand)
+            ? evaluation.Costs.Select(PendingResourceCost.From).ToImmutableArray()
+            : [];
+        var pendingId = CanonicalJson.ComputeHash(new
+        {
+            originalCombat.CombatId,
+            command = storedCommand,
+            candidate = resolved.CandidateId,
+            depth = originalCombat.PendingActions.Length + 1,
+            originalCombat.Determinism.Step
+        });
+        var pending = new PendingActionState
+        {
+            PendingActionId = pendingId,
+            Depth = originalCombat.PendingActions.Length + 1,
+            Command = storedCommand,
+            CandidateFingerprint = resolved.CandidateId,
+            ContentRevision = run.Determinism.ContentRevision,
+            ActionId = resolved.ActionId,
+            CardDefinitionId = resolved.CardDefinitionId,
+            LockedTargetIds = policy.TargetLock == ReactionLockTiming.Proposal
+                ? resolved.Command.TargetIds
+                : [],
+            PaidCosts = paidCosts,
+            CommandTags = tags.OrderBy(tag => tag, StringComparer.OrdinalIgnoreCase).ToArray()
+        };
+        var proposed = _reactions.Propose(costResult.Value.State, pending, policy);
+        if (proposed.IsFailure)
+            return Illegal(proposed.Error);
+        var fingerprint = CanonicalJson.ComputeHash(new
+        {
+            transition = ReactionTransitionKind.Proposed,
+            pending,
+            before = CanonicalJson.ComputeHash(originalCombat),
+            after = CanonicalJson.ComputeHash(proposed.Value)
+        });
+        return Legal(new LegalActionCandidate
+        {
+            CandidateId = fingerprint,
+            Source = resolved.Source,
+            Command = storedCommand,
+            ActionId = resolved.ActionId,
+            CardDefinitionId = resolved.CardDefinitionId,
+            Applications = costResult.Value.Records,
+            Steps = costResult.Value.Steps,
+            Calculations = costResult.Value.Calculations,
+            ResolutionFingerprint = fingerprint,
+            OutcomeUncertain = true,
+            ReactionTransition = ReactionTransitionKind.Proposed,
+            PendingAction = pending,
+            SuccessorCombat = proposed.Value,
+            SuccessorRun = costResult.Value.Run ?? run
+        }, evaluation);
+    }
+
+    private Result<LegalActionEvaluation> EvaluatePriorityPass(
+        RunState run,
+        CombatState combat,
+        CombatActionCommand command)
+    {
+        var policy = run.ResolvedMode!.CombatRules.Flow.Reactions;
+        if (policy.Strategy != ReactionStrategy.PriorityStack)
+            return Illegal("PASS_PRIORITY requires the PriorityStack reaction strategy");
+        var passed = _reactions.Pass(combat, command.ActorId, policy);
+        if (passed.IsFailure) return Illegal(passed.Error);
+        if (passed.Value.ActionToResolve == null)
+        {
+            var passFingerprint = CanonicalJson.ComputeHash(new
+            {
+                transition = ReactionTransitionKind.PriorityPassed,
+                command,
+                before = CanonicalJson.ComputeHash(combat),
+                after = CanonicalJson.ComputeHash(passed.Value.Combat)
+            });
+            return Legal(new LegalActionCandidate
+            {
+                CandidateId = passFingerprint,
+                Source = LegalActionSource.System,
+                Command = command,
+                ReactionTransition = ReactionTransitionKind.PriorityPassed,
+                ResolutionFingerprint = passFingerprint,
+                SuccessorCombat = passed.Value.Combat,
+                SuccessorRun = run
+            });
+        }
+
+        var pending = passed.Value.ActionToResolve;
+        if (!string.Equals(pending.ContentRevision, run.Determinism.ContentRevision, StringComparison.Ordinal))
+            return Result<LegalActionEvaluation>.Failure(
+                $"Pending action content revision mismatch: {pending.ContentRevision}");
+        var resolutionCommand = pending.Command with
+        {
+            ExpectedStep = null,
+            IgnoreConfiguredCosts = pending.CostsPaid || pending.Command.IgnoreConfiguredCosts
+        };
+        var resolved = Evaluate(run, passed.Value.Combat, resolutionCommand,
+            CombatCommandOrigin.PendingResolution);
+        if (resolved.IsFailure || !resolved.Value.IsLegal)
+            return ResolveFizzle(run, combat, passed.Value.Combat, command, pending, policy,
+                resolved.IsFailure ? resolved.Error : string.Join("; ", resolved.Value.FailureReasons));
+
+        var candidate = resolved.Value.Candidate!;
+        var completed = _reactions.CompleteResolution(candidate.SuccessorCombat, pending, policy);
+        if (completed.IsFailure) return Result<LegalActionEvaluation>.Failure(completed.Error);
+        var fingerprint = CanonicalJson.ComputeHash(new
+        {
+            transition = ReactionTransitionKind.StackActionResolved,
+            rootCommand = command,
+            resolvedCommand = candidate.Command,
+            pending.PendingActionId,
+            candidate.ResolutionFingerprint,
+            after = CanonicalJson.ComputeHash(completed.Value)
+        });
+        return Legal(candidate with
+        {
+            CandidateId = fingerprint,
+            Command = command,
+            ResolvedCommand = candidate.Command,
+            PendingAction = pending,
+            ReactionTransition = ReactionTransitionKind.StackActionResolved,
+            ResolutionFingerprint = fingerprint,
+            SuccessorCombat = completed.Value
+        }, resolved.Value.CardEvaluation);
+    }
+
+    private Result<LegalActionEvaluation> ResolveFizzle(
+        RunState run,
+        CombatState originalCombat,
+        CombatState poppedCombat,
+        CombatActionCommand passCommand,
+        PendingActionState pending,
+        ReactionPolicyDefinition policy,
+        string reason)
+    {
+        if (policy.Failure == ReactionResolutionFailure.RejectTransaction)
+            return Illegal($"Pending action '{pending.PendingActionId}' cannot resolve: {reason}");
+        var refunded = policy.Failure == ReactionResolutionFailure.FizzleRefund && pending.CostsPaid
+            ? ApplyPendingCosts(run, poppedCombat, pending, refund: true)
+            : Result<EffectBatchResult>.Success(new EffectBatchResult
+            {
+                State = poppedCombat,
+                Run = run,
+                Fingerprint = CanonicalJson.ComputeHash(poppedCombat)
+            });
+        if (refunded.IsFailure) return Result<LegalActionEvaluation>.Failure(refunded.Error);
+        var completed = _reactions.CompleteResolution(refunded.Value.State, pending, policy);
+        if (completed.IsFailure) return Result<LegalActionEvaluation>.Failure(completed.Error);
+        var fingerprint = CanonicalJson.ComputeHash(new
+        {
+            transition = ReactionTransitionKind.StackActionFizzled,
+            passCommand,
+            pending,
+            reason,
+            before = CanonicalJson.ComputeHash(originalCombat),
+            after = CanonicalJson.ComputeHash(completed.Value)
+        });
+        return Legal(new LegalActionCandidate
+        {
+            CandidateId = fingerprint,
+            Source = LegalActionSource.System,
+            Command = passCommand,
+            PendingAction = pending,
+            ReactionTransition = ReactionTransitionKind.StackActionFizzled,
+            Applications = refunded.Value.Records,
+            Steps = refunded.Value.Steps,
+            Calculations = refunded.Value.Calculations,
+            OutcomeUncertain = false,
+            ResolutionFingerprint = fingerprint,
+            SuccessorCombat = completed.Value,
+            SuccessorRun = refunded.Value.Run ?? run
+        });
+    }
+
+    private Result<EffectBatchResult> ApplyPendingCosts(
+        RunState run,
+        CombatState combat,
+        LegalActionCandidate candidate,
+        CardPlayEvaluation evaluation,
+        bool refund)
+    {
+        var costs = evaluation.Costs.Select(PendingResourceCost.From).ToArray();
+        return ApplyPendingCosts(run, combat, new PendingActionState
+        {
+            PendingActionId = candidate.CandidateId,
+            Command = candidate.Command,
+            PaidCosts = costs
+        }, refund);
+    }
+
+    private Result<EffectBatchResult> ApplyPendingCosts(
+        RunState run,
+        CombatState combat,
+        PendingActionState pending,
+        bool refund)
+    {
+        var provenance = new EffectProvenance
+        {
+            Kind = EffectProvenanceKind.Rule,
+            SourceId = $"reaction:{pending.PendingActionId}",
+            ComponentId = refund ? "refund" : "reservation"
+        };
+        var commands = pending.PaidCosts.Select(cost => new ResolvedEffectCommand
+        {
+            EffectInstanceId = $"{provenance.SourceId}:{provenance.ComponentId}:{cost.ComponentId}:{cost.ResourceId}",
+            Definition = new EffectDefinition
+            {
+                EffectId = $"reaction-cost:{cost.ComponentId}",
+                Type = EffectType.MODIFY_RESOURCE,
+                TargetResource = cost.ResourceId,
+                Operation = refund ? ResourceEffectOperation.ADD : ResourceEffectOperation.SUBTRACT
+            },
+            SourceEntityId = pending.Command.ActorId,
+            TargetEntityIds = [pending.Command.ActorId],
+            ResolvedValue = cost.Amount,
+            ContentRevision = run.Determinism.ContentRevision,
+            Provenance = provenance
+        }).ToImmutableArray();
+        return _effects.Execute(new EffectTriggerExecutionRequest
+        {
+            Run = run,
+            Combat = combat,
+            Trigger = new EffectTriggerDefinition { TriggerId = refund ? "reaction.cost.refund" : "reaction.cost.reserve" },
+            OwnerEntityId = pending.Command.ActorId,
+            SourceEntityId = pending.Command.ActorId,
+            ContentRevision = run.Determinism.ContentRevision,
+            PrefixCommands = commands,
+            Provenance = provenance
+        });
+    }
+
+    private bool PhaseAllowsPriority(RunState run, CombatState combat)
+    {
+        var sequence = ResolveSequence(run);
+        return sequence.IsSuccess && combat.PhaseState != null &&
+               sequence.Value.Find(combat.PhaseState.Cursor)?.AllowPriority == true;
+    }
+
     private IEnumerable<CombatActionCommand> EnumerateCommands(
         RunState run,
         CombatState combat,
         CombatActorState actor)
     {
-        yield return BaseCommand(run, actor, ActionType.PASS);
-        yield return BaseCommand(run, actor, ActionType.END_TURN);
+        if (combat.PriorityWindow != null)
+            yield return BaseCommand(run, actor, ActionType.PASS_PRIORITY);
+        else
+        {
+            yield return BaseCommand(run, actor, ActionType.PASS);
+            yield return BaseCommand(run, actor, ActionType.END_TURN);
+        }
 
         var targetSets = TargetSets(combat).ToArray();
         foreach (var abilityId in (actor.Component<AbilityEntityComponentState>()?.AbilityIds ?? [])
@@ -438,7 +744,11 @@ public sealed class LegalActionResolver : ILegalActionResolver
         var runtime = _runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (runtime.IsFailure)
             throw new InvalidOperationException(runtime.Error);
-        foreach (var cardId in run.Deck.HandInstanceIds.OrderBy(id => id))
+        var reservedCards = combat.PendingActions
+            .Where(item => item.Command.CardInstanceId.HasValue)
+            .Select(item => item.Command.CardInstanceId!.Value)
+            .ToHashSet();
+        foreach (var cardId in run.Deck.HandInstanceIds.Where(id => !reservedCards.Contains(id)).OrderBy(id => id))
         {
             var instance = run.Deck.GetCard(cardId)
                 ?? throw new InvalidOperationException($"Card instance was not found: {cardId}");
@@ -495,7 +805,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
             ? command.TargetIds
             : string.IsNullOrWhiteSpace(command.TargetId) ? [] : [command.TargetId];
 
-    private static bool IgnoreCosts(RunState run) =>
+    private static bool IgnoreCosts(RunState run, CombatActionCommand command) =>
+        command.IgnoreConfiguredCosts ||
         run.ResolvedMode!.CombatRules.Flow.ActionBudget.ActionCosts == ActionCostStrategy.Ignore;
 
     private Result<ActionDefinition> ResolveAction(RunState run, string actionId) =>
@@ -516,13 +827,21 @@ public sealed class LegalActionResolver : ILegalActionResolver
         var activation = combat.ActivationState;
         if (activation == null)
             return Result.Failure("Combat activation has not been initialized");
-        if (!string.Equals(activation.ActiveActorId, command.ActorId, StringComparison.Ordinal))
-            return Result.Failure($"Actor '{command.ActorId}' is not the active actor");
-        if (origin == CombatCommandOrigin.PlayerInput && !activation.WaitingForInput)
+        if (origin == CombatCommandOrigin.PendingResolution)
+            return Result.Success();
+        var controllingActorId = combat.PriorityWindow?.HolderActorId ?? activation.ActiveActorId;
+        if (!string.Equals(controllingActorId, command.ActorId, StringComparison.Ordinal))
+            return Result.Failure($"Actor '{command.ActorId}' does not control the current combat input");
+        if (combat.PriorityWindow != null && command.ActionType is ActionType.PASS or ActionType.END_TURN)
+            return Result.Failure($"{command.ActionType} is not legal while a priority window is open");
+        if (combat.PriorityWindow == null && origin == CombatCommandOrigin.PlayerInput && !activation.WaitingForInput)
             return Result.Failure("Combat is resolving automatic actions");
-        if (origin == CombatCommandOrigin.AutomaticController &&
-            (activation.WaitingForInput || combat.ControllerOf(actor) != ControllerKind.AI))
-            return Result.Failure("Automatic command requires the active AI controller");
+        if (combat.PriorityWindow == null && origin == CombatCommandOrigin.AutomaticController && activation.WaitingForInput)
+            return Result.Failure("Combat is waiting for player input");
+        if (origin == CombatCommandOrigin.PlayerInput && combat.ControllerOf(actor) != ControllerKind.Player)
+            return Result.Failure("Player command requires the current player controller");
+        if (origin == CombatCommandOrigin.AutomaticController && combat.ControllerOf(actor) != ControllerKind.AI)
+            return Result.Failure("Automatic command requires the current AI controller");
         return Result.Success();
     }
 

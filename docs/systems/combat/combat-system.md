@@ -2,7 +2,7 @@
 
 **Status:** implementado no fluxo canônico de run
 
-**Atualizado em:** 2026-09-06
+**Atualizado em:** 2026-09-09
 
 ## Papel arquitetural
 
@@ -35,7 +35,8 @@ combate e são registradas na mesma run.
 - roster genérico de atores, lados, relações e controller bindings;
 - recursos genéricos de cada participante;
 - status ativos;
-- board, fases, ativação e dados da estratégia de ordem de turno;
+- board, fases, ativação, janela de prioridade, ações pendentes e dados da
+  estratégia de ordem de turno;
 - histórico de ações.
 
 `CombatActorState` não possui HP ou energia especializados. Seu estado numérico é um
@@ -100,6 +101,7 @@ Tipos aceitos:
 | `PLAY_CARD` | Joga uma instância de carta da run. |
 | `EXECUTE_ACTION` | Executa uma habilidade configurada do ator. |
 | `END_TURN` | Encerra a ativação/turno conforme o modo. |
+| `PASS_PRIORITY` | Passa a prioridade quando o snapshot possui uma janela aberta. |
 
 Exemplo:
 
@@ -179,6 +181,10 @@ Resoluções incluem hashes inicial/final, fingerprint e, em cada frame, os pass
 de efeito, cálculos e aplicações tipados. A inicialização do encontro também é
 uma resolução durável. Itens da timeline apontam para ela por
 `resolutionCommandId`, inclusive quando um comando produz várias transições.
+
+Prioridade e stack são parte desse mesmo estado e comando; consulte
+[prioridade, reações e stack](reaction-system.md) para as políticas e o contrato
+visual.
 
 ## Timeline, branches e replay
 

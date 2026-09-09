@@ -1,6 +1,6 @@
 # Consolidação dos sistemas centrais restantes
 
-**Status:** proposto para implementação
+**Status:** em implementação — etapas 0–14 concluídas
 
 **Data da análise:** 2026-09-07
 
@@ -927,4 +927,3 @@ O plano estará concluído quando:
 10. Progressão não depender de aliases hardcoded de nó ou resource.
 11. O build, Core.Tests, API.Tests, replay, restart e dez execuções determinísticas
     passarem sem resíduos de compatibilidade.
-

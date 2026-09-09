@@ -319,7 +319,8 @@ Valores futuros que já devem caber no manifesto:
 
 - `races`, `powers`, `companions`, `enemies`, `decks`;
 - `relics`, `card-upgrades`, `modes`, `daily-challenges`;
-- `boards`, `zones`, `keywords`, `reaction-rules`.
+- `boards`, `zones`, `keywords`. Políticas de reação pertencem às regras de
+  combate e não formam um catálogo ou endpoint paralelo.
 
 ### 6.2. Mapa e eventos de run
 

@@ -145,7 +145,34 @@ public sealed record JournalPolicyDefinition
 
 public sealed record ReactionPolicyDefinition
 {
+    private ImmutableArray<string> _openingActionTags = [];
+    private ImmutableArray<string> _responseActionTags = [];
+
     public ReactionStrategy Strategy { get; init; }
+    public ReactionStackOrder StackOrder { get; init; }
+    public ReactionActorEligibility Eligibility { get; init; }
+    public ReactionLockTiming TargetLock { get; init; }
+    public ReactionCostTiming CostTiming { get; init; }
+    public ReactionResolutionFailure Failure { get; init; }
+    public int MaxStackDepth { get; init; }
+    public bool ReopenAfterResolution { get; init; }
+    public IReadOnlyList<string> OpeningActionTags
+    {
+        get => _openingActionTags;
+        init => _openingActionTags = NormalizeTags(value);
+    }
+    public IReadOnlyList<string> ResponseActionTags
+    {
+        get => _responseActionTags;
+        init => _responseActionTags = NormalizeTags(value);
+    }
+
+    private static ImmutableArray<string> NormalizeTags(IEnumerable<string>? value) => value?
+        .Where(tag => !string.IsNullOrWhiteSpace(tag))
+        .Select(tag => tag.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(tag => tag, StringComparer.OrdinalIgnoreCase)
+        .ToImmutableArray() ?? [];
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -203,7 +230,22 @@ public enum AnimationFrameMode { Unspecified, FullSnapshots, CompactWithSnapshot
 public enum CombatJournalGranularity { Unspecified, Full }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ReactionStrategy { Unspecified, Disabled, Immediate, Stack }
+public enum ReactionStrategy { Unspecified, Disabled, Automatic, PriorityStack }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ReactionStackOrder { Unspecified, Lifo, Fifo }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ReactionActorEligibility { Unspecified, AllAlive, OpponentsOnly }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ReactionLockTiming { Unspecified, Proposal, Resolution }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ReactionCostTiming { Unspecified, Proposal, Resolution }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ReactionResolutionFailure { Unspecified, RejectTransaction, FizzleKeepPaid, FizzleRefund }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum IntentRefreshStrategy { Unspecified, RecomputeOnPublish, LockUntilActorActivation }
@@ -271,8 +313,8 @@ public static class CombatFlowPolicyValidator
             policies.StatusTiming.Boundaries.Contains(StatusTriggerBoundary.Unspecified) ||
             policies.StatusTiming.Ordering == StatusOrderingStrategy.Unspecified)
             return Result.Failure("Status timing boundaries and ordering are required");
-        if (policies.Outcome.EvaluationBoundary != OutcomeEvaluationBoundary.AfterCurrentAction)
-            return Result.Failure("Only outcome evaluation boundary 'AfterCurrentAction' is implemented");
+        if (policies.Outcome.EvaluationBoundary == OutcomeEvaluationBoundary.Unspecified)
+            return Result.Failure("Outcome evaluationBoundary is required");
         if (policies.Outcome.TieBreak == OutcomeTieBreak.Unspecified)
             return Result.Failure("Outcome tieBreak is required");
         if (policies.EncounterResolution.Strategy != EncounterResolutionStrategy.ManualAck)
@@ -281,8 +323,31 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("Animation frame mode is required");
         if (policies.Journal.Granularity != CombatJournalGranularity.Full)
             return Result.Failure("Only full combat journal granularity is implemented");
-        if (policies.Reactions.Strategy != ReactionStrategy.Disabled)
-            return Result.Failure($"Reaction strategy '{policies.Reactions.Strategy}' is not implemented");
+        if (policies.Reactions.Strategy == ReactionStrategy.Unspecified)
+            return Result.Failure("Reaction strategy is required");
+        if (policies.Reactions.Strategy == ReactionStrategy.PriorityStack)
+        {
+            if (policies.Reactions.StackOrder == ReactionStackOrder.Unspecified ||
+                policies.Reactions.Eligibility == ReactionActorEligibility.Unspecified ||
+                policies.Reactions.TargetLock == ReactionLockTiming.Unspecified ||
+                policies.Reactions.CostTiming == ReactionCostTiming.Unspecified ||
+                policies.Reactions.Failure == ReactionResolutionFailure.Unspecified)
+            {
+                return Result.Failure(
+                    "PriorityStack requires explicit stackOrder, eligibility, targetLock, costTiming and failure policies");
+            }
+            if (policies.Reactions.MaxStackDepth is < 1 or > 1_000)
+                return Result.Failure("PriorityStack maxStackDepth must be between 1 and 1000");
+            if (!policies.Reactions.ReopenAfterResolution)
+                return Result.Failure(
+                    "PriorityStack must reopen priority after each resolution; automatic whole-stack resolution is not supported");
+        }
+        if (policies.Reactions.Strategy != ReactionStrategy.PriorityStack &&
+            policies.Outcome.EvaluationBoundary == OutcomeEvaluationBoundary.AfterResolutionStack)
+        {
+            return Result.Failure(
+                "AfterResolutionStack outcome evaluation requires the PriorityStack reaction strategy");
+        }
 
         return Result.Success();
     }

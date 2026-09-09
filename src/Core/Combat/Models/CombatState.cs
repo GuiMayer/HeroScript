@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Combat.Activation;
+using Core.Combat.Reactions;
 using Core.Combat.TurnOrder;
 using Core.Combat.TurnPhase;
 using Core.Determinism;
@@ -46,6 +47,8 @@ public sealed record CombatState
     public PhaseState? PhaseState { get; init; }
     public CombatBoardState Board { get; init; } = new();
     public ActivationState? ActivationState { get; init; }
+    public PriorityWindowState? PriorityWindow { get; init; }
+    public ImmutableArray<PendingActionState> PendingActions { get; init; } = [];
     public ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>> StatusEffects { get; init; } =
         ImmutableDictionary<string, ImmutableArray<StatusEffectInstance>>.Empty.WithComparers(StringComparer.Ordinal);
 

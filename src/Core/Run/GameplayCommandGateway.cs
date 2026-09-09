@@ -274,6 +274,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
 
     private static string ResolveInputActor(string? requestedActorId, CombatState combat) =>
         requestedActorId
+        ?? combat.PriorityWindow?.HolderActorId
         ?? combat.ActivationState?.ActiveActorId
         ?? combat.GetAllActors()
             .FirstOrDefault(actor => actor.ControllerBinding.Kind == ControllerKind.Player)?.InstanceId

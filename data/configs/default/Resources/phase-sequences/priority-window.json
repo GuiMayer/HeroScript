@@ -1,0 +1,43 @@
+{
+  "priority-window": {
+    "sequenceId": "priority-window",
+    "name": "Priority Window Activation",
+    "description": "Generic START, MIDDLE and END flow whose action phase supports immutable reaction proposals.",
+    "version": "1.0.0",
+    "entryPhaseId": "activation_start",
+    "maxAutomaticTransitions": 16,
+    "phases": [
+      {
+        "phaseId": "activation_start",
+        "role": "Start",
+        "order": 10,
+        "name": "Activation Start",
+        "allowedActions": [],
+        "allowPriority": false,
+        "edges": [
+          { "edgeId": "start-to-action", "targetPhaseId": "action", "trigger": "Automatic", "priority": 0 }
+        ]
+      },
+      {
+        "phaseId": "action",
+        "role": "Middle",
+        "order": 20,
+        "name": "Action and Responses",
+        "allowedActions": ["PLAY_CARD", "BASIC_ATTACK", "POWER", "ACTIVATE_ABILITY", "PLAY_INSTANT", "PASS", "END_TURN", "PASS_PRIORITY"],
+        "allowPriority": true,
+        "edges": [
+          { "edgeId": "action-to-end", "targetPhaseId": "activation_end", "trigger": "ActivationExit", "priority": 0 }
+        ]
+      },
+      {
+        "phaseId": "activation_end",
+        "role": "End",
+        "order": 30,
+        "name": "Activation End",
+        "allowedActions": [],
+        "allowPriority": false,
+        "edges": []
+      }
+    ]
+  }
+}

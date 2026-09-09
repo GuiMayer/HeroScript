@@ -110,7 +110,7 @@ public sealed class GameModeResolverTests
     }
 
     [Fact]
-    public void Resolve_WarnsAndRejectsReservedReactionStrategy()
+    public void Resolve_AcceptsConfiguredPriorityStack()
     {
         var logger = new Mock<ILogger>();
         var combat = CreateCombatRules();
@@ -118,7 +118,7 @@ public sealed class GameModeResolverTests
         {
             Flow = combat.Flow with
             {
-                Reactions = new ReactionPolicyDefinition { Strategy = ReactionStrategy.Stack }
+                Reactions = PriorityStack()
             }
         };
         var resolver = CreateResolver(
@@ -138,14 +138,11 @@ public sealed class GameModeResolverTests
 
         var result = resolver.Resolve("reserved", "test");
 
-        Assert.True(result.IsFailure);
-        logger.Verify(item => item.LogWarning(
-            It.Is<string>(message => message.Contains("reactions are not implemented", StringComparison.Ordinal))),
-            Times.Once);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
-    public void Resolve_WarnsAndRejectsReservedOutcomeBoundary()
+    public void Resolve_RequiresPriorityStackForStackOutcomeBoundary()
     {
         var logger = new Mock<ILogger>();
         var combat = CreateCombatRules();
@@ -178,9 +175,7 @@ public sealed class GameModeResolverTests
         var result = resolver.Resolve("reserved", "test");
 
         Assert.True(result.IsFailure);
-        logger.Verify(item => item.LogWarning(
-            It.Is<string>(message => message.Contains("only AfterCurrentAction is implemented", StringComparison.Ordinal))),
-            Times.Once);
+        Assert.Contains("PriorityStack", result.Error, StringComparison.Ordinal);
     }
 
     private static GameModeResolver CreateResolver(
@@ -290,6 +285,18 @@ public sealed class GameModeResolverTests
             Journal = new() { Granularity = CombatJournalGranularity.Full },
             Reactions = new() { Strategy = ReactionStrategy.Disabled }
         }
+    };
+
+    private static ReactionPolicyDefinition PriorityStack() => new()
+    {
+        Strategy = ReactionStrategy.PriorityStack,
+        StackOrder = ReactionStackOrder.Lifo,
+        Eligibility = ReactionActorEligibility.AllAlive,
+        TargetLock = ReactionLockTiming.Proposal,
+        CostTiming = ReactionCostTiming.Resolution,
+        Failure = ReactionResolutionFailure.FizzleKeepPaid,
+        MaxStackDepth = 16,
+        ReopenAfterResolution = true
     };
 
     private sealed class Catalog<TDefinition>(TDefinition definition) : IResourceCatalog<TDefinition>

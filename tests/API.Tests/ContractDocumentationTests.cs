@@ -67,6 +67,24 @@ public sealed class ContractDocumentationTests
         Assert.True(root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CombatTimelineItem").GetProperty("properties")
             .TryGetProperty("resolutionCommandId", out _));
+        var combatSnapshotProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatStateSnapshot").GetProperty("properties");
+        Assert.True(combatSnapshotProperties.TryGetProperty("priorityWindow", out _));
+        Assert.True(combatSnapshotProperties.TryGetProperty("pendingActions", out _));
+        Assert.Equal(
+            "#/components/schemas/SandboxCombatSnapshot",
+            paths.GetProperty("/api/v1/sandbox/runs/{runId}/snapshot").GetProperty("get")
+                .GetProperty("responses").GetProperty("200").GetProperty("content")
+                .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString());
+        Assert.Equal(
+            "#/components/schemas/CombatStateSnapshot",
+            root.GetProperty("components").GetProperty("schemas")
+                .GetProperty("SandboxCombatSnapshot").GetProperty("properties")
+                .GetProperty("combat").GetProperty("$ref").GetString());
+        var legalCandidateProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("LegalActionCandidate").GetProperty("properties");
+        Assert.True(legalCandidateProperties.TryGetProperty("reactionTransition", out _));
+        Assert.True(legalCandidateProperties.TryGetProperty("pendingAction", out _));
         var applicationProperties = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("EffectApplicationRecord").GetProperty("properties");
         Assert.True(applicationProperties.TryGetProperty("removedModifierInstanceIds", out _));

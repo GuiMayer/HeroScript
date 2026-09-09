@@ -180,9 +180,10 @@ command.
 
 Daily challenge definitions are versioned content. Starting an attempt writes
 the challenge id, mode, fixed seed and effective content revision into the run;
-submission reexecutes the journal before accepting its proof. TCG legality and
-target evaluation are read models over combat state. Any future reaction or
-priority mutation must still enter through the combat command gateway.
+submission reexecutes the journal before accepting its proof. TCG legality,
+target evaluation, priority windows and pending actions are read models over
+combat state. Reaction proposals and `PASS_PRIORITY` enter exclusively through
+the combat command gateway and are replayed from the same immutable snapshots.
 
 ## Operational nondeterministic boundaries
 

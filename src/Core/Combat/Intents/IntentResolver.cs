@@ -142,7 +142,7 @@ public sealed class IntentResolver : IIntentResolver
     }
 
     private static CombatState ProjectActivation(CombatState combat, string actorId) =>
-        combat.ActivationState == null ||
+        combat.PriorityWindow != null || combat.ActivationState == null ||
         string.Equals(combat.ActivationState.ActiveActorId, actorId, StringComparison.Ordinal)
             ? combat
             : combat with

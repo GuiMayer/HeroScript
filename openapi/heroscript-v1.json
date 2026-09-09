@@ -479,7 +479,13 @@
         "operationId": "getCombatSandboxSnapshot",
         "x-heroscript-stability": "experimental",
         "parameters": [{ "$ref": "#/components/parameters/RunId" }],
-        "responses": { "200": { "description": "Consolidated read-only run, combat, actor and card-instance projection" }, "404": { "$ref": "#/components/responses/Problem" } }
+        "responses": {
+          "200": {
+            "description": "Consolidated read-only run, combat, actor and card-instance projection",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SandboxCombatSnapshot" } } }
+          },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
       }
     }
   },
@@ -589,7 +595,7 @@
         "required": ["run", "combat", "resolution"],
         "properties": {
           "run": { "type": "object", "additionalProperties": true },
-          "combat": { "type": "object", "nullable": true, "additionalProperties": true },
+          "combat": { "$ref": "#/components/schemas/CombatStateSnapshot" },
           "resolution": { "$ref": "#/components/schemas/CombatResolutionRecord" }
         }
       },
@@ -608,7 +614,7 @@
       },
       "LegalActionCandidate": {
         "type": "object",
-        "required": ["candidateId", "source", "command", "applications", "calculations", "steps", "resolutionFingerprint", "outcomeUncertain"],
+        "required": ["candidateId", "source", "command", "applications", "calculations", "steps", "resolutionFingerprint", "outcomeUncertain", "reactionTransition"],
         "properties": {
           "candidateId": { "type": "string" },
           "source": { "type": "string", "enum": ["System", "Ability", "Card"] },
@@ -619,7 +625,76 @@
           "calculations": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationTrace" } },
           "steps": { "type": "array", "items": { "$ref": "#/components/schemas/EffectExecutionStep" } },
           "resolutionFingerprint": { "type": "string" },
-          "outcomeUncertain": { "type": "boolean" }
+          "outcomeUncertain": { "type": "boolean" },
+          "reactionTransition": {
+            "type": "string",
+            "enum": ["ResolvedImmediately", "Proposed", "PriorityPassed", "StackActionResolved", "StackActionFizzled"]
+          },
+          "resolvedCommand": { "type": "object", "nullable": true, "additionalProperties": true },
+          "pendingAction": { "oneOf": [{ "$ref": "#/components/schemas/PendingActionState" }, { "type": "null" }] }
+        }
+      },
+      "CombatStateSnapshot": {
+        "type": "object",
+        "nullable": true,
+        "additionalProperties": true,
+        "properties": {
+          "priorityWindow": {
+            "oneOf": [{ "$ref": "#/components/schemas/PriorityWindowState" }, { "type": "null" }]
+          },
+          "pendingActions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PendingActionState" }
+          }
+        }
+      },
+      "SandboxCombatSnapshot": {
+        "type": "object",
+        "required": ["run", "combat", "hand"],
+        "properties": {
+          "run": { "type": "object", "additionalProperties": true },
+          "combat": { "$ref": "#/components/schemas/CombatStateSnapshot" },
+          "hand": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
+      "PriorityWindowState": {
+        "type": "object",
+        "required": ["windowId", "openedByActorId", "holderActorId", "holderIndex", "consecutivePasses", "resolutionCount", "eligibleActorIds"],
+        "properties": {
+          "windowId": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "openedByActorId": { "type": "string" },
+          "holderActorId": { "type": "string" },
+          "holderIndex": { "type": "integer", "minimum": 0 },
+          "consecutivePasses": { "type": "integer", "minimum": 0 },
+          "resolutionCount": { "type": "integer", "minimum": 0 },
+          "eligibleActorIds": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "PendingActionState": {
+        "type": "object",
+        "required": ["pendingActionId", "depth", "command", "candidateFingerprint", "contentRevision", "lockedTargetIds", "paidCosts", "commandTags", "costsPaid"],
+        "properties": {
+          "pendingActionId": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "depth": { "type": "integer", "minimum": 1 },
+          "command": { "type": "object", "additionalProperties": true },
+          "candidateFingerprint": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "contentRevision": { "type": "string" },
+          "actionId": { "type": "string", "nullable": true },
+          "cardDefinitionId": { "type": "string", "nullable": true },
+          "lockedTargetIds": { "type": "array", "items": { "type": "string" } },
+          "paidCosts": { "type": "array", "items": { "$ref": "#/components/schemas/PendingResourceCost" } },
+          "commandTags": { "type": "array", "items": { "type": "string" } },
+          "costsPaid": { "type": "boolean" }
+        }
+      },
+      "PendingResourceCost": {
+        "type": "object",
+        "required": ["componentId", "resourceId", "amount"],
+        "properties": {
+          "componentId": { "type": "string" },
+          "optionId": { "type": "string", "nullable": true },
+          "resourceId": { "type": "string" },
+          "amount": { "type": "number", "format": "float" }
         }
       },
       "CombatResolutionRecord": {

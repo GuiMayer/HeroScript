@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Core.Run;
+using Core.Combat.Models;
 using Xunit;
 
 namespace API.Tests.Controllers;
@@ -194,6 +195,121 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             replay.GetProperty("expectedFinalHash").GetString(),
             replay.GetProperty("actualFinalHash").GetString());
         Assert.Equal(committedStateHash, replay.GetProperty("actualFinalHash").GetString());
+    }
+
+    [Fact]
+    public async Task PrioritySandbox_ProposesAutoPassesAndResolvesOnlyAfterPlayerPass()
+    {
+        using var launchResponse = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario(
+                $"priority-{Guid.NewGuid():N}",
+                new
+                {
+                    resourcesByActor = new Dictionary<string, object>
+                    {
+                        ["hero"] = new { energy = 3 },
+                        ["goblin_a"] = new { health = 1 }
+                    }
+                },
+                modeId: "combat_sandbox_priority"));
+        var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
+        var runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launch.GetProperty("combat").GetProperty("combatId").GetGuid();
+        using var initialResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var initial = await initialResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var initialHealth = Health(initial, "goblin_a");
+        var cardId = initial.GetProperty("hand").EnumerateArray()
+            .First(card => card.GetProperty("definitionId").GetString() == "basic_attack")
+            .GetProperty("cardInstanceId").GetGuid();
+
+        var proposalCommandId = Guid.NewGuid();
+        var proposalCommand = new
+        {
+            commandId = proposalCommandId,
+            expectedSequence = initial.GetProperty("run").GetProperty("sequence").GetInt32(),
+            expectedStep = initial.GetProperty("combat").GetProperty("step").GetUInt64(),
+            type = "PLAY_CARD",
+            payload = new { actorId = "hero", cardInstanceId = cardId, targetIds = new[] { "goblin_a" } }
+        };
+        using var proposalResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            proposalCommand);
+        var proposal = await proposalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(proposalResponse.StatusCode == HttpStatusCode.OK, proposal.GetRawText());
+        var proposalCombat = proposal.GetProperty("state").GetProperty("combat");
+        Assert.Equal("hero", proposalCombat.GetProperty("priorityWindow").GetProperty("holderActorId").GetString());
+        Assert.Equal(1, proposalCombat.GetProperty("priorityWindow").GetProperty("consecutivePasses").GetInt32());
+        Assert.Single(proposalCombat.GetProperty("pendingActions").EnumerateArray());
+        Assert.Equal(initialHealth, CombatResource(proposalCombat, "goblin_a", "health"));
+        Assert.Equal((int)CombatStatus.ACTIVE, proposalCombat.GetProperty("status").GetInt32());
+        var proposalFrames = proposal.GetProperty("state").GetProperty("resolution")
+            .GetProperty("frames").EnumerateArray().ToArray();
+        Assert.Contains(proposalFrames,
+            frame => frame.GetProperty("transitionType").GetString() == "combat.reaction.proposed");
+        Assert.Contains(proposalFrames,
+            frame => frame.GetProperty("transitionType").GetString() == "combat.priority.passed");
+
+        using var proposedSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var proposedSnapshot = await proposedSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("hero", proposedSnapshot.GetProperty("combat").GetProperty("priorityWindow")
+            .GetProperty("holderActorId").GetString());
+        Assert.Single(proposedSnapshot.GetProperty("combat").GetProperty("pendingActions").EnumerateArray());
+        Assert.Contains(proposedSnapshot.GetProperty("hand").EnumerateArray(),
+            card => card.GetProperty("cardInstanceId").GetGuid() == cardId);
+        using var retryResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands", proposalCommand);
+        var retry = await retryResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(retryResponse.StatusCode == HttpStatusCode.OK, retry.GetRawText());
+        Assert.True(retry.GetProperty("duplicate").GetBoolean());
+        Assert.Equal(proposedSnapshot.GetProperty("run").GetProperty("stateHash").GetString(),
+            retry.GetProperty("stateHash").GetString());
+        using var replayResponse = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await replayResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+        using var timelineResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/timeline?limit=20");
+        var timeline = await timelineResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var proposalSequence = timeline.GetProperty("items").EnumerateArray()
+            .Single(item => item.GetProperty("commandId").ValueKind == JsonValueKind.String &&
+                            item.GetProperty("commandId").GetGuid() == proposalCommandId)
+            .GetProperty("runSequence").GetInt32();
+        using var branchResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/timeline/{proposalSequence}/branches",
+            new { branchKey = $"priority-open-{Guid.NewGuid():N}" });
+        var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(branchResponse.StatusCode == HttpStatusCode.OK, branch.GetRawText());
+        var branchRunId = branch.GetProperty("runId").GetGuid();
+        using var branchSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{branchRunId}/snapshot");
+        var branchSnapshot = await branchSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Single(branchSnapshot.GetProperty("combat").GetProperty("pendingActions").EnumerateArray());
+        Assert.Equal("hero", branchSnapshot.GetProperty("combat").GetProperty("priorityWindow")
+            .GetProperty("holderActorId").GetString());
+        using var legalResponse = await _client.GetAsync($"/api/v1/combats/{combatId}/legal-actions");
+        var legal = await legalResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(legal.GetProperty("candidates").EnumerateArray(), candidate =>
+            candidate.GetProperty("command").GetProperty("actionType").GetString() == "PASS_PRIORITY");
+
+        using var passResponse = await _client.PostAsJsonAsync(
+            $"/api/v1/combats/{combatId}/commands",
+            new
+            {
+                commandId = Guid.NewGuid(),
+                expectedSequence = proposedSnapshot.GetProperty("run").GetProperty("sequence").GetInt32(),
+                expectedStep = proposedSnapshot.GetProperty("combat").GetProperty("step").GetUInt64(),
+                type = "EXECUTE_ACTION",
+                payload = new { actionType = "PASS_PRIORITY" }
+            });
+        var resolved = await passResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(passResponse.StatusCode == HttpStatusCode.OK, resolved.GetRawText());
+        var resolvedCombat = resolved.GetProperty("state").GetProperty("combat");
+        Assert.Equal(JsonValueKind.Null, resolvedCombat.GetProperty("priorityWindow").ValueKind);
+        Assert.Empty(resolvedCombat.GetProperty("pendingActions").EnumerateArray());
+        Assert.True(CombatResource(resolvedCombat, "goblin_a", "health") < initialHealth);
+        Assert.Equal((int)CombatStatus.VICTORY, resolvedCombat.GetProperty("status").GetInt32());
+        Assert.Contains(resolved.GetProperty("state").GetProperty("resolution")
+                .GetProperty("frames").EnumerateArray(),
+            frame => frame.GetProperty("transitionType").GetString() == "combat.reaction.resolved");
     }
 
     [Fact]
@@ -795,6 +911,17 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         .GetProperty("state")
         .GetProperty("resources")
         .GetProperty("energy")
+        .GetProperty("current")
+        .GetDouble();
+
+    private static double CombatResource(JsonElement combat, string actorId, string resourceId) => combat
+        .GetProperty("actors")
+        .GetProperty(actorId)
+        .GetProperty("components")
+        .GetProperty("resources")
+        .GetProperty("state")
+        .GetProperty("resources")
+        .GetProperty(resourceId)
         .GetProperty("current")
         .GetDouble();
 }

@@ -108,7 +108,7 @@ public sealed class GambitDecisionPolicy : IDecisionPolicy
 
     private static CombatState ProjectActivation(CombatState combat, string actorId)
     {
-        if (combat.ActivationState == null ||
+        if (combat.PriorityWindow != null || combat.ActivationState == null ||
             string.Equals(combat.ActivationState.ActiveActorId, actorId, StringComparison.Ordinal))
             return combat;
         return combat with
@@ -179,8 +179,36 @@ public sealed class GambitDecisionReducer
                 });
             }
         }
-        return Result<DecisionPolicyResult>.Failure(
-            $"No configured decision matched a legal action for actor '{request.ActorId}'");
+        var priorityPass = legalActions.Candidates.FirstOrDefault(candidate =>
+            candidate.Command.ActionType == ActionType.PASS_PRIORITY);
+        if (priorityPass == null)
+        {
+            return Result<DecisionPolicyResult>.Failure(
+                $"No configured decision matched a legal action for actor '{request.ActorId}'");
+        }
+        var passFingerprint = CanonicalJson.ComputeHash(new
+        {
+            policyId = "gambit",
+            ruleId = "system.priority.pass",
+            legalActions.StateFingerprint,
+            priorityPass.CandidateId,
+            determinism = request.Run.Determinism
+        });
+        return Result<DecisionPolicyResult>.Success(new DecisionPolicyResult
+        {
+            Candidate = priorityPass,
+            PolicyId = "gambit",
+            RuleId = "system.priority.pass",
+            Intent = new GambitIntentDefinition
+            {
+                DisplayName = "Pass priority",
+                TelegraphType = "PassPriority",
+                Tags = ["priority", "pass"]
+            },
+            Determinism = request.Run.Determinism,
+            StateFingerprint = legalActions.StateFingerprint,
+            DecisionFingerprint = passFingerprint
+        });
     }
 
     private Result<bool> MatchPredicates(

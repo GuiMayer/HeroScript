@@ -2,6 +2,7 @@ using Core.Combat.Activation;
 using Core.Combat;
 using Core.Combat.Flow;
 using Core.Combat.LegalActions;
+using Core.Combat.Reactions;
 using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Common;
@@ -112,7 +113,159 @@ public sealed class LegalActionResolverTests
         Assert.Equal("main-second", Assert.Single(result.Value.Candidate.PhaseTransitions).EdgeId);
     }
 
-    private static LegalActionResolver Resolver(Mock<IAbilityExecutor> abilities)
+    [Fact]
+    public void Evaluate_PriorityStack_ProposesPassesAndResolvesThroughSameExecutor()
+    {
+        var (run, combat) = State(includeAbility: true, priority: true);
+        var abilities = new Mock<IAbilityExecutor>();
+        abilities.Setup(service => service.Execute(It.IsAny<AbilityExecutionRequest>()))
+            .Returns((AbilityExecutionRequest request) => Result<AbilityExecutionResult>.Success(new()
+            {
+                Combat = request.Combat with
+                {
+                    Determinism = request.Combat.Determinism.AdvanceStep()
+                },
+                Definition = new ActionDefinition { ActionId = "slash", ActionType = ActionType.POWER },
+                Evaluation = new CardPlayEvaluation
+                {
+                    IsLegal = true,
+                    ActorId = request.ActorId,
+                    ResolvedTargetIds = request.SelectedTargetIds
+                },
+                ResolutionFingerprint = CanonicalJson.ComputeHash(request)
+            }));
+        var resolver = Resolver(abilities, priority: true);
+        var proposed = resolver.Evaluate(run, combat, new CombatActionCommand
+        {
+            RunId = run.RunId,
+            ActorId = "enemy",
+            ActionType = ActionType.POWER,
+            PowerId = "slash",
+            TargetIds = ["hero"]
+        }, CombatCommandOrigin.AutomaticController);
+
+        Assert.True(proposed.Value.IsLegal);
+        Assert.Equal(ReactionTransitionKind.Proposed, proposed.Value.Candidate!.ReactionTransition);
+        Assert.Single(proposed.Value.Candidate.SuccessorCombat.PendingActions);
+        Assert.Equal("hero", proposed.Value.Candidate.SuccessorCombat.PriorityWindow!.HolderActorId);
+
+        var heroPass = resolver.Evaluate(run, proposed.Value.Candidate.SuccessorCombat,
+            new CombatActionCommand
+            {
+                RunId = run.RunId,
+                ActorId = "hero",
+                ActionType = ActionType.PASS_PRIORITY
+            }, CombatCommandOrigin.PlayerInput);
+        Assert.Equal(ReactionTransitionKind.PriorityPassed, heroPass.Value.Candidate!.ReactionTransition);
+        Assert.Equal("enemy", heroPass.Value.Candidate.SuccessorCombat.PriorityWindow!.HolderActorId);
+
+        var enemyPass = resolver.Evaluate(run, heroPass.Value.Candidate.SuccessorCombat,
+            new CombatActionCommand
+            {
+                RunId = run.RunId,
+                ActorId = "enemy",
+                ActionType = ActionType.PASS_PRIORITY
+            }, CombatCommandOrigin.AutomaticController);
+
+        Assert.True(enemyPass.Value.IsLegal);
+        Assert.Equal(ReactionTransitionKind.StackActionResolved,
+            enemyPass.Value.Candidate!.ReactionTransition);
+        Assert.Equal(ActionType.POWER, enemyPass.Value.Candidate.ResolvedCommand!.ActionType);
+        Assert.Empty(enemyPass.Value.Candidate.SuccessorCombat.PendingActions);
+        Assert.Null(enemyPass.Value.Candidate.SuccessorCombat.PriorityWindow);
+        abilities.Verify(service => service.Execute(It.IsAny<AbilityExecutionRequest>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public void Evaluate_PriorityStack_PaysAtProposalAndRefundsConfiguredFizzle()
+    {
+        var (run, combat) = State(includeAbility: true, priority: true);
+        run = run with
+        {
+            ResolvedMode = run.ResolvedMode! with
+            {
+                CombatRules = run.ResolvedMode!.CombatRules with
+                {
+                    Flow = run.ResolvedMode.CombatRules.Flow with
+                    {
+                        Reactions = PriorityPolicy() with
+                        {
+                            CostTiming = ReactionCostTiming.Proposal,
+                            Failure = ReactionResolutionFailure.FizzleRefund
+                        }
+                    }
+                }
+            }
+        };
+        var abilities = new Mock<IAbilityExecutor>();
+        abilities.SetupSequence(service => service.Execute(It.IsAny<AbilityExecutionRequest>()))
+            .Returns(Result<AbilityExecutionResult>.Success(new()
+            {
+                Combat = combat,
+                Definition = new ActionDefinition { ActionId = "slash", ActionType = ActionType.POWER },
+                Evaluation = new CardPlayEvaluation
+                {
+                    IsLegal = true,
+                    ActorId = "enemy",
+                    ResolvedTargetIds = ["hero"],
+                    Costs = [new ResolvedCardCost
+                    {
+                        ComponentId = "energy-cost",
+                        ResourceId = "energy",
+                        Amount = 2,
+                        Affordable = true
+                    }]
+                },
+                ResolutionFingerprint = "proposal-preview"
+            }))
+            .Returns(Result<AbilityExecutionResult>.Failure("target is no longer legal"));
+        var effects = new Mock<IEffectTriggerExecutor>();
+        effects.Setup(service => service.Execute(It.IsAny<EffectTriggerExecutionRequest>()))
+            .Returns((EffectTriggerExecutionRequest request) => Result<EffectBatchResult>.Success(new()
+            {
+                State = request.Combat,
+                Run = request.Run,
+                Fingerprint = CanonicalJson.ComputeHash(request.PrefixCommands)
+            }));
+        var resolver = Resolver(abilities, priority: true, effects: effects);
+
+        var proposed = resolver.Evaluate(run, combat, new CombatActionCommand
+        {
+            RunId = run.RunId,
+            ActorId = "enemy",
+            ActionType = ActionType.POWER,
+            PowerId = "slash",
+            TargetIds = ["hero"]
+        }, CombatCommandOrigin.AutomaticController).Value.Candidate!;
+        var firstPass = resolver.Evaluate(run, proposed.SuccessorCombat, new CombatActionCommand
+        {
+            RunId = run.RunId,
+            ActorId = "hero",
+            ActionType = ActionType.PASS_PRIORITY
+        }, CombatCommandOrigin.PlayerInput).Value.Candidate!;
+        var resolved = resolver.Evaluate(run, firstPass.SuccessorCombat, new CombatActionCommand
+        {
+            RunId = run.RunId,
+            ActorId = "enemy",
+            ActionType = ActionType.PASS_PRIORITY
+        }, CombatCommandOrigin.AutomaticController);
+
+        Assert.True(resolved.Value.IsLegal);
+        Assert.Equal(ReactionTransitionKind.StackActionFizzled,
+            resolved.Value.Candidate!.ReactionTransition);
+        Assert.Empty(resolved.Value.Candidate.SuccessorCombat.PendingActions);
+        effects.Verify(service => service.Execute(It.Is<EffectTriggerExecutionRequest>(request =>
+            request.PrefixCommands.Single().Definition.Operation == ResourceEffectOperation.SUBTRACT)), Times.Once);
+        effects.Verify(service => service.Execute(It.Is<EffectTriggerExecutionRequest>(request =>
+            request.PrefixCommands.Single().Definition.Operation == ResourceEffectOperation.ADD)), Times.Once);
+        abilities.Verify(service => service.Execute(It.Is<AbilityExecutionRequest>(request =>
+            request.IgnoreConfiguredCosts)), Times.Once);
+    }
+
+    private static LegalActionResolver Resolver(
+        Mock<IAbilityExecutor> abilities,
+        bool priority = false,
+        Mock<IEffectTriggerExecutor>? effects = null)
     {
         var actions = new Mock<IActionManager>();
         actions.Setup(service => service.GetDefinition("slash"))
@@ -122,7 +275,7 @@ public sealed class LegalActionResolverTests
             }));
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(service => service.Resolve("revision", "default"))
-            .Returns(Result<ContentRuntime>.Success(Runtime()));
+            .Returns(Result<ContentRuntime>.Success(Runtime(priority)));
         return new LegalActionResolver(
             actions.Object,
             runtimes.Object,
@@ -131,10 +284,12 @@ public sealed class LegalActionResolverTests
             Mock.Of<ICardPlayEvaluator>(),
             Mock.Of<ICardPlayExecutor>(),
             abilities.Object,
-            new PhaseGraphReducer(Mock.Of<IRuntimeFormulaEvaluator>(), Mock.Of<IEffectTriggerExecutor>()));
+            new PhaseGraphReducer(Mock.Of<IRuntimeFormulaEvaluator>(), Mock.Of<IEffectTriggerExecutor>()),
+            new ReactionFlowReducer(),
+            effects?.Object ?? Mock.Of<IEffectTriggerExecutor>());
     }
 
-    private static (RunState Run, CombatState Combat) State(bool includeAbility)
+    private static (RunState Run, CombatState Combat) State(bool includeAbility, bool priority = false)
     {
         var enemy = Actor("enemy", false, includeAbility ? ["slash"] : []);
         var hero = Actor("hero", true, []);
@@ -170,6 +325,10 @@ public sealed class LegalActionResolverTests
                             ActorScope = FlowActorScope.PlayerControlled,
                             MaxActionsPerActivation = 1,
                             ConsumingCommands = [GameplayCommandTypes.ExecuteAction]
+                        },
+                        Reactions = priority ? PriorityPolicy() : new ReactionPolicyDefinition
+                        {
+                            Strategy = ReactionStrategy.Disabled
                         }
                     }
                 }
@@ -178,7 +337,7 @@ public sealed class LegalActionResolverTests
         return (run, combat);
     }
 
-    private static ContentRuntime Runtime()
+    private static ContentRuntime Runtime(bool priority = false)
     {
         const string path = "phase-sequences/test.json";
         var sequence = new PhaseSequenceDefinition
@@ -199,6 +358,7 @@ public sealed class LegalActionResolverTests
                 new PhaseDefinition
                 {
                     PhaseId = "main", Role = PhaseRole.Middle, Order = 20,
+                    AllowPriority = priority,
                     AllowedActions = [ActionType.POWER, ActionType.PASS, ActionType.END_TURN],
                     Edges =
                     [
@@ -241,6 +401,18 @@ public sealed class LegalActionResolverTests
                 }))
         }).Value;
     }
+
+    private static ReactionPolicyDefinition PriorityPolicy() => new()
+    {
+        Strategy = ReactionStrategy.PriorityStack,
+        StackOrder = ReactionStackOrder.Lifo,
+        Eligibility = ReactionActorEligibility.AllAlive,
+        TargetLock = ReactionLockTiming.Proposal,
+        CostTiming = ReactionCostTiming.Resolution,
+        Failure = ReactionResolutionFailure.FizzleKeepPaid,
+        MaxStackDepth = 8,
+        ReopenAfterResolution = true
+    };
 
     private static CombatActorState Actor(string id, bool player, IReadOnlyList<string> abilities) => new()
     {
