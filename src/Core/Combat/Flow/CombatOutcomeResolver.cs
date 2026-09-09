@@ -2,7 +2,7 @@ using Core.Combat.Models;
 
 namespace Core.Combat.Flow;
 
-public enum CombatOutcomeCheckpoint
+public enum CombatOutcomeEvaluationPoint
 {
     LifecycleBoundary,
     ActionResolution
@@ -14,7 +14,7 @@ public interface ICombatOutcomeResolver
         CombatState combat,
         OutcomePolicyDefinition policy,
         string? activeActorId,
-        CombatOutcomeCheckpoint checkpoint,
+        CombatOutcomeEvaluationPoint evaluationPoint,
         bool actionResolved = true);
 }
 
@@ -29,12 +29,12 @@ public sealed class CombatOutcomeResolver : ICombatOutcomeResolver
         CombatState combat,
         OutcomePolicyDefinition policy,
         string? activeActorId,
-        CombatOutcomeCheckpoint checkpoint,
+        CombatOutcomeEvaluationPoint evaluationPoint,
         bool actionResolved = true)
     {
         ArgumentNullException.ThrowIfNull(combat);
         ArgumentNullException.ThrowIfNull(policy);
-        if (!ShouldEvaluate(combat, policy, checkpoint, actionResolved))
+        if (!ShouldEvaluate(combat, policy, evaluationPoint, actionResolved))
             return combat;
 
         var participants = combat.GetAllActors().ToArray();
@@ -72,10 +72,10 @@ public sealed class CombatOutcomeResolver : ICombatOutcomeResolver
     private static bool ShouldEvaluate(
         CombatState combat,
         OutcomePolicyDefinition policy,
-        CombatOutcomeCheckpoint checkpoint,
+        CombatOutcomeEvaluationPoint evaluationPoint,
         bool actionResolved)
     {
-        if (checkpoint == CombatOutcomeCheckpoint.LifecycleBoundary)
+        if (evaluationPoint == CombatOutcomeEvaluationPoint.LifecycleBoundary)
             return combat.PriorityWindow == null && combat.PendingActions.IsEmpty;
 
         return policy.EvaluationBoundary switch

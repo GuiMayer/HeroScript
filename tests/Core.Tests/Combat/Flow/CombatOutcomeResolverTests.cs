@@ -22,7 +22,7 @@ public sealed class CombatOutcomeResolverTests
             combat,
             Policy(OutcomeEvaluationBoundary.AfterCurrentAction),
             "hero",
-            CombatOutcomeCheckpoint.ActionResolution);
+            CombatOutcomeEvaluationPoint.ActionResolution);
 
         Assert.Equal(CombatStatus.VICTORY, resolved.Status);
         Assert.Equal(4, combat.GetActor("hero")!.GetResource("focus")!.Current);
@@ -50,12 +50,12 @@ public sealed class CombatOutcomeResolverTests
             combat,
             policy,
             "hero",
-            CombatOutcomeCheckpoint.ActionResolution);
+            CombatOutcomeEvaluationPoint.ActionResolution);
         var resolved = _resolver.Evaluate(
             combat with { PriorityWindow = null },
             policy,
             "hero",
-            CombatOutcomeCheckpoint.ActionResolution);
+            CombatOutcomeEvaluationPoint.ActionResolution);
 
         Assert.Equal(CombatStatus.ACTIVE, delayed.Status);
         Assert.Equal(CombatStatus.VICTORY, resolved.Status);
@@ -73,7 +73,7 @@ public sealed class CombatOutcomeResolverTests
             combat,
             Policy(OutcomeEvaluationBoundary.Immediate),
             "companion",
-            CombatOutcomeCheckpoint.ActionResolution);
+            CombatOutcomeEvaluationPoint.ActionResolution);
 
         Assert.Equal(CombatStatus.VICTORY, resolved.Status);
     }

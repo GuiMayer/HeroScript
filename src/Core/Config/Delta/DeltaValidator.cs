@@ -33,10 +33,10 @@ namespace Core.Config.Delta
         {
             var result = new DeltaValidationResult { IsValid = true };
 
-            // Se não é delta estruturado, é formato legado (sempre válido)
+            // A plain definition is an explicit whole-definition replacement.
             if (!delta.IsStructuredDelta())
             {
-                result.AddWarning($"[{resourceId}] Using legacy format (no $delta specified) - assuming REPLACE");
+                result.AddWarning($"[{resourceId}] Plain definition has no $delta; applying REPLACE");
                 return result;
             }
 

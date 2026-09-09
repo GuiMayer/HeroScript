@@ -35,11 +35,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
     private readonly IContentPublicationService? _contentPublications;
     private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly IResourceManager? _resources;
-    private readonly IResourceCatalog<RelicDefinition>? _relicCatalog;
-    private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgradeCatalog;
     private readonly IResourceCatalog<GameModeDefinition>? _modeCatalog;
     private readonly IGameModeResolver? _gameModeResolver;
-    private readonly RunContentDefinitionResolver _contentDefinitions;
+    private readonly RunContentDefinitionResolver? _contentDefinitions;
     private readonly RunOfferGenerator _offerGenerator;
     private readonly RunActivityRegistry _activities;
     private readonly RunProgressionService _progression;
@@ -61,8 +59,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         IOperationalEventBus? eventBus = null,
         IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
-        IResourceCatalog<RelicDefinition>? relicCatalog = null,
-        IResourceCatalog<CardUpgradeDefinition>? cardUpgradeCatalog = null,
         IResourceCatalog<GameModeDefinition>? modeCatalog = null,
         IGameModeResolver? gameModeResolver = null,
         IContentPublicationService? contentPublications = null,
@@ -84,11 +80,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         _contentPublications = contentPublications;
         _contentRuntimes = contentRuntimes;
         _resources = resources;
-        _relicCatalog = relicCatalog;
-        _cardUpgradeCatalog = cardUpgradeCatalog;
         _modeCatalog = modeCatalog;
         _gameModeResolver = gameModeResolver;
-        _contentDefinitions = new RunContentDefinitionResolver(contentRuntimes);
+        _contentDefinitions = contentRuntimes == null
+            ? null
+            : new RunContentDefinitionResolver(contentRuntimes);
         _offerGenerator = new RunOfferGenerator(
             cardPoolResolver,
             cardContentCatalog,
@@ -663,15 +659,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
 
     private Result ExecuteAcquireRelic(Guid runId, JsonElement payload)
     {
-        if (_relicCatalog == null)
-            return Result.Failure("Relic content catalog is not configured");
+        if (_contentDefinitions == null)
+            return Result.Failure("Pinned content runtime is not configured");
         var request = DeserializePayload<RelicCommand>(payload);
         var run = _runs[runId];
-        var definition = _contentDefinitions.Resolve(
+        var definition = _contentDefinitions.Resolve<RelicDefinition>(
             run,
             "relics",
-            request.RelicId,
-            () => _relicCatalog.Get(request.RelicId, run.ConfigName));
+            request.RelicId);
         if (definition.IsFailure)
             return Result.Failure(definition.Error);
         if (!string.Equals(definition.Value.RelicId, request.RelicId, StringComparison.Ordinal))
@@ -700,8 +695,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
 
     private Result ExecuteUpgradeCard(Guid runId, JsonElement payload)
     {
-        if (_cardUpgradeCatalog == null)
-            return Result.Failure("Card upgrade content catalog is not configured");
+        if (_contentDefinitions == null)
+            return Result.Failure("Pinned content runtime is not configured");
         var request = DeserializePayload<CardUpgradeCommand>(payload);
         var run = _runs[runId];
         var currentNode = run.Map.Nodes.FirstOrDefault(node =>
@@ -712,11 +707,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         if (currentNode != null &&
             run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
             return Result.Failure($"Map node already resolved: {currentNode.NodeId}");
-        var definition = _contentDefinitions.Resolve(
+        var definition = _contentDefinitions.Resolve<CardUpgradeDefinition>(
             run,
             "card-upgrades",
-            request.UpgradeId,
-            () => _cardUpgradeCatalog.Get(request.UpgradeId, run.ConfigName));
+            request.UpgradeId);
         if (definition.IsFailure)
             return Result.Failure(definition.Error);
         if (!string.Equals(definition.Value.UpgradeId, request.UpgradeId, StringComparison.Ordinal))

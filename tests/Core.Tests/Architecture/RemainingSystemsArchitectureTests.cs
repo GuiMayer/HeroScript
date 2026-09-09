@@ -1,4 +1,5 @@
 using Core.Abstractions.Persistence;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Xunit;
 
@@ -155,6 +156,109 @@ public sealed class RemainingSystemsArchitectureTests
         Assert.Contains("gambits", directoryNames);
         Assert.Contains("modifiers", directoryNames);
         Assert.Contains("status-effects", directoryNames);
+    }
+
+    [Fact]
+    public void PublicGameplaySurface_ContainsNoRetiredContractNames()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var roots = new[]
+        {
+            Path.Combine(repositoryRoot, "src"),
+            Path.Combine(repositoryRoot, "openapi"),
+            Path.Combine(repositoryRoot, "examples")
+        };
+        var forbidden = new[]
+        {
+            @"\bHeroId\b",
+            @"\bEnemyIds\b",
+            @"\bRunCheckpoint\b",
+            @"\bFirstSequence\b",
+            @"\bFinalSequence\b",
+            @"\bSnapshotAvailable\b",
+            @"\bEntityController\b",
+            @"run-checkpoints",
+            @"api/v1/entities",
+            @"/api/combat(?:/|[""'])"
+        }.Select(pattern => new Regex(pattern, RegexOptions.CultureInvariant)).ToArray();
+        var violations = roots
+            .SelectMany(root => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            .Where(path => Path.GetExtension(path) is ".cs" or ".json" or ".gd" or ".md")
+            .Where(path => !path.Contains(
+                $"{Path.DirectorySeparatorChar}data{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase))
+            .Where(path => !path.Contains(
+                $"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase))
+            .Where(path => !path.Contains(
+                $"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
+                StringComparison.OrdinalIgnoreCase))
+            .SelectMany(path => File.ReadLines(path).Select((line, index) => new
+            {
+                Path = Path.GetRelativePath(repositoryRoot, path),
+                Line = line,
+                Number = index + 1
+            }))
+            .Where(candidate => forbidden.Any(pattern => pattern.IsMatch(candidate.Line)))
+            .Select(candidate => $"{candidate.Path}:{candidate.Number}: {candidate.Line.Trim()}")
+            .ToArray();
+
+        Assert.True(
+            violations.Length == 0,
+            "Retired gameplay contracts are reachable from the public surface:\n" + string.Join("\n", violations));
+    }
+
+    [Fact]
+    public void ApiAppSettings_ContainOnlyOperationalConfiguration()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "src",
+            "API",
+            "appsettings.json")));
+        var rootKeys = document.RootElement.EnumerateObject()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        var allowedRootKeys = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Logging",
+            "AllowedHosts",
+            "AllowedOrigins",
+            "Admin",
+            "AllowConfigReload",
+            "Persistence"
+        };
+        Assert.True(
+            rootKeys.SetEquals(allowedRootKeys),
+            $"appsettings.json contains non-operational keys: {string.Join(", ", rootKeys.Except(allowedRootKeys))}");
+
+        var persistenceKeys = document.RootElement.GetProperty("Persistence")
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.True(persistenceKeys.SetEquals(new[]
+        {
+            "OperationalTelemetryPath",
+            "RunStatePath",
+            "ContentStorePath"
+        }));
+    }
+
+    [Fact]
+    public void RunDefinitionResolution_HasNoMutableCatalogFallback()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var resolverSource = File.ReadAllText(Path.Combine(
+            repositoryRoot,
+            "src",
+            "Core",
+            "Run",
+            "RunContentServices.cs"));
+
+        Assert.DoesNotContain("fallback", resolverSource, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Func<Result", resolverSource, StringComparison.Ordinal);
+        Assert.Contains("IContentRuntimeResolver contentRuntimes", resolverSource, StringComparison.Ordinal);
     }
 
     [Fact]

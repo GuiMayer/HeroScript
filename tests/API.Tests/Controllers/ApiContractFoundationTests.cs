@@ -56,6 +56,20 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
     }
 
     [Fact]
+    public async Task Capabilities_AdvertiseCanonicalCommitHistory()
+    {
+        using var response = await _client.GetAsync("/api/v1/capabilities");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var capabilities = body.GetProperty("capabilities").EnumerateArray()
+            .Select(item => item.GetString())
+            .ToArray();
+        Assert.Contains("run-commits", capabilities);
+        Assert.DoesNotContain("run-checkpoints", capabilities);
+    }
+
+    [Fact]
     public async Task InvalidModel_ReturnsProblemDetailsWithCorrelationId()
     {
         const string correlationId = "contract-test-correlation";

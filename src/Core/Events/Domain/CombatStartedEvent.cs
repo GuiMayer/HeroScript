@@ -7,14 +7,13 @@ namespace Core.Events.Domain;
 /// </summary>
 public record CombatStartedEvent : GameEvent
 {
-    private ImmutableList<string> _enemyIds = [];
+    private ImmutableList<string> _participantIds = [];
 
     public Guid CombatId { get; init; }
-    public string HeroId { get; init; } = string.Empty;
-    public IReadOnlyList<string> EnemyIds
+    public IReadOnlyList<string> ParticipantIds
     {
-        get => _enemyIds;
-        init => _enemyIds = value?.ToImmutableList() ?? [];
+        get => _participantIds;
+        init => _participantIds = value?.ToImmutableList() ?? [];
     }
     public CombatStartedEvent()
     {

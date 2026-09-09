@@ -82,7 +82,7 @@ public sealed class SystemController : ControllerBase
         {
             "deterministic-state",
             "content-manifests",
-            "run-checkpoints",
+            "run-commits",
             "run-content-revision",
             "run-card-instances",
             "run-relics",

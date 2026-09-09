@@ -48,8 +48,6 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
     private readonly ICardContentCatalog _cards;
     private readonly IPinnedContentCatalog<ScriptModifierDefinition> _modifiers;
     private readonly IContentManifestProvider _manifests;
-    private readonly IResourceCatalog<RelicDefinition> _relics;
-    private readonly IResourceCatalog<CardUpgradeDefinition> _upgrades;
     private readonly IResourceCatalog<GameModeDefinition> _modes;
     private readonly IGameModeResolver _modeResolver;
     private readonly IContentPublicationService _publications;
@@ -71,8 +69,6 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         ICardContentCatalog cards,
         IPinnedContentCatalog<ScriptModifierDefinition> modifiers,
         IContentManifestProvider manifests,
-        IResourceCatalog<RelicDefinition> relics,
-        IResourceCatalog<CardUpgradeDefinition> upgrades,
         IResourceCatalog<GameModeDefinition> modes,
         IGameModeResolver modeResolver,
         IContentPublicationService publications,
@@ -92,8 +88,6 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         _cards = cards ?? throw new ArgumentNullException(nameof(cards));
         _modifiers = modifiers ?? throw new ArgumentNullException(nameof(modifiers));
         _manifests = manifests ?? throw new ArgumentNullException(nameof(manifests));
-        _relics = relics ?? throw new ArgumentNullException(nameof(relics));
-        _upgrades = upgrades ?? throw new ArgumentNullException(nameof(upgrades));
         _modes = modes ?? throw new ArgumentNullException(nameof(modes));
         _modeResolver = modeResolver ?? throw new ArgumentNullException(nameof(modeResolver));
         _publications = publications ?? throw new ArgumentNullException(nameof(publications));
@@ -134,8 +128,6 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             options.OperationalTelemetry,
             options.CommitStore,
             _manifests,
-            _relics,
-            _upgrades,
             _modes,
             _modeResolver,
             _publications,
@@ -154,8 +146,6 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             eventBus: null,
             repository: null,
             _manifests,
-            _relics,
-            _upgrades,
             _modes,
             _modeResolver,
             _publications,

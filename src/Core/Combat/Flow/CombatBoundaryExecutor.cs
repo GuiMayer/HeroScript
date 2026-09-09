@@ -172,7 +172,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             relics.Value.Combat,
             policies.Outcome,
             initialized.Value.ActivationState?.ActiveActorId,
-            CombatOutcomeCheckpoint.LifecycleBoundary);
+            CombatOutcomeEvaluationPoint.LifecycleBoundary);
         var initial = ApplyInitialLifecycle(run, afterRelics, policies);
         if (initial.IsFailure) return initial;
         run = initial.Value.Run;
@@ -188,7 +188,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 entered.Value.Combat,
                 policies.Outcome,
                 entered.Value.Combat.ActivationState?.ActiveActorId,
-                CombatOutcomeCheckpoint.LifecycleBoundary);
+                CombatOutcomeEvaluationPoint.LifecycleBoundary);
             effectSteps.AddRange(entered.Value.Steps);
             applications.AddRange(entered.Value.Applications);
             phaseTransitions.AddRange(entered.Value.Transitions);
@@ -433,7 +433,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             processed.Value.Combat,
             policies.Outcome,
             actorId,
-            CombatOutcomeCheckpoint.LifecycleBoundary);
+            CombatOutcomeEvaluationPoint.LifecycleBoundary);
         steps.Add(new CombatResolutionStep
         {
             TransitionType = $"combat.resources.{ToSnakeCase(timing)}",
@@ -740,7 +740,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 relics.Value.Combat,
                 policies.Outcome,
                 current.ActivationState?.ActiveActorId,
-                CombatOutcomeCheckpoint.LifecycleBoundary);
+                CombatOutcomeEvaluationPoint.LifecycleBoundary);
             if (!current.IsActive)
                 break;
         }
@@ -812,7 +812,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             relics.Value.Combat,
             policies.Outcome,
             activeActorId,
-            CombatOutcomeCheckpoint.LifecycleBoundary);
+            CombatOutcomeEvaluationPoint.LifecycleBoundary);
         var effectSteps = processed.Value.Events.SelectMany(item => item.Steps)
             .Concat(relics.Value.Events.SelectMany(item => item.Steps))
             .ToArray();

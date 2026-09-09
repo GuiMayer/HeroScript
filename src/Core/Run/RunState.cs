@@ -54,7 +54,7 @@ public sealed record RunState
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     public ContentManifest? ContentManifest { get; init; }
     public DeterministicContext Determinism { get; init; } =
-        DeterministicContext.Create(0, "legacy");
+        DeterministicContext.Create(0, "uninitialized");
 
     public RunEncounterState? GetActiveEncounter()
     {

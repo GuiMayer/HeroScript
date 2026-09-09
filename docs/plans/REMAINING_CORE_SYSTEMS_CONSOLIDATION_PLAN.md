@@ -1,8 +1,11 @@
 # Consolidação dos sistemas centrais restantes
 
-**Status:** em implementação — etapas 0–15 concluídas
+**Status:** concluído — etapas 0–17 implementadas e verificadas
 
 **Data da análise:** 2026-09-07
+
+**Conclusão:** 2026-09-09; evidências reproduzíveis em
+[`unified-runtime-verification.md`](../architecture/unified-runtime-verification.md)
 
 **Escopo:** turnos/fases/prioridade/stack; entidades/IA; run/progressão;
 configuração/conteúdo/mods; eventos/persistência/replay/branches.

@@ -57,7 +57,7 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public async Task CheckpointJournal_ReplaysAndDetectsTampering()
+    public async Task CommitJournal_ReplaysAndDetectsTampering()
     {
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-replay-{Guid.NewGuid():N}");
         try
@@ -71,19 +71,19 @@ public sealed class RunManagerTests
                 started.Value.RunId, "gold", 5, ResourceEffectOperation.ADD);
             Assert.True(changed.IsSuccess);
 
-            var checkpoints = await repository.LoadCommitsAsync(started.Value.RunId);
-            var replay = RunReplayVerifier.Verify(checkpoints);
+            var commits = await repository.LoadCommitsAsync(started.Value.RunId);
+            var replay = RunReplayVerifier.Verify(commits);
 
             Assert.True(replay.IsValid, string.Join("; ", replay.Errors));
             Assert.NotNull(replay.FinalState);
             Assert.Equal(
                 CanonicalJson.ComputeHash(changed.Value),
                 CanonicalJson.ComputeHash(replay.FinalState!));
-        Assert.Equal(
+            Assert.Equal(
                 new[] { RunCommandTypes.StartRun, RunCommandTypes.ApplyRunResource },
-                checkpoints.Select(item => item.RootCommand.Type));
+                commits.Select(item => item.RootCommand.Type));
 
-            var tampered = checkpoints.ToArray();
+            var tampered = commits.ToArray();
             tampered[^1] = tampered[^1] with
             {
                 StateAfter = SetResource(tampered[^1].StateAfter, "gold", 999)
@@ -992,7 +992,7 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public void CommandGateway_DeduplicatesFromDurableCheckpointAfterRestart()
+    public void CommandGateway_DeduplicatesFromDurableCommitAfterRestart()
     {
         var path = Path.Combine(Path.GetTempPath(), $"heroscript-command-{Guid.NewGuid():N}");
         try

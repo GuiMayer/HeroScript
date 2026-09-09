@@ -9,24 +9,17 @@ namespace Core.Run;
 
 /// <summary>
 /// Resolves definitions against the immutable content revision pinned to a run.
-/// The fallback exists only for standalone engines that do not have a published
-/// content runtime; production composition always provides one.
 /// </summary>
-internal sealed class RunContentDefinitionResolver(IContentRuntimeResolver? contentRuntimes)
+internal sealed class RunContentDefinitionResolver(IContentRuntimeResolver contentRuntimes)
 {
     public Result<T> Resolve<T>(
         RunState run,
         string kind,
-        string definitionId,
-        Func<Result<T>> fallback)
+        string definitionId)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentException.ThrowIfNullOrWhiteSpace(kind);
         ArgumentException.ThrowIfNullOrWhiteSpace(definitionId);
-        ArgumentNullException.ThrowIfNull(fallback);
-
-        if (contentRuntimes == null)
-            return fallback();
 
         var runtime = contentRuntimes.Resolve(
             run.Determinism.ContentRevision,

@@ -345,16 +345,15 @@ namespace Core.Config
                 }
                 catch
                 {
-                    // Se falhar, trata como REPLACE legado
+                    // Non-delta definitions are whole-definition replacements.
                 }
 
-                // Se não é delta estruturado, trata como REPLACE legado
+                // Plain definitions replace the complete inherited definition.
                 if (delta == null || !delta.IsStructuredDelta())
                 {
-                    // Formato legado: substitui recurso inteiro
                     if (merged.ContainsKey(resourceId))
                     {
-                        _logger.LogDebug($"Override: {resourceId} (from {configName}) [legacy format]");
+                        _logger.LogDebug($"Whole-definition replacement: {resourceId} (from {configName})");
                     }
 
                     merged[resourceId] = resourceElement.Clone();

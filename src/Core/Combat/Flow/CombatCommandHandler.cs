@@ -89,7 +89,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             combat,
             policies.Outcome,
             resolvedCommand?.ActorId ?? rootCommand.ActorId,
-            CombatOutcomeCheckpoint.ActionResolution,
+            CombatOutcomeEvaluationPoint.ActionResolution,
             resolvedCommand != null || candidate.ReactionTransition == ReactionTransitionKind.StackActionFizzled);
         run = ModifierTransitions.Tick(
             run,

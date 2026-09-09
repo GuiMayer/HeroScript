@@ -34,7 +34,7 @@ Diagnósticos e reload são administração, não parte do fluxo de gameplay.
 | --- | --- | --- |
 | Perfil | `/api/v1/profiles/{playerId}` | Leitura derivada; sem mutação pública. |
 | Daily challenge | `/api/v1/challenges/daily/current` | Tentativa, prova e ranking verificados por replay. |
-| Branches | `/api/v1/runs/{runId}/branches` | Branch a partir de checkpoint; experimental. |
+| Branches | `/api/v1/runs/{runId}/branches` | Branch a partir de commit; experimental. |
 | Simulações | `/api/v1/simulations` | Isoladas da run de origem; experimental. |
 | Cartas | `/cards/evaluations`, `/cards/{cardInstanceId}/evaluation` | Legalidade e prévia pelo mesmo fluxo de `PLAY_CARD`; experimental. |
 
@@ -42,5 +42,6 @@ Essas superfícies não devem ser usadas para inferir que a engine oferece
 multiplayer, economia permanente ou regras completas de TCG. Cada capacidade
 precisa aparecer em `/capabilities` e no changelog antes de se tornar estável.
 
-Reações permanecem apenas uma opção de conteúdo reservada e desabilitada. Não
-há pilha ou sistema de prioridade parcialmente autoritativo na API atual.
+Reações, pilha e prioridade usam o mesmo gateway autoritativo das demais ações.
+Elas só ficam ativas em modos cuja política de combate as habilite; modos sem
+essa política continuam com resolução imediata.

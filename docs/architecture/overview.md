@@ -33,7 +33,7 @@ Cada comando aceito:
 2. resolve regras contra a revisão de conteúdo fixada;
 3. calcula um snapshot candidato e avança o contexto determinístico;
 4. gera hash canônico, frames e registro do comando;
-5. persiste um checkpoint atômico;
+5. persiste um `RunCommit` atômico;
 6. só então publica o novo estado e eventos de observação.
 
 Falha em qualquer ponto anterior ao commit mantém estado, deck e RNG originais.
@@ -110,17 +110,20 @@ Branches derivam de commits históricos e nunca reescrevem a origem.
 A Godot pode pausar entre frames, consultar snapshots compactos e navegar pela
 árvore de branches. Essa espera é visual: a engine já concluiu a transação.
 
-## Capacidades deliberadamente indisponíveis
+## Limites atuais deliberados
 
-- reações/pilha/prioridade: opções reservadas, validadas apenas como `Disabled`;
-- grafos de fase mais ricos: estruturalmente representáveis, mas o executor atual
-  exige exatamente `Start`, `Middle` e `End`;
-- término da run por derrota: depende de futura política de progressão do modo;
+- o runtime inclui ativação configurável, grafos de fase e pilha/prioridade, mas
+  cada modo deve habilitar e parametrizar essas capacidades explicitamente;
+- multiplayer em rede, economia permanente e uma camada completa de TCG não
+  fazem parte do contrato atual;
+- políticas de progressão podem decidir o destino após um combate, mas nenhum
+  comportamento é inferido pelo cliente;
 - compatibilidade legado: não é mantida nesta fase pré-produção.
 
 ## Próximas leituras
 
 - [Runs determinísticas](deterministic-runs.md)
+- [Verificação do runtime unificado](unified-runtime-verification.md)
 - [Sistemas transversais](cross-cutting-systems.md)
 - [Timeline](timeline-system.md)
 - [Combate](../systems/combat/combat-system.md)

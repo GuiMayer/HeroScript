@@ -54,7 +54,7 @@ contract before it can participate in an authoritative run.
 
 Snapshots owned by the run runtime are authoritative game state. A run-owned
 combat is embedded in that run; no combat service owns a parallel mutable copy.
-`CombatRunCoordinator` is a temporary transactional adapter, while
+`CombatRunCoordinator` is the transactional combat application service, while
 `CombatCommandHandler`, `AutomaticFlowDriver` and `CombatBoundaryExecutor`
 calculate candidate replacements. `CombatFlowPlanner` only resolves the pinned
 content graph and composes boundaries and intents. Public transition methods
@@ -87,7 +87,7 @@ continuation succeeds. A reducer, AI decision, lifecycle or automatic-step-limit
 failure therefore publishes no prefix of the batch. Manual execution and theory-
 crafting simulation share this same command handler and commit path.
 
-## Command and checkpoint lifecycle
+## Command and commit lifecycle
 
 Each accepted run command follows this order:
 
@@ -96,26 +96,24 @@ validate command
     -> calculate candidate snapshot
     -> advance deterministic context
     -> calculate canonical state hash
-    -> atomically append journal checkpoint
-    -> update compactable snapshot projection
+    -> atomically append authoritative run commit
     -> publish snapshot in memory
     -> publish observation events
 ```
 
-`RunCheckpoint` is the atomic persistence unit in the append-only journal. Its
-journal entry records command identity, expected version, command type and
-payload, run sequence, deterministic step, previous-state hash, new-state hash
-and logical timestamp. Snapshot files are a rebuildable projection and may be
-compacted independently; journal checkpoints are never removed by snapshot
-retention. If the journal append fails, the candidate is not published and any
-external modifier applied during preparation is rolled back.
+`RunCommit` is the atomic persistence unit in the append-only store. It records
+the root command identity and payload, expected version, run sequence,
+deterministic step range, previous/new state hashes, logical timestamp, resulting
+state, ordered frames and durable facts. Read snapshots are rebuilt from commits;
+they are never a parallel authority. If append fails, the candidate is not
+published and any external modifier applied during preparation is rolled back.
 
 Restoring an older domain snapshot is itself a new command. It never rewinds the
 sequence, random cursor, identifier sequence or logical clock.
 
 ## Replay and integrity
 
-`RunReplayVerifier` remains the low-level stored-checkpoint integrity checker. It
+`RunReplayVerifier` remains the low-level stored-commit integrity checker. It
 verifies:
 
 - run/sequence identity between snapshot and journal entry;
@@ -131,7 +129,7 @@ canonical state hash after every transition. Stored snapshots are not used as
 replay results. Snapshot retention therefore has no effect on replay coverage.
 
 The public verification surfaces are `POST /api/v1/runs/{runId}/verify` and
-`POST /api/v1/combats/{combatId}/verify`. Journal and checkpoint metadata are
+`POST /api/v1/combats/{combatId}/verify`. Journal and commit metadata are
 available under the corresponding versioned read endpoints.
 
 ## Durable event projections
@@ -178,9 +176,9 @@ there are no public endpoints that mutate a global relic or card object.
 ## Branches, simulations and meta projections
 
 An undo never rewrites history. `run.branch.start` creates a new aggregate from
-an immutable parent checkpoint, records the parent id/sequence/hash and derives
+an immutable parent commit, records the parent id/sequence/hash and derives
 the branch id from the source deterministic context plus a stable branch key.
-When the checkpoint contains an active encounter, the branch deterministically
+When the commit contains an active encounter, the branch deterministically
 derives a new combat identity and preserves the parent combat. Semantic replay
 reconstructs the same branch from its parent before executing later commands.
 
@@ -234,6 +232,6 @@ being removed or explicitly classified.
 Before merging a deterministic-domain change, run the Core suite, the API unit
 suite and the solution build. At minimum, tests must cover reproducibility from
 the same seed and commands, defensive collection copies, persistence rollback,
-checkpoint hash-chain tampering, and detection of unclassified ambient inputs.
+commit hash-chain tampering, and detection of unclassified ambient inputs.
 Semantic replay tests must additionally include at least one run-owned combat
 action and prove equality of the final replay hash.

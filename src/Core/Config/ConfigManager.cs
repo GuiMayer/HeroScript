@@ -64,7 +64,7 @@ namespace Core.Config
         public string UserConfigsPath => GetUserDataPath();
 
         /// <summary>
-        /// Gets the user data path (public for backward compatibility)
+        /// Gets the configured user-data root used by authoring providers.
         /// </summary>
         public string GetUserDataPath()
         {

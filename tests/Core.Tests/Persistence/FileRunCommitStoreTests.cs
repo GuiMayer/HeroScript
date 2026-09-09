@@ -75,6 +75,33 @@ public sealed class FileRunCommitStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Load_CorruptStateBytesFailFastAfterRestart()
+    {
+        var runId = Guid.NewGuid();
+        var commit = CreateCommit(runId, 1, null, 1);
+        await usingScope(async store => await store.AppendAsync(commit));
+        var path = Path.Combine(
+            _directory,
+            runId.ToString("D"),
+            "commits",
+            "00000001.json");
+        var json = await File.ReadAllTextAsync(path);
+        var corruptHash = new string('0', 64);
+        var corrupted = json.Replace(
+            $"\"StateHash\": \"{commit.StateHash}\"",
+            $"\"StateHash\": \"{corruptHash}\"",
+            StringComparison.Ordinal);
+        Assert.NotEqual(json, corrupted);
+        await File.WriteAllTextAsync(path, corrupted);
+
+        using var restarted = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            restarted.LoadCommitAsync(runId, 1));
+
+        Assert.Contains("stateHash", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Append_RejectsUnknownSchemaAndEngine()
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);

@@ -10,11 +10,24 @@ namespace API.Tests;
 /// </summary>
 public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly string _persistenceRoot = Path.Combine(
-        Path.GetTempPath(),
-        "HeroScript",
-        "api-integration-tests",
-        Guid.NewGuid().ToString("N"));
+    private readonly string _persistenceRoot;
+
+    public TestWebApplicationFactory()
+        : this(Path.Combine(
+            Path.GetTempPath(),
+            "HeroScript",
+            "api-integration-tests",
+            Guid.NewGuid().ToString("N")))
+    {
+    }
+
+    internal TestWebApplicationFactory(string persistenceRoot)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(persistenceRoot);
+        _persistenceRoot = Path.GetFullPath(persistenceRoot);
+    }
+
+    public string PersistenceRoot => _persistenceRoot;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

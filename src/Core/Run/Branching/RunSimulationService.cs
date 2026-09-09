@@ -86,7 +86,7 @@ public sealed class RunSimulationService : IRunSimulationService
             return Result<RunSimulationResult>.Failure("Every simulation command requires a type");
         var source = await _repository.LoadStateAsync(sourceRunId, sourceSequence, cancellationToken).ConfigureAwait(false);
         if (source == null)
-            return Result<RunSimulationResult>.Failure($"Run checkpoint not found: {sourceRunId}/{sourceSequence}");
+            return Result<RunSimulationResult>.Failure($"Run commit not found: {sourceRunId}/{sourceSequence}");
         var capability = source.ResolvedMode?.CapabilityPolicy;
         if (capability?.AllowCombatSimulation != true)
             return Result<RunSimulationResult>.Failure($"Game mode does not allow combat simulation: {source.ModeId}");
@@ -179,7 +179,7 @@ public sealed class RunSimulationService : IRunSimulationService
             lineage.SourceSequence.Value,
             cancellationToken).ConfigureAwait(false);
         if (source == null)
-            return Result<RunSimulationResult>.Failure("Simulation source checkpoint is unavailable");
+            return Result<RunSimulationResult>.Failure("Simulation source commit is unavailable");
         return Result<RunSimulationResult>.Success(new RunSimulationResult
         {
             SimulationId = state.RunId,

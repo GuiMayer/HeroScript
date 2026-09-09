@@ -28,7 +28,7 @@ intenção REST
   -> IGameplayCommandGateway
   -> resolução da mesma contentRevision fixada na run
   -> transição pura sobre estado imutável
-  -> persistência atômica do checkpoint
+  -> persistência atômica do `RunCommit`
   -> publicação do novo snapshot
   -> projeções, EventBus e logs correlacionados
 ```

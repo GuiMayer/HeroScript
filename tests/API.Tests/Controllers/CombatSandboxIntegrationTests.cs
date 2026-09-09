@@ -138,9 +138,149 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         {
             using var factory = new TestWebApplicationFactory();
             using var client = factory.CreateClient();
-            var evidence = await ExecuteDeterministicFlow(client);
+            var evidence = await ExecuteDeterministicFlow(client, factory.PersistenceRoot);
             baseline ??= evidence;
             Assert.Equal(baseline, evidence);
+        }
+    }
+
+    [Fact]
+    public async Task Restart_PreservesActiveCombatOpenStackBranchHistoryAndReplay()
+    {
+        var persistenceRoot = Path.Combine(
+            Path.GetTempPath(),
+            "HeroScript",
+            "restart-verification",
+            Guid.NewGuid().ToString("N"));
+        try
+        {
+            Guid runId;
+            Guid combatId;
+            Guid branchRunId;
+            int expectedSequence;
+            ulong expectedStep;
+            string expectedStateHash;
+
+            using (var firstFactory = new TestWebApplicationFactory(persistenceRoot))
+            using (var firstClient = firstFactory.CreateClient())
+            {
+                using var launchResponse = await firstClient.PostAsJsonAsync(
+                    "/api/v1/sandbox/runs",
+                    CreateScenario(
+                        "restart-open-stack",
+                        new
+                        {
+                            resourcesByActor = new Dictionary<string, object>
+                            {
+                                ["hero"] = new { energy = 3 },
+                                ["goblin_a"] = new { health = 1 }
+                            }
+                        },
+                        modeId: "combat_sandbox_priority"));
+                var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.True(launchResponse.IsSuccessStatusCode, launch.GetRawText());
+                runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
+                combatId = launch.GetProperty("combat").GetProperty("combatId").GetGuid();
+
+                using var initialResponse = await firstClient.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+                var initial = await initialResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal(HttpStatusCode.OK, initialResponse.StatusCode);
+                var cardId = initial.GetProperty("hand").EnumerateArray()
+                    .First(card => card.GetProperty("definitionId").GetString() == "basic_attack")
+                    .GetProperty("cardInstanceId").GetGuid();
+                var proposalCommandId = Guid.Parse("71000000-0000-8000-8000-000000000001");
+                using var proposalResponse = await firstClient.PostAsJsonAsync(
+                    $"/api/v1/combats/{combatId}/commands",
+                    new
+                    {
+                        commandId = proposalCommandId,
+                        expectedSequence = initial.GetProperty("run").GetProperty("sequence").GetInt32(),
+                        expectedStep = initial.GetProperty("combat").GetProperty("step").GetUInt64(),
+                        type = "PLAY_CARD",
+                        payload = new
+                        {
+                            actorId = "hero",
+                            cardInstanceId = cardId,
+                            targetIds = new[] { "goblin_a" }
+                        }
+                    });
+                var proposal = await proposalResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.True(proposalResponse.IsSuccessStatusCode, proposal.GetRawText());
+                var proposalCombat = proposal.GetProperty("state").GetProperty("combat");
+                Assert.Single(proposalCombat.GetProperty("pendingActions").EnumerateArray());
+                Assert.Equal("hero", proposalCombat.GetProperty("priorityWindow")
+                    .GetProperty("holderActorId").GetString());
+                expectedSequence = proposal.GetProperty("sequence").GetInt32();
+                expectedStep = proposalCombat.GetProperty("step").GetUInt64();
+                expectedStateHash = proposal.GetProperty("stateHash").GetString()!;
+
+                using var branchResponse = await firstClient.PostAsJsonAsync(
+                    $"/api/v1/combats/{combatId}/timeline/{expectedSequence}/branches",
+                    new { branchKey = "restart-open-stack-branch" });
+                var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.True(branchResponse.IsSuccessStatusCode, branch.GetRawText());
+                branchRunId = branch.GetProperty("runId").GetGuid();
+            }
+
+            using (var restartedFactory = new TestWebApplicationFactory(persistenceRoot))
+            using (var restartedClient = restartedFactory.CreateClient())
+            {
+                using var parentResponse = await restartedClient.GetAsync(
+                    $"/api/v1/sandbox/runs/{runId}/snapshot");
+                var parent = await parentResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal(HttpStatusCode.OK, parentResponse.StatusCode);
+                Assert.Equal(expectedStateHash, parent.GetProperty("run").GetProperty("stateHash").GetString());
+                Assert.Single(parent.GetProperty("combat").GetProperty("pendingActions").EnumerateArray());
+                Assert.Equal("hero", parent.GetProperty("combat").GetProperty("priorityWindow")
+                    .GetProperty("holderActorId").GetString());
+
+                using var branchResponse = await restartedClient.GetAsync(
+                    $"/api/v1/sandbox/runs/{branchRunId}/snapshot");
+                var branch = await branchResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal(HttpStatusCode.OK, branchResponse.StatusCode);
+                Assert.Single(branch.GetProperty("combat").GetProperty("pendingActions").EnumerateArray());
+                Assert.Equal("hero", branch.GetProperty("combat").GetProperty("priorityWindow")
+                    .GetProperty("holderActorId").GetString());
+
+                using var treeResponse = await restartedClient.GetAsync($"/api/v1/runs/{runId}/branch-tree");
+                var tree = await treeResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.Equal(HttpStatusCode.OK, treeResponse.StatusCode);
+                Assert.Contains(tree.GetProperty("children").EnumerateArray(), child =>
+                    child.GetProperty("runId").GetGuid() == branchRunId);
+
+                foreach (var replayRunId in new[] { runId, branchRunId })
+                {
+                    using var verifyResponse = await restartedClient.PostAsync(
+                        $"/api/v1/runs/{replayRunId}/verify",
+                        null);
+                    var verification = await verifyResponse.Content.ReadFromJsonAsync<JsonElement>();
+                    Assert.Equal(HttpStatusCode.OK, verifyResponse.StatusCode);
+                    Assert.True(verification.GetProperty("isValid").GetBoolean(), verification.GetRawText());
+                    Assert.True(verification.GetProperty("reexecuted").GetBoolean());
+                }
+
+                using var passResponse = await restartedClient.PostAsJsonAsync(
+                    $"/api/v1/combats/{combatId}/commands",
+                    new
+                    {
+                        commandId = Guid.Parse("71000000-0000-8000-8000-000000000002"),
+                        expectedSequence,
+                        expectedStep,
+                        type = "EXECUTE_ACTION",
+                        payload = new { actionType = "PASS_PRIORITY" }
+                    });
+                var resolved = await passResponse.Content.ReadFromJsonAsync<JsonElement>();
+                Assert.True(passResponse.IsSuccessStatusCode, resolved.GetRawText());
+                Assert.Empty(resolved.GetProperty("state").GetProperty("combat")
+                    .GetProperty("pendingActions").EnumerateArray());
+                Assert.Equal(JsonValueKind.Null, resolved.GetProperty("state").GetProperty("combat")
+                    .GetProperty("priorityWindow").ValueKind);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(persistenceRoot))
+                Directory.Delete(persistenceRoot, recursive: true);
         }
     }
 
@@ -978,7 +1118,9 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         }
     };
 
-    private async Task<DeterministicFlowEvidence> ExecuteDeterministicFlow(HttpClient client)
+    private async Task<DeterministicFlowEvidence> ExecuteDeterministicFlow(
+        HttpClient client,
+        string persistenceRoot)
     {
         using var launchResponse = await client.PostAsJsonAsync(
             "/api/v1/sandbox/runs",
@@ -1024,10 +1166,21 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var journalResponse = await client.GetAsync($"/api/v1/runs/{runId}/journal?limit=100");
         var journal = await journalResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, journalResponse.StatusCode);
+        using var commitsResponse = await client.GetAsync($"/api/v1/runs/{runId}/commits");
+        var commits = await commitsResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, commitsResponse.StatusCode);
         using var verifyResponse = await client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var replay = await verifyResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, verifyResponse.StatusCode);
         Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+        Assert.True(replay.GetProperty("reexecuted").GetBoolean());
+        var commitBytes = string.Join(
+            "\n--commit--\n",
+            Directory.GetFiles(
+                    Path.Combine(persistenceRoot, "runs", runId.ToString("D"), "commits"),
+                    "*.json")
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .Select(File.ReadAllText));
 
         return new DeterministicFlowEvidence(
             runId,
@@ -1038,8 +1191,14 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             preview.GetProperty("resolutionFingerprint").GetString()!,
             action.GetProperty("stateHash").GetString()!,
             resolution.GetProperty("resolutionFingerprint").GetString()!,
+            launch.GetProperty("run").GetProperty("determinism").GetRawText(),
+            snapshot.GetProperty("combat").GetProperty("activation").GetProperty("intents").GetRawText(),
             resolution.GetProperty("frames").GetRawText(),
-            journal.GetProperty("entries").GetRawText());
+            journal.GetProperty("entries").GetRawText(),
+            commits.GetProperty("commits").GetRawText(),
+            snapshot.GetRawText(),
+            action.GetRawText(),
+            commitBytes);
     }
 
     private sealed record DeterministicFlowEvidence(
@@ -1051,8 +1210,14 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         string PreviewFingerprint,
         string FinalStateHash,
         string ResolutionFingerprint,
+        string DeterministicContext,
+        string Intents,
         string Frames,
-        string Journal);
+        string Journal,
+        string Commits,
+        string SnapshotBytes,
+        string ReceiptBytes,
+        string CommitBytes);
 
     private static double Health(JsonElement snapshot, string entityId) => snapshot
         .GetProperty("combat")

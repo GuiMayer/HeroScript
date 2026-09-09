@@ -36,7 +36,8 @@ public class ActionManager : IActionManager, IRevisionedActionCatalog
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _persister = persister; // Optional for backward compatibility
+        // Read-only runtimes deliberately omit the authoring boundary.
+        _persister = persister;
         _contentRuntimes = contentRuntimes;
     }
     

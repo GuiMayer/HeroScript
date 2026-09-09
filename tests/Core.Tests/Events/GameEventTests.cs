@@ -174,21 +174,20 @@ public class GameEventTests
     {
         // Arrange
         var combatId = Guid.NewGuid();
-        var enemyIds = new List<string> { "goblin1", "goblin2", "orc1" };
+        var participantIds = new List<string> { "hero_ironclad", "goblin1", "goblin2", "orc1" };
         
         // Act
         var evt = new CombatStartedEvent
         {
             CombatId = combatId,
-            HeroId = "hero_ironclad",
-            EnemyIds = enemyIds
+            ParticipantIds = participantIds
         };
         
         // Assert
         Assert.Equal(combatId, evt.CombatId);
-        Assert.Equal("hero_ironclad", evt.HeroId);
-        Assert.Equal(3, evt.EnemyIds.Count);
-        Assert.Contains("goblin1", evt.EnemyIds);
+        Assert.Equal(4, evt.ParticipantIds.Count);
+        Assert.Contains("hero_ironclad", evt.ParticipantIds);
+        Assert.Contains("goblin1", evt.ParticipantIds);
     }
     
     // ==================== COMBAT ENDED EVENT TESTS ====================
@@ -627,8 +626,7 @@ public class GameEventTests
         var startEvent = new CombatStartedEvent
         {
             CombatId = combatId,
-            HeroId = "ironclad",
-            EnemyIds = new List<string> { "jaw_worm" }
+            ParticipantIds = ["ironclad", "jaw_worm"]
         };
         
         // Act - Combat action

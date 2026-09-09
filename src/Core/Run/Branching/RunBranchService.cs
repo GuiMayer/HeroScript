@@ -324,10 +324,10 @@ public static class RunBranchTransitions
         if (source.ActiveEncounterId is { } activeCombatId)
         {
             if (command.SourceCombatId != activeCombatId)
-                return Result<RunState>.Failure("Branch combat anchor does not match the source checkpoint");
+                return Result<RunState>.Failure("Branch combat anchor does not match the source commit");
             var index = Array.FindIndex(encounters, encounter => encounter.Combat.CombatId == activeCombatId);
             if (index < 0)
-                return Result<RunState>.Failure("Active branch combat is missing from the source checkpoint");
+                return Result<RunState>.Failure("Active branch combat is missing from the source commit");
             var combat = encounters[index].Combat;
             var allocatedCombat = combat.Determinism.AllocateId(
                 $"branch:{allocated.Value:N}:{command.SourceSequence}:{command.BranchKey}");
