@@ -164,12 +164,16 @@ public sealed class CrossCuttingArchitectureTests
     {
         var plannerFields = typeof(Core.Combat.Flow.CombatFlowPlanner)
             .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
+        var boundaryFields = typeof(Core.Combat.Flow.CombatBoundaryExecutor)
+            .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
         var resolverFields = typeof(TurnOrderResolver)
             .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
         var policyProperties = typeof(TurnOrderPolicyDefinition)
             .GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
         Assert.Contains(plannerFields,
+            field => typeof(Core.Combat.Flow.ICombatBoundaryExecutor).IsAssignableFrom(field.FieldType));
+        Assert.Contains(boundaryFields,
             field => typeof(ITurnOrderResolver).IsAssignableFrom(field.FieldType));
         Assert.DoesNotContain(resolverFields,
             field => field.FieldType == typeof(CombatState) || field.FieldType == typeof(TurnOrderState));
@@ -178,14 +182,14 @@ public sealed class CrossCuttingArchitectureTests
     }
 
     [Fact]
-    public void PlayerPreviewIntentAndCoordinatorShareOneLegalActionBoundary()
+    public void PlayerPreviewIntentAndCommandHandlerShareOneLegalActionBoundary()
     {
         var boundary = typeof(Core.Combat.LegalActions.ILegalActionResolver);
         var consumers = new[]
         {
             typeof(Core.Run.Content.CardInspectionService),
             typeof(Core.Combat.Intents.IntentResolver),
-            typeof(Core.Combat.CombatRunCoordinator)
+            typeof(Core.Combat.Flow.CombatCommandHandler)
         };
 
         Assert.All(consumers, consumer => Assert.Contains(
@@ -216,7 +220,7 @@ public sealed class CrossCuttingArchitectureTests
     }
 
     [Fact]
-    public void CombatCoordinatorCannotBypassCanonicalActionExecutors()
+    public void CombatCoordinatorDelegatesCanonicalActionExecutionToCommandHandler()
     {
         var fields = typeof(Core.Combat.CombatRunCoordinator)
             .GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
@@ -226,6 +230,8 @@ public sealed class CrossCuttingArchitectureTests
         Assert.DoesNotContain(fields,
             field => typeof(Core.Run.Content.ICardPlayExecutor).IsAssignableFrom(field.FieldType));
         Assert.Contains(fields,
+            field => typeof(Core.Combat.Flow.ICombatCommandHandler).IsAssignableFrom(field.FieldType));
+        Assert.DoesNotContain(fields,
             field => typeof(Core.Combat.LegalActions.ILegalActionResolver).IsAssignableFrom(field.FieldType));
     }
 

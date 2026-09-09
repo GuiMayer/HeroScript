@@ -1,6 +1,6 @@
 # Consolidação dos sistemas centrais restantes
 
-**Status:** em implementação — etapas 0–14 concluídas
+**Status:** em implementação — etapas 0–15 concluídas
 
 **Data da análise:** 2026-09-07
 
@@ -774,6 +774,13 @@ outcome atrasado, branch com stack aberta, replay e retry.
 **Commit sugerido:** `feat(reactions): add immutable priority windows and action stack`
 
 ### Etapa 15 — Reduzir planner e coordinator a composição
+
+**Implementada em 2026-09-09.** O caminho canônico agora separa
+`CombatCommandHandler`, `CombatActionStateReducer`, `AutomaticFlowDriver`,
+`CombatBoundaryExecutor` e `CombatOutcomeResolver`. `CombatFlowPlanner` apenas
+resolve o grafo fixado e compõe boundaries/intents; `CombatRunCoordinator`
+permanece como adapter temporário de compatibilidade interna para início,
+consulta e commit atômico, sem executar regra de carta, IA ou lifecycle.
 
 **Objetivo:** fechar os dois supermódulos do combate.
 

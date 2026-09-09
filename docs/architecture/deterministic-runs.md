@@ -52,9 +52,12 @@ contract before it can participate in an authoritative run.
 
 ## Authoritative aggregates
 
-Snapshots owned by `RunManager` are authoritative game state. A run-owned combat
-is embedded in that run; `CombatRunCoordinator` and `CombatFlowPlanner` calculate
-candidate replacements without owning parallel state. Public transition methods
+Snapshots owned by the run runtime are authoritative game state. A run-owned
+combat is embedded in that run; no combat service owns a parallel mutable copy.
+`CombatRunCoordinator` is a temporary transactional adapter, while
+`CombatCommandHandler`, `AutomaticFlowDriver` and `CombatBoundaryExecutor`
+calculate candidate replacements. `CombatFlowPlanner` only resolves the pinned
+content graph and composes boundaries and intents. Public transition methods
 serialize access per aggregate and replace the whole snapshot after a successful
 transition. Nested runtime collections use immutable storage and copy caller-owned
 collections on assignment.
@@ -64,7 +67,11 @@ The main modules have narrow responsibilities:
 | Module | Responsibility |
 | --- | --- |
 | Run transitions | Deck, economy, rewards, shop and preparation state changes |
-| Combat transitions | Action validation, entity/resource changes and turn progress |
+| Combat command handler | Compose legal-action evaluation and pure state reduction for every controller |
+| Automatic flow driver | Reuse the command handler until player or player-priority input is required |
+| Combat boundary executor | Order configured phase, deck, resource, status and relic lifecycles and emit frames |
+| Combat outcome resolver | Derive outcome from sides, controllers and configured resource thresholds |
+| Combat flow planner | Resolve the pinned policy graph and compose boundary results with intents |
 | Effect handlers | Adapt a typed effect to combat, status, run or metadata behavior |
 | Deterministic context | Random cursor, logical time, IDs, engine/content version |
 | Repository | Atomically make an accepted run transition durable |
@@ -73,6 +80,12 @@ The main modules have narrow responsibilities:
 
 Managers may coordinate these modules, but domain calculations must not retain a
 hidden random cursor, clock, turn meter or partial state in a singleton.
+
+A manual root action and every automatically derived action form one candidate
+batch. The run committer receives that batch only after the whole automatic
+continuation succeeds. A reducer, AI decision, lifecycle or automatic-step-limit
+failure therefore publishes no prefix of the batch. Manual execution and theory-
+crafting simulation share this same command handler and commit path.
 
 ## Command and checkpoint lifecycle
 

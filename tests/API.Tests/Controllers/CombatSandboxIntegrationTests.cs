@@ -198,6 +198,80 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     }
 
     [Fact]
+    public async Task ManualAndSimulationCommands_UseEquivalentCombatSemantics()
+    {
+        using var launchResponse = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario($"manual-simulation-{Guid.NewGuid():N}"));
+        var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
+        var runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launch.GetProperty("combat").GetProperty("combatId").GetGuid();
+
+        using var initialResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var initial = await initialResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, initialResponse.StatusCode);
+        var card = initial.GetProperty("hand").EnumerateArray()
+            .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
+        var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
+        var simulationRequest = new
+        {
+            sourceRunId = runId,
+            sourceSequence = initial.GetProperty("run").GetProperty("sequence").GetInt32(),
+            commands = new object[]
+            {
+                new
+                {
+                    type = "PLAY_CARD",
+                    payload = new
+                    {
+                        actorId = "hero",
+                        targetIds = new[] { "goblin_a" },
+                        cardInstanceId
+                    }
+                }
+            }
+        };
+
+        using var simulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", simulationRequest);
+        var simulation = await simulationResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(simulationResponse.StatusCode == HttpStatusCode.OK, simulation.GetRawText());
+        var simulationId = simulation.GetProperty("simulationId").GetGuid();
+
+        await ExecuteCardCommandResult(runId, combatId, card, "goblin_a", Guid.NewGuid());
+
+        using var manualResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        using var simulatedResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{simulationId}/snapshot");
+        var manual = await manualResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var simulated = await simulatedResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, manualResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, simulatedResponse.StatusCode);
+
+        Assert.Equal(
+            manual.GetProperty("combat").GetProperty("turn").GetInt32(),
+            simulated.GetProperty("combat").GetProperty("turn").GetInt32());
+        Assert.Equal(
+            manual.GetProperty("combat").GetProperty("status").GetString(),
+            simulated.GetProperty("combat").GetProperty("status").GetString());
+        Assert.Equal(
+            manual.GetProperty("combat").GetProperty("activeActorId").GetString(),
+            simulated.GetProperty("combat").GetProperty("activeActorId").GetString());
+        Assert.Equal(Health(manual, "hero"), Health(simulated, "hero"));
+        Assert.Equal(Health(manual, "goblin_a"), Health(simulated, "goblin_a"));
+        Assert.Equal(
+            SnapshotResource(manual, "hero", "energy"),
+            SnapshotResource(simulated, "hero", "energy"));
+        Assert.Equal(
+            manual.GetProperty("hand").EnumerateArray()
+                .Select(item => item.GetProperty("definitionId").GetString()),
+            simulated.GetProperty("hand").EnumerateArray()
+                .Select(item => item.GetProperty("definitionId").GetString()));
+        Assert.Equal(
+            manual.GetProperty("combat").GetProperty("pendingActions").GetArrayLength(),
+            simulated.GetProperty("combat").GetProperty("pendingActions").GetArrayLength());
+    }
+
+    [Fact]
     public async Task PrioritySandbox_ProposesAutoPassesAndResolvesOnlyAfterPlayerPass()
     {
         using var launchResponse = await _client.PostAsJsonAsync(
@@ -900,6 +974,16 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         .First(actor => actor.GetProperty("instanceId").GetString() == entityId)
         .GetProperty("resources")
         .GetProperty("health")
+        .GetProperty("current")
+        .GetDouble();
+
+    private static double SnapshotResource(JsonElement snapshot, string actorId, string resourceId) => snapshot
+        .GetProperty("combat")
+        .GetProperty("actors")
+        .EnumerateArray()
+        .First(actor => actor.GetProperty("instanceId").GetString() == actorId)
+        .GetProperty("resources")
+        .GetProperty(resourceId)
         .GetProperty("current")
         .GetDouble();
 

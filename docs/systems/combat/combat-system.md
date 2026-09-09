@@ -129,19 +129,33 @@ valida custo/alvos/fase/orçamento e executa a transação.
 ```text
 CommandEnvelope
   -> controle de concorrência e idempotência
-  -> compilação da carta/ação
-  -> validação de legalidade e alvos
-  -> cálculo por buckets configurados
-  -> pagamento atômico de custos
-  -> efeitos fonte-agnósticos
-  -> novo CombatState
-  -> fila de resolução visual + journal
-  -> commit atômico da run
+  -> CombatCommandHandler
+       -> mesma fronteira de ações legais para jogador e controller automático
+       -> CombatActionStateReducer produz snapshots candidatos
+  -> AutomaticFlowDriver
+       -> usa o mesmo handler enquanto nenhuma entrada humana é necessária
+       -> respeita prioridade, stack e limite de passos do modo
+  -> CombatFlowPlanner resolve o grafo fixado da run
+       -> CombatBoundaryExecutor ordena fases e lifecycles
+       -> CombatOutcomeResolver avalia lados/controllers/limites de resources
+  -> uma fila de frames para a apresentação
+  -> um único commit atômico da run
 ```
 
 Efeitos numéricos convergem para o redutor genérico de recursos. `DAMAGE` não
 significa "reduzir health"; significa subtrair do `targetResource` declarado.
 Derrota é reavaliada pelas políticas de limite após as transições.
+
+O coordinator de combate é somente um adapter transacional: recupera a run,
+aplica controle de versão/idempotência, compõe o handler e o driver e envia o
+lote completo ao committer. Ele não conhece regra de carta, habilidade, IA,
+status, relíquia ou recurso. Se qualquer passo automático ou lifecycle falhar,
+nem mesmo o primeiro passo manual é persistido.
+
+O `CombatBoundaryExecutor` é a autoridade de ordenação dos boundaries. Ele
+recebe sequência de fases, políticas de fluxo e ordem de turno já resolvidas;
+não carrega conteúdo, não escolhe ações e não publica estado. Cada boundary
+gera snapshots e fatos imutáveis que depois viram frames do mesmo recibo.
 
 ## Turnos e fases
 
@@ -152,6 +166,11 @@ adicionais podem ser configuradas.
 Regenerações de `START_TURN` e `END_TURN`, ticks de status e gatilhos usam limites
 de ciclo de vida nomeados. A engine resolve toda a cadeia imediatamente. A fila de
 resolução permite que a Godot anime cada item no próprio ritmo sem pausar a regra.
+
+O avanço automático termina assim que `WaitingForInput` indica entrada humana
+ou a janela de prioridade pertence a um controller do jogador. O limite
+`MaxAutomaticSteps` pertence ao modo e aborta a transação completa quando
+atingido, evitando loops infinitos que deixariam snapshots parciais.
 
 Estado necessário a estratégias, como medidores de iniciativa, vive no snapshot
 do combate. Serviços singleton não armazenam progresso de gameplay.

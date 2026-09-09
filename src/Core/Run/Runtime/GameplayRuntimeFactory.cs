@@ -1,8 +1,6 @@
 using Core.Abstractions.Persistence;
 using Core.Combat;
 using Core.Combat.Flow;
-using Core.Combat.Gambits;
-using Core.Combat.LegalActions;
 using Core.Combat.Modifiers;
 using Core.Config;
 using Core.Content;
@@ -59,8 +57,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
     private readonly IResourceManager _resources;
     private readonly ICombatFactory _combatFactory;
     private readonly ICombatFlowPlanner _flow;
-    private readonly IDecisionPolicyRegistry _decisions;
-    private readonly ILegalActionResolver _legalActions;
+    private readonly ICombatCommandHandler _combatCommands;
+    private readonly IAutomaticFlowDriver _automaticFlow;
     private readonly IEffectTriggerExecutor _effectTriggers;
     private readonly IGameEventContextAccessor _eventContext;
     private readonly IGameplayCommandCodec _codec;
@@ -82,8 +80,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         IResourceManager resources,
         ICombatFactory combatFactory,
         ICombatFlowPlanner flow,
-        IDecisionPolicyRegistry decisions,
-        ILegalActionResolver legalActions,
+        ICombatCommandHandler combatCommands,
+        IAutomaticFlowDriver automaticFlow,
         IEffectTriggerExecutor effectTriggers,
         IGameEventContextAccessor eventContext,
         IGameplayCommandCodec codec)
@@ -103,8 +101,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         _resources = resources ?? throw new ArgumentNullException(nameof(resources));
         _combatFactory = combatFactory ?? throw new ArgumentNullException(nameof(combatFactory));
         _flow = flow ?? throw new ArgumentNullException(nameof(flow));
-        _decisions = decisions ?? throw new ArgumentNullException(nameof(decisions));
-        _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
+        _combatCommands = combatCommands ?? throw new ArgumentNullException(nameof(combatCommands));
+        _automaticFlow = automaticFlow ?? throw new ArgumentNullException(nameof(automaticFlow));
         _effectTriggers = effectTriggers ?? throw new ArgumentNullException(nameof(effectTriggers));
         _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
         _codec = codec ?? throw new ArgumentNullException(nameof(codec));
@@ -184,8 +182,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _combatFactory,
             runs,
             _flow,
-            _decisions,
-            _legalActions,
+            _combatCommands,
+            _automaticFlow,
             options.OperationalTelemetry);
         var gateway = new GameplayCommandGateway(runCommands, runs, combats, _eventContext, _codec);
         return new GameplayRuntime(runs, runCommands, combats, gateway, _registeredCommandTypes);

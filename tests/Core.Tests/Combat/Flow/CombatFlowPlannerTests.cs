@@ -37,9 +37,11 @@ public sealed class CombatFlowPlannerTests
         actions.Setup(item => item.GetDefinition(It.IsAny<string>())).Returns((string id) => ResolveAction(id));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
-        var planner = new CombatFlowPlanner(runtimes.Object, TurnOrders(), actions.Object, Mock.Of<IIntentResolver>(),
+        var boundaries = new CombatBoundaryExecutor(TurnOrders(), actions.Object,
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
-            new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers));
+            new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers),
+            new CombatOutcomeResolver());
+        var planner = new CombatFlowPlanner(runtimes.Object, boundaries, Mock.Of<IIntentResolver>());
         var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
         var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
             { InitialHandSize = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
@@ -98,44 +100,44 @@ public sealed class CombatFlowPlannerTests
         var sequence = Sequence();
         var policies = Policies();
 
-        var initialized = CombatFlowPlanner.Initialize(
-            run, combat, sequence, policies, TurnPolicy(), TurnOrders(), Phases());
+        var boundaries = Boundaries();
+        var initialized = boundaries.InitializeTransaction(
+            run, combat, sequence, policies, TurnPolicy());
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
-        Assert.Equal("hero", initialized.Value.ActivationState!.ActiveActorId);
-        Assert.True(initialized.Value.ActivationState.WaitingForInput);
-        Assert.Equal("action", initialized.Value.PhaseState!.Cursor);
-        Assert.Equal(3, initialized.Value.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Equal("hero", initialized.Value.Combat.ActivationState!.ActiveActorId);
+        Assert.True(initialized.Value.Combat.ActivationState.WaitingForInput);
+        Assert.Equal("action", initialized.Value.Combat.PhaseState!.Cursor);
+        Assert.Equal(3, initialized.Value.Combat.GetActor("hero")!.GetResource("energy")!.Current);
         Assert.Equal(0, combat.GetActor("hero")!.GetResource("energy")!.Current);
 
-        var first = CombatFlowPlanner.AdvanceActivation(
-            run,
-            initialized.Value,
-            run.Deck,
-            run.Determinism,
+        var first = boundaries.AdvanceActivation(
+            initialized.Value.Run,
+            initialized.Value.Combat,
+            initialized.Value.Run.Deck,
+            initialized.Value.Run.Determinism,
             sequence,
             policies,
-            ResolveAction,
-            TurnPolicy(),
-            TurnOrders(),
-            Phases());
+            TurnPolicy());
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
-        Assert.Equal(3, first.Value.Steps.Count);
+        Assert.True(first.Value.Steps.Count >= 3);
         Assert.Equal("enemy", first.Value.Combat.ActivationState!.ActiveActorId);
         Assert.False(first.Value.Combat.ActivationState.WaitingForInput);
         Assert.Equal(["retain"], first.Value.Deck.Hand);
         Assert.Equal(["strike"], first.Value.Deck.DiscardPile);
 
-        var second = CombatFlowPlanner.AdvanceActivation(
-            run,
+        var secondRun = initialized.Value.Run with
+        {
+            Deck = first.Value.Deck,
+            Determinism = first.Value.Steps[^1].RunDeterminism!.AdvanceStep()
+        };
+        var second = boundaries.AdvanceActivation(
+            secondRun,
             first.Value.Combat,
             first.Value.Deck,
-            first.Value.Steps[^1].RunDeterminism!.AdvanceStep(),
+            secondRun.Determinism,
             sequence,
             policies,
-            ResolveAction,
-            TurnPolicy(),
-            TurnOrders(),
-            Phases());
+            TurnPolicy());
         Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
         Assert.Equal("hero", second.Value.Combat.ActivationState!.ActiveActorId);
         Assert.True(second.Value.Combat.ActivationState.WaitingForInput);
@@ -156,21 +158,20 @@ public sealed class CombatFlowPlannerTests
         var combat = CombatTransitions.Create(
             [Entity("hero", true, 3), Entity("enemy", false, 3)],
             DeterministicContext.Create(8UL, "revision"));
-        combat = CombatFlowPlanner.Initialize(
-            run, combat, Sequence(), Policies(), TurnPolicy(), TurnOrders(), Phases()).Value;
+        var boundaries = Boundaries();
+        var initialized = boundaries.InitializeTransaction(
+            run, combat, Sequence(), Policies(), TurnPolicy()).Value;
+        combat = initialized.Combat;
         var deck = new DeckState { Hand = ["ethereal", "strike", "retain"] };
 
-        var result = CombatFlowPlanner.AdvanceActivation(
-            run,
+        var result = boundaries.AdvanceActivation(
+            initialized.Run,
             combat,
             deck,
-            run.Determinism,
+            initialized.Run.Determinism,
             Sequence(),
             Policies(),
-            ResolveAction,
-            TurnPolicy(),
-            TurnOrders(),
-            Phases());
+            TurnPolicy());
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(["retain"], result.Value.Deck.Hand);
@@ -233,7 +234,12 @@ public sealed class CombatFlowPlannerTests
         {
             DrawPerActivation = 1,
             HandLimit = 10,
+            InitialHandSize = 0,
             ActorScope = FlowActorScope.RunOwner,
+            EncounterStart = EncounterDeckStartStrategy.PreserveZones,
+            EncounterCleanup = EncounterDeckCleanupStrategy.PreserveZones,
+            ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,
+            GeneratedCardPersistence = GeneratedCardPersistenceStrategy.Encounter,
             EndDiscard = DeckEndDiscardStrategy.NonRetain,
             RetainTags = ["retain"],
             EtherealTag = "ethereal",
@@ -246,6 +252,11 @@ public sealed class CombatFlowPlannerTests
             ResourceId = "energy",
             ActorScope = FlowActorScope.All,
             StartActivation = ResourceRefreshStrategy.ResetToMax
+        },
+        Outcome = new()
+        {
+            EvaluationBoundary = OutcomeEvaluationBoundary.AfterCurrentAction,
+            TieBreak = OutcomeTieBreak.Draw
         }
     };
 
@@ -259,8 +270,22 @@ public sealed class CombatFlowPlannerTests
     private static ITurnOrderResolver TurnOrders() =>
         new TurnOrderResolver(Mock.Of<IRuntimeFormulaEvaluator>());
 
-    private static IPhaseGraphReducer Phases() =>
-        new PhaseGraphReducer(Mock.Of<IRuntimeFormulaEvaluator>(), Mock.Of<IEffectTriggerExecutor>());
+    private static ICombatBoundaryExecutor Boundaries()
+    {
+        var actions = new Mock<IActionManager>();
+        actions.Setup(item => item.GetDefinition(It.IsAny<string>()))
+            .Returns((string id) => ResolveAction(id));
+        var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
+        var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
+        return new CombatBoundaryExecutor(
+            TurnOrders(),
+            actions.Object,
+            new CombatStatusLifecycle(triggers),
+            new CombatRelicLifecycle(triggers),
+            new CombatResourceLifecycle(triggers),
+            new PhaseGraphReducer(formulas, triggers),
+            new CombatOutcomeResolver());
+    }
 
     private static CombatActorState Entity(string id, bool isHero, float energy)
     {

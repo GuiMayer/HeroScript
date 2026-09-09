@@ -1,207 +1,68 @@
-using System.Collections.Immutable;
-using System.Text.Json;
-using Core.Combat.Activation;
 using Core.Combat.Intents;
 using Core.Combat.Models;
 using Core.Combat.TurnOrder;
 using Core.Combat.TurnPhase;
 using Core.Common;
-using Core.Calculations;
 using Core.Content;
 using Core.Determinism;
-using Core.Effects;
-using Core.Resources;
 using Core.Run;
 
 namespace Core.Combat.Flow;
 
-public sealed record CombatInitializationResult(CombatState Combat, RunState Run)
-{
-    private ImmutableArray<EffectExecutionStep> _effectSteps = [];
-    private ImmutableArray<CalculationResult> _calculations = [];
-    private ImmutableArray<EffectApplicationRecord> _applications = [];
-    private ImmutableArray<PhaseTransitionRecord> _phaseTransitions = [];
-
-    public IReadOnlyList<EffectExecutionStep> EffectSteps
-    {
-        get => _effectSteps;
-        init => _effectSteps = value?.ToImmutableArray() ?? [];
-    }
-
-    public IReadOnlyList<CalculationResult> Calculations
-    {
-        get => _calculations;
-        init => _calculations = value?.ToImmutableArray() ?? [];
-    }
-
-    public IReadOnlyList<EffectApplicationRecord> Applications
-    {
-        get => _applications;
-        init => _applications = value?.ToImmutableArray() ?? [];
-    }
-
-    public IReadOnlyList<PhaseTransitionRecord> PhaseTransitions
-    {
-        get => _phaseTransitions;
-        init => _phaseTransitions = value?.ToImmutableArray() ?? [];
-    }
-
-    public string Fingerprint { get; init; } = string.Empty;
-}
-
-public sealed record CombatFlowAdvanceResult
-{
-    private ImmutableArray<CombatResolutionStep> _steps = [];
-
-    public IReadOnlyList<CombatResolutionStep> Steps
-    {
-        get => _steps;
-        init => _steps = value?.ToImmutableArray() ?? [];
-    }
-
-    public CombatState Combat => _steps[^1].Combat;
-    public DeckState Deck => _steps[^1].Deck;
-}
-
-public interface ICombatFlowPlanner
-{
-    Result<CombatState> Initialize(RunState run, CombatState combat);
-    Result<CombatInitializationResult> InitializeTransaction(RunState run, CombatState combat);
-    Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat);
-
-    Result<CombatFlowAdvanceResult> AdvanceActivation(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        DeterministicContext runDeterminism);
-}
-
 /// <summary>
-/// Pure planner for the canonical actor-activation loop. It reads only the
-/// run's pinned content revision and returns immutable transition snapshots;
-/// publication is left to the run aggregate's atomic batch commit.
+/// Resolves the run's pinned combat graph and composes focused boundary and
+/// intent services. It never executes actions, controls AI or commits state.
 /// </summary>
 public sealed class CombatFlowPlanner : ICombatFlowPlanner
 {
     private readonly IContentRuntimeResolver _contentRuntimes;
-    private readonly ITurnOrderResolver _turnOrder;
-    private readonly IActionManager _actions;
+    private readonly ICombatBoundaryExecutor _boundaries;
     private readonly IIntentResolver _intents;
-    private readonly ICombatStatusLifecycle _statusLifecycle;
-    private readonly ICombatRelicLifecycle _relicLifecycle;
-    private readonly ICombatResourceLifecycle _resourceLifecycle;
-    private readonly IPhaseGraphReducer _phases;
 
     public CombatFlowPlanner(
         IContentRuntimeResolver contentRuntimes,
-        ITurnOrderResolver turnOrder,
-        IActionManager actions,
-        IIntentResolver intents,
-        ICombatStatusLifecycle statusLifecycle,
-        ICombatRelicLifecycle relicLifecycle,
-        ICombatResourceLifecycle resourceLifecycle,
-        IPhaseGraphReducer phases)
+        ICombatBoundaryExecutor boundaries,
+        IIntentResolver intents)
     {
         _contentRuntimes = contentRuntimes ?? throw new ArgumentNullException(nameof(contentRuntimes));
-        _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
-        _actions = actions ?? throw new ArgumentNullException(nameof(actions));
+        _boundaries = boundaries ?? throw new ArgumentNullException(nameof(boundaries));
         _intents = intents ?? throw new ArgumentNullException(nameof(intents));
-        _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
-        _relicLifecycle = relicLifecycle ?? throw new ArgumentNullException(nameof(relicLifecycle));
-        _resourceLifecycle = resourceLifecycle ?? throw new ArgumentNullException(nameof(resourceLifecycle));
-        _phases = phases ?? throw new ArgumentNullException(nameof(phases));
     }
 
     public Result<CombatState> Initialize(RunState run, CombatState combat)
     {
-        var result = InitializeTransaction(run, combat);
-        return result.IsFailure ? Result<CombatState>.Failure(result.Error) : Result<CombatState>.Success(result.Value.Combat);
+        var initialized = InitializeTransaction(run, combat);
+        return initialized.IsFailure
+            ? Result<CombatState>.Failure(initialized.Error)
+            : Result<CombatState>.Success(initialized.Value.Combat);
     }
 
     public Result<CombatInitializationResult> InitializeTransaction(RunState run, CombatState combat)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(combat);
-        var effectSteps = new List<EffectExecutionStep>();
-        var applications = new List<EffectApplicationRecord>();
-        var phaseTransitions = new List<PhaseTransitionRecord>();
         var context = ResolveContext(run);
-        if (context.IsFailure) return Result<CombatInitializationResult>.Failure(context.Error);
-        var deck = DeckTransitions.BeginEncounter(run.Deck, context.Value.Policies.DeckCycle, run.Determinism);
-        if (deck.IsFailure) return Result<CombatInitializationResult>.Failure(deck.Error);
-        run = run with { Deck = deck.Value.State, Determinism = deck.Value.Context };
-        var initialized = InitializeActivation(
+        if (context.IsFailure)
+            return Result<CombatInitializationResult>.Failure(context.Error);
+        var initialized = _boundaries.InitializeTransaction(
             run,
             combat,
             context.Value.Sequence,
             context.Value.Policies,
-            context.Value.TurnOrder,
-            _turnOrder);
-        if (initialized.IsFailure) return Result<CombatInitializationResult>.Failure(initialized.Error);
-        var regenerated = ApplyResourceLifecycle(run, initialized.Value,
-            initialized.Value.ActivationState!.ActiveActorId!, RegenerationTiming.START_TURN, context.Value.Policies);
-        if (regenerated.IsFailure) return Result<CombatInitializationResult>.Failure(regenerated.Error);
-        run = regenerated.Value.Run ?? run;
-        effectSteps.AddRange(regenerated.Value.Steps);
-        applications.AddRange(regenerated.Value.Records);
-        var relics = _relicLifecycle.Process(run, regenerated.Value.Combat, CombatTriggerBoundaries.CombatStart);
-        if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
-        run = relics.Value.Run ?? run;
-        effectSteps.AddRange(relics.Value.Events.SelectMany(item => item.Steps));
-        applications.AddRange(relics.Value.Events.SelectMany(item => item.Applications));
-        var afterRelics = CombatFlowTransitions.EvaluateOutcome(relics.Value.Combat,
-            context.Value.Policies.Outcome, initialized.Value.ActivationState?.ActiveActorId);
-        var initial = ApplyInitialLifecycle(run, afterRelics, context.Value.Policies);
-        if (initial.IsFailure) return initial;
-        run = initial.Value.Run;
-        effectSteps.AddRange(initial.Value.EffectSteps);
-        applications.AddRange(initial.Value.Applications);
-        var current = initial.Value.Combat;
-        if (current.IsActive)
-        {
-            var entered = _phases.Enter(run, current, context.Value.Sequence);
-            if (entered.IsFailure) return Result<CombatInitializationResult>.Failure(entered.Error);
-            run = entered.Value.Run;
-            current = CombatFlowTransitions.EvaluateOutcome(
-                entered.Value.Combat,
-                context.Value.Policies.Outcome,
-                entered.Value.Combat.ActivationState?.ActiveActorId);
-            effectSteps.AddRange(entered.Value.Steps);
-            applications.AddRange(entered.Value.Applications);
-            phaseTransitions.AddRange(entered.Value.Transitions);
-        }
-        if (!current.IsActive)
-        {
-            var completed = Complete(run, current);
-            if (completed.IsFailure) return Result<CombatInitializationResult>.Failure(completed.Error);
-            effectSteps.AddRange(completed.Value.Events.SelectMany(item => item.Steps));
-            applications.AddRange(completed.Value.Events.SelectMany(item => item.Applications));
-            return Result<CombatInitializationResult>.Success(CreateInitializationResult(
-                completed.Value.Combat,
-                completed.Value.Run ?? run,
-                effectSteps,
-                applications,
-                phaseTransitions));
-        }
-        var intents = PublishIntents(run, current, context.Value.Policies);
-        return intents.IsFailure ? Result<CombatInitializationResult>.Failure(intents.Error)
-            : Result<CombatInitializationResult>.Success(CreateInitializationResult(
-                intents.Value,
-                run,
-                effectSteps,
-                applications,
-                phaseTransitions));
+            context.Value.TurnOrder);
+        if (initialized.IsFailure || !initialized.Value.Combat.IsActive)
+            return initialized;
+        var published = PublishIntents(
+            initialized.Value.Run,
+            initialized.Value.Combat,
+            context.Value.Policies);
+        return published.IsFailure
+            ? Result<CombatInitializationResult>.Failure(published.Error)
+            : Result<CombatInitializationResult>.Success(WithCombat(initialized.Value, published.Value));
     }
 
-    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat)
-    {
-        if (combat.IsActive) return Result<CombatRelicLifecycleResult>.Failure("Cannot finalize an active combat");
-        var result = _relicLifecycle.Process(run, combat, CombatTriggerBoundaries.CombatEnd);
-        if (result.IsFailure || combat.CompletedLifecycleBoundaries.Contains(CombatTriggerBoundaries.CombatEnd)) return result;
-        var updatedRun = Core.Combat.Modifiers.ModifierTransitions.Tick(result.Value.Run ?? run,
-            Core.Combat.Modifiers.ModifierDurationBoundary.Combat, eligibleIds: run.Modifiers.Select(item => item.InstanceId).ToHashSet());
-        return Result<CombatRelicLifecycleResult>.Success(result.Value with { Run = updatedRun });
-    }
+    public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat) =>
+        _boundaries.Complete(run, combat);
 
     public Result<CombatFlowAdvanceResult> AdvanceActivation(
         RunState run,
@@ -216,8 +77,7 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         var context = ResolveContext(run);
         if (context.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(context.Error);
-
-        var advanced = AdvanceWithLifecycle(
+        var advanced = _boundaries.AdvanceActivation(
             run,
             combat,
             deck,
@@ -225,10 +85,10 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             context.Value.Sequence,
             context.Value.Policies,
             context.Value.TurnOrder);
-        if (advanced.IsFailure)
+        if (advanced.IsFailure || !advanced.Value.Combat.IsActive)
             return advanced;
-
-        var published = PublishIntents(run, advanced.Value.Combat, context.Value.Policies);
+        var latestRun = advanced.Value.Steps.LastOrDefault(step => step.RunSnapshot != null)?.RunSnapshot ?? run;
+        var published = PublishIntents(latestRun, advanced.Value.Combat, context.Value.Policies);
         if (published.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(published.Error);
         var steps = advanced.Value.Steps.ToArray();
@@ -236,702 +96,38 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
         return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
     }
 
-    private Result<CombatFlowAdvanceResult> AdvanceWithLifecycle(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        DeterministicContext runDeterminism,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        TurnOrderPolicyDefinition turnOrderPolicy)
-    {
-        var planned = EndActivation(
-            run,
-            combat,
-            deck,
-            runDeterminism,
-            sequence,
-            policies,
-            actionId => ResolveAction(run, actionId),
-            _phases);
-        if (planned.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(planned.Error);
-
-        var steps = new List<CombatResolutionStep> { planned.Value };
-        var current = planned.Value.Combat;
-        var endedDeck = planned.Value.Deck;
-        run = (planned.Value.RunSnapshot ?? run) with
-        {
-            Deck = endedDeck,
-            Determinism = planned.Value.RunDeterminism!.AdvanceStep()
-        };
-        var endedActorId = combat.ActivationState!.ActiveActorId!;
-        var endActivation = AppendBoundary(
-            run,
-            steps,
-            current,
-            endedDeck,
-            StatusTriggerBoundary.EndActivation,
-            endedActorId,
-            policies);
-        if (endActivation.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(endActivation.Error);
-        current = endActivation.Value;
-        run = RunAfterBoundary(run, steps);
-        endedDeck = run.Deck;
-        if (!current.IsActive)
-            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-
-        var endResources = AppendResourceBoundary(
-            run,
-            steps,
-            current,
-            endedDeck,
-            endedActorId,
-            RegenerationTiming.END_TURN,
-            policies);
-        if (endResources.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(endResources.Error);
-        current = endResources.Value;
-        run = RunAfterBoundary(run, steps);
-        endedDeck = run.Deck;
-        if (!current.IsActive)
-            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-
-        var startsNewRound = StartsNewRound(current);
-        if (startsNewRound)
-        {
-            var endRound = AppendBoundary(
-                run,
-                steps,
-                current,
-                endedDeck,
-                StatusTriggerBoundary.EndRound,
-                endedActorId,
-                policies);
-            if (endRound.IsFailure)
-                return Result<CombatFlowAdvanceResult>.Failure(endRound.Error);
-            current = endRound.Value;
-            run = RunAfterBoundary(run, steps);
-            endedDeck = run.Deck;
-            if (!current.IsActive)
-                return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-        }
-
-        var reordered = _turnOrder.CompleteActivation(
-            current,
-            turnOrderPolicy,
-            endedActorId,
-            startsNewRound);
-        if (reordered.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(reordered.Error);
-        current = reordered.Value.State;
-
-        var recalculated = StartActivation(run, current, endedDeck, run.Determinism, policies);
-        if (recalculated.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(recalculated.Error);
-        var startedStep = recalculated.Value;
-        current = startedStep.Combat with
-        {
-            CurrentTurn = startedStep.Combat.ActivationState!.Round
-        };
-        run = (startedStep.RunSnapshot ?? run) with
-        {
-            Deck = startedStep.Deck,
-            Determinism = startedStep.RunDeterminism!
-        };
-
-        if (startsNewRound)
-        {
-            var startRound = AppendBoundary(
-                run,
-                steps,
-                current,
-                run.Deck,
-                StatusTriggerBoundary.StartRound,
-                current.ActivationState!.ActiveActorId,
-                policies);
-            if (startRound.IsFailure)
-                return Result<CombatFlowAdvanceResult>.Failure(startRound.Error);
-            current = startRound.Value;
-            run = RunAfterBoundary(run, steps);
-            startedStep = startedStep with { Deck = run.Deck, RunDeterminism = run.Determinism };
-            if (!current.IsActive)
-                return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-        }
-
-        steps.Add(startedStep with { Combat = current, RunSnapshot = run with { Deck = startedStep.Deck } });
-        run = run with { Deck = startedStep.Deck, Determinism = startedStep.RunDeterminism!.AdvanceStep() };
-
-        var startResources = AppendResourceBoundary(
-            run,
-            steps,
-            current,
-            run.Deck,
-            current.ActivationState!.ActiveActorId!,
-            RegenerationTiming.START_TURN,
-            policies);
-        if (startResources.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(startResources.Error);
-        current = startResources.Value;
-        run = RunAfterBoundary(run, steps);
-        if (!current.IsActive)
-            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-
-        var startActivation = AppendBoundary(
-            run,
-            steps,
-            current,
-            run.Deck,
-            StatusTriggerBoundary.StartActivation,
-            current.ActivationState!.ActiveActorId,
-            policies);
-        if (startActivation.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(startActivation.Error);
-        current = startActivation.Value;
-        run = RunAfterBoundary(run, steps);
-        if (!current.IsActive)
-            return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-
-        var enteredPhase = EnterPhase(run, current, sequence, _phases);
-        if (enteredPhase.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(enteredPhase.Error);
-        steps.Add(enteredPhase.Value);
-
-        return Result<CombatFlowAdvanceResult>.Success(new CombatFlowAdvanceResult { Steps = steps });
-    }
-
-    private Result<CombatState> AppendResourceBoundary(
-        RunState run,
-        ICollection<CombatResolutionStep> steps,
-        CombatState combat,
-        DeckState deck,
-        string actorId,
-        RegenerationTiming timing,
-        CombatFlowPoliciesDefinition policies)
-    {
-        var processed = ApplyResourceLifecycle(run, combat, actorId, timing, policies);
-        if (processed.IsFailure)
-            return Result<CombatState>.Failure(processed.Error);
-        if (processed.Value.Records.Count == 0)
-            return Result<CombatState>.Success(processed.Value.Combat);
-
-        var evaluated = CombatFlowTransitions.EvaluateOutcome(
-            processed.Value.Combat,
-            policies.Outcome,
-            actorId);
-        steps.Add(new CombatResolutionStep
-        {
-            TransitionType = $"combat.resources.{ToSnakeCase(timing)}",
-            Combat = evaluated,
-            Deck = processed.Value.Run?.Deck ?? deck,
-            RunSnapshot = processed.Value.Run ?? run,
-            RunDeterminism = (processed.Value.Run ?? run).Determinism,
-            EffectSteps = processed.Value.Steps,
-            Calculations = processed.Value.Steps
-                .Where(item => item.Calculation != null)
-                .Select(item => item.Calculation!)
-                .ToArray(),
-            Applications = processed.Value.Records,
-            Payload = JsonSerializer.SerializeToElement(new
-            {
-                timing = timing.ToString(),
-                actorId,
-                effects = processed.Value.Records,
-                steps = processed.Value.Steps,
-                processed.Value.Fingerprint
-            })
-        });
-        return Result<CombatState>.Success(evaluated);
-    }
-
-    private static RunState RunAfterBoundary(RunState run, IReadOnlyList<CombatResolutionStep> steps)
-    {
-        var step = steps[^1];
-        if (step.RunDeterminism != null && step.RunDeterminism.Step < run.Determinism.Step) return run;
-        return (step.RunSnapshot ?? run) with
-        { Deck = step.Deck, Determinism = (step.RunDeterminism ?? run.Determinism).AdvanceStep() };
-    }
-
-    private Result<CombatResourceLifecycleResult> ApplyResourceLifecycle(
-        RunState run,
-        CombatState combat,
-        string actorId,
-        RegenerationTiming timing,
-        CombatFlowPoliciesDefinition policies)
-    {
-        IReadOnlySet<string>? exclusions = null;
-        if (timing == RegenerationTiming.START_TURN &&
-            ScopeApplies(policies.ResourceCycle.ActorScope, combat, run, actorId))
-        {
-            exclusions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                policies.ResourceCycle.ResourceId
-            };
-        }
-        return _resourceLifecycle.Process(run, combat, actorId, timing, exclusions);
-    }
-
-    public static Result<CombatState> Initialize(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        TurnOrderPolicyDefinition turnOrderPolicy,
-        ITurnOrderResolver turnOrder,
-        IPhaseGraphReducer phases)
-    {
-        var initialized = InitializeActivation(run, combat, sequence, policies, turnOrderPolicy, turnOrder);
-        if (initialized.IsFailure) return initialized;
-        var entered = phases.Enter(run, initialized.Value, sequence);
-        return entered.IsFailure
-            ? Result<CombatState>.Failure(entered.Error)
-            : Result<CombatState>.Success(entered.Value.Combat);
-    }
-
-    private static Result<CombatState> InitializeActivation(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        TurnOrderPolicyDefinition turnOrderPolicy,
-        ITurnOrderResolver turnOrder)
-    {
-        var validation = PhaseSequenceValidator.Validate(sequence);
-        if (validation.IsFailure) return Result<CombatState>.Failure(validation.Error);
-
-        if (run.Scenario is { } scenario)
-            combat = combat with { Relationships = scenario.Relationships, Sides = scenario.Sides };
-
-        var resolvedOrder = turnOrder.Initialize(combat, turnOrderPolicy);
-        if (resolvedOrder.IsFailure)
-            return Result<CombatState>.Failure(resolvedOrder.Error);
-        combat = resolvedOrder.Value.State;
-        var order = resolvedOrder.Value.Order;
-        if (order.Count == 0)
-            return Result<CombatState>.Failure("No alive actors are available for combat activation");
-
-        var actorId = order[0];
-        var refreshed = RefreshActorResource(combat, actorId, policies.ResourceCycle, run);
-        if (refreshed.IsFailure)
-            return Result<CombatState>.Failure(refreshed.Error);
-
-        var activation = new ActivationState
-        {
-            ActiveActorId = actorId,
-            Round = 1,
-            ActivationIndex = 0,
-            ActivationNumber = 1,
-            ActionsTaken = 0,
-            ActivationOrder = order,
-            CompletedActorIds = [],
-            WaitingForInput = IsPlayerActor(refreshed.Value, actorId),
-            RunId = run.RunId,
-            StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
-        };
-
-        return Result<CombatState>.Success(refreshed.Value with
-        {
-            ActivationState = activation
-        });
-    }
-
-    public static Result<CombatFlowAdvanceResult> AdvanceActivation(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        DeterministicContext runDeterminism,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        Func<string, Result<ActionDefinition>> resolveAction,
-        TurnOrderPolicyDefinition turnOrderPolicy,
-        ITurnOrderResolver turnOrder,
-        IPhaseGraphReducer phases)
-    {
-        var ended = EndActivation(run, combat, deck, runDeterminism, sequence, policies, resolveAction, phases);
-        if (ended.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(ended.Error);
-        run = (ended.Value.RunSnapshot ?? run) with
-        {
-            Deck = ended.Value.Deck,
-            Determinism = ended.Value.RunDeterminism!
-        };
-        var startsNewRound = StartsNewRound(ended.Value.Combat);
-        var reordered = turnOrder.CompleteActivation(
-            ended.Value.Combat,
-            turnOrderPolicy,
-            combat.ActivationState!.ActiveActorId!,
-            startsNewRound);
-        if (reordered.IsFailure)
-            return Result<CombatFlowAdvanceResult>.Failure(reordered.Error);
-        var started = StartActivation(run, reordered.Value.State, ended.Value.Deck,
-            ended.Value.RunDeterminism!.AdvanceStep(), policies);
-        if (started.IsFailure) return Result<CombatFlowAdvanceResult>.Failure(started.Error);
-        var entered = EnterPhase(started.Value.RunSnapshot ?? run, started.Value.Combat, sequence, phases);
-        return entered.IsFailure ? Result<CombatFlowAdvanceResult>.Failure(entered.Error)
-            : Result<CombatFlowAdvanceResult>.Success(new() { Steps = [ended.Value, started.Value, entered.Value] });
-    }
-
-    private static Result<CombatResolutionStep> EndActivation(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        DeterministicContext runDeterminism,
-        PhaseSequenceDefinition sequence,
-        CombatFlowPoliciesDefinition policies,
-        Func<string, Result<ActionDefinition>> resolveAction,
-        IPhaseGraphReducer phases)
-    {
-        var activation = combat.ActivationState;
-        if (activation == null || string.IsNullOrWhiteSpace(activation.ActiveActorId))
-            return Result<CombatResolutionStep>.Failure("Combat activation has not been initialized");
-        if (!combat.IsActive)
-            return Result<CombatResolutionStep>.Failure("A terminal combat cannot advance activation");
-
-        run = run with { Deck = deck, Determinism = runDeterminism };
-        var exited = phases.Exit(run, combat, sequence);
-        if (exited.IsFailure)
-            return Result<CombatResolutionStep>.Failure(exited.Error);
-        run = exited.Value.Run;
-        var endedDeck = ApplyEndDeckCycle(
-            run,
-            exited.Value.Combat,
-            deck,
-            activation.ActiveActorId,
-            policies.DeckCycle,
-            run.Determinism,
-            resolveAction);
-        if (endedDeck.IsFailure)
-            return Result<CombatResolutionStep>.Failure(endedDeck.Error);
-
-        var completed = activation.CompletedActorIds
-            .Append(activation.ActiveActorId)
-            .Distinct(StringComparer.Ordinal)
-            .ToImmutableArray();
-        var endedCombat = exited.Value.Combat with
-        {
-            ActivationState = activation with
-            {
-                CompletedActorIds = completed,
-                WaitingForInput = false
-            }
-        };
-        var endStep = new CombatResolutionStep
-        {
-            TransitionType = "combat.activation.ended",
-            Combat = endedCombat,
-            Deck = endedDeck.Value.State,
-            RunDeterminism = endedDeck.Value.Context,
-            RunSnapshot = run with { Deck = endedDeck.Value.State, Determinism = endedDeck.Value.Context },
-            EffectSteps = exited.Value.Steps,
-            Calculations = exited.Value.Calculations,
-            Applications = exited.Value.Applications,
-            Payload = JsonSerializer.SerializeToElement(new
-            {
-                actorId = activation.ActiveActorId,
-                activation.Round,
-                activation.ActivationNumber,
-                phaseTransitions = exited.Value.Transitions,
-                discardedCardIds = endedDeck.Value.Discarded,
-                exhaustedCardIds = endedDeck.Value.Exhausted
-            })
-        };
-
-        return Result<CombatResolutionStep>.Success(endStep);
-    }
-
-    private static Result<CombatResolutionStep> StartActivation(
-        RunState run, CombatState endedCombat, DeckState deck, DeterministicContext drawContext,
-        CombatFlowPoliciesDefinition policies)
-    {
-        var activation = endedCombat.ActivationState!;
-        var completed = activation.CompletedActorIds;
-        var combat = endedCombat;
-        var eligibleOrder = endedCombat.TurnOrderState.Order
-            .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
-            .ToArray();
-        var nextIndex = Array.FindIndex(
-            eligibleOrder,
-            actorId => !completed.Contains(actorId, StringComparer.Ordinal));
-        var round = activation.Round;
-        IReadOnlyList<string> nextOrder = eligibleOrder;
-        IReadOnlyList<string> nextCompleted = completed;
-        if (nextIndex < 0)
-        {
-            round = checked(round + 1);
-            nextOrder = eligibleOrder;
-            nextCompleted = [];
-            nextIndex = 0;
-        }
-        if (nextOrder.Count == 0)
-            return Result<CombatResolutionStep>.Failure("No alive actors are available for the next activation");
-
-        var nextActorId = nextOrder[nextIndex];
-        var refreshed = RefreshActorResource(endedCombat, nextActorId, policies.ResourceCycle, run);
-        if (refreshed.IsFailure)
-            return Result<CombatResolutionStep>.Failure(refreshed.Error);
-
-        var startedDeck = ApplyStartDeckCycle(
-            run,
-            refreshed.Value,
-            deck,
-            nextActorId,
-            policies.DeckCycle,
-            drawContext);
-        if (startedDeck.IsFailure)
-            return Result<CombatResolutionStep>.Failure(startedDeck.Error);
-
-        var nextActivation = activation with
-        {
-            ActiveActorId = nextActorId,
-            Round = round,
-            ActivationIndex = nextIndex,
-            ActivationNumber = checked(activation.ActivationNumber + 1),
-            ActionsTaken = 0,
-            ActivationOrder = nextOrder,
-            CompletedActorIds = nextCompleted,
-            WaitingForInput = IsPlayerActor(refreshed.Value, nextActorId),
-            StartedAtUtc = refreshed.Value.Determinism.LogicalTimestamp.UtcDateTime
-        };
-        var startedCombat = refreshed.Value with
-        {
-            ActivationState = nextActivation
-        };
-        run = run with { Deck = startedDeck.Value.State, Determinism = startedDeck.Value.Context };
-        var startStep = new CombatResolutionStep
-        {
-            TransitionType = "combat.activation.started",
-            Combat = startedCombat,
-            Deck = run.Deck,
-            RunDeterminism = run.Determinism,
-            RunSnapshot = run,
-            Payload = JsonSerializer.SerializeToElement(new
-            {
-                actorId = nextActorId,
-                round,
-                activationNumber = nextActivation.ActivationNumber,
-                drawnCardIds = startedDeck.Value.Cards
-            })
-        };
-
-        return Result<CombatResolutionStep>.Success(startStep);
-    }
-
-    private static Result<CombatResolutionStep> EnterPhase(
-        RunState run,
-        CombatState combat,
-        PhaseSequenceDefinition sequence,
-        IPhaseGraphReducer phases)
-    {
-        var entered = phases.Enter(run, combat, sequence);
-        if (entered.IsFailure) return Result<CombatResolutionStep>.Failure(entered.Error);
-        return Result<CombatResolutionStep>.Success(new CombatResolutionStep
-        {
-            TransitionType = "combat.phase.entered",
-            Combat = entered.Value.Combat,
-            Deck = entered.Value.Run.Deck,
-            RunDeterminism = entered.Value.Run.Determinism,
-            RunSnapshot = entered.Value.Run,
-            EffectSteps = entered.Value.Steps,
-            Calculations = entered.Value.Calculations,
-            Applications = entered.Value.Applications,
-            Payload = JsonSerializer.SerializeToElement(new
-            {
-                sequenceId = sequence.SequenceId,
-                cursor = entered.Value.Combat.PhaseState?.Cursor,
-                phaseTransitions = entered.Value.Transitions,
-                entered.Value.Fingerprint
-            })
-        });
-    }
-
-    private Result<CombatInitializationResult> ApplyInitialLifecycle(
-        RunState run,
-        CombatState combat,
-        CombatFlowPoliciesDefinition policies)
-    {
-        var current = combat;
-        var effectSteps = new List<EffectExecutionStep>();
-        var applications = new List<EffectApplicationRecord>();
-        foreach (var boundary in new[]
-                 {
-                     StatusTriggerBoundary.StartRound,
-                     StatusTriggerBoundary.StartActivation
-                 })
-        {
-            var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
-                ? Result<CombatStatusLifecycleResult>.Success(new(current, [])) : _statusLifecycle.Process(
-                run,
-                current,
-                boundary,
-                current.ActivationState?.ActiveActorId);
-            if (processed.IsFailure)
-                return Result<CombatInitializationResult>.Failure(processed.Error);
-            run = processed.Value.Run ?? run;
-            var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
-            if (relics.IsFailure) return Result<CombatInitializationResult>.Failure(relics.Error);
-            run = relics.Value.Run ?? run;
-            effectSteps.AddRange(processed.Value.Events.SelectMany(item => item.Steps));
-            effectSteps.AddRange(relics.Value.Events.SelectMany(item => item.Steps));
-            applications.AddRange(processed.Value.Events.SelectMany(item => item.Applications));
-            applications.AddRange(relics.Value.Events.SelectMany(item => item.Applications));
-            current = CombatFlowTransitions.EvaluateOutcome(
-                relics.Value.Combat,
-                policies.Outcome,
-                current.ActivationState?.ActiveActorId);
-            if (!current.IsActive)
-                break;
-        }
-        return Result<CombatInitializationResult>.Success(CreateInitializationResult(
-            current,
-            run,
-            effectSteps,
-            applications));
-    }
-
-    private static CombatInitializationResult CreateInitializationResult(
-        CombatState combat,
-        RunState run,
-        IEnumerable<EffectExecutionStep> effectSteps,
-        IEnumerable<EffectApplicationRecord> applications,
-        IEnumerable<PhaseTransitionRecord>? phaseTransitions = null)
-    {
-        var normalizedSteps = effectSteps
-            .Select((step, index) => step with { Index = index })
-            .ToImmutableArray();
-        var immutableApplications = applications.ToImmutableArray();
-        var immutablePhaseTransitions = phaseTransitions?.ToImmutableArray() ?? [];
-        var calculations = normalizedSteps
-            .Where(step => step.Calculation != null)
-            .Select(step => step.Calculation!)
-            .ToImmutableArray();
-        return new CombatInitializationResult(combat, run)
-        {
-            EffectSteps = normalizedSteps,
-            Calculations = calculations,
-            Applications = immutableApplications,
-            PhaseTransitions = immutablePhaseTransitions,
-            Fingerprint = CanonicalJson.ComputeHash(new
-            {
-                combat,
-                run,
-                effectSteps = normalizedSteps,
-                applications = immutableApplications,
-                phaseTransitions = immutablePhaseTransitions
-            })
-        };
-    }
-
-    private Result<CombatState> AppendBoundary(
-        RunState run,
-        ICollection<CombatResolutionStep> steps,
-        CombatState combat,
-        DeckState deck,
-        StatusTriggerBoundary boundary,
-        string? activeActorId,
-        CombatFlowPoliciesDefinition policies)
-    {
-        run = run with { Deck = deck };
-        var eligibleModifiers = run.Modifiers.Select(item => item.InstanceId).ToHashSet();
-        var processed = !policies.StatusTiming.Boundaries.Contains(boundary)
-            ? Result<CombatStatusLifecycleResult>.Success(new(combat, []))
-            : _statusLifecycle.Process(run, combat, boundary, activeActorId);
-        if (processed.IsFailure)
-            return Result<CombatState>.Failure(processed.Error);
-        run = processed.Value.Run ?? run;
-        var relics = _relicLifecycle.Process(run, processed.Value.Combat, boundary.ToString());
-        if (relics.IsFailure) return Result<CombatState>.Failure(relics.Error);
-        run = relics.Value.Run ?? run;
-        if (boundary is StatusTriggerBoundary.EndActivation or StatusTriggerBoundary.EndRound)
-            run = Core.Combat.Modifiers.ModifierTransitions.Tick(run,
-                boundary == StatusTriggerBoundary.EndActivation ? Core.Combat.Modifiers.ModifierDurationBoundary.Activation
-                    : Core.Combat.Modifiers.ModifierDurationBoundary.Round, combat, activeActorId, eligibleModifiers);
-        var evaluated = CombatFlowTransitions.EvaluateOutcome(
-            relics.Value.Combat,
-            policies.Outcome,
-            activeActorId);
-        var effectSteps = processed.Value.Events.SelectMany(item => item.Steps)
-            .Concat(relics.Value.Events.SelectMany(item => item.Steps))
-            .ToArray();
-        steps.Add(new CombatResolutionStep
-        {
-            TransitionType = $"combat.status.{ToSnakeCase(boundary)}",
-            Combat = evaluated,
-            Deck = run.Deck,
-            RunSnapshot = run,
-            RunDeterminism = run.Determinism,
-            EffectSteps = effectSteps,
-            Calculations = effectSteps
-                .Where(item => item.Calculation != null)
-                .Select(item => item.Calculation!)
-                .ToArray(),
-            Applications = processed.Value.Events.SelectMany(item => item.Applications)
-                .Concat(relics.Value.Events.SelectMany(item => item.Applications))
-                .ToArray(),
-            Payload = JsonSerializer.SerializeToElement(new
-            {
-                boundary = boundary.ToString(),
-                activeActorId,
-                events = processed.Value.Events,
-                relicEvents = relics.Value.Events
-            })
-        });
-        return Result<CombatState>.Success(evaluated);
-    }
-
-    private static bool StartsNewRound(CombatState combat)
-    {
-        var activation = combat.ActivationState;
-        return activation != null && activation.ActivationOrder
-            .Where(actorId => combat.GetActor(actorId)?.IsAlive == true)
-            .All(actorId => activation.CompletedActorIds.Contains(actorId, StringComparer.Ordinal));
-    }
-
-    private static string ToSnakeCase(StatusTriggerBoundary boundary) => boundary switch
-    {
-        StatusTriggerBoundary.StartActivation => "start_activation",
-        StatusTriggerBoundary.EndActivation => "end_activation",
-        StatusTriggerBoundary.StartRound => "start_round",
-        StatusTriggerBoundary.EndRound => "end_round",
-        _ => "unknown"
-    };
-
-    private static string ToSnakeCase(RegenerationTiming timing) => timing switch
-    {
-        RegenerationTiming.START_TURN => "start_activation",
-        RegenerationTiming.END_TURN => "end_activation",
-        RegenerationTiming.OUT_OF_COMBAT => "out_of_combat",
-        _ => "unknown"
-    };
-
     private Result<(
         PhaseSequenceDefinition Sequence,
         CombatFlowPoliciesDefinition Policies,
-        TurnOrderPolicyDefinition TurnOrder)> ResolveContext(
-        RunState run)
+        TurnOrderPolicyDefinition TurnOrder)> ResolveContext(RunState run)
     {
         var combatRules = run.ResolvedMode?.CombatRules;
         if (combatRules == null)
+        {
             return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(
                 "Run has no resolved combat rules");
+        }
         if (string.IsNullOrWhiteSpace(combatRules.DefaultPhaseSequenceId))
+        {
             return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(
                 "Combat rules have no phase sequence id");
+        }
 
         var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (runtime.IsFailure)
-            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(runtime.Error);
+        {
+            return Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(
+                runtime.Error);
+        }
         var sequence = runtime.Value.GetDefinition<PhaseSequenceDefinition>(
             "phase-sequences",
             combatRules.DefaultPhaseSequenceId);
         return sequence.IsFailure
-            ? Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(sequence.Error)
+            ? Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Failure(
+                sequence.Error)
             : Result<(PhaseSequenceDefinition, CombatFlowPoliciesDefinition, TurnOrderPolicyDefinition)>.Success(
                 (sequence.Value, combatRules.Flow, combatRules.TurnOrder));
     }
-
-    private Result<ActionDefinition> ResolveAction(RunState run, string actionId) =>
-        _actions is IRevisionedActionCatalog revisioned
-            ? revisioned.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
-            : _actions.GetDefinition(actionId);
 
     private Result<CombatState> PublishIntents(
         RunState run,
@@ -962,182 +158,18 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             });
     }
 
-    private static Result<ResourceRefreshResult> ApplyStartDeckCycle(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        string actorId,
-        DeckCyclePolicyDefinition policy,
-        DeterministicContext context)
+    private static CombatInitializationResult WithCombat(
+        CombatInitializationResult initialized,
+        CombatState combat) => initialized with
     {
-        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || policy.DrawPerActivation == 0)
-            return Result<ResourceRefreshResult>.Success(new ResourceRefreshResult(deck, context, []));
-
-        var availableHandSlots = System.Math.Max(0, policy.HandLimit - deck.Hand.Count);
-        var count = System.Math.Min(policy.DrawPerActivation, availableHandSlots);
-        var drawn = DeckTransitions.Draw(
-            deck,
-            count,
-            context,
-            policy.ShuffleDiscardWhenDrawEmpty,
-            policy.AllowPartialDraw);
-        return drawn.IsFailure
-            ? Result<ResourceRefreshResult>.Failure(drawn.Error)
-            : Result<ResourceRefreshResult>.Success(
-                new ResourceRefreshResult(drawn.Value.State, drawn.Value.Context, drawn.Value.Cards));
-    }
-
-    private static Result<EndDeckCycleResult> ApplyEndDeckCycle(
-        RunState run,
-        CombatState combat,
-        DeckState deck,
-        string actorId,
-        DeckCyclePolicyDefinition policy,
-        DeterministicContext context,
-        Func<string, Result<ActionDefinition>> resolveAction)
-    {
-        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || deck.Hand.Count == 0)
-            return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(deck, context, [], []));
-
-        var exhaust = new List<string>();
-        var discard = new List<string>();
-        for (var index = 0; index < deck.Hand.Count; index++)
+        Combat = combat,
+        Fingerprint = CanonicalJson.ComputeHash(new
         {
-            var cardInstanceId = deck.HandInstanceIds[index];
-            var cardId = deck.GetDefinitionId(cardInstanceId);
-            if (cardId == null)
-                return Result<EndDeckCycleResult>.Failure(
-                    $"Card instance not found: {cardInstanceId}");
-            var definition = resolveAction(cardId);
-            if (definition.IsFailure)
-                return Result<EndDeckCycleResult>.Failure(definition.Error);
-            var tags = definition.Value.Tags;
-            var reference = cardInstanceId.ToString();
-            if (!string.IsNullOrWhiteSpace(policy.EtherealTag) &&
-                tags.Contains(policy.EtherealTag, StringComparer.OrdinalIgnoreCase))
-            {
-                exhaust.Add(reference);
-                continue;
-            }
-
-            var retained = tags.Any(tag =>
-                policy.RetainTags.Contains(tag, StringComparer.OrdinalIgnoreCase));
-            var shouldDiscard = policy.EndDiscard switch
-            {
-                DeckEndDiscardStrategy.None => false,
-                DeckEndDiscardStrategy.All => true,
-                DeckEndDiscardStrategy.NonRetain => !retained,
-                DeckEndDiscardStrategy.DownToHandLimit =>
-                    index < System.Math.Max(0, deck.Hand.Count - policy.HandLimit),
-                _ => false
-            };
-            if (shouldDiscard)
-                discard.Add(reference);
-        }
-
-        var current = deck;
-        if (exhaust.Count > 0)
-        {
-            var moved = DeckTransitions.MoveFromHand(
-                current,
-                exhaust,
-                CardConsumeDestination.Exhaust,
-                context);
-            if (moved.IsFailure)
-                return Result<EndDeckCycleResult>.Failure(moved.Error);
-            current = moved.Value.State;
-            context = moved.Value.Context;
-        }
-        if (discard.Count > 0)
-        {
-            var moved = DeckTransitions.MoveFromHand(
-                current,
-                discard,
-                CardConsumeDestination.Discard,
-                context);
-            if (moved.IsFailure)
-                return Result<EndDeckCycleResult>.Failure(moved.Error);
-            current = moved.Value.State;
-            context = moved.Value.Context;
-        }
-
-        return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(
-            current,
-            context,
-            discard,
-            exhaust));
-    }
-
-    private static Result<CombatState> RefreshActorResource(
-        CombatState combat,
-        string actorId,
-        ResourceCyclePolicyDefinition policy,
-        RunState run)
-    {
-        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) ||
-            policy.StartActivation == ResourceRefreshStrategy.Preserve)
-            return Result<CombatState>.Success(combat);
-
-        var actor = combat.GetActor(actorId);
-        if (actor == null)
-            return Result<CombatState>.Failure($"Actor not found: {actorId}");
-        var resource = actor.GetResource(policy.ResourceId);
-        if (resource == null)
-            return Result<CombatState>.Failure(
-                $"Activation resource '{policy.ResourceId}' was not found on actor '{actorId}'");
-        var value = policy.StartActivation switch
-        {
-            ResourceRefreshStrategy.ResetToMax => resource.Maximum,
-            ResourceRefreshStrategy.Add => resource.Current + policy.Amount!.Value,
-            ResourceRefreshStrategy.Set => policy.Amount!.Value,
-            _ => resource.Current
-        };
-        var reduced = new ResourceMutationReducer().Apply(
-            actor.ResourceState.Resources,
-            [new ResolvedResourceMutation
-            {
-                MutationId = $"resource-cycle:start-activation:{actorId}:{policy.ResourceId}",
-                ResourceId = policy.ResourceId,
-                Operation = ResourceMutationOperation.Set,
-                Value = value
-            }]);
-        if (reduced.IsFailure)
-            return Result<CombatState>.Failure(reduced.Error);
-        var resources = actor.ResourceState with { Resources = reduced.Value.Resources };
-        return Result<CombatState>.Success(combat.ReplaceActor(actor.WithResourceState(resources)));
-    }
-
-    private static bool ScopeApplies(
-        FlowActorScope scope,
-        CombatState combat,
-        RunState run,
-        string actorId)
-    {
-        var actor = combat.GetActor(actorId);
-        if (actor == null)
-            return false;
-        return scope switch
-        {
-            FlowActorScope.RunOwner => string.Equals(actorId, run.PlayerEntityId, StringComparison.Ordinal),
-            FlowActorScope.PlayerControlled => combat.ControllerOf(actor) == ControllerKind.Player,
-            FlowActorScope.AiControlled => combat.ControllerOf(actor) == ControllerKind.AI,
-            FlowActorScope.All => true,
-            _ => false
-        };
-    }
-
-    private static bool IsPlayerActor(CombatState combat, string actorId) =>
-        combat.GetActor(actorId) is { } actor &&
-        combat.ControllerOf(actor) == ControllerKind.Player;
-
-    private sealed record EndDeckCycleResult(
-        DeckState State,
-        DeterministicContext Context,
-        IReadOnlyList<string> Discarded,
-        IReadOnlyList<string> Exhausted);
-
-    private sealed record ResourceRefreshResult(
-        DeckState State,
-        DeterministicContext Context,
-        IReadOnlyList<string> Cards);
+            combat,
+            run = initialized.Run,
+            effectSteps = initialized.EffectSteps,
+            applications = initialized.Applications,
+            phaseTransitions = initialized.PhaseTransitions
+        })
+    };
 }

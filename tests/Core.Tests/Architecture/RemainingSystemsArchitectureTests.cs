@@ -157,6 +157,89 @@ public sealed class RemainingSystemsArchitectureTests
         Assert.Contains("status-effects", directoryNames);
     }
 
+    [Fact]
+    public void CombatFlowComposition_HasFocusedDependencyBoundaries()
+    {
+        AssertFieldTypes(
+            typeof(Core.Combat.Flow.CombatFlowPlanner),
+            typeof(Core.Content.IContentRuntimeResolver),
+            typeof(Core.Combat.Flow.ICombatBoundaryExecutor),
+            typeof(Core.Combat.Intents.IIntentResolver));
+        AssertFieldTypes(
+            typeof(Core.Combat.Flow.CombatCommandHandler),
+            typeof(Core.Combat.LegalActions.ILegalActionResolver),
+            typeof(Core.Combat.Flow.ICombatActionStateReducer));
+        AssertFieldTypes(
+            typeof(Core.Combat.Flow.AutomaticFlowDriver),
+            typeof(Core.Combat.Flow.ICombatFlowPlanner),
+            typeof(Core.Combat.Gambits.IDecisionPolicyRegistry),
+            typeof(Core.Combat.Flow.ICombatCommandHandler));
+
+        var boundaryDependencies = FieldTypes(typeof(Core.Combat.Flow.CombatBoundaryExecutor));
+        Assert.DoesNotContain(typeof(Core.Content.IContentRuntimeResolver), boundaryDependencies);
+        Assert.DoesNotContain(typeof(Core.Combat.Intents.IIntentResolver), boundaryDependencies);
+        Assert.DoesNotContain(typeof(Core.Combat.Gambits.IDecisionPolicyRegistry), boundaryDependencies);
+        Assert.DoesNotContain(typeof(Core.Combat.LegalActions.ILegalActionResolver), boundaryDependencies);
+        Assert.DoesNotContain(typeof(Core.Run.IRunCombatResolutionCommitter), boundaryDependencies);
+
+        var coordinatorDependencies = FieldTypes(typeof(Core.Combat.CombatRunCoordinator));
+        Assert.Contains(typeof(Core.Combat.Flow.ICombatCommandHandler), coordinatorDependencies);
+        Assert.Contains(typeof(Core.Combat.Flow.IAutomaticFlowDriver), coordinatorDependencies);
+        Assert.DoesNotContain(typeof(Core.Combat.LegalActions.ILegalActionResolver), coordinatorDependencies);
+        Assert.DoesNotContain(typeof(Core.Combat.Gambits.IDecisionPolicyRegistry), coordinatorDependencies);
+    }
+
+    [Fact]
+    public void CombatFlowComposition_RemainsWithinArchitecturalSizeBudgets()
+    {
+        var repositoryRoot = FindRepositoryRoot();
+        var budgets = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["src/Core/Combat/CombatRunCoordinator.cs"] = 650,
+            ["src/Core/Combat/Flow/CombatFlowPlanner.cs"] = 220,
+            ["src/Core/Combat/Flow/CombatCommandHandler.cs"] = 320,
+            ["src/Core/Combat/Flow/AutomaticFlowDriver.cs"] = 340,
+            ["src/Core/Combat/Flow/CombatBoundaryExecutor.cs"] = 1100
+        };
+        var violations = budgets
+            .Select(item => new
+            {
+                item.Key,
+                Budget = item.Value,
+                Lines = File.ReadLines(Path.Combine(
+                    repositoryRoot,
+                    item.Key.Replace('/', Path.DirectorySeparatorChar))).Count()
+            })
+            .Where(item => item.Lines > item.Budget)
+            .Select(item => $"{item.Key}: {item.Lines} lines (budget {item.Budget})")
+            .ToArray();
+
+        Assert.True(
+            violations.Length == 0,
+            "Combat composition services exceeded their size budgets:\n" + string.Join("\n", violations));
+
+        var legacyStaticEntrypoints = typeof(Core.Combat.Flow.CombatFlowPlanner)
+            .GetMethods(System.Reflection.BindingFlags.Public |
+                        System.Reflection.BindingFlags.Static |
+                        System.Reflection.BindingFlags.DeclaredOnly);
+        Assert.Empty(legacyStaticEntrypoints);
+    }
+
+    private static Type[] FieldTypes(Type type) => type
+        .GetFields(System.Reflection.BindingFlags.Instance |
+                   System.Reflection.BindingFlags.NonPublic |
+                   System.Reflection.BindingFlags.DeclaredOnly)
+        .Select(field => field.FieldType)
+        .ToArray();
+
+    private static void AssertFieldTypes(Type type, params Type[] expected)
+    {
+        var actual = FieldTypes(type);
+        Assert.Equal(
+            expected.OrderBy(item => item.FullName, StringComparer.Ordinal),
+            actual.OrderBy(item => item.FullName, StringComparer.Ordinal));
+    }
+
     private static string FindRepositoryRoot()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory);

@@ -1,7 +1,6 @@
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Combat.Flow;
-using Core.Combat.Gambits;
 using Core.Combat.LegalActions;
 using Core.Combat.Activation;
 using Core.Combat.TurnPhase;
@@ -21,11 +20,11 @@ public sealed class CombatRunCoordinatorTests
     private readonly Mock<IRunEncounterRuntime> _runManager = new();
 
     [Fact]
-    public void EndTurn_CanonicalFlowResolvesEnemyAndCommitsOneBatch()
+    public void ExecuteAction_ComposesHandlerAndAutomaticDriverAndCommitsOneBatch()
     {
         var flowPlanner = new Mock<ICombatFlowPlanner>();
-        var decisions = new Mock<IDecisionPolicyRegistry>();
-        var legalActions = new Mock<ILegalActionResolver>();
+        var commands = new Mock<ICombatCommandHandler>();
+        var automaticFlow = new Mock<IAutomaticFlowDriver>();
         var committer = _runManager.As<IRunCombatResolutionCommitter>();
         var run = CreateRunState(Guid.NewGuid(), []) with
         {
@@ -55,48 +54,49 @@ public sealed class CombatRunCoordinatorTests
 
         _runManager.Setup(manager => manager.GetRun(run.RunId))
             .Returns(Result<RunState>.Success(run));
-        legalActions.Setup(resolver => resolver.Evaluate(
-                It.IsAny<RunState>(), It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(),
-                It.IsAny<CombatCommandOrigin>()))
-            .Returns((RunState snapshot, CombatState state, CombatActionCommand submitted, CombatCommandOrigin _) =>
+        var rootCandidate = new LegalActionCandidate
+        {
+            CandidateId = "end-turn",
+            Source = LegalActionSource.System,
+            Command = command,
+            ResolvedCommand = command,
+            SuccessorCombat = rootState,
+            SuccessorRun = run,
+            ResolutionFingerprint = "resolution"
+        };
+        var rootStep = new CombatResolutionStep
+        {
+            TransitionType = "combat.action.applied",
+            Combat = rootState,
+            Deck = run.Deck,
+            RunDeterminism = run.Determinism,
+            RunSnapshot = run
+        };
+        commands.Setup(handler => handler.Handle(It.Is<CombatCommandHandlingRequest>(request =>
+                request.CombatId == previous.CombatId && request.Origin == CombatCommandOrigin.PlayerInput)))
+            .Returns(Result<CombatCommandHandlingResult>.Success(new CombatCommandHandlingResult
             {
-                var successor = submitted.ActorId == "hero"
-                    ? rootState
-                    : submitted.ActionType == ActionType.END_TURN ? endedState : attackedState;
-                var candidate = new LegalActionCandidate
-                {
-                    CandidateId = submitted.ActionType.ToString(),
-                    Source = submitted.ActionType is ActionType.PASS or ActionType.END_TURN
-                        ? LegalActionSource.System : LegalActionSource.Ability,
-                    Command = submitted,
-                    ActionId = submitted.PowerId,
-                    SuccessorCombat = successor,
-                    SuccessorRun = snapshot,
-                    ResolutionFingerprint = "resolution"
-                };
-                return Result<LegalActionEvaluation>.Success(new LegalActionEvaluation { Candidate = candidate });
-            });
-        flowPlanner.SetupSequence(planner => planner.AdvanceActivation(
-                It.Is<RunState>(snapshot => snapshot.RunId == run.RunId),
-                It.IsAny<CombatState>(),
-                It.IsAny<DeckState>(),
-                It.IsAny<DeterministicContext>()))
-            .Returns(Result<CombatFlowAdvanceResult>.Success(Plan(enemyState, run.Deck)))
-            .Returns(Result<CombatFlowAdvanceResult>.Success(Plan(playerState, run.Deck)));
-        decisions.Setup(engine => engine.Decide(
-                It.IsAny<ControllerBinding>(), It.IsAny<DecisionPolicyRequest>()))
-            .Returns(Result<DecisionPolicyResult>.Success(new DecisionPolicyResult
+                Step = rootStep,
+                NextRun = run with { Determinism = run.Determinism.AdvanceStep() },
+                Candidate = rootCandidate,
+                RequestsActivationAdvance = true
+            }));
+        var automaticSteps = new[]
+        {
+            Step("combat.activation.ended", enemyState, run.Deck),
+            Step("combat.activation.started", enemyState, run.Deck),
+            Step("combat.ai.action", attackedState, run.Deck),
+            Step("combat.ai.end_turn", endedState, run.Deck),
+            Step("combat.activation.ended", playerState, run.Deck),
+            Step("combat.activation.started", playerState, run.Deck)
+        };
+        automaticFlow.Setup(driver => driver.Drive(It.Is<AutomaticFlowRequest>(request =>
+                request.RequestsActivationAdvance && request.Combat == rootState)))
+            .Returns(Result<AutomaticFlowResult>.Success(new AutomaticFlowResult
             {
-                RuleId = "enemy_basic_attack",
-                Candidate = new LegalActionCandidate
-                {
-                    Command = new CombatActionCommand
-                    {
-                        RunId = run.RunId, ActorId = "enemy", ActionType = ActionType.POWER,
-                        PowerId = "enemy_basic_attack", TargetId = "hero", TargetIds = ["hero"]
-                    }
-                },
-                Determinism = run.Determinism
+                Run = run,
+                Combat = playerState,
+                Steps = automaticSteps
             }));
         CombatResolutionCommit? captured = null;
         committer.Setup(service => service.CommitCombatResolution(It.IsAny<CombatResolutionCommit>()))
@@ -114,8 +114,8 @@ public sealed class CombatRunCoordinatorTests
             _combatFactory.Object,
             _runManager.Object,
             flowPlanner.Object,
-            decisions.Object,
-            legalActions.Object);
+            commands.Object,
+            automaticFlow.Object);
         var result = coordinator.ExecuteAction(previous.CombatId, command, identity);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
@@ -136,6 +136,66 @@ public sealed class CombatRunCoordinatorTests
             It.IsAny<string?>(),
             It.IsAny<CardConsumeDestination>(),
             It.IsAny<RunCommandIdentity?>()), Times.Never);
+    }
+
+    [Fact]
+    public void ExecuteAction_WhenAutomaticContinuationFails_DoesNotCommitTheRootStep()
+    {
+        var commands = new Mock<ICombatCommandHandler>();
+        var automaticFlow = new Mock<IAutomaticFlowDriver>();
+        var committer = _runManager.As<IRunCombatResolutionCommitter>();
+        var run = CreateRunState(Guid.NewGuid(), []) with
+        {
+            ResolvedMode = new ResolvedGameMode
+            {
+                CombatRules = new CombatRulesDefinition { Flow = CanonicalPolicies() }
+            }
+        };
+        var previous = WithActivation(run.GetActiveEncounter()!.Combat, "hero", waiting: true);
+        run = run with { Encounters = [run.GetActiveEncounter()! with { Combat = previous }] };
+        var candidateState = previous with { CurrentTurn = previous.CurrentTurn + 1 };
+        var command = new CombatActionCommand
+        {
+            RunId = run.RunId,
+            ActorId = "hero",
+            ActionType = ActionType.END_TURN
+        };
+        var candidate = new LegalActionCandidate
+        {
+            CandidateId = "end-turn",
+            Source = LegalActionSource.System,
+            Command = command,
+            ResolvedCommand = command,
+            SuccessorCombat = candidateState,
+            SuccessorRun = run,
+            ResolutionFingerprint = "candidate"
+        };
+        _runManager.Setup(manager => manager.GetRun(run.RunId))
+            .Returns(Result<RunState>.Success(run));
+        commands.Setup(handler => handler.Handle(It.IsAny<CombatCommandHandlingRequest>()))
+            .Returns(Result<CombatCommandHandlingResult>.Success(new CombatCommandHandlingResult
+            {
+                Step = Step("combat.action.applied", candidateState, run.Deck),
+                NextRun = run with { Determinism = run.Determinism.AdvanceStep() },
+                Candidate = candidate,
+                RequestsActivationAdvance = true
+            }));
+        automaticFlow.Setup(driver => driver.Drive(It.IsAny<AutomaticFlowRequest>()))
+            .Returns(Result<AutomaticFlowResult>.Failure("automatic continuation rejected"));
+        var coordinator = new CombatRunCoordinator(
+            _combatFactory.Object,
+            _runManager.Object,
+            Mock.Of<ICombatFlowPlanner>(),
+            commands.Object,
+            automaticFlow.Object);
+
+        var result = coordinator.ExecuteAction(previous.CombatId, command);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal("automatic continuation rejected", result.Error);
+        Assert.Equal(1, previous.CurrentTurn);
+        Assert.Equal(1, run.GetActiveEncounter()!.Combat.CurrentTurn);
+        committer.Verify(service => service.CommitCombatResolution(It.IsAny<CombatResolutionCommit>()), Times.Never);
     }
 
     [Fact]
@@ -170,7 +230,19 @@ public sealed class CombatRunCoordinatorTests
     }
 
     private CombatRunCoordinator CreateCoordinator() =>
-        new(_combatFactory.Object, _runManager.Object);
+        new(
+            _combatFactory.Object,
+            _runManager.Object,
+            Mock.Of<ICombatFlowPlanner>(),
+            Mock.Of<ICombatCommandHandler>(),
+            Mock.Of<IAutomaticFlowDriver>());
+
+    private static CombatResolutionStep Step(string type, CombatState combat, DeckState deck) => new()
+    {
+        TransitionType = type,
+        Combat = combat,
+        Deck = deck
+    };
 
     private static CombatState CreateCombatState(Guid runId, string nodeId, ulong seed) => new()
     {
@@ -200,25 +272,6 @@ public sealed class CombatRunCoordinatorTests
             }
         };
     }
-
-    private static CombatFlowAdvanceResult Plan(CombatState final, DeckState deck) => new()
-    {
-        Steps =
-        [
-            new CombatResolutionStep
-            {
-                TransitionType = "combat.activation.ended",
-                Combat = final,
-                Deck = deck
-            },
-            new CombatResolutionStep
-            {
-                TransitionType = "combat.activation.started",
-                Combat = final,
-                Deck = deck
-            }
-        ]
-    };
 
     private static CombatFlowPoliciesDefinition CanonicalPolicies() => new()
     {

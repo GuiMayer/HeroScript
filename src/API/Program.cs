@@ -390,16 +390,20 @@ builder.Services.AddSingleton<ICombatFactory>(sp => new CombatFactory(
     sp.GetRequiredService<IResourceManager>(),
     sp.GetRequiredService<EntityDefinitionLoader>()));
 
-// Register CombatRunCoordinator
-builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
-    sp.GetRequiredService<IContentRuntimeResolver>(),
+// Focused canonical combat-flow composition
+builder.Services.AddSingleton<ICombatOutcomeResolver, CombatOutcomeResolver>();
+builder.Services.AddSingleton<ICombatBoundaryExecutor>(sp => new CombatBoundaryExecutor(
     sp.GetRequiredService<ITurnOrderResolver>(),
     sp.GetRequiredService<IActionManager>(),
-    sp.GetRequiredService<IIntentResolver>(),
     sp.GetRequiredService<ICombatStatusLifecycle>(),
     sp.GetRequiredService<ICombatRelicLifecycle>(),
     sp.GetRequiredService<ICombatResourceLifecycle>(),
-    sp.GetRequiredService<IPhaseGraphReducer>()));
+    sp.GetRequiredService<IPhaseGraphReducer>(),
+    sp.GetRequiredService<ICombatOutcomeResolver>()));
+builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
+    sp.GetRequiredService<IContentRuntimeResolver>(),
+    sp.GetRequiredService<ICombatBoundaryExecutor>(),
+    sp.GetRequiredService<IIntentResolver>()));
 builder.Services.AddSingleton<ICombatScenarioCompiler>(sp => new CombatScenarioCompiler(
     sp.GetRequiredService<IRevisionedGameModeResolver>(),
     sp.GetRequiredService<EntityDefinitionLoader>(),
@@ -456,6 +460,9 @@ builder.Services.AddSingleton<ILegalActionQueryService, LegalActionQueryService>
 builder.Services.AddSingleton<IDecisionPolicy, GambitDecisionPolicy>();
 builder.Services.AddSingleton<IDecisionPolicyRegistry, DecisionPolicyRegistry>();
 builder.Services.AddSingleton<IIntentResolver, IntentResolver>();
+builder.Services.AddSingleton<ICombatActionStateReducer, CombatActionStateReducer>();
+builder.Services.AddSingleton<ICombatCommandHandler, CombatCommandHandler>();
+builder.Services.AddSingleton<IAutomaticFlowDriver, AutomaticFlowDriver>();
 builder.Services.AddSingleton<IGameplayRuntimeFactory, GameplayRuntimeFactory>();
 builder.Services.AddSingleton<GameplayRuntime>(sp =>
     sp.GetRequiredService<IGameplayRuntimeFactory>().Create(new GameplayRuntimeOptions(

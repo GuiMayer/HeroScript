@@ -121,44 +121,6 @@ public static class CombatFlowTransitions
         };
     }
 
-    public static CombatState EvaluateOutcome(
-        CombatState combat,
-        OutcomePolicyDefinition policy,
-        string? activeActorId)
-    {
-        ArgumentNullException.ThrowIfNull(combat);
-        ArgumentNullException.ThrowIfNull(policy);
-        var participants = combat.GetAllActors().ToArray();
-        var playerControlled = participants
-            .Where(entity => combat.ControllerOf(entity) == ControllerKind.Player)
-            .ToArray();
-        var aiControlled = participants
-            .Where(entity => combat.ControllerOf(entity) == ControllerKind.AI)
-            .ToArray();
-        var playersDefeated = playerControlled.Length == 0 || playerControlled.All(entity => !entity.IsAlive);
-        var aiDefeated = aiControlled.Length == 0 || aiControlled.All(entity => !entity.IsAlive);
-        if (!playersDefeated && !aiDefeated)
-            return combat with { Status = CombatStatus.ACTIVE };
-        if (!playersDefeated)
-            return combat with { Status = CombatStatus.VICTORY };
-        if (!aiDefeated)
-            return combat with { Status = CombatStatus.DEFEAT };
-
-        var status = policy.TieBreak switch
-        {
-            OutcomeTieBreak.Draw => CombatStatus.DRAW,
-            OutcomeTieBreak.PlayerControlledWins => CombatStatus.VICTORY,
-            OutcomeTieBreak.AiControlledWins => CombatStatus.DEFEAT,
-            OutcomeTieBreak.ActiveActorWins =>
-                combat.GetActor(activeActorId ?? string.Empty) is { } activeActor &&
-                combat.ControllerOf(activeActor) == ControllerKind.Player
-                    ? CombatStatus.VICTORY
-                    : CombatStatus.DEFEAT,
-            _ => CombatStatus.DRAW
-        };
-        return combat with { Status = status };
-    }
-
     private static Result ValidateResourceBudget(
         CombatState combat,
         CombatActionCommand command,
