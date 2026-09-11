@@ -12,8 +12,8 @@ func setup(owner) -> void:
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new()
 	var titles := VBoxContainer.new()
-	titles.add_child(AppTheme.title(I18n.text("CÓDICE DA ENGINE"), 34))
-	titles.add_child(AppTheme.muted(I18n.text("Conteúdo publicado e versionado, lido pela mesma REST API usada durante o jogo.")))
+	titles.add_child(AppTheme.title(I18n.text("ENGINE CODEX"), 34))
+	titles.add_child(AppTheme.muted(I18n.text("Browse the published content used by the game.")))
 	header.add_child(titles)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -23,9 +23,9 @@ func setup(owner) -> void:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 8)
 	for kind in KINDS:
-		var names := [I18n.text("Cartas"), I18n.text("Entidades"), I18n.text("Recursos"),
-			I18n.text("Status"), I18n.text("Relíquias"), I18n.text("Modificadores"),
-			I18n.text("Modos"), I18n.text("Regras"), I18n.text("Jornadas")]
+		var names := [I18n.text("Cards"), I18n.text("Entities"), I18n.text("Resources"),
+			I18n.text("Statuses"), I18n.text("Relics"), I18n.text("Modifiers"),
+			I18n.text("Modes"), I18n.text("Rules"), I18n.text("Runs")]
 		tabs.add_child(_button(names[KINDS.find(kind)].to_upper(), func(): _load_kind(kind)))
 	var tabs_scroll := ScrollContainer.new()
 	tabs_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -48,7 +48,7 @@ func setup(owner) -> void:
 	call_deferred("_load_kind", "cards")
 
 func _load_kind(kind: String) -> void:
-	detail.text = I18n.text("Carregando %s…") % kind
+	detail.text = I18n.text("Loading %s…") % kind
 	var response := await GameSession.content(kind, 200)
 	if not is_inside_tree():
 		return
@@ -58,7 +58,7 @@ func _load_kind(kind: String) -> void:
 	current_items = response.data.get("items", [])
 	list.clear()
 	for item in current_items:
-		list.add_item(str(item.get("definitionId", I18n.text("sem id"))))
+		list.add_item(str(item.get("definitionId", I18n.text("no ID"))))
 	if not current_items.is_empty():
 		list.select(0)
 		_select_item(0)

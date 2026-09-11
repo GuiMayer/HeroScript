@@ -2,6 +2,11 @@
 
 Data: 2026-09-11. Escopo: engine headless e `examples/godot-engine-showcase`.
 
+Atualização posterior: o cliente passou a usar inglês como chave/fallback e
+camadas separadas de transporte, gateway, aplicação, playback e UI. A estrutura
+atual está em [Arquitetura do cliente](../../examples/godot-engine-showcase/ARCHITECTURE.md).
+As medições abaixo registram a entrega de otimização original.
+
 ## Resultado
 
 A demo possui português/inglês em runtime, seleção de carta e alvo sem recriar

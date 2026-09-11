@@ -23,15 +23,17 @@ func _run() -> void:
 		if not I18n.catalogs.en.has(key) or str(I18n.catalogs.en[key]).count("%s") != str(key).count("%s"):
 			check(false, "translation placeholders: " + key)
 	I18n.set_locale("en")
-	check(I18n.text("NOVA JORNADA") == "NEW JOURNEY", "English translation resolves")
+	check(I18n.text("NEW JOURNEY") == "NEW JOURNEY", "English translation resolves")
 	I18n.set_locale("pt_BR")
-	check(I18n.text("NOVA JORNADA") == "NOVA JORNADA", "Portuguese translation resolves")
+	check(I18n.text("NEW JOURNEY") == "NOVA JORNADA", "Portuguese translation resolves")
 	router.show_settings()
 	await get_tree().process_frame
 	I18n.set_locale("en")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	check(_contains_text(router.host, "SETTINGS"), "settings rebuild in English at runtime")
+	var language: OptionButton = router.host.find_child("LanguageSelector", true, false)
+	check(language.get_item_text(language.selected) == "English", "language selector matches the active English locale")
 	if not await GameSession.connect_engine():
 		check(false, "connect to engine")
 		finish()
@@ -85,19 +87,19 @@ func _run() -> void:
 			break
 	check(router.host.get_child(0) != screen, "card input submits and refreshes the screen")
 	screen = router.host.get_child(0)
-	check(not GameSession.presentation_queue.is_empty(), "receipt exposes actual animation frames")
-	check(GameSession.presentation_index == 0, "manual animation mode waits for the player")
+	check(not Playback.frames.is_empty(), "receipt exposes actual animation frames")
+	check(Playback.index == 0, "manual animation mode waits for the player")
 	check(screen._locked(), "new commands blocked until animations finish")
 	router.toggle_pause()
 	check(not router.host.can_process(), "pause suspends gameplay nodes")
 	router.show_timeline()
 	check(router.current_screen == "combat", "timeline shortcut cannot navigate behind the pause menu")
-	var index_before := GameSession.presentation_index
+	var index_before := Playback.index
 	await get_tree().create_timer(.12).timeout
-	check(index_before == GameSession.presentation_index, "pause preserves animation cursor")
+	check(index_before == Playback.index, "pause preserves animation cursor")
 	router.toggle_pause()
 	var sequence_before := int(GameSession.run.sequence)
-	while GameSession.presentation_index < GameSession.presentation_queue.size():
+	while Playback.index < Playback.frames.size():
 		screen._next_frame()
 	check(not screen._locked(), "input unlocks when presentation completes")
 	check(int(GameSession.run.sequence) == sequence_before, "presentation does not issue extra commands")

@@ -22,8 +22,7 @@ var reconnect_button: Button
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	presentation = data
-	GameSession.auto_present = false
-	GameSession.frame_presented.connect(_on_frame)
+	Playback.frame_presented.connect(_on_frame)
 	add_theme_constant_override("separation", 8)
 	_build_header()
 	_build_battlefield()
@@ -32,27 +31,27 @@ func setup(owner, data: Dictionary) -> void:
 	_update_controls()
 
 func _exit_tree() -> void:
-	if GameSession.frame_presented.is_connected(_on_frame):
-		GameSession.frame_presented.disconnect(_on_frame)
+	if Playback.frame_presented.is_connected(_on_frame):
+		Playback.frame_presented.disconnect(_on_frame)
 
 func _build_header() -> void:
 	var row := HBoxContainer.new()
 	var phase: Dictionary = GameSession.combat.get("phase", {}) if GameSession.combat.get("phase", {}) is Dictionary else {}
 	var activation: Dictionary = GameSession.combat.get("activation", {}) if GameSession.combat.get("activation", {}) is Dictionary else {}
-	var label := AppTheme.title(I18n.text("COMBATE  %s") % str(GameSession.combat.get("runNodeId", "")).to_upper(), 25)
+	var label := AppTheme.title(I18n.text("COMBAT  %s") % str(GameSession.combat.get("runNodeId", "")).to_upper(), 25)
 	row.add_child(label)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(push)
 	var turn := Label.new()
-	turn.text = I18n.text("RODADA %s   •   %s   •   STEP %s") % [
+	turn.text = I18n.text("ROUND %s   •   %s   •   STEP %s") % [
 		int(activation.get("round", GameSession.combat.get("currentTurn", 1))),
-		str(phase.get("currentPhaseId", phase.get("phaseId", I18n.text("resolução")))).replace("_", " ").to_upper(),
+		str(phase.get("currentPhaseId", phase.get("phaseId", I18n.text("resolution")))).replace("_", " ").to_upper(),
 		int(GameSession.combat.get("step", 0))]
 	turn.add_theme_color_override("font_color", AppTheme.GOLD)
 	row.add_child(turn)
 	row.add_child(_button(I18n.text("TIMELINE  [%s]") % Preferences.action_label("open_timeline"), router.show_timeline, 165))
-	row.add_child(_button(I18n.text("PAUSA"), router.toggle_pause, 100))
+	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
 	add_child(row)
 
 func _build_battlefield() -> void:
@@ -72,7 +71,7 @@ func _build_battlefield() -> void:
 	center.add_child(sigil)
 	var stack_count: int = GameSession.combat.get("pendingActions", []).size()
 	if stack_count > 0:
-		center.add_child(AppTheme.muted(I18n.text("STACK: %s ação(ões)") % stack_count))
+		center.add_child(AppTheme.muted(I18n.text("STACK: %s action(s)") % stack_count))
 	field.add_child(center)
 	var opponents := GameSession.opponents()
 	var enemies := HBoxContainer.new()
@@ -116,12 +115,12 @@ func _actor_card(actor: Dictionary, hostile: bool) -> Control:
 	if hostile:
 		var intent := _intent_for(str(actor.get("instanceId", "")))
 		var intent_label := Label.new()
-		intent_label.text = I18n.text("INTENÇÃO  •  %s") % intent
+		intent_label.text = I18n.text("INTENT  •  %s") % intent
 		intent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		intent_label.add_theme_color_override("font_color", AppTheme.GOLD)
 		content.add_child(intent_label)
 	var actor_id := str(actor.get("instanceId", ""))
-	var select := _button(I18n.text("MIRAR"), func(): _select_target(actor_id), 0)
+	var select := _button(I18n.text("TARGET"), func(): _select_target(actor_id), 0)
 	select.toggle_mode = true
 	target_buttons[actor_id] = select
 	content.add_child(select)
@@ -155,11 +154,11 @@ func _build_hand() -> void:
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 8)
 	var heading := HBoxContainer.new()
-	heading.add_child(AppTheme.title(I18n.text("MÃO"), 18, AppTheme.GOLD))
+	heading.add_child(AppTheme.title(I18n.text("HAND"), 18, AppTheme.GOLD))
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	heading.add_child(push)
-	hint_label = AppTheme.muted(I18n.text("Selecione um alvo e jogue uma carta. Toda prévia veio da engine."))
+	hint_label = AppTheme.muted(I18n.text("Select a card, then choose a highlighted target."))
 	hint_label.custom_minimum_size.x = 500
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -174,7 +173,7 @@ func _build_hand() -> void:
 		if not card.is_empty():
 			hand_row.add_child(_card_button(card))
 	if hand_ids.is_empty():
-		hand_row.add_child(AppTheme.muted(I18n.text("A mão está vazia.")))
+		hand_row.add_child(AppTheme.muted(I18n.text("Your hand is empty.")))
 	var scroller := ScrollContainer.new()
 	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -183,7 +182,7 @@ func _build_hand() -> void:
 	scroller.add_child(hand_row)
 	section.add_child(scroller)
 	var counts: Dictionary = GameSession.run.get("deck", {}).get("counts", {})
-	section.add_child(AppTheme.muted(I18n.text("Compra: %s  •  Descarte: %s  •  Exílio: %s") % [
+	section.add_child(AppTheme.muted(I18n.text("Draw: %s  •  Discard: %s  •  Exile: %s") % [
 		int(counts.get("drawPile", 0)), int(counts.get("discardPile", 0)), int(counts.get("exhaustPile", 0))], 13))
 	add_child(AppTheme.panel(section, Color("#151625e8")))
 
@@ -196,7 +195,7 @@ func _card_button(card: Dictionary) -> Button:
 	value.text = "%s%s\n\n%s" % [
 		I18n.content_name(id, str(info.get("name", id))).to_upper(),
 		" +" if not card.get("upgrades", []).is_empty() else "",
-		str(info.get("text", I18n.text("Componente data-driven.")))]
+		str(info.get("text", I18n.text("Data-driven component.")))]
 	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	var tone := str(info.get("tone", "skill"))
 	var color := AppTheme.BLOOD if tone == "attack" else (Color("#8c75dc") if tone == "power" else AppTheme.TEAL)
@@ -207,10 +206,10 @@ func _card_button(card: Dictionary) -> Button:
 	card_buttons[instance_id] = value
 	var candidate := _candidate_for_card(instance_id)
 	if not candidate.is_empty():
-		value.text += "\n\n" + I18n.text("Custo: %s") % _cost_text(candidate)
+		value.text += "\n\n" + I18n.text("Cost: %s") % _cost_text(candidate)
 	else:
-		value.text += "\n\n" + I18n.text("INDISPONÍVEL")
-	value.tooltip_text = _preview(candidate) if not candidate.is_empty() else I18n.text("Sem ações legais para esta carta neste estado.")
+		value.text += "\n\n" + I18n.text("UNAVAILABLE")
+	value.tooltip_text = _preview(candidate) if not candidate.is_empty() else I18n.text("No legal actions for this card in the current state.")
 	value.pressed.connect(func(): _choose_card(instance_id))
 	value.mouse_entered.connect(func(): _show_preview(instance_id))
 	value.focus_entered.connect(func(): _show_preview(instance_id))
@@ -220,7 +219,7 @@ func _build_footer() -> void:
 	detail_label = RichTextLabel.new()
 	detail_label.bbcode_enabled = false
 	detail_label.custom_minimum_size = Vector2(0, 36)
-	detail_label.text = I18n.text("Selecione um alvo e jogue uma carta. Toda prévia veio da engine.")
+	detail_label.text = I18n.text("Select a card, then choose a highlighted target.")
 	detail_label.tooltip_text = str(GameSession.combat.get("stateHash", ""))
 	add_child(detail_label)
 	choices = VBoxContainer.new()
@@ -232,21 +231,21 @@ func _build_footer() -> void:
 	queue_label = Label.new()
 	queue_label.add_theme_color_override("font_color", AppTheme.TEAL)
 	row.add_child(queue_label)
-	next_frame_button = _button(I18n.text("PRÓXIMO FRAME  [%s]") % Preferences.action_label("confirm_action"), _next_frame, 180)
+	next_frame_button = _button(I18n.text("NEXT ANIMATION  [%s]") % Preferences.action_label("confirm_action"), _next_frame, 180)
 	row.add_child(next_frame_button)
-	var cancel := _button(I18n.text("CANCELAR SELEÇÃO"), _cancel_selection, 160)
+	var cancel := _button(I18n.text("CANCEL SELECTION"), _cancel_selection, 160)
 	action_buttons.append(cancel)
 	row.add_child(cancel)
 	var pass_candidate := _system_candidate(["PASS", "PASS_PRIORITY"])
 	if not pass_candidate.is_empty():
-		var pass_button := _button(I18n.text("PASSAR PRIORIDADE"), func(): _execute_system(pass_candidate), 180)
+		var pass_button := _button(I18n.text("PASS PRIORITY"), func(): _execute_system(pass_candidate), 180)
 		action_buttons.append(pass_button)
 		row.add_child(pass_button)
-	var end := _button(I18n.text("ENCERRAR TURNO  [%s]") % Preferences.action_label("end_turn"), _end_turn, 200)
+	var end := _button(I18n.text("END TURN  [%s]") % Preferences.action_label("end_turn"), _end_turn, 200)
 	end.set_meta("requires_end", true)
 	action_buttons.append(end)
 	row.add_child(end)
-	reconnect_button = _button(I18n.text("ATUALIZAR"), _reconnect, 140)
+	reconnect_button = _button(I18n.text("RECONNECT"), _reconnect, 140)
 	row.add_child(reconnect_button)
 	add_child(row)
 
@@ -276,8 +275,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 	submitting = true
 	_update_controls()
 	var id := str(candidate.command.get("cardInstanceId", ""))
-	var success := await GameSession.execute_combat_command("PLAY_CARD", _command_payload(candidate.command),
-		str(candidate.get("cardDefinitionId", "")))
+	var success := await GameSession.submit_candidate(candidate)
 	if success:
 		GameAudio.card()
 		var target_ids := _targets(candidate)
@@ -300,7 +298,7 @@ func _end_turn() -> void:
 		return
 	submitting = true
 	_update_controls()
-	if await GameSession.execute_combat_command("END_TURN", _command_payload(candidate.command), I18n.text("Encerrar turno")):
+	if await GameSession.submit_candidate(candidate):
 		router.open_game()
 	else:
 		submitting = false
@@ -311,7 +309,7 @@ func _execute_system(candidate: Dictionary) -> void:
 		return
 	submitting = true
 	_update_controls()
-	if await GameSession.execute_combat_command("EXECUTE_ACTION", _command_payload(candidate.command), I18n.text("Passar prioridade")):
+	if await GameSession.submit_candidate(candidate):
 		router.open_game()
 	else:
 		submitting = false
@@ -320,11 +318,11 @@ func _execute_system(candidate: Dictionary) -> void:
 func _next_frame() -> void:
 	if get_tree().paused:
 		return
-	GameSession.present_next_frame()
+	Playback.advance()
 	_update_controls()
 
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
-	detail_label.text = "%s %s/%s  •  %s" % [I18n.text("Animações"), index + 1, total, I18n.content_name(str(frame.get("transitionType", "")))]
+	detail_label.text = "%s %s/%s  •  %s" % [I18n.text("Animations"), index + 1, total, I18n.content_name(str(frame.get("transitionType", "")))]
 	for application in frame.get("applications", []):
 		var target := str(application.get("targetEntityId", ""))
 		if actor_portraits.has(target):
@@ -334,8 +332,8 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	GameAudio.hit()
 
 func _queue_text() -> String:
-	var remaining := GameSession.presentation_queue.size() - GameSession.presentation_index
-	return I18n.text("%s frame(s) na apresentação") % maxi(remaining, 0)
+	var remaining := Playback.total - Playback.index
+	return I18n.text("%s animation(s) remaining") % maxi(remaining, 0)
 
 func _candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
 	for candidate in GameSession.legal_actions:
@@ -356,10 +354,10 @@ func _system_candidate(action_types: Array) -> Dictionary:
 
 func _preview(candidate: Dictionary) -> String:
 	if candidate.is_empty():
-		return I18n.text("Sem ações legais para esta carta neste estado.")
-	var lines: Array[String] = [I18n.text("Custo: %s") % _cost_text(candidate)]
+		return I18n.text("No legal actions for this card in the current state.")
+	var lines: Array[String] = [I18n.text("Cost: %s") % _cost_text(candidate)]
 	if bool(candidate.get("outcomeUncertain", false)):
-		lines.append(I18n.text("O resultado depende das próximas respostas."))
+		lines.append(I18n.text("The outcome depends on the next responses."))
 	for application in candidate.get("applications", []):
 		var resource = application.get("resourceId")
 		var previous = application.get("previousValue")
@@ -374,13 +372,6 @@ func _preview(candidate: Dictionary) -> String:
 				I18n.content_name(str(application.statusId))])
 	return "  •  ".join(lines)
 
-func _command_payload(command: Dictionary) -> Dictionary:
-	var payload := {}
-	for key in ["actorId", "actionType", "powerId", "targetId", "targetIds", "costOptionId", "cardInstanceId"]:
-		if command.has(key) and command[key] != null:
-			payload[key] = command[key]
-	return payload
-
 func _card_instance(instance_id: String) -> Dictionary:
 	for card in GameSession.run.get("deck", {}).get("cardInstances", []):
 		if str(card.get("cardInstanceId", "")) == instance_id:
@@ -391,7 +382,7 @@ func _intent_for(actor_id: String) -> String:
 	for intent in GameSession.combat.get("activation", {}).get("intents", []):
 		if str(intent.get("actorId", "")) == actor_id:
 			return I18n.content_name(str(intent.get("actionId", intent.get("actionType", ""))))
-	return I18n.text("observando")
+	return I18n.text("watching")
 
 func _button(text: String, action: Callable, width := 0) -> Button:
 	var value := AppTheme.button(text, width)
@@ -407,7 +398,7 @@ func _process(delta: float) -> void:
 		frame_delay = .32 / maxf(Preferences.animation_speed, .25)
 
 func _has_frames() -> bool:
-	return GameSession.presentation_index < GameSession.presentation_queue.size()
+	return Playback.has_frames()
 
 func _locked() -> bool:
 	return submitting or GameSession.busy or not GameSession.synchronized or _has_frames() or router.get_tree().paused
@@ -459,16 +450,16 @@ func _offer_candidates(candidates: Array) -> void:
 	# Keep alternative costs and multi-target combinations explicit.
 	for candidate in candidates:
 		var label := "%s  •  %s  •  %s" % [
-			I18n.text("JOGAR"), _cost_text(candidate), _preview(candidate)]
+			I18n.text("PLAY"), _cost_text(candidate), _preview(candidate)]
 		choices.add_child(_button(label, func(): _play_candidate(candidate)))
 
 func _show_preview(id: String) -> void:
 	if not is_instance_valid(detail_label) or _has_frames():
 		return
 	var matches := _candidates(id)
-	detail_label.text = _preview(matches[0]) if matches.size() == 1 else I18n.text("Selecione um alvo destacado.")
+	detail_label.text = _preview(matches[0]) if matches.size() == 1 else I18n.text("Choose a highlighted target.")
 	if matches.is_empty():
-		detail_label.text = I18n.text("Sem ações legais para esta carta neste estado.")
+		detail_label.text = I18n.text("No legal actions for this card in the current state.")
 
 func _update_controls() -> void:
 	if not is_instance_valid(queue_label):
@@ -477,8 +468,8 @@ func _update_controls() -> void:
 	reconnect_button.visible = not GameSession.synchronized
 	queue_label.text = _queue_text() if _has_frames() else ""
 	next_frame_button.visible = _has_frames()
-	selection_label.text = I18n.text("PROCESSANDO…") if GameSession.busy or submitting else (
-		I18n.text("Selecione um alvo destacado.") if not selected_card.is_empty() else "")
+	selection_label.text = I18n.text("PROCESSING…") if GameSession.busy or submitting else (
+		I18n.text("Choose a highlighted target.") if not selected_card.is_empty() else "")
 	for id in card_buttons:
 		var card: CardView = card_buttons[id]
 		card.disabled = locked or _candidates(id).is_empty()

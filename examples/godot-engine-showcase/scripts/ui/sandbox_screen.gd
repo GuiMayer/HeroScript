@@ -14,8 +14,8 @@ func setup(owner, data: Dictionary) -> void:
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new()
 	var titles := VBoxContainer.new()
-	titles.add_child(AppTheme.title(I18n.text("LABORATÓRIO DE REGRAS"), 34))
-	titles.add_child(AppTheme.muted(I18n.text("Troque o game mode; preserve cartas e cenário; observe outro jogo emergir dos mesmos dados.")))
+	titles.add_child(AppTheme.title(I18n.text("RULES LAB"), 34))
+	titles.add_child(AppTheme.muted(I18n.text("Keep your cards and scenario, change the game mode and explore a different play style.")))
 	header.add_child(titles)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -29,7 +29,7 @@ func setup(owner, data: Dictionary) -> void:
 	var modes := VBoxContainer.new()
 	modes.custom_minimum_size = Vector2(390, 0)
 	modes.add_theme_constant_override("separation", 10)
-	modes.add_child(AppTheme.title(I18n.text("1. Escolha o fluxo"), 22, AppTheme.GOLD))
+	modes.add_child(AppTheme.title(I18n.text("1. Choose the rules"), 22, AppTheme.GOLD))
 	for mode in presentation.get("sandbox_modes", []):
 		var choice := Button.new()
 		choice.custom_minimum_size = Vector2(0, 82)
@@ -45,7 +45,7 @@ func setup(owner, data: Dictionary) -> void:
 	var scenario := VBoxContainer.new()
 	scenario.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scenario.add_theme_constant_override("separation", 10)
-	scenario.add_child(AppTheme.title(I18n.text("2. Edite o cenário JSON"), 22, AppTheme.TEAL))
+	scenario.add_child(AppTheme.title(I18n.text("2. Edit the JSON scenario"), 22, AppTheme.TEAL))
 	editor = TextEdit.new()
 	editor.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -63,7 +63,7 @@ func setup(owner, data: Dictionary) -> void:
 	var stretch := Control.new()
 	stretch.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	launch_row.add_child(stretch)
-	launch_button = _button(I18n.text("INICIAR CENÁRIO"), _launch, 210)
+	launch_button = _button(I18n.text("START SCENARIO"), _launch, 210)
 	launch_row.add_child(launch_button)
 	scenario.add_child(launch_row)
 	columns.add_child(AppTheme.panel(scenario))
@@ -77,10 +77,10 @@ func _select_mode(mode_id: String) -> void:
 func _launch() -> void:
 	var parsed = JSON.parse_string(editor.text)
 	if not parsed is Dictionary:
-		router.show_error(I18n.text("O cenário não contém um objeto JSON válido."))
+		router.show_error(I18n.text("The scenario must be a valid JSON object."))
 		return
 	launch_button.disabled = true
-	router.show_toast(I18n.text("Compilando cenário e regras…"))
+	router.show_toast(I18n.text("Compiling scenario and rules…"))
 	if await GameSession.start_sandbox(selected_mode, parsed, int(seed_input.value)):
 		router.open_game()
 	else:

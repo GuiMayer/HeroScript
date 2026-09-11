@@ -38,6 +38,11 @@ Em **Configurações → Idioma**, escolha **Português (Brasil)** ou **English*
 A troca é imediata e persistida. Também estão disponíveis velocidade de
 animação, movimento reduzido e reprodução automática/manual dos frames.
 
+Inglês é o idioma inicial e o fallback. As chaves dos catálogos e os textos-base
+de `presentation.json` são mensagens em inglês. Uma preferência de português
+já salva é respeitada; idioma desconhecido, mensagem ausente ou catálogo ausente
+recorrem ao inglês. Os nomes de conteúdo também priorizam o fallback inglês.
+
 - Selecione uma carta e clique em um alvo destacado. Um segundo clique na carta
   só confirma diretamente quando existe exatamente uma escolha legal.
 - Clique direito ou **Cancelar seleção** limpa a seleção. Custos alternativos
@@ -76,17 +81,22 @@ JSON publicado ──> HeroScript ──> snapshot + comandos legais + frames
                                                       └─ menus locais
 ```
 
-A Godot nunca calcula dano, custo, validade de alvo, turno, IA, recompensa ou transição de mapa. `GameSession` traduz intenção de interface para envelopes versionados; `HeroAPI` é a única camada de transporte. Preferências audiovisuais ficam fora do estado da run e, portanto, não interferem em determinismo ou replay.
+A Godot nunca calcula dano, custo, validade de alvo, turno, IA, recompensa ou
+transição de mapa. As telas enviam escolhas a `GameSession`; o gateway monta
+os envelopes versionados e somente o transporte conhece HTTP. A fila de
+animações é independente da sessão. Preferências audiovisuais ficam fora do
+estado da run e, portanto, não interferem em determinismo ou replay.
 
 Arquivos principais:
 
-- `scripts/hero_api.gd`: transporte HTTP com timeout e erros normalizados;
-- `scripts/game_session.gd`: sessão, concorrência de comandos e fila de frames;
-- `scripts/combat_screen.gd`: projeção visual do combate e envio das escolhas legais;
-- `scripts/activity_screen.gd`: cliente genérico dos comandos de progressão;
-- `scripts/timeline_screen.gd`: inspeção, branches e replay;
-- `scripts/i18n.gd` e `data/locales/`: traduções da interface e nomes por ID;
-- `scripts/card_view.gd`: animações exclusivamente visuais das cartas;
+- `scripts/engine/http_transport.gd`: HTTP, timeout, JSON e erros estruturados;
+- `scripts/engine/engine_gateway.gd`: rotas, contratos REST e envelopes;
+- `scripts/application/game_session.gd`: sessão, sincronização e casos de uso;
+- `scripts/application/activity_choices.gd`: escolhas anunciadas de progressão;
+- `scripts/presentation/playback.gd`: fila e cursor de animação, sem comandos;
+- `scripts/presentation/i18n.gd` e `data/locales/`: localização;
+- `scripts/ui/`: telas, tema, cartas, retratos, áudio e input;
+- `scripts/bootstrap.gd`: montagem das dependências e integração com preferências;
 - `data/presentation.json`: apenas nomes, cores e presets de apresentação; regras executáveis ficam no pacote da HeroScript.
 
 ## Conteúdo da engine usado pela demo
@@ -96,5 +106,15 @@ O modo `spire_showcase`, a run `spire_showcase_run` e os atores do showcase fica
 Novos conteúdos podem acrescentar nomes em `data/locales/content.json` e
 mensagens nos catálogos `pt_BR.json`/`en.json`. IDs, JSON bruto, contratos e
 diagnósticos técnicos da API permanecem canônicos; o cliente não traduz regras.
+
+Para validar as fronteiras sem iniciar a engine:
+
+```powershell
+godot --headless --path . --script res://tests/layers.gd
+```
+
+Esse teste usa transporte injetado, verifica isolamento dos snapshots, fallback,
+envelopes, falhas de sincronização e dependências proibidas entre camadas.
+Veja [como substituir a interface](ARCHITECTURE.md).
 
 Veja o [diagnóstico de desempenho e decisões de UX](../../docs/roadmap/ENGINE_PERFORMANCE_AND_DEMO_UX.md).

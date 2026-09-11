@@ -17,10 +17,11 @@ config/features=PackedStringArray("4.7")
 [autoload]
 
 Preferences="*res://scripts/preferences.gd"
-I18n="*res://scripts/i18n.gd"
-GameAudio="*res://scripts/game_audio.gd"
-HeroAPI="*res://scripts/hero_api.gd"
-GameSession="*res://scripts/game_session.gd"
+I18n="*res://scripts/presentation/i18n.gd"
+GameAudio="*res://scripts/ui/game_audio.gd"
+GameSession="*res://scripts/application/game_session.gd"
+Playback="*res://scripts/presentation/playback.gd"
+GameServices="*res://scripts/bootstrap.gd"
 
 [display]
 
@@ -61,3 +62,7 @@ confirm_action={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+
+[internationalization]
+
+locale/fallback="en"

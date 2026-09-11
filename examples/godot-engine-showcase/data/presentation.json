@@ -1,35 +1,35 @@
 {
   "resource_order": ["health", "block", "energy", "mana"],
   "cards": {
-    "basic_attack": { "name": "Golpe", "text": "Ataque um inimigo. Consulte os valores na prévia.", "tone": "attack" },
-    "defend": { "name": "Guarda", "text": "Proteja-se. Consulte os valores na prévia.", "tone": "skill" },
-    "fireball": { "name": "Orbe Ígneo", "text": "Ataque e aplique queimadura. Consulte a prévia.", "tone": "power" },
-    "heal": { "name": "Centelha Vital", "text": "Restaure seus recursos. Consulte a prévia.", "tone": "skill" }
+    "basic_attack": { "name": "Strike", "text": "Attack an enemy. See the preview for current values.", "tone": "attack" },
+    "defend": { "name": "Defend", "text": "Protect yourself. See the preview for current values.", "tone": "skill" },
+    "fireball": { "name": "Fire Orb", "text": "Attack and apply Burning. See the preview.", "tone": "power" },
+    "heal": { "name": "Vital Spark", "text": "Restore your resources. See the preview.", "tone": "skill" }
   },
   "nodes": {
-    "embers": { "name": "Clareira das Cinzas", "icon": "⚔", "hint": "Encontro" },
-    "relic": { "name": "Núcleo de Brasa", "icon": "⬢", "hint": "Relíquia" },
-    "reward": { "name": "Memória Perdida", "icon": "✦", "hint": "Escolha uma carta" },
-    "merchant": { "name": "Mercador Errante", "icon": "◆", "hint": "Loja" },
-    "camp": { "name": "Fogueira", "icon": "♨", "hint": "Preparação" },
-    "forge": { "name": "Forja Antiga", "icon": "⬆", "hint": "Upgrade" },
-    "summit": { "name": "Sentinela de Obsidiana", "icon": "♛", "hint": "Chefe" }
+    "embers": { "name": "Ash Clearing", "icon": "⚔", "hint": "Encounter" },
+    "relic": { "name": "Ember Core", "icon": "⬢", "hint": "Relic" },
+    "reward": { "name": "Lost Memory", "icon": "✦", "hint": "Choose a card" },
+    "merchant": { "name": "Wandering Merchant", "icon": "◆", "hint": "Shop" },
+    "camp": { "name": "Campfire", "icon": "♨", "hint": "Preparation" },
+    "forge": { "name": "Ancient Forge", "icon": "⬆", "hint": "Upgrade" },
+    "summit": { "name": "Obsidian Sentinel", "icon": "♛", "hint": "Boss" }
   },
   "sandbox_modes": [
     {
       "id": "combat_sandbox",
-      "name": "Roguelike de energia",
-      "description": "Jogue cartas consumindo energia; a IA resolve sua ativação automaticamente."
+      "name": "Energy roguelike",
+      "description": "Play cards using energy; AI activations resolve automatically."
     },
     {
       "id": "combat_sandbox_fixed_actions",
-      "name": "Tático por ações",
-      "description": "As mesmas cartas obedecem a um orçamento fixo de ações por ativação."
+      "name": "Action tactics",
+      "description": "The same cards follow a fixed action budget per activation."
     },
     {
       "id": "combat_sandbox_priority",
-      "name": "Duelo com prioridade",
-      "description": "Abre janelas de resposta e processa ações por uma stack determinística."
+      "name": "Priority duel",
+      "description": "Respond to your opponent and resolve actions through a deterministic stack."
     }
   ],
   "default_scenario": {

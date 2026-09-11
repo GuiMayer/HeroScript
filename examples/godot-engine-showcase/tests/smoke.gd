@@ -25,7 +25,7 @@ func _run() -> void:
 	check(not GameSession.legal_actions.is_empty(), "receive legal-action previews")
 	var card_candidate := first_card_candidate()
 	if not card_candidate.is_empty():
-		check(await GameSession.execute_combat_command("PLAY_CARD", command_payload(card_candidate.command)), "play legal card")
+		check(await GameSession.submit_candidate(card_candidate), "play legal card")
 	else:
 		check(false, "find a playable card")
 	var timeline := await GameSession.timeline()
@@ -38,9 +38,7 @@ func _run() -> void:
 		var tree := await GameSession.branch_tree()
 		check(tree.ok, "read the branch tree")
 		await GameSession.continue_run(origin_run_id)
-	var simulation := await GameSession.simulate([
-		{"type": "END_TURN", "payload": {"actorId": GameSession.input_actor_id()}}
-	])
+	var simulation := await GameSession.simulate_end_turn()
 	check(simulation.ok, "simulate commands without mutating the run")
 	var verification := await GameSession.verify()
 	check(verification.ok and bool(verification.data.get("isValid", verification.data.get("valid", false))), "verify semantic replay")
@@ -61,7 +59,7 @@ func _run() -> void:
 	check(GameSession.run.get("preparations", []).size() == 1, "persist preparation state")
 	check(GameSession.run.get("completedActivityNodeIds", []).has("forge"), "persist card upgrade activity")
 	print("BENCHMARK_RUN_ID=", GameSession.run.get("runId", ""))
-	var commands: Array = HeroAPI.timings.filter(func(item): return int(item.method) == HTTPClient.METHOD_POST and str(item.path).ends_with("/commands"))
+	var commands: Array = GameServices.diagnostics().filter(func(item): return int(item.method) == HTTPClient.METHOD_POST and str(item.path).ends_with("/commands"))
 	var durations: Array = commands.map(func(item): return int(item.ms))
 	durations.sort()
 	if not durations.is_empty():
@@ -78,16 +76,17 @@ func drive_complete_campaign(seed: int) -> bool:
 		if not GameSession.combat.is_empty() and str(GameSession.combat.get("status", "ACTIVE")) == "ACTIVE":
 			var damage := damaging_card_candidate()
 			if not damage.is_empty():
-				if not await GameSession.execute_combat_command("PLAY_CARD", command_payload(damage.command)):
+				if not await GameSession.submit_candidate(damage):
 					return false
 			else:
-				if not await GameSession.execute_combat_command("END_TURN", {"actorId": GameSession.input_actor_id()}):
+				var endings: Array = GameSession.legal_actions.filter(func(item): return str(item.command.get("actionType", "")) == "END_TURN")
+				if endings.is_empty() or not await GameSession.submit_candidate(endings[0]):
 					return false
 			continue
 		var command := choose_progression_command()
 		if command.is_empty():
 			return false
-		if not await GameSession.execute_run_command(str(command.type), command.payload):
+		if not await GameSession.submit_activity(command):
 			return false
 	return false
 
@@ -102,53 +101,24 @@ func damaging_card_candidate() -> Dictionary:
 	return {}
 
 func choose_progression_command() -> Dictionary:
+	var choices := GameSession.activity_choices()
 	for type in ["START_ENCOUNTER", "RESOLVE_COMBAT", "ACQUIRE_RELIC", "CREATE_CARD_SELECTION", "PICK_CARD_REWARD",
 		"CREATE_SHOP", "CREATE_PREPARATION", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD",
 		"RESOLVE_NODE", "ADVANCE_NODE"]:
-		var found := GameSession.command(type)
-		if found.is_empty():
-			continue
-		var valid: Dictionary = found.get("validPayload", {})
-		match type:
-			"PICK_CARD_REWARD":
-				var cards: Array = valid.get("cardIds", [])
-				if cards.is_empty(): continue
-				return {"type": type, "payload": {"selectionInstanceId": valid.selectionInstanceId, "cardIds": [cards[0]]}}
-			"APPLY_PREPARATION_OPTION":
-				var options: Array = valid.get("optionIds", [])
-				if options.is_empty(): continue
-				return {"type": type, "payload": {"preparationInstanceId": valid.preparationInstanceId, "optionId": options[0]}}
-			"UPGRADE_CARD":
-				var upgrades: Array = valid.get("upgradeIds", [])
-				for instance_id in valid.get("cardInstanceIds", []):
-					if card_definition(str(instance_id)) == "basic_attack" and not upgrades.is_empty():
-						return {"type": type, "payload": {"cardInstanceId": instance_id, "upgradeId": upgrades[0]}}
-			"ADVANCE_NODE":
-				var targets: Array = found.get("targetNodeIds", [])
-				if not targets.is_empty():
-					return {"type": type, "payload": {"targetNodeId": targets[0]}}
-			_:
-				return {"type": type, "payload": valid}
+		for choice in choices:
+			if str(choice.type) != type:
+				continue
+			# Test strategy only; the application exposes every advertised upgrade.
+			if type == "UPGRADE_CARD" and str(choice.subjectId) != "basic_attack":
+				continue
+			return choice
 	return {}
-
-func card_definition(instance_id: String) -> String:
-	for card in GameSession.run.get("deck", {}).get("cardInstances", []):
-		if str(card.get("cardInstanceId", "")) == instance_id:
-			return str(card.get("definitionId", ""))
-	return ""
 
 func first_card_candidate() -> Dictionary:
 	for candidate in GameSession.legal_actions:
 		if str(candidate.get("source", "")) == "Card":
 			return candidate
 	return {}
-
-func command_payload(command: Dictionary) -> Dictionary:
-	var payload := {}
-	for key in ["actorId", "actionType", "powerId", "targetId", "targetIds", "costOptionId", "cardInstanceId"]:
-		if command.has(key) and command[key] != null:
-			payload[key] = command[key]
-	return payload
 
 func check(condition: bool, label: String) -> void:
 	if condition:
