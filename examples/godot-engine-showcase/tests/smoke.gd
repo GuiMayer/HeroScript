@@ -2,11 +2,13 @@ extends Node
 
 var failures: Array[String] = []
 var _exit_code := 0
+var _original_last_run := ""
 
 func _ready() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	_original_last_run = Preferences.last_run_id
 	check(await GameSession.connect_engine(), "connect to HeroScript and resolve a content revision")
 	if not failures.is_empty():
 		finish()
@@ -58,6 +60,13 @@ func _run() -> void:
 	check(GameSession.run.get("shops", []).size() == 1, "persist shop state")
 	check(GameSession.run.get("preparations", []).size() == 1, "persist preparation state")
 	check(GameSession.run.get("completedActivityNodeIds", []).has("forge"), "persist card upgrade activity")
+	print("BENCHMARK_RUN_ID=", GameSession.run.get("runId", ""))
+	var commands: Array = HeroAPI.timings.filter(func(item): return int(item.method) == HTTPClient.METHOD_POST and str(item.path).ends_with("/commands"))
+	var durations: Array = commands.map(func(item): return int(item.ms))
+	durations.sort()
+	if not durations.is_empty():
+		print("COMMAND_HTTP samples=", durations.size(), " median_ms=", durations[durations.size() / 2],
+			" max_ms=", durations[-1])
 	finish()
 
 func drive_complete_campaign(seed: int) -> bool:
@@ -149,6 +158,8 @@ func check(condition: bool, label: String) -> void:
 		push_error("[FAIL] " + label)
 
 func finish() -> void:
+	Preferences.last_run_id = _original_last_run
+	Preferences.save()
 	print("SHOWCASE_SMOKE failures=", failures.size())
 	_exit_code = 0 if failures.is_empty() else 1
 	GameAudio.shutdown()

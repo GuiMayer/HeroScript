@@ -13,27 +13,27 @@ func setup(owner) -> void:
 	add_theme_constant_override("separation", 14)
 	var header := HBoxContainer.new()
 	var titles := VBoxContainer.new()
-	titles.add_child(AppTheme.title("TIMELINE DETERMINÍSTICA", 32))
-	titles.add_child(AppTheme.muted("Cada comando gera frames, facts e um hash. Crie uma branch sem alterar a linha original."))
+	titles.add_child(AppTheme.title(I18n.text("TIMELINE DETERMINÍSTICA"), 32))
+	titles.add_child(AppTheme.muted(I18n.text("Cada comando gera frames, facts e um hash. Crie uma branch sem alterar a linha original.")))
 	header.add_child(titles)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(push)
-	header.add_child(_button("VOLTAR AO COMBATE", router.open_game, 190))
+	header.add_child(_button(I18n.text("VOLTAR AO COMBATE"), router.open_game, 190))
 	add_child(header)
 	var body := HSplitContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(body)
 	var left := VBoxContainer.new()
 	left.custom_minimum_size.x = 410
-	left.add_child(AppTheme.title("Comandos", 20, AppTheme.GOLD))
+	left.add_child(AppTheme.title(I18n.text("Comandos"), 20, AppTheme.GOLD))
 	list = ItemList.new()
 	list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	list.item_selected.connect(_select)
 	left.add_child(list)
 	body.add_child(AppTheme.panel(left))
 	var right := VBoxContainer.new()
-	right.add_child(AppTheme.title("Inspeção e branches", 20, AppTheme.TEAL))
+	right.add_child(AppTheme.title(I18n.text("Inspeção e branches"), 20, AppTheme.TEAL))
 	details = TextEdit.new()
 	details.editable = false
 	details.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -41,13 +41,13 @@ func setup(owner) -> void:
 	right.add_child(details)
 	var branch_row := HBoxContainer.new()
 	branch_key = LineEdit.new()
-	branch_key.placeholder_text = "nome-da-branch"
-	branch_key.text = "alternativa"
+	branch_key.placeholder_text = I18n.text("nome-da-branch")
+	branch_key.text = I18n.text("alternativa")
 	branch_key.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	branch_row.add_child(branch_key)
-	branch_row.add_child(_button("CRIAR BRANCH AQUI", _branch, 190))
-	branch_row.add_child(_button("SIMULAR FIM DO TURNO", _simulate, 205))
-	branch_row.add_child(_button("VERIFICAR REPLAY", _verify, 185))
+	branch_row.add_child(_button(I18n.text("CRIAR BRANCH AQUI"), _branch, 190))
+	branch_row.add_child(_button(I18n.text("SIMULAR FIM DO TURNO"), _simulate, 205))
+	branch_row.add_child(_button(I18n.text("VERIFICAR REPLAY"), _verify, 185))
 	right.add_child(branch_row)
 	tree_view = Tree.new()
 	tree_view.custom_minimum_size.y = 130
@@ -83,7 +83,7 @@ func _select(index: int) -> void:
 
 func _branch() -> void:
 	if selected_sequence < 0 or branch_key.text.strip_edges().is_empty():
-		router.show_error("Selecione um comando e informe uma chave de branch.")
+		router.show_error(I18n.text("Selecione um comando e informe uma chave de branch."))
 		return
 	var response := await GameSession.create_branch(selected_sequence, branch_key.text.strip_edges())
 	if not response.ok:
@@ -91,46 +91,46 @@ func _branch() -> void:
 		return
 	var new_run_id := str(response.data.get("runId", response.data.get("branchRunId", "")))
 	if new_run_id.is_empty():
-		router.show_error("A branch foi criada, mas a resposta não trouxe runId.")
+		router.show_error(I18n.text("A branch foi criada, mas a resposta não trouxe runId."))
 		return
 	GameAudio.reward()
 	if await GameSession.continue_run(new_run_id):
-		router.show_toast("Branch '%s' ativada." % branch_key.text)
+		router.show_toast(I18n.text("Branch '%s' ativada.") % branch_key.text)
 		router.open_game()
 
 func _load_tree() -> void:
 	var response := await GameSession.branch_tree()
 	tree_view.clear()
 	var root := tree_view.create_item()
-	root.set_text(0, "origem")
+	root.set_text(0, I18n.text("origem"))
 	root.set_text(1, str(GameSession.run.get("runId", "")).left(8))
 	if not response.ok:
 		return
 	var nodes: Array = response.data.get("nodes", response.data.get("branches", []))
 	for node in nodes:
 		var item := tree_view.create_item(root)
-		item.set_text(0, str(node.get("branchKey", "principal")))
+		item.set_text(0, str(node.get("branchKey", I18n.text("principal"))))
 		item.set_text(1, str(node.get("runId", "")).left(8))
 
 func _verify() -> void:
 	var result := await GameSession.verify()
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
-		router.show_toast("Todos os hashes conferem." if valid else "Foi encontrada divergência.", not valid)
+		router.show_toast(I18n.text("Todos os hashes conferem.") if valid else I18n.text("Foi encontrada divergência."), not valid)
 	else:
 		router.show_error(result.error)
 
 func _simulate() -> void:
 	var actor_id := GameSession.input_actor_id()
 	if actor_id.is_empty():
-		router.show_error("Não há um ator aguardando input para simular.")
+		router.show_error(I18n.text("Não há um ator aguardando input para simular."))
 		return
 	var response := await GameSession.simulate([
 		{"type": "END_TURN", "payload": {"actorId": actor_id}}
 	])
 	if response.ok:
 		details.text = JSON.stringify(response.data, "  ")
-		router.show_toast("Simulação concluída sem alterar a run.")
+		router.show_toast(I18n.text("Simulação concluída sem alterar a run."))
 	else:
 		router.show_error(response.error)
 

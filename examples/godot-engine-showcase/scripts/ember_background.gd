@@ -8,6 +8,8 @@ func _ready() -> void:
 	set_process(true)
 
 func _process(delta: float) -> void:
+	if Preferences.reduced_motion or get_tree().paused:
+		return
 	drift += delta * 0.22
 	queue_redraw()
 

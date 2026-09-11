@@ -12,20 +12,25 @@ var toast: Label
 var pause_layer: Control
 var presentation: Dictionary = {}
 var current_screen := "menu"
+var settings_return_to_gameplay := false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--locale="):
+			I18n.set_locale(argument.trim_prefix("--locale="))
 	theme = AppTheme.build(Preferences.high_contrast)
 	_load_presentation()
 	var background := EmberBackground.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 	host = MarginContainer.new()
+	host.process_mode = Node.PROCESS_MODE_PAUSABLE
 	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	host.add_theme_constant_override("margin_left", 48)
-	host.add_theme_constant_override("margin_top", 34)
+	host.add_theme_constant_override("margin_top", 24)
 	host.add_theme_constant_override("margin_right", 48)
-	host.add_theme_constant_override("margin_bottom", 34)
+	host.add_theme_constant_override("margin_bottom", 24)
 	add_child(host)
 	toast = Label.new()
 	toast.visible = false
@@ -39,7 +44,11 @@ func _ready() -> void:
 	GameSession.failed.connect(show_error)
 	GameSession.changed.connect(_on_session_changed)
 	Preferences.changed.connect(_apply_preferences)
+	I18n.locale_changed.connect(_on_locale_changed)
 	_show_main_menu()
+	if "--ui-smoke" in OS.get_cmdline_user_args():
+		add_child(preload("res://tests/usability.gd").new())
+		return
 	if "--smoke" in OS.get_cmdline_user_args():
 		add_child(preload("res://tests/smoke.gd").new())
 		return
@@ -62,7 +71,7 @@ func _load_presentation() -> void:
 		var value = JSON.parse_string(file.get_as_text())
 		file.close()
 		if value is Dictionary:
-			presentation = value
+			presentation = I18n.presentation(value)
 
 func _probe_engine() -> void:
 	await GameSession.connect_engine()
@@ -94,7 +103,7 @@ func _show_main_menu() -> void:
 	var status_row := HBoxContainer.new()
 	status_row.alignment = BoxContainer.ALIGNMENT_END
 	var status := Label.new()
-	status.text = "●  ENGINE ONLINE" if HeroAPI.available else "●  AGUARDANDO ENGINE"
+	status.text = I18n.text("●  ENGINE ONLINE") if HeroAPI.available else I18n.text("●  AGUARDANDO ENGINE")
 	status.add_theme_color_override("font_color", AppTheme.TEAL if HeroAPI.available else AppTheme.GOLD)
 	status.add_theme_font_size_override("font_size", 13)
 	status_row.add_child(status)
@@ -108,35 +117,35 @@ func _show_main_menu() -> void:
 	var card_content := VBoxContainer.new()
 	card_content.custom_minimum_size = Vector2(540, 0)
 	card_content.add_theme_constant_override("separation", 12)
-	var eyebrow := AppTheme.muted("UMA DEMONSTRAÇÃO DATA-DRIVEN", 14)
+	var eyebrow := AppTheme.muted(I18n.text("UMA DEMONSTRAÇÃO DATA-DRIVEN"), 14)
 	eyebrow.add_theme_color_override("font_color", AppTheme.EMBER)
 	card_content.add_child(eyebrow)
 	card_content.add_child(AppTheme.title("EMBER ARCHIVE", 52, AppTheme.INK))
 	card_content.add_child(AppTheme.muted(
-		"Uma pequena ascensão regida pela HeroScript. Cartas, inimigos, recursos, mapa e fluxo vivem em JSON; a Godot apresenta cada decisão.", 17))
+		I18n.text("Uma pequena ascensão regida pela HeroScript. Cartas, inimigos, recursos, mapa e fluxo vivem em JSON; a Godot apresenta cada decisão."), 17))
 	var line := HSeparator.new()
 	card_content.add_child(line)
-	card_content.add_child(_button("NOVA JORNADA", _new_campaign, 420))
-	var continue_button := _button("CONTINUAR", _continue_campaign, 420)
+	card_content.add_child(_button(I18n.text("NOVA JORNADA"), _new_campaign, 420))
+	var continue_button := _button(I18n.text("CONTINUAR"), _continue_campaign, 420)
 	continue_button.disabled = Preferences.last_run_id.is_empty()
 	card_content.add_child(continue_button)
-	card_content.add_child(_button("LABORATÓRIO DE REGRAS", show_sandbox, 420))
-	card_content.add_child(_button("CÓDICE DE CONTEÚDO", show_codex, 420))
-	card_content.add_child(_button("CONFIGURAÇÕES", show_settings, 420))
-	card_content.add_child(_button("SAIR", get_tree().quit, 420))
+	card_content.add_child(_button(I18n.text("LABORATÓRIO DE REGRAS"), show_sandbox, 420))
+	card_content.add_child(_button(I18n.text("CÓDICE DE CONTEÚDO"), show_codex, 420))
+	card_content.add_child(_button(I18n.text("CONFIGURAÇÕES"), show_settings, 420))
+	card_content.add_child(_button(I18n.text("SAIR"), get_tree().quit, 420))
 	center.add_child(AppTheme.panel(card_content, Color("#171929e8")))
-	var bottom := AppTheme.muted("HeroScript decide  •  REST transporta  •  Godot apresenta", 13)
+	var bottom := AppTheme.muted(I18n.text("HeroScript decide  •  REST transporta  •  Godot apresenta"), 13)
 	bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(bottom)
 
 func _new_campaign() -> void:
-	show_toast("Preparando uma run imutável…")
+	show_toast(I18n.text("Preparando uma run imutável…"))
 	var ok := await GameSession.start_campaign(Preferences.next_campaign_seed())
 	if ok:
 		open_game()
 
 func _continue_campaign() -> void:
-	show_toast("Reconstruindo a run pelo journal…")
+	show_toast(I18n.text("Reconstruindo a run pelo journal…"))
 	if await GameSession.continue_run():
 		open_game()
 
@@ -164,6 +173,8 @@ func show_combat() -> void:
 	host.add_child(screen)
 
 func show_timeline() -> void:
+	if get_tree().paused or GameSession.busy:
+		return
 	current_screen = "timeline"
 	_clear_host()
 	var screen = TimelineScreen.new()
@@ -185,6 +196,7 @@ func show_codex() -> void:
 	host.add_child(screen)
 
 func show_settings(return_to_gameplay := false) -> void:
+	settings_return_to_gameplay = return_to_gameplay
 	current_screen = "settings"
 	_clear_host()
 	var screen = SettingsScreen.new()
@@ -212,11 +224,11 @@ func toggle_pause() -> void:
 	var content := VBoxContainer.new()
 	content.custom_minimum_size = Vector2(420, 0)
 	content.add_theme_constant_override("separation", 13)
-	content.add_child(AppTheme.title("PAUSA", 42, AppTheme.GOLD))
-	content.add_child(AppTheme.muted("A engine já calculou o estado. A apresentação pode aguardar sem alterar a run."))
-	content.add_child(_button("RETOMAR", toggle_pause, 360))
-	content.add_child(_button("CONFIGURAÇÕES", _pause_settings, 360))
-	content.add_child(_button("MENU PRINCIPAL", _pause_menu, 360))
+	content.add_child(AppTheme.title(I18n.text("PAUSA"), 42, AppTheme.GOLD))
+	content.add_child(AppTheme.muted(I18n.text("A engine já calculou o estado. A apresentação pode aguardar sem alterar a run.")))
+	content.add_child(_button(I18n.text("RETOMAR"), toggle_pause, 360))
+	content.add_child(_button(I18n.text("CONFIGURAÇÕES"), _pause_settings, 360))
+	content.add_child(_button(I18n.text("MENU PRINCIPAL"), _pause_menu, 360))
 	center.add_child(AppTheme.panel(content))
 
 func _pause_settings() -> void:
@@ -250,3 +262,14 @@ func _on_session_changed() -> void:
 
 func _apply_preferences() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
+
+func _on_locale_changed() -> void:
+	_load_presentation()
+	call_deferred("_rebuild_localized_screen")
+
+func _rebuild_localized_screen() -> void:
+	match current_screen:
+		"settings": show_settings(settings_return_to_gameplay)
+		"combat": show_combat()
+		"activity": show_activity()
+		"menu": _show_main_menu()

@@ -15,6 +15,7 @@ var busy := false
 var presentation_queue: Array = []
 var presentation_index := 0
 var auto_present := true
+var synchronized := true
 
 func connect_engine() -> bool:
 	var health := await HeroAPI.health()
@@ -47,8 +48,7 @@ func start_campaign(seed: int) -> bool:
 	run = response.data
 	Preferences.last_run_id = str(run.get("runId", ""))
 	Preferences.save()
-	await refresh()
-	return true
+	return await refresh()
 
 func start_sandbox(mode_id: String, scenario: Dictionary, seed: int) -> bool:
 	if content_revision.is_empty() and not await connect_engine():
@@ -67,8 +67,7 @@ func start_sandbox(mode_id: String, scenario: Dictionary, seed: int) -> bool:
 	combat = response.data.get("combat", {})
 	Preferences.last_run_id = str(run.get("runId", ""))
 	Preferences.save()
-	await refresh()
-	return true
+	return await refresh()
 
 func continue_run(run_id := Preferences.last_run_id) -> bool:
 	if run_id.is_empty():
@@ -78,28 +77,33 @@ func continue_run(run_id := Preferences.last_run_id) -> bool:
 		failed.emit(response.error)
 		return false
 	run = response.data
-	await refresh()
-	return true
+	return await refresh()
 
-func refresh() -> bool:
+func refresh(committed_combat: Dictionary = {}, receipt_sequence := -1) -> bool:
 	if run.is_empty():
 		return false
 	var run_id := str(run.get("runId", ""))
 	var response := await HeroAPI.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s" % run_id)
 	if not response.ok:
-		failed.emit(response.error)
-		return false
-	run = response.data
-	var encounter_id = run.get("activeEncounterId")
+		return _refresh_failed(str(response.error))
+	var next_run: Dictionary = response.data
+	var next_combat: Dictionary = committed_combat if receipt_sequence == int(next_run.get("sequence", 0)) else {}
+	var paths := {"commands": "/api/v1/runs/%s/available-commands" % run_id}
+	var encounter_id = next_run.get("activeEncounterId")
 	if encounter_id != null and not str(encounter_id).is_empty():
-		var combat_response := await HeroAPI.request(HTTPClient.METHOD_GET,
-			"/api/v1/combats/%s" % str(encounter_id))
-		combat = combat_response.data if combat_response.ok else {}
+		if str(next_combat.get("combatId", "")) != str(encounter_id):
+			paths["combat"] = "/api/v1/combats/%s" % str(encounter_id)
 	else:
-		combat = {}
-	var commands_response := await HeroAPI.request(HTTPClient.METHOD_GET,
-		"/api/v1/runs/%s/available-commands" % run_id)
-	available_commands = commands_response.data.get("commands", []) if commands_response.ok else []
+		next_combat = {}
+	var responses := await HeroAPI.request_many(paths)
+	for result in responses.values():
+		if not result.ok:
+			return _refresh_failed(str(result.error))
+	if responses.has("combat"):
+		next_combat = responses.combat.data
+	run = next_run
+	combat = next_combat
+	available_commands = responses.commands.data.get("commands", [])
 	legal_actions = []
 	if not combat.is_empty() and str(combat.get("status", "ACTIVE")) == "ACTIVE":
 		var actor_id := input_actor_id()
@@ -108,8 +112,19 @@ func refresh() -> bool:
 				"/api/v1/combats/%s/legal-actions?actorId=%s" % [str(combat.get("combatId", "")), actor_id.uri_encode()])
 			if actions_response.ok:
 				legal_actions = actions_response.data.get("candidates", actions_response.data if actions_response.data is Array else [])
+			else:
+				return _refresh_failed(str(actions_response.error))
+	synchronized = true
 	changed.emit()
 	return true
+
+func _refresh_failed(message: String) -> bool:
+	synchronized = false
+	legal_actions = []
+	available_commands = []
+	failed.emit(message)
+	changed.emit()
+	return false
 
 func execute_run_command(type: String, payload: Dictionary, label := "") -> bool:
 	var advertised := command(type)
@@ -120,7 +135,7 @@ func execute_combat_command(type: String, payload: Dictionary, label := "") -> b
 	return await _execute("/api/v1/combats/%s/commands" % str(combat.get("combatId", "")), type, payload, label)
 
 func _execute(path: String, type: String, payload: Dictionary, label: String, advertised_step := -1) -> bool:
-	if busy or run.is_empty():
+	if busy or not synchronized or run.is_empty():
 		return false
 	busy = true
 	command_started.emit(label if not label.is_empty() else type)
@@ -136,17 +151,25 @@ func _execute(path: String, type: String, payload: Dictionary, label: String, ad
 	var response := await HeroAPI.request(HTTPClient.METHOD_POST, path, envelope)
 	if not response.ok:
 		busy = false
+		if int(response.get("status", 0)) in [0, 409]:
+			synchronized = false
 		failed.emit(response.error)
 		command_finished.emit()
 		return false
 	_collect_frames(response.data)
-	await refresh()
+	var state: Dictionary = response.data.get("state", {})
+	var updated := await refresh(state.get("combat", {}) if state.get("combat") is Dictionary else {}, int(response.data.get("sequence", -1)))
 	busy = false
 	command_finished.emit()
+	# The command is committed even if its follow-up projection could not load.
+	# Do not invite resubmission with a new command id after a successful POST.
+	if not updated:
+		failed.emit(I18n.text("Falha ao atualizar a partida. Reconecte antes de jogar novamente."))
 	return true
 
 func _collect_frames(receipt: Dictionary) -> void:
-	var resolution = receipt.get("resolution", {})
+	var state: Dictionary = receipt.get("state", {})
+	var resolution = state.get("resolution", receipt.get("resolution", {}))
 	presentation_queue = resolution.get("frames", []) if resolution is Dictionary else []
 	presentation_index = 0
 	if auto_present:
@@ -192,7 +215,7 @@ func command(type: String) -> Dictionary:
 
 func timeline() -> Dictionary:
 	if combat.is_empty():
-		return {"ok": false, "error": "Nenhum combate ativo."}
+		return {"ok": false, "error": I18n.text("Nenhum combate ativo.")}
 	return await HeroAPI.request(HTTPClient.METHOD_GET,
 		"/api/v1/combats/%s/timeline?afterSequence=0&limit=200" % str(combat.get("combatId", "")))
 
@@ -202,7 +225,7 @@ func branch_tree() -> Dictionary:
 
 func create_branch(sequence: int, key: String) -> Dictionary:
 	if combat.is_empty():
-		return {"ok": false, "error": "Nenhum combate ativo."}
+		return {"ok": false, "error": I18n.text("Nenhum combate ativo.")}
 	return await HeroAPI.request(HTTPClient.METHOD_POST,
 		"/api/v1/combats/%s/timeline/%s/branches" % [str(combat.get("combatId", "")), sequence],
 		{"branchKey": key})

@@ -1,0 +1,118 @@
+{
+  "enemy_basic_attack": {"pt_BR": "Ataque", "en": "Attack"},
+  "combat.initialized": {"pt_BR": "Começo do combate", "en": "Combat start"},
+  "card.played": {"pt_BR": "Carta jogada", "en": "Card played"},
+  "turn.ended": {"pt_BR": "Fim do turno", "en": "Turn ended"},
+  "health": {
+    "pt_BR": "Vida",
+    "en": "Health"
+  },
+  "block": {
+    "pt_BR": "Bloqueio",
+    "en": "Block"
+  },
+  "energy": {
+    "pt_BR": "Energia",
+    "en": "Energy"
+  },
+  "mana": {
+    "pt_BR": "Mana",
+    "en": "Mana"
+  },
+  "gold": {
+    "pt_BR": "Ouro",
+    "en": "Gold"
+  },
+  "power_points": {
+    "pt_BR": "Pontos de poder",
+    "en": "Power points"
+  },
+  "basic_attack": {
+    "pt_BR": "Golpe",
+    "en": "Strike"
+  },
+  "defend": {
+    "pt_BR": "Guarda",
+    "en": "Defend"
+  },
+  "fireball": {
+    "pt_BR": "Orbe Ígneo",
+    "en": "Fire Orb"
+  },
+  "heal": {
+    "pt_BR": "Centelha Vital",
+    "en": "Vital Spark"
+  },
+  "spire_adept": {
+    "pt_BR": "Adepto das Brasas",
+    "en": "Ember Adept"
+  },
+  "spire_wisp": {
+    "pt_BR": "Fagulha Errante",
+    "en": "Wandering Wisp"
+  },
+  "spire_sentinel": {
+    "pt_BR": "Sentinela de Obsidiana",
+    "en": "Obsidian Sentinel"
+  },
+  "player_warrior": {
+    "pt_BR": "Guerreiro",
+    "en": "Warrior"
+  },
+  "burning": {
+    "pt_BR": "Queimando",
+    "en": "Burning"
+  },
+  "poison": {
+    "pt_BR": "Veneno",
+    "en": "Poison"
+  },
+  "poisoned": {
+    "pt_BR": "Envenenado",
+    "en": "Poisoned"
+  },
+  "strength": {
+    "pt_BR": "Força",
+    "en": "Strength"
+  },
+  "vulnerable": {
+    "pt_BR": "Vulnerável",
+    "en": "Vulnerable"
+  },
+  "weak": {
+    "pt_BR": "Fraqueza",
+    "en": "Weak"
+  },
+  "enemy_attack": {
+    "pt_BR": "Ataque",
+    "en": "Attack"
+  },
+  "ember_core": {
+    "pt_BR": "Núcleo de Brasa",
+    "en": "Ember Core"
+  },
+  "sharpened_edge": {
+    "pt_BR": "Fio Afiado",
+    "en": "Sharpened Edge"
+  },
+  "rest": {
+    "pt_BR": "Descansar",
+    "en": "Rest"
+  },
+  "train": {
+    "pt_BR": "Treinar",
+    "en": "Train"
+  },
+  "buy_attack": {
+    "pt_BR": "Golpe",
+    "en": "Strike"
+  },
+  "buy_defend": {
+    "pt_BR": "Guarda",
+    "en": "Defend"
+  },
+  "buy_heal": {
+    "pt_BR": "Centelha Vital",
+    "en": "Vital Spark"
+  }
+}

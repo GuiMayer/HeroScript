@@ -1,6 +1,6 @@
 # Roadmap atual
 
-**Atualizado em:** 2026-09-09
+**Atualizado em:** 2026-09-11
 
 O núcleo de combate determinístico já possui run persistida, atores genéricos,
 conteúdo versionado, cartas/componentes, recursos universais, efeitos,
@@ -39,6 +39,7 @@ replay e branches. A REST v1 é a única autoridade acessível por clientes.
 - [Timeline, replay e branches](../architecture/timeline-system.md)
 - [Packages e settings](../content/packages-and-settings.md)
 - [Viabilidade das mecânicas do GDD](gdd-mechanics-feasibility.md)
+- [Desempenho medido e experiência da demo Godot](ENGINE_PERFORMANCE_AND_DEMO_UX.md)
 
 Os arquivos em `roadmap/phases` preservam decisões históricas e não descrevem o
 contrato atual.

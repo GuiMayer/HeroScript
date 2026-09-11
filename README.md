@@ -32,7 +32,8 @@ curl http://localhost:5260/api/v1/health/live
 - **[Production Deployment](docs/PRODUCTION.md)** - Deploy API to production
 - **[API v1 Guide](docs/api/README.md)** - Contrato público e exemplos
 
-**Performance:** 5-8ms latency on localhost (imperceptible for turn-based games)
+**Performance:** depende do comando e do tamanho do histórico. Consulte as
+[medições e otimizações da demo](docs/roadmap/ENGINE_PERFORMANCE_AND_DEMO_UX.md).
 
 ## 🎯 Status do MVP
 
@@ -42,9 +43,9 @@ curl http://localhost:5260/api/v1/health/live
 - **Core systems:** combate, cartas, resources, efeitos, status, relíquias, IA, turnos, prioridade e stack
 - **Progressão:** mapa, encontros, recompensas, loja, preparação, upgrades e persistência de runs
 - **Ferramentas determinísticas:** timeline, branches, simulação sem commit e verificação de replay
-- **Validação atual:** 1.067 testes Core e 155 testes da API aprovados
+- **Validação atual:** 1.073 testes Core e 155 testes da API aprovados
 - **Integração:** comandos e read models de run/combate são expostos pelo contrato único `/api/v1`
-- **Demo Godot:** campanha completa e três sandboxes de regras consumindo somente a REST API
+- **Demo Godot:** campanha completa e três sandboxes de regras consumindo somente a REST API; português/inglês, prévias canônicas e animações de cartas
 
 ### Escopo atual
 
@@ -174,13 +175,13 @@ Calculadora simples para testar expressões matemáticas.
 
 Projetos de testes automatizados usando xUnit.
 
-**Core.Tests (1.306 testes):**
+**Core.Tests (1.073 testes):**
 - Testes do MathEngine
 - Testes do ConfigManager
 - Testes do ResourceLoader
 - Testes de todos os sistemas Core
 
-**API.Tests (219 testes):**
+**API.Tests (155 testes):**
 - Testes unitários de controllers (mocks)
 - Testes de integração com TestServer
 - Categorização via `[Trait("Category", "Unit|Integration")]`

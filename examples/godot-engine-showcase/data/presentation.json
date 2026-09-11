@@ -1,9 +1,10 @@
 {
+  "resource_order": ["health", "block", "energy", "mana"],
   "cards": {
-    "basic_attack": { "name": "Golpe", "text": "Cause 6 de dano.", "cost": 1, "tone": "attack" },
-    "defend": { "name": "Guarda", "text": "Receba 5 de bloqueio.", "cost": 1, "tone": "skill" },
-    "fireball": { "name": "Orbe Ígneo", "text": "Cause 10 de dano e aplique 2 de Queimando.", "cost": 2, "tone": "power" },
-    "heal": { "name": "Centelha Vital", "text": "Restaure 8 de vida.", "cost": 1, "tone": "skill" }
+    "basic_attack": { "name": "Golpe", "text": "Ataque um inimigo. Consulte os valores na prévia.", "tone": "attack" },
+    "defend": { "name": "Guarda", "text": "Proteja-se. Consulte os valores na prévia.", "tone": "skill" },
+    "fireball": { "name": "Orbe Ígneo", "text": "Ataque e aplique queimadura. Consulte a prévia.", "tone": "power" },
+    "heal": { "name": "Centelha Vital", "text": "Restaure seus recursos. Consulte a prévia.", "tone": "skill" }
   },
   "nodes": {
     "embers": { "name": "Clareira das Cinzas", "icon": "⚔", "hint": "Encontro" },

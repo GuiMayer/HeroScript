@@ -21,7 +21,9 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
-	var center := size * Vector2(0.5, 0.54)
+	var ratio := minf(size.y / 190.0, 1.0)
+	draw_set_transform(Vector2(size.x * (1.0 - ratio) * .5, 0), 0, Vector2.ONE * ratio)
+	var center := Vector2(size.x * .5, 190.0 * .54)
 	var base := AppTheme.BLOOD if hostile else AppTheme.TEAL
 	if pulse > 0.0:
 		base = base.lerp(Color.WHITE, pulse)

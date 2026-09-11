@@ -15,14 +15,24 @@ var master_volume := 0.80
 var music_volume := 0.42
 var sfx_volume := 0.75
 var animation_speed := 1.0
+var locale := "pt_BR"
+var reduced_motion := false
+var auto_animations := true
 var fullscreen := false
 var high_contrast := false
 var api_url := "http://127.0.0.1:5271"
 var last_run_id := ""
 var campaign_counter := 0
+var _saved_api_url := ""
+var _api_override := false
 
 func _ready() -> void:
 	load_settings()
+	_saved_api_url = api_url
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--api-url="):
+			api_url = argument.trim_prefix("--api-url=")
+			_api_override = true
 	apply_window()
 	apply_audio()
 
@@ -35,6 +45,9 @@ func load_settings() -> void:
 	music_volume = float(config.get_value("audio", "music", music_volume))
 	sfx_volume = float(config.get_value("audio", "sfx", sfx_volume))
 	animation_speed = float(config.get_value("game", "animation_speed", animation_speed))
+	locale = str(config.get_value("game", "locale", locale))
+	reduced_motion = bool(config.get_value("game", "reduced_motion", reduced_motion))
+	auto_animations = bool(config.get_value("game", "auto_animations", auto_animations))
 	fullscreen = bool(config.get_value("video", "fullscreen", fullscreen))
 	high_contrast = bool(config.get_value("video", "high_contrast", high_contrast))
 	api_url = str(config.get_value("network", "api_url", api_url))
@@ -49,9 +62,12 @@ func save() -> void:
 	config.set_value("audio", "music", music_volume)
 	config.set_value("audio", "sfx", sfx_volume)
 	config.set_value("game", "animation_speed", animation_speed)
+	config.set_value("game", "locale", locale)
+	config.set_value("game", "reduced_motion", reduced_motion)
+	config.set_value("game", "auto_animations", auto_animations)
 	config.set_value("video", "fullscreen", fullscreen)
 	config.set_value("video", "high_contrast", high_contrast)
-	config.set_value("network", "api_url", api_url)
+	config.set_value("network", "api_url", _saved_api_url if _api_override else api_url)
 	config.set_value("session", "last_run_id", last_run_id)
 	config.set_value("session", "campaign_counter", campaign_counter)
 	for action in ACTIONS:

@@ -23,15 +23,15 @@ func setup(owner, data: Dictionary) -> void:
 	action_panel = VBoxContainer.new()
 	action_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	action_panel.add_theme_constant_override("separation", 10)
-	action_panel.add_child(AppTheme.title("AÇÕES PERMITIDAS", 22, AppTheme.TEAL))
+	action_panel.add_child(AppTheme.title(I18n.text("AÇÕES PERMITIDAS"), 22, AppTheme.TEAL))
 	_build_actions()
 	columns.add_child(AppTheme.panel(action_panel))
 
 func _build_header() -> void:
 	var row := HBoxContainer.new()
 	var title_box := VBoxContainer.new()
-	title_box.add_child(AppTheme.title("THE EMBER PATH", 30))
-	title_box.add_child(AppTheme.muted("Run %s  •  seed %s  •  sequência %s  •  step %s" % [
+	title_box.add_child(AppTheme.title(I18n.text("THE EMBER PATH"), 30))
+	title_box.add_child(AppTheme.muted(I18n.text("Run %s  •  seed %s  •  sequência %s  •  step %s") % [
 		str(GameSession.run.get("runId", "")).left(8),
 		GameSession.run.get("seed", 0), GameSession.run.get("sequence", 0), GameSession.run.get("step", 0)]))
 	row.add_child(title_box)
@@ -55,8 +55,8 @@ func _build_header() -> void:
 		modifier_badge.text = "△  %s" % GameSession.run.get("modifiers", []).size()
 		modifier_badge.add_theme_color_override("font_color", AppTheme.TEAL)
 		row.add_child(modifier_badge)
-	row.add_child(_button("VERIFICAR REPLAY", _verify, 185))
-	row.add_child(_button("PAUSA", router.toggle_pause, 100))
+	row.add_child(_button(I18n.text("VERIFICAR REPLAY"), _verify, 185))
+	row.add_child(_button(I18n.text("PAUSA"), router.toggle_pause, 100))
 	add_child(row)
 
 func _build_map() -> void:
@@ -107,23 +107,23 @@ func _activity_summary(node: Dictionary) -> Control:
 	var activity: Dictionary = node.get("activity", {})
 	var kind := str(activity.get("type", "Unknown"))
 	var description: String = {
-		"Encounter": "A engine materializa atores, controladores, recursos, deck e regras do encontro a partir do nó.",
-		"RelicReward": "Relíquias fixam triggers e influences da revisão atual e passam a participar do combate.",
-		"CardSelection": "As ofertas são sorteadas pelo PRNG da run e persistidas no journal.",
-		"Shop": "Preços, estoque, rerolls e custos pertencem à definição da loja.",
-		"Preparation": "Escolha uma preparação capaz de alterar deck, recursos ou modifiers.",
-		"CardUpgrade": "O upgrade altera os componentes-base da carta; scaling permanece na pipeline."
-	}.get(kind, "Atividade governada pela engine.")
+		"Encounter": I18n.text("A engine materializa atores, controladores, recursos, deck e regras do encontro a partir do nó."),
+		"RelicReward": I18n.text("Relíquias fixam triggers e influences da revisão atual e passam a participar do combate."),
+		"CardSelection": I18n.text("As ofertas são sorteadas pelo PRNG da run e persistidas no journal."),
+		"Shop": I18n.text("Preços, estoque, rerolls e custos pertencem à definição da loja."),
+		"Preparation": I18n.text("Escolha uma preparação capaz de alterar deck, recursos ou modifiers."),
+		"CardUpgrade": I18n.text("O upgrade altera os componentes-base da carta; scaling permanece na pipeline.")
+	}.get(kind, I18n.text("Atividade governada pela engine."))
 	content.add_child(AppTheme.muted(description, 16))
 	var deck: Dictionary = GameSession.run.get("deck", {})
-	content.add_child(AppTheme.muted("Deck: %s cartas  •  mão: %s  •  descarte: %s" % [
+	content.add_child(AppTheme.muted(I18n.text("Deck: %s cartas  •  mão: %s  •  descarte: %s") % [
 		deck.get("cardInstances", []).size(), deck.get("counts", {}).get("hand", 0),
 		deck.get("counts", {}).get("discardPile", 0)], 14))
 	return AppTheme.panel(content)
 
 func _build_actions() -> void:
 	if GameSession.available_commands.is_empty():
-		action_panel.add_child(AppTheme.muted("Aguardando uma transição da engine."))
+		action_panel.add_child(AppTheme.muted(I18n.text("Aguardando uma transição da engine.")))
 		return
 	for command in GameSession.available_commands:
 		var type := str(command.get("type", ""))
@@ -131,22 +131,22 @@ func _build_actions() -> void:
 		match type:
 			"ADVANCE_NODE":
 				for target in command.get("targetNodeIds", []):
-					_add_action("SEGUIR PARA %s" % _node_name(str(target)), type, {"targetNodeId": target})
+					_add_action(I18n.text("SEGUIR PARA %s") % _node_name(str(target)), type, {"targetNodeId": target})
 			"PICK_CARD_REWARD":
 				for card_id in valid.get("cardIds", []):
-					_add_action("ESCOLHER  •  %s" % _card_name(str(card_id)), type,
+					_add_action(I18n.text("ESCOLHER  •  %s") % _card_name(str(card_id)), type,
 						{"selectionInstanceId": valid.get("selectionInstanceId"), "cardIds": [card_id]})
 			"DECOMPOSE_CARD_REWARD":
 				for card_id in valid.get("cardIds", []):
-					_add_action("DECOMPOR  •  %s" % _card_name(str(card_id)), type,
+					_add_action(I18n.text("DECOMPOR  •  %s") % _card_name(str(card_id)), type,
 						{"selectionInstanceId": valid.get("selectionInstanceId"), "cardId": card_id}, true)
 			"BUY_SHOP_ITEM":
 				for item_id in valid.get("itemIds", []):
-					_add_action("COMPRAR  •  %s" % str(item_id).replace("buy_", "").capitalize(), type,
+					_add_action(I18n.text("COMPRAR  •  %s") % I18n.content_name(str(item_id)), type,
 						{"shopInstanceId": valid.get("shopInstanceId"), "itemId": item_id})
 			"APPLY_PREPARATION_OPTION":
 				for option_id in valid.get("optionIds", []):
-					_add_action("PREPARAR  •  %s" % str(option_id).replace("_", " ").capitalize(), type,
+					_add_action(I18n.text("PREPARAR  •  %s") % I18n.content_name(str(option_id)), type,
 						{"preparationInstanceId": valid.get("preparationInstanceId"), "optionId": option_id})
 			"UPGRADE_CARD":
 				var upgrade_ids: Array = valid.get("upgradeIds", [])
@@ -154,13 +154,13 @@ func _build_actions() -> void:
 				for card_instance_id in valid.get("cardInstanceIds", []):
 					var definition := _card_definition(str(card_instance_id))
 					if definition == "basic_attack":
-						_add_action("APRIMORAR  •  %s" % _card_name(definition), type,
+						_add_action(I18n.text("APRIMORAR  •  %s") % _card_name(definition), type,
 							{"cardInstanceId": card_instance_id, "upgradeId": upgrade_id})
 			"REROLL_CARD_REWARD":
-				_add_action("NOVAS OPÇÕES", type, {
+				_add_action(I18n.text("NOVAS OPÇÕES"), type, {
 					"selectionInstanceId": valid.get("selectionInstanceId"), "lockedCardIds": []}, true)
 			"REROLL_SHOP":
-				_add_action("RENOVAR ESTOQUE", type, {"shopInstanceId": valid.get("shopInstanceId")}, true)
+				_add_action(I18n.text("RENOVAR ESTOQUE"), type, {"shopInstanceId": valid.get("shopInstanceId")}, true)
 			_:
 				_add_action(_friendly_command(type), type, valid)
 
@@ -172,7 +172,7 @@ func _add_action(label: String, type: String, payload: Dictionary, secondary := 
 	action_panel.add_child(button)
 
 func _execute(type: String, payload: Dictionary) -> void:
-	router.show_toast("HeroScript processando %s…" % type)
+	router.show_toast(I18n.text("HeroScript processando %s…") % type)
 	if await GameSession.execute_run_command(type, payload, _friendly_command(type)):
 		if type in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
 			GameAudio.reward()
@@ -182,7 +182,7 @@ func _verify() -> void:
 	var result := await GameSession.verify()
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
-		router.show_toast("Replay determinístico verificado." if valid else "Replay divergiu.", not valid)
+		router.show_toast(I18n.text("Replay determinístico verificado.") if valid else I18n.text("Replay divergiu."), not valid)
 	else:
 		router.show_error(result.error)
 
@@ -193,12 +193,12 @@ func _build_ending(lifecycle: String) -> void:
 	var content := VBoxContainer.new()
 	content.custom_minimum_size.x = 560
 	var won := lifecycle.to_lower() == "completed"
-	content.add_child(AppTheme.title("ARQUIVO CONCLUÍDO" if won else "A CHAMA SE APAGOU", 40,
+	content.add_child(AppTheme.title(I18n.text("ARQUIVO CONCLUÍDO") if won else I18n.text("A CHAMA SE APAGOU"), 40,
 		AppTheme.GOLD if won else AppTheme.BLOOD))
-	content.add_child(AppTheme.muted("O journal preserva cada comando, frame e hash desta jornada."))
-	content.add_child(_button("VERIFICAR REPLAY", _verify, 420))
-	content.add_child(_button("NOVA JORNADA", router._new_campaign, 420))
-	content.add_child(_button("MENU PRINCIPAL", router.back_to_menu, 420))
+	content.add_child(AppTheme.muted(I18n.text("O journal preserva cada comando, frame e hash desta jornada.")))
+	content.add_child(_button(I18n.text("VERIFICAR REPLAY"), _verify, 420))
+	content.add_child(_button(I18n.text("NOVA JORNADA"), router._new_campaign, 420))
+	content.add_child(_button(I18n.text("MENU PRINCIPAL"), router.back_to_menu, 420))
 	center.add_child(AppTheme.panel(content))
 
 func _current_node() -> Dictionary:
@@ -222,13 +222,13 @@ func _node_name(id: String) -> String:
 
 func _friendly_command(type: String) -> String:
 	return {
-		"START_ENCOUNTER": "ENTRAR EM COMBATE",
-		"RESOLVE_COMBAT": "CONFIRMAR RESULTADO",
-		"RESOLVE_NODE": "CONCLUIR ETAPA",
-			"ACQUIRE_RELIC": "RECOLHER RELÍQUIA",
-			"CREATE_CARD_SELECTION": "REVELAR RECOMPENSA",
-		"CREATE_SHOP": "ENTRAR NA LOJA",
-		"CREATE_PREPARATION": "ACENDER FOGUEIRA"
+		"START_ENCOUNTER": I18n.text("ENTRAR EM COMBATE"),
+		"RESOLVE_COMBAT": I18n.text("CONFIRMAR RESULTADO"),
+		"RESOLVE_NODE": I18n.text("CONCLUIR ETAPA"),
+			"ACQUIRE_RELIC": I18n.text("RECOLHER RELÍQUIA"),
+			"CREATE_CARD_SELECTION": I18n.text("REVELAR RECOMPENSA"),
+		"CREATE_SHOP": I18n.text("ENTRAR NA LOJA"),
+		"CREATE_PREPARATION": I18n.text("ACENDER FOGUEIRA")
 	}.get(type, type.replace("_", " "))
 
 func _button(text: String, action: Callable, width := 0) -> Button:

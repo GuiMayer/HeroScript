@@ -2,15 +2,18 @@
 param(
     [switch]$Headless,
     [switch]$KeepEngine,
-    [switch]$VerboseGodot
+    [switch]$VerboseGodot,
+    [switch]$UiSmoke,
+    [ValidateRange(1024, 65535)][int]$Port = 5271
 )
 
 $ErrorActionPreference = 'Stop'
 $demoRoot = $PSScriptRoot
 $repositoryRoot = (Resolve-Path (Join-Path $demoRoot '..\..')).Path
 $runtimeRoot = Join-Path $demoRoot '.runtime'
+if ($Port -ne 5271) { $runtimeRoot = Join-Path $runtimeRoot "qa-$Port" }
 $apiProject = Join-Path $repositoryRoot 'src\API\API.csproj'
-$apiUrl = 'http://127.0.0.1:5271'
+$apiUrl = "http://127.0.0.1:$Port"
 $startedEngine = $null
 
 New-Item -ItemType Directory -Force -Path `
@@ -21,7 +24,7 @@ New-Item -ItemType Directory -Force -Path `
 try {
     try {
         Invoke-RestMethod -Uri "$apiUrl/api/v1/health/ready" -TimeoutSec 1 | Out-Null
-        Write-Host 'HeroScript já está disponível em 127.0.0.1:5271.' -ForegroundColor Green
+        Write-Host "HeroScript online: $apiUrl" -ForegroundColor Green
     }
     catch {
         $apiEnvironment = @{
@@ -34,13 +37,16 @@ try {
             [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')
         }
         $startedEngine = Start-Process -FilePath 'dotnet' `
-            -ArgumentList @('run', '--project', $apiProject, '--no-launch-profile') `
+            -ArgumentList @('run', '--configuration', 'Release', '--project', $apiProject, '--no-launch-profile') `
             -WorkingDirectory $repositoryRoot -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $runtimeRoot 'engine.log') `
             -RedirectStandardError (Join-Path $runtimeRoot 'engine-error.log')
         $ready = $false
         for ($attempt = 0; $attempt -lt 80; $attempt++) {
             Start-Sleep -Milliseconds 250
+            if ($startedEngine.HasExited) {
+                throw "HeroScript stopped during startup. See $runtimeRoot\engine.log."
+            }
             try {
                 Invoke-RestMethod -Uri "$apiUrl/api/v1/health/ready" -TimeoutSec 1 | Out-Null
                 $ready = $true
@@ -52,17 +58,19 @@ try {
             throw "A HeroScript não iniciou. Consulte $runtimeRoot\engine-error.log."
         }
         Write-Host 'HeroScript iniciada com dados isolados da demo.' -ForegroundColor Green
+        if ($KeepEngine) { Write-Host "EngineProcessId=$($startedEngine.Id)" }
     }
 
-    if ($Headless) {
+    if ($Headless -or $UiSmoke) {
         $godotArguments = @('--headless')
         if ($VerboseGodot) { $godotArguments += '--verbose' }
-        $godotArguments += @('--path', $demoRoot, '--', '--smoke')
+        $testArgument = if ($UiSmoke) { '--ui-smoke' } else { '--smoke' }
+        $godotArguments += @('--path', $demoRoot, '--', $testArgument, "--api-url=$apiUrl")
         & godot @godotArguments
         if ($LASTEXITCODE -ne 0) { throw 'O smoke test da demo falhou.' }
     }
     else {
-        & godot --path $demoRoot
+        & godot --path $demoRoot -- "--api-url=$apiUrl"
     }
 }
 finally {
