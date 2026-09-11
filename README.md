@@ -27,6 +27,7 @@ curl http://localhost:5260/api/v1/health/live
 
 ### Integration Guides
 
+- **[Playable Godot Showcase](examples/godot-engine-showcase/README.md)** - Execute a campanha e os laboratórios data-driven
 - **[Unity/Godot/Web Integration](docs/CLIENT_INTEGRATION.md)** - Consume API from game clients
 - **[Production Deployment](docs/PRODUCTION.md)** - Deploy API to production
 - **[API v1 Guide](docs/api/README.md)** - Contrato público e exemplos
@@ -35,26 +36,22 @@ curl http://localhost:5260/api/v1/health/live
 
 ## 🎯 Status do MVP
 
-**Última análise:** 2026-08-16
+**Última análise:** 2026-09-11
 
-### Engine (estabilização em andamento)
-- **Core Systems:** Combat, Deck, Shop, Status Effects e Gambits implementados
-- **Validação atual:** 1.306 testes Core e 219 testes da API aprovados
+### Engine e demo jogável
+- **Core systems:** combate, cartas, resources, efeitos, status, relíquias, IA, turnos, prioridade e stack
+- **Progressão:** mapa, encontros, recompensas, loja, preparação, upgrades e persistência de runs
+- **Ferramentas determinísticas:** timeline, branches, simulação sem commit e verificação de replay
+- **Validação atual:** 1.067 testes Core e 155 testes da API aprovados
 - **Integração:** comandos e read models de run/combate são expostos pelo contrato único `/api/v1`
-- **Build:** concluído sem erros; warnings de nulidade restantes serão tratados incrementalmente
+- **Demo Godot:** campanha completa e três sandboxes de regras consumindo somente a REST API
 
-### Blockers Críticos para MVP Jogável ❌
-- **Map Navigation System (0%)** - Sistema de progressão entre nós ausente
-- **Event System (0%)** - Eventos de narrativa/escolha não implementados
-- **Conteúdo (10%)** - 7 cartas vs 30+ necessárias, 3 inimigos vs 10+ necessários
+### Escopo atual
 
-### Timeline para MVP Jogável
-- **Sprint 1 (1-2 semanas):** Implementar Map System + Event System
-- **Sprint 2 (1-2 semanas):** Produção de conteúdo (20+ cartas, 7+ inimigos, 1 boss)
-- **Sprint 3 (3-5 dias):** Balanceamento e QA
-- **Total:** 3-4 semanas com esforço focado
-
-**Estado Atual:** Engine sólida, mas sem loop de progressão jogável. Ideal para embedding em outros projetos ou como simulador de combate.
+O showcase é uma prova funcional de arquitetura, não um jogo final: conteúdo,
+balanceamento, narrativa, arte e polimento ainda pertencem à produção de cada
+*setting*. As regras executáveis e o estado autoritativo permanecem na engine;
+a Godot cuida de apresentação, áudio e input.
 
 ## Estrutura do Projeto
 

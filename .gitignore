@@ -7,6 +7,11 @@
 *.rsuser
 *.suo
 *.user
+
+# Godot generated state and isolated showcase runtime
+examples/godot-engine-showcase/.godot/
+examples/godot-engine-showcase/.runtime/
+examples/godot-engine-showcase/tests/output/
 *.userosscache
 *.sln.docstates
 

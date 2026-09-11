@@ -1,0 +1,164 @@
+extends Node
+
+var failures: Array[String] = []
+var _exit_code := 0
+
+func _ready() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	check(await GameSession.connect_engine(), "connect to HeroScript and resolve a content revision")
+	if not failures.is_empty():
+		finish()
+		return
+	var seed := int(Time.get_unix_time_from_system()) % 90000000 + 1000000
+	check(await GameSession.start_campaign(seed), "start showcase campaign")
+	check(str(GameSession.run.get("modeId", "")) == "spire_showcase", "pin showcase mode")
+	check(GameSession.command("START_ENCOUNTER").has("validPayload"), "discover configured encounter payload")
+	var start := GameSession.command("START_ENCOUNTER")
+	if not start.is_empty():
+		check(await GameSession.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})), "start configured encounter")
+	check(not GameSession.combat.is_empty(), "receive combat projection")
+	check(GameSession.run.get("deck", {}).get("handInstanceIds", []).size() == 5, "receive deterministic opening hand")
+	check(not GameSession.legal_actions.is_empty(), "receive legal-action previews")
+	var card_candidate := first_card_candidate()
+	if not card_candidate.is_empty():
+		check(await GameSession.execute_combat_command("PLAY_CARD", command_payload(card_candidate.command)), "play legal card")
+	else:
+		check(false, "find a playable card")
+	var timeline := await GameSession.timeline()
+	check(timeline.ok and timeline.data.get("items", []).size() >= 2, "read command timeline")
+	var origin_run_id := str(GameSession.run.get("runId", ""))
+	if timeline.ok and not timeline.data.get("items", []).is_empty():
+		var first_sequence := int(timeline.data.items[0].runSequence)
+		var branch := await GameSession.create_branch(first_sequence, "smoke-%s" % seed)
+		check(branch.ok, "create an immutable timeline branch")
+		var tree := await GameSession.branch_tree()
+		check(tree.ok, "read the branch tree")
+		await GameSession.continue_run(origin_run_id)
+	var simulation := await GameSession.simulate([
+		{"type": "END_TURN", "payload": {"actorId": GameSession.input_actor_id()}}
+	])
+	check(simulation.ok, "simulate commands without mutating the run")
+	var verification := await GameSession.verify()
+	check(verification.ok and bool(verification.data.get("isValid", verification.data.get("valid", false))), "verify semantic replay")
+	var presentation_file := FileAccess.open("res://data/presentation.json", FileAccess.READ)
+	var presentation = JSON.parse_string(presentation_file.get_as_text())
+	presentation_file.close()
+	for mode in presentation.sandbox_modes:
+		check(await GameSession.start_sandbox(str(mode.id), presentation.default_scenario, seed + failures.size() + str(mode.id).length()),
+			"compile sandbox mode %s" % mode.id)
+		check(str(GameSession.run.get("modeId", "")) == str(mode.id), "activate sandbox mode %s" % mode.id)
+		check(not GameSession.combat.is_empty(), "materialize combat for %s" % mode.id)
+	var cards := await GameSession.content("cards")
+	check(cards.ok and cards.data.get("items", []).size() >= 4, "browse published JSON content")
+	check(await drive_complete_campaign(seed + 917), "complete all seven campaign activities")
+	check(GameSession.run.get("relics", []).size() == 1, "persist and activate relic state")
+	check(GameSession.run.get("cardSelections", []).size() == 1, "persist card reward state")
+	check(GameSession.run.get("shops", []).size() == 1, "persist shop state")
+	check(GameSession.run.get("preparations", []).size() == 1, "persist preparation state")
+	check(GameSession.run.get("completedActivityNodeIds", []).has("forge"), "persist card upgrade activity")
+	finish()
+
+func drive_complete_campaign(seed: int) -> bool:
+	if not await GameSession.start_campaign(seed):
+		return false
+	for _step in 160:
+		if str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active":
+			return str(GameSession.run.get("lifecycle", "")).to_lower() == "completed"
+		if not GameSession.combat.is_empty() and str(GameSession.combat.get("status", "ACTIVE")) == "ACTIVE":
+			var damage := damaging_card_candidate()
+			if not damage.is_empty():
+				if not await GameSession.execute_combat_command("PLAY_CARD", command_payload(damage.command)):
+					return false
+			else:
+				if not await GameSession.execute_combat_command("END_TURN", {"actorId": GameSession.input_actor_id()}):
+					return false
+			continue
+		var command := choose_progression_command()
+		if command.is_empty():
+			return false
+		if not await GameSession.execute_run_command(str(command.type), command.payload):
+			return false
+	return false
+
+func damaging_card_candidate() -> Dictionary:
+	for candidate in GameSession.legal_actions:
+		if str(candidate.get("source", "")) != "Card":
+			continue
+		for application in candidate.get("applications", []):
+			if str(application.get("resourceId", "")) == "health" and \
+				float(application.get("currentValue", 0)) < float(application.get("previousValue", 0)):
+				return candidate
+	return {}
+
+func choose_progression_command() -> Dictionary:
+	for type in ["START_ENCOUNTER", "RESOLVE_COMBAT", "ACQUIRE_RELIC", "CREATE_CARD_SELECTION", "PICK_CARD_REWARD",
+		"CREATE_SHOP", "CREATE_PREPARATION", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD",
+		"RESOLVE_NODE", "ADVANCE_NODE"]:
+		var found := GameSession.command(type)
+		if found.is_empty():
+			continue
+		var valid: Dictionary = found.get("validPayload", {})
+		match type:
+			"PICK_CARD_REWARD":
+				var cards: Array = valid.get("cardIds", [])
+				if cards.is_empty(): continue
+				return {"type": type, "payload": {"selectionInstanceId": valid.selectionInstanceId, "cardIds": [cards[0]]}}
+			"APPLY_PREPARATION_OPTION":
+				var options: Array = valid.get("optionIds", [])
+				if options.is_empty(): continue
+				return {"type": type, "payload": {"preparationInstanceId": valid.preparationInstanceId, "optionId": options[0]}}
+			"UPGRADE_CARD":
+				var upgrades: Array = valid.get("upgradeIds", [])
+				for instance_id in valid.get("cardInstanceIds", []):
+					if card_definition(str(instance_id)) == "basic_attack" and not upgrades.is_empty():
+						return {"type": type, "payload": {"cardInstanceId": instance_id, "upgradeId": upgrades[0]}}
+			"ADVANCE_NODE":
+				var targets: Array = found.get("targetNodeIds", [])
+				if not targets.is_empty():
+					return {"type": type, "payload": {"targetNodeId": targets[0]}}
+			_:
+				return {"type": type, "payload": valid}
+	return {}
+
+func card_definition(instance_id: String) -> String:
+	for card in GameSession.run.get("deck", {}).get("cardInstances", []):
+		if str(card.get("cardInstanceId", "")) == instance_id:
+			return str(card.get("definitionId", ""))
+	return ""
+
+func first_card_candidate() -> Dictionary:
+	for candidate in GameSession.legal_actions:
+		if str(candidate.get("source", "")) == "Card":
+			return candidate
+	return {}
+
+func command_payload(command: Dictionary) -> Dictionary:
+	var payload := {}
+	for key in ["actorId", "actionType", "powerId", "targetId", "targetIds", "costOptionId", "cardInstanceId"]:
+		if command.has(key) and command[key] != null:
+			payload[key] = command[key]
+	return payload
+
+func check(condition: bool, label: String) -> void:
+	if condition:
+		print("[PASS] ", label)
+	else:
+		failures.append(label)
+		push_error("[FAIL] " + label)
+
+func finish() -> void:
+	print("SHOWCASE_SMOKE failures=", failures.size())
+	_exit_code = 0 if failures.is_empty() else 1
+	GameAudio.shutdown()
+	# The dummy audio mixer runs independently from the accelerated headless
+	# frame loop. Give it one real cycle to release the looping WAV playback.
+	get_tree().create_timer(0.1, true, false, true).timeout.connect(_after_audio_cleanup, CONNECT_ONE_SHOT)
+
+func _after_audio_cleanup() -> void:
+	# The timer itself is released at the end of this frame.
+	get_tree().process_frame.connect(_finish_after_cleanup, CONNECT_ONE_SHOT)
+
+func _finish_after_cleanup() -> void:
+	get_tree().quit(_exit_code)

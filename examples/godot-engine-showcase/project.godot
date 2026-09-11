@@ -1,0 +1,45 @@
+; HeroScript Godot Showcase — generated UI, engine-owned rules.
+config_version=5
+
+[application]
+config/name="HeroScript: Ember Archive"
+run/main_scene="res://main.tscn"
+
+[autoload]
+Preferences="*res://scripts/preferences.gd"
+GameAudio="*res://scripts/game_audio.gd"
+HeroAPI="*res://scripts/hero_api.gd"
+GameSession="*res://scripts/game_session.gd"
+
+[display]
+window/size/viewport_width=1440
+window/size/viewport_height=900
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+
+[input]
+pause_game={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194305)]
+}
+end_turn={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":69)]
+}
+open_timeline={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":84)]
+}
+confirm_action={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":32)]
+}
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[environment]
+defaults/default_clear_color=Color(0.0196, 0.0235, 0.0431, 1)

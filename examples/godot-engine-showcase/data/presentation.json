@@ -1,0 +1,69 @@
+{
+  "cards": {
+    "basic_attack": { "name": "Golpe", "text": "Cause 6 de dano.", "cost": 1, "tone": "attack" },
+    "defend": { "name": "Guarda", "text": "Receba 5 de bloqueio.", "cost": 1, "tone": "skill" },
+    "fireball": { "name": "Orbe Ígneo", "text": "Cause 10 de dano e aplique 2 de Queimando.", "cost": 2, "tone": "power" },
+    "heal": { "name": "Centelha Vital", "text": "Restaure 8 de vida.", "cost": 1, "tone": "skill" }
+  },
+  "nodes": {
+    "embers": { "name": "Clareira das Cinzas", "icon": "⚔", "hint": "Encontro" },
+    "relic": { "name": "Núcleo de Brasa", "icon": "⬢", "hint": "Relíquia" },
+    "reward": { "name": "Memória Perdida", "icon": "✦", "hint": "Escolha uma carta" },
+    "merchant": { "name": "Mercador Errante", "icon": "◆", "hint": "Loja" },
+    "camp": { "name": "Fogueira", "icon": "♨", "hint": "Preparação" },
+    "forge": { "name": "Forja Antiga", "icon": "⬆", "hint": "Upgrade" },
+    "summit": { "name": "Sentinela de Obsidiana", "icon": "♛", "hint": "Chefe" }
+  },
+  "sandbox_modes": [
+    {
+      "id": "combat_sandbox",
+      "name": "Roguelike de energia",
+      "description": "Jogue cartas consumindo energia; a IA resolve sua ativação automaticamente."
+    },
+    {
+      "id": "combat_sandbox_fixed_actions",
+      "name": "Tático por ações",
+      "description": "As mesmas cartas obedecem a um orçamento fixo de ações por ativação."
+    },
+    {
+      "id": "combat_sandbox_priority",
+      "name": "Duelo com prioridade",
+      "description": "Abre janelas de resposta e processa ações por uma stack determinística."
+    }
+  ],
+  "default_scenario": {
+    "participants": [
+      {
+        "instanceId": "player",
+        "entityDefinitionId": "spire_adept",
+        "sideId": "player",
+        "controllerBinding": { "kind": "Player" }
+      },
+      {
+        "instanceId": "opponent",
+        "entityDefinitionId": "spire_sentinel",
+        "sideId": "opposition",
+        "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+      }
+    ],
+    "deck": [
+      { "definitionId": "basic_attack" },
+      { "definitionId": "basic_attack" },
+      { "definitionId": "basic_attack" },
+      { "definitionId": "basic_attack" },
+      { "definitionId": "defend" },
+      { "definitionId": "defend" },
+      { "definitionId": "defend" },
+      { "definitionId": "fireball" },
+      { "definitionId": "fireball" },
+      { "definitionId": "heal" }
+    ],
+    "initialState": {
+      "resourcesByActor": {
+        "player": { "health": 72, "energy": 3, "mana": 4 },
+        "opponent": { "health": 52, "mana": 6 }
+      },
+      "effects": []
+    }
+  }
+}
