@@ -257,8 +257,7 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
 
         try
         {
-            var commits = await _history.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false);
-            var commit = commits.LastOrDefault(item => item.RootCommand.CommandId == commandId);
+            var commit = await _history.FindCommandAsync(runId, commandId, cancellationToken).ConfigureAwait(false);
             if (commit == null)
                 return _receiptFallback?.FindReceipt(runId, commandId)
                     ?? Result<RunCommandReceipt?>.Success(null);

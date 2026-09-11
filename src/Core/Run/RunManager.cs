@@ -420,9 +420,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
 
             try
             {
-                var commit = _repository.LoadCommitsAsync(runId)
-                    .GetAwaiter().GetResult()
-                    .LastOrDefault(item => item.RootCommand.CommandId == commandId);
+                var commit = _repository.FindCommandAsync(runId, commandId)
+                    .GetAwaiter().GetResult();
                 if (commit == null)
                     return Result<RunCommandReceipt?>.Success(null);
 

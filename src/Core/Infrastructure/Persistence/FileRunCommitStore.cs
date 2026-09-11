@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Cryptography;
+using Core.Caching;
 using Core.Abstractions.Persistence;
 using Core.Determinism;
 using Core.Logging;
@@ -17,10 +19,19 @@ public sealed class FileRunCommitStore : IRunCommitStore, IDisposable
     private readonly ILogger _logger;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private readonly JsonSerializerOptions _options;
+    private readonly LruCache<string, ValidatedCommitIdentity>? _validatedBytes;
+    private sealed record ValidatedCommitIdentity(
+        Guid RunId, int Sequence, Guid CommandId, string StateHash, string PreviousStateHash)
+    {
+        public static ValidatedCommitIdentity From(RunCommit commit) => new(
+            commit.RunId, commit.Sequence, commit.RootCommand.CommandId, commit.StateHash, commit.PreviousStateHash);
+    }
 
-    public FileRunCommitStore(string storePath, ILogger logger)
+    public FileRunCommitStore(string storePath, ILogger logger, int validationCacheCapacity = 256)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(storePath);
+        ArgumentOutOfRangeException.ThrowIfNegative(validationCacheCapacity);
+        _validatedBytes = validationCacheCapacity == 0 ? null : new(validationCacheCapacity);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _storePath = Path.GetFullPath(storePath);
         Directory.CreateDirectory(_storePath);
@@ -146,6 +157,40 @@ public sealed class FileRunCommitStore : IRunCommitStore, IDisposable
         }
     }
 
+    public async Task<RunCommit?> FindCommandAsync(Guid runId, Guid commandId, CancellationToken ct = default)
+    {
+        await _semaphore.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ValidatedCommitIdentity? previous = null;
+            int? found = null;
+            foreach (var sequence in ListSequencesUnsafe(runId))
+            {
+                var bytes = await File.ReadAllBytesAsync(GetCommitPath(runId, sequence), ct).ConfigureAwait(false);
+                var fingerprint = Convert.ToHexString(SHA256.HashData(bytes));
+                ValidatedCommitIdentity? identity = null;
+                if (_validatedBytes == null || !_validatedBytes.TryGetValue(fingerprint, out identity))
+                {
+                    var commit = DeserializeValidated(bytes, fingerprint);
+                    identity = ValidatedCommitIdentity.From(commit);
+                }
+                if (identity!.RunId != runId || identity.Sequence != sequence)
+                    throw new InvalidDataException($"Run commit path does not match its identity: {runId}/{sequence}");
+                if (previous != null && !string.Equals(previous.StateHash, identity.PreviousStateHash, StringComparison.Ordinal))
+                    throw new InvalidDataException($"Broken run commit hash chain at sequence {sequence}");
+                if (identity.CommandId == commandId) found = sequence;
+                previous = identity;
+            }
+            return found.HasValue
+                ? await LoadCommitUnsafeAsync(runId, found.Value, ct).ConfigureAwait(false)
+                : null;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
     public async Task<RunState?> LoadStateAsync(
         Guid runId,
         int sequence,
@@ -220,7 +265,11 @@ public sealed class FileRunCommitStore : IRunCommitStore, IDisposable
         }
     }
 
-    public void Dispose() => _semaphore.Dispose();
+    public void Dispose()
+    {
+        _validatedBytes?.Clear();
+        _semaphore.Dispose();
+    }
 
     private async Task<RunCommit?> LoadCommitUnsafeAsync(
         Guid runId,
@@ -230,10 +279,24 @@ public sealed class FileRunCommitStore : IRunCommitStore, IDisposable
         var path = GetCommitPath(runId, sequence);
         if (!File.Exists(path))
             return null;
-        var json = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
-        var commit = JsonSerializer.Deserialize<RunCommit>(json, _options)
-            ?? throw new InvalidDataException($"Run commit is empty: {path}");
-        commit.Validate();
+        var bytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
+        var fingerprint = _validatedBytes == null ? null : Convert.ToHexString(SHA256.HashData(bytes));
+        return DeserializeValidated(bytes, fingerprint);
+    }
+
+    private RunCommit DeserializeValidated(byte[] bytes, string? fingerprint)
+    {
+        // Cache only validation of exact bytes, never mutable deserialized objects.
+        // Disk reads remain authoritative: edits with identical size/timestamps
+        // cannot reuse validation, and hash-chain checks still run on every read.
+        var commit = JsonSerializer.Deserialize<RunCommit>(bytes, _options)
+            ?? throw new InvalidDataException("Run commit is empty");
+        if (_validatedBytes == null || fingerprint == null || !_validatedBytes.TryGetValue(fingerprint, out _))
+        {
+            commit.Validate();
+            if (fingerprint != null)
+                _validatedBytes?.Set(fingerprint, ValidatedCommitIdentity.From(commit));
+        }
         return commit;
     }
 

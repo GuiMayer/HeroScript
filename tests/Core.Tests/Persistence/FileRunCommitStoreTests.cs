@@ -113,6 +113,59 @@ public sealed class FileRunCommitStoreTests : IDisposable
             store.AppendAsync(current with { EngineVersion = "future" }));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(256)]
+    public async Task FindCommand_MatchesFullHistoryAcrossAppendEvictionAndRestart(int capacity)
+    {
+        var runId = Guid.NewGuid();
+        var first = CreateCommit(runId, 1, null, 1);
+        var second = CreateCommit(runId, 2, first.StateHash, 2);
+        using (var store = new FileRunCommitStore(_directory, NullLogger.Instance, capacity))
+        {
+            await store.AppendAsync(first);
+            Assert.Null(await store.FindCommandAsync(runId, second.RootCommand.CommandId));
+            await store.AppendAsync(second);
+            for (var i = 0; i < 2; i++)
+            {
+                Assert.Equal(first.StateHash, (await store.FindCommandAsync(runId, first.RootCommand.CommandId))!.StateHash);
+                Assert.Equal(second.StateHash, (await store.FindCommandAsync(runId, second.RootCommand.CommandId))!.StateHash);
+                Assert.Null(await store.FindCommandAsync(runId, Guid.NewGuid()));
+            }
+        }
+        using var restarted = new FileRunCommitStore(_directory, NullLogger.Instance, capacity);
+        Assert.Equal(second.StateHash, (await restarted.FindCommandAsync(runId, second.RootCommand.CommandId))!.StateHash);
+        // Warm lookup must still reject corrupt bytes, including negative lookups.
+        var path = Path.Combine(_directory, runId.ToString("D"), "commits", "00000001.json");
+        var json = await File.ReadAllTextAsync(path);
+        await File.WriteAllTextAsync(path, json.Replace(first.StateHash, new string('0', first.StateHash.Length), StringComparison.Ordinal));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => restarted.FindCommandAsync(runId, Guid.NewGuid()));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(256)]
+    public async Task ValidationCache_RechecksChangedBytesEvenWithSameFileMetadata(int capacity)
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance, capacity);
+        var commit = CreateCommit(Guid.NewGuid(), 1, null, 1);
+        await store.AppendAsync(commit);
+        var first = await store.LoadCommitAsync(commit.RunId, 1);
+        var second = await store.LoadCommitAsync(commit.RunId, 1);
+        Assert.NotSame(first, second);
+        Assert.Equal(CanonicalJson.ComputeHash(first), CanonicalJson.ComputeHash(second));
+        var path = Path.Combine(_directory, commit.RunId.ToString("D"), "commits", "00000001.json");
+        var timestamp = File.GetLastWriteTimeUtc(path);
+        var json = await File.ReadAllTextAsync(path);
+        var corrupted = json.Replace(commit.StateHash, new string('0', commit.StateHash.Length), StringComparison.Ordinal);
+        Assert.Equal(json.Length, corrupted.Length);
+        await File.WriteAllTextAsync(path, corrupted);
+        File.SetLastWriteTimeUtc(path, timestamp);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => store.LoadCommitAsync(commit.RunId, 1));
+    }
+
     [Fact]
     public async Task ConcurrentIdenticalRetriesCreateOneFile()
     {
