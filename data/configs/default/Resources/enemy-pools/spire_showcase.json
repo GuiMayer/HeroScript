@@ -1,0 +1,6 @@
+{
+  "spire_showcase_enemies": {
+    "enemyPoolId": "spire_showcase_enemies",
+    "entityDefinitionIds": ["spire_wisp", "spire_sentinel"]
+  }
+}

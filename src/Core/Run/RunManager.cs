@@ -675,8 +675,22 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         var transition = RelicTransitions.Acquire(run, definition.Value);
         if (transition.IsFailure)
             return Result.Failure(transition.Error);
+        var currentNode = run.Map.Nodes.FirstOrDefault(node =>
+            string.Equals(node.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
+        var next = transition.Value.State;
+        if (currentNode?.Activity.Type == RunActivityType.RelicReward)
+        {
+            next = next with
+            {
+                CompletedActivityNodeIds = next.CompletedActivityNodeIds
+                    .Append(currentNode.NodeId)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal)
+                    .ToArray()
+            };
+        }
         return ToResult(Persist(
-            transition.Value.State,
+            next,
             RunCommandTypes.AcquireRelic,
             new { relicId = request.RelicId }));
     }

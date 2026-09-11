@@ -55,6 +55,7 @@ public sealed record RunProgressionPolicyDefinition
 public enum RunActivityType
 {
     Encounter,
+    RelicReward,
     CardSelection,
     Shop,
     Preparation,
@@ -127,6 +128,7 @@ public sealed class RunActivityRegistry
     public static RunActivityRegistry CreateDefault() => new(
     [
         new EncounterRunActivityHandler(),
+        new RelicRewardRunActivityHandler(),
         new CardSelectionRunActivityHandler(),
         new ShopRunActivityHandler(),
         new PreparationRunActivityHandler(),
@@ -340,11 +342,58 @@ internal sealed class EncounterRunActivityHandler : RunActivityHandlerBase
     {
         var encounter = run.ActiveEncounterId is { } id ? run.GetEncounter(id) : null;
         if (encounter == null)
-            return [Command(run, node, RunCommandTypes.StartEncounter, new { hero = "object", enemies = "array" })];
-        return encounter.Combat.IsActive
-            ? []
-            : [Command(run, node, RunCommandTypes.ResolveCombat, new { combatId = "guid" }, new { combatId = encounter.Combat.CombatId })];
+        {
+            var payload = new Dictionary<string, object>();
+            if (node.Activity.Parameters.TryGetValue("participants", out var participants))
+                payload["participants"] = participants.Clone();
+            if (node.Activity.Parameters.TryGetValue("initialResourceValues", out var resources))
+                payload["initialResourceValues"] = resources.Clone();
+
+            return
+            [
+                Command(
+                    run,
+                    node,
+                    RunCommandTypes.StartEncounter,
+                    new { participants = "array", initialResourceValues = "object?" },
+                    payload)
+            ];
+        }
+        if (encounter.Combat.IsActive)
+            return [];
+        var resolve = Command(
+            run,
+            node,
+            RunCommandTypes.ResolveCombat,
+            new { combatId = "guid" },
+            new { combatId = encounter.Combat.CombatId });
+        return [resolve with { ExpectedStep = encounter.Combat.Determinism.Step }];
     }
+}
+
+internal sealed class RelicRewardRunActivityHandler : RunActivityHandlerBase
+{
+    public override RunActivityType Type => RunActivityType.RelicReward;
+    public override string? DefinitionKind => "relics";
+    public override IReadOnlySet<string> CommandTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
+    {
+        RunCommandTypes.AcquireRelic,
+        RunCommandTypes.ResolveNode
+    };
+
+    public override Result ValidateCommand(RunState run, RunMapNodeState node, string commandType, object payload) =>
+        payload is RelicCommand acquire && acquire.RelicId != node.Activity.DefinitionId
+            ? Result.Failure("Relic command does not match the current activity definition")
+            : base.ValidateCommand(run, node, commandType, payload);
+
+    public override bool IsComplete(RunState run, RunMapNodeState node) =>
+        run.CompletedActivityNodeIds.Contains(node.NodeId, StringComparer.Ordinal);
+
+    public override IReadOnlyList<RunAvailableCommand> GetAvailableCommands(RunState run, RunMapNodeState node) =>
+        IsComplete(run, node)
+            ? [Resolve(run, node)]
+            : [Command(run, node, RunCommandTypes.AcquireRelic,
+                new { relicId = "string" }, new { relicId = node.Activity.DefinitionId })];
 }
 
 internal sealed class CardSelectionRunActivityHandler : RunActivityHandlerBase
@@ -547,7 +596,13 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
         {
             Command(run, node, RunCommandTypes.UpgradeCard,
                 new { cardInstanceId = "guid", upgradeId = "string" },
-                new { cardInstanceIds = run.Deck.CardInstances.Keys.Order().ToArray() })
+                new
+                {
+                    cardInstanceIds = run.Deck.CardInstances.Keys.Order().ToArray(),
+                    upgradeIds = node.Activity.Parameters.TryGetValue("upgradeIds", out var upgradeIds)
+                        ? upgradeIds
+                        : JsonSerializer.SerializeToElement(Array.Empty<string>())
+                })
         };
         if (node.CompletionPolicy == RunActivityCompletionPolicy.Optional) commands.Add(Resolve(run, node));
         return commands;

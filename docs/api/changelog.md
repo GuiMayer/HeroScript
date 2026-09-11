@@ -1,5 +1,18 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-11
+
+- O snapshot de combate passou a expor os status ativos de cada ator para que
+  clientes possam renderizá-los sem reconstruir regras ou consumir outro estado.
+- O read model de run agora inclui modifiers e atividades concluídas.
+- Encontros publicam no próprio comando `START_ENCOUNTER` o payload canônico
+  configurado no nó; `RESOLVE_COMBAT` usa a versão do combate que realmente
+  será resolvido.
+- Recompensas de relíquia possuem atividade própria e transação canônica, sem
+  permitir aquisição fora do fluxo em modos que não habilitam ferramentas livres.
+- O showcase Godot exercita campanha, sandboxes, timeline, branches, simulação
+  e replay consumindo exclusivamente a API versionada.
+
 ## v1 — 2026-09-09
 
 - O read model de combate agora documenta e expõe atores, lados, relações,

@@ -113,6 +113,37 @@ public sealed class RunProgressionTests
     }
 
     [Fact]
+    public void ResolveCombatAvailableCommand_UsesCombatStepExpectedByTheGateway()
+    {
+        var combatId = Guid.Parse("50000000-0000-0000-0000-000000000001");
+        var map = RunMapTransitions.Create([Node("combat", RunActivityType.Encounter)], _activities).Value;
+        var run = State("combat", map, new RunProgressionPolicyDefinition()) with
+        {
+            Sequence = 9,
+            Determinism = Enumerable.Range(0, 46).Aggregate(
+                DeterministicContext.Create(42, Revision), (current, _) => current.AdvanceStep()),
+            ActiveEncounterId = combatId,
+            Encounters = [new RunEncounterState
+            {
+                NodeId = "combat",
+                Combat = new CombatState
+                {
+                    CombatId = combatId,
+                    Status = CombatStatus.VICTORY,
+                    Determinism = Enumerable.Range(0, 11).Aggregate(
+                        DeterministicContext.Create(7, Revision), (current, _) => current.AdvanceStep())
+                }
+            }]
+        };
+
+        var command = new RunProgressionService(_activities).GetAvailableCommands(run).Value
+            .Single(item => item.Type == RunCommandTypes.ResolveCombat);
+
+        Assert.Equal(9, command.ExpectedSequence);
+        Assert.Equal(11UL, command.ExpectedStep);
+    }
+
+    [Fact]
     public void EndOfMapAndAbandon_UseProgressionPolicyInsteadOfResourceNames()
     {
         var service = new RunProgressionService(_activities);
@@ -162,6 +193,40 @@ public sealed class RunProgressionTests
     }
 
     [Fact]
+    public void EncounterAvailableCommand_ExposesParticipantsPinnedInTheRunMap()
+    {
+        var participants = System.Text.Json.JsonSerializer.SerializeToElement(new object[]
+        {
+            new { instanceId = "player", definitionId = "player_warrior", sideId = "player",
+                controllerBinding = new { kind = "Player" } },
+            new { instanceId = "opponent", definitionId = "enemy_goblin", sideId = "opposition",
+                controllerBinding = new { kind = "AI", policyId = "gambit" } }
+        });
+        var node = Node("combat", RunActivityType.Encounter) with
+        {
+            Activity = new RunActivityDefinition
+            {
+                Type = RunActivityType.Encounter,
+                Parameters = new Dictionary<string, System.Text.Json.JsonElement>
+                {
+                    ["participants"] = participants
+                }
+            }
+        };
+        var map = RunMapTransitions.Create([node], _activities).Value;
+        var run = State("combat", map, new RunProgressionPolicyDefinition());
+
+        var command = Assert.Single(new RunProgressionService(_activities)
+            .GetAvailableCommands(run).Value);
+
+        Assert.Equal(RunCommandTypes.StartEncounter, command.Type);
+        Assert.Equal("array", command.PayloadSchema.GetProperty("participants").GetString());
+        var configured = command.ValidPayload.GetProperty("participants");
+        Assert.Equal(2, configured.GetArrayLength());
+        Assert.Equal("enemy_goblin", configured[1].GetProperty("definitionId").GetString());
+    }
+
+    [Fact]
     public void ActivityCommand_IsRejectedOutsideItsCurrentActivity()
     {
         var map = RunMapTransitions.Create([Node("combat", RunActivityType.Encounter)], _activities).Value;
@@ -190,6 +255,25 @@ public sealed class RunProgressionTests
         Assert.DoesNotContain(service.GetAvailableCommands(run).Value,
             command => command.Type == RunCommandTypes.ResolveNode);
         run = run with { CompletedActivityNodeIds = ["forge"] };
+        Assert.Equal(RunCommandTypes.ResolveNode,
+            Assert.Single(service.GetAvailableCommands(run).Value).Type);
+    }
+
+    [Fact]
+    public void RelicRewardActivity_AdvertisesPinnedRelicAndBecomesResolvableAfterAcquisition()
+    {
+        var map = RunMapTransitions.Create(
+            [Node("relic", RunActivityType.RelicReward, "ember_core")], _activities).Value;
+        var run = State("relic", map, new RunProgressionPolicyDefinition());
+        var service = new RunProgressionService(_activities);
+
+        var acquire = Assert.Single(service.GetAvailableCommands(run).Value);
+        Assert.Equal(RunCommandTypes.AcquireRelic, acquire.Type);
+        Assert.Equal("ember_core", acquire.ValidPayload.GetProperty("relicId").GetString());
+        Assert.True(service.ValidateCommand(run, RunCommandTypes.AcquireRelic,
+            new RelicCommand("another_relic")).IsFailure);
+
+        run = run with { CompletedActivityNodeIds = ["relic"] };
         Assert.Equal(RunCommandTypes.ResolveNode,
             Assert.Single(service.GetAvailableCommands(run).Value).Type);
     }

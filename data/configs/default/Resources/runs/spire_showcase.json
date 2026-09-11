@@ -1,13 +1,12 @@
 {
-  "default_run": {
-    "runId": "default_run",
+  "spire_showcase_run": {
+    "runId": "spire_showcase_run",
     "startingResources": {
-      "gold": 50,
-      "power_points": 0
+      "gold": 80,
+      "power_points": 2
     },
     "startingHandSize": 5,
     "startingDeck": [
-      "basic_attack",
       "basic_attack",
       "basic_attack",
       "basic_attack",
@@ -20,20 +19,20 @@
     ],
     "mapNodes": [
       {
-        "nodeId": "start",
+        "nodeId": "embers",
         "activity": {
           "type": "Encounter",
           "parameters": {
             "participants": [
               {
                 "instanceId": "player",
-                "definitionId": "player_warrior",
+                "definitionId": "spire_adept",
                 "sideId": "player",
                 "controllerBinding": { "kind": "Player" }
               },
               {
-                "instanceId": "opponent",
-                "definitionId": "enemy_goblin",
+                "instanceId": "wisp",
+                "definitionId": "spire_wisp",
                 "sideId": "opposition",
                 "controllerBinding": { "kind": "AI", "policyId": "gambit" }
               }
@@ -42,11 +41,32 @@
         },
         "completionPolicy": "Required",
         "entryEffects": [],
-        "exitEffects": [],
-        "nextNodeIds": ["reward_1"]
+        "exitEffects": [
+          {
+            "effectId": "embers.reward.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 25
+          }
+        ],
+        "nextNodeIds": ["relic"]
       },
       {
-        "nodeId": "reward_1",
+        "nodeId": "relic",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "ember_core",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["reward"]
+      },
+      {
+        "nodeId": "reward",
         "activity": {
           "type": "CardSelection",
           "definitionId": "basic_reward",
@@ -55,10 +75,10 @@
         "completionPolicy": "Required",
         "entryEffects": [],
         "exitEffects": [],
-        "nextNodeIds": ["shop_1"]
+        "nextNodeIds": ["merchant"]
       },
       {
-        "nodeId": "shop_1",
+        "nodeId": "merchant",
         "activity": {
           "type": "Shop",
           "definitionId": "basic_shop",
@@ -67,24 +87,46 @@
         "completionPolicy": "Optional",
         "entryEffects": [],
         "exitEffects": [],
-        "nextNodeIds": ["boss_1"]
+        "nextNodeIds": ["camp"]
       },
       {
-        "nodeId": "boss_1",
+        "nodeId": "camp",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "basic_preparation",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["forge"]
+      },
+      {
+        "nodeId": "forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": { "upgradeIds": ["sharpened_edge"] }
+        },
+        "completionPolicy": "Optional",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["summit"]
+      },
+      {
+        "nodeId": "summit",
         "activity": {
           "type": "Encounter",
           "parameters": {
-            "tier": "boss",
             "participants": [
               {
                 "instanceId": "player",
-                "definitionId": "player_warrior",
+                "definitionId": "spire_adept",
                 "sideId": "player",
                 "controllerBinding": { "kind": "Player" }
               },
               {
-                "instanceId": "boss",
-                "definitionId": "enemy_orc_warrior",
+                "instanceId": "sentinel",
+                "definitionId": "spire_sentinel",
                 "sideId": "opposition",
                 "controllerBinding": { "kind": "AI", "policyId": "gambit" }
               }
@@ -98,7 +140,8 @@
       }
     ],
     "metadata": {
-      "description": "Default data-driven run definition for MVP loop"
+      "displayName": "The Ember Path",
+      "description": "A compact campaign exercising combat, relics, rewards, shops, preparation, upgrades and a boss."
     }
   }
 }

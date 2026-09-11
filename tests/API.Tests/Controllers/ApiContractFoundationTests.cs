@@ -158,7 +158,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             runDefinitionId = "default_run",
             playerEntityId,
             contentRevision = revision,
-            modeId = "standard"
+            modeId = "combat_sandbox"
         });
         var started = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
 

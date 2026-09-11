@@ -43,6 +43,10 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 var handler = activities.Resolve(node.Activity.Type);
                 var kind = handler.IsSuccess ? handler.Value.DefinitionKind : null;
                 if (kind != null) Reference(address, kind, node.Activity.DefinitionId, required: true);
+                if (node.Activity.Type == RunActivityType.Encounter)
+                    Encounter(address, node.Activity);
+                if (node.Activity.Type == RunActivityType.CardUpgrade)
+                    ReferencesParameter(address, node.Activity, "upgradeIds", "card-upgrades", required: true);
                 RunBoundaryEffects($"{address}/entryEffects", node.EntryEffects);
                 RunBoundaryEffects($"{address}/exitEffects", node.ExitEffects);
             }
@@ -178,6 +182,56 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS)
                 Error(path, $"effect '{effect.EffectId}' does not persist in run state");
         }
+    }
+
+    private void Encounter(string path, RunActivityDefinition activity)
+    {
+        if (!activity.Parameters.TryGetValue("participants", out var participants) ||
+            participants.ValueKind != System.Text.Json.JsonValueKind.Array ||
+            participants.GetArrayLength() < 2)
+        {
+            Error(path, "encounter parameters require at least two participants");
+            return;
+        }
+
+        var instanceIds = new HashSet<string>(StringComparer.Ordinal);
+        var sideIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var participant in participants.EnumerateArray())
+        {
+            var instanceId = participant.TryGetProperty("instanceId", out var instance) ? instance.GetString() : null;
+            var definitionId = participant.TryGetProperty("definitionId", out var definition) ? definition.GetString() : null;
+            var sideId = participant.TryGetProperty("sideId", out var side) ? side.GetString() : null;
+            if (string.IsNullOrWhiteSpace(instanceId) || !instanceIds.Add(instanceId))
+                Error(path, $"encounter participant has a missing or duplicate instanceId '{instanceId}'");
+            if (string.IsNullOrWhiteSpace(sideId))
+                Error(path, $"encounter participant '{instanceId}' requires sideId");
+            else
+                sideIds.Add(sideId);
+            Reference(path, "entities", definitionId, required: true);
+            if (!participant.TryGetProperty("controllerBinding", out var controller) ||
+                !controller.TryGetProperty("kind", out var kind) ||
+                kind.ValueKind != System.Text.Json.JsonValueKind.String)
+                Error(path, $"encounter participant '{instanceId}' requires controllerBinding.kind");
+        }
+        if (sideIds.Count < 2)
+            Error(path, "encounter participants require at least two sides");
+    }
+
+    private void ReferencesParameter(
+        string path,
+        RunActivityDefinition activity,
+        string parameter,
+        string kind,
+        bool required = false)
+    {
+        if (!activity.Parameters.TryGetValue(parameter, out var values) ||
+            values.ValueKind != System.Text.Json.JsonValueKind.Array)
+        {
+            if (required) Error(path, $"activity parameter '{parameter}' is required");
+            return;
+        }
+        foreach (var value in values.EnumerateArray())
+            Reference(path, kind, value.ValueKind == System.Text.Json.JsonValueKind.String ? value.GetString() : null, true);
     }
 
     private void Triggers(string path, IReadOnlyList<EffectTriggerDefinition> triggers, bool relic)

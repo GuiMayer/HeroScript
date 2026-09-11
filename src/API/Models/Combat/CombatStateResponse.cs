@@ -54,7 +54,18 @@ public class CombatStateResponse
                         Maximum = pair.Value.Maximum,
                         Minimum = pair.Value.Minimum
                     },
-                    StringComparer.Ordinal)
+                    StringComparer.Ordinal),
+            Statuses = state.StatusEffects.TryGetValue(actor.InstanceId, out var statuses)
+                ? statuses.Select(status => new StatusEffectStateDto
+                {
+                    InstanceId = status.InstanceId,
+                    StatusId = status.StatusId,
+                    SourceId = status.SourceId,
+                    Stacks = status.Stacks,
+                    Duration = status.Duration,
+                    IsActive = status.IsActive
+                }).ToArray()
+                : []
         }).ToList(),
         Sides = state.Sides,
         Relationships = state.Relationships,
@@ -77,6 +88,17 @@ public class ActorStateDto
     public bool IsAlive { get; set; }
     public IReadOnlyDictionary<string, ResourcePoolDto> Resources { get; set; }
         = new Dictionary<string, ResourcePoolDto>();
+    public IReadOnlyList<StatusEffectStateDto> Statuses { get; set; } = [];
+}
+
+public class StatusEffectStateDto
+{
+    public Guid InstanceId { get; set; }
+    public string StatusId { get; set; } = string.Empty;
+    public string? SourceId { get; set; }
+    public int Stacks { get; set; }
+    public int Duration { get; set; }
+    public bool IsActive { get; set; }
 }
 
 public class ResourcePoolDto

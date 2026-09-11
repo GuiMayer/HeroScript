@@ -319,6 +319,8 @@ public sealed class RunController : BaseApiController
             run.Shops,
             run.Preparations,
             run.Relics,
+            run.Modifiers,
+            run.CompletedActivityNodeIds,
             run.Metadata
         };
     }
