@@ -2,6 +2,9 @@
 
 ## v1 — 2026-09-11
 
+- Candidatos de `/combats/{combatId}/legal-actions` expõem `costs`, obtidos da
+  avaliação canônica de cartas, habilidades e reações. O cliente não precisa
+  reconstruir custos a partir do conteúdo ou do texto de apresentação.
 - O snapshot de combate passou a expor os status ativos de cada ator para que
   clientes possam renderizá-los sem reconstruir regras ou consumir outro estado.
 - O read model de run agora inclui modifiers e atividades concluídas.

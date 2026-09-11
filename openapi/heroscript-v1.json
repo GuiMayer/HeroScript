@@ -622,13 +622,14 @@
       },
       "LegalActionCandidate": {
         "type": "object",
-        "required": ["candidateId", "source", "command", "applications", "calculations", "steps", "resolutionFingerprint", "outcomeUncertain", "reactionTransition"],
+        "required": ["candidateId", "source", "command", "applications", "calculations", "costs", "steps", "resolutionFingerprint", "outcomeUncertain", "reactionTransition"],
         "properties": {
           "candidateId": { "type": "string" },
           "source": { "type": "string", "enum": ["System", "Ability", "Card"] },
           "command": { "type": "object", "additionalProperties": true },
           "actionId": { "type": "string", "nullable": true },
           "cardDefinitionId": { "type": "string", "nullable": true },
+          "costs": { "type": "array", "items": { "$ref": "#/components/schemas/ResolvedCardCost" }, "description": "Canonical resolved costs for this candidate and cost option; do not recalculate in clients." },
           "applications": { "type": "array", "items": { "$ref": "#/components/schemas/EffectApplicationRecord" } },
           "calculations": { "type": "array", "items": { "$ref": "#/components/schemas/CalculationTrace" } },
           "steps": { "type": "array", "items": { "$ref": "#/components/schemas/EffectExecutionStep" } },
@@ -640,6 +641,18 @@
           },
           "resolvedCommand": { "type": "object", "nullable": true, "additionalProperties": true },
           "pendingAction": { "oneOf": [{ "$ref": "#/components/schemas/PendingActionState" }, { "type": "null" }] }
+        }
+      },
+      "ResolvedCardCost": {
+        "type": "object",
+        "required": ["componentId", "resourceId", "amount", "allowOverdraft", "affordable"],
+        "properties": {
+          "componentId": { "type": "string" },
+          "optionId": { "type": "string", "nullable": true },
+          "resourceId": { "type": "string" },
+          "amount": { "type": "number", "format": "float" },
+          "allowOverdraft": { "type": "boolean" },
+          "affordable": { "type": "boolean" }
         }
       },
       "CombatStateSnapshot": {

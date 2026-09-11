@@ -113,6 +113,12 @@ carta. `Disabled` bloqueia a projeção. A Godot deve tratar essa resposta como 
 O endpoint `/legal-actions` devolve candidatos em ordem determinística. Cada
 candidato contém o comando que pode ser reenviado ao gateway, applications,
 cálculos, steps e `resolutionFingerprint` produzidos pelo executor canônico.
+O campo `costs` contém os custos resolvidos (`resourceId`, `amount` e demais
+metadados de `ResolvedCardCost`) dessa mesma avaliação. Custos alternativos
+permanecem em candidatos distintos; a interface deve enviar a escolha exata,
+sem somar alternativas nem recalcular modificadores localmente. A prévia vale
+para a versão observada, não é uma reserva de recursos: o gateway revalida o
+comando com `expectedSequence` e `expectedStep`.
 Habilidades que não pertencem ao componente `abilities` do ator nunca aparecem
 e também são rejeitadas se enviadas manualmente.
 

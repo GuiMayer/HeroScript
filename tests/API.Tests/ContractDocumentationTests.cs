@@ -102,6 +102,8 @@ public sealed class ContractDocumentationTests
             .GetProperty("LegalActionCandidate").GetProperty("properties");
         Assert.True(legalCandidateProperties.TryGetProperty("reactionTransition", out _));
         Assert.True(legalCandidateProperties.TryGetProperty("pendingAction", out _));
+        Assert.Equal("#/components/schemas/ResolvedCardCost",
+            legalCandidateProperties.GetProperty("costs").GetProperty("items").GetProperty("$ref").GetString());
         var applicationProperties = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("EffectApplicationRecord").GetProperty("properties");
         Assert.True(applicationProperties.TryGetProperty("removedModifierInstanceIds", out _));

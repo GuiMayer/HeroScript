@@ -26,12 +26,19 @@ public sealed record LegalActionCandidate
     private ImmutableArray<CalculationResult> _calculations = [];
     private ImmutableArray<EffectExecutionStep> _steps = [];
     private ImmutableArray<PhaseTransitionRecord> _phaseTransitions = [];
+    private ImmutableArray<ResolvedCardCost> _costs = [];
 
     public string CandidateId { get; init; } = string.Empty;
     public LegalActionSource Source { get; init; }
     public CombatActionCommand Command { get; init; } = new();
     public string? ActionId { get; init; }
     public string? CardDefinitionId { get; init; }
+    /// <summary>Resolved configured costs for this exact legal choice, not a client estimate.</summary>
+    public IReadOnlyList<ResolvedCardCost> Costs
+    {
+        get => _costs;
+        init => _costs = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<EffectApplicationRecord> Applications
     {
         get => _applications;
@@ -514,6 +521,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             ActionId = resolved.ActionId,
             CardDefinitionId = resolved.CardDefinitionId,
             Applications = costResult.Value.Records,
+            Costs = evaluation.Costs,
             Steps = costResult.Value.Steps,
             Calculations = costResult.Value.Calculations,
             ResolutionFingerprint = fingerprint,
@@ -931,6 +939,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             Source = LegalActionSource.Card,
             Command = normalized,
             CardDefinitionId = result.Card.DefinitionId,
+            Costs = result.Evaluation.Costs,
             Applications = result.Applications,
             Calculations = result.Calculations,
             Steps = result.Steps,
@@ -957,6 +966,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             Source = LegalActionSource.Ability,
             Command = normalized,
             ActionId = result.Definition.ActionId,
+            Costs = result.Evaluation.Costs,
             Applications = result.Applications,
             Calculations = result.Calculations,
             Steps = result.Steps,

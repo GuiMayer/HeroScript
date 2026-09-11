@@ -69,7 +69,8 @@ public sealed class LegalActionResolverTests
             Definition = new ActionDefinition { ActionId = "slash", ActionType = ActionType.POWER },
             Evaluation = new CardPlayEvaluation
             {
-                IsLegal = true, ActorId = "enemy", ResolvedTargetIds = ["hero"]
+                IsLegal = true, ActorId = "enemy", ResolvedTargetIds = ["hero"],
+                Costs = [new ResolvedCardCost { ComponentId = "cost", ResourceId = "mana", Amount = 1.5f, Affordable = true }]
             },
             ResolutionFingerprint = "canonical-preview"
         };
@@ -94,6 +95,8 @@ public sealed class LegalActionResolverTests
         Assert.NotEqual("canonical-preview", first.Value.Candidate.ResolutionFingerprint);
         Assert.Equal(first.Value.Candidate.ResolutionFingerprint, second.Value.Candidate!.ResolutionFingerprint);
         Assert.Same(preview, first.Value.Candidate.Ability);
+        Assert.Equal(preview.Evaluation.Costs, first.Value.Candidate.Costs);
+        Assert.Equal(1.5f, Assert.Single(first.Value.Candidate.Costs).Amount);
         Assert.Same(successor, first.Value.Candidate.SuccessorCombat);
     }
 
