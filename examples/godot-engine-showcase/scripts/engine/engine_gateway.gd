@@ -84,3 +84,7 @@ func _uuid() -> String:
 	bytes[8] = (bytes[8] & 0x3f) | 0x80
 	var hex := bytes.hex_encode()
 	return "%s-%s-%s-%s-%s" % [hex.substr(0, 8), hex.substr(8, 4), hex.substr(12, 4), hex.substr(16, 4), hex.substr(20, 12)]
+
+func inspect_hand(combat_id: String, actor_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/combats/%s/cards/evaluations?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()])

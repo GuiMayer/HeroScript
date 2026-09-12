@@ -184,5 +184,18 @@
   "Attack an enemy. See the preview for current values.": "Ataque um inimigo. Consulte os valores na prévia.",
   "Protect yourself. See the preview for current values.": "Proteja-se. Consulte os valores na prévia.",
   "Attack and apply Burning. See the preview.": "Ataque e aplique queimadura. Consulte a prévia.",
-  "Restore your resources. See the preview.": "Restaure seus recursos. Consulte a prévia."
+  "Restore your resources. See the preview.": "Restaure seus recursos. Consulte a prévia.",
+  "%s legal choices — select a target": "%s escolhas legais — selecione um alvo",
+  "Detailed inspection is unavailable.": "A inspeção detalhada não está disponível.",
+  "Upgrades: %s": "Melhorias: %s",
+  "Show engine details": "Mostrar detalhes da engine",
+  "INSPECT CARD": "INSPECIONAR CARTA",
+  "Card inspection": "Inspeção de carta",
+  "Draw pile": "Pilha de compra",
+  "Discard pile": "Pilha de descarte",
+  "Exile": "Exílio",
+  "Empty": "Vazio",
+  "More effects in inspection": "Mais efeitos na inspeção",
+  "Outcome uncertain": "Resultado incerto",
+  "See inspection for details": "Veja os detalhes na inspeção"
 }

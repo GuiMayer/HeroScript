@@ -62,6 +62,13 @@ func _run() -> void:
 		finish()
 		return
 	var card_id := str(candidate.command.cardInstanceId)
+	check(screen.target_buttons.size() == GameSession.combat.get("actors", []).size(), "every participant is represented on the battlefield")
+	var inspection := await GameSession.inspect_hand()
+	check(inspection.ok and not inspection.data.get("cards", []).is_empty(), "bulk card inspection is exposed by the engine")
+	if inspection.ok:
+		screen.presenter.accept_evaluations(inspection.data.get("cards", []))
+		check(not screen.presenter.inspection_data(card_id).is_empty(), "version-matched evaluation reaches the presenter")
+	check(screen.presenter.pile_cards("drawPileInstanceIds").size() == GameSession.run.deck.drawPileInstanceIds.size(), "pile inspector uses canonical instance identities")
 	check(candidate.has("costs"), "costs come from the canonical legal action")
 	screen._choose_card(card_id)
 	check(screen.selected_card == card_id and router.host.get_child(0) == screen, "selection keeps the current combat screen")

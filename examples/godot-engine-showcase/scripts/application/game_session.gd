@@ -261,17 +261,6 @@ static func _input_actor_id(snapshot: Dictionary) -> String:
 		return str(activation.get("activeActorId", snapshot.get("activeActorId", "")))
 	return str(snapshot.get("activeActorId", ""))
 
-func player_actor() -> Dictionary:
-	for actor in combat.get("actors", []):
-		var binding = actor.get("controllerBinding", {})
-		if str(binding.get("kind", "")) == "Player":
-			return actor
-	return {}
-
-func opponents() -> Array:
-	var player := player_actor()
-	var player_side := str(player.get("sideId", "player"))
-	return combat.get("actors", []).filter(func(actor): return str(actor.get("sideId", "")) != player_side)
 
 func command(type: String) -> Dictionary:
 	for candidate in available_commands:
@@ -313,3 +302,6 @@ func activity_choices() -> Array:
 
 func submit_activity(choice: Dictionary) -> bool:
 	return await execute_run_command(str(choice.get("type", "")), choice.get("payload", {}))
+
+func inspect_hand() -> Dictionary:
+	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id())

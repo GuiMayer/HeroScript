@@ -1,19 +1,68 @@
 {
-  "resource_order": ["health", "block", "energy", "mana"],
+  "resource_order": [
+    "health",
+    "block",
+    "energy",
+    "mana"
+  ],
   "cards": {
-    "basic_attack": { "name": "Strike", "text": "Attack an enemy. See the preview for current values.", "tone": "attack" },
-    "defend": { "name": "Defend", "text": "Protect yourself. See the preview for current values.", "tone": "skill" },
-    "fireball": { "name": "Fire Orb", "text": "Attack and apply Burning. See the preview.", "tone": "power" },
-    "heal": { "name": "Vital Spark", "text": "Restore your resources. See the preview.", "tone": "skill" }
+    "basic_attack": {
+      "name": "Strike",
+      "text": "Attack an enemy. See the preview for current values.",
+      "tone": "attack"
+    },
+    "defend": {
+      "name": "Defend",
+      "text": "Protect yourself. See the preview for current values.",
+      "tone": "skill"
+    },
+    "fireball": {
+      "name": "Fire Orb",
+      "text": "Attack and apply Burning. See the preview.",
+      "tone": "power"
+    },
+    "heal": {
+      "name": "Vital Spark",
+      "text": "Restore your resources. See the preview.",
+      "tone": "skill"
+    }
   },
   "nodes": {
-    "embers": { "name": "Ash Clearing", "icon": "⚔", "hint": "Encounter" },
-    "relic": { "name": "Ember Core", "icon": "⬢", "hint": "Relic" },
-    "reward": { "name": "Lost Memory", "icon": "✦", "hint": "Choose a card" },
-    "merchant": { "name": "Wandering Merchant", "icon": "◆", "hint": "Shop" },
-    "camp": { "name": "Campfire", "icon": "♨", "hint": "Preparation" },
-    "forge": { "name": "Ancient Forge", "icon": "⬆", "hint": "Upgrade" },
-    "summit": { "name": "Obsidian Sentinel", "icon": "♛", "hint": "Boss" }
+    "embers": {
+      "name": "Ash Clearing",
+      "icon": "⚔",
+      "hint": "Encounter"
+    },
+    "relic": {
+      "name": "Ember Core",
+      "icon": "⬢",
+      "hint": "Relic"
+    },
+    "reward": {
+      "name": "Lost Memory",
+      "icon": "✦",
+      "hint": "Choose a card"
+    },
+    "merchant": {
+      "name": "Wandering Merchant",
+      "icon": "◆",
+      "hint": "Shop"
+    },
+    "camp": {
+      "name": "Campfire",
+      "icon": "♨",
+      "hint": "Preparation"
+    },
+    "forge": {
+      "name": "Ancient Forge",
+      "icon": "⬆",
+      "hint": "Upgrade"
+    },
+    "summit": {
+      "name": "Obsidian Sentinel",
+      "icon": "♛",
+      "hint": "Boss"
+    }
   },
   "sandbox_modes": [
     {
@@ -38,33 +87,79 @@
         "instanceId": "player",
         "entityDefinitionId": "spire_adept",
         "sideId": "player",
-        "controllerBinding": { "kind": "Player" }
+        "controllerBinding": {
+          "kind": "Player"
+        }
       },
       {
         "instanceId": "opponent",
         "entityDefinitionId": "spire_sentinel",
         "sideId": "opposition",
-        "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+        "controllerBinding": {
+          "kind": "AI",
+          "policyId": "gambit"
+        }
       }
     ],
     "deck": [
-      { "definitionId": "basic_attack" },
-      { "definitionId": "basic_attack" },
-      { "definitionId": "basic_attack" },
-      { "definitionId": "basic_attack" },
-      { "definitionId": "defend" },
-      { "definitionId": "defend" },
-      { "definitionId": "defend" },
-      { "definitionId": "fireball" },
-      { "definitionId": "fireball" },
-      { "definitionId": "heal" }
+      {
+        "definitionId": "basic_attack"
+      },
+      {
+        "definitionId": "basic_attack"
+      },
+      {
+        "definitionId": "basic_attack"
+      },
+      {
+        "definitionId": "basic_attack"
+      },
+      {
+        "definitionId": "defend"
+      },
+      {
+        "definitionId": "defend"
+      },
+      {
+        "definitionId": "defend"
+      },
+      {
+        "definitionId": "fireball"
+      },
+      {
+        "definitionId": "fireball"
+      },
+      {
+        "definitionId": "heal"
+      }
     ],
     "initialState": {
       "resourcesByActor": {
-        "player": { "health": 72, "energy": 3, "mana": 4 },
-        "opponent": { "health": 52, "mana": 6 }
+        "player": {
+          "health": 72,
+          "energy": 3,
+          "mana": 4
+        },
+        "opponent": {
+          "health": 52,
+          "mana": 6
+        }
       },
       "effects": []
+    }
+  },
+  "resources": {
+    "health": {
+      "display": "bar"
+    },
+    "block": {
+      "display": "counter"
+    },
+    "energy": {
+      "display": "counter"
+    },
+    "mana": {
+      "display": "counter"
     }
   }
 }

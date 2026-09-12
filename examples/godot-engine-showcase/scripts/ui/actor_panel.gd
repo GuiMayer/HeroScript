@@ -6,16 +6,19 @@ var target_button: Button
 
 func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: String) -> void:
 	var content := VBoxContainer.new()
-	content.custom_minimum_size = Vector2(300 if not hostile else 280, 285)
-	content.add_theme_constant_override("separation", 7)
+	content.custom_minimum_size = Vector2(290, 240)
+	content.add_theme_constant_override("separation", 4)
 	var name := Label.new()
 	name.text = I18n.content_name(str(actor.get("definitionId", "")), str(actor.get("name", ""))).to_upper()
 	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name.add_theme_font_size_override("font_size", 19)
 	name.add_theme_color_override("font_color", AppTheme.BLOOD if hostile else AppTheme.TEAL)
 	content.add_child(name)
+	var side := AppTheme.muted(str(actor.get("sideId", "")) + " • " + str(actor.get("controllerBinding", {}).get("kind", "")), 12)
+	side.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(side)
 	var portrait := ActorPortrait.new()
-	portrait.custom_minimum_size = Vector2(260, 112)
+	portrait.custom_minimum_size = Vector2(260, 64)
 	portrait.configure(hostile, str(actor.get("definitionId", "")).contains("sentinel"))
 	portrait_view = portrait
 	content.add_child(portrait)
@@ -27,7 +30,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	for resource_id in ordered:
 		if resources.has(resource_id):
 			var resource := preload("res://scripts/ui/resource_view.gd").new()
-			resource.setup(resource_id, resources[resource_id])
+			resource.setup(resource_id, resources[resource_id], presentation.get("resources", {}).get(resource_id, {}))
 			content.add_child(resource)
 	var statuses: Array = actor.get("statuses", [])
 	if not statuses.is_empty():
@@ -37,9 +40,11 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		status.add_theme_color_override("font_color", AppTheme.EMBER)
 		content.add_child(status)
-	if hostile:
+	if not intent.is_empty():
 		var intent_label := Label.new()
 		intent_label.text = I18n.text("INTENT  •  %s") % intent
+		intent_label.add_theme_font_size_override("font_size", 14)
+		intent_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		intent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		intent_label.add_theme_color_override("font_color", AppTheme.GOLD)
 		content.add_child(intent_label)

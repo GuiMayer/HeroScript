@@ -15,4 +15,12 @@
 - `ActorPanel` and `ResourceView` are passive components with semantic selection signals, ready for reuse in historical inspection.
 - Offline tests cover snapshot isolation, indexed choice isolation and presentation input states; UI smoke exercises the composed screen.
 
-Next: canonical feedback and inspection, input/accessibility, historical combat and branch navigation.
+## Stage 3 — canonical feedback and inspection
+
+- Cards display actual projected resource changes and uncertainty. The detailed inspector lists legal choices, upgrades and permitted context sources; raw diagnostics are optional.
+- Bulk card evaluations are fetched separately from the critical input path and accepted only for the displayed sequence. Unavailable cards remain inspectable, showing engine reasons, without guessing affordability or targeting.
+- Intent previews and receipt feedback use canonical applications. Every participant is visible; directed relationship metadata only affects styling, never targeting legality.
+- Pile inspection lists canonical cards in alphabetical order, not hidden draw order. JSON presentation settings choose resource bars versus counters without changing resource rules.
+- Live UI regression tests cover bulk evaluations, instance identities and actor coverage. Combat was also rendered and visually checked.
+
+Next: input/accessibility, historical combat and branch navigation.

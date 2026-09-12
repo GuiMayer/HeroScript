@@ -184,5 +184,18 @@
   "Attack an enemy. See the preview for current values.": "Attack an enemy. See the preview for current values.",
   "Protect yourself. See the preview for current values.": "Protect yourself. See the preview for current values.",
   "Attack and apply Burning. See the preview.": "Attack and apply Burning. See the preview.",
-  "Restore your resources. See the preview.": "Restore your resources. See the preview."
+  "Restore your resources. See the preview.": "Restore your resources. See the preview.",
+  "%s legal choices — select a target": "%s legal choices — select a target",
+  "Detailed inspection is unavailable.": "Detailed inspection is unavailable.",
+  "Upgrades: %s": "Upgrades: %s",
+  "Show engine details": "Show engine details",
+  "INSPECT CARD": "INSPECT CARD",
+  "Card inspection": "Card inspection",
+  "Draw pile": "Draw pile",
+  "Discard pile": "Discard pile",
+  "Exile": "Exile",
+  "Empty": "Empty",
+  "More effects in inspection": "More effects in inspection",
+  "Outcome uncertain": "Outcome uncertain",
+  "See inspection for details": "See inspection for details"
 }
