@@ -266,7 +266,8 @@ builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
 builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
-builder.Services.AddSingleton<ICalculationEngine, CalculationEngine>();
+builder.Services.AddSingleton<ICalculationEngine>(sp =>
+    new CalculationEngine(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<IImmutableEffectProcessor, ImmutableEffectProcessor>();
 builder.Services.AddSingleton<ICombatResourceLifecycle, CombatResourceLifecycle>();
 builder.Services.AddSingleton<IEffectTriggerExecutor>(sp => new EffectTriggerExecutor(
@@ -430,6 +431,7 @@ builder.Services.AddSingleton<ICardPlayEvaluator, CardPlayEvaluator>();
 builder.Services.AddSingleton<CardComponentInfluenceProvider>(sp =>
     new CardComponentInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<EntityResourceInfluenceProvider>();
+builder.Services.AddSingleton<EntityStatInfluenceProvider>();
 builder.Services.AddSingleton<RunModifierInfluenceProvider>(sp =>
     new RunModifierInfluenceProvider(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));
 builder.Services.AddSingleton<StatusCalculationInfluenceProvider>(sp =>
@@ -445,6 +447,7 @@ builder.Services.AddSingleton<ICalculationInfluenceProvider>(sp =>
     [
         sp.GetRequiredService<CardComponentInfluenceProvider>(),
         sp.GetRequiredService<EntityResourceInfluenceProvider>(),
+        sp.GetRequiredService<EntityStatInfluenceProvider>(),
         sp.GetRequiredService<RunModifierInfluenceProvider>(),
         sp.GetRequiredService<StatusCalculationInfluenceProvider>(),
         sp.GetRequiredService<RelicCalculationInfluenceProvider>(),

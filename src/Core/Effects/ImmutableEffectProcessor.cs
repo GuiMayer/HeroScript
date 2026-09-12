@@ -37,6 +37,7 @@ public sealed record EffectProvenance
 public sealed record ResolvedEffectCommand
 {
     private ImmutableArray<string> _targetEntityIds = [];
+    private ImmutableArray<ResolvedCalculationSettlement> _settlements = [];
 
     public string EffectInstanceId { get; init; } = string.Empty;
     public EffectDefinition Definition { get; init; } = new();
@@ -47,6 +48,12 @@ public sealed record ResolvedEffectCommand
         init => _targetEntityIds = value?.ToImmutableArray() ?? [];
     }
     public float ResolvedValue { get; init; }
+    public CalculationResult? Calculation { get; init; }
+    public IReadOnlyList<ResolvedCalculationSettlement> Settlements
+    {
+        get => _settlements;
+        init => _settlements = value?.ToImmutableArray() ?? [];
+    }
     public StatusEffectDefinition? StatusDefinition { get; init; }
     public string? ContentRevision { get; init; }
     public EffectProvenance Provenance { get; init; } = new();
@@ -70,6 +77,9 @@ public sealed record EffectApplicationRecord
     public string? ModifierId { get; init; }
     public ImmutableArray<Guid> RemovedModifierInstanceIds { get; init; } = [];
     public ImmutableArray<ModifierStackApplicationRecord> ModifierStackChanges { get; init; } = [];
+    public string? CalculationId { get; init; }
+    public string? CalculationFingerprint { get; init; }
+    public string? CalculationInfluenceId { get; init; }
     public EffectProvenance Provenance { get; init; } = new();
 }
 
@@ -136,6 +146,14 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             var validation = Validate(effect);
             if (validation.IsFailure)
                 return Result<EffectBatchResult>.Failure(validation.Error);
+            foreach (var settlement in effect.Settlements)
+            {
+                var appliedSettlement = ApplySettlement(current, effect, settlement);
+                if (appliedSettlement.IsFailure)
+                    return Result<EffectBatchResult>.Failure(appliedSettlement.Error);
+                current = appliedSettlement.Value.State;
+                records.Add(appliedSettlement.Value.Record);
+            }
             foreach (var targetId in effect.TargetEntityIds)
             {
                 var applied = ApplyToTarget(current, effect, targetId);
@@ -176,7 +194,60 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             return Result.Failure($"Effect {effect.EffectInstanceId} requires targetResource");
         if (effect.Definition.Type == EffectType.APPLY_STATUS && effect.StatusDefinition == null)
             return Result.Failure($"Effect {effect.EffectInstanceId} requires a pinned status definition");
+        if (effect.Settlements.Count > 0 && effect.TargetEntityIds.Count != 1)
+            return Result.Failure($"Effect {effect.EffectInstanceId} settlements require exactly one resolved target");
+        if (effect.Settlements.Any(item => string.IsNullOrWhiteSpace(item.SettlementId) ||
+                string.IsNullOrWhiteSpace(item.InfluenceId) || string.IsNullOrWhiteSpace(item.EntityId) ||
+                string.IsNullOrWhiteSpace(item.ResourceId) || !float.IsFinite(item.Value) || item.Value < 0 ||
+                !Enum.IsDefined(item.Field) || !Enum.IsDefined(item.Operation)))
+            return Result.Failure($"Effect {effect.EffectInstanceId} contains an invalid calculation settlement");
         return Result.Success();
+    }
+
+    private Result<EffectTargetApplication> ApplySettlement(
+        CombatState state,
+        ResolvedEffectCommand effect,
+        ResolvedCalculationSettlement settlement)
+    {
+        var target = state.GetActor(settlement.EntityId);
+        if (target == null)
+            return Result<EffectTargetApplication>.Failure(
+                $"Settlement entity not found: {settlement.EntityId}");
+        var mutationOperation = settlement.Operation switch
+        {
+            ResourceEffectOperation.ADD => ResourceMutationOperation.Add,
+            ResourceEffectOperation.SUBTRACT => ResourceMutationOperation.Subtract,
+            ResourceEffectOperation.SET => ResourceMutationOperation.Set,
+            _ => throw new InvalidOperationException($"Unsupported settlement operation: {settlement.Operation}")
+        };
+        var reduced = target.ResourceState.Apply([new ResolvedResourceMutation
+        {
+            MutationId = settlement.SettlementId,
+            ResourceId = settlement.ResourceId,
+            Field = settlement.Field,
+            Operation = mutationOperation,
+            Value = settlement.Value
+        }], _resources);
+        if (reduced.IsFailure)
+            return Result<EffectTargetApplication>.Failure(reduced.Error);
+        var record = reduced.Value.Records[0];
+        return Result<EffectTargetApplication>.Success(new(
+            state.ReplaceActor(target.WithResourceState(reduced.Value.State)),
+            new EffectApplicationRecord
+            {
+                EffectInstanceId = effect.EffectInstanceId,
+                EffectType = effect.Definition.Type,
+                TargetEntityId = target.InstanceId,
+                ResourceId = settlement.ResourceId,
+                ResourceField = record.Field,
+                ResourceOperation = record.Operation,
+                PreviousValue = record.PreviousValue,
+                CurrentValue = record.CurrentValue,
+                CalculationId = effect.Calculation?.CalculationId,
+                CalculationFingerprint = effect.Calculation?.Fingerprint,
+                CalculationInfluenceId = settlement.InfluenceId,
+                Provenance = effect.Provenance
+            }));
     }
 
     private Result<EffectTargetApplication> ApplyToTarget(
@@ -264,6 +335,8 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 ResourceOperation = reduced.Value.Records[0].Operation,
                 PreviousValue = reduced.Value.Records[0].PreviousValue,
                 CurrentValue = reduced.Value.Records[0].CurrentValue,
+                CalculationId = effect.Calculation?.CalculationId,
+                CalculationFingerprint = effect.Calculation?.Fingerprint,
                 Provenance = effect.Provenance
             }));
     }

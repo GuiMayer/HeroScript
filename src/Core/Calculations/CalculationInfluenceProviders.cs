@@ -4,6 +4,7 @@ using Core.Math;
 using Core.Run.Content;
 using Core.Run;
 using Core.Combat.Modifiers;
+using Core.Combat.Models;
 using Core.StatusEffects;
 using Core.Resources;
 
@@ -66,6 +67,8 @@ public sealed class CardComponentInfluenceProvider : ICalculationInfluenceProvid
         var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
         foreach (var component in context.Card.All<CardInfluenceComponentDefinition>())
         {
+            if (!component.RequiredTags.All(context.Tags.Contains) || component.ExcludedTags.Any(context.Tags.Contains))
+                continue;
             if (component.Value.HasValue == !string.IsNullOrWhiteSpace(component.Formula))
             {
                 return Result<IReadOnlyList<CalculationInfluence>>.Failure(
@@ -97,7 +100,8 @@ public sealed class CardComponentInfluenceProvider : ICalculationInfluenceProvid
                 Channel = component.Channel,
                 Bucket = component.Bucket,
                 Value = value.Value,
-                Priority = component.Priority
+                Priority = component.Priority,
+                OrderKey = component.ComponentId
             });
         }
         return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());
@@ -182,7 +186,54 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
                 Channel = binding.Channel,
                 Bucket = binding.Bucket,
                 Value = sourceValue * binding.Scale + binding.Offset,
-                Priority = binding.Priority
+                Priority = binding.Priority,
+                OrderKey = binding.BindingId
+            });
+        }
+        return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());
+    }
+}
+
+/// <summary>
+/// Projects explicitly bound numeric stat component values. Stat IDs have no
+/// implicit gameplay meaning; a pinned pipeline opts into every value it uses.
+/// </summary>
+public sealed class EntityStatInfluenceProvider : ICalculationInfluenceProvider
+{
+    public string ProviderId => "entity-stats";
+
+    public Result<IReadOnlyList<CalculationInfluence>> Collect(CalculationSourceContext context)
+    {
+        var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
+        foreach (var binding in (context.Pipeline?.StatInfluenceBindings ?? [])
+                     .OrderBy(item => item.BindingId, StringComparer.Ordinal))
+        {
+            if (!binding.RequiredTags.All(context.Tags.Contains) || binding.ExcludedTags.Any(context.Tags.Contains))
+                continue;
+            var entity = binding.Scope == CalculationEntityScope.Actor ? context.Actor : context.Target;
+            if (entity == null)
+                return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                    $"Stat binding {binding.BindingId} has no scoped entity");
+            var component = entity.Component<StatEntityComponentState>(binding.ComponentId);
+            var raw = 0f;
+            var found = component?.Values.TryGetValue(binding.ValueId, out raw) == true;
+            if (!found && binding.MissingValue == MissingResourcePolicy.Error)
+                return Result<IReadOnlyList<CalculationInfluence>>.Failure(
+                    $"Stat binding {binding.BindingId}: missing value {binding.ComponentId}.{binding.ValueId}");
+            if (!found && binding.MissingValue == MissingResourcePolicy.Ignore)
+                continue;
+            result.Add(new CalculationInfluence
+            {
+                InfluenceId = binding.BindingId,
+                SourceKind = binding.Scope == CalculationEntityScope.Actor
+                    ? CalculationSourceKind.Actor
+                    : CalculationSourceKind.Target,
+                SourceId = $"{entity.InstanceId}:{binding.ComponentId}:{binding.ValueId}",
+                Channel = binding.Channel,
+                Bucket = binding.Bucket,
+                Value = (found ? raw : 0) * binding.Scale + binding.Offset,
+                Priority = binding.Priority,
+                OrderKey = binding.BindingId
             });
         }
         return Result<IReadOnlyList<CalculationInfluence>>.Success(result.ToImmutable());

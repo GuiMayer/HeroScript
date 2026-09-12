@@ -67,11 +67,24 @@ public sealed record CardTriggerComponentDefinition : CardComponentDefinition
 
 public sealed record CardInfluenceComponentDefinition : CardComponentDefinition
 {
+    private ImmutableArray<string> _requiredTags = [];
+    private ImmutableArray<string> _excludedTags = [];
+
     public string Channel { get; init; } = string.Empty;
     public string Bucket { get; init; } = string.Empty;
     public float? Value { get; init; }
     public string? Formula { get; init; }
     public int Priority { get; init; }
+    public IReadOnlyList<string> RequiredTags
+    {
+        get => _requiredTags;
+        init => _requiredTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<string> ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record CardComponentBundleDefinition

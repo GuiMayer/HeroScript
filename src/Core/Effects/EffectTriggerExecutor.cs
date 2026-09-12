@@ -58,19 +58,22 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly ICalculationEngine? _calculations;
     private readonly ICalculationInfluenceProvider? _influences;
+    private readonly ICalculationSettlementPlanner _settlements;
 
     public EffectTriggerExecutor(
         IRuntimeFormulaEvaluator formulas,
         IImmutableEffectProcessor effects,
         IContentRuntimeResolver? contentRuntimes = null,
         ICalculationEngine? calculations = null,
-        ICalculationInfluenceProvider? influences = null)
+        ICalculationInfluenceProvider? influences = null,
+        ICalculationSettlementPlanner? settlements = null)
     {
         _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
         _contentRuntimes = contentRuntimes;
         _calculations = calculations;
         _influences = influences;
+        _settlements = settlements ?? new CalculationSettlementPlanner();
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
@@ -178,7 +181,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         var command = new ResolvedEffectCommand
                         {
                             EffectInstanceId = id, Definition = effect, SourceEntityId = request.SourceEntityId,
-                            TargetEntityIds = [targetId], ResolvedValue = value.Value.Value, StatusDefinition = status.Value,
+                            TargetEntityIds = [targetId], ResolvedValue = value.Value.Value,
+                            Calculation = value.Value.Calculation, Settlements = value.Value.Settlements,
+                            StatusDefinition = status.Value,
                             ContentRevision = request.ContentRevision,
                             Provenance = request.Provenance with { ComponentId = activeTriggerId }
                         };
@@ -258,18 +263,25 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         EffectTriggerExecutionRequest request, EffectDefinition effect, string targetId,
         Dictionary<string, float> variables, string calculationSuffix, string componentId)
     {
+        var context = new CalculationSourceContext
+        {
+            ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
+            ComponentId = componentId,
+            Actor = request.Combat.GetActor(request.SourceEntityId) ?? request.Combat.GetActor(request.OwnerEntityId),
+            Target = request.Combat.GetActor(targetId), Variables = variables,
+            Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
+        };
         var resolved = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences)
-            .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}",
-                new CalculationSourceContext
-                {
-                    ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
-                    ComponentId = componentId,
-                    Actor = request.Combat.GetActor(request.SourceEntityId) ?? request.Combat.GetActor(request.OwnerEntityId),
-                    Target = request.Combat.GetActor(targetId), Variables = variables,
-                    Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
-                });
-        return resolved.IsFailure ? Result<ResolvedAmount>.Failure(resolved.Error)
-            : Result<ResolvedAmount>.Success(new(resolved.Value.Value, resolved.Value.Calculation));
+            .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}", context);
+        if (resolved.IsFailure) return Result<ResolvedAmount>.Failure(resolved.Error);
+        if (resolved.Value.Calculation == null || resolved.Value.Pipeline == null)
+            return Result<ResolvedAmount>.Success(new(resolved.Value.Value, null, []));
+        var planned = _settlements.Plan(resolved.Value.Calculation, resolved.Value.Pipeline,
+            context with { Tags = CalculationResolver.NormalizeTags(effect, context.Tags), Pipeline = resolved.Value.Pipeline });
+        return planned.IsFailure
+            ? Result<ResolvedAmount>.Failure(planned.Error)
+            : Result<ResolvedAmount>.Success(new(resolved.Value.Value, resolved.Value.Calculation,
+                planned.Value.ToImmutableArray()));
     }
 
     private Result<bool> EvaluateCondition(
@@ -377,5 +389,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         IReadOnlyList<string> TargetIds,
         DeterministicContext Context);
 
-    private sealed record ResolvedAmount(float Value, CalculationResult? Calculation);
+    private sealed record ResolvedAmount(
+        float Value,
+        CalculationResult? Calculation,
+        ImmutableArray<ResolvedCalculationSettlement> Settlements);
 }

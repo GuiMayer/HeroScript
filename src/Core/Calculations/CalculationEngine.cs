@@ -162,6 +162,29 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
                 (!Enum.IsDefined(binding.Settlement.Operation) || !Enum.IsDefined(binding.Settlement.Field)))
                 return Result.Failure($"Resource influence binding {binding.BindingId} has an invalid settlement");
         }
+        var duplicateStatBinding = pipeline.StatInfluenceBindings
+            .Where(binding => !string.IsNullOrWhiteSpace(binding.BindingId))
+            .GroupBy(binding => binding.BindingId, StringComparer.Ordinal)
+            .FirstOrDefault(group => group.Count() > 1);
+        if (duplicateStatBinding != null)
+            return Result.Failure($"Pipeline {pipeline.PipelineId} contains duplicate stat influence binding {duplicateStatBinding.Key}");
+        foreach (var binding in pipeline.StatInfluenceBindings)
+        {
+            if (string.IsNullOrWhiteSpace(binding.BindingId) || string.IsNullOrWhiteSpace(binding.ComponentId) ||
+                string.IsNullOrWhiteSpace(binding.ValueId) || string.IsNullOrWhiteSpace(binding.Channel) ||
+                string.IsNullOrWhiteSpace(binding.Bucket))
+                return Result.Failure($"Pipeline {pipeline.PipelineId} contains an incomplete stat influence binding");
+            if (!Enum.IsDefined(binding.Scope) || !Enum.IsDefined(binding.MissingValue))
+                return Result.Failure($"Stat influence binding {binding.BindingId} has an invalid scope or missing-value policy");
+            if (!string.Equals(binding.Channel, pipeline.Channel, StringComparison.Ordinal))
+                return Result.Failure($"Stat influence binding {binding.BindingId} targets another channel");
+            if (!buckets.Contains(binding.Bucket))
+                return Result.Failure($"Stat influence binding {binding.BindingId} targets unknown bucket {binding.Bucket}");
+            if (!IsFinite(binding.Scale) || !IsFinite(binding.Offset))
+                return Result.Failure($"Stat influence binding {binding.BindingId} must be finite");
+            if (binding.RequiredTags.Any(string.IsNullOrWhiteSpace) || binding.ExcludedTags.Any(string.IsNullOrWhiteSpace))
+                return Result.Failure($"Stat influence binding {binding.BindingId} contains an empty tag");
+        }
         return Result.Success();
     }
 

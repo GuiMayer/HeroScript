@@ -130,7 +130,8 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 case CardConditionComponentDefinition condition: Formula(address, condition.Expression, required: true); break;
                 case CardInfluenceComponentDefinition influence:
                     Influences(address, [new() { InfluenceId = influence.ComponentId, Channel = influence.Channel,
-                        Bucket = influence.Bucket, Formula = influence.Formula, Value = influence.Value }]);
+                        Bucket = influence.Bucket, Formula = influence.Formula, Value = influence.Value,
+                        RequiredTags = influence.RequiredTags, ExcludedTags = influence.ExcludedTags }]);
                     break;
                 case CardTriggerComponentDefinition:
                     Error(address, "card trigger components have no executable lifecycle yet");

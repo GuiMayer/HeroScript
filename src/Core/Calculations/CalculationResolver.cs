@@ -9,7 +9,10 @@ using Core.Run.Content;
 
 namespace Core.Calculations;
 
-public sealed record ResolvedEffectAmount(float Value, CalculationResult? Calculation);
+public sealed record ResolvedEffectAmount(
+    float Value,
+    CalculationResult? Calculation,
+    CalculationPipelineDefinition? Pipeline = null);
 
 public interface ICalculationResolver
 {
@@ -28,12 +31,14 @@ public sealed class CalculationResolver(
         if (effect.Type is not (EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE))
             return Result<ResolvedEffectAmount>.Success(new(0, null));
         var amount = effect.FlatValue ?? 0;
+        float? formulaAmount = null;
         if (!string.IsNullOrWhiteSpace(effect.FormulaValue))
         {
             var evaluated = GameplayFormulaContext.Evaluate(formulas, effect.FormulaValue,
                 context.ContentRevision, context.Variables);
             if (evaluated.IsFailure) return Result<ResolvedEffectAmount>.Failure(evaluated.Error);
-            amount += evaluated.Value;
+            formulaAmount = evaluated.Value;
+            amount += formulaAmount.Value;
         }
         if (!float.IsFinite(amount))
             return Result<ResolvedEffectAmount>.Failure("Effect amount must be finite");
@@ -49,40 +54,97 @@ public sealed class CalculationResolver(
         if (runtime.IsFailure) return Result<ResolvedEffectAmount>.Failure(runtime.Error);
         var pipeline = ResolvePipeline(effect, context.Run, runtime.Value);
         if (pipeline.IsFailure) return Result<ResolvedEffectAmount>.Failure(pipeline.Error);
-        var collected = influences.Collect(context with { Pipeline = pipeline.Value });
+        var tags = NormalizeTags(effect, context.Tags);
+        var calculationContext = context with { Pipeline = pipeline.Value, Tags = tags };
+        var collected = influences.Collect(calculationContext);
         if (collected.IsFailure) return Result<ResolvedEffectAmount>.Failure(collected.Error);
         var calculated = engine.Calculate(new CalculationRequest
         {
-            CalculationId = calculationId, Channel = effect.CalculationChannel, BaseValue = amount,
-            BaseTrace = BuildBaseTrace(effect, context),
+            CalculationId = calculationId, ContentRevision = context.ContentRevision,
+            Channel = effect.CalculationChannel, BaseValue = amount,
+            BaseTrace = BuildBaseTrace(effect, context, formulaAmount, amount),
             Influences = collected.Value.Where(item => item.Channel == effect.CalculationChannel).ToArray(),
-            Tags = context.Tags
+            Tags = tags,
+            Variables = context.Variables
         }, pipeline.Value);
         if (calculated.IsFailure) return Result<ResolvedEffectAmount>.Failure(calculated.Error);
         if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL pipelines must produce non-negative amounts");
-        return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value));
+        return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value, pipeline.Value));
     }
 
-    private static IReadOnlyList<CalculationBaseTrace> BuildBaseTrace(EffectDefinition effect, CalculationSourceContext context)
+    private static IReadOnlyList<CalculationBaseTrace> BuildBaseTrace(
+        EffectDefinition effect,
+        CalculationSourceContext context,
+        float? formulaAmount,
+        float amount)
     {
-        if (context.Card == null || string.IsNullOrWhiteSpace(context.ComponentId)) return [];
         var traces = new List<CalculationBaseTrace>();
-        var upgrades = context.Card.UpgradeTrace.Where(item => item.ComponentId == context.ComponentId &&
-            item.Attribute == CardEffectNumericAttribute.FlatValue.ToString()).ToArray();
-        var original = upgrades.FirstOrDefault()?.PreviousValue ?? effect.FlatValue;
-        traces.Add(new()
+        if (context.Card != null && !string.IsNullOrWhiteSpace(context.ComponentId))
         {
-            SourceKind = CalculationSourceKind.Card, SourceId = context.Card.DefinitionId,
-            ComponentId = context.ComponentId, Attribute = "FlatValue", Operation = "Base", Output = original
-        });
-        traces.AddRange(upgrades.Select(item => new CalculationBaseTrace
+            var upgrades = context.Card.UpgradeTrace.Where(item => item.ComponentId == context.ComponentId &&
+                item.Attribute == CardEffectNumericAttribute.FlatValue.ToString()).ToArray();
+            var original = upgrades.FirstOrDefault()?.PreviousValue ?? effect.FlatValue;
+            traces.Add(new()
+            {
+                SourceKind = CalculationSourceKind.Card, SourceId = context.Card.DefinitionId,
+                ComponentId = context.ComponentId, Attribute = "FlatValue", Operation = "Base", Output = original
+            });
+            traces.AddRange(upgrades.Select(item => new CalculationBaseTrace
+            {
+                SourceKind = CalculationSourceKind.Upgrade, SourceId = item.UpgradeId,
+                ComponentId = item.ComponentId, Attribute = item.Attribute,
+                Operation = item.Operation?.ToString() ?? string.Empty,
+                Input = item.PreviousValue, Output = item.CurrentValue
+            }));
+        }
+        else if (effect.FlatValue.HasValue)
         {
-            SourceKind = CalculationSourceKind.Upgrade, SourceId = item.UpgradeId,
-            ComponentId = item.ComponentId, Attribute = item.Attribute, Operation = item.Operation?.ToString() ?? string.Empty,
-            Input = item.PreviousValue, Output = item.CurrentValue
-        }));
+            traces.Add(new()
+            {
+                SourceKind = CalculationSourceKind.Effect,
+                SourceId = effect.EffectId,
+                ComponentId = context.ComponentId ?? string.Empty,
+                Attribute = "FlatValue",
+                Operation = "Base",
+                Output = effect.FlatValue
+            });
+        }
+        if (formulaAmount.HasValue)
+        {
+            traces.Add(new()
+            {
+                SourceKind = CalculationSourceKind.Effect,
+                SourceId = effect.EffectId,
+                ComponentId = context.ComponentId ?? string.Empty,
+                Attribute = "FormulaValue",
+                Operation = "Add",
+                Input = amount - formulaAmount.Value,
+                Output = amount
+            });
+        }
         return traces;
+    }
+
+    public static IReadOnlySet<string> NormalizeTags(EffectDefinition effect, IReadOnlySet<string> supplied)
+    {
+        var tags = supplied.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal);
+        tags.Add(effect.Type switch
+        {
+            EffectType.DAMAGE => "effect.damage",
+            EffectType.HEAL => "effect.heal",
+            EffectType.MODIFY_RESOURCE => "effect.modify_resource",
+            _ => $"effect.{effect.Type.ToString().ToLowerInvariant()}"
+        });
+        var operation = effect.Type switch
+        {
+            EffectType.DAMAGE => ResourceEffectOperation.SUBTRACT,
+            EffectType.HEAL => ResourceEffectOperation.ADD,
+            _ => effect.Operation
+        };
+        tags.Add($"resource.{operation.ToString().ToLowerInvariant()}");
+        tags.Add($"resource.field.{effect.ResourceField.ToString().ToLowerInvariant()}");
+        return tags;
     }
 
     public static Result<CalculationPipelineDefinition> ResolvePipeline(EffectDefinition effect, RunState run, ContentRuntime runtime)

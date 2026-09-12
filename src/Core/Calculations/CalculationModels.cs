@@ -50,6 +50,7 @@ public enum MissingResourcePolicy { Ignore, Zero, Error }
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CalculationSourceKind
 {
+    Effect,
     Card,
     Actor,
     Target,
@@ -85,6 +86,7 @@ public sealed record CalculationPipelineDefinition
 {
     private ImmutableArray<CalculationBucketDefinition> _buckets = [];
     private ImmutableArray<ResourceInfluenceBindingDefinition> _resourceInfluenceBindings = [];
+    private ImmutableArray<StatInfluenceBindingDefinition> _statInfluenceBindings = [];
 
     public string PipelineId { get; init; } = string.Empty;
     public string Channel { get; init; } = string.Empty;
@@ -97,6 +99,11 @@ public sealed record CalculationPipelineDefinition
     {
         get => _resourceInfluenceBindings;
         init => _resourceInfluenceBindings = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<StatInfluenceBindingDefinition> StatInfluenceBindings
+    {
+        get => _statInfluenceBindings;
+        init => _statInfluenceBindings = value?.ToImmutableArray() ?? [];
     }
 }
 
@@ -316,6 +323,33 @@ public sealed record ResourceInfluenceSettlementDefinition
     public ResourceEffectOperation Operation { get; init; } = ResourceEffectOperation.SUBTRACT;
     public ResourceValueField Field { get; init; } = ResourceValueField.Current;
     public bool UseEffectiveValue { get; init; } = true;
+}
+
+public sealed record StatInfluenceBindingDefinition
+{
+    private ImmutableArray<string> _requiredTags = [];
+    private ImmutableArray<string> _excludedTags = [];
+
+    public MissingResourcePolicy MissingValue { get; init; } = MissingResourcePolicy.Ignore;
+    public string BindingId { get; init; } = string.Empty;
+    public CalculationEntityScope Scope { get; init; }
+    public string ComponentId { get; init; } = "stats";
+    public string ValueId { get; init; } = string.Empty;
+    public string Channel { get; init; } = string.Empty;
+    public string Bucket { get; init; } = string.Empty;
+    public float Scale { get; init; } = 1;
+    public float Offset { get; init; }
+    public int Priority { get; init; }
+    public IReadOnlyList<string> RequiredTags
+    {
+        get => _requiredTags;
+        init => _requiredTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<string> ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = value?.Distinct(StringComparer.Ordinal).ToImmutableArray() ?? [];
+    }
 }
 
 internal sealed record CalculationFingerprintPayload(

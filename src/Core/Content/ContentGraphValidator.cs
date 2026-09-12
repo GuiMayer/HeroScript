@@ -10,6 +10,7 @@ using Core.Calculations;
 using Core.Common;
 using Core.Effects;
 using Core.Entity.Definitions;
+using Core.Math;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
@@ -780,7 +781,6 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ContentRuntime runtime,
         ImmutableArray<string>.Builder errors)
     {
-        var engine = new CalculationEngine();
         foreach (var (id, definition) in runtime.GetDefinitions("calculation-pipelines"))
         {
             try
@@ -791,14 +791,20 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                     errors.Add($"calculation-pipelines/{id} is invalid");
                     continue;
                 }
-                var validation = engine.Calculate(new CalculationRequest
-                {
-                    CalculationId = $"validation:{id}",
-                    Channel = pipeline.Channel,
-                    BaseValue = 0
-                }, pipeline);
+                var validation = CalculationEngine.ValidateDefinition(pipeline);
                 if (validation.IsFailure)
                     errors.Add($"calculation-pipelines/{id}: {validation.Error}");
+                foreach (var bucket in pipeline.Buckets.Where(item => item.Operation == CalculationBucketOperation.Formula))
+                {
+                    var formula = RuntimeFormulaEvaluator.ValidateSyntax(
+                        bucket.Formula ?? string.Empty,
+                        token => token is "calculation.base" or "bucket.input" or
+                            "bucket.contributions.count" or "bucket.contributions.sum" or
+                            "bucket.contributions.minimum" or "bucket.contributions.maximum",
+                        formulaId => runtime.GetDefinitions("formulas").ContainsKey(formulaId));
+                    if (formula.IsFailure)
+                        errors.Add($"calculation-pipelines/{id}/buckets/{bucket.BucketId}: {formula.Error}");
+                }
                 foreach (var binding in pipeline.ResourceInfluenceBindings)
                 {
                     if (!string.IsNullOrWhiteSpace(binding.ResourceId))
