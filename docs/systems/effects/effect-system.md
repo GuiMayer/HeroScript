@@ -2,7 +2,7 @@
 
 **Status:** implementado no processador imutável canônico
 
-**Atualizado em:** 2026-09-05
+**Atualizado em:** 2026-09-12
 
 ## Objetivo
 
@@ -25,6 +25,7 @@ owner (carta/status/relíquia/regra)
   -> seleção determinística de alvos
   -> condição e chance determinísticas
   -> pipeline de cálculo da revisão fixada
+  -> resultado puro + settlements derivados do trace
   -> comando de efeito resolvido
   -> ImmutableEffectProcessor
   -> mutações atômicas de estado
@@ -134,8 +135,8 @@ da `thresholdPolicy` do recurso depois da transição.
 do efeito escolhe um canal; o modo habilita pipelines compatíveis e a revisão
 fixada fornece a ordem dos buckets.
 
-Influências de carta, ator, alvo, status, relíquia, upgrade, modo, encontro e
-modificador são normalizadas como `CalculationInfluence`. O cálculo ordena
+Influências de carta, stats/recursos de ator e alvo, status, relíquia, modo,
+encontro e modificador são normalizadas como `CalculationInfluence`. O cálculo ordena
 contribuições por prioridade e identidade, aplica os buckets e produz um trace e
 fingerprint.
 
@@ -169,6 +170,16 @@ Upgrade de carta altera o container efetivo antes do cálculo. Status do ator,
 relíquias e recursos contribuem como influências contextuais. Assim, upgrade e
 scaling permanecem conceitos separados e auditáveis no trace.
 
+Os tipos numéricos nunca ignoram a pipeline em uma run configurada. O modo deve
+habilitar exatamente uma pipeline do canal do efeito, ou o efeito deve selecionar
+explicitamente uma das pipelines habilitadas. Configuração ausente ou ambígua
+falha antes da mutação.
+
+Bindings de recursos podem declarar um `settlement`. Nesse caso a parcela usada
+registrada no trace vira uma mutação de recurso antes da consequência principal.
+O motor de cálculo continua puro; ele não sabe que a influência representa uma
+capacidade, entidade ou recurso.
+
 ## Variáveis de fórmula
 
 Recursos usam nomes explícitos e simétricos:
@@ -195,8 +206,9 @@ nome da engine.
 ## Atomicidade e auditoria
 
 Antes do commit, o executor valida toda a operação: existência dos participantes,
-alvos, recursos, pipelines, condições e custos. Se uma parte falha, o snapshot não
-muda e nenhum evento intermediário é publicado.
+alvos, recursos, pipelines, condições, settlements e custos. Se uma parte falha,
+o snapshot não muda e nenhum evento intermediário é publicado. Consumo de uma
+capacidade e aplicação do valor restante pertencem à mesma transação.
 
 Para cada efeito aceito, `EffectApplicationRecord` registra a proveniência e a
 aplicação concreta. Esses registros alimentam a fila visual, logs e inspeção de

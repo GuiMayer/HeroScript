@@ -2,7 +2,7 @@
 
 **Status:** implementado e autoritativo
 
-**Atualizado em:** 2026-09-05
+**Atualizado em:** 2026-09-12
 
 ## Objetivo
 
@@ -99,7 +99,9 @@ não são ignoradas silenciosamente.
 
 ```text
 regra configurada
-  -> valor calculado
+  -> pedido imutável de cálculo
+  -> pipeline pura + trace
+  -> settlements configurados
   -> ResolvedResourceMutation
   -> ResourceMutationReducer (lote atômico)
   -> novo ResourceSet
@@ -182,6 +184,11 @@ ID de recurso. No combate de uma run, `CombatResourceLifecycle` converte o
 resultado em comandos `MODIFY_RESOURCE` e usa o processador de efeitos canônico.
 Eventos só são publicados depois que a transação completa da run é persistida.
 
+O `block` padrão demonstra que o timing também é configurável: sua regeneração
+usa `source.resources.block.current * -1` em `START_TURN`. Isso zera o valor no
+próximo início de turno do proprietário, depois de ele ter protegido contra as
+ações dos adversários.
+
 ## Limites e derrota
 
 Uma política combina:
@@ -208,23 +215,38 @@ Um pipeline pode transformar um campo de um recurso em contribuição de bucket:
   "channel": "effect_amount",
   "resourceInfluenceBindings": [
     {
-      "bindingId": "actor.power.flat",
-      "scope": "Actor",
-      "resourceId": "power",
+      "bindingId": "target.barrier.mitigation",
+      "scope": "Target",
+      "resourceId": "barrier",
       "field": "Current",
       "channel": "effect_amount",
-      "bucket": "flat",
+      "bucket": "mitigation",
       "scale": 1,
       "offset": 0,
-      "priority": 0
+      "priority": 0,
+      "requiredTags": ["effect.damage"],
+      "settlement": {
+        "operation": "SUBTRACT",
+        "field": "Current",
+        "useEffectiveValue": true,
+        "scale": 1,
+        "offset": 0
+      }
     }
   ]
 }
 ```
 
 A publicação do conteúdo valida a existência do recurso, o canal, o bucket,
-valores finitos e IDs duplicados. O pipeline pertence à revisão fixada na run;
-portanto replay e avaliação de carta observam as mesmas regras.
+valores finitos, filtros, settlement e IDs duplicados. O pipeline pertence à
+revisão fixada na run; portanto replay e avaliação de carta observam as mesmas
+regras.
+
+O valor consumido vem do `CalculationResult`, não de uma nova leitura durante a
+aplicação. A correspondência usa binding, bucket, tipo e ID exato da origem. Essa
+regra evita que uma relíquia ou status com ID coincidente consuma um recurso por
+engano. Conversões entre unidade da contribuição e unidade do recurso são
+declaradas no `scale`/`offset` do settlement.
 
 ## Revisões, hot reload e determinismo
 
