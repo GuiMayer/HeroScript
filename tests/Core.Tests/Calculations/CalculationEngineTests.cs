@@ -89,6 +89,99 @@ public sealed class CalculationEngineTests
     }
 
     [Fact]
+    public void Calculate_ConsumeCapacityUsesOnlyAvailableInputAndTracesConsumption()
+    {
+        var pipeline = new CalculationPipelineDefinition
+        {
+            PipelineId = "mitigation",
+            Channel = "damage",
+            Buckets = [new()
+            {
+                BucketId = "capacity",
+                Order = 10,
+                Operation = CalculationBucketOperation.ConsumeCapacity
+            }]
+        };
+        var result = _engine.Calculate(new CalculationRequest
+        {
+            CalculationId = "hit",
+            Channel = "damage",
+            BaseValue = 6,
+            Influences =
+            [
+                new()
+                {
+                    InfluenceId = "barrier",
+                    SourceId = "target:barrier",
+                    Channel = "damage",
+                    Bucket = "capacity",
+                    Value = 10
+                }
+            ]
+        }, pipeline);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(0, result.Value.Value);
+        var contribution = Assert.Single(Assert.Single(result.Value.Buckets).Contributions);
+        Assert.True(contribution.Applied);
+        Assert.Equal(6, contribution.EffectiveValue);
+        Assert.Equal(6, contribution.Input);
+        Assert.Equal(0, contribution.Output);
+    }
+
+    [Fact]
+    public void Calculate_MultipleCapacitiesAreConsumedInExplicitStableOrder()
+    {
+        var pipeline = new CalculationPipelineDefinition
+        {
+            PipelineId = "mitigation",
+            Channel = "damage",
+            Buckets = [new() { BucketId = "capacity", Operation = CalculationBucketOperation.ConsumeCapacity }]
+        };
+        CalculationInfluence Influence(string id, int priority, float value) => new()
+        {
+            InfluenceId = id, SourceId = id, Channel = "damage", Bucket = "capacity",
+            Priority = priority, Value = value
+        };
+        var request = new CalculationRequest
+        {
+            CalculationId = "hit", Channel = "damage", BaseValue = 8,
+            Influences = [Influence("second", 10, 7), Influence("first", 20, 3)]
+        };
+
+        var first = _engine.Calculate(request, pipeline);
+        var second = _engine.Calculate(request with { Influences = request.Influences.Reverse().ToArray() }, pipeline);
+
+        Assert.Equal(first.Value.Fingerprint, second.Value.Fingerprint);
+        Assert.Equal([3f, 5f], first.Value.Buckets[0].Contributions.Select(item => item.EffectiveValue));
+        Assert.Equal(0, first.Value.Value);
+    }
+
+    [Fact]
+    public void Calculate_RoundUsesConfiguredMidpointPolicyAndPinsPipelineFingerprint()
+    {
+        var away = new CalculationPipelineDefinition
+        {
+            PipelineId = "round", Channel = "damage", Buckets = [new()
+            {
+                BucketId = "final", Operation = CalculationBucketOperation.Add,
+                Rounding = CalculationRounding.Round,
+                MidpointRounding = CalculationMidpointRounding.AwayFromZero
+            }]
+        };
+        var even = away with { Buckets = [away.Buckets[0] with { MidpointRounding = CalculationMidpointRounding.ToEven }] };
+        var request = new CalculationRequest { CalculationId = "round", Channel = "damage", BaseValue = 2.5f };
+
+        var awayResult = _engine.Calculate(request, away).Value;
+        var evenResult = _engine.Calculate(request, even).Value;
+
+        Assert.Equal(3, awayResult.Value);
+        Assert.Equal(2, evenResult.Value);
+        Assert.NotEqual(awayResult.PipelineFingerprint, evenResult.PipelineFingerprint);
+        Assert.NotEqual(awayResult.Fingerprint, evenResult.Fingerprint);
+    }
+
+    [Fact]
     public void EntityResourceProvider_UsesExplicitBindingsForArbitraryResources()
     {
         var actor = Entity("mage", "mana", 7);
@@ -152,6 +245,34 @@ public sealed class CalculationEngineTests
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal(10, Assert.Single(result.Value).Value);
+    }
+
+    [Fact]
+    public void EntityResourceProvider_FiltersBindingsByCalculationTags()
+    {
+        var target = Entity("target", "barrier", 5);
+        var pipeline = Pipeline() with
+        {
+            ResourceInfluenceBindings = [new()
+            {
+                BindingId = "target.barrier", Scope = CalculationEntityScope.Target,
+                ResourceId = "barrier", Channel = "resource_reduction", Bucket = "flat",
+                RequiredTags = ["effect.damage"]
+            }]
+        };
+        var provider = new EntityResourceInfluenceProvider();
+
+        var damage = provider.Collect(new CalculationSourceContext
+        {
+            Target = target, Pipeline = pipeline, Tags = new HashSet<string> { "effect.damage" }
+        });
+        var healing = provider.Collect(new CalculationSourceContext
+        {
+            Target = target, Pipeline = pipeline, Tags = new HashSet<string> { "effect.heal" }
+        });
+
+        Assert.Single(damage.Value);
+        Assert.Empty(healing.Value);
     }
 
     [Fact]

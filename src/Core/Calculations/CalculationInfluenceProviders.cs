@@ -152,6 +152,8 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
                 return Result<IReadOnlyList<CalculationInfluence>>.Failure(
                     $"Resource influence binding {binding.BindingId} has an invalid scope or field");
             }
+            if (!binding.RequiredTags.All(context.Tags.Contains) || binding.ExcludedTags.Any(context.Tags.Contains))
+                continue;
             var entity = binding.Scope == CalculationEntityScope.Actor
                 ? context.Actor
                 : context.Target;
