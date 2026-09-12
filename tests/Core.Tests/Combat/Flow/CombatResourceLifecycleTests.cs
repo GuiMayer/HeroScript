@@ -67,6 +67,28 @@ public sealed class CombatResourceLifecycleTests
     }
 
     [Fact]
+    public void Process_CanResetTemporaryCapacityAtItsOwnersNextTurnStart()
+    {
+        var formulas = new StubFormulaEvaluator(evaluate: variables =>
+            Result<float>.Success(-variables!["source.resources.block.current"]));
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true));
+        var combat = CombatTransitions.Create([Entity(Pool("block", 8, 999, new RegenerationConfig
+        {
+            Enabled = true,
+            Formula = "source.resources.block.current * -1",
+            Timing = RegenerationTiming.START_TURN
+        }))], DeterministicContext.Create(42, "revision"));
+
+        var result = lifecycle.Process(Run(), combat, "hero", RegenerationTiming.START_TURN);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(0, result.Value.Combat.GetActor("hero")!.GetResource("block")!.Current);
+        Assert.Equal(8, combat.GetActor("hero")!.GetResource("block")!.Current);
+        Assert.Equal("__unconfigured_test_identity__", Assert.Single(result.Value.Steps).Calculation!.PipelineId);
+    }
+
+    [Fact]
     public void Process_ExcludesModeOwnedResourceCycleFromIntrinsicRegeneration()
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(

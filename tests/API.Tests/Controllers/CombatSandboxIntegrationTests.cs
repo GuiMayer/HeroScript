@@ -1033,6 +1033,52 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(28, Health(after, "hero"));
     }
 
+    [Fact]
+    public async Task DefaultPipeline_ConsumesBlockBeforeApplyingRemainingDamage()
+    {
+        var scenario = CreateScenario(
+            $"api-block-{Guid.NewGuid():N}",
+            new
+            {
+                resourcesByActor = new Dictionary<string, object>
+                {
+                    ["hero"] = new { energy = 3 },
+                    ["goblin_a"] = new { health = 30, block = 4 }
+                }
+            },
+            enemyDefinitionId: "spire_wisp");
+        using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", scenario);
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+        var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+        using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var strike = snapshot.GetProperty("hand").EnumerateArray()
+            .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
+
+        var result = await ExecuteCardCommandResult(runId, combatId, strike, "goblin_a", Guid.NewGuid());
+        var combat = result.GetProperty("state").GetProperty("combat");
+
+        Assert.Equal(0, CombatResource(combat, "goblin_a", "block"));
+        // The actor definition caps the requested 30 at 28; 6 damage consumes 4 block and applies 2.
+        Assert.Equal(26, CombatResource(combat, "goblin_a", "health"));
+        var applied = result.GetProperty("state").GetProperty("resolution")
+            .GetProperty("frames").EnumerateArray()
+            .Single(frame => frame.GetProperty("transitionType").GetString() == "combat.action.applied");
+        var calculation = Assert.Single(applied.GetProperty("calculations").EnumerateArray());
+        Assert.Equal("default_effect_amount", calculation.GetProperty("pipelineId").GetString());
+        var mitigation = calculation.GetProperty("buckets").EnumerateArray()
+            .Single(bucket => bucket.GetProperty("bucketId").GetString() == "mitigation");
+        var contribution = Assert.Single(mitigation.GetProperty("contributions").EnumerateArray());
+        Assert.Equal(4, contribution.GetProperty("effectiveValue").GetDouble());
+        var calculationFingerprint = calculation.GetProperty("fingerprint").GetString();
+        Assert.Equal(2, applied.GetProperty("applications").EnumerateArray().Count(application =>
+            application.TryGetProperty("calculationFingerprint", out var fingerprint) &&
+            fingerprint.ValueKind == JsonValueKind.String &&
+            fingerprint.GetString() == calculationFingerprint));
+    }
+
     private async Task<JsonElement> ExecuteCardCommand(
         Guid runId,
         Guid combatId,
@@ -1077,7 +1123,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     private object CreateScenario(
         string attemptKey,
         object? initialState = null,
-        string modeId = "combat_sandbox") => new
+        string modeId = "combat_sandbox",
+        string enemyDefinitionId = "enemy_goblin") => new
     {
         schemaVersion = 2,
         modeId,
@@ -1096,7 +1143,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             new
             {
                 instanceId = "goblin_a",
-                entityDefinitionId = "enemy_goblin",
+                entityDefinitionId = enemyDefinitionId,
                 sideId = "opposition",
                 controllerBinding = new { kind = "AI", policyId = "gambit" }
             }
