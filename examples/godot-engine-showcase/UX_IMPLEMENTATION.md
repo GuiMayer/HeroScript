@@ -23,4 +23,12 @@
 - Pile inspection lists canonical cards in alphabetical order, not hidden draw order. JSON presentation settings choose resource bars versus counters without changing resource rules.
 - Live UI regression tests cover bulk evaluations, instance identities and actor coverage. Combat was also rendered and visually checked.
 
-Next: input/accessibility, historical combat and branch navigation.
+## Stage 4 — input and accessibility
+
+- Explicit initial focus, directional neighbors and Tab traversal; pause receives focus and restores the previous control on resume.
+- Keyboard and controller bindings coexist, support remapping/reset, and reject duplicate or UI-reserved inputs. Controller A/B and D-pad retain navigation roles. Default next-animation keyboard shortcut is F (Space remains UI confirmation).
+- Text scale (90–120%), visible focus borders and opaque high-contrast controls supplement reduced motion and manual animation playback.
+- Connection settings validate addresses and reject changes while an operation is unresolved; an explicitly edited address is persisted even when launched with a temporary port override.
+- Automated tests inject physical Tab and controller D-pad events, and validate remap/reset/conflict behavior. Physical controller hardware has not been tested.
+
+Next: historical combat and branch navigation.

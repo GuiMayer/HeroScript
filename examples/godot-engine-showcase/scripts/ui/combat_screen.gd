@@ -197,7 +197,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("confirm_action") and not event.is_echo():
 		_next_frame()
 		get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+	elif event.is_action_pressed("ui_cancel") or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT):
 		_cancel_selection()
 
 func _select_target(actor_id: String) -> void:
@@ -374,6 +374,7 @@ func _show_preview(id: String) -> void:
 		detail_label.text = presenter.unavailable_reason(id)
 
 func _update_controls() -> void:
+	preload("res://scripts/ui/focus_navigation.gd").wire.call_deferred(self)
 	if not is_instance_valid(queue_label):
 		return
 	var locked := _locked()

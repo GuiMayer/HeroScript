@@ -156,6 +156,27 @@ func _run() -> void:
 	check(presenter.input_state(false, true, true, false, "card-1") == Presenter.InputState.ANIMATING, "presentation cursor overrides selection state")
 	check(presenter.input_state(false, true, false, true, "") == Presenter.InputState.PAUSED, "pause blocks every presentation input state")
 	_check_boundaries("res://scripts/presentation", ["HTTPRequest", "HTTPClient", "GameSession", "/api/v1/"])
+	var prefs = root.get_node("Preferences")
+	var bindings := {}
+	for action in prefs.ACTIONS: bindings[action] = InputMap.action_get_events(action).duplicate()
+	prefs.reset_bindings(false)
+	var binding := InputEventKey.new()
+	binding.physical_keycode = KEY_T
+	check(not prefs.remap_event("end_turn", binding, false).is_empty(), "duplicate shortcuts are rejected")
+	binding.physical_keycode = KEY_ENTER
+	check(not prefs.remap_event("end_turn", binding, false).is_empty(), "UI navigation keys remain reserved")
+	binding.physical_keycode = KEY_G
+	check(prefs.remap_event("end_turn", binding, false).is_empty() and prefs.action_key("end_turn") == KEY_G, "keyboard binding can be remapped")
+	var pad := InputEventJoypadButton.new()
+	pad.button_index = JOY_BUTTON_X
+	check(prefs.remap_event("end_turn", pad, false).is_empty() and prefs.action_key("end_turn") == KEY_G, "controller binding does not erase keyboard binding")
+	pad.button_index = JOY_BUTTON_A
+	check(not prefs.remap_event("end_turn", pad, false).is_empty(), "controller confirm remains reserved for UI")
+	prefs.reset_bindings(false)
+	check(prefs.action_key("end_turn") == KEY_E and prefs.action_button("end_turn") == JOY_BUTTON_Y, "reset restores both input device maps")
+	for action in bindings:
+		InputMap.action_erase_events(action)
+		for event in bindings[action]: InputMap.action_add_event(action, event)
 	_check_boundaries("res://scripts/application", ["I18n", "Preferences", "AppTheme", "Playback", "HTTPClient", "HTTPRequest", "/api/v1/"])
 	_check_boundaries("res://scripts/ui", ["HTTPClient", "HTTPRequest", "/api/v1/", "HeroAPI", "_command_payload"], true)
 	playback.queue_free()

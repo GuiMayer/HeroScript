@@ -1,12 +1,19 @@
 extends SceneTree
 
 var _original_last_run := ""
+var _original_scale := 1.0
+var _original_contrast := false
 
 func _init() -> void:
 	call_deferred("_capture")
 
 func _capture() -> void:
 	_original_last_run = str(root.get_node("Preferences").last_run_id)
+	_original_scale = root.get_node("Preferences").text_scale
+	_original_contrast = root.get_node("Preferences").high_contrast
+	if "--capture-accessibility" in OS.get_cmdline_user_args():
+		root.get_node("Preferences").text_scale = 1.2
+		root.get_node("Preferences").high_contrast = true
 	var scene = load("res://main.tscn").instantiate()
 	root.add_child(scene)
 	var combat_capture := "--capture-combat" in OS.get_cmdline_user_args()
@@ -43,6 +50,8 @@ func _capture() -> void:
 
 func _finish(code: int) -> void:
 	root.get_node("Preferences").last_run_id = _original_last_run
+	root.get_node("Preferences").text_scale = _original_scale
+	root.get_node("Preferences").high_contrast = _original_contrast
 	root.get_node("Preferences").save()
 	root.get_node("GameAudio").shutdown()
 	create_timer(.15).timeout.connect(func(): process_frame.connect(

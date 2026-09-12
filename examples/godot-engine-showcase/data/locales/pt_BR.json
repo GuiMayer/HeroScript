@@ -197,5 +197,15 @@
   "Empty": "Vazio",
   "More effects in inspection": "Mais efeitos na inspeção",
   "Outcome uncertain": "Resultado incerto",
-  "See inspection for details": "Veja os detalhes na inspeção"
+  "See inspection for details": "Veja os detalhes na inspeção",
+  "Text size": "Tamanho do texto",
+  "RESET CONTROLS": "RESTAURAR CONTROLES",
+  "PRESS A KEY OR BUTTON": "PRESSIONE TECLA OU BOTÃO",
+  "Arrows / D-pad: navigate. Enter / A: confirm. Escape / B: close.": "Setas / Direcional: navegar. Enter / A: confirmar. Escape / B: fechar.",
+  "This input is reserved for interface navigation.": "Essa entrada é reservada para navegar na interface.",
+  "This input is already assigned.": "Essa entrada já está atribuída.",
+  "Use a keyboard key or a controller button.": "Use uma tecla ou um botão do controle.",
+  "Unknown action.": "Ação desconhecida.",
+  "Finish or recover the current operation before changing the connection.": "Conclua ou recupere a operação atual antes de alterar a conexão.",
+  "Use an HTTP or HTTPS address.": "Use um endereço HTTP ou HTTPS."
 }

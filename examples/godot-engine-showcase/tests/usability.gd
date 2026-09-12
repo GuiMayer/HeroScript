@@ -34,6 +34,19 @@ func _run() -> void:
 	check(_contains_text(router.host, "SETTINGS"), "settings rebuild in English at runtime")
 	var language: OptionButton = router.host.find_child("LanguageSelector", true, false)
 	check(language.get_item_text(language.selected) == "English", "language selector matches the active English locale")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var initial_focus := get_viewport().gui_get_focus_owner()
+	check(is_instance_valid(initial_focus), "settings establishes initial keyboard focus")
+	var tab := InputEventKey.new()
+	tab.keycode = KEY_TAB
+	tab.physical_keycode = KEY_TAB
+	tab.pressed = true
+	Input.parse_input_event(tab)
+	await get_tree().process_frame
+	check(get_viewport().gui_get_focus_owner() != initial_focus, "physical Tab navigates the explicit focus graph")
+	tab.pressed = false
+	Input.parse_input_event(tab)
 	if not await GameSession.connect_engine():
 		check(false, "connect to engine")
 		finish()
@@ -99,6 +112,19 @@ func _run() -> void:
 	check(screen._locked(), "new commands blocked until animations finish")
 	router.toggle_pause()
 	check(not router.host.can_process(), "pause suspends gameplay nodes")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var pause_focus := get_viewport().gui_get_focus_owner()
+	check(is_instance_valid(pause_focus) and router.pause_layer.is_ancestor_of(pause_focus), "pause owns focus instead of the battlefield")
+	var down := InputEventJoypadButton.new()
+	down.button_index = JOY_BUTTON_DPAD_DOWN
+	down.pressed = true
+	Input.parse_input_event(down)
+	await get_tree().process_frame
+	check(get_viewport().gui_get_focus_owner() != pause_focus, "controller D-pad navigates pause menu")
+	down.pressed = false
+	Input.parse_input_event(down)
 	router.show_timeline()
 	check(router.current_screen == "combat", "timeline shortcut cannot navigate behind the pause menu")
 	var index_before := Playback.index

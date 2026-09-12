@@ -13,8 +13,8 @@ const PANEL_LIGHT := Color("#2d2d43")
 
 static func build(high_contrast := false) -> Theme:
 	var result := Theme.new()
-	result.default_font_size = 17
-	result.set_font_size("font_size", "Label", 17)
+	result.default_font_size = roundi(17 * Preferences.text_scale)
+	result.set_font_size("font_size", "Label", roundi(17 * Preferences.text_scale))
 	result.set_color("font_color", "Label", INK)
 	if high_contrast:
 		result.set_constant("outline_size", "Label", 2)
@@ -47,6 +47,10 @@ static func build(high_contrast := false) -> Theme:
 	result.set_color("font_color", "RichTextLabel", INK)
 	result.set_color("default_color", "RichTextLabel", INK)
 	result.set_stylebox("panel", "PopupPanel", box(Color("#171927"), 12, EMBER, 1))
+	result.set_stylebox("focus", "Button", box(Color.TRANSPARENT, 9, Color.WHITE if high_contrast else GOLD, 3))
+	if high_contrast:
+		result.set_color("font_disabled_color", "Button", Color("#b7b7bf"))
+		result.set_stylebox("normal", "Button", box(Color("#070911"), 9, Color.WHITE, 2))
 	return result
 
 static func box(color: Color, radius := 8, border := Color.TRANSPARENT, width := 0) -> StyleBoxFlat:
@@ -94,3 +98,20 @@ static func panel(content: Control, color := PANEL) -> PanelContainer:
 	wrapper.add_theme_stylebox_override("panel", box(color, 13, Color(color).lightened(0.18), 1))
 	wrapper.add_child(content)
 	return wrapper
+
+static func apply_view_preferences(node: Node) -> void:
+	if node is Control:
+		if node.has_theme_font_size_override("font_size"):
+			if not node.has_meta("base_font_size"): node.set_meta("base_font_size", node.get_theme_font_size("font_size"))
+			node.add_theme_font_size_override("font_size", roundi(float(node.get_meta("base_font_size")) * Preferences.text_scale))
+		for style_name in ["normal", "panel", "hover", "pressed", "disabled"]:
+			if not node.has_theme_stylebox_override(style_name): continue
+			var meta: String = "base_style_" + style_name
+			if not node.has_meta(meta): node.set_meta(meta, node.get_theme_stylebox(style_name).duplicate())
+			var style = node.get_meta(meta).duplicate()
+			if Preferences.high_contrast and style is StyleBoxFlat:
+				style.bg_color = Color("#090b15")
+				style.border_color = Color.WHITE
+				style.set_border_width_all(2)
+			node.add_theme_stylebox_override(style_name, style)
+	for child in node.get_children(): apply_view_preferences(child)

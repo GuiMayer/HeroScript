@@ -13,6 +13,7 @@ var pause_layer: Control
 var presentation: Dictionary = {}
 var current_screen := "menu"
 var navigation_epoch := 0
+var previous_focus: WeakRef
 var settings_return_to_gameplay := false
 
 func _ready() -> void:
@@ -33,6 +34,7 @@ func _ready() -> void:
 	host.add_theme_constant_override("margin_right", 48)
 	host.add_theme_constant_override("margin_bottom", 24)
 	add_child(host)
+	host.child_entered_tree.connect(func(child): _prepare_focus.call_deferred(child))
 	toast = Label.new()
 	toast.visible = false
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -217,7 +219,9 @@ func toggle_pause() -> void:
 		get_tree().paused = false
 		pause_layer.queue_free()
 		pause_layer = null
+		if previous_focus and is_instance_valid(previous_focus.get_ref()): previous_focus.get_ref().grab_focus()
 		return
+	previous_focus = weakref(get_viewport().gui_get_focus_owner()) if get_viewport().gui_get_focus_owner() else null
 	pause_layer = ColorRect.new()
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.color = Color("#080912dd")
@@ -236,6 +240,7 @@ func toggle_pause() -> void:
 	content.add_child(_button(I18n.text("SETTINGS"), _pause_settings, 360))
 	content.add_child(_button(I18n.text("MAIN MENU"), _pause_menu, 360))
 	center.add_child(AppTheme.panel(content))
+	_prepare_focus.call_deferred(pause_layer)
 
 func _pause_settings() -> void:
 	toggle_pause()
@@ -271,6 +276,8 @@ func _on_session_changed() -> void:
 
 func _apply_preferences() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
+	AppTheme.apply_view_preferences(host)
+	if is_instance_valid(pause_layer): AppTheme.apply_view_preferences(pause_layer)
 
 func _on_locale_changed() -> void:
 	_load_presentation()
@@ -282,3 +289,11 @@ func _rebuild_localized_screen() -> void:
 		"combat": show_combat()
 		"activity": show_activity()
 		"menu": _show_main_menu()
+
+func _prepare_focus(screen: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(screen) or not screen.is_inside_tree(): return
+	AppTheme.apply_view_preferences(screen)
+	await get_tree().process_frame
+	if is_instance_valid(screen) and screen.is_inside_tree():
+		preload("res://scripts/ui/focus_navigation.gd").wire(screen, true)

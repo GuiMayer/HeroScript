@@ -4,6 +4,7 @@ var router
 var close_action: Callable
 var capture_action := ""
 var capture_button: Button
+var binding_buttons := {}
 
 func setup(owner, on_close: Callable) -> void:
 	router = owner
@@ -54,6 +55,8 @@ func _audio_panel() -> Control:
 	fullscreen.button_pressed = Preferences.fullscreen
 	fullscreen.toggled.connect(func(value): Preferences.fullscreen = value; Preferences.save())
 	content.add_child(fullscreen)
+	content.add_child(_slider(I18n.text("Text size"), (Preferences.text_scale - .9) / .3,
+		func(v): Preferences.text_scale = .9 + v * .3))
 	var contrast := CheckButton.new()
 	contrast.text = I18n.text("High contrast")
 	contrast.button_pressed = Preferences.high_contrast
@@ -91,14 +94,18 @@ func _control_panel() -> Control:
 		row.add_child(name)
 		var button := AppTheme.button(Preferences.action_label(action), 150)
 		button.pressed.connect(func(): GameAudio.ui(); _capture(action, button))
+		binding_buttons[action] = button
+		button.text += " / " + Preferences.controller_label(action)
 		row.add_child(button)
 		content.add_child(row)
+	content.add_child(_button(I18n.text("RESET CONTROLS"), _reset_bindings))
+	content.add_child(AppTheme.muted(I18n.text("Arrows / D-pad: navigate. Enter / A: confirm. Escape / B: close.")))
 	var api_label := AppTheme.muted(I18n.text("HeroScript address"))
 	content.add_child(api_label)
 	var api := LineEdit.new()
 	api.text = Preferences.api_url
-	api.text_submitted.connect(func(value): Preferences.api_url = value; Preferences.save())
-	api.focus_exited.connect(func(): Preferences.api_url = api.text; Preferences.save())
+	api.text_submitted.connect(func(value): _save_connection(value))
+	api.focus_exited.connect(func(): _save_connection(api.text))
 	content.add_child(api)
 	content.add_child(AppTheme.muted(I18n.text("Godot connects to HeroScript to run the game. All rules are handled by the engine.")))
 	return AppTheme.panel(content)
@@ -120,17 +127,39 @@ func _slider(label_text: String, value: float, setter: Callable) -> Control:
 func _capture(action: String, button: Button) -> void:
 	capture_action = action
 	capture_button = button
-	button.text = I18n.text("PRESS A KEY")
-	set_process_unhandled_key_input(true)
+	button.text = I18n.text("PRESS A KEY OR BUTTON")
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	if capture_action.is_empty() or not event.pressed or event.echo:
+
+func _input(event: InputEvent) -> void:
+	if capture_action.is_empty() or not (event is InputEventKey or event is InputEventJoypadButton) or not event.is_pressed() or event.is_echo():
 		return
-	Preferences.remap(capture_action, event.physical_keycode)
-	capture_button.text = Preferences.action_label(capture_action)
-	capture_action = ""
-	set_process_unhandled_key_input(false)
 	get_viewport().set_input_as_handled()
+	if event is InputEventKey and event.physical_keycode == KEY_ESCAPE:
+		capture_action = ""
+		_refresh_bindings()
+		return
+	var error := Preferences.remap_event(capture_action, event)
+	if not error.is_empty():
+		router.show_error(I18n.text(error))
+		return
+	capture_action = ""
+	_refresh_bindings()
+
+func _refresh_bindings() -> void:
+	for action in binding_buttons:
+		binding_buttons[action].text = Preferences.action_label(action) + " / " + Preferences.controller_label(action)
+
+func _reset_bindings() -> void:
+	capture_action = ""
+	Preferences.reset_bindings()
+	_refresh_bindings()
+
+func _save_connection(value: String) -> void:
+	if value.strip_edges().trim_suffix("/") == Preferences.api_url: return
+	if GameSession.busy or GameSession.has_pending_command:
+		router.show_error(I18n.text("Finish or recover the current operation before changing the connection."))
+	elif not Preferences.set_api_url(value):
+		router.show_error(I18n.text("Use an HTTP or HTTPS address."))
 
 func _close() -> void:
 	Preferences.save()

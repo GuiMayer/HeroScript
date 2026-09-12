@@ -197,5 +197,15 @@
   "Empty": "Empty",
   "More effects in inspection": "More effects in inspection",
   "Outcome uncertain": "Outcome uncertain",
-  "See inspection for details": "See inspection for details"
+  "See inspection for details": "See inspection for details",
+  "Text size": "Text size",
+  "RESET CONTROLS": "RESET CONTROLS",
+  "PRESS A KEY OR BUTTON": "PRESS A KEY OR BUTTON",
+  "Arrows / D-pad: navigate. Enter / A: confirm. Escape / B: close.": "Arrows / D-pad: navigate. Enter / A: confirm. Escape / B: close.",
+  "This input is reserved for interface navigation.": "This input is reserved for interface navigation.",
+  "This input is already assigned.": "This input is already assigned.",
+  "Use a keyboard key or a controller button.": "Use a keyboard key or a controller button.",
+  "Unknown action.": "Unknown action.",
+  "Finish or recover the current operation before changing the connection.": "Finish or recover the current operation before changing the connection.",
+  "Use an HTTP or HTTPS address.": "Use an HTTP or HTTPS address."
 }
