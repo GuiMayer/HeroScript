@@ -276,6 +276,8 @@ func _play_candidate(candidate: Dictionary) -> void:
 	_update_controls()
 	var id := str(candidate.command.get("cardInstanceId", ""))
 	var success := await GameSession.submit_candidate(candidate)
+	if not is_inside_tree():
+		return
 	if success:
 		GameAudio.card()
 		var target_ids := _targets(candidate)
@@ -285,7 +287,8 @@ func _play_candidate(candidate: Dictionary) -> void:
 			destination = portrait.global_position + portrait.size * .5
 		if card_buttons.has(id):
 			await card_buttons[id].fly_to(destination, router)
-		router.open_game()
+		if is_inside_tree():
+			router.open_game()
 	else:
 		submitting = false
 		_update_controls()
@@ -298,7 +301,10 @@ func _end_turn() -> void:
 		return
 	submitting = true
 	_update_controls()
-	if await GameSession.submit_candidate(candidate):
+	var accepted := await GameSession.submit_candidate(candidate)
+	if not is_inside_tree():
+		return
+	if accepted:
 		router.open_game()
 	else:
 		submitting = false
@@ -309,7 +315,10 @@ func _execute_system(candidate: Dictionary) -> void:
 		return
 	submitting = true
 	_update_controls()
-	if await GameSession.submit_candidate(candidate):
+	var accepted := await GameSession.submit_candidate(candidate)
+	if not is_inside_tree():
+		return
+	if accepted:
 		router.open_game()
 	else:
 		submitting = false
@@ -513,7 +522,10 @@ func _float_application(application: Dictionary, portrait: Control) -> void:
 	tween.chain().tween_callback(label.queue_free)
 
 func _reconnect() -> void:
-	if await GameSession.refresh():
+	var accepted := await GameSession.refresh()
+	if not is_inside_tree():
+		return
+	if accepted:
 		router.open_game()
 
 func _cost_text(candidate: Dictionary) -> String:

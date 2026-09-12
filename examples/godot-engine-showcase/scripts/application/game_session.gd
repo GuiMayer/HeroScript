@@ -2,6 +2,7 @@ extends Node
 
 const ActivityChoices = preload("res://scripts/application/activity_choices.gd")
 
+signal operation_changed(state: String)
 signal changed
 signal command_started(label: String)
 signal receipt_received(receipt: Dictionary)
@@ -25,7 +26,15 @@ var legal_actions: Array:
 var _gateway
 var available := false
 var content_revision := ""
-var busy := false
+var _operation := "idle"
+var _generation := 0
+var _pending: Dictionary = {}
+var busy: bool:
+	get: return _operation != "idle"
+var operation: String:
+	get: return _operation
+var has_pending_command: bool:
+	get: return not _pending.is_empty()
 var synchronized := true
 
 func configure(gateway) -> void:
@@ -36,7 +45,17 @@ func set_available(value: bool) -> void:
 	availability_changed.emit(value)
 
 func connect_engine() -> bool:
+	var ticket := _begin("connecting")
+	if ticket < 0:
+		return false
+	var ok := await _connect(ticket)
+	_finish(ticket)
+	return ok
+
+func _connect(ticket: int) -> bool:
 	var response: Dictionary = await _gateway.connect_engine()
+	if not _current(ticket):
+		return false
 	if not response.ok:
 		failed.emit(response)
 		return false
@@ -44,44 +63,59 @@ func connect_engine() -> bool:
 	return not content_revision.is_empty()
 
 func start_campaign(seed: int) -> bool:
-	if content_revision.is_empty() and not await connect_engine():
-		return false
-	var response: Dictionary = await _gateway.create_campaign(seed, content_revision)
-	if not response.ok:
-		failed.emit(response)
-		return false
-	_run = response.data.duplicate(true)
-	run_opened.emit(str(_run.get("runId", "")))
-	return await refresh()
+	return await _open_run("campaign", [seed])
 
 func start_sandbox(mode_id: String, scenario: Dictionary, seed: int) -> bool:
-	if content_revision.is_empty() and not await connect_engine():
-		return false
-	var response: Dictionary = await _gateway.create_sandbox(mode_id, scenario, seed, content_revision)
-	if not response.ok:
-		failed.emit(response)
-		return false
-	_run = response.data.get("run", response.data).duplicate(true)
-	_combat = response.data.get("combat", {}).duplicate(true)
-	run_opened.emit(str(_run.get("runId", "")))
-	return await refresh()
+	return await _open_run("sandbox", [mode_id, scenario.duplicate(true), seed])
 
 func continue_run(run_id: String) -> bool:
-	if run_id.is_empty():
+	return false if run_id.is_empty() else await _open_run("continue", [run_id])
+
+func _open_run(kind: String, args: Array) -> bool:
+	if has_pending_command:
 		return false
-	var response: Dictionary = await _gateway.read_run(run_id)
+	var ticket := _begin("opening")
+	if ticket < 0:
+		return false
+	if kind != "continue" and content_revision.is_empty() and not await _connect(ticket):
+		_finish(ticket)
+		return false
+	var response: Dictionary
+	match kind:
+		"campaign": response = await _gateway.create_campaign(args[0], content_revision)
+		"sandbox": response = await _gateway.create_sandbox(args[0], args[1], args[2], content_revision)
+		_: response = await _gateway.read_run(args[0])
+	if not _current(ticket):
+		return false
 	if not response.ok:
 		failed.emit(response)
+		_finish(ticket)
 		return false
-	_run = response.data.duplicate(true)
-	run_opened.emit(run_id)
-	return await refresh()
+	_run = response.data.get("run", response.data).duplicate(true)
+	_combat = {}
+	synchronized = false
+	run_opened.emit(str(_run.get("runId", "")))
+	var ok := await _refresh(ticket)
+	_finish(ticket)
+	return ok
 
-func refresh(committed_combat: Dictionary = {}, receipt_sequence := -1) -> bool:
+func refresh() -> bool:
+	if has_pending_command:
+		return await recover_pending()
+	var ticket := _begin("refreshing")
+	if ticket < 0:
+		return false
+	var ok := await _refresh(ticket)
+	_finish(ticket)
+	return ok
+
+func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence := -1) -> bool:
 	if _run.is_empty():
 		return false
 	var run_id := str(_run.get("runId", ""))
 	var response: Dictionary = await _gateway.read_run(run_id)
+	if not _current(ticket):
+		return false
 	if not response.ok:
 		return _refresh_failed(response)
 	var next_run: Dictionary = response.data
@@ -91,6 +125,8 @@ func refresh(committed_combat: Dictionary = {}, receipt_sequence := -1) -> bool:
 	if encounter_id.is_empty():
 		next_combat = {}
 	var responses: Dictionary = await _gateway.read_projections(run_id, encounter_id, include_combat)
+	if not _current(ticket):
+		return false
 	for result in responses.values():
 		if not result.ok:
 			return _refresh_failed(result)
@@ -101,6 +137,8 @@ func refresh(committed_combat: Dictionary = {}, receipt_sequence := -1) -> bool:
 		var actor_id := _input_actor_id(next_combat)
 		if not actor_id.is_empty():
 			var actions_response: Dictionary = await _gateway.read_legal_actions(str(next_combat.get("combatId", "")), actor_id)
+			if not _current(ticket):
+				return false
 			if not actions_response.ok:
 				return _refresh_failed(actions_response)
 			next_actions = actions_response.data if actions_response.data is Array else actions_response.data.get("candidates", [])
@@ -135,27 +173,79 @@ func submit_candidate(candidate: Dictionary) -> bool:
 	return await execute_combat_command(type, _gateway.candidate_payload(command_data))
 
 func _execute(scope: String, id: String, type: String, payload: Dictionary, label: String, expected_step: int) -> bool:
-	if busy or not synchronized or _run.is_empty():
+	if not synchronized or _run.is_empty() or has_pending_command:
 		return false
-	busy = true
+	var ticket := _begin("submitting")
+	if ticket < 0:
+		return false
 	command_started.emit(label if not label.is_empty() else type)
-	var response: Dictionary = await _gateway.send_command(scope, id, type, payload, int(_run.get("sequence", 0)), expected_step)
-	if not response.ok:
-		busy = false
-		if int(response.get("status", 0)) in [0, 409]:
-			synchronized = false
-		failed.emit(response)
-		command_finished.emit()
+	_pending = _gateway.prepare_command(scope, id, type, payload, int(_run.get("sequence", 0)), expected_step)
+	return await _send_pending(ticket)
+
+func recover_pending() -> bool:
+	if not has_pending_command:
+		return await refresh()
+	var ticket := _begin("recovering")
+	if ticket < 0:
 		return false
+	return await _send_pending(ticket)
+
+func _send_pending(ticket: int) -> bool:
+	var response: Dictionary = await _gateway.send_prepared(_pending)
+	if not _current(ticket):
+		return false
+	if not response.ok:
+		var status := int(response.get("status", 0))
+		if status > 0 and status < 500:
+			_pending = {}
+		synchronized = false
+		_legal_actions = []
+		_available_commands = []
+		failed.emit(response)
+		_finish(ticket)
+		command_finished.emit()
+		changed.emit()
+		return false
+	_pending = {}
 	receipt_received.emit(response.data.duplicate(true))
 	var state: Dictionary = response.data.get("state", {})
-	var updated := await refresh(state.get("combat", {}) if state.get("combat") is Dictionary else {}, int(response.data.get("sequence", -1)))
-	busy = false
+	var updated := await _refresh(ticket, state.get("combat", {}) if state.get("combat") is Dictionary else {}, int(response.data.get("sequence", -1)))
+	_finish(ticket)
 	command_finished.emit()
-	# The POST committed even if a later read failed. Never silently resend.
-	if not updated:
-		failed.emit({"errorKey": "Could not refresh the game. Reconnect before playing again.", "error": "Could not refresh the game. Reconnect before playing again."})
+	if not updated and _current(ticket):
+		failed.emit({"errorKey": "Could not refresh the game. Reconnect before playing again."})
 	return true
+
+func _begin(state: String) -> int:
+	if busy:
+		return -1
+	_generation += 1
+	_operation = state
+	operation_changed.emit(state)
+	return _generation
+
+func _current(ticket: int) -> bool:
+	return ticket == _generation
+
+func _finish(ticket: int) -> void:
+	if _current(ticket):
+		_operation = "idle"
+		operation_changed.emit(_operation)
+
+func invalidate() -> void:
+	# Explicit session invalidation discards late reads, never an uncertain write.
+	if has_pending_command:
+		return
+	_generation += 1
+	_operation = "idle"
+	_run = {}
+	_combat = {}
+	_legal_actions = []
+	_available_commands = []
+	content_revision = ""
+	synchronized = false
+	operation_changed.emit(_operation)
+	changed.emit()
 
 func input_actor_id() -> String:
 	return _input_actor_id(_combat)

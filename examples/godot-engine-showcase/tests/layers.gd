@@ -8,6 +8,10 @@ const Choices = preload("res://scripts/application/activity_choices.gd")
 var failures := 0
 
 class FakeTransport extends RefCounted:
+	signal release_read
+	var hold_read := false
+	var timeout_once := false
+	var receipts := {}
 	var calls: Array = []
 	var fail_refresh := false
 	var fail_after_commit := false
@@ -22,11 +26,18 @@ class FakeTransport extends RefCounted:
 		if path.contains("/content/revisions"):
 			return _ok({"currentRevision": "revision-1"})
 		if path.ends_with("/commands"):
+			if receipts.has(body.commandId):
+				return _ok(receipts[body.commandId])
 			state.sequence += 1
 			snapshot.step += 1
 			state.step = snapshot.step
 			fail_refresh = fail_after_commit
-			return _ok({"sequence": state.sequence, "state": {"combat": snapshot.duplicate(true), "resolution": {"frames": [{"transitionType": "effect", "applications": []}]}}})
+			var receipt := {"sequence": state.sequence, "state": {"combat": snapshot.duplicate(true), "resolution": {"frames": [{"transitionType": "effect", "applications": []}]}}}
+			receipts[body.commandId] = receipt
+			if timeout_once:
+				timeout_once = false
+				return {"ok": false, "status": 0, "error": "Timed out after commit"}
+			return _ok(receipt)
 		if path.ends_with("/available-commands"):
 			if fail_refresh:
 				return {"ok": false, "status": 503, "error": "Offline fixture"}
@@ -35,6 +46,8 @@ class FakeTransport extends RefCounted:
 			return _ok({"candidates": [legal]})
 		if path.contains("/combats/"):
 			return _ok(snapshot)
+		if hold_read:
+			await release_read
 		return _ok(state)
 
 	func request_many(paths: Dictionary) -> Dictionary:
@@ -114,6 +127,20 @@ func _run() -> void:
 	check(not await session.submit_candidate(transport.legal) and transport.calls.size() == before, "blocked input is not resent")
 	transport.fail_refresh = false
 	check(await session.refresh(), "session recovers through explicit refresh")
+	transport.fail_after_commit = false
+	transport.timeout_once = true
+	check(not await session.submit_candidate(session.legal_actions[0]) and session.has_pending_command, "uncertain response preserves pending command")
+	var committed_sequence: int = transport.state.sequence
+	check(not await session.start_campaign(43), "pending command blocks changing runs")
+	check(await session.recover_pending() and transport.state.sequence == committed_sequence, "retry returns original receipt without applying twice")
+	posts = transport.calls.filter(func(call): return str(call.path).ends_with("/commands"))
+	check(posts[-1].body == posts[-2].body, "recovery resends the exact envelope and identity")
+	transport.hold_read = true
+	session.refresh()
+	check(session.busy and not await session.start_campaign(44), "in-flight refresh excludes concurrent run creation")
+	session.invalidate()
+	transport.release_read.emit()
+	check(session.run.is_empty() and not session.synchronized and not session.busy, "late response cannot republish invalidated session")
 	var choices := Choices.build({}, [{"type": "UPGRADE_CARD", "validPayload": {"upgradeIds": ["a", "b"], "cardInstanceIds": ["x"]}}])
 	check(choices.size() == 2, "progression maps all advertised upgrade choices")
 	check(Choices.build({}, [{"type": "UPGRADE_CARD", "validPayload": {"cardInstanceIds": ["x"]}}]).is_empty(), "progression does not invent a missing upgrade ID")

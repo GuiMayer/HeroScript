@@ -16,6 +16,13 @@ func _ready() -> void:
 	GameSession.receipt_received.connect(Playback.load_receipt)
 
 func _apply_connection() -> void:
+	if _transport.base_url == Preferences.api_url:
+		return
+	if GameSession.busy or GameSession.has_pending_command:
+		Preferences.api_url = _transport.base_url
+		return
+	GameSession.invalidate()
+	Playback.clear()
 	_transport.base_url = Preferences.api_url
 
 func _remember_run(run_id: String) -> void:

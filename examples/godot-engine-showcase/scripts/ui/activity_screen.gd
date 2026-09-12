@@ -155,13 +155,18 @@ func _build_actions() -> void:
 
 func _execute(choice: Dictionary) -> void:
 	router.show_toast(I18n.text("Processing %s…") % str(choice.type))
-	if await GameSession.submit_activity(choice):
+	var accepted := await GameSession.submit_activity(choice)
+	if not is_inside_tree():
+		return
+	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
 			GameAudio.reward()
 		router.open_game()
 
 func _verify() -> void:
 	var result := await GameSession.verify()
+	if not is_inside_tree():
+		return
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
 		router.show_toast(I18n.text("Deterministic replay verified.") if valid else I18n.text("Replay diverged."), not valid)

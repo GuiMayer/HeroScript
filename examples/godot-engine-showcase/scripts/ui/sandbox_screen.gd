@@ -81,7 +81,10 @@ func _launch() -> void:
 		return
 	launch_button.disabled = true
 	router.show_toast(I18n.text("Compiling scenario and rules…"))
-	if await GameSession.start_sandbox(selected_mode, parsed, int(seed_input.value)):
+	var accepted := await GameSession.start_sandbox(selected_mode, parsed, int(seed_input.value))
+	if not is_inside_tree():
+		return
+	if accepted:
 		router.open_game()
 	else:
 		launch_button.disabled = false

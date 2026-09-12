@@ -38,13 +38,15 @@ func read_legal_actions(combat_id: String, actor_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/combats/%s/legal-actions?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()])
 
-func send_command(scope: String, id: String, type: String, payload: Dictionary, sequence: int, step: int) -> Dictionary:
+func prepare_command(scope: String, id: String, type: String, payload: Dictionary, sequence: int, step: int) -> Dictionary:
 	assert(scope in ["runs", "combats"])
+	return {"scope": scope, "id": id, "envelope": {
+		"commandId": _uuid(), "expectedSequence": sequence, "expectedStep": step,
+		"type": type, "payload": payload.duplicate(true)}}
+
+func send_prepared(command: Dictionary) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST,
-		"/api/v1/%s/%s/commands" % [scope, id.uri_encode()], {
-			"commandId": _uuid(), "expectedSequence": sequence,
-			"expectedStep": step, "type": type, "payload": payload.duplicate(true)
-		})
+		"/api/v1/%s/%s/commands" % [command.scope, str(command.id).uri_encode()], command.envelope.duplicate(true))
 
 func timeline(combat_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,

@@ -60,6 +60,8 @@ func setup(owner) -> void:
 
 func _load() -> void:
 	var response := await GameSession.timeline()
+	if not is_inside_tree():
+		return
 	if response.ok:
 		entries = response.data.get("items", response.data if response.data is Array else [])
 		list.clear()
@@ -86,6 +88,8 @@ func _branch() -> void:
 		router.show_error(I18n.text("Select a command and enter a branch name."))
 		return
 	var response := await GameSession.create_branch(selected_sequence, branch_key.text.strip_edges())
+	if not is_inside_tree():
+		return
 	if not response.ok:
 		router.show_error(I18n.error(response))
 		return
@@ -100,6 +104,8 @@ func _branch() -> void:
 
 func _load_tree() -> void:
 	var response := await GameSession.branch_tree()
+	if not is_inside_tree():
+		return
 	tree_view.clear()
 	var root := tree_view.create_item()
 	root.set_text(0, I18n.text("origin"))
@@ -114,6 +120,8 @@ func _load_tree() -> void:
 
 func _verify() -> void:
 	var result := await GameSession.verify()
+	if not is_inside_tree():
+		return
 	if result.ok:
 		var valid := bool(result.data.get("isValid", result.data.get("valid", false)))
 		router.show_toast(I18n.text("All hashes match.") if valid else I18n.text("A divergence was found."), not valid)
@@ -126,6 +134,8 @@ func _simulate() -> void:
 		router.show_error(I18n.text("No actor is waiting for input to simulate."))
 		return
 	var response := await GameSession.simulate_end_turn()
+	if not is_inside_tree():
+		return
 	if response.ok:
 		details.text = JSON.stringify(response.data, "  ")
 		router.show_toast(I18n.text("Simulation completed without changing the run."))

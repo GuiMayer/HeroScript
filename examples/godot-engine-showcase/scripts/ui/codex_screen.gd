@@ -2,6 +2,7 @@ extends VBoxContainer
 
 const KINDS := ["cards", "entities", "resources", "status-effects", "relics", "modifiers", "modes", "combat-rules", "runs"]
 
+var request_epoch := 0
 var router
 var list: ItemList
 var detail: TextEdit
@@ -48,9 +49,11 @@ func setup(owner) -> void:
 	call_deferred("_load_kind", "cards")
 
 func _load_kind(kind: String) -> void:
+	request_epoch += 1
+	var epoch := request_epoch
 	detail.text = I18n.text("Loading %s…") % kind
 	var response := await GameSession.content(kind, 200)
-	if not is_inside_tree():
+	if not is_inside_tree() or epoch != request_epoch:
 		return
 	if not response.ok:
 		detail.text = response.error

@@ -12,6 +12,7 @@ var toast: Label
 var pause_layer: Control
 var presentation: Dictionary = {}
 var current_screen := "menu"
+var navigation_epoch := 0
 var settings_return_to_gameplay := false
 
 func _ready() -> void:
@@ -93,6 +94,7 @@ func _screen() -> VBoxContainer:
 	return root
 
 func _clear_host() -> void:
+	navigation_epoch += 1
 	for child in host.get_children():
 		host.remove_child(child)
 		child.queue_free()
@@ -139,14 +141,18 @@ func _show_main_menu() -> void:
 	root.add_child(bottom)
 
 func _new_campaign() -> void:
+	var epoch := navigation_epoch
+	if GameSession.busy or GameSession.has_pending_command:
+		return
 	show_toast(I18n.text("Preparing your journey…"))
 	var ok := await GameSession.start_campaign(Preferences.next_campaign_seed())
-	if ok:
+	if ok and epoch == navigation_epoch:
 		open_game()
 
 func _continue_campaign() -> void:
+	var epoch := navigation_epoch
 	show_toast(I18n.text("Restoring your journey…"))
-	if await GameSession.continue_run(Preferences.last_run_id):
+	if await GameSession.continue_run(Preferences.last_run_id) and epoch == navigation_epoch:
 		open_game()
 
 func open_game() -> void:
@@ -258,7 +264,10 @@ func _button(text: String, action: Callable, width := 0) -> Button:
 	return value
 
 func _on_session_changed() -> void:
-	pass
+	if current_screen == "combat" and host.get_child_count() > 0:
+		var screen = host.get_child(0)
+		if screen.has_method("_update_controls"):
+			screen._update_controls()
 
 func _apply_preferences() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
