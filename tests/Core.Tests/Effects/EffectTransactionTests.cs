@@ -10,6 +10,29 @@ namespace Core.Tests.Effects;
 public sealed class EffectTransactionTests
 {
     [Fact]
+    public void NumericEffectWithoutConfiguredPipelineIsRejectedByDefault()
+    {
+        var executor = new EffectTriggerExecutor(
+            Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor());
+
+        var result = executor.Execute(Request(Resource(EffectType.DAMAGE, 3)));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("requires a configured calculation pipeline", result.Error);
+    }
+
+    [Fact]
+    public void ExplicitLowLevelModeStillProducesAnAuditableIdentityCalculation()
+    {
+        var result = Executor().Execute(Request(Resource(EffectType.DAMAGE, 3)));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var calculation = Assert.Single(result.Value.Calculations);
+        Assert.Equal("__unconfigured_test_identity__", calculation.PipelineId);
+        Assert.NotEmpty(calculation.Fingerprint);
+    }
+
+    [Fact]
     public void LaterFormulaObservesEarlierResourceChange()
     {
         var request = Request(Resource(EffectType.DAMAGE, 3), Resource(EffectType.DAMAGE, null) with
@@ -77,7 +100,7 @@ public sealed class EffectTransactionTests
             .Returns((string expression, Dictionary<string, float> variables, float initialValue) => expression == "false"
                 ? Result<float>.Success(0) : variables.TryGetValue(expression, out var value)
                     ? Result<float>.Success(value) : Result<float>.Failure("Unknown variable"));
-        return new(formulas.Object, new ImmutableEffectProcessor());
+        return new(formulas.Object, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
     }
 
     internal static EffectTriggerExecutionRequest Request(params EffectDefinition[] effects) => new()

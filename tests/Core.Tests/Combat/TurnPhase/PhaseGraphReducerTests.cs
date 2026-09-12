@@ -142,7 +142,8 @@ public sealed class PhaseGraphReducerTests
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(service => service.Resolve(Revision, It.IsAny<string?>()))
             .Returns(Result<ContentRuntime>.Success(StatusRuntime()));
-        var effects = new EffectTriggerExecutor(formulas.Object, new ImmutableEffectProcessor(), runtimes.Object);
+        var effects = new EffectTriggerExecutor(formulas.Object, new ImmutableEffectProcessor(), runtimes.Object,
+            allowUnconfiguredCalculations: true);
         return new PhaseGraphReducer(formulas.Object, effects);
     }
 

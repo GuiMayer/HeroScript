@@ -17,7 +17,7 @@ public sealed class CombatResourceLifecycleTests
     public void Process_UsesImmutableEffectPipelineForMatchingActorBoundary()
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
-            new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
+            new StubFormulaEvaluator(), new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create([Entity(
                 Pool("energy", 1, 3, new RegenerationConfig
                 {
@@ -51,7 +51,7 @@ public sealed class CombatResourceLifecycleTests
     public void Process_AppliesNegativeLifecycleAmountAtEndBoundary()
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
-            new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
+            new StubFormulaEvaluator(), new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create([Entity(Pool("block", 8, 999, new RegenerationConfig
             {
                 Enabled = true,
@@ -70,7 +70,7 @@ public sealed class CombatResourceLifecycleTests
     public void Process_ExcludesModeOwnedResourceCycleFromIntrinsicRegeneration()
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
-            new StubFormulaEvaluator(), new ImmutableEffectProcessor()));
+            new StubFormulaEvaluator(), new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create([Entity(Pool("energy", 1, 3, new RegenerationConfig
             {
                 Enabled = true,
@@ -94,7 +94,8 @@ public sealed class CombatResourceLifecycleTests
     public void Process_DoesNotFallbackWhenFormulaFails()
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
-            new StubFormulaEvaluator(Result<float>.Failure("invalid formula")), new ImmutableEffectProcessor()));
+            new StubFormulaEvaluator(Result<float>.Failure("invalid formula")), new ImmutableEffectProcessor(),
+            allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create([Entity(Pool("mana", 1, 10, new RegenerationConfig
             {
                 Enabled = true,
@@ -115,7 +116,8 @@ public sealed class CombatResourceLifecycleTests
     {
         var formulas = new StubFormulaEvaluator(evaluate: variables =>
             Result<float>.Success(variables!["source.resources.a.current"]));
-        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor()));
+        var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
+            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create([Entity(
             Pool("a", 1, 10, new() { Enabled = true, AmountPerTurn = 2, Timing = RegenerationTiming.START_TURN }),
             Pool("b", 1, 10, new() { Enabled = true, Formula = "source.resources.a.current", Timing = RegenerationTiming.START_TURN }))], DeterministicContext.Create(42, "revision"));
@@ -135,7 +137,8 @@ public sealed class CombatResourceLifecycleTests
     public void Process_FailureAfterEarlierRuleDiscardsTheWholeBoundary()
     {
         var lifecycle = new CombatResourceLifecycle(new EffectTriggerExecutor(
-            new StubFormulaEvaluator(Result<float>.Failure("broken")), new ImmutableEffectProcessor()));
+            new StubFormulaEvaluator(Result<float>.Failure("broken")), new ImmutableEffectProcessor(),
+            allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create([Entity(
             Pool("a", 1, 10, new() { Enabled = true, AmountPerTurn = 2, Timing = RegenerationTiming.START_TURN }),
             Pool("b", 1, 10, new() { Enabled = true, Formula = "broken", Timing = RegenerationTiming.START_TURN }))], DeterministicContext.Create(42, "revision"));

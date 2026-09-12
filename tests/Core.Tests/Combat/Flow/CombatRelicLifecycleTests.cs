@@ -56,7 +56,8 @@ public sealed class CombatRelicLifecycleTests
             DeterministicContext.Create(2, "revision"));
         var lifecycle = new CombatRelicLifecycle(new EffectTriggerExecutor(
             Mock.Of<IRuntimeFormulaEvaluator>(),
-            new ImmutableEffectProcessor()));
+            new ImmutableEffectProcessor(),
+            allowUnconfiguredCalculations: true));
 
         var result = lifecycle.Process(run, combat, CombatTriggerBoundaries.CombatStart);
 

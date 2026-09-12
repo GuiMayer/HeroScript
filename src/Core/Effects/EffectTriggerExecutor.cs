@@ -59,6 +59,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     private readonly ICalculationEngine? _calculations;
     private readonly ICalculationInfluenceProvider? _influences;
     private readonly ICalculationSettlementPlanner _settlements;
+    private readonly bool _allowUnconfiguredCalculations;
 
     public EffectTriggerExecutor(
         IRuntimeFormulaEvaluator formulas,
@@ -66,7 +67,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         IContentRuntimeResolver? contentRuntimes = null,
         ICalculationEngine? calculations = null,
         ICalculationInfluenceProvider? influences = null,
-        ICalculationSettlementPlanner? settlements = null)
+        ICalculationSettlementPlanner? settlements = null,
+        bool allowUnconfiguredCalculations = false)
     {
         _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
@@ -74,6 +76,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         _calculations = calculations;
         _influences = influences;
         _settlements = settlements ?? new CalculationSettlementPlanner();
+        _allowUnconfiguredCalculations = allowUnconfiguredCalculations;
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
@@ -271,7 +274,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             Target = request.Combat.GetActor(targetId), Variables = variables,
             Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
         };
-        var resolved = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences)
+        var resolved = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences,
+                _allowUnconfiguredCalculations)
             .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}", context);
         if (resolved.IsFailure) return Result<ResolvedAmount>.Failure(resolved.Error);
         if (resolved.Value.Calculation == null || resolved.Value.Pipeline == null)

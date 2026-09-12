@@ -41,7 +41,8 @@ public sealed class GameplayOwnershipTests
     [Fact]
     public void TargetRequiresSelectionAndDoesNotSilentlyDiscardInvalidIds()
     {
-        var executor = new EffectTriggerExecutor(Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor());
+        var executor = new EffectTriggerExecutor(Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor(),
+            allowUnconfiguredCalculations: true);
         var request = new EffectTriggerExecutionRequest
         {
             Combat = State(), OwnerEntityId = "hero", SourceEntityId = "hero",

@@ -24,7 +24,8 @@ public sealed class CalculationResolver(
     IRuntimeFormulaEvaluator formulas,
     IContentRuntimeResolver? runtimes = null,
     ICalculationEngine? engine = null,
-    ICalculationInfluenceProvider? influences = null) : ICalculationResolver
+    ICalculationInfluenceProvider? influences = null,
+    bool allowUnconfiguredCalculations = false) : ICalculationResolver
 {
     public Result<ResolvedEffectAmount> Resolve(EffectDefinition effect, string calculationId, CalculationSourceContext context)
     {
@@ -45,20 +46,35 @@ public sealed class CalculationResolver(
         if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && amount < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL require non-negative amounts; use MODIFY_RESOURCE for signed changes");
 
-        // Pure low-level simulations can omit a mode. A configured run cannot silently bypass its pipeline.
+        CalculationPipelineDefinition pipeline;
         if (context.Run?.ResolvedMode == null)
-            return Result<ResolvedEffectAmount>.Success(new(amount, null));
-        if (runtimes == null || engine == null || influences == null)
-            return Result<ResolvedEffectAmount>.Failure("Calculation services are unavailable");
-        var runtime = runtimes.Resolve(context.ContentRevision, context.Run.ConfigName);
-        if (runtime.IsFailure) return Result<ResolvedEffectAmount>.Failure(runtime.Error);
-        var pipeline = ResolvePipeline(effect, context.Run, runtime.Value);
-        if (pipeline.IsFailure) return Result<ResolvedEffectAmount>.Failure(pipeline.Error);
+        {
+            if (!allowUnconfiguredCalculations)
+                return Result<ResolvedEffectAmount>.Failure(
+                    $"Effect {effect.EffectId} requires a configured calculation pipeline");
+            pipeline = context.Pipeline ?? new CalculationPipelineDefinition
+            {
+                PipelineId = "__unconfigured_test_identity__",
+                Channel = effect.CalculationChannel,
+                Buckets = [new() { BucketId = "identity", Order = 0, Operation = CalculationBucketOperation.Add }]
+            };
+        }
+        else
+        {
+            if (runtimes == null || engine == null || influences == null)
+                return Result<ResolvedEffectAmount>.Failure("Calculation services are unavailable");
+            var runtime = runtimes.Resolve(context.ContentRevision, context.Run.ConfigName);
+            if (runtime.IsFailure) return Result<ResolvedEffectAmount>.Failure(runtime.Error);
+            var resolvedPipeline = ResolvePipeline(effect, context.Run, runtime.Value);
+            if (resolvedPipeline.IsFailure) return Result<ResolvedEffectAmount>.Failure(resolvedPipeline.Error);
+            pipeline = resolvedPipeline.Value;
+        }
         var tags = NormalizeTags(effect, context.Tags);
-        var calculationContext = context with { Pipeline = pipeline.Value, Tags = tags };
-        var collected = influences.Collect(calculationContext);
+        var calculationContext = context with { Pipeline = pipeline, Tags = tags };
+        var collected = influences?.Collect(calculationContext)
+            ?? Result<IReadOnlyList<CalculationInfluence>>.Success([]);
         if (collected.IsFailure) return Result<ResolvedEffectAmount>.Failure(collected.Error);
-        var calculated = engine.Calculate(new CalculationRequest
+        var calculated = (engine ?? new CalculationEngine(formulas)).Calculate(new CalculationRequest
         {
             CalculationId = calculationId, ContentRevision = context.ContentRevision,
             Channel = effect.CalculationChannel, BaseValue = amount,
@@ -66,11 +82,11 @@ public sealed class CalculationResolver(
             Influences = collected.Value.Where(item => item.Channel == effect.CalculationChannel).ToArray(),
             Tags = tags,
             Variables = context.Variables
-        }, pipeline.Value);
+        }, pipeline);
         if (calculated.IsFailure) return Result<ResolvedEffectAmount>.Failure(calculated.Error);
         if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL pipelines must produce non-negative amounts");
-        return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value, pipeline.Value));
+        return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value, pipeline));
     }
 
     private static IReadOnlyList<CalculationBaseTrace> BuildBaseTrace(

@@ -311,7 +311,8 @@ public sealed class RunProgressionTests
             }
         };
         var executor = new RunActivityEffectExecutor(new EffectTriggerExecutor(
-            Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor()));
+            Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor(),
+            allowUnconfiguredCalculations: true));
 
         var first = executor.Execute(run, run.Map.Nodes[0], RunActivityBoundary.Entry);
         var repeated = executor.Execute(run, run.Map.Nodes[0], RunActivityBoundary.Entry);

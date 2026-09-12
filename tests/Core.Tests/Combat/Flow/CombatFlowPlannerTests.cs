@@ -36,7 +36,8 @@ public sealed class CombatFlowPlannerTests
         var actions = new Mock<IActionManager>();
         actions.Setup(item => item.GetDefinition(It.IsAny<string>())).Returns((string id) => ResolveAction(id));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
-        var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
+        var triggers = new EffectTriggerExecutor(
+            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
         var boundaries = new CombatBoundaryExecutor(TurnOrders(), actions.Object,
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers),
@@ -276,7 +277,8 @@ public sealed class CombatFlowPlannerTests
         actions.Setup(item => item.GetDefinition(It.IsAny<string>()))
             .Returns((string id) => ResolveAction(id));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
-        var triggers = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor());
+        var triggers = new EffectTriggerExecutor(
+            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
         return new CombatBoundaryExecutor(
             TurnOrders(),
             actions.Object,

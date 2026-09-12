@@ -22,7 +22,8 @@ public sealed class CombatStatusLifecycleTests
             .Returns(Core.Common.Result<float>.Success(4));
         var lifecycle = new CombatStatusLifecycle(new EffectTriggerExecutor(
             formulas.Object,
-            new ImmutableEffectProcessor()));
+            new ImmutableEffectProcessor(),
+            allowUnconfiguredCalculations: true));
         var combat = CombatTransitions.Create(
             [Entity("hero", true, 50), Entity("enemy", false, 50)],
             DeterministicContext.Create(1, "revision")) with

@@ -66,7 +66,7 @@ public sealed class AbilityExecutorTests
         return new AbilityExecutor(
             actions.Object,
             new CardPlayEvaluator(new ActionCostEvaluator(formulas.Object), formulas.Object),
-            new EffectTriggerExecutor(formulas.Object, effects));
+            new EffectTriggerExecutor(formulas.Object, effects, allowUnconfiguredCalculations: true));
     }
 
     private static ActionDefinition Ability(float flatValue, float chance = 1, int repeat = 1) => new()
