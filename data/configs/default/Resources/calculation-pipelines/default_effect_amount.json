@@ -19,10 +19,37 @@
         "operation": "Multiply"
       },
       {
-        "bucketId": "final",
+        "bucketId": "mitigation",
         "order": 40,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "order": 50,
         "operation": "Add",
-        "rounding": "Round"
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "target.block.mitigation",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "scale": 1,
+        "offset": 0,
+        "priority": 100,
+        "requiredTags": ["effect.damage"],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
       }
     ]
   }

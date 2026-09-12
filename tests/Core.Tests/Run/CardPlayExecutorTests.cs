@@ -230,6 +230,66 @@ public sealed class CardPlayExecutorTests
     }
 
     [Fact]
+    public void Execute_CalculatesAndConsumesConfiguredTargetCapacityBeforeArbitraryResourceDamage()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000008");
+        var card = Card(
+        [
+            new CardEffectComponentDefinition
+            {
+                ComponentId = "effect.drain",
+                Effect = new EffectDefinition
+                {
+                    EffectId = "arcane_drain.resolve",
+                    Type = EffectType.DAMAGE,
+                    Target = EffectTarget.TARGET,
+                    TargetResource = "mana",
+                    FlatValue = 5
+                }
+            },
+            Targeting(),
+            Disposition()
+        ]);
+        var pipeline = Pipeline() with
+        {
+            Buckets =
+            [
+                new() { BucketId = "flat", Order = 10, Operation = CalculationBucketOperation.Add },
+                new() { BucketId = "mitigation", Order = 20, Operation = CalculationBucketOperation.ConsumeCapacity },
+                new() { BucketId = "final", Order = 30, Operation = CalculationBucketOperation.Add, Minimum = 0 }
+            ],
+            ResourceInfluenceBindings = [new()
+            {
+                BindingId = "target.guard", Scope = CalculationEntityScope.Target,
+                ResourceId = "guard", Channel = "effect_amount", Bucket = "mitigation",
+                RequiredTags = ["effect.damage"], MissingResource = MissingResourcePolicy.Ignore,
+                Settlement = new()
+                {
+                    Operation = ResourceEffectOperation.SUBTRACT,
+                    Field = ResourceValueField.Current,
+                    UseEffectiveValue = true
+                }
+            }]
+        };
+        var combat = Combat().ReplaceActor(Entity("enemy", false, ("mana", 20), ("guard", 3)));
+
+        var result = Executor(Runtime(card, pipeline)).Execute(new CardPlayExecutionRequest
+        {
+            Run = Run(instanceId), Combat = combat, CardInstanceId = instanceId,
+            ActorId = "hero", SelectedTargetIds = ["enemy"]
+        });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(0, result.Value.Combat.GetActor("enemy")!.GetResource("guard")!.Current);
+        Assert.Equal(18, result.Value.Combat.GetActor("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(2, result.Value.Applications.Count);
+        var calculation = Assert.Single(result.Value.Calculations);
+        Assert.Equal(2, calculation.Value);
+        Assert.All(result.Value.Applications,
+            application => Assert.Equal(calculation.Fingerprint, application.CalculationFingerprint));
+    }
+
+    [Fact]
     public void Execute_InvalidLaterEffectDoesNotMutateInputOrSpendCost()
     {
         var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000003");
@@ -288,7 +348,8 @@ public sealed class CardPlayExecutorTests
         var influences = new CompositeCalculationInfluenceProvider(
         [
             new CardComponentInfluenceProvider(formulas.Object),
-            new EntityResourceInfluenceProvider()
+            new EntityResourceInfluenceProvider(),
+            new EntityStatInfluenceProvider()
         ]);
         return new CardPlayExecutor(
             runtimes.Object,
