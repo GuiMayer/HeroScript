@@ -196,10 +196,6 @@ public sealed record CalculationResult
 {
     private ImmutableArray<CalculationBucketTrace> _buckets = [];
     private ImmutableArray<CalculationBaseTrace> _baseTrace = [];
-    private ImmutableHashSet<string> _tags =
-        ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
-    private ImmutableDictionary<string, float> _variables =
-        ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
 
     public string CalculationId { get; init; } = string.Empty;
     public string ContentRevision { get; init; } = string.Empty;
@@ -218,18 +214,11 @@ public sealed record CalculationResult
         get => _buckets;
         init => _buckets = value?.ToImmutableArray() ?? [];
     }
-    public IReadOnlySet<string> Tags
-    {
-        get => _tags;
-        init => _tags = value?.ToImmutableHashSet(StringComparer.Ordinal)
-            ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
-    }
-    public IReadOnlyDictionary<string, float> Variables
-    {
-        get => _variables;
-        init => _variables = value?.ToImmutableDictionary(StringComparer.Ordinal)
-            ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
-    }
+    // Concrete immutable types are part of the persistence contract. Abstract
+    // read-only collection interfaces cannot be reconstructed by System.Text.Json.
+    public ImmutableArray<string> Tags { get; init; } = [];
+    public ImmutableSortedDictionary<string, float> Variables { get; init; } =
+        ImmutableSortedDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
     public string Fingerprint { get; init; } = string.Empty;
 }
 

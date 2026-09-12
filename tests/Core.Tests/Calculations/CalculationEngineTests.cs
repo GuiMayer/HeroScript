@@ -1,4 +1,6 @@
 using System.Collections.Immutable;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Calculations;
 using Core.Combat;
 using Core.Combat.Models;
@@ -16,6 +18,32 @@ namespace Core.Tests.Calculations;
 public sealed class CalculationEngineTests
 {
     private readonly CalculationEngine _engine = new();
+
+    [Fact]
+    public void Result_RoundTripsThroughStrictPersistenceJson()
+    {
+        var calculated = _engine.Calculate(new CalculationRequest
+        {
+            CalculationId = "persisted", Channel = "resource_reduction", BaseValue = 4,
+            Tags = new HashSet<string> { "damage", "effect.damage" },
+            Variables = new Dictionary<string, float> { ["target.resources.armor.current"] = 2 }
+        }, Pipeline());
+        Assert.True(calculated.IsSuccess, calculated.IsFailure ? calculated.Error : null);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = false,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+
+        var json = JsonSerializer.Serialize(calculated.Value, options);
+        var restored = JsonSerializer.Deserialize<CalculationResult>(json, options);
+
+        Assert.NotNull(restored);
+        Assert.Equal(calculated.Value.Fingerprint, restored.Fingerprint);
+        Assert.Equal(calculated.Value.Tags.ToArray(), restored.Tags.ToArray());
+        Assert.Equal(calculated.Value.Variables.ToArray(), restored.Variables.ToArray());
+    }
 
     [Fact]
     public void Calculate_ReducesConfiguredBucketsWithCompleteTrace()

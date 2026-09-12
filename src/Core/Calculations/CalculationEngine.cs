@@ -95,8 +95,8 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
             Value = current,
             BaseTrace = request.BaseTrace,
             Buckets = traceArray,
-            Tags = request.Tags,
-            Variables = request.Variables,
+            Tags = request.Tags.OrderBy(item => item, StringComparer.Ordinal).ToImmutableArray(),
+            Variables = request.Variables.ToImmutableSortedDictionary(StringComparer.Ordinal),
             Fingerprint = payload.Compute()
         });
     }
