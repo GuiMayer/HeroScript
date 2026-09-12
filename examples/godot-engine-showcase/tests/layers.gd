@@ -155,8 +155,21 @@ func _run() -> void:
 	check(presenter._targets(presenter._candidates("card-1")[0]) == ["enemy"], "indexed candidates cannot be mutated by views")
 	check(presenter.input_state(false, true, true, false, "card-1") == Presenter.InputState.ANIMATING, "presentation cursor overrides selection state")
 	check(presenter.input_state(false, true, false, true, "") == Presenter.InputState.PAUSED, "pause blocks every presentation input state")
+	for field in [0.0, 1.0, 2.0, "Current", "Minimum", "Maximum"]:
+		var label: String = presenter.application_text({"previousValue": 1, "currentValue": 2, "resourceId": "custom", "resourceField": field})
+		check(not label.is_empty(), "resource field presentation accepts numeric and named values: " + str(field))
 	_check_boundaries("res://scripts/presentation", ["HTTPRequest", "HTTPClient", "GameSession", "/api/v1/"])
 	var prefs = root.get_node("Preferences")
+	var Timeline = preload("res://scripts/presentation/timeline_presenter.gd")
+	var timeline_model = Timeline.new()
+	timeline_model.append_page({"items": [{"runSequence": 3}], "nextCursor": 3})
+	timeline_model.append_page({"items": [{"runSequence": 3}, {"runSequence": 7}], "nextCursor": 7})
+	check(timeline_model.entries().size() == 2 and timeline_model.next_cursor == 7, "timeline paging preserves sparse sequences without duplicates")
+	var lineage: Array = Timeline.lineage({"runId": "origin", "children": [{"runId": "child", "parentRunId": "origin", "children": [{"runId": "leaf", "parentRunId": "child"}]}]})
+	check(lineage[2].depth == 2 and lineage[2].parentRunId == "child", "nested branches retain hierarchy instead of flattening")
+	var raw_history := {"run": {"deck": {"cardInstances": {"one": {"cardInstanceId": "one"}}}}, "combat": {"actors": {"actor": {"instanceId": "actor", "components": {"pool": {"type": "resources", "state": {"resources": {"custom": {"current": 8}}}}}}}, "actorOrder": ["actor"]}}
+	var history := Gateway.normalize_history(raw_history)
+	check(history.combat.actors[0].resources.custom.current == 8 and raw_history.combat.actors is Dictionary, "historical DTO adapter preserves generic resources and original aggregate")
 	var bindings := {}
 	for action in prefs.ACTIONS: bindings[action] = InputMap.action_get_events(action).duplicate()
 	prefs.reset_bindings(false)

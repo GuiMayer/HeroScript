@@ -138,6 +138,34 @@ func _run() -> void:
 	check(int(GameSession.run.sequence) == sequence_before, "presentation does not issue extra commands")
 	var verification := await GameSession.verify()
 	check(verification.ok and bool(verification.data.get("isValid", false)), "replay valid after localized interactive input")
+	var original_run: String = GameSession.run.runId
+	var original_bytes := JSON.stringify(GameSession.run)
+	var live_cursor := Playback.index
+	router.show_timeline()
+	var timeline = router.host.get_child(0)
+	for _attempt in 400:
+		await get_tree().create_timer(.025).timeout
+		if not timeline.entries.is_empty(): break
+	check(not timeline.entries.is_empty(), "timeline loads real paginated commands")
+	if not timeline.entries.is_empty():
+		await timeline._select(0)
+		check(timeline.history_view.actor_panels.size() == GameSession.combat.actors.size(), "historical aggregate is projected into reusable actor views")
+		await timeline._select(timeline.entries.size() - 1)
+		check(timeline.playback.total > 0, "historical command exposes canonical resolution frames")
+		timeline._next_frame()
+		check(Playback.index == live_cursor and JSON.stringify(GameSession.run) == original_bytes, "historical playback does not change live cursor or run")
+		timeline.branch_key.text = "ui-branch"
+		await timeline._branch()
+		check(GameSession.run.runId != original_run and router.current_screen == "combat", "branch button activates a separate playable run")
+		router.show_timeline()
+		timeline = router.host.get_child(0)
+		await timeline._load_tree()
+		var origin: TreeItem = timeline.tree_view.get_root()
+		check(origin != null and str(origin.get_metadata(0)) == original_run and origin.get_child_count() > 0, "branch tree retains the real origin and descendants")
+		if origin:
+			origin.select(0)
+			await timeline._activate_selected()
+			check(GameSession.run.runId == original_run and JSON.stringify(GameSession.run) == original_bytes, "existing branch activation restores the original unchanged run")
 	router.back_to_menu()
 	finish()
 

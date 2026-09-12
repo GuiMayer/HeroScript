@@ -50,9 +50,13 @@ recorrem ao inglês. Os nomes de conteúdo também priorizam o fallback inglês.
 - Os custos e valores da prévia vêm da engine; buffs e upgrades não são
   recalculados na Godot.
 - Por padrão, **E** encerra turno, **T** abre a timeline, **Esc** pausa e
-  **Espaço** avança um frame no modo manual. Os atalhos são remapeáveis.
+  **F** avança um frame no modo manual. Os atalhos são remapeáveis.
+- Teclado: setas/Tab navegam e Enter confirma. Controle: direcional navega,
+  A confirma, Start pausa, Y encerra turno, Back abre a timeline e RB avança
+  animações. Remapear uma entrada preserva o vínculo do outro dispositivo.
 - Novas ações ficam bloqueadas durante envio, sincronização e reprodução dos
-  frames. Em caso de projeção desatualizada, use **Atualizar**.
+  frames. Em caso de projeção desatualizada ou comando com resposta incerta,
+  use **Reconectar**. A recuperação reutiliza a identidade do comando pendente.
 
 A apresentação exibe o snapshot final autoritativo e anima as aplicações dos
 frames recebidos; ela não executa novamente as regras nem altera a timeline.
@@ -116,5 +120,22 @@ godot --headless --path . --script res://tests/layers.gd
 Esse teste usa transporte injetado, verifica isolamento dos snapshots, fallback,
 envelopes, falhas de sincronização e dependências proibidas entre camadas.
 Veja [como substituir a interface](ARCHITECTURE.md).
+
+## Inspeção e histórico
+
+Selecione uma carta e use **Inspecionar carta** para consultar escolhas,
+upgrades e fontes disponibilizadas pela engine. Cartas indisponíveis também
+podem ser selecionadas para inspeção. Os botões das pilhas mostram seu conteúdo
+ordenado por nome, sem expor a ordem de compra.
+
+Na timeline, selecione um comando ou use o cursor para ver o estado salvo
+depois dele. A reprodução dos frames tem cursor próprio: não altera a run nem
+reconstrói estados intermediários. **Criar branch aqui** abre outra run;
+**Ativar branch** retoma uma existente na árvore. As permissões vêm do modo.
+A simulação de fim de turno usa o estado atual da run, não o comando histórico
+selecionado; para experimentar outro passado, primeiro ative uma branch dele.
+
+Configurações incluem tamanho de texto, contraste, movimento reduzido e
+restauração dos controles. Veja [etapas e verificações](UX_IMPLEMENTATION.md).
 
 Veja o [diagnóstico de desempenho e decisões de UX](../../docs/roadmap/ENGINE_PERFORMANCE_AND_DEMO_UX.md).

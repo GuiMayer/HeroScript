@@ -72,7 +72,7 @@ func _intent_for(actor_id: String) -> String:
 			for application in intent.get("previewApplications", []):
 				lines.append(application_text(application))
 			if intent.get("previewUncertain", false):
-				lines.append(_i18n.text("The outcome depends on the next responses."))
+				lines.append(_i18n.text("Outcome uncertain"))
 			return "\n".join(lines)
 	return ""
 
@@ -105,13 +105,19 @@ func application_text(application: Dictionary, include_source := false) -> Strin
 	if previous != null and current != null:
 		text += "%s → %s %s" % [_i18n.number(float(previous)), _i18n.number(float(current)),
 			_i18n.content_name(str(application.get("resourceId", "")))]
+		var field := str(application.get("resourceField", 0))
+		if field in ["1", "1.0", "Minimum"]: text += " (" + _i18n.text("Minimum") + ")"
+		elif field in ["2", "2.0", "Maximum"]: text += " (" + _i18n.text("Maximum") + ")"
 	elif application.get("statusId") != null:
 		text += _i18n.content_name(str(application.statusId))
 	else:
 		text += _i18n.content_name(str(application.get("effectType", "effect")))
 	var source: Dictionary = application.get("provenance", {})
 	if include_source and not str(source.get("sourceId", "")).is_empty():
-		text += "  [%s: %s]" % [_i18n.content_name(str(source.get("kind", ""))),
+		var kind = source.get("kind", "")
+		if kind is float or kind is int:
+			kind = ["Card", "Status", "Relic", "Ability", "GameMode", "Encounter", "Rule"][clampi(int(kind), 0, 6)]
+		text += "  [%s: %s]" % [_i18n.text(str(kind)),
 			_i18n.content_name(str(_cards.get(str(source.sourceId), {}).get("definitionId", source.sourceId)))]
 	return text
 
@@ -158,7 +164,9 @@ func inspection_text(id: String) -> String:
 	else:
 		lines.append(_i18n.text("Upgrades: %s") % data.get("appliedUpgrades", []).size())
 		var context: Dictionary = data.get("contextSources", {}) if data.get("contextSources") is Dictionary else {}
-		for pair in [["Relics", "relics", "relicId"], ["Modifiers", "modifiers", "scriptId"]]:
+		for upgrade in data.get("appliedUpgrades", []):
+			lines.append(_i18n.content_name(str(upgrade.get("upgradeId", ""))))
+		for pair in [["Relics", "relics", "definitionId"], ["Modifiers", "modifiers", "modifierId"]]:
 			var names: Array[String] = []
 			for item in context.get(pair[1], []): names.append(_i18n.content_name(str(item.get(pair[2], item.get("definitionId", "")))))
 			lines.append(_i18n.text(pair[0]) + ": " + ", ".join(names))

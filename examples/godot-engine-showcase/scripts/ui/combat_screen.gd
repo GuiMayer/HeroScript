@@ -128,6 +128,7 @@ func _card_button(card: Dictionary) -> Button:
 	var id := str(card.get("definitionId", ""))
 	var info: Dictionary = presentation.get("cards", {}).get(id, {})
 	var value := CardView.new()
+	value.toggle_mode = true
 	value.custom_minimum_size = Vector2(220, 176)
 	value.add_theme_font_size_override("font_size", 15)
 	value.text = "%s%s\n\n%s" % [

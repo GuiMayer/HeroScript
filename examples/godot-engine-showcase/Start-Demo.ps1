@@ -66,8 +66,12 @@ try {
         if ($VerboseGodot) { $godotArguments += '--verbose' }
         $testArgument = if ($UiSmoke) { '--ui-smoke' } else { '--smoke' }
         $godotArguments += @('--path', $demoRoot, '--', $testArgument, "--api-url=$apiUrl")
-        & godot @godotArguments
-        if ($LASTEXITCODE -ne 0) { throw 'O smoke test da demo falhou.' }
+        & godot @godotArguments 2>&1 | Tee-Object -Variable godotTestOutput
+        $godotTestText = $godotTestOutput -join "`n"
+        if ($LASTEXITCODE -ne 0 -or $godotTestText -match '(?m)^(SCRIPT ERROR:|ERROR:)' -or
+            $godotTestText -notmatch 'SHOWCASE_(UI_)?SMOKE failures=0') {
+            throw 'O smoke test da demo falhou ou reportou erro de script.'
+        }
     }
     else {
         & godot --path $demoRoot -- "--api-url=$apiUrl"

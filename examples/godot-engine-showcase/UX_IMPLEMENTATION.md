@@ -31,4 +31,21 @@
 - Connection settings validate addresses and reject changes while an operation is unresolved; an explicitly edited address is persisted even when launched with a temporary port override.
 - Automated tests inject physical Tab and controller D-pad events, and validate remap/reset/conflict behavior. Physical controller hardware has not been tested.
 
-Next: historical combat and branch navigation.
+## Stage 5 — historical combat and branch navigation
+
+- Cursor and paginated command list select canonical post-command snapshots, normalized by the gateway into the same actor components as live combat.
+- Historical frame playback is a separate cursor. It highlights recorded applications but does not reconstruct intermediate authoritative states.
+- The actual nested branch tree identifies the active run. Creating a branch and activating an existing one are explicit operations; no head is overwritten.
+- Mode permissions govern historical inspection and forking. Slider reads are debounced, guarded against stale responses and cached in a bounded 32-state local cache.
+- Real-engine UI tests verify history loading, frame playback isolation, creating a playable branch and switching back to the unchanged origin. Offline tests cover sparse pagination and aggregate normalization.
+- Final visual checks include English combat, high contrast/large text and Portuguese timeline. Target controls precede scrollable actor detail so they remain easy to reach.
+
+All five stages preserve the engine as the only authority for gameplay. API/engine code did not require changes for this interaction work; existing canonical projections supplied the necessary data.
+
+## Final validation
+
+- Godot offline layer tests: passed, including concurrency/recovery, defensive copies, timeline normalization, localization and remapping.
+- Real-engine UI smoke: passed, including physical Tab, simulated controller navigation, legal card play, frame/pause isolation and branch round-trip.
+- Full campaign smoke: passed all seven activities and all three sandbox modes. Forty command requests measured median 1,620 ms and maximum 4,451 ms on this machine; this is not a claim that engine latency was optimized by the UI changes.
+- Smoke launcher now rejects Godot script errors even when Godot exits with code zero.
+- Manual hardware gamepad validation and testing additional window sizes remain recommended before distributing the demo.

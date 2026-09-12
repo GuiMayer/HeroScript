@@ -48,9 +48,9 @@ func send_prepared(command: Dictionary) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST,
 		"/api/v1/%s/%s/commands" % [command.scope, str(command.id).uri_encode()], command.envelope.duplicate(true))
 
-func timeline(combat_id: String) -> Dictionary:
+func timeline(combat_id: String, after_sequence := 0, limit := 50) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
-		"/api/v1/combats/%s/timeline?afterSequence=0&limit=200" % combat_id.uri_encode())
+		"/api/v1/combats/%s/timeline?afterSequence=%s&limit=%s" % [combat_id.uri_encode(), after_sequence, limit])
 
 func branch_tree(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s/branch-tree" % run_id.uri_encode())
@@ -88,3 +88,38 @@ func _uuid() -> String:
 func inspect_hand(combat_id: String, actor_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/combats/%s/cards/evaluations?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()])
+
+func historical_state(combat_id: String, sequence: int) -> Dictionary:
+	var response: Dictionary = await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/combats/%s/timeline/%s/state" % [combat_id.uri_encode(), sequence])
+	if response.ok: response.data = normalize_history(response.data)
+	return response
+
+func resolution(combat_id: String, command_id: String) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/combats/%s/resolutions/%s" % [combat_id.uri_encode(), command_id.uri_encode()])
+
+static func normalize_history(data: Dictionary) -> Dictionary:
+	# Historical endpoints return the aggregate, while live endpoints return DTOs.
+	# Adapt their shapes here; never synthesize or execute historical transitions.
+	var result := data.duplicate(true)
+	var combat: Dictionary = result.get("combat", {})
+	var actors: Array = []
+	var roster: Dictionary = combat.get("actors", {})
+	var order: Array = combat.get("actorOrder", roster.keys())
+	for id in order:
+		if not roster.has(id): continue
+		var actor: Dictionary = roster[id].duplicate(true)
+		actor["resources"] = {}
+		for component in actor.get("components", {}).values():
+			if str(component.get("type", "")) == "resources":
+				actor.resources = component.get("state", {}).get("resources", {}).duplicate(true)
+		actor["statuses"] = combat.get("statusEffects", {}).get(id, []).duplicate(true)
+		actors.append(actor)
+	combat.actors = actors
+	combat["activation"] = combat.get("activationState", {})
+	combat["phase"] = combat.get("phaseState", {})
+	combat["step"] = combat.get("determinism", {}).get("step", 0)
+	var deck: Dictionary = result.get("run", {}).get("deck", {})
+	if deck.get("cardInstances") is Dictionary: deck.cardInstances = deck.cardInstances.values()
+	return result

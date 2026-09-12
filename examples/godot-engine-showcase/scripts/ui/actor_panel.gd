@@ -32,7 +32,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 			var resource := preload("res://scripts/ui/resource_view.gd").new()
 			resource.setup(resource_id, resources[resource_id], presentation.get("resources", {}).get(resource_id, {}))
 			content.add_child(resource)
-	var statuses: Array = actor.get("statuses", [])
+	var statuses: Array = actor.get("statuses", []).filter(func(status): return status.get("isActive", true))
 	if not statuses.is_empty():
 		var status_text := statuses.map(func(status): return "%s ×%s" % [
 			I18n.content_name(str(status.get("statusId", "status"))), status.get("stacks", 1)] )
@@ -43,6 +43,8 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	if not intent.is_empty():
 		var intent_label := Label.new()
 		intent_label.text = I18n.text("INTENT  •  %s") % intent
+		intent_label.tooltip_text = intent
+		intent_label.max_lines_visible = 3
 		intent_label.add_theme_font_size_override("font_size", 14)
 		intent_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		intent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -54,5 +56,6 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	select.toggle_mode = true
 	target_button = select
 	content.add_child(select)
+	content.move_child(select, 2)
 	add_theme_stylebox_override("panel", AppTheme.box(Color("#261923e8") if hostile else Color("#15252ce8"), 12))
 	add_child(content)

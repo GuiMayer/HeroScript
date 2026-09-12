@@ -268,10 +268,11 @@ func command(type: String) -> Dictionary:
 			return candidate
 	return {}
 
-func timeline() -> Dictionary:
+func timeline(after_sequence := 0) -> Dictionary:
 	if _combat.is_empty():
 		return {"ok": false, "errorKey": "No active combat.", "error": "No active combat."}
-	return await _gateway.timeline(str(_combat.get("combatId", "")))
+	var limit := mini(50, int(_run.get("resolvedMode", {}).get("timelinePolicy", {}).get("maxItemsPerPage", 50)))
+	return await _gateway.timeline(str(_combat.get("combatId", "")), after_sequence, limit)
 
 func branch_tree() -> Dictionary:
 	return await _gateway.branch_tree(str(_run.get("runId", "")))
@@ -279,7 +280,12 @@ func branch_tree() -> Dictionary:
 func create_branch(sequence: int, key: String) -> Dictionary:
 	if _combat.is_empty():
 		return {"ok": false, "errorKey": "No active combat.", "error": "No active combat."}
-	return await _gateway.create_branch(str(_combat.get("combatId", "")), sequence, key)
+	if has_pending_command: return {"ok": false, "errorKey": "Recover the pending command first."}
+	var ticket := _begin("branching")
+	if ticket < 0: return {"ok": false, "errorKey": "An operation is already in progress."}
+	var result: Dictionary = await _gateway.create_branch(str(_combat.get("combatId", "")), sequence, key)
+	_finish(ticket)
+	return result
 
 func verify() -> Dictionary:
 	return await _gateway.verify(str(_run.get("runId", "")))
@@ -305,3 +311,9 @@ func submit_activity(choice: Dictionary) -> bool:
 
 func inspect_hand() -> Dictionary:
 	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id())
+
+func historical_state(sequence: int) -> Dictionary:
+	return await _gateway.historical_state(str(_combat.get("combatId", "")), sequence)
+
+func resolution(command_id: String) -> Dictionary:
+	return await _gateway.resolution(str(_combat.get("combatId", "")), command_id)

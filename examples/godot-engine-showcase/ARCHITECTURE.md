@@ -24,6 +24,8 @@ Não há autoload público de transporte: o nó HTTP é privado da composição.
 | Sessão | snapshots, leitura coordenada, comandos, versão esperada e erros de sincronização | construir URLs, tocar áudio, traduzir mensagens, avançar animações |
 | Escolhas de progressão | transformar opções anunciadas em escolhas enviáveis | inventar IDs, preços ou regras de upgrade |
 | Playback | copiar frames do recibo, manter cursor e emitir frame apresentado | enviar comandos, recalcular efeitos, alterar snapshots |
+| Presenters | indexar snapshots, descrever aplicações canônicas e organizar histórico/linhagem | consultar HTTP, executar regras ou modificar a sessão |
+| Componentes visuais | apresentar atores/resources/cartas e emitir intenção de input | escolher alvos legais ou decidir o resultado do comando |
 | UI | seleção, layout, navegação, tradução, áudio, input e ritmo de apresentação | declarar o resultado de uma regra |
 | Bootstrap | injetar gateway e ligar sinais às preferências/playback | implementar regras ou desenhar telas |
 
@@ -55,6 +57,17 @@ mudança futura de contrato de dados.
 Nenhuma preferência gráfica deve entrar em um envelope de jogo. No fluxo
 atual, a UI exibe o snapshot final autoritativo e anima os frames recebidos;
 não simula estados intermediários por conta própria.
+
+`CombatPresenter` recebe snapshot e tradutor por injeção. `ActorPanel` e
+`ResourceView` servem tanto ao combate atual quanto à inspeção histórica.
+`TimelinePresenter` mantém paginação e metadados; o gateway normaliza a forma
+dos agregados históricos. A tela histórica possui seu próprio `Playback`.
+O snapshot mostrado é pós-comando, não um estado reconstruído de cada frame.
+
+A sessão serializa operações e rejeita leituras de gerações descartadas.
+Respostas incertas preservam o envelope em memória para recuperação idempotente;
+não há promessa de reenvio automático após fechar o processo. A UI separa
+estados de seleção, envio, reprodução, recuperação e pause das regras de turno.
 
 ## Injeção e testes
 

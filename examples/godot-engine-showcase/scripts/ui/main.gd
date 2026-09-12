@@ -133,6 +133,8 @@ func _show_main_menu() -> void:
 	var continue_button := _button(I18n.text("CONTINUE"), _continue_campaign, 420)
 	continue_button.disabled = Preferences.last_run_id.is_empty()
 	card_content.add_child(continue_button)
+	if GameSession.has_pending_command:
+		card_content.add_child(_button(I18n.text("RECONNECT"), _recover_session, 420))
 	card_content.add_child(_button(I18n.text("RULES LAB"), show_sandbox, 420))
 	card_content.add_child(_button(I18n.text("CONTENT CODEX"), show_codex, 420))
 	card_content.add_child(_button(I18n.text("SETTINGS"), show_settings, 420))
@@ -156,6 +158,11 @@ func _continue_campaign() -> void:
 	show_toast(I18n.text("Restoring your journey…"))
 	if await GameSession.continue_run(Preferences.last_run_id) and epoch == navigation_epoch:
 		open_game()
+
+func _recover_session() -> void:
+	var epoch := navigation_epoch
+	var accepted := await GameSession.refresh()
+	if accepted and epoch == navigation_epoch: open_game()
 
 func open_game() -> void:
 	if GameSession.run.is_empty():

@@ -33,6 +33,13 @@ func _capture() -> void:
 		push_error("Combat capture did not reach the combat screen.")
 		_finish(1)
 		return
+	if "--capture-timeline" in OS.get_cmdline_user_args():
+		scene.show_timeline()
+		var timeline = scene.host.get_child(0)
+		for _attempt in 200:
+			await create_timer(.025).timeout
+			if timeline.history_view.presenter != null: break
+		await create_timer(.2).timeout
 	var texture := root.get_texture()
 	if texture == null:
 		push_error("The active display driver does not expose a viewport texture.")
@@ -41,6 +48,7 @@ func _capture() -> void:
 	var image := texture.get_image()
 	var language := str(root.get_node("I18n").locale)
 	var screen_name := "combat" if combat_capture else ("settings" if settings_capture else "menu")
+	if "--capture-timeline" in OS.get_cmdline_user_args(): screen_name = "timeline"
 	var output_name := "%s-%s.png" % [screen_name, language]
 	var output := ProjectSettings.globalize_path("res://tests/output/%s" % output_name)
 	DirAccess.make_dir_recursive_absolute(output.get_base_dir())

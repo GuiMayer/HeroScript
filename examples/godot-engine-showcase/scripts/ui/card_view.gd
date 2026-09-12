@@ -20,6 +20,7 @@ func _ready() -> void:
 
 func select_card(value: bool) -> void:
 	chosen = value
+	set_pressed_no_signal(value)
 	_emphasize(value)
 
 func _emphasize(value: bool) -> void:
