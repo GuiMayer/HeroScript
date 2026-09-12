@@ -323,6 +323,9 @@ public sealed record ResourceInfluenceSettlementDefinition
     public ResourceEffectOperation Operation { get; init; } = ResourceEffectOperation.SUBTRACT;
     public ResourceValueField Field { get; init; } = ResourceValueField.Current;
     public bool UseEffectiveValue { get; init; } = true;
+    /// <summary>Converts the traced calculation unit back into the resource unit.</summary>
+    public float Scale { get; init; } = 1;
+    public float Offset { get; init; }
 }
 
 public sealed record StatInfluenceBindingDefinition

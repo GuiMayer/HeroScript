@@ -158,9 +158,13 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
                 return Result.Failure($"Resource influence binding {binding.BindingId} must be finite");
             if (binding.RequiredTags.Any(string.IsNullOrWhiteSpace) || binding.ExcludedTags.Any(string.IsNullOrWhiteSpace))
                 return Result.Failure($"Resource influence binding {binding.BindingId} contains an empty tag");
-            if (binding.Settlement != null &&
-                (!Enum.IsDefined(binding.Settlement.Operation) || !Enum.IsDefined(binding.Settlement.Field)))
-                return Result.Failure($"Resource influence binding {binding.BindingId} has an invalid settlement");
+            if (binding.Settlement != null)
+            {
+                if (!Enum.IsDefined(binding.Settlement.Operation) || !Enum.IsDefined(binding.Settlement.Field))
+                    return Result.Failure($"Resource influence binding {binding.BindingId} has an invalid settlement");
+                if (!IsFinite(binding.Settlement.Scale) || !IsFinite(binding.Settlement.Offset))
+                    return Result.Failure($"Resource influence binding {binding.BindingId} settlement must be finite");
+            }
         }
         var duplicateStatBinding = pipeline.StatInfluenceBindings
             .Where(binding => !string.IsNullOrWhiteSpace(binding.BindingId))

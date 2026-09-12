@@ -52,24 +52,35 @@ public sealed class CalculationSettlementPlanner : ICalculationSettlementPlanner
                      .OrderByDescending(item => item.Priority)
                      .ThenBy(item => item.BindingId, StringComparer.Ordinal))
         {
-            var contribution = calculation.Buckets
-                .Where(bucket => string.Equals(bucket.BucketId, binding.Bucket, StringComparison.Ordinal))
-                .SelectMany(bucket => bucket.Contributions)
-                .SingleOrDefault(item => string.Equals(item.InfluenceId, binding.BindingId, StringComparison.Ordinal));
-            if (contribution is not { Applied: true })
-                continue;
-            var value = binding.Settlement!.UseEffectiveValue
-                ? contribution.EffectiveValue
-                : contribution.Value;
-            if (value is null || !float.IsFinite(value.Value) || value.Value < 0)
-                return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Failure(
-                    $"Settlement {binding.BindingId} produced an invalid value");
-            if (value.Value == 0)
-                continue;
             var entity = binding.Scope == CalculationEntityScope.Actor ? context.Actor : context.Target;
             if (entity == null)
                 return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Failure(
                     $"Settlement {binding.BindingId} has no scoped entity");
+            var sourceKind = binding.Scope == CalculationEntityScope.Actor
+                ? CalculationSourceKind.Actor
+                : CalculationSourceKind.Target;
+            var sourceId = $"{entity.InstanceId}:{binding.ResourceId}";
+            var contribution = calculation.Buckets
+                .Where(bucket => string.Equals(bucket.BucketId, binding.Bucket, StringComparison.Ordinal))
+                .SelectMany(bucket => bucket.Contributions)
+                .SingleOrDefault(item =>
+                    string.Equals(item.InfluenceId, binding.BindingId, StringComparison.Ordinal) &&
+                    item.SourceKind == sourceKind &&
+                    string.Equals(item.SourceId, sourceId, StringComparison.Ordinal));
+            if (contribution is not { Applied: true })
+                continue;
+            var tracedValue = binding.Settlement!.UseEffectiveValue
+                ? contribution.EffectiveValue
+                : contribution.Value;
+            if (tracedValue is null || !float.IsFinite(tracedValue.Value))
+                return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Failure(
+                    $"Settlement {binding.BindingId} produced an invalid value");
+            var value = tracedValue.Value * binding.Settlement.Scale + binding.Settlement.Offset;
+            if (!float.IsFinite(value) || value < 0)
+                return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Failure(
+                    $"Settlement {binding.BindingId} produced an invalid converted value");
+            if (value == 0)
+                continue;
             result.Add(new()
             {
                 SettlementId = $"{calculation.CalculationId}:settlement:{binding.BindingId}",
@@ -78,7 +89,7 @@ public sealed class CalculationSettlementPlanner : ICalculationSettlementPlanner
                 ResourceId = binding.ResourceId,
                 Field = binding.Settlement.Field,
                 Operation = binding.Settlement.Operation,
-                Value = value.Value
+                Value = value
             });
         }
         return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Success(result.ToImmutable());

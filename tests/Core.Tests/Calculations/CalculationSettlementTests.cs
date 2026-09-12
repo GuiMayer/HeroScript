@@ -122,6 +122,41 @@ public sealed class CalculationSettlementTests
         Assert.Equal(7, result.Value.Value);
     }
 
+    [Fact]
+    public void SettlementUsesConfiguredUnitConversionAndExactResourceProvenance()
+    {
+        var target = Actor("target", ("armor", 8));
+        var pipeline = new CalculationPipelineDefinition
+        {
+            PipelineId = "converted-capacity", Channel = "damage",
+            Buckets = [new() { BucketId = "capacity", Operation = CalculationBucketOperation.ConsumeCapacity }],
+            ResourceInfluenceBindings = [new()
+            {
+                BindingId = "armor-capacity", Scope = CalculationEntityScope.Target,
+                ResourceId = "armor", Channel = "damage", Bucket = "capacity", Scale = .5f,
+                Settlement = new() { Scale = 2 }
+            }]
+        };
+        var context = new CalculationSourceContext { Target = target, Pipeline = pipeline };
+        var collected = new EntityResourceInfluenceProvider().Collect(context);
+        var calculation = new CalculationEngine().Calculate(new()
+        {
+            CalculationId = "converted-hit", Channel = "damage", BaseValue = 3,
+            Influences = collected.Value.Concat([new CalculationInfluence
+            {
+                InfluenceId = "armor-capacity", SourceKind = CalculationSourceKind.Relic,
+                SourceId = "collision", Channel = "damage", Bucket = "capacity", Value = 99,
+                Priority = -1
+            }]).ToArray()
+        }, pipeline);
+
+        Assert.True(calculation.IsSuccess, calculation.IsFailure ? calculation.Error : null);
+        var settlements = new CalculationSettlementPlanner().Plan(calculation.Value, pipeline, context);
+
+        Assert.True(settlements.IsSuccess, settlements.IsFailure ? settlements.Error : null);
+        Assert.Equal(6, Assert.Single(settlements.Value).Value);
+    }
+
     private static CombatActorState Actor(string id, params (string Id, float Value)[] resources) => new()
     {
         InstanceId = id,
