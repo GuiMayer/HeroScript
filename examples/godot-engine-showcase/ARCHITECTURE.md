@@ -4,8 +4,8 @@
 
 ```text
 ui/ → application/GameSession → engine/EngineGateway → engine/HTTPTransport → REST
-            │
-            └─ receipt_received → presentation/Playback → animações da UI
+			│
+			└─ receipt_received → presentation/Playback → animações da UI
 
 bootstrap.gd: instancia transporte/gateway e conecta sessão, playback e preferências
 presentation/I18n: traduz mensagens apenas na borda visual

@@ -1,5 +1,7 @@
 extends VBoxContainer
 
+const Presenter = preload("res://scripts/presentation/combat_presenter.gd")
+var presenter
 var router
 var presentation: Dictionary
 var selected_target := ""
@@ -22,6 +24,7 @@ var reconnect_button: Button
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	presentation = data
+	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions, I18n)
 	Playback.frame_presented.connect(_on_frame)
 	add_theme_constant_override("separation", 8)
 	_build_header()
@@ -82,73 +85,14 @@ func _build_battlefield() -> void:
 	add_child(field)
 
 func _actor_card(actor: Dictionary, hostile: bool) -> Control:
-	var content := VBoxContainer.new()
-	content.custom_minimum_size = Vector2(300 if not hostile else 280, 285)
-	content.add_theme_constant_override("separation", 7)
-	var name := Label.new()
-	name.text = I18n.content_name(str(actor.get("definitionId", "")), str(actor.get("name", ""))).to_upper()
-	name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name.add_theme_font_size_override("font_size", 19)
-	name.add_theme_color_override("font_color", AppTheme.BLOOD if hostile else AppTheme.TEAL)
-	content.add_child(name)
-	var portrait := ActorPortrait.new()
-	portrait.custom_minimum_size = Vector2(260, 112)
-	portrait.configure(hostile, str(actor.get("definitionId", "")).contains("sentinel"))
-	actor_portraits[str(actor.get("instanceId", ""))] = portrait
-	content.add_child(portrait)
-	var resources: Dictionary = actor.get("resources", {})
-	var ordered: Array = presentation.get("resource_order", []).duplicate()
-	for id in resources:
-		if id not in ordered:
-			ordered.append(id)
-	for resource_id in ordered:
-		if resources.has(resource_id):
-			content.add_child(_resource(resource_id, resources[resource_id]))
-	var statuses: Array = actor.get("statuses", [])
-	if not statuses.is_empty():
-		var status_text := statuses.map(func(status): return "%s ×%s" % [
-			I18n.content_name(str(status.get("statusId", "status"))), status.get("stacks", 1)] )
-		var status := AppTheme.muted("  •  ".join(status_text), 13)
-		status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		status.add_theme_color_override("font_color", AppTheme.EMBER)
-		content.add_child(status)
-	if hostile:
-		var intent := _intent_for(str(actor.get("instanceId", "")))
-		var intent_label := Label.new()
-		intent_label.text = I18n.text("INTENT  •  %s") % intent
-		intent_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		intent_label.add_theme_color_override("font_color", AppTheme.GOLD)
-		content.add_child(intent_label)
-	var actor_id := str(actor.get("instanceId", ""))
-	var select := _button(I18n.text("TARGET"), func(): _select_target(actor_id), 0)
-	select.toggle_mode = true
-	target_buttons[actor_id] = select
-	content.add_child(select)
-	return AppTheme.panel(content, Color("#261923e8") if hostile else Color("#15252ce8"))
+	var panel := preload("res://scripts/ui/actor_panel.gd").new()
+	var id := str(actor.get("instanceId", ""))
+	panel.setup(actor, hostile, presentation, presenter._intent_for(id))
+	panel.target_selected.connect(_select_target)
+	actor_portraits[id] = panel.portrait_view
+	target_buttons[id] = panel.target_button
+	return panel
 
-func _resource(id: String, state: Dictionary) -> Control:
-	var row := HBoxContainer.new()
-	var label := Label.new()
-	label.text = I18n.content_name(id).to_upper()
-	label.custom_minimum_size.x = 78
-	label.add_theme_font_size_override("font_size", 12)
-	row.add_child(label)
-	var bar := ProgressBar.new()
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.custom_minimum_size.y = 22
-	bar.min_value = float(state.get("minimum", 0))
-	bar.max_value = maxf(float(state.get("maximum", 1)), 1.0)
-	bar.value = float(state.get("current", 0))
-	bar.show_percentage = false
-	var tone: Color = {"health": AppTheme.BLOOD, "block": Color("#7e9fbd"), "energy": AppTheme.GOLD, "mana": Color("#8c75dc")}.get(id, AppTheme.TEAL)
-	bar.add_theme_stylebox_override("fill", AppTheme.box(tone, 5))
-	row.add_child(bar)
-	var amount := Label.new()
-	amount.text = "%s/%s" % [I18n.number(float(state.get("current", 0))), I18n.number(float(state.get("maximum", 0)))]
-	amount.custom_minimum_size.x = 65
-	amount.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	row.add_child(amount)
-	return row
 
 func _build_hand() -> void:
 	var section := VBoxContainer.new()
@@ -345,53 +289,19 @@ func _queue_text() -> String:
 	return I18n.text("%s animation(s) remaining") % maxi(remaining, 0)
 
 func _candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
-	for candidate in GameSession.legal_actions:
-		var command: Dictionary = candidate.get("command", {})
-		if str(command.get("cardInstanceId", "")) != instance_id:
-			continue
-		var targets: Array = command.get("targetIds", [])
-		if target_id.is_empty() or target_id in targets or str(command.get("targetId", "")) == target_id:
-			return candidate
-	return {}
+	return presenter._candidate_for_card(instance_id, target_id)
 
 func _system_candidate(action_types: Array) -> Dictionary:
-	for candidate in GameSession.legal_actions:
-		if str(candidate.get("source", "")) == "System" and \
-			str(candidate.get("command", {}).get("actionType", "")) in action_types:
-			return candidate
-	return {}
+	return presenter._system_candidate(action_types)
 
 func _preview(candidate: Dictionary) -> String:
-	if candidate.is_empty():
-		return I18n.text("No legal actions for this card in the current state.")
-	var lines: Array[String] = [I18n.text("Cost: %s") % _cost_text(candidate)]
-	if bool(candidate.get("outcomeUncertain", false)):
-		lines.append(I18n.text("The outcome depends on the next responses."))
-	for application in candidate.get("applications", []):
-		var resource = application.get("resourceId")
-		var previous = application.get("previousValue")
-		var current = application.get("currentValue")
-		if resource != null and previous != null and current != null:
-			var delta := float(current) - float(previous)
-			if not is_zero_approx(delta):
-				lines.append("%s: %s%s %s" % [_actor_name(str(application.get("targetEntityId", ""))),
-					"+" if delta > 0 else "", I18n.number(delta), I18n.content_name(str(resource))])
-		elif application.get("statusId") != null:
-			lines.append("%s: %s" % [_actor_name(str(application.get("targetEntityId", ""))),
-				I18n.content_name(str(application.statusId))])
-	return "  •  ".join(lines)
+	return presenter._preview(candidate)
 
 func _card_instance(instance_id: String) -> Dictionary:
-	for card in GameSession.run.get("deck", {}).get("cardInstances", []):
-		if str(card.get("cardInstanceId", "")) == instance_id:
-			return card
-	return {}
+	return presenter._card_instance(instance_id)
 
 func _intent_for(actor_id: String) -> String:
-	for intent in GameSession.combat.get("activation", {}).get("intents", []):
-		if str(intent.get("actorId", "")) == actor_id:
-			return I18n.content_name(str(intent.get("actionId", intent.get("actionType", ""))))
-	return I18n.text("watching")
+	return presenter._intent_for(actor_id)
 
 func _button(text: String, action: Callable, width := 0) -> Button:
 	var value := AppTheme.button(text, width)
@@ -410,7 +320,8 @@ func _has_frames() -> bool:
 	return Playback.has_frames()
 
 func _locked() -> bool:
-	return submitting or GameSession.busy or not GameSession.synchronized or _has_frames() or router.get_tree().paused
+	return presenter.input_state(submitting or GameSession.busy, GameSession.synchronized,
+		_has_frames(), router.get_tree().paused, selected_card) not in [Presenter.InputState.READY, Presenter.InputState.SELECTING]
 
 func _choose_card(id: String) -> void:
 	if _locked():
@@ -437,14 +348,10 @@ func _cancel_selection() -> void:
 	_update_controls()
 
 func _candidates(id: String) -> Array:
-	return GameSession.legal_actions.filter(func(candidate): return str(candidate.get("command", {}).get("cardInstanceId", "")) == id)
+	return presenter._candidates(id)
 
 func _targets(candidate: Dictionary) -> Array:
-	var command: Dictionary = candidate.get("command", {})
-	var targets: Array = command.get("targetIds", [])
-	if targets.is_empty() and command.get("targetId") != null:
-		targets = [command.targetId]
-	return targets
+	return presenter._targets(candidate)
 
 func _clear_choices() -> void:
 	for child in choices.get_children():
@@ -492,10 +399,7 @@ func _update_controls() -> void:
 		target_buttons[id].modulate = AppTheme.GOLD if allowed else Color.WHITE
 
 func _actor_name(id: String) -> String:
-	for actor in GameSession.combat.get("actors", []):
-		if str(actor.get("instanceId", "")) == id:
-			return I18n.content_name(str(actor.get("definitionId", "")), str(actor.get("name", id)))
-	return id
+	return presenter._actor_name(id)
 
 func _float_application(application: Dictionary, portrait: Control) -> void:
 	var previous = application.get("previousValue")
@@ -529,7 +433,4 @@ func _reconnect() -> void:
 		router.open_game()
 
 func _cost_text(candidate: Dictionary) -> String:
-	var parts: Array[String] = []
-	for cost in candidate.get("costs", []):
-		parts.append("%s %s" % [I18n.number(float(cost.get("amount", 0))), I18n.content_name(str(cost.get("resourceId", "")))])
-	return " + ".join(parts) if not parts.is_empty() else "0"
+	return presenter._cost_text(candidate)
