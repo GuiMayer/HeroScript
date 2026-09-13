@@ -41,5 +41,12 @@ static func build(run: Dictionary, commands: Array) -> Array:
 				choices.append(_choice(type, valid))
 	return choices
 
+static func only_forced_advance(choices: Array) -> Dictionary:
+	# Abandon is always a pause-menu escape hatch, not a progression decision.
+	var gameplay: Array = choices.filter(func(choice): return str(choice.get("type", "")) != "ABANDON_RUN")
+	if gameplay.size() != 1 or str(gameplay[0].get("type", "")) != "ADVANCE_NODE":
+		return {}
+	return gameplay[0].duplicate(true)
+
 static func _choice(type: String, payload: Dictionary, subject := "", subject_type := "", secondary := false) -> Dictionary:
 	return {"type": type, "payload": payload.duplicate(true), "subjectId": subject, "subjectType": subject_type, "secondary": secondary}

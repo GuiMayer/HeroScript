@@ -39,7 +39,22 @@ func _run() -> void:
 		return
 	router.show_activity()
 	await settle()
-	check(router.host.get_child(0).presenter.route().size() == session.run.map.nodes.size(), "all engine map nodes are represented")
+	var initial_activity = router.host.get_child(0)
+	check(initial_activity.presenter.route().size() == session.run.map.nodes.size(), "all engine map nodes are represented")
+	check(not is_instance_valid(initial_activity.find_child("AbandonRunButton", true, false)), "activity screen does not expose run abandonment")
+	router.toggle_pause()
+	await settle()
+	var abandon_button: Button = router.pause_layer.find_child("AbandonRunButton", true, false)
+	check(is_instance_valid(abandon_button), "pause menu owns the advertised abandon action")
+	var run_before_pause := JSON.stringify(session.run)
+	abandon_button.pressed.emit()
+	await settle()
+	var abandon_dialog: ConfirmationDialog
+	for child in router.pause_layer.get_children():
+		if child is ConfirmationDialog: abandon_dialog = child
+	check(is_instance_valid(abandon_dialog) and abandon_dialog.visible and JSON.stringify(session.run) == run_before_pause, "abandon waits for explicit confirmation without changing the run")
+	if is_instance_valid(abandon_dialog): abandon_dialog.hide()
+	router.toggle_pause()
 	await capture("journey")
 	var start: Dictionary = session.command("START_ENCOUNTER")
 	check(await session.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})), "enter real combat")
@@ -88,7 +103,15 @@ func _run() -> void:
 				check(false, "advance test combat")
 				break
 			continue
+		var forced: Dictionary = preload("res://scripts/application/activity_choices.gd").only_forced_advance(session.activity_choices())
+		var node_before_auto := str(session.run.get("currentNodeId", ""))
 		router.show_activity()
+		if not forced.is_empty():
+			for _attempt in 400:
+				await create_timer(.025).timeout
+				if not session.busy and str(session.run.get("currentNodeId", "")) != node_before_auto: break
+			check(str(session.run.get("currentNodeId", "")) != node_before_auto, "single advertised next stop advances automatically")
+			continue
 		await settle()
 		var activity = router.host.get_child(0)
 		var node_id := str(session.run.get("currentNodeId", ""))
@@ -123,6 +146,22 @@ func _run() -> void:
 	var replay: Dictionary = await session.verify()
 	if not replay.ok: print("REPLAY_REQUEST_ERROR ", replay.get("error", ""))
 	check(replay.ok and replay.data.get("isValid", false), "real journey replay remains deterministic")
+	check(await session.start_campaign(seed + 901), "start journey for pause abandonment")
+	router.show_activity()
+	await settle()
+	router.toggle_pause()
+	await settle()
+	var exit_button: Button = router.pause_layer.find_child("AbandonRunButton", true, false)
+	exit_button.pressed.emit()
+	await settle()
+	var exit_dialog: ConfirmationDialog
+	for child in router.pause_layer.get_children():
+		if child is ConfirmationDialog: exit_dialog = child
+	if is_instance_valid(exit_dialog): exit_dialog.confirmed.emit()
+	for _attempt in 400:
+		await create_timer(.025).timeout
+		if not session.busy: break
+	check(not paused and str(session.run.get("lifecycle", "")) == "Abandoned", "confirmed pause action abandons the run through REST")
 	_finish()
 
 func _projection_tests() -> void:

@@ -6,6 +6,7 @@ var action_panel: VBoxContainer
 var presenter
 var choice_buttons: Array[Button] = []
 var verifying := false
+var auto_advancing := false
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
@@ -36,6 +37,7 @@ func setup(owner, data: Dictionary) -> void:
 	scroll.add_child(action_panel)
 	workspace.add_child(scroll)
 	columns.add_child(workspace)
+	call_deferred("_maybe_auto_advance")
 
 func _build_header() -> void:
 	var row := HBoxContainer.new()
@@ -126,10 +128,11 @@ func _build_actions() -> void:
 	secondary.add_theme_constant_override("separation", 8)
 	for choice in choices:
 		var type := str(choice.type)
+		if type == "ABANDON_RUN": continue # Run exit belongs to the pause menu.
 		if type == "ADVANCE_NODE": continue # The route itself is the navigation control.
 		var model: Dictionary = presenter.offer(choice)
 		var label := _choice_label(choice, model)
-		if choice.secondary or type in ["ABANDON_RUN", "RESOLVE_NODE", "RESOLVE_COMBAT"]:
+		if choice.secondary or type in ["RESOLVE_NODE", "RESOLVE_COMBAT"]:
 			var display_label := label + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
 			var button := _button(display_label, func(): _confirm_choice(choice, model, label))
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -181,13 +184,12 @@ func _choice_label(choice: Dictionary, model: Dictionary) -> String:
 
 func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
 	if GameSession.busy: return
-	if str(choice.type) not in ["ABANDON_RUN", "BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "UPGRADE_CARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
+	if str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "UPGRADE_CARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
 		_execute(choice)
 		return
 	var dialog := ConfirmationDialog.new()
 	dialog.title = I18n.text("Confirm choice")
 	dialog.dialog_text = label + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")
-	if str(choice.type) == "ABANDON_RUN": dialog.dialog_text += "\n" + I18n.text("This ends the current journey. Its history remains available.")
 	dialog.ok_button_text = I18n.text("CONFIRM")
 	dialog.cancel_button_text = I18n.text("CANCEL")
 	dialog.confirmed.connect(func(): _execute(choice))
@@ -206,7 +208,22 @@ func _execute(choice: Dictionary) -> void:
 	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
 			GameAudio.reward()
-		router.open_game()
+			router.open_game()
+
+func _maybe_auto_advance() -> void:
+	if auto_advancing or not is_inside_tree() or router.current_screen != "activity" or GameSession.busy or get_tree().paused:
+		return
+	var choice: Dictionary = preload("res://scripts/application/activity_choices.gd").only_forced_advance(GameSession.activity_choices())
+	if choice.is_empty(): return
+	auto_advancing = true
+	for button in choice_buttons: button.disabled = true
+	router.show_toast(I18n.text("Moving to the next stop…"))
+	var accepted := await GameSession.submit_activity(choice)
+	if not is_inside_tree(): return
+	auto_advancing = false
+	if accepted: router.open_game()
+	else:
+		for button in choice_buttons: button.disabled = false
 
 func _verify() -> void:
 	if verifying: return
@@ -248,7 +265,6 @@ func _node_name(id: String) -> String:
 
 func _friendly_command(type: String) -> String:
 	return {
-		"ABANDON_RUN": I18n.text("ABANDON RUN"),
 		"START_ENCOUNTER": I18n.text("ENTER COMBAT"),
 		"RESOLVE_COMBAT": I18n.text("CONFIRM RESULT"),
 		"RESOLVE_NODE": I18n.text("COMPLETE STAGE"),

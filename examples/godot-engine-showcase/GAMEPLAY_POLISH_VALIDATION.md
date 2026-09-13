@@ -11,6 +11,7 @@ and the [art replacement contract](assets/ART_SLOTS.md).
 - English fallback and Portuguese messages, keyboard/controller navigation and reduced motion.
 - Map sidebar driven by actual edges and advertised travel commands.
 - Visual card rewards, shop identity/price joins, upgrade choices and confirmation dialogs.
+- Run abandonment is available only from pause and requires confirmation. A single remaining route advances automatically; branches remain explicit choices.
 - Signed block cleanup in JSON and a more varied opening hand, without a Godot gameplay exception.
 - Longer communication allowance for whole-run replay verification; interactive commands retain their normal timeout.
 

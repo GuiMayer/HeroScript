@@ -143,6 +143,11 @@ func _run() -> void:
 	check(session.run.is_empty() and not session.synchronized and not session.busy, "late response cannot republish invalidated session")
 	var choices := Choices.build({}, [{"type": "UPGRADE_CARD", "validPayload": {"upgradeIds": ["a", "b"], "cardInstanceIds": ["x"]}}])
 	check(choices.size() == 2, "progression maps all advertised upgrade choices")
+	var forced := Choices.only_forced_advance([
+		{"type": "ABANDON_RUN", "payload": {}}, {"type": "ADVANCE_NODE", "payload": {"targetNodeId": "next"}}])
+	check(forced.get("payload", {}).get("targetNodeId") == "next", "single forward route can advance automatically")
+	check(Choices.only_forced_advance([{"type": "ADVANCE_NODE"}, {"type": "ADVANCE_NODE"}]).is_empty(), "route branches always require player choice")
+	check(Choices.only_forced_advance([{"type": "ADVANCE_NODE"}, {"type": "RESOLVE_NODE"}]).is_empty(), "gameplay decisions prevent automatic travel")
 	check(Choices.build({}, [{"type": "UPGRADE_CARD", "validPayload": {"cardInstanceIds": ["x"]}}]).is_empty(), "progression does not invent a missing upgrade ID")
 	_check_boundaries("res://scripts/engine", ["I18n", "Preferences", "AppTheme", "Playback", "GameSession", "GameAudio"])
 	var Presenter = preload("res://scripts/presentation/combat_presenter.gd")

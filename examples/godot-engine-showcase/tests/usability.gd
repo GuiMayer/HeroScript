@@ -117,6 +117,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	var pause_focus := get_viewport().gui_get_focus_owner()
 	check(is_instance_valid(pause_focus) and router.pause_layer.is_ancestor_of(pause_focus), "pause owns focus instead of the battlefield")
+	check(is_instance_valid(router.pause_layer.find_child("AbandonRunButton", true, false)), "pause menu exposes the advertised abandon action")
 	var down := InputEventJoypadButton.new()
 	down.button_index = JOY_BUTTON_DPAD_DOWN
 	down.pressed = true

@@ -245,6 +245,12 @@ func toggle_pause() -> void:
 	content.add_child(AppTheme.muted(I18n.text("Take your time. Your progress is preserved while the game is paused.")))
 	content.add_child(_button(I18n.text("RESUME"), toggle_pause, 360))
 	content.add_child(_button(I18n.text("SETTINGS"), _pause_settings, 360))
+	var abandon := _abandon_choice()
+	if not abandon.is_empty():
+		var abandon_button := _button(I18n.text("ABANDON RUN"), func(): _confirm_pause_abandon(abandon), 360)
+		abandon_button.name = "AbandonRunButton"
+		abandon_button.add_theme_color_override("font_color", AppTheme.BLOOD)
+		content.add_child(abandon_button)
 	content.add_child(_button(I18n.text("MAIN MENU"), _pause_menu, 360))
 	center.add_child(AppTheme.panel(content))
 	_prepare_focus.call_deferred(pause_layer)
@@ -256,6 +262,31 @@ func _pause_settings() -> void:
 func _pause_menu() -> void:
 	toggle_pause()
 	_show_main_menu()
+
+func _abandon_choice() -> Dictionary:
+	if GameSession.run.is_empty() or str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active": return {}
+	for choice in GameSession.activity_choices():
+		if str(choice.get("type", "")) == "ABANDON_RUN": return choice.duplicate(true)
+	return {}
+
+func _confirm_pause_abandon(choice: Dictionary) -> void:
+	if not is_instance_valid(pause_layer) or GameSession.busy: return
+	var dialog := ConfirmationDialog.new()
+	dialog.process_mode = Node.PROCESS_MODE_ALWAYS
+	dialog.title = I18n.text("Confirm choice")
+	dialog.dialog_text = I18n.text("This ends the current journey. Its history remains available.")
+	dialog.ok_button_text = I18n.text("ABANDON RUN")
+	dialog.cancel_button_text = I18n.text("CANCEL")
+	dialog.confirmed.connect(func(): _abandon_from_pause(choice))
+	dialog.visibility_changed.connect(func(): if not dialog.visible: dialog.queue_free())
+	pause_layer.add_child(dialog)
+	dialog.popup_centered(Vector2i(480, 190))
+
+func _abandon_from_pause(choice: Dictionary) -> void:
+	if GameSession.busy: return
+	toggle_pause()
+	show_toast(I18n.text("Ending the current journey…"))
+	if await GameSession.submit_activity(choice) and is_inside_tree(): open_game()
 
 func show_toast(message: String, error := false) -> void:
 	toast.text = message
