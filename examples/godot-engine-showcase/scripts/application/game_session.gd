@@ -288,7 +288,25 @@ func create_branch(sequence: int, key: String) -> Dictionary:
 	return result
 
 func verify() -> Dictionary:
-	return await _gateway.verify(str(_run.get("runId", "")))
+	return await verify_run(str(_run.get("runId", "")))
+
+func verify_run(run_id: String) -> Dictionary:
+	if run_id.is_empty():
+		return {"ok": false, "errorKey": "No journey was selected.", "error": "No journey was selected."}
+	return await _gateway.verify(run_id)
+
+func run_history() -> Dictionary:
+	return await _gateway.run_history("player")
+
+func replay_timeline(run_id: String, after_sequence := 0, limit := 200) -> Dictionary:
+	if run_id.is_empty():
+		return {"ok": false, "errorKey": "No journey was selected.", "error": "No journey was selected."}
+	return await _gateway.run_timeline(run_id, after_sequence, limit)
+
+func replay_commit(run_id: String, sequence: int) -> Dictionary:
+	if run_id.is_empty() or sequence < 1:
+		return {"ok": false, "errorKey": "No replay command was selected.", "error": "No replay command was selected."}
+	return await _gateway.run_commit(run_id, sequence)
 
 func simulate(commands: Array) -> Dictionary:
 	return await _gateway.simulate(str(_run.get("runId", "")), int(_run.get("sequence", 0)), commands)

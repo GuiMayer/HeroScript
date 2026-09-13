@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
+using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Determinism;
+using Core.Run;
 
 namespace Core.Meta;
 
@@ -60,7 +62,17 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
         foreach (var runId in (await _runs.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
                      .OrderBy(id => id))
         {
-            var state = await _runs.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
+            RunState? state;
+            try
+            {
+                state = await _runs.LoadLatestStateAsync(runId, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or JsonException or IOException)
+            {
+                // History is a projection over independent immutable streams. One unreadable
+                // stream must never hide valid journeys, and it is never migrated implicitly.
+                continue;
+            }
             if (state == null || !string.Equals(state.PlayerEntityId, playerId, StringComparison.Ordinal))
                 continue;
             if (state.Lineage?.InternalSimulation == true)

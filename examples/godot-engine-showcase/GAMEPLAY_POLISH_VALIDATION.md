@@ -12,6 +12,7 @@ and the [art replacement contract](assets/ART_SLOTS.md).
 - Map sidebar driven by actual edges and advertised travel commands.
 - Visual card rewards, shop identity/price joins, upgrade choices and confirmation dialogs.
 - Run abandonment is available only from pause and requires confirmation. A single remaining route advances automatically; branches remain explicit choices.
+- The main menu exposes immutable journey history. Replay walks persisted commands and resulting states without activating or mutating the selected run; hash verification remains a separate action.
 - Signed block cleanup in JSON and a more varied opening hand, without a Godot gameplay exception.
 - Longer communication allowance for whole-run replay verification; interactive commands retain their normal timeout.
 

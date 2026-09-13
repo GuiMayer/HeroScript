@@ -146,6 +146,49 @@ func _run() -> void:
 	var replay: Dictionary = await session.verify()
 	if not replay.ok: print("REPLAY_REQUEST_ERROR ", replay.get("error", ""))
 	check(replay.ok and replay.data.get("isValid", false), "real journey replay remains deterministic")
+	var completed_run_id := str(session.run.get("runId", ""))
+	var completed_run_bytes := JSON.stringify(session.run)
+	router.open_game()
+	await settle()
+	var ending = router.host.get_child(0)
+	var ending_replay: Button = ending.find_child("EndingReplayButton", true, false)
+	check(is_instance_valid(ending_replay), "run result exposes real replay playback")
+	ending_replay.pressed.emit()
+	var replay_screen = router.host.get_child(0)
+	for _attempt in 400:
+		await create_timer(.025).timeout
+		if not replay_screen.entries.is_empty() and replay_screen.selected_index >= 0: break
+	check(router.current_screen == "run_replay" and replay_screen.entries.size() == int(session.run.sequence), "ending replay loads every persisted command")
+	var replay_cursor_before: int = replay_screen.selected_index
+	replay_screen._toggle_play()
+	for _attempt in 200:
+		await create_timer(.025).timeout
+		if replay_screen.selected_index > replay_cursor_before: break
+	replay_screen._stop()
+	check(replay_screen.selected_index > replay_cursor_before and JSON.stringify(session.run) == completed_run_bytes, "replay advances its local cursor without mutating the completed run")
+	router.back_to_menu()
+	await settle()
+	var history_button: Button = router.host.find_child("HistoryButton", true, false)
+	check(is_instance_valid(history_button) and not history_button.disabled, "main menu exposes journey history")
+	history_button.pressed.emit()
+	var history_screen = router.host.get_child(0)
+	for _attempt in 400:
+		await create_timer(.025).timeout
+		if not history_screen.entries.is_empty(): break
+	var archived_index := -1
+	for index in history_screen.entries.size():
+		if str(history_screen.entries[index].get("runId", "")) == completed_run_id:
+			archived_index = index
+			break
+	check(archived_index >= 0 and JSON.stringify(session.run) == completed_run_bytes, "history finds the completed run without activating it")
+	if archived_index >= 0:
+		history_screen._select(archived_index)
+		history_screen._watch()
+		var archived_replay = router.host.get_child(0)
+		for _attempt in 400:
+			await create_timer(.025).timeout
+			if not archived_replay.entries.is_empty(): break
+		check(router.current_screen == "run_replay" and archived_replay.replay_run_id == completed_run_id, "history opens replay for the selected run")
 	check(await session.start_campaign(seed + 901), "start journey for pause abandonment")
 	router.show_activity()
 	await settle()

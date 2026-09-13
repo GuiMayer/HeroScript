@@ -28,6 +28,28 @@ func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: 
 func read_run(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s" % run_id.uri_encode())
 
+func run_history(player_id := "player") -> Dictionary:
+	var response: Dictionary = await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/profiles/%s" % player_id.uri_encode())
+	if response.ok:
+		response.data = {
+			"playerId": response.data.get("playerId", player_id),
+			"revision": response.data.get("revision", ""),
+			"totalRuns": response.data.get("totalRuns", 0),
+			"completedRuns": response.data.get("completedRuns", 0),
+			"activeRuns": response.data.get("activeRuns", 0),
+			"items": response.data.get("runs", []).duplicate(true)
+		}
+	return response
+
+func run_timeline(run_id: String, after_sequence := 0, limit := 200) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/runs/%s/timeline?afterSequence=%s&limit=%s" % [run_id.uri_encode(), after_sequence, limit])
+
+func run_commit(run_id: String, sequence: int) -> Dictionary:
+	return await _transport.request(HTTPClient.METHOD_GET,
+		"/api/v1/runs/%s/commits/%s" % [run_id.uri_encode(), sequence])
+
 func read_projections(run_id: String, combat_id: String, include_combat: bool) -> Dictionary:
 	var paths := {"commands": "/api/v1/runs/%s/available-commands" % run_id.uri_encode()}
 	if include_combat:

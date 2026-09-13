@@ -25,6 +25,15 @@ class FakeTransport extends RefCounted:
 			return _ok({})
 		if path.contains("/content/revisions"):
 			return _ok({"currentRevision": "revision-1"})
+		if path.contains("/profiles/player"):
+			return _ok({"playerId": "player", "totalRuns": 1, "completedRuns": 1, "activeRuns": 0,
+				"runs": [{"runId": "archived-run", "sequence": 2, "lifecycle": "Completed", "seed": 42}]})
+		if path.contains("/runs/archived-run/timeline"):
+			return _ok({"items": [{"sequence": 1, "commandType": "START_RUN", "frames": [{}]}], "nextCursor": 1})
+		if path.contains("/runs/archived-run/commits/1"):
+			return _ok({"sequence": 1, "stateAfter": {"runId": "archived-run", "lifecycle": "Active"}})
+		if path.contains("/runs/archived-run/verify"):
+			return _ok({"isValid": true})
 		if path.ends_with("/commands"):
 			if receipts.has(body.commandId):
 				return _ok(receipts[body.commandId])
@@ -104,6 +113,14 @@ func _run() -> void:
 	var copy: Dictionary = session.run
 	copy.sequence = 999
 	check(session.run.sequence == 1, "interface snapshot mutations do not change session state")
+	var live_before_history := JSON.stringify(session.run)
+	var history_result: Dictionary = await session.run_history()
+	check(history_result.ok and history_result.data.items.size() == 1 and history_result.data.items[0].runId == "archived-run", "profile projection supplies immutable journey history")
+	var replay_page: Dictionary = await session.replay_timeline("archived-run")
+	var replay_commit: Dictionary = await session.replay_commit("archived-run", 1)
+	var replay_check: Dictionary = await session.verify_run("archived-run")
+	check(replay_page.ok and replay_commit.ok and replay_check.data.isValid, "arbitrary archived run exposes timeline, commits and verification")
+	check(JSON.stringify(session.run) == live_before_history, "history and replay reads do not activate or mutate a run")
 	var actions: Array = session.legal_actions
 	actions[0].command.targetIds[0] = "tampered"
 	check(session.legal_actions[0].command.targetIds[0] == "enemy", "nested choices are defensive copies")

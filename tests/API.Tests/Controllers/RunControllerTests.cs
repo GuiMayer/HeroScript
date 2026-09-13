@@ -186,6 +186,29 @@ public sealed class RunControllerTests
         Assert.Equal(first.RunId, json.GetProperty("nextCursor").GetGuid());
     }
 
+    [Fact]
+    public async Task ListRuns_SkipsUnreadableStreamsAndReturnsValidRuns()
+    {
+        var unreadableId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var valid = CreateRun() with
+        {
+            RunId = Guid.Parse("00000000-0000-0000-0000-000000000002")
+        };
+        _repository.Setup(repository => repository.ListRunIdsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { unreadableId, valid.RunId });
+        _repository.Setup(repository => repository.LoadLatestStateAsync(unreadableId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("invalid persisted hash"));
+        _repository.Setup(repository => repository.LoadLatestStateAsync(valid.RunId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(valid);
+        _runManager.Setup(manager => manager.GetRun(valid.RunId)).Returns(Result<RunState>.Success(valid));
+
+        var result = await _controller.ListRuns();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.SerializeToElement(ok.Value, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.Equal(valid.RunId, Assert.Single(json.GetProperty("items").EnumerateArray()).GetProperty("runId").GetGuid());
+    }
+
     private static RunState CreateRun()
     {
         return new RunState

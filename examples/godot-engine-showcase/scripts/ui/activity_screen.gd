@@ -248,8 +248,11 @@ func _build_ending(lifecycle: String) -> void:
 	var won := lifecycle.to_lower() == "completed"
 	content.add_child(AppTheme.title(I18n.text("ARCHIVE COMPLETE") if won else I18n.text("THE FLAME HAS FADED"), 40,
 		AppTheme.GOLD if won else AppTheme.BLOOD))
-	content.add_child(AppTheme.muted(I18n.text("Your journey has been preserved. You can verify its replay or start a new ascent.")))
-	content.add_child(_button(I18n.text("VERIFY REPLAY"), _verify, 420))
+	content.add_child(AppTheme.muted(I18n.text("Your journey has been preserved. Watch its immutable recording, verify its integrity or start a new ascent.")))
+	var replay_button := _button(I18n.text("WATCH REPLAY"), func(): router.show_run_replay(str(GameSession.run.get("runId", ""))), 420)
+	replay_button.name = "EndingReplayButton"
+	content.add_child(replay_button)
+	content.add_child(_button(I18n.text("VERIFY INTEGRITY"), _verify, 420))
 	content.add_child(_button(I18n.text("NEW JOURNEY"), router._new_campaign, 420))
 	content.add_child(_button(I18n.text("MAIN MENU"), router.back_to_menu, 420))
 	center.add_child(AppTheme.panel(content))

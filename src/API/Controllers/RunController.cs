@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Core.Determinism;
 using Core.Config;
 using API.Contracts;
+using System.Text.Json;
 
 namespace API.Controllers;
 
@@ -134,7 +135,16 @@ public sealed class RunController : BaseApiController
                 if (after.HasValue && runId.CompareTo(after.Value) <= 0)
                     continue;
 
-                var state = await _repository.LoadLatestStateAsync(runId, cancellationToken);
+                RunState? state;
+                try
+                {
+                    state = await _repository.LoadLatestStateAsync(runId, cancellationToken);
+                }
+                catch (Exception exception) when (exception is InvalidOperationException or JsonException or IOException)
+                {
+                    _logger.LogWarning(exception, "Skipping unreadable run {RunId} while listing persisted runs", runId);
+                    continue;
+                }
                 if (state == null)
                     continue;
                 if (!string.IsNullOrWhiteSpace(playerEntityId) &&

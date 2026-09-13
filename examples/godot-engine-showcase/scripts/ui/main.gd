@@ -6,6 +6,8 @@ const CodexScreen = preload("res://scripts/ui/codex_screen.gd")
 const ActivityScreen = preload("res://scripts/ui/activity_screen.gd")
 const CombatScreen = preload("res://scripts/ui/combat_screen.gd")
 const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
+const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
+const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
 
 var host: MarginContainer
 var toast: Label
@@ -135,6 +137,10 @@ func _show_main_menu() -> void:
 	card_content.add_child(continue_button)
 	if GameSession.has_pending_command:
 		card_content.add_child(_button(I18n.text("RECONNECT"), _recover_session, 420))
+	var history_button := _button(I18n.text("JOURNEY HISTORY"), show_history, 420)
+	history_button.name = "HistoryButton"
+	history_button.disabled = not GameSession.available
+	card_content.add_child(history_button)
 	card_content.add_child(_button(I18n.text("RULES LAB"), show_sandbox, 420))
 	card_content.add_child(_button(I18n.text("CONTENT CODEX"), show_codex, 420))
 	card_content.add_child(_button(I18n.text("SETTINGS"), show_settings, 420))
@@ -194,6 +200,22 @@ func show_timeline() -> void:
 	_clear_host()
 	var screen = TimelineScreen.new()
 	screen.setup(self)
+	host.add_child(screen)
+
+func show_history() -> void:
+	if GameSession.busy: return
+	current_screen = "history"
+	_clear_host()
+	var screen = RunHistoryScreen.new()
+	screen.setup(self)
+	host.add_child(screen)
+
+func show_run_replay(run_id: String, from_history := false) -> void:
+	if GameSession.busy or run_id.is_empty(): return
+	current_screen = "run_replay"
+	_clear_host()
+	var screen = RunReplayScreen.new()
+	screen.setup(self, run_id, from_history)
 	host.add_child(screen)
 
 func show_sandbox() -> void:
