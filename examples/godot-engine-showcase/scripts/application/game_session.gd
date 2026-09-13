@@ -327,8 +327,8 @@ func activity_choices() -> Array:
 func submit_activity(choice: Dictionary) -> bool:
 	return await execute_run_command(str(choice.get("type", "")), choice.get("payload", {}))
 
-func inspect_hand() -> Dictionary:
-	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id())
+func inspect_hand(target_ids := []) -> Dictionary:
+	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id(), target_ids)
 
 func historical_state(sequence: int) -> Dictionary:
 	return await _gateway.historical_state(str(_combat.get("combatId", "")), sequence)

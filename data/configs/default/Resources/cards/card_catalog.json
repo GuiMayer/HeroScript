@@ -183,5 +183,47 @@
         "destination": "Discard"
       }
     ]
+  },
+  "arcane_bolt": {
+    "cardId": "arcane_bolt",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 14 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["attack", "magic", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.mana",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "mana", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "arcane_bolt.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "flatValue": 7,
+          "targetResource": "health",
+          "tags": ["damage", "magic", "spell"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.primary",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "destination": "Discard"
+      }
+    ]
   }
 }

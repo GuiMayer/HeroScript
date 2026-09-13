@@ -2,10 +2,12 @@ extends TextureRect
 ## Replace art through the manifest, retaining anchors and interaction surfaces.
 const Catalog = preload("res://scripts/presentation/art_catalog.gd")
 var slot_key := ""
+var is_placeholder := true
 
 func setup(category: String, content_id: String) -> void:
 	var slot := Catalog.resolve(category, content_id)
 	slot_key = str(slot.get("key", ""))
+	is_placeholder = bool(slot.get("placeholder", true))
 	texture = Catalog.texture_for(slot)
 	expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED if slot.get("fit") == "cover" else TextureRect.STRETCH_KEEP_ASPECT_CENTERED

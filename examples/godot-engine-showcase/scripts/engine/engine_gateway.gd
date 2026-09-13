@@ -108,9 +108,11 @@ func _uuid() -> String:
 	var hex := bytes.hex_encode()
 	return "%s-%s-%s-%s-%s" % [hex.substr(0, 8), hex.substr(8, 4), hex.substr(12, 4), hex.substr(16, 4), hex.substr(20, 12)]
 
-func inspect_hand(combat_id: String, actor_id: String) -> Dictionary:
-	return await _transport.request(HTTPClient.METHOD_GET,
-		"/api/v1/combats/%s/cards/evaluations?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()])
+func inspect_hand(combat_id: String, actor_id: String, target_ids := []) -> Dictionary:
+	var path := "/api/v1/combats/%s/cards/evaluations?actorId=%s" % [combat_id.uri_encode(), actor_id.uri_encode()]
+	for target_id in target_ids:
+		path += "&targetIds=%s" % str(target_id).uri_encode()
+	return await _transport.request(HTTPClient.METHOD_GET, path)
 
 func historical_state(combat_id: String, sequence: int) -> Dictionary:
 	var response: Dictionary = await _transport.request(HTTPClient.METHOD_GET,

@@ -8,7 +8,10 @@ var model: Dictionary = {}
 func configure(data: Dictionary) -> void:
 	model = data.duplicate(true)
 	text = ""
-	custom_minimum_size = Vector2(224, 254 + maxf(0, Preferences.text_scale - 1.0) * 60)
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
+	custom_minimum_size = Vector2(232, 254 + maxf(0, Preferences.text_scale - 1.0) * 60)
 	var tone: Color = {"attack": AppTheme.BLOOD, "power": Color("#9a86d8")}.get(str(data.get("tone", "skill")), AppTheme.TEAL)
 	for state in ["normal", "disabled", "pressed"]:
 		add_theme_stylebox_override(state, AppTheme.box(tone.darkened(.76), 12, tone if state != "pressed" else AppTheme.GOLD, 2))
@@ -19,30 +22,66 @@ func configure(data: Dictionary) -> void:
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 12)
 	add_child(margin)
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 4)
+	column.add_theme_constant_override("separation", 3)
 	margin.add_child(column)
-	var cost := AppTheme.muted(str(data.get("cost", "")), 13)
-	cost.autowrap_mode = TextServer.AUTOWRAP_OFF
-	cost.add_theme_color_override("font_color", AppTheme.GOLD)
-	cost.name = "Cost"
-	cost.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(cost)
-	var title := AppTheme.title(str(data.get("name", "")), 18)
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 5)
+	var title := AppTheme.title(str(data.get("name", "")), 17)
 	title.name = "CardName"
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	column.add_child(title)
+	header.add_child(title)
+	header.add_child(_cost_zone(data))
+	column.add_child(header)
+	var art_frame := PanelContainer.new()
+	art_frame.name = "Art"
+	art_frame.custom_minimum_size.y = 58 if Preferences.text_scale > 1.1 else 70
+	art_frame.clip_contents = true
+	art_frame.add_theme_stylebox_override("panel", _compact_box(Color("#121421"), tone.darkened(.28), 5, 1))
 	var art := preload("res://scripts/ui/art_slot.gd").new()
 	art.setup("cards", str(data.get("definitionId", "")))
-	art.custom_minimum_size.y = 60 if Preferences.text_scale > 1.1 else 76
-	column.add_child(art)
+	art_frame.add_child(art)
+	if art.is_placeholder and bool(data.get("artPlaceholder", true)):
+		var art_name := Label.new()
+		art_name.text = str(data.get("name", "")).trim_suffix(" +").to_upper()
+		art_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		art_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		art_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		art_name.max_lines_visible = 2
+		art_name.add_theme_font_size_override("font_size", 15)
+		art_name.add_theme_color_override("font_color", Color.WHITE)
+		art_name.add_theme_constant_override("outline_size", 4)
+		art_name.add_theme_color_override("font_outline_color", Color("#0b0d16d9"))
+		art_frame.add_child(art_name)
+	column.add_child(art_frame)
+	var type_line := HBoxContainer.new()
+	var card_type := AppTheme.muted(str(data.get("cardType", str(data.get("tone", "skill")).to_upper())), 10)
+	card_type.autowrap_mode = TextServer.AUTOWRAP_OFF
+	card_type.add_theme_color_override("font_color", tone.lightened(.28))
+	type_line.add_child(card_type)
+	var type_push := Control.new()
+	type_push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	type_line.add_child(type_push)
+	var rarity := AppTheme.muted(str(data.get("rarity", "")), 10)
+	rarity.autowrap_mode = TextServer.AUTOWRAP_OFF
+	rarity.visible = not rarity.text.is_empty()
+	type_line.add_child(rarity)
+	column.add_child(type_line)
+	var effects_title := AppTheme.muted(I18n.text("EFFECTS"), 10)
+	effects_title.autowrap_mode = TextServer.AUTOWRAP_OFF
+	effects_title.add_theme_color_override("font_color", AppTheme.MUTED.darkened(.05))
+	column.add_child(effects_title)
 	var rules := Label.new()
 	rules.name = "Rules"
-	rules.text = str(data.get("summary", ""))
+	rules.text = "\n".join(data.get("effects", [])) if data.get("effects") is Array else str(data.get("summary", ""))
 	rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rules.max_lines_visible = 4
-	rules.add_theme_font_size_override("font_size", 14)
+	rules.max_lines_visible = 3
+	rules.add_theme_font_size_override("font_size", 13)
 	rules.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(rules)
+	var badges := _change_badges(data.get("changeBadges", []))
+	if badges != null:
+		column.add_child(badges)
 	var availability := AppTheme.muted(str(data.get("availability", "")), 11)
 	availability.autowrap_mode = TextServer.AUTOWRAP_OFF
 	availability.name = "Availability"
@@ -50,7 +89,80 @@ func configure(data: Dictionary) -> void:
 	availability.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(availability)
 	_ignore_mouse(margin)
-	tooltip_text = "%s\n%s\n%s" % [data.get("name", ""), data.get("cost", ""), data.get("summary", "")]
+	var tooltip: Array[String] = [str(data.get("name", "")), _cost_accessible_text(data), str(data.get("summary", ""))]
+	for badge in data.get("changeBadges", []):
+		var sources: Array = badge.get("sources", [])
+		tooltip.append(str(badge.get("label", "")) + (": " + ", ".join(sources) if not sources.is_empty() else ""))
+	tooltip_text = "\n".join(tooltip.filter(func(line): return not line.is_empty()))
+
+func _cost_zone(data: Dictionary) -> Control:
+	var zone := HBoxContainer.new()
+	zone.name = "Cost"
+	zone.add_theme_constant_override("separation", 3)
+	var costs: Array = data.get("costs", []) if data.get("costs") is Array else []
+	for cost in costs:
+		zone.add_child(_cost_chip(cost))
+	if costs.is_empty():
+		var fallback := str(data.get("cost", ""))
+		if fallback.is_empty(): fallback = "0"
+		var neutral := PanelContainer.new()
+		neutral.add_theme_stylebox_override("panel", _compact_box(Color("#303243"), Color("#77798c"), 12, 1))
+		var label := AppTheme.muted(fallback, 11)
+		label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		label.add_theme_color_override("font_color", AppTheme.INK)
+		neutral.add_child(label)
+		zone.add_child(neutral)
+	return zone
+
+func _cost_chip(cost: Dictionary) -> Control:
+	var color := Color.from_string(str(cost.get("color", "#666879")), Color("#666879"))
+	var chip := PanelContainer.new()
+	chip.add_theme_stylebox_override("panel", _compact_box(color.darkened(.58), color.lightened(.18), 12, 2))
+	var amount := I18n.number(float(cost.get("amount", 0)))
+	var label := AppTheme.muted("%s %s" % [cost.get("symbol", "•"), amount], 12)
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.add_theme_color_override("font_color", Color.WHITE)
+	chip.tooltip_text = "%s: %s" % [str(cost.get("name", cost.get("resourceId", ""))), amount]
+	chip.add_child(label)
+	return chip
+
+func _change_badges(items) -> Control:
+	if not items is Array or items.is_empty():
+		return null
+	var row := HFlowContainer.new()
+	row.name = "Changes"
+	row.add_theme_constant_override("h_separation", 4)
+	for item in items:
+		var kind := str(item.get("kind", "modified"))
+		var color: Color = {
+			"upgrade": Color("#79d58c"), "buff": Color("#62d6bf"),
+			"debuff": Color("#ee7b78"), "modified": Color("#b39ce6")
+		}.get(kind, Color("#b39ce6"))
+		var badge := PanelContainer.new()
+		badge.add_theme_stylebox_override("panel", _compact_box(color.darkened(.72), color, 4, 1))
+		var label := AppTheme.muted("%s %s" % [item.get("symbol", "~"), item.get("label", "")], 9)
+		label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		label.add_theme_color_override("font_color", color.lightened(.25))
+		badge.tooltip_text = ", ".join(item.get("sources", []))
+		badge.add_child(label)
+		row.add_child(badge)
+	return row
+
+func _cost_accessible_text(data: Dictionary) -> String:
+	var parts: Array[String] = []
+	for cost in data.get("costs", []):
+		parts.append("%s %s" % [I18n.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
+	if parts.is_empty():
+		return str(data.get("cost", "0"))
+	return I18n.text("Cost: %s") % " + ".join(parts)
+
+func _compact_box(color: Color, border: Color, radius: int, width: int) -> StyleBoxFlat:
+	var style := AppTheme.box(color, radius, border, width)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 2
+	style.content_margin_bottom = 2
+	return style
 
 func _ignore_mouse(control: Control) -> void:
 	control.mouse_filter = Control.MOUSE_FILTER_IGNORE

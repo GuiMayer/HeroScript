@@ -60,6 +60,7 @@ func _run() -> void:
 	check(await session.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})), "enter real combat")
 	prefs.fullscreen = false
 	prefs.auto_animations = false
+	var inspection_checked := false
 	for resolution in [Vector2i(1280, 720), Vector2i(1440, 900), Vector2i(2560, 1080)]:
 		prefs.set_resolution(resolution, false)
 		for language in ["en", "pt_BR"]:
@@ -69,6 +70,13 @@ func _run() -> void:
 				router.show_combat()
 				await settle()
 				var screen = router.host.get_child(0)
+				if not inspection_checked:
+					for _attempt in 120:
+						if screen.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()): break
+						await create_timer(.025).timeout
+					check(screen.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()),
+						"REST inspection enriches every visible card with engine rarity")
+					inspection_checked = true
 				var label := "%s %s scale=%s" % [resolution, language, scale]
 				check(screen.get_global_rect().end.y <= router.size.y + 1, "combat fits: " + label)
 				var costs_visible := true
@@ -77,8 +85,8 @@ func _run() -> void:
 					if button.visible: check(button.get_global_rect().end.y <= router.size.y + 1 and button.get_global_rect().end.x <= router.size.x + 1, "turn control fits: " + label)
 				for id in screen.card_buttons:
 					var card = screen.card_buttons[id]
-					var cost: Label = card.find_child("Cost", true, false)
-					costs_visible = costs_visible and cost.size.y > 5 and not cost.text.is_empty()
+					var cost: Control = card.find_child("Cost", true, false)
+					costs_visible = costs_visible and cost.size.y > 5 and cost.get_child_count() > 0
 					rules_fit = rules_fit and card.find_child("Rules", true, false).get_global_rect().end.y <= card.find_child("Availability", true, false).get_global_rect().position.y
 				check(costs_visible and rules_fit, "every card has visible cost and fitting rules: " + label)
 				if scale == 1.0: await capture("combat-%s-%s" % [resolution.x, language])
@@ -232,6 +240,38 @@ func _projection_tests() -> void:
 		{"targetEntityId": "enemy", "resourceId": "mana", "previousValue": 10, "currentValue": 7, "provenance": {"sourceId": "card", "componentId": "drain"}}]}
 	var combat = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [candidate], translator)
 	check(not combat.card_summary("card").contains("-1") and combat.card_summary("card").contains("-3"), "costs are not repeated as effects; damage to any resource stays visible")
+	var card_run := {"sequence": 7, "deck": {"cardInstances": [
+		{"cardInstanceId": "card", "definitionId": "fireball", "upgrades": [{"upgradeId": "focused_flame"}]}
+	]}}
+	var card_candidate := {"command": {"cardInstanceId": "card"}, "costs": [
+		{"resourceId": "energy", "amount": 1}, {"resourceId": "mana", "amount": 1}
+	], "applications": [{"targetEntityId": "enemy", "resourceId": "health", "previousValue": 20, "currentValue": 8,
+		"provenance": {"sourceId": "card", "componentId": "damage"}}]}
+	var appearance := {"cards": {"fireball": {"name": "Fire Orb", "tone": "power"}}, "resources": {
+		"energy": {"symbol": "E", "cost_color": "#e29b45"},
+		"mana": {"symbol": "M", "cost_color": "#5d87dc"}}}
+	var card_presenter = preload("res://scripts/presentation/combat_presenter.gd").new(card_run, {}, [card_candidate], translator, appearance)
+	card_presenter.accept_evaluations([{"version": {"runSequence": 7},
+		"evaluation": {"cardInstanceId": "card"}, "baseContainer": {"rarity": "Uncommon", "tags": ["attack"]},
+		"appliedUpgrades": [{"upgradeId": "focused_flame"}], "calculations": [{"buckets": [{"contributions": [
+			{"sourceKind": "Relic", "sourceId": "ember_core", "applied": true, "input": 10, "output": 12}
+		]}]}]}])
+	var card_model: Dictionary = card_presenter.card_view_model("card")
+	check(card_model.costs.size() == 2 and card_model.costs[0].symbol == "E" and card_model.costs[1].symbol == "M",
+		"card cost keeps every engine resource and applies only its presentation token")
+	check(card_model.cardType == translator.text("ATTACK") and card_model.rarity == translator.text("UNCOMMON"),
+		"card type and engine rarity have a dedicated presentation line")
+	check(card_model.changeBadges.any(func(item): return item.kind == "upgrade") and
+		card_model.changeBadges.any(func(item): return item.kind == "buff"),
+		"permanent upgrades and contextual buffs remain distinct")
+	var unavailable_presenter = preload("res://scripts/presentation/combat_presenter.gd").new(card_run, {}, [], translator, appearance)
+	unavailable_presenter.accept_evaluations([{"version": {"runSequence": 7},
+		"evaluation": {"cardInstanceId": "card", "costs": [{"resourceId": "mana", "amount": 3}]},
+		"baseContainer": {"rarity": "Uncommon", "tags": ["attack"]}}])
+	var unavailable_model: Dictionary = unavailable_presenter.card_view_model("card")
+	check(unavailable_model.costs.size() == 1 and unavailable_model.costs[0].resourceId == "mana" and
+		is_equal_approx(float(unavailable_model.costs[0].amount), 3.0),
+		"an unplayable card still shows its engine-published cost separately from availability")
 
 func capture(label: String) -> void:
 	if "--capture-polish" not in OS.get_cmdline_user_args() or DisplayServer.get_name() == "headless": return

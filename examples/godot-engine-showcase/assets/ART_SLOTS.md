@@ -11,7 +11,7 @@ Visuals are configured in `data/art_manifest.json`. These assets are original ge
 | activities | activity type | square vignette/icon, 512×512 | contain |
 | backgrounds | combat | landscape 1600×600 or higher | cover; edges may crop |
 
-Keep essential elements in the center 80% of square assets. For actors, use consistent feet/baseline within the square. Avoid embedded text: names, costs, translations, statuses and interaction borders belong to UI controls.
+Keep essential elements in the center 80% of square assets. For actors, use consistent feet/baseline within the square. Avoid embedded text: names, costs, translations, statuses and interaction borders belong to UI controls. Card entries marked `placeholder: true` receive a localized name overlay from `CardView`; changing the manifest entry to `false` removes that prototype label without changing the asset.
 
 ## Replace one placeholder
 

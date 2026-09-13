@@ -24,7 +24,7 @@ var reconnect_button: Button
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	presentation = data
-	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions, I18n)
+	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions, I18n, presentation)
 	Playback.frame_presented.connect(_on_frame)
 	add_theme_constant_override("separation", 8)
 	_build_header()
@@ -134,19 +134,11 @@ func _build_hand() -> void:
 	add_child(section)
 
 func _card_button(card: Dictionary) -> Button:
-	var id := str(card.get("definitionId", ""))
-	var info: Dictionary = presentation.get("cards", {}).get(id, {})
 	var instance_id := str(card.get("cardInstanceId", ""))
 	var candidate := _candidate_for_card(instance_id)
 	var value := CardView.new()
 	value.toggle_mode = true
-	value.configure({
-		"definitionId": id, "tone": info.get("tone", "skill"),
-		"name": I18n.content_name(id, str(info.get("name", id))) + (" +" if not card.get("upgrades", []).is_empty() else ""),
-		"summary": presenter.card_summary(instance_id) if not candidate.is_empty() else str(info.get("text", I18n.text("See inspection for details"))),
-		"cost": I18n.text("Cost: %s") % _cost_text(candidate) if not candidate.is_empty() else I18n.text("UNAVAILABLE"),
-		"availability": I18n.text("SELECT TO PLAY") if not candidate.is_empty() else I18n.text("INSPECT FOR DETAILS")
-	})
+	value.configure(presenter.card_view_model(instance_id))
 	if not candidate.is_empty() and not card_buttons.values().any(func(card_view): return card_view.has_meta("initial_focus")):
 		value.set_meta("initial_focus", true)
 	card_buttons[instance_id] = value
@@ -458,12 +450,22 @@ func _cost_text(candidate: Dictionary) -> String:
 	return presenter._cost_text(candidate)
 
 func _load_inspection() -> void:
-	var response := await GameSession.inspect_hand()
+	var representative_targets: Array = []
+	for candidate in GameSession.legal_actions:
+		var targets: Array = presenter._targets(candidate)
+		if not targets.is_empty():
+			representative_targets = [targets[0]]
+			break
+	var response := await GameSession.inspect_hand(representative_targets)
 	if not is_inside_tree() or not response.ok:
 		return
 	presenter.accept_evaluations(response.data.get("cards", []))
 	for id in card_buttons:
-		if _candidates(id).is_empty(): card_buttons[id].tooltip_text = presenter.unavailable_reason(id)
+		var card: CardView = card_buttons[id]
+		card.configure(presenter.card_view_model(id))
+		card.disabled = _locked()
+		card.select_card(id == selected_card)
+		card.tooltip_text = presenter.inspection_text(id)
 	if not selected_card.is_empty(): _show_preview(selected_card)
 
 func _inspect_card() -> void:

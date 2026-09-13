@@ -9,12 +9,14 @@ var _cards := {}
 var _actors := {}
 var _by_card := {}
 var _evaluations := {}
+var _appearance: Dictionary = {}
 
-func _init(run: Dictionary, combat: Dictionary, actions: Array, translator) -> void:
+func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}) -> void:
 	_i18n = translator
 	_run = run.duplicate(true)
 	_combat = combat.duplicate(true)
 	_actions = actions.duplicate(true)
+	_appearance = appearance.duplicate(true) if appearance is Dictionary else {}
 	for card in _run.get("deck", {}).get("cardInstances", []):
 		_cards[str(card.get("cardInstanceId", ""))] = card
 	for actor in _combat.get("actors", []):
@@ -97,6 +99,107 @@ func _cost_text(candidate: Dictionary) -> String:
 	for cost in candidate.get("costs", []):
 		parts.append("%s %s" % [_i18n.number(float(cost.get("amount", 0))), _i18n.content_name(str(cost.get("resourceId", "")))])
 	return " + ".join(parts) if not parts.is_empty() else "0"
+
+func card_view_model(instance_id: String) -> Dictionary:
+	var card := _card_instance(instance_id)
+	var definition_id := str(card.get("definitionId", ""))
+	var appearance: Dictionary = _appearance.get("cards", {}).get(definition_id, {})
+	var candidate := _candidate_for_card(instance_id)
+	var inspection: Dictionary = _evaluations.get(instance_id, {})
+	var base: Dictionary = inspection.get("baseContainer", {}) if inspection.get("baseContainer") is Dictionary else {}
+	var upgrades: Array = inspection.get("appliedUpgrades", card.get("upgrades", []))
+	var name: String = _i18n.content_name(definition_id, str(appearance.get("name", definition_id)))
+	var tone := str(appearance.get("tone", "skill"))
+	var tags: Array = base.get("tags", []) if base.get("tags") is Array else []
+	var card_type := _card_type(tags, tone)
+	var summary := card_summary(instance_id) if not candidate.is_empty() else str(appearance.get("text", _i18n.text("See inspection for details")))
+	var changes := _change_badges(inspection, upgrades)
+	var inspected_evaluation: Dictionary = inspection.get("evaluation", {}) if inspection.get("evaluation") is Dictionary else {}
+	var published_costs: Array = candidate.get("costs", []) if not candidate.is_empty() else inspected_evaluation.get("costs", [])
+	return {
+		"definitionId": definition_id,
+		"tone": tone,
+		"name": name + (" +" if not upgrades.is_empty() else ""),
+		"cardType": _i18n.text(card_type),
+		"rarity": _i18n.text(str(base.get("rarity", "")).to_upper()),
+		"summary": summary,
+		"effects": summary.split("\n", false),
+		"costs": _cost_tokens(published_costs),
+		"cost": _i18n.text("UNAVAILABLE") if candidate.is_empty() else "",
+		"availability": _i18n.text("SELECT TO PLAY") if not candidate.is_empty() else _i18n.text("INSPECT FOR DETAILS"),
+		"changeBadges": changes,
+		"alternativeCostCount": _candidates(instance_id).size(),
+		"artPlaceholder": true
+	}
+
+func _card_type(tags: Array, tone: String) -> String:
+	for kind in ["attack", "skill", "power"]:
+		if kind in tags:
+			return kind.to_upper()
+	return tone.to_upper()
+
+func _cost_tokens(costs: Array) -> Array:
+	var result: Array = []
+	var resources: Dictionary = _appearance.get("resources", {})
+	for cost in costs:
+		var resource_id := str(cost.get("resourceId", ""))
+		var style: Dictionary = resources.get(resource_id, {}) if resources.get(resource_id) is Dictionary else {}
+		var symbol := str(style.get("symbol", resource_id.substr(0, 1).to_upper()))
+		result.append({
+			"resourceId": resource_id,
+			"amount": float(cost.get("amount", 0)),
+			"symbol": symbol if not symbol.is_empty() else "•",
+			"color": str(style.get("cost_color", "#666879")),
+			"name": _i18n.content_name(resource_id)
+		})
+	return result
+
+func _change_badges(inspection: Dictionary, upgrades: Array) -> Array:
+	var badges: Array = []
+	if not upgrades.is_empty():
+		badges.append({"kind": "upgrade", "label": _i18n.text("UPGRADED"), "symbol": "↑"})
+	if inspection.is_empty():
+		return badges
+	var directional_delta := 0.0
+	var directional_change := false
+	var contextual_change := false
+	var source_names: Array[String] = []
+	for calculation in inspection.get("calculations", []):
+		for bucket in calculation.get("buckets", []):
+			for contribution in bucket.get("contributions", []):
+				if not bool(contribution.get("applied", false)):
+					continue
+				var input := float(contribution.get("input", 0))
+				var output := float(contribution.get("output", input))
+				if is_equal_approx(input, output):
+					continue
+				var kind := _source_kind(contribution.get("sourceKind", ""))
+				if kind not in ["Actor", "Target", "Status", "Relic", "GameMode", "Encounter", "Modifier"]:
+					continue
+				contextual_change = true
+				var source_id := str(contribution.get("sourceId", ""))
+				if not source_id.is_empty() and source_id not in source_names:
+					source_names.append(source_id)
+				if kind in ["Actor", "Status", "Relic", "Modifier"]:
+					directional_change = true
+					directional_delta += output - input
+	if not contextual_change:
+		return badges
+	var kind := "modified"
+	var label: String = _i18n.text("MODIFIED")
+	var symbol := "~"
+	if directional_change and not is_zero_approx(directional_delta):
+		kind = "buff" if directional_delta > 0 else "debuff"
+		label = _i18n.text("BUFFED") if directional_delta > 0 else _i18n.text("WEAKENED")
+		symbol = "+" if directional_delta > 0 else "−"
+	badges.append({"kind": kind, "label": label, "symbol": symbol,
+		"sources": source_names.map(func(id): return _i18n.content_name(id))})
+	return badges
+
+func _source_kind(value) -> String:
+	if value is int or value is float:
+		return ["Effect", "Card", "Actor", "Target", "Status", "Relic", "Upgrade", "GameMode", "Encounter", "Modifier"][clampi(int(value), 0, 9)]
+	return str(value)
 
 func application_text(application: Dictionary, include_source := false) -> String:
 	var text := _actor_name(str(application.get("targetEntityId", ""))) + ": "

@@ -11,7 +11,8 @@
       "basic_attack": "card_strike",
       "defend": "card_defend",
       "fireball": "card_fire",
-      "heal": "card_heal"
+      "heal": "card_heal",
+      "arcane_bolt": "card_fire"
     },
     "actors": {
       "spire_adept": "actor_adept",

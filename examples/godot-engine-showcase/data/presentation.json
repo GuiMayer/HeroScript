@@ -25,6 +25,11 @@
       "name": "Vital Spark",
       "text": "Restore your resources. See the preview.",
       "tone": "skill"
+    },
+    "arcane_bolt": {
+      "name": "Arcane Bolt",
+      "text": "Attack an enemy using mana. See the preview for current values.",
+      "tone": "power"
     }
   },
   "nodes": {
@@ -103,7 +108,7 @@
     ],
     "deck": [
       {
-        "definitionId": "basic_attack"
+        "definitionId": "arcane_bolt"
       },
       {
         "definitionId": "basic_attack"
@@ -150,16 +155,34 @@
   },
   "resources": {
     "health": {
-      "display": "bar"
+      "display": "bar",
+      "symbol": "H",
+      "cost_color": "#d85f68"
     },
     "block": {
-      "display": "counter"
+      "display": "counter",
+      "symbol": "B",
+      "cost_color": "#8395b8"
     },
     "energy": {
-      "display": "counter"
+      "display": "counter",
+      "symbol": "E",
+      "cost_color": "#e29b45"
     },
     "mana": {
-      "display": "counter"
+      "display": "counter",
+      "symbol": "M",
+      "cost_color": "#5d87dc"
+    },
+    "gold": {
+      "display": "counter",
+      "symbol": "G",
+      "cost_color": "#d6b759"
+    },
+    "power_points": {
+      "display": "counter",
+      "symbol": "P",
+      "cost_color": "#b077d1"
     }
   }
 }
