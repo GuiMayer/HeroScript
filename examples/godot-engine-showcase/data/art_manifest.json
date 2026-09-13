@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "defaults": {
+    "cards": "card_unknown",
+    "actors": "actor_unknown",
+    "activities": "activity_unknown",
+    "backgrounds": "battlefield"
+  },
+  "categories": {
+    "cards": {
+      "basic_attack": "card_strike",
+      "defend": "card_defend",
+      "fireball": "card_fire",
+      "heal": "card_heal"
+    },
+    "actors": {
+      "spire_adept": "actor_adept",
+      "player_warrior": "actor_adept",
+      "spire_wisp": "actor_wisp",
+      "enemy_goblin": "actor_wisp",
+      "spire_sentinel": "actor_sentinel",
+      "enemy_orc_warrior": "actor_sentinel"
+    },
+    "activities": {
+      "Encounter": "activity_encounter",
+      "RelicReward": "activity_relic",
+      "CardSelection": "activity_reward",
+      "Shop": "activity_shop",
+      "Preparation": "activity_camp",
+      "CardUpgrade": "activity_forge",
+      "Victory": "activity_victory"
+    },
+    "backgrounds": {
+      "combat": "battlefield"
+    }
+  },
+  "slots": {
+    "card_unknown": {
+      "path": "res://assets/placeholders/card.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_strike": {
+      "path": "res://assets/placeholders/strike.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_defend": {
+      "path": "res://assets/placeholders/shield.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_fire": {
+      "path": "res://assets/placeholders/flame.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_heal": {
+      "path": "res://assets/placeholders/spark.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_unknown": {
+      "path": "res://assets/placeholders/wisp.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_adept": {
+      "path": "res://assets/placeholders/adept.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_wisp": {
+      "path": "res://assets/placeholders/wisp.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "actor_sentinel": {
+      "path": "res://assets/placeholders/sentinel.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_unknown": {
+      "path": "res://assets/placeholders/archive.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_encounter": {
+      "path": "res://assets/placeholders/strike.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_relic": {
+      "path": "res://assets/placeholders/flame.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_reward": {
+      "path": "res://assets/placeholders/card.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_shop": {
+      "path": "res://assets/placeholders/archive.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_camp": {
+      "path": "res://assets/placeholders/flame.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_forge": {
+      "path": "res://assets/placeholders/shield.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "activity_victory": {
+      "path": "res://assets/placeholders/spark.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "battlefield": {
+      "path": "res://assets/placeholders/battlefield.svg",
+      "fit": "cover",
+      "placeholder": true
+    }
+  }
+}
