@@ -1,4 +1,10 @@
 {
+  "Encounter": {"en": "Encounter", "pt_BR": "Encontro"},
+  "RelicReward": {"en": "Relic", "pt_BR": "Relíquia"},
+  "CardSelection": {"en": "Card reward", "pt_BR": "Recompensa de carta"},
+  "Shop": {"en": "Shop", "pt_BR": "Loja"},
+  "Preparation": {"en": "Preparation", "pt_BR": "Preparação"},
+  "CardUpgrade": {"en": "Upgrade", "pt_BR": "Melhoria"},
   "enemy_basic_attack": {"pt_BR": "Ataque", "en": "Attack"},
   "combat.initialized": {"pt_BR": "Começo do combate", "en": "Combat start"},
   "card.played": {"pt_BR": "Carta jogada", "en": "Card played"},

@@ -70,7 +70,7 @@ func _intent_for(actor_id: String) -> String:
 		if str(intent.get("actorId", "")) == actor_id:
 			var lines: Array[String] = [_i18n.content_name(str(intent.get("actionId", intent.get("actionType", ""))))]
 			for application in intent.get("previewApplications", []):
-				lines.append(application_text(application))
+				lines.append(compact_application(application))
 			if intent.get("previewUncertain", false):
 				lines.append(_i18n.text("Outcome uncertain"))
 			return "\n".join(lines)
@@ -146,13 +146,32 @@ func card_summary(id: String) -> String:
 	for candidate in candidates:
 		var effects: Array[String] = []
 		for application in candidate.get("applications", []):
-			effects.append(application_text(application))
+			if not _is_cost(application, candidate): effects.append(compact_application(application))
 		var summary := "\n".join(effects.slice(0, 3))
 		if effects.size() > 3: summary += "\n" + _i18n.text("More effects in inspection")
 		if candidate.get("outcomeUncertain", false): summary += "\n" + _i18n.text("Outcome uncertain")
 		if summary.is_empty(): summary = _i18n.text("See inspection for details")
 		if summary not in descriptions: descriptions.append(summary)
 	return descriptions[0] if descriptions.size() == 1 else _i18n.text("%s legal choices — select a target") % descriptions.size()
+
+func _is_cost(application: Dictionary, candidate: Dictionary) -> bool:
+	var source: Dictionary = application.get("provenance", {})
+	if str(source.get("sourceId", "")) != str(candidate.get("command", {}).get("cardInstanceId", "")): return false
+	return candidate.get("costs", []).any(func(cost): return str(cost.get("componentId", "")) == str(source.get("componentId", "")))
+
+func compact_application(application: Dictionary) -> String:
+	# This is formatting a published delta, not calculating an effect or its mitigation.
+	var previous = application.get("previousValue")
+	var current = application.get("currentValue")
+	if previous == null or current == null: return application_text(application)
+	var delta := float(current) - float(previous)
+	var field := str(application.get("resourceField", 0))
+	var suffix := ""
+	if field in ["1", "1.0", "Minimum"]: suffix = " " + _i18n.text("Minimum")
+	elif field in ["2", "2.0", "Maximum"]: suffix = " " + _i18n.text("Maximum")
+	return "%s%s %s%s · %s" % ["+" if delta > 0 else "", _i18n.number(delta),
+		_i18n.content_name(str(application.get("resourceId", ""))), suffix,
+		_actor_name(str(application.get("targetEntityId", "")))]
 
 func inspection_text(id: String) -> String:
 	var data: Dictionary = _evaluations.get(id, {})

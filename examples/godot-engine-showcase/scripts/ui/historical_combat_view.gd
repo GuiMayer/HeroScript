@@ -18,7 +18,8 @@ func display(state: Dictionary, appearance: Dictionary) -> void:
 	for actor in presenter.actors():
 		var panel := preload("res://scripts/ui/actor_panel.gd").new()
 		panel.setup(actor, presenter.relationship(actor, viewpoint) == "Enemy", appearance, presenter._intent_for(str(actor.get("instanceId", ""))))
-		panel.target_button.hide()
+		panel.target_button.disabled = true
+		panel.target_button.focus_mode = Control.FOCUS_NONE
 		actor_panels[str(actor.get("instanceId", ""))] = panel
 		row.add_child(panel)
 	scroll.add_child(row)

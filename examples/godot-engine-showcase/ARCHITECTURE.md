@@ -17,6 +17,12 @@ Não há autoload público de transporte: o nó HTTP é privado da composição.
 
 ## Responsabilidades
 
+O estudo aplicado à apresentação está em
+[Slay the Spire: gameplay e UX](../../docs/research/SLAY_THE_SPIRE_GAMEPLAY_AND_UX.md).
+O novo `ActivityPresenter` relaciona ofertas, preços e navegação anunciados;
+`ArtCatalog`/`ArtSlot` resolvem somente visuais pelo
+[contrato de slots](assets/ART_SLOTS.md).
+
 | Camada | Cuida de | Não pode fazer |
 | --- | --- | --- |
 | Transporte HTTP | conexão, JSON, timeout, status, medições limitadas | traduzir, ler preferências, chamar telas |

@@ -40,39 +40,52 @@ func _exit_tree() -> void:
 
 func _build_header() -> void:
 	var row := HBoxContainer.new()
-	var phase: Dictionary = GameSession.combat.get("phase", {}) if GameSession.combat.get("phase", {}) is Dictionary else {}
 	var activation: Dictionary = GameSession.combat.get("activation", {}) if GameSession.combat.get("activation", {}) is Dictionary else {}
-	var label := AppTheme.title(I18n.text("COMBAT  %s") % str(GameSession.combat.get("runNodeId", "")).to_upper(), 25)
-	row.add_child(label)
+	var title := AppTheme.title(I18n.text("COMBAT"), 24)
+	title.tooltip_text = str(GameSession.combat.get("runNodeId", "")) + " · " + str(GameSession.combat.get("stateHash", ""))
+	row.add_child(title)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(push)
-	var turn := Label.new()
-	turn.text = I18n.text("ROUND %s   •   %s   •   STEP %s") % [
-		int(activation.get("round", GameSession.combat.get("currentTurn", 1))),
-		str(phase.get("currentPhaseId", phase.get("phaseId", I18n.text("resolution")))).replace("_", " ").to_upper(),
-		int(GameSession.combat.get("step", 0))]
-	turn.add_theme_color_override("font_color", AppTheme.GOLD)
+	var turn := AppTheme.title(I18n.text("ROUND %s") % int(activation.get("round", GameSession.combat.get("currentTurn", 1))), 18, AppTheme.GOLD)
 	row.add_child(turn)
 	row.add_child(_button(I18n.text("TIMELINE  [%s]") % Preferences.action_label("open_timeline"), router.show_timeline, 165))
 	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
 	add_child(row)
 
 func _build_battlefield() -> void:
+	var stage := PanelContainer.new()
+	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	stage.custom_minimum_size.y = 348
+	stage.add_theme_stylebox_override("panel", AppTheme.box(Color("#121423"), 12))
+	stage.clip_contents = true
+	var backdrop := preload("res://scripts/ui/art_slot.gd").new()
+	backdrop.setup("backgrounds", "combat")
+	stage.add_child(backdrop)
 	var scroller := ScrollContainer.new()
-	scroller.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroller.custom_minimum_size.y = 300
 	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	var field := HBoxContainer.new()
 	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	field.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	field.alignment = BoxContainer.ALIGNMENT_CENTER
-	field.add_theme_constant_override("separation", 20)
+	field.add_theme_constant_override("separation", 22)
+	var allies := HBoxContainer.new()
+	var opponents := HBoxContainer.new()
+	allies.alignment = BoxContainer.ALIGNMENT_CENTER
+	opponents.alignment = BoxContainer.ALIGNMENT_CENTER
 	for actor in presenter.actors():
-		var relation: String = presenter.relationship(actor, GameSession.input_actor_id())
-		field.add_child(_actor_card(actor, relation == "Enemy"))
+		var hostile: bool = presenter.relationship(actor, GameSession.input_actor_id()) == "Enemy"
+		(opponents if hostile else allies).add_child(_actor_card(actor, hostile))
+	field.add_child(allies)
+	var divider := CenterContainer.new()
+	divider.custom_minimum_size.x = 88
+	divider.add_child(AppTheme.title("◇", 26, AppTheme.GOLD))
+	field.add_child(divider)
+	field.add_child(opponents)
 	scroller.add_child(field)
-	add_child(scroller)
+	stage.add_child(scroller)
+	add_child(stage)
 
 func _actor_card(actor: Dictionary, hostile: bool) -> Control:
 	var panel := preload("res://scripts/ui/actor_panel.gd").new()
@@ -83,72 +96,61 @@ func _actor_card(actor: Dictionary, hostile: bool) -> Control:
 	target_buttons[id] = panel.target_button
 	return panel
 
-
 func _build_hand() -> void:
 	var section := VBoxContainer.new()
-	section.add_theme_constant_override("separation", 8)
+	section.add_theme_constant_override("separation", 4)
 	var heading := HBoxContainer.new()
-	heading.add_child(AppTheme.title(I18n.text("HAND"), 18, AppTheme.GOLD))
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	heading.add_child(push)
-	hint_label = AppTheme.muted(I18n.text("Select a card, then choose a highlighted target."))
+	heading.add_child(AppTheme.title(I18n.text("HAND"), 17, AppTheme.GOLD))
+	hint_label = AppTheme.muted(I18n.text("Select a card, then choose a highlighted target."), 13)
 	hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	heading.add_child(hint_label)
+	var counts: Dictionary = GameSession.run.get("deck", {}).get("counts", {})
+	for pair in [["Draw pile", "drawPileInstanceIds", "drawPile"], ["Discard pile", "discardPileInstanceIds", "discardPile"], ["Exile", "exhaustPileInstanceIds", "exhaustPile"]]:
+		var pile := _button("%s · %s" % [I18n.text(pair[0]), int(counts.get(pair[2], 0))], func(): _inspect_pile(pair[0], pair[1]))
+		pile.add_theme_font_size_override("font_size", 13)
+		pile.custom_minimum_size.y = 32
+		heading.add_child(pile)
 	section.add_child(heading)
 	hand_row = HBoxContainer.new()
 	hand_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	hand_row.add_theme_constant_override("separation", 10)
+	hand_row.add_theme_constant_override("separation", 12)
+	hand_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var hand_ids: Array = GameSession.run.get("deck", {}).get("handInstanceIds", [])
 	for id in hand_ids:
 		var card := _card_instance(str(id))
-		if not card.is_empty():
-			hand_row.add_child(_card_button(card))
-	if hand_ids.is_empty():
-		hand_row.add_child(AppTheme.muted(I18n.text("Your hand is empty.")))
+		if not card.is_empty(): hand_row.add_child(_card_button(card))
+	if hand_ids.is_empty(): hand_row.add_child(AppTheme.muted(I18n.text("Your hand is empty.")))
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 8)
+	margin.add_child(hand_row)
 	var scroller := ScrollContainer.new()
 	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroller.custom_minimum_size.y = 190
-	hand_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroller.add_child(hand_row)
+	scroller.custom_minimum_size.y = 284
+	scroller.add_child(margin)
 	section.add_child(scroller)
-	var counts: Dictionary = GameSession.run.get("deck", {}).get("counts", {})
-	section.add_child(AppTheme.muted(I18n.text("Draw: %s  •  Discard: %s  •  Exile: %s") % [
-		int(counts.get("drawPile", 0)), int(counts.get("discardPile", 0)), int(counts.get("exhaustPile", 0))], 13))
-	var piles := HBoxContainer.new()
-	for pair in [["Draw pile", "drawPileInstanceIds"], ["Discard pile", "discardPileInstanceIds"], ["Exile", "exhaustPileInstanceIds"]]:
-		piles.add_child(_button(I18n.text(pair[0]), func(): _inspect_pile(pair[0], pair[1])))
-	section.add_child(piles)
-	add_child(AppTheme.panel(section, Color("#151625e8")))
+	add_child(section)
 
 func _card_button(card: Dictionary) -> Button:
 	var id := str(card.get("definitionId", ""))
 	var info: Dictionary = presentation.get("cards", {}).get(id, {})
+	var instance_id := str(card.get("cardInstanceId", ""))
+	var candidate := _candidate_for_card(instance_id)
 	var value := CardView.new()
 	value.toggle_mode = true
-	value.custom_minimum_size = Vector2(220, 176)
-	value.add_theme_font_size_override("font_size", 15)
-	value.text = "%s%s\n\n%s" % [
-		I18n.content_name(id, str(info.get("name", id))).to_upper(),
-		" +" if not card.get("upgrades", []).is_empty() else "",
-		presenter.card_summary(str(card.get("cardInstanceId", "")))]
-	value.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var tone := str(info.get("tone", "skill"))
-	var color := AppTheme.BLOOD if tone == "attack" else (Color("#8c75dc") if tone == "power" else AppTheme.TEAL)
-	value.add_theme_stylebox_override("normal", AppTheme.box(color.darkened(.62), 10, color.darkened(.12), 2))
-	value.add_theme_stylebox_override("hover", AppTheme.box(color.darkened(.42), 10, AppTheme.GOLD, 3))
-	value.add_theme_stylebox_override("focus", AppTheme.box(Color.TRANSPARENT, 10, AppTheme.GOLD, 3))
-	var instance_id := str(card.get("cardInstanceId", ""))
+	value.configure({
+		"definitionId": id, "tone": info.get("tone", "skill"),
+		"name": I18n.content_name(id, str(info.get("name", id))) + (" +" if not card.get("upgrades", []).is_empty() else ""),
+		"summary": presenter.card_summary(instance_id) if not candidate.is_empty() else str(info.get("text", I18n.text("See inspection for details"))),
+		"cost": I18n.text("Cost: %s") % _cost_text(candidate) if not candidate.is_empty() else I18n.text("UNAVAILABLE"),
+		"availability": I18n.text("SELECT TO PLAY") if not candidate.is_empty() else I18n.text("INSPECT FOR DETAILS")
+	})
+	if not candidate.is_empty() and not card_buttons.values().any(func(card_view): return card_view.has_meta("initial_focus")):
+		value.set_meta("initial_focus", true)
 	card_buttons[instance_id] = value
-	var candidate := _candidate_for_card(instance_id)
-	if not candidate.is_empty():
-		value.text += "\n\n" + I18n.text("Cost: %s") % _cost_text(candidate)
-	else:
-		value.text += "\n\n" + I18n.text("UNAVAILABLE")
-	value.tooltip_text = _preview(candidate) if not candidate.is_empty() else I18n.text("No legal actions for this card in the current state.")
+	value.tooltip_text = _preview(candidate) if not candidate.is_empty() else presenter.unavailable_reason(instance_id)
 	value.pressed.connect(func(): _choose_card(instance_id))
 	value.mouse_entered.connect(func(): _show_preview(instance_id))
 	value.focus_entered.connect(func(): _show_preview(instance_id))
@@ -157,37 +159,57 @@ func _card_button(card: Dictionary) -> Button:
 func _build_footer() -> void:
 	detail_label = RichTextLabel.new()
 	detail_label.bbcode_enabled = false
-	detail_label.custom_minimum_size = Vector2(0, 60)
+	detail_label.custom_minimum_size = Vector2(0, 42)
+	detail_label.add_theme_font_size_override("normal_font_size", 14)
 	detail_label.text = I18n.text("Select a card, then choose a highlighted target.")
-	detail_label.tooltip_text = str(GameSession.combat.get("stateHash", ""))
 	add_child(detail_label)
 	choices = VBoxContainer.new()
-	add_child(choices)
-	var row := HFlowContainer.new()
-	selection_label = Label.new()
+	# Alternate costs/multi-target candidates stay explicit and can scroll independently.
+	var alternatives := ScrollContainer.new()
+	alternatives.custom_minimum_size.y = 0
+	alternatives.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	alternatives.add_child(choices)
+	add_child(alternatives)
+	choices.child_order_changed.connect(func(): alternatives.custom_minimum_size.y = 52 if choices.get_child_count() > 0 else 0)
+	var row := HBoxContainer.new()
+	selection_label = AppTheme.muted("", 13)
 	selection_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selection_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(selection_label)
-	queue_label = Label.new()
+	queue_label = AppTheme.muted("", 13)
 	queue_label.add_theme_color_override("font_color", AppTheme.TEAL)
 	row.add_child(queue_label)
 	next_frame_button = _button(I18n.text("NEXT ANIMATION  [%s]") % Preferences.action_label("confirm_action"), _next_frame, 180)
 	row.add_child(next_frame_button)
-	var cancel := _button(I18n.text("CANCEL SELECTION"), _cancel_selection, 160)
+	var cancel := _button(I18n.text("CANCEL SELECTION"), _cancel_selection, 145)
+	cancel.set_meta("selection_only", true)
 	action_buttons.append(cancel)
 	row.add_child(cancel)
-	row.add_child(_button(I18n.text("INSPECT CARD"), _inspect_card, 130))
+	var inspect := _button(I18n.text("INSPECT CARD"), _inspect_card, 130)
+	inspect.set_meta("selection_only", true)
+	action_buttons.append(inspect)
+	row.add_child(inspect)
 	var pass_candidate := _system_candidate(["PASS", "PASS_PRIORITY"])
 	if not pass_candidate.is_empty():
-		var pass_button := _button(I18n.text("PASS PRIORITY"), func(): _execute_system(pass_candidate), 180)
+		var pass_label := "PASS PRIORITY" if str(pass_candidate.command.get("actionType", "")) == "PASS_PRIORITY" else "PASS"
+		var pass_button := _button(I18n.text(pass_label), func(): _execute_system(pass_candidate), 150)
 		action_buttons.append(pass_button)
 		row.add_child(pass_button)
-	var end := _button(I18n.text("END TURN  [%s]") % Preferences.action_label("end_turn"), _end_turn, 200)
+	var end := _button(I18n.text("END TURN  [%s]") % Preferences.action_label("end_turn"), _end_turn, 195)
+	end.add_theme_stylebox_override("normal", AppTheme.box(Color("#705033"), 10, AppTheme.GOLD, 2))
 	end.set_meta("requires_end", true)
 	action_buttons.append(end)
 	row.add_child(end)
-	reconnect_button = _button(I18n.text("RECONNECT"), _reconnect, 140)
+	reconnect_button = _button(I18n.text("RECONNECT"), _reconnect, 130)
 	row.add_child(reconnect_button)
 	add_child(row)
+
+func _input(event: InputEvent) -> void:
+	# Consume cancel before the router handles pause; the first Escape cancels targeting.
+	if not get_tree().paused and not selected_card.is_empty() and event.is_action_pressed("ui_cancel"):
+		_cancel_selection()
+		get_viewport().set_input_as_handled()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if get_tree().paused or not is_visible_in_tree():
@@ -390,6 +412,7 @@ func _update_controls() -> void:
 		card.modulate = Color.WHITE if not _candidates(id).is_empty() else Color("#a99cab")
 		card.select_card(id == selected_card)
 	for button in action_buttons:
+		if button.has_meta("selection_only"): button.visible = not selected_card.is_empty()
 		button.disabled = locked or (button.has_meta("requires_end") and _system_candidate(["END_TURN"]).is_empty())
 	for id in target_buttons:
 		var allowed := not selected_card.is_empty() and _candidates(selected_card).any(func(candidate): return id in _targets(candidate))

@@ -31,4 +31,5 @@ static func wire(root: Control, initial := false) -> void:
 			node.set(pair[0], node.get_path_to(closest))
 	var focused := root.get_viewport().gui_get_focus_owner()
 	if initial or not is_instance_valid(focused) or (root.is_ancestor_of(focused) and focused not in nodes):
-		nodes[0].grab_focus()
+		var preferred: Array[Control] = nodes.filter(func(node): return node.has_meta("initial_focus"))
+		(preferred[0] if not preferred.is_empty() else nodes[0]).grab_focus()

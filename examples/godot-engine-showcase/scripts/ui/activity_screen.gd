@@ -3,47 +3,57 @@ extends VBoxContainer
 var router
 var presentation: Dictionary
 var action_panel: VBoxContainer
+var presenter
+var choice_buttons: Array[Button] = []
+var verifying := false
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	presentation = data
+	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(GameSession.run, GameSession.activity_choices(), data, I18n)
 	add_theme_constant_override("separation", 16)
 	_build_header()
-	_build_map()
 	var lifecycle := str(GameSession.run.get("lifecycle", "Active"))
 	if lifecycle.to_lower() != "active":
 		_build_ending(lifecycle)
 		return
-	var current := _current_node()
 	var columns := HBoxContainer.new()
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	columns.add_theme_constant_override("separation", 18)
+	columns.add_theme_constant_override("separation", 22)
 	add_child(columns)
-	columns.add_child(_activity_summary(current))
+	columns.add_child(_build_map())
+	var workspace := VBoxContainer.new()
+	workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workspace.add_theme_constant_override("separation", 14)
+	workspace.add_child(_activity_summary(_current_node()))
 	action_panel = VBoxContainer.new()
 	action_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	action_panel.add_theme_constant_override("separation", 10)
-	action_panel.add_child(AppTheme.title(I18n.text("AVAILABLE ACTIONS"), 22, AppTheme.TEAL))
+	action_panel.add_theme_constant_override("separation", 14)
 	_build_actions()
-	columns.add_child(AppTheme.panel(action_panel))
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(action_panel)
+	workspace.add_child(scroll)
+	columns.add_child(workspace)
 
 func _build_header() -> void:
 	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
 	var title_box := VBoxContainer.new()
 	title_box.add_child(AppTheme.title(I18n.text("THE EMBER PATH"), 30))
-	title_box.add_child(AppTheme.muted(I18n.text("Run %s  •  seed %s  •  sequence %s  •  step %s") % [
-		str(GameSession.run.get("runId", "")).left(8),
-		GameSession.run.get("seed", 0), GameSession.run.get("sequence", 0), GameSession.run.get("step", 0)]))
+	title_box.tooltip_text = "Seed: %s · Sequence: %s" % [GameSession.run.get("seed", 0), GameSession.run.get("sequence", 0)]
+	title_box.add_child(AppTheme.muted(I18n.text("Build your deck. Choose your path."), 14))
 	row.add_child(title_box)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(push)
-	for resource_id in ["gold", "power_points"]:
+	for resource_id in GameSession.run.get("resources", {}):
 		var resource = GameSession.run.get("resources", {}).get(resource_id, {})
 		var badge := Label.new()
-		badge.text = "%s  %s" % ["◆" if resource_id == "gold" else "✦", int(resource.get("current", 0))]
-		badge.add_theme_color_override("font_color", AppTheme.GOLD if resource_id == "gold" else AppTheme.TEAL)
-		badge.add_theme_font_size_override("font_size", 19)
+		badge.text = "%s %s" % [I18n.number(float(resource.get("current", 0))), I18n.content_name(resource_id)]
+		badge.add_theme_color_override("font_color", AppTheme.GOLD)
+		badge.add_theme_font_size_override("font_size", 15)
 		row.add_child(badge)
 	if not GameSession.run.get("relics", []).is_empty():
 		var relic_badge := Label.new()
@@ -59,55 +69,39 @@ func _build_header() -> void:
 	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
 	add_child(row)
 
-func _build_map() -> void:
-	var line := HBoxContainer.new()
-	line.alignment = BoxContainer.ALIGNMENT_CENTER
-	line.add_theme_constant_override("separation", 7)
-	var map: Dictionary = GameSession.run.get("map", {})
-	var current_id := str(GameSession.run.get("currentNodeId", ""))
-	for node in map.get("nodes", []):
-		var id := str(node.get("nodeId", ""))
-		var info: Dictionary = presentation.get("nodes", {}).get(id, {})
-		var marker := VBoxContainer.new()
-		marker.custom_minimum_size.x = 145
-		var icon := Label.new()
-		icon.text = str(info.get("icon", "•"))
-		icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		icon.add_theme_font_size_override("font_size", 25)
-		var resolved := bool(node.get("resolved", false))
-		icon.add_theme_color_override("font_color", AppTheme.TEAL if resolved else (AppTheme.EMBER if id == current_id else AppTheme.MUTED))
-		marker.add_child(icon)
-		var label := AppTheme.muted(str(info.get("name", id)), 12)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_color_override("font_color", AppTheme.INK if id == current_id else AppTheme.MUTED)
-		marker.add_child(label)
-		line.add_child(marker)
-		if node != map.get("nodes", [])[-1]:
-			var connector := Label.new()
-			connector.text = "—"
-			connector.add_theme_color_override("font_color", Color("#55566d"))
-			line.add_child(connector)
-	add_child(AppTheme.panel(line, Color("#151727d9")))
+func _build_map() -> Control:
+	var column := VBoxContainer.new()
+	column.custom_minimum_size.x = 282
+	column.add_child(AppTheme.title(I18n.text("JOURNEY"), 17, AppTheme.GOLD))
+	column.add_child(AppTheme.muted(I18n.text("Highlighted stops are available."), 12))
+	var route := preload("res://scripts/ui/route_view.gd").new()
+	route.setup(presenter.route())
+	route.travel_requested.connect(_execute)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.add_child(route)
+	column.add_child(scroll)
+	return AppTheme.panel(column, Color("#151727d9"))
 
 func _activity_summary(node: Dictionary) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	var kind := str(node.get("activity", {}).get("type", "Unknown"))
+	var art := preload("res://scripts/ui/art_slot.gd").new()
+	art.setup("activities", kind)
+	art.custom_minimum_size = Vector2(140, 150)
+	row.add_child(art)
 	var content := VBoxContainer.new()
-	content.custom_minimum_size = Vector2(390, 0)
-	content.add_theme_constant_override("separation", 13)
-	var id := str(node.get("nodeId", ""))
-	var info: Dictionary = presentation.get("nodes", {}).get(id, {})
-	var icon := Label.new()
-	icon.text = str(info.get("icon", "◈"))
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 76)
-	icon.add_theme_color_override("font_color", AppTheme.EMBER)
-	content.add_child(icon)
-	var title := AppTheme.title(str(info.get("name", id)), 27, AppTheme.GOLD)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 12)
+	content.add_child(AppTheme.muted(I18n.content_name(kind).to_upper(), 13))
+	var title := AppTheme.title(presenter.node_name(str(node.get("nodeId", ""))), 30, AppTheme.GOLD)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(title)
-	var activity: Dictionary = node.get("activity", {})
-	var kind := str(activity.get("type", "Unknown"))
 	var description: String = {
-		"Encounter": I18n.text("Enter the encounter. Its opponents, deck and rules are defined by the setting."),
+		"Encounter": I18n.text("Study the enemy's intent. Balance offense and defense."),
 		"RelicReward": I18n.text("Claim a relic. Its effects will influence your upcoming battles."),
 		"CardSelection": I18n.text("Choose a card for your deck. Offers are generated from your journey's seed."),
 		"Shop": I18n.text("Spend your gold on supplies or refresh the merchant's stock."),
@@ -115,56 +109,110 @@ func _activity_summary(node: Dictionary) -> Control:
 		"CardUpgrade": I18n.text("Upgrade a card to improve its base components.")
 	}.get(kind, I18n.text("Choose your next action."))
 	content.add_child(AppTheme.muted(description, 16))
-	var deck: Dictionary = GameSession.run.get("deck", {})
-	content.add_child(AppTheme.muted(I18n.text("Deck: %s cards  •  hand: %s  •  discard: %s") % [
-		deck.get("cardInstances", []).size(), deck.get("counts", {}).get("hand", 0),
-		deck.get("counts", {}).get("discardPile", 0)], 14))
-	return AppTheme.panel(content)
+	content.add_child(AppTheme.muted(I18n.text("Deck · %s cards") % GameSession.run.get("deck", {}).get("cardInstances", []).size(), 14))
+	row.add_child(content)
+	return AppTheme.panel(row)
 
 func _build_actions() -> void:
 	var choices := GameSession.activity_choices()
 	if choices.is_empty():
 		action_panel.add_child(AppTheme.muted(I18n.text("Waiting for the next available action.")))
 		return
+	var primary := HFlowContainer.new()
+	primary.add_theme_constant_override("h_separation", 14)
+	primary.add_theme_constant_override("v_separation", 14)
+	action_panel.add_child(primary)
+	var secondary := VBoxContainer.new()
+	secondary.add_theme_constant_override("separation", 8)
 	for choice in choices:
 		var type := str(choice.type)
-		var label := _friendly_command(type)
-		var templates := {
-			"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
-			"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
-			"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s"
-		}
-		if templates.has(type):
-			var name := I18n.content_name(str(choice.subjectId))
-			if choice.subjectType == "node":
-				name = _node_name(str(choice.subjectId))
-			elif choice.subjectType == "card":
-				name = _card_name(str(choice.subjectId))
-			label = I18n.text(templates[type]) % name
-			if choice.has("variantId"):
-				label += " · " + I18n.content_name(str(choice.variantId))
-		elif type == "REROLL_CARD_REWARD":
-			label = I18n.text("NEW OPTIONS")
-		elif type == "REROLL_SHOP":
-			label = I18n.text("REFRESH STOCK")
-		var button := _button(label, func(): _execute(choice), 0)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		if choice.secondary:
-			button.modulate = Color("#c9bdca")
-		action_panel.add_child(button)
+		if type == "ADVANCE_NODE": continue # The route itself is the navigation control.
+		var model: Dictionary = presenter.offer(choice)
+		var label := _choice_label(choice, model)
+		if choice.secondary or type in ["ABANDON_RUN", "RESOLVE_NODE", "RESOLVE_COMBAT"]:
+			var button := _button(label, func(): _confirm_choice(choice, model, label))
+			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.add_theme_font_size_override("font_size", 14)
+			choice_buttons.append(button)
+			secondary.add_child(button)
+		elif str(model.category) == "cards":
+			var card := CardView.new()
+			model["availability"] = label
+			if str(model.cost).is_empty(): model["cost"] = I18n.text("DECK CHOICE")
+			card.configure(model)
+			if primary.get_child_count() == 0: card.set_meta("initial_focus", true)
+			card.pressed.connect(func(): _confirm_choice(choice, model, label))
+			choice_buttons.append(card)
+			primary.add_child(card)
+		else:
+			var column := VBoxContainer.new()
+			column.custom_minimum_size.x = 236
+			var art := preload("res://scripts/ui/art_slot.gd").new()
+			art.setup("activities", str(_current_node().get("activity", {}).get("type", "")))
+			art.custom_minimum_size.y = 100
+			column.add_child(art)
+			if not str(choice.get("subjectId", "")).is_empty():
+				var title := AppTheme.title(str(model.name), 19)
+				title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				column.add_child(title)
+			if not str(model.cost).is_empty(): column.add_child(AppTheme.title(str(model.cost), 17, AppTheme.GOLD))
+			var button := _button(label, func(): _confirm_choice(choice, model, label))
+			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			choice_buttons.append(button)
+			column.add_child(button)
+			primary.add_child(AppTheme.panel(column))
+	if secondary.get_child_count() > 0:
+		action_panel.add_child(AppTheme.muted(I18n.text("OTHER OPTIONS"), 13))
+		action_panel.add_child(secondary)
+	else: secondary.free()
+
+func _choice_label(choice: Dictionary, model: Dictionary) -> String:
+	var templates := {
+		"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
+		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
+		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s"
+	}
+	var type := str(choice.type)
+	if templates.has(type): return I18n.text(templates[type]) % str(model.name)
+	if type == "REROLL_CARD_REWARD": return I18n.text("NEW OPTIONS")
+	if type == "REROLL_SHOP": return I18n.text("REFRESH STOCK")
+	return _friendly_command(type)
+
+func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
+	if GameSession.busy: return
+	if str(choice.type) not in ["ABANDON_RUN", "BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "UPGRADE_CARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
+		_execute(choice)
+		return
+	var dialog := ConfirmationDialog.new()
+	dialog.title = I18n.text("Confirm choice")
+	dialog.dialog_text = label + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")
+	if str(choice.type) == "ABANDON_RUN": dialog.dialog_text += "\n" + I18n.text("This ends the current journey. Its history remains available.")
+	dialog.ok_button_text = I18n.text("CONFIRM")
+	dialog.cancel_button_text = I18n.text("CANCEL")
+	dialog.confirmed.connect(func(): _execute(choice))
+	dialog.visibility_changed.connect(func(): if not dialog.visible: dialog.queue_free())
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(440, 180))
 
 func _execute(choice: Dictionary) -> void:
-	router.show_toast(I18n.text("Processing %s…") % str(choice.type))
+	if GameSession.busy: return
+	for button in choice_buttons: button.disabled = true
+	router.show_toast(I18n.text("PROCESSING…"))
 	var accepted := await GameSession.submit_activity(choice)
 	if not is_inside_tree():
 		return
+	for button in choice_buttons: button.disabled = false
 	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
 			GameAudio.reward()
 		router.open_game()
 
 func _verify() -> void:
+	if verifying: return
+	verifying = true
+	router.show_toast(I18n.text("Verifying replay…"))
 	var result := await GameSession.verify()
+	verifying = false
 	if not is_inside_tree():
 		return
 	if result.ok:
@@ -189,11 +237,7 @@ func _build_ending(lifecycle: String) -> void:
 	center.add_child(AppTheme.panel(content))
 
 func _current_node() -> Dictionary:
-	var id := str(GameSession.run.get("currentNodeId", ""))
-	for node in GameSession.run.get("map", {}).get("nodes", []):
-		if str(node.get("nodeId", "")) == id:
-			return node
-	return {}
+	return presenter.current_node()
 
 func _card_name(id: String) -> String:
 	return str(presentation.get("cards", {}).get(id, {}).get("name", id.replace("_", " ").capitalize()))
@@ -203,6 +247,7 @@ func _node_name(id: String) -> String:
 
 func _friendly_command(type: String) -> String:
 	return {
+		"ABANDON_RUN": I18n.text("ABANDON RUN"),
 		"START_ENCOUNTER": I18n.text("ENTER COMBAT"),
 		"RESOLVE_COMBAT": I18n.text("CONFIRM RESULT"),
 		"RESOLVE_NODE": I18n.text("COMPLETE STAGE"),
