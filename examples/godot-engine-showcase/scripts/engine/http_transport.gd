@@ -27,10 +27,10 @@ func _request_part(batch: RequestBatch, key: String, path: String) -> void:
 	if batch.remaining == 0:
 		batch.completed.emit()
 
-func request(method: HTTPClient.Method, path: String, body = null) -> Dictionary:
+func request(method: HTTPClient.Method, path: String, body = null, timeout_seconds := 12.0) -> Dictionary:
 	var started := Time.get_ticks_msec()
 	var node := HTTPRequest.new()
-	node.timeout = 12.0
+	node.timeout = maxf(timeout_seconds, 1.0)
 	add_child(node)
 	var headers := PackedStringArray(["Accept: application/json"])
 	var encoded := ""

@@ -19,7 +19,7 @@ class FakeTransport extends RefCounted:
 	var snapshot := {"combatId": "test-combat", "step": 3, "status": "ACTIVE", "activeActorId": "player"}
 	var legal := {"source": "Card", "command": {"runId": "test-run", "actorId": "player", "actionType": "PLAY_CARD", "cardInstanceId": "card-1", "costOptionId": "mana", "targetIds": ["enemy"], "internalOnly": "excluded"}}
 
-	func request(method: int, path: String, body = null) -> Dictionary:
+	func request(method: int, path: String, body = null, _timeout_seconds := 12.0) -> Dictionary:
 		calls.append({"method": method, "path": path, "body": body.duplicate(true) if body is Dictionary else body})
 		if path.ends_with("/health/ready"):
 			return _ok({})

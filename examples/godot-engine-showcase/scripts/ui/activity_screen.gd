@@ -130,7 +130,8 @@ func _build_actions() -> void:
 		var model: Dictionary = presenter.offer(choice)
 		var label := _choice_label(choice, model)
 		if choice.secondary or type in ["ABANDON_RUN", "RESOLVE_NODE", "RESOLVE_COMBAT"]:
-			var button := _button(label, func(): _confirm_choice(choice, model, label))
+			var display_label := label + (" · " + str(model.cost) if not str(model.cost).is_empty() else "")
+			var button := _button(display_label, func(): _confirm_choice(choice, model, label))
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			button.add_theme_font_size_override("font_size", 14)
 			choice_buttons.append(button)

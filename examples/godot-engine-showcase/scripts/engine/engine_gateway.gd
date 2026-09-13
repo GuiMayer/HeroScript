@@ -60,7 +60,8 @@ func create_branch(combat_id: String, sequence: int, key: String) -> Dictionary:
 		"/api/v1/combats/%s/timeline/%s/branches" % [combat_id.uri_encode(), sequence], {"branchKey": key})
 
 func verify(run_id: String) -> Dictionary:
-	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/verify" % run_id.uri_encode())
+	# Re-executing a whole journey is not a normal interactive command.
+	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs/%s/verify" % run_id.uri_encode(), null, 120.0)
 
 func simulate(run_id: String, sequence: int, commands: Array) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/simulations", {

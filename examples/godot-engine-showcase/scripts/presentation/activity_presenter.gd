@@ -47,14 +47,21 @@ func offer(choice: Dictionary) -> Dictionary:
 				if str(item.get("itemId", "")) == subject:
 					definition = str(item.get("cardId", subject)) if item.get("cardId") != null else subject
 					costs = item.get("costs", []).duplicate(true)
-					has_cost = true
+					has_cost = item.has("costs")
 	elif type == "APPLY_PREPARATION_OPTION":
 		for preparation in _run.get("preparations", []):
 			if str(preparation.get("preparationInstanceId", "")) != str(choice.payload.get("preparationInstanceId", "")): continue
 			for option in preparation.get("options", []):
 				if str(option.get("optionId", "")) == subject:
 					costs = option.get("costs", []).duplicate(true)
-					has_cost = true
+					has_cost = option.has("costs")
+	elif type in ["REROLL_SHOP", "REROLL_CARD_REWARD"]:
+		var shop := type == "REROLL_SHOP"
+		var identity := "shopInstanceId" if shop else "selectionInstanceId"
+		for offer_state in _run.get("shops" if shop else "cardSelections", []):
+			if str(offer_state.get(identity, "")) == str(choice.payload.get(identity, "")):
+				costs = offer_state.get("rerollCosts", []).duplicate(true)
+				has_cost = offer_state.has("rerollCosts")
 	var card: Dictionary = _appearance.get("cards", {}).get(definition, {})
 	var is_card := str(choice.get("subjectType", "")) == "card" or not card.is_empty()
 	var name: String = _i18n.content_name(definition, str(card.get("name", definition)))
