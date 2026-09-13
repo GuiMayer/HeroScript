@@ -12,6 +12,7 @@
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actions/fireball.json", "kind": "actions", "artifactPath": "actions/fireball.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actions/heal.json", "kind": "actions", "artifactPath": "actions/heal.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/default_effect_amount.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/default_effect_amount.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/signed_resource_delta.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/signed_resource_delta.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/capability-policies/standard_gameplay.json", "kind": "capability-policies", "artifactPath": "capability-policies/standard_gameplay.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/capability-policies/theorycraft_tools.json", "kind": "capability-policies", "artifactPath": "capability-policies/theorycraft_tools.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/card-pools/all_cards.json", "kind": "card-pools", "artifactPath": "card-pools/all_cards.json" },

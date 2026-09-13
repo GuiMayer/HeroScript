@@ -1079,6 +1079,55 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             fingerprint.GetString() == calculationFingerprint));
     }
 
+    [Fact]
+    public async Task DefaultBlock_ProtectsAgainstEnemyThenClearsUnusedCapacityAtOwnersNextActivation()
+    {
+        using var launch = await _client.PostAsJsonAsync("/api/v1/sandbox/runs", CreateScenario(
+            $"api-block-lifetime-{Guid.NewGuid():N}",
+            new { resourcesByActor = new Dictionary<string, object>
+            {
+                ["hero"] = new { energy = 3, health = 20 }
+            } }, enemyDefinitionId: "spire_wisp", deck: new[]
+            {
+                new { definitionId = "defend" }, new { definitionId = "defend" },
+                new { definitionId = "basic_attack" }, new { definitionId = "basic_attack" },
+                new { definitionId = "heal" }
+            }));
+        var launched = await launch.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
+        var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
+        var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
+        using var beforeResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var before = await beforeResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var defends = before.GetProperty("hand").EnumerateArray().Where(card => card.GetProperty("definitionId").GetString() == "defend").ToArray();
+        await ExecuteCardCommand(runId, combatId, defends[0], "hero");
+        var defended = await ExecuteCardCommand(runId, combatId, defends[1], "hero");
+        Assert.Equal(10, CombatResource(defended, "hero", "block"));
+
+        using var versionResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
+        var version = await versionResponse.Content.ReadFromJsonAsync<JsonElement>();
+        using var endResponse = await _client.PostAsJsonAsync($"/api/v1/combats/{combatId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            expectedSequence = version.GetProperty("run").GetProperty("sequence").GetInt32(),
+            expectedStep = version.GetProperty("combat").GetProperty("step").GetUInt64(),
+            type = "END_TURN",
+            payload = new { actorId = "hero" }
+        });
+        var ended = await endResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(endResponse.StatusCode == HttpStatusCode.OK, ended.GetRawText());
+        var combat = ended.GetProperty("state").GetProperty("combat");
+        Assert.Equal(20, CombatResource(combat, "hero", "health"));
+        Assert.Equal(0, CombatResource(combat, "hero", "block"));
+        Assert.Contains(ended.GetProperty("state").GetProperty("resolution").GetProperty("frames").EnumerateArray(),
+            frame => frame.GetProperty("calculations").EnumerateArray().Any(calculation =>
+                calculation.GetProperty("pipelineId").GetString() == "signed_resource_delta" &&
+                calculation.GetProperty("value").GetDouble() < 0));
+        using var verify = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        var replay = await verify.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(replay.GetProperty("isValid").GetBoolean(), replay.GetRawText());
+    }
+
     private async Task<JsonElement> ExecuteCardCommand(
         Guid runId,
         Guid combatId,
@@ -1124,7 +1173,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         string attemptKey,
         object? initialState = null,
         string modeId = "combat_sandbox",
-        string enemyDefinitionId = "enemy_goblin") => new
+        string enemyDefinitionId = "enemy_goblin",
+        object? deck = null) => new
     {
         schemaVersion = 2,
         modeId,
@@ -1148,7 +1198,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
                 controllerBinding = new { kind = "AI", policyId = "gambit" }
             }
         },
-        deck = new[]
+        deck = deck ?? new[]
         {
             new { definitionId = "basic_attack" },
             new { definitionId = "basic_attack" },

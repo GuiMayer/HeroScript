@@ -8,13 +8,13 @@
     "startingHandSize": 5,
     "startingDeck": [
       "basic_attack",
-      "basic_attack",
-      "basic_attack",
-      "basic_attack",
       "defend",
-      "defend",
+      "basic_attack",
       "defend",
       "fireball",
+      "basic_attack",
+      "basic_attack",
+      "defend",
       "heal"
     ],
     "mapNodes": [

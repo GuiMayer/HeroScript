@@ -5,7 +5,7 @@
     "allowCustomSeed": true,
     "flowRulesId": "standard_flow",
     "combatRulesId": "standard_combat",
-    "calculationPipelineIds": ["default_effect_amount"],
+    "calculationPipelineIds": ["default_effect_amount", "signed_resource_delta"],
     "cardPoolIds": ["basic_rewards"],
     "enemyPoolIds": ["standard_enemies"],
     "replayPolicyId": "standard_replay",

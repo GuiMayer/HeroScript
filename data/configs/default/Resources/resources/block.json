@@ -13,7 +13,9 @@
     "enabled": true,
     "amountPerTurn": 0,
     "formula": "source.resources.block.current * -1",
-    "timing": "START_TURN"
+    "timing": "START_TURN",
+    "calculationChannel": "resource_delta",
+    "calculationPipelineId": "signed_resource_delta"
   },
   "costMultiplier": 1.0,
   "tags": ["temporary", "defensive", "slay-the-spire"]
