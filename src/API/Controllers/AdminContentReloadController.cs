@@ -39,7 +39,7 @@ public sealed class AdminContentReloadController : BaseApiController
                 StatusCodes.Status403Forbidden,
                 ApiErrorCodes.Forbidden,
                 "Content reload disabled",
-                "Set ALLOW_CONFIG_RELOAD=true to enable authoring reloads");
+                "Set AllowConfigReload=true (or the matching environment variable) to enable authoring reloads");
         }
 
         var settingId = request?.SettingId ?? "default";

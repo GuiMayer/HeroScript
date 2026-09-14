@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using Core.Caching;
 using Core.Common;
 using Core.Content;
+using Core.Events;
+using Core.Events.Domain;
 using Moq;
 using Xunit;
 
@@ -38,11 +40,13 @@ public sealed class ContentReloadServiceTests
         var settings = new Mock<ISettingBundleCompiler>();
         settings.Setup(service => service.CompileBundleAsync("default", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<ContentBundle>.Success(bundle));
+        var events = new Mock<IOperationalEventBus>();
         using var service = new ContentReloadService(
             caches.Object,
             publications.Object,
             runtimes.Object,
-            settings.Object);
+            settings.Object,
+            events.Object);
 
         var result = await service.ReloadAsync("default");
 
@@ -51,6 +55,8 @@ public sealed class ContentReloadServiceTests
         Assert.Equal(1, result.Value.CacheInvalidation.InvalidatedCount);
         caches.Verify(cache => cache.InvalidateAll(null, false), Times.Once);
         runtimes.Verify(runtime => runtime.Resolve(revision, "default"), Times.Once);
+        events.Verify(bus => bus.Publish(It.Is<ContentReloadedEvent>(published =>
+            published.Succeeded && published.Revision == revision && published.SettingId == "default")), Times.Once);
     }
 
     [Fact]
@@ -75,17 +81,21 @@ public sealed class ContentReloadServiceTests
         var settings = new Mock<ISettingBundleCompiler>();
         settings.Setup(service => service.CompileBundleAsync("default", It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result<ContentBundle>.Success(bundle));
+        var events = new Mock<IOperationalEventBus>();
         using var service = new ContentReloadService(
             caches.Object,
             publications.Object,
             Mock.Of<IContentRuntimeResolver>(),
-            settings.Object);
+            settings.Object,
+            events.Object);
 
         var result = await service.ReloadAsync("default");
 
         Assert.True(result.IsFailure);
         publications.Verify(service => service.PublishDraftAsync(
             It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        events.Verify(bus => bus.Publish(It.Is<ContentReloadedEvent>(published =>
+            !published.Succeeded && published.Error != null)), Times.Once);
     }
 
     private static ContentBundle Bundle(string revision)

@@ -1,6 +1,8 @@
 using System.Collections.Immutable;
 using Core.Caching;
 using Core.Common;
+using Core.Events;
+using Core.Events.Domain;
 
 namespace Core.Content;
 
@@ -39,18 +41,21 @@ public sealed class ContentReloadService : IContentReloadService, IDisposable
     private readonly IContentPublicationService _publications;
     private readonly IContentRuntimeResolver _runtimes;
     private readonly ISettingBundleCompiler _settings;
+    private readonly IOperationalEventBus? _events;
     private readonly SemaphoreSlim _reloadGate = new(1, 1);
 
     public ContentReloadService(
         ICacheCoordinator caches,
         IContentPublicationService publications,
         IContentRuntimeResolver runtimes,
-        ISettingBundleCompiler settings)
+        ISettingBundleCompiler settings,
+        IOperationalEventBus? events = null)
     {
         _caches = caches ?? throw new ArgumentNullException(nameof(caches));
         _publications = publications ?? throw new ArgumentNullException(nameof(publications));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _events = events;
     }
 
     public async Task<Result<ContentReloadReceipt>> ReloadAsync(
@@ -68,34 +73,40 @@ public sealed class ContentReloadService : IContentReloadService, IDisposable
                 .CompileBundleAsync(settingId, cancellationToken)
                 .ConfigureAwait(false);
             if (compiled.IsFailure)
-                return Result<ContentReloadReceipt>.Failure(compiled.Error);
+                return Failure(settingId, compiled.Error, invalidation.InvalidatedCount);
             var draft = await _publications
                 .CreateDraftAsync(compiled.Value, cancellationToken)
                 .ConfigureAwait(false);
             if (draft.IsFailure)
-                return Result<ContentReloadReceipt>.Failure(draft.Error);
+                return Failure(settingId, draft.Error, invalidation.InvalidatedCount);
 
             var validation = _publications.Validate(draft.Value.Bundle);
             if (!validation.IsValid)
             {
-                return Result<ContentReloadReceipt>.Failure(
-                    $"Content reload validation failed: {string.Join("; ", validation.Errors)}");
+                return Failure(
+                    settingId,
+                    $"Content reload validation failed: {string.Join("; ", validation.Errors)}",
+                    invalidation.InvalidatedCount);
             }
 
             var published = await _publications
                 .PublishDraftAsync(draft.Value.DraftId, draft.Value.Version, cancellationToken)
                 .ConfigureAwait(false);
             if (published.IsFailure)
-                return Result<ContentReloadReceipt>.Failure(published.Error);
+                return Failure(settingId, published.Error, invalidation.InvalidatedCount);
 
             var runtime = _runtimes.Resolve(
                 published.Value.Manifest.Revision,
                 published.Value.Manifest.ConfigName);
             if (runtime.IsFailure)
-                return Result<ContentReloadReceipt>.Failure(
-                    $"Published content runtime could not be created: {runtime.Error}");
+            {
+                return Failure(
+                    settingId,
+                    $"Published content runtime could not be created: {runtime.Error}",
+                    invalidation.InvalidatedCount);
+            }
 
-            return Result<ContentReloadReceipt>.Success(new ContentReloadReceipt
+            var receipt = new ContentReloadReceipt
             {
                 DraftId = draft.Value.DraftId,
                 DraftVersion = draft.Value.Version,
@@ -103,12 +114,46 @@ public sealed class ContentReloadService : IContentReloadService, IDisposable
                 Revision = published.Value.Manifest.Revision,
                 Warnings = validation.Warnings,
                 CacheInvalidation = invalidation
-            });
+            };
+            Publish(settingId, true, receipt.Revision, null, receipt.Warnings.Length, invalidation.InvalidatedCount);
+            return Result<ContentReloadReceipt>.Success(receipt);
         }
         finally
         {
             _reloadGate.Release();
         }
+    }
+
+    private Result<ContentReloadReceipt> Failure(
+        string settingId,
+        string error,
+        int invalidatedCacheCount)
+    {
+        Publish(settingId, false, null, error, 0, invalidatedCacheCount);
+        return Result<ContentReloadReceipt>.Failure(error);
+    }
+
+    private void Publish(
+        string settingId,
+        bool succeeded,
+        string? revision,
+        string? error,
+        int warningCount,
+        int invalidatedCacheCount)
+    {
+        _events?.Publish(new ContentReloadedEvent
+        {
+            EventId = Guid.NewGuid(),
+            Timestamp = DateTime.UtcNow,
+            SettingId = settingId,
+            Succeeded = succeeded,
+            Revision = revision,
+            Error = error,
+            WarningCount = warningCount,
+            InvalidatedCacheCount = invalidatedCacheCount,
+            Severity = succeeded ? EventSeverity.INFO : EventSeverity.WARN,
+            Target = revision ?? settingId
+        });
     }
 
     public void Dispose() => _reloadGate.Dispose();

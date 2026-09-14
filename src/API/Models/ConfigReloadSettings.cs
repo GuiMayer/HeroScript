@@ -7,7 +7,7 @@ public class ConfigReloadSettings
 {
     /// <summary>
     /// Whether configuration reload is enabled (default: false)
-    /// Set ALLOW_CONFIG_RELOAD=true in environment or appsettings.json to enable
+    /// Set AllowConfigReload=true in the environment or appsettings.json to enable
     /// </summary>
     public bool Enabled { get; set; } = false;
 }
