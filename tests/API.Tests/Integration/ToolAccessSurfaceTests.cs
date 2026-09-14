@@ -10,6 +10,35 @@ namespace API.Tests.Integration;
 
 public sealed class ToolAccessSurfaceTests
 {
+    [Theory]
+    [InlineData("spire_showcase", "spire_showcase_run", "standard_gameplay", false, false, false)]
+    [InlineData("spire_showcase_experimental", "spire_showcase_run", "experimental_tools", true, false, false)]
+    [InlineData("combat_sandbox", "default_run", "sandbox_tools", true, true, false)]
+    [InlineData("development_lab", "spire_showcase_run", "dev_modder_tools", true, true, true)]
+    public async Task ContentModes_ExposeOnlyTheirIntendedToolCeiling(
+        string modeId,
+        string runDefinitionId,
+        string expectedPolicyId,
+        bool allowsCheats,
+        bool allowsBranches,
+        bool allowsContentActivation)
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var game = new GameEngineClientSimulator(client);
+        var runId = await game.StartRunAsync(
+            runDefinitionId: runDefinitionId,
+            modeId: modeId,
+            seed: 14092028);
+
+        var capabilities = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{runId}/capabilities");
+        Assert.Equal(expectedPolicyId, capabilities.GetProperty("modeCapabilityPolicyId").GetString());
+        var granted = capabilities.GetProperty("granted").EnumerateArray().Select(item => item.GetString()).ToArray();
+        Assert.Equal(allowsCheats, granted.Contains(ToolCapabilities.CheatRunResources));
+        Assert.Equal(allowsBranches, granted.Contains(ToolCapabilities.BranchCreate));
+        Assert.Equal(allowsContentActivation, granted.Contains(ToolCapabilities.ContentActivate));
+    }
+
     [Fact]
     public async Task NormalProfile_ExposesReadOnlyTimelineWithoutHistoricalStateOrTools()
     {

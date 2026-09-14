@@ -1,6 +1,6 @@
 {
-  "theorycraft_tools": {
-    "capabilityPolicyId": "theorycraft_tools",
+  "dev_modder_tools": {
+    "capabilityPolicyId": "dev_modder_tools",
     "allowScenarioAuthoring": true,
     "allowCustomDeck": true,
     "allowInitialEffects": true,
@@ -11,9 +11,9 @@
     "allowRunResourceCheats": true,
     "allowCardZoneCheats": true,
     "cardInspectionDetail": "Full",
-    "maxCards": 100,
-    "maxActors": 6,
-    "maxBranchesPerRoot": 50,
-    "maxSimulationCommands": 250
+    "maxCards": 250,
+    "maxActors": 24,
+    "maxBranchesPerRoot": 250,
+    "maxSimulationCommands": 1000
   }
 }

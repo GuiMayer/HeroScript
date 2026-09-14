@@ -10,8 +10,8 @@
     "enemyPoolIds": ["spire_showcase_enemies"],
     "replayPolicyId": "sandbox_replay",
     "timelinePolicyId": "sandbox_timeline",
-    "contentBindingPolicyId": "development_versioned",
-    "capabilityPolicyId": "theorycraft_tools",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
     "progressionPolicyId": "standard_progression"
   }
 }

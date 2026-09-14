@@ -1,0 +1,21 @@
+{
+  "development_lab": {
+    "modeId": "development_lab",
+    "runDefinitionId": "spire_showcase_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "sandbox_flow",
+    "combatRulesId": "standard_combat",
+    "calculationPipelineIds": ["default_effect_amount", "signed_resource_delta"],
+    "cardPoolIds": ["all_cards"],
+    "enemyPoolIds": ["spire_showcase_enemies"],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "development_versioned",
+    "capabilityPolicyId": "dev_modder_tools",
+    "progressionPolicyId": "sandbox_progression",
+    "rules": {
+      "presentation": "spire",
+      "difficulty": "development"
+    }
+  }
+}

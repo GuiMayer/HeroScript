@@ -10,8 +10,8 @@
     "enemyPoolIds": ["all_enemies"],
     "replayPolicyId": "sandbox_replay",
     "timelinePolicyId": "sandbox_timeline",
-    "contentBindingPolicyId": "development_versioned",
-    "capabilityPolicyId": "theorycraft_tools",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
     "progressionPolicyId": "sandbox_progression"
   },
   "combat_sandbox_fixed_actions": {
@@ -25,8 +25,8 @@
     "enemyPoolIds": ["all_enemies"],
     "replayPolicyId": "sandbox_replay",
     "timelinePolicyId": "sandbox_timeline",
-    "contentBindingPolicyId": "development_versioned",
-    "capabilityPolicyId": "theorycraft_tools",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
     "progressionPolicyId": "sandbox_progression"
   },
   "combat_sandbox_priority": {
@@ -40,8 +40,8 @@
     "enemyPoolIds": ["all_enemies"],
     "replayPolicyId": "sandbox_replay",
     "timelinePolicyId": "sandbox_timeline",
-    "contentBindingPolicyId": "development_versioned",
-    "capabilityPolicyId": "theorycraft_tools",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
     "progressionPolicyId": "sandbox_progression"
   }
 }
