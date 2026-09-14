@@ -31,6 +31,7 @@
 - **[Config System](systems/config/config-system.md)** - Packages, settings, bundles e revisões
 - **[Composition Reference](systems/config/delta-reference.md)** - Definições e patches explícitos
 - **[Package Authoring](content/packages-and-settings.md)** - Guia de autoria de packages/settings
+- **[Hot Reload and Tool Profiles](content/hot-reload-and-tool-profiles.md)** - Revisões imutáveis, ativação e perfis normal/experimental/sandbox/dev/custom
 - **[Resource System](systems/resources/resource-system.md)** - Gerenciamento de recursos (HP, Mana, Energy, etc.)
 - **[Calculation System](systems/calculations/calculation-system.md)** - Pipelines, buckets, influências e traces
 - **[Math Engine](systems/math/math-system.md)** - Motor de expressões matemáticas configuráveis

@@ -351,17 +351,21 @@ combat = client.start_combat("knight", ["goblin"])
 
 ## Hot-Reload Workflow
 
-For rapid iteration during development:
+Hot reload recompila o setting inteiro e publica uma nova revisão imutável; ele
+nunca altera silenciosamente uma run ativa. No ambiente de desenvolvimento:
 
-1. **Edit config files** (e.g., `data/configs/default/Actions/fireball.json`)
-2. **Reload via API** (no restart needed):
-   ```bash
-   curl -X POST http://localhost:5260/api/v1/actions/reload \
-     -H "X-Admin-Key: dev-admin-key"
-   ```
-3. **Test immediately** in running game client
+1. Edite os packages em `data/configs/default`.
+2. Valide com `POST /api/v1/admin/settings/default/validate`.
+3. Publique com `POST /api/v1/admin/content/reload`, corpo
+   `{ "settingId": "default" }` e `X-Admin-Key`.
+4. Para migrar uma run permitida, consulte primeiro
+   `GET /api/v1/runs/{runId}/content/activation-preview?targetRevision={revision}` e depois envie
+   `ACTIVATE_CONTENT_REVISION` como comando versionado.
 
-This works for all definition types: Actions, Entities, Status Effects, Gambits.
+Perfis operacionais e políticas do game mode são limites independentes. Consulte
+`GET /api/v1/runs/{runId}/capabilities` antes de exibir ferramentas. O fluxo
+completo está em
+[`docs/content/hot-reload-and-tool-profiles.md`](docs/content/hot-reload-and-tool-profiles.md).
 
 ## Build e Testes
 

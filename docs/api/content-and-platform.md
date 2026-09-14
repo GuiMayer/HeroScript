@@ -25,8 +25,11 @@ referenciada por runs existentes.
 | `/api/v1/version` | Versão da API, da engine determinística e assembly. |
 | `/api/v1/capabilities` | Recursos efetivamente habilitados no servidor. |
 
-Ferramentas devem consultar `capabilities` antes de usar recursos opcionais.
-Diagnósticos e reload são administração, não parte do fluxo de gameplay.
+`/api/v1/capabilities` descreve o host. Ferramentas ligadas a uma run devem
+consultar também `/api/v1/runs/{runId}/capabilities`, que cruza o perfil
+operacional confiável com o teto imutável do game mode. Diagnósticos e reload
+são administração, não parte do fluxo de gameplay. Veja
+[Hot reload e perfis de ferramentas](../content/hot-reload-and-tool-profiles.md).
 
 ## Recursos experimentais preparados
 
