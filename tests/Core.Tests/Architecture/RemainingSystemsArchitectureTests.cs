@@ -226,6 +226,7 @@ public sealed class RemainingSystemsArchitectureTests
             "AllowedHosts",
             "AllowedOrigins",
             "Admin",
+            "ToolAccess",
             "AllowConfigReload",
             "Persistence"
         };
@@ -243,6 +244,12 @@ public sealed class RemainingSystemsArchitectureTests
             "RunStatePath",
             "ContentStorePath"
         }));
+
+        var toolAccessKeys = document.RootElement.GetProperty("ToolAccess")
+            .EnumerateObject()
+            .Select(property => property.Name)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.True(toolAccessKeys.SetEquals(new[] { "Profile", "CustomCapabilities" }));
     }
 
     [Fact]
