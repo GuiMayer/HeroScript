@@ -481,6 +481,8 @@ builder.Services.AddSingleton<IRunManager>(sp => sp.GetRequiredService<GameplayR
 builder.Services.AddSingleton<IRunQueryService>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<IRunCreationService>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<IRunEncounterRuntime>(sp => sp.GetRequiredService<GameplayRuntime>().Runs);
+builder.Services.AddSingleton<IContentRevisionActivationPreviewService>(
+    sp => sp.GetRequiredService<GameplayRuntime>().Runs);
 builder.Services.AddSingleton<RunSessionCoordinator>(sp => sp.GetRequiredService<GameplayRuntime>().RunCommands);
 builder.Services.AddSingleton<IRunCommandGateway>(sp => sp.GetRequiredService<GameplayRuntime>().RunCommands);
 builder.Services.AddSingleton<IRunCommandProcessor>(sp => sp.GetRequiredService<GameplayRuntime>().RunCommands);

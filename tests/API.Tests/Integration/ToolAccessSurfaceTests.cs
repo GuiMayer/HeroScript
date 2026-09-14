@@ -10,6 +10,29 @@ namespace API.Tests.Integration;
 
 public sealed class ToolAccessSurfaceTests
 {
+    [Fact]
+    public async Task DevMode_CanPreviewContentActivationWithoutMutatingTheRun()
+    {
+        using var factory = new TestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var game = new GameEngineClientSimulator(client);
+        var revision = await game.GetCurrentContentRevisionAsync();
+        var runId = await game.StartRunAsync(
+            runDefinitionId: "spire_showcase_run",
+            modeId: "development_lab",
+            seed: 14092029);
+
+        using var response = await client.GetAsync(
+            $"/api/v1/runs/{runId}/content/activation-preview?targetRevision={revision}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var preview = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(preview.GetProperty("compatible").GetBoolean());
+        Assert.Equal(revision, preview.GetProperty("currentRevision").GetString());
+        Assert.Equal(revision, preview.GetProperty("targetRevision").GetString());
+        Assert.Empty(preview.GetProperty("artifactChanges").EnumerateArray());
+        Assert.Equal(1, (await game.GetRunStateAsync(runId)).GetProperty("sequence").GetInt32());
+    }
+
     [Theory]
     [InlineData("spire_showcase", "spire_showcase_run", "standard_gameplay", false, false, false)]
     [InlineData("spire_showcase_experimental", "spire_showcase_run", "experimental_tools", true, false, false)]
@@ -64,6 +87,10 @@ public sealed class ToolAccessSurfaceTests
         admin.Headers.Add("X-Admin-Key", "dev-admin-key");
         using var adminResponse = await client.SendAsync(admin);
         Assert.Equal(HttpStatusCode.Forbidden, adminResponse.StatusCode);
+        var revision = await game.GetCurrentContentRevisionAsync();
+        using var activationPreview = await client.GetAsync(
+            $"/api/v1/runs/{runId}/content/activation-preview?targetRevision={revision}");
+        Assert.Equal(HttpStatusCode.Forbidden, activationPreview.StatusCode);
 
         var capabilities = await client.GetFromJsonAsync<JsonElement>($"/api/v1/runs/{runId}/capabilities");
         Assert.Equal("normal", capabilities.GetProperty("profile").GetString());

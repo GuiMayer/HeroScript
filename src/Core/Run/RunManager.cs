@@ -23,7 +23,7 @@ using System.Text.Json.Serialization;
 
 namespace Core.Run;
 
-public sealed class RunManager : IRunManager, IRunEncounterRuntime
+public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevisionActivationPreviewService
 {
     private readonly IConfigManager _configManager;
     private readonly IResourceLoader _resourceLoader;
@@ -834,26 +834,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         if (!_runs.TryGetValue(runId, out var state))
             return Result.Failure($"Run not found: {runId}");
 
-        var mode = state.ResolvedMode;
-        if (mode == null)
-            return Result.Failure("Content revision activation requires a resolved game mode");
-        if (!mode.CapabilityPolicy.AllowHotReloadActivation)
-            return Result.Failure($"Game mode does not allow content revision activation: {state.ModeId}");
-        if (!string.Equals(
-                mode.ContentBindingPolicy.ActiveRuns,
-                "allow_versioned_activation",
-                StringComparison.Ordinal))
-        {
-            return Result.Failure("Game mode pins content for active runs");
-        }
-        if (!string.Equals(
-                mode.ContentBindingPolicy.ActivationBoundary,
-                "next_command",
-                StringComparison.Ordinal))
-        {
-            return Result.Failure("Unsupported content activation boundary");
-        }
-
         var manifest = ResolveKnownManifest(request.Revision.Trim());
         if (manifest.IsFailure)
             return Result.Failure(manifest.Error);
@@ -862,22 +842,90 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
         if (string.Equals(state.Determinism.ContentRevision, manifest.Value.Revision, StringComparison.Ordinal))
             return Result.Success();
 
+        var prepared = PrepareContentRevisionActivation(state, manifest.Value);
+        if (prepared.IsFailure)
+            return Result.Failure(prepared.Error);
+        return ToResult(Persist(
+            prepared.Value,
+            RunCommandTypes.ActivateContentRevision,
+            new { revision = manifest.Value.Revision }));
+    }
+
+    public Result<ContentRevisionActivationPreview> Preview(Guid runId, string targetRevision)
+    {
+        if (string.IsNullOrWhiteSpace(targetRevision))
+            return Result<ContentRevisionActivationPreview>.Failure("Content revision is required");
+        var current = GetRun(runId);
+        if (current.IsFailure)
+            return Result<ContentRevisionActivationPreview>.Failure(current.Error);
+        var manifest = ResolveKnownManifest(targetRevision.Trim());
+        if (manifest.IsFailure)
+            return Result<ContentRevisionActivationPreview>.Failure(manifest.Error);
+        if (!string.Equals(manifest.Value.ConfigName, current.Value.ConfigName, StringComparison.OrdinalIgnoreCase))
+            return Result<ContentRevisionActivationPreview>.Failure(
+                "Content revision belongs to a different configuration");
+
+        var prepared = string.Equals(
+                current.Value.Determinism.ContentRevision,
+                manifest.Value.Revision,
+                StringComparison.Ordinal)
+            ? Result<RunState>.Success(current.Value)
+            : PrepareContentRevisionActivation(current.Value, manifest.Value);
+        var boundary = current.Value.ResolvedMode?.ContentBindingPolicy.ActivationBoundary ?? "unavailable";
+        return Result<ContentRevisionActivationPreview>.Success(new ContentRevisionActivationPreview(
+            runId,
+            current.Value.Determinism.ContentRevision,
+            manifest.Value.Revision,
+            boundary,
+            prepared.IsSuccess,
+            prepared.IsFailure ? [prepared.Error] : [],
+            [],
+            CompareArtifacts(current.Value.ContentManifest, manifest.Value)));
+    }
+
+    private Result<RunState> PrepareContentRevisionActivation(RunState state, ContentManifest manifest)
+    {
+        var mode = state.ResolvedMode;
+        if (mode == null)
+            return Result<RunState>.Failure("Content revision activation requires a resolved game mode");
+        if (!mode.CapabilityPolicy.AllowHotReloadActivation)
+            return Result<RunState>.Failure($"Game mode does not allow content revision activation: {state.ModeId}");
+        if (!string.Equals(
+                mode.ContentBindingPolicy.ActiveRuns,
+                "allow_versioned_activation",
+                StringComparison.Ordinal))
+        {
+            return Result<RunState>.Failure("Game mode pins content for active runs");
+        }
+        if (!string.Equals(
+                mode.ContentBindingPolicy.ActivationBoundary,
+                "next_command",
+                StringComparison.Ordinal))
+        {
+            return Result<RunState>.Failure("Unsupported content activation boundary");
+        }
+        if (state.GetActiveEncounter()?.Combat.IsActive == true)
+        {
+            return Result<RunState>.Failure(
+                "Content revision activation is only safe outside an active combat");
+        }
+
         var activationState = state;
         if (_contentRuntimes != null)
         {
-            var targetRuntime = _contentRuntimes.Resolve(manifest.Value.Revision, state.ConfigName);
+            var targetRuntime = _contentRuntimes.Resolve(manifest.Revision, state.ConfigName);
             if (targetRuntime.IsFailure)
-                return Result.Failure($"Target content revision is unavailable: {targetRuntime.Error}");
+                return Result<RunState>.Failure($"Target content revision is unavailable: {targetRuntime.Error}");
             var compatibility = RunContentCompatibilityValidator.PrepareForActivation(
                 state,
                 targetRuntime.Value);
             if (compatibility.IsFailure)
-                return Result.Failure(compatibility.Error);
+                return Result<RunState>.Failure(compatibility.Error);
             activationState = compatibility.Value;
         }
         else if (RunContentCompatibilityValidator.RequiresRuntime(state))
         {
-            return Result.Failure(
+            return Result<RunState>.Failure(
                 "Content runtime resolver is required to activate a revision for content-bound state");
         }
 
@@ -888,34 +936,49 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             var resolved = revisionedModes.Resolve(
                 state.ModeId,
                 state.ConfigName,
-                manifest.Value.Revision);
+                manifest.Revision);
             if (resolved.IsFailure)
-                return Result.Failure($"Target content revision has an invalid game mode graph: {resolved.Error}");
+                return Result<RunState>.Failure(
+                    $"Target content revision has an invalid game mode graph: {resolved.Error}");
             activatedMode = resolved.Value;
         }
 
-        var encounters = activationState.Encounters
-            .Select(encounter => encounter with
-            {
-                Combat = encounter.Combat with
-                {
-                    Determinism = encounter.Combat.Determinism.WithContentRevision(manifest.Value.Revision)
-                }
-            })
-            .ToImmutableArray();
         var candidate = activationState with
         {
-            ContentManifest = manifest.Value,
+            ContentManifest = manifest,
             ResolvedMode = activatedMode,
-            Encounters = encounters,
             Determinism = state.Determinism
-                .WithContentRevision(manifest.Value.Revision)
+                .WithContentRevision(manifest.Revision)
                 .AdvanceStep()
         };
-        return ToResult(Persist(
-            candidate,
-            RunCommandTypes.ActivateContentRevision,
-            new { revision = manifest.Value.Revision }));
+        return Result<RunState>.Success(candidate);
+    }
+
+    private static IReadOnlyList<ContentArtifactChange> CompareArtifacts(
+        ContentManifest? current,
+        ContentManifest target)
+    {
+        var previous = (current?.Artifacts ?? [])
+            .ToDictionary(item => item.Path, StringComparer.Ordinal);
+        var next = target.Artifacts.ToDictionary(item => item.Path, StringComparer.Ordinal);
+        return previous.Keys
+            .Union(next.Keys, StringComparer.Ordinal)
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .Select(path =>
+            {
+                previous.TryGetValue(path, out var before);
+                next.TryGetValue(path, out var after);
+                if (before == null)
+                    return new ContentArtifactChange(path, after!.Kind, "added", null, after.Hash);
+                if (after == null)
+                    return new ContentArtifactChange(path, before.Kind, "removed", before.Hash, null);
+                return string.Equals(before.Hash, after.Hash, StringComparison.Ordinal)
+                    ? null
+                    : new ContentArtifactChange(path, after.Kind, "modified", before.Hash, after.Hash);
+            })
+            .Where(change => change != null)
+            .Cast<ContentArtifactChange>()
+            .ToArray();
     }
 
     private T DeserializePayload<T>(JsonElement payload) where T : class

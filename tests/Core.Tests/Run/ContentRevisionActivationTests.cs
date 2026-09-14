@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Config;
+using Core.Combat.Models;
 using Core.Content;
 using Core.Determinism;
 using Core.Effects;
@@ -66,7 +67,8 @@ public sealed class ContentRevisionActivationTests
     {
         var revisionA = new string('a', 64);
         var manager = CreateManager(null, revisionA, new string('b', 64));
-        var state = CreateState(revisionA) with
+        var source = CreateState(revisionA);
+        var state = source with
         {
             ResolvedMode = new ResolvedGameMode
             {
@@ -96,6 +98,82 @@ public sealed class ContentRevisionActivationTests
 
         Assert.True(result.IsFailure);
         Assert.Contains("does not allow", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ActivateContentRevision_IsRejectedWhileCombatIsActive()
+    {
+        var revisionA = new string('a', 64);
+        var revisionB = new string('b', 64);
+        var manager = CreateManager(null, revisionA, revisionB);
+        var combatId = Guid.NewGuid();
+        var source = CreateState(revisionA);
+        var state = source with
+        {
+            ActiveEncounterId = combatId,
+            Encounters =
+            [
+                new RunEncounterState
+                {
+                    NodeId = "combat",
+                    Combat = new CombatState
+                    {
+                        CombatId = combatId,
+                        RunId = source.RunId,
+                        Status = CombatStatus.ACTIVE,
+                        Determinism = DeterministicContext.Create(17UL, revisionA)
+                    }
+                }
+            ]
+        };
+        state = manager.HydrateForReplay(state).Value;
+
+        var preview = manager.Preview(state.RunId, revisionB);
+        var result = Activate(manager, state, revisionB);
+
+        Assert.True(preview.IsSuccess, preview.IsFailure ? preview.Error : null);
+        Assert.False(preview.Value.Compatible);
+        Assert.Contains(preview.Value.Blockers, blocker =>
+            blocker.Contains("active combat", StringComparison.OrdinalIgnoreCase));
+        Assert.True(result.IsFailure);
+        Assert.Contains("active combat", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(revisionA, manager.GetRun(state.RunId).Value.Determinism.ContentRevision);
+    }
+
+    [Fact]
+    public void ActivateContentRevision_PreservesCompletedCombatProvenance()
+    {
+        var revisionA = new string('a', 64);
+        var revisionB = new string('b', 64);
+        var manager = CreateManager(null, revisionA, revisionB);
+        var combatId = Guid.NewGuid();
+        var source = CreateState(revisionA);
+        var state = source with
+        {
+            Encounters =
+            [
+                new RunEncounterState
+                {
+                    NodeId = "combat",
+                    Resolved = true,
+                    Outcome = "victory",
+                    Combat = new CombatState
+                    {
+                        CombatId = combatId,
+                        RunId = source.RunId,
+                        Status = CombatStatus.VICTORY,
+                        Determinism = DeterministicContext.Create(17UL, revisionA)
+                    }
+                }
+            ]
+        };
+        state = manager.HydrateForReplay(state).Value;
+
+        var result = Activate(manager, state, revisionB);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(revisionB, result.Value.State.Determinism.ContentRevision);
+        Assert.Equal(revisionA, result.Value.State.Encounters[0].Combat.Determinism.ContentRevision);
     }
 
     [Fact]
