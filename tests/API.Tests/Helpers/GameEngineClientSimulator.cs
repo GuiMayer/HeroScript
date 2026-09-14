@@ -376,7 +376,11 @@ public class GameEngineClientSimulator
         queryParams.Add($"limit={limit}");
 
         var query = string.Join("&", queryParams);
-        var response = await _client.GetAsync($"/api/v1/admin/telemetry?{query}");
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/api/v1/admin/telemetry?{query}");
+        request.Headers.Add("X-Admin-Key", "dev-admin-key");
+        var response = await _client.SendAsync(request);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
         var events = json.ValueKind == JsonValueKind.Array
