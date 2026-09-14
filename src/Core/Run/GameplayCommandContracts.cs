@@ -234,6 +234,8 @@ public static class GameplayCommandDescriptors
     public static IReadOnlyList<GameplayCommandDescriptor> All { get; } =
     [
         Run<AdvanceNodeCommand>(RunCommandTypes.AdvanceNode),
+        Run<Dialogue.StartDialogueCommand>(RunCommandTypes.StartDialogue),
+        Run<Dialogue.ChooseDialogueOptionCommand>(RunCommandTypes.ChooseDialogueOption),
         Run<ResolveNodeCommand>(RunCommandTypes.ResolveNode),
         Run<CountCommand>(RunCommandTypes.DrawCards),
         Run<CardIdsCommand>(RunCommandTypes.DiscardCards),

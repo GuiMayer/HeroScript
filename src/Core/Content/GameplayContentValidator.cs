@@ -76,6 +76,21 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             }
         });
         Visit<ActionDefinition>("actions", (path, item) => Effects(path, item.Effects));
+        Visit<Core.Run.Dialogue.DialogueDefinition>("dialogues", (path, item) =>
+        {
+            foreach (var error in Core.Run.Dialogue.DialogueDefinitionValidator.Validate(item)) Error(path, error);
+            foreach (var node in item.Nodes)
+            {
+                RunBoundaryEffects($"{path}/{node.NodeId}/entryEffects", node.EntryEffects);
+                foreach (var choice in node.Choices)
+                {
+                    var address = $"{path}/{node.NodeId}/{choice.ChoiceId}";
+                    RunBoundaryEffects($"{address}/effects", choice.Effects);
+                    foreach (var cost in choice.Costs) Reference(address, "resources", cost.ResourceId, required: true);
+                    DialogueConditionReferences(address, choice.Condition);
+                }
+            }
+        });
         Visit<Core.Resources.ResourceDefinition>("resources", (path, item) =>
         {
             if (item.Regeneration is { Enabled: true } regeneration)
@@ -105,6 +120,20 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (!Enum.IsDefined(item.DurationBoundary)) Error(path, "invalid modifier durationBoundary");
             Influences(path, item.Influences);
         });
+    }
+
+    private void DialogueConditionReferences(string path, Core.Run.Dialogue.DialogueCondition? condition)
+    {
+        if (condition == null) return;
+        var kind = condition.Kind switch
+        {
+            Core.Run.Dialogue.DialogueConditionKind.ResourceAtLeast => "resources",
+            Core.Run.Dialogue.DialogueConditionKind.HasCard => "cards",
+            Core.Run.Dialogue.DialogueConditionKind.HasRelic => "relics",
+            _ => null
+        };
+        if (kind != null) Reference(path, kind, condition.Id, required: true);
+        foreach (var child in condition.Children) DialogueConditionReferences(path, child);
     }
 
     private void Visit<T>(string kind, Action<string, T> inspect)

@@ -1,0 +1,42 @@
+{
+  "ember_keeper": {
+    "dialogueId": "ember_keeper",
+    "title": { "text": "The keeper of embers", "translations": { "pt_BR": "A guardiã das brasas" } },
+    "startNodeId": "greeting",
+    "nodes": [
+      {
+        "nodeId": "greeting",
+        "speaker": { "text": "The Keeper", "translations": { "pt_BR": "A Guardiã" } },
+        "portraitId": "ember_keeper",
+        "text": { "text": "That ember chose you. Before you climb, is there something you need?", "translations": { "pt_BR": "Essa brasa escolheu você. Antes de subir, há algo de que precisa?" } },
+        "choices": [
+          { "choiceId": "ask", "text": { "text": "What waits at the summit?", "translations": { "pt_BR": "O que me espera no topo?" } }, "nextNodeId": "warning", "once": true },
+          { "choiceId": "trade", "text": { "text": "Buy an Arcane Bolt for my deck.", "translations": { "pt_BR": "Comprar um Raio Arcano para meu deck." } }, "costs": [{ "resourceId": "gold", "amount": 20 }], "nextNodeId": "gift", "once": true, "setFlags": { "keeper.trade": "accepted" }, "effects": [{ "effectId": "keeper.arcane_bolt", "type": "ADD_CARD_TO_HAND", "target": "SELF", "cardDefinitionId": "arcane_bolt" }], "unavailableText": { "text": "Requires 20 gold; this offer can only be accepted once.", "translations": { "pt_BR": "Requer 20 de ouro; a oferta só pode ser aceita uma vez." } } },
+          { "choiceId": "secret", "text": { "text": "Tell me how to face the sentinel.", "translations": { "pt_BR": "Conte como enfrentar a sentinela." } }, "condition": { "kind": "Flag", "id": "keeper.warning", "value": "heard" }, "hideWhenUnavailable": true, "nextNodeId": "secret" },
+          { "choiceId": "leave", "text": { "text": "I am ready. Farewell.", "translations": { "pt_BR": "Estou pronto. Até mais." } } }
+        ]
+      },
+      {
+        "nodeId": "warning",
+        "speaker": { "text": "The Keeper", "translations": { "pt_BR": "A Guardiã" } },
+        "portraitId": "ember_keeper",
+        "text": { "text": "A sentinel guards the summit. Watch its intentions. A patient defense can save your life.", "translations": { "pt_BR": "Uma sentinela guarda o topo. Observe suas intenções. Uma defesa paciente pode salvar sua vida." } },
+        "choices": [{ "choiceId": "back", "text": { "text": "I will remember that.", "translations": { "pt_BR": "Vou me lembrar disso." } }, "nextNodeId": "greeting", "setFlags": { "keeper.warning": "heard" } }]
+      },
+      {
+        "nodeId": "gift",
+        "speaker": { "text": "The Keeper", "translations": { "pt_BR": "A Guardiã" } },
+        "portraitId": "ember_keeper",
+        "text": { "text": "The spell is yours. It draws on mana, leaving your energy free for other cards.", "translations": { "pt_BR": "A magia é sua. Ela usa mana, deixando sua energia livre para outras cartas." } },
+        "choices": [{ "choiceId": "back", "text": { "text": "Thank you.", "translations": { "pt_BR": "Obrigado." } }, "nextNodeId": "greeting" }]
+      },
+      {
+        "nodeId": "secret",
+        "speaker": { "text": "The Keeper", "translations": { "pt_BR": "A Guardiã" } },
+        "portraitId": "ember_keeper",
+        "text": { "text": "Do not spend every resource on the first opening. Keep a defense for the next attack, and use the forge before you reach the summit.", "translations": { "pt_BR": "Não gaste todos os recursos na primeira abertura. Guarde uma defesa para o próximo ataque e use a forja antes de chegar ao topo." } },
+        "choices": [{ "choiceId": "leave", "text": { "text": "Then I know my path.", "translations": { "pt_BR": "Então já sei meu caminho." } }, "setFlags": { "keeper.secret": "heard" } }]
+      }
+    ]
+  }
+}

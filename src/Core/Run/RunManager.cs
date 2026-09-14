@@ -551,6 +551,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
             RunCommandTypes.BuyShopItem => ExecuteBuyShopItem(runId, payload),
             RunCommandTypes.RerollShop => ExecuteRerollShop(runId, payload),
             RunCommandTypes.CreatePreparation => ExecuteCreatePreparation(runId, payload),
+            RunCommandTypes.StartDialogue => ExecuteDialogue(runId, payload, start: true),
+            RunCommandTypes.ChooseDialogueOption => ExecuteDialogue(runId, payload, start: false),
             RunCommandTypes.ApplyPreparationOption => ExecutePreparationOption(runId, payload),
             RunCommandTypes.AcquireRelic => ExecuteAcquireRelic(runId, payload),
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
@@ -567,6 +569,25 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
                 "START_ENCOUNTER must be executed through the run encounter coordinator"),
             _ => Result.Failure($"Unsupported run command type: {commandType}")
         };
+    }
+
+    private Result ExecuteDialogue(Guid runId, JsonElement payload, bool start)
+    {
+        var run = _runs[runId];
+        Result<RunState> transition;
+        if (start)
+        {
+            var request = DeserializePayload<Dialogue.StartDialogueCommand>(payload);
+            if (_contentDefinitions == null || string.IsNullOrWhiteSpace(request.DialogueId))
+                return Result.Failure("A published dialogue definition is required");
+            var definition = _contentDefinitions.Resolve<Dialogue.DialogueDefinition>(run, "dialogues", request.DialogueId);
+            if (definition.IsFailure) return Result.Failure(definition.Error);
+            transition = Dialogue.DialogueTransitions.Start(run, definition.Value, _activityEffects);
+        }
+        else
+            transition = Dialogue.DialogueTransitions.Choose(run, DeserializePayload<Dialogue.ChooseDialogueOptionCommand>(payload), _activityEffects);
+        return transition.IsFailure ? Result.Failure(transition.Error) : ToResult(Persist(transition.Value,
+            start ? RunCommandTypes.StartDialogue : RunCommandTypes.ChooseDialogueOption, payload));
     }
 
     private Result ExecuteAbandonRun(Guid runId)

@@ -63,6 +63,12 @@
         "completionPolicy": "Required",
         "entryEffects": [],
         "exitEffects": [],
+        "nextNodeIds": ["keeper"]
+      },
+      {
+        "nodeId": "keeper",
+        "activity": { "type": "Dialogue", "definitionId": "ember_keeper" },
+        "completionPolicy": "Required",
         "nextNodeIds": ["reward"]
       },
       {

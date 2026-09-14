@@ -6,6 +6,9 @@
   "dependencies": [],
   "conflicts": [],
   "content": [
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/dialogues/ember_keeper.json", "kind": "dialogues", "artifactPath": "dialogues/ember_keeper.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/modes/dialogue_demo.json", "kind": "modes", "artifactPath": "modes/dialogue_demo.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/runs/dialogue_demo.json", "kind": "runs", "artifactPath": "runs/dialogue_demo.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actions/basic_attack.json", "kind": "actions", "artifactPath": "actions/basic_attack.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actions/defend.json", "kind": "actions", "artifactPath": "actions/defend.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actions/enemy_basic_attack.json", "kind": "actions", "artifactPath": "actions/enemy_basic_attack.json" },

@@ -37,6 +37,21 @@ public sealed record RunState
     public ImmutableArray<CardSelectionState> CardSelections { get; init; } = [];
     public ImmutableArray<ShopState> Shops { get; init; } = [];
     public ImmutableArray<PreparationState> Preparations { get; init; } = [];
+    // Absent until the first conversation, preserving hashes of snapshots without narrative state.
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Dialogue.RunNarrativeState? Narrative { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ImmutableArray<Dialogue.DialogueState> Dialogues
+    {
+        get => Narrative?.Dialogues ?? [];
+        init => Narrative = (Narrative ?? new()) with { Dialogues = value };
+    }
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ImmutableDictionary<string, string> NarrativeFlags
+    {
+        get => Narrative?.Flags ?? ImmutableDictionary<string, string>.Empty;
+        init => Narrative = (Narrative ?? new()) with { Flags = value };
+    }
     public IReadOnlyList<string> CompletedActivityNodeIds
     {
         get => _completedActivityNodeIds;

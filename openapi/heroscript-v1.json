@@ -567,10 +567,22 @@
           "expectedStep": { "type": "integer", "format": "uint64" },
           "type": {
             "type": "string",
-            "description": "Canonical command type. ACTIVATE_CONTENT_REVISION accepts { revision } and is allowed only when the run's resolved GameMode enables versioned activation."
+            "description": "Canonical command type. ACTIVATE_CONTENT_REVISION accepts { revision } and is allowed only when the run's resolved GameMode enables versioned activation. START_DIALOGUE accepts { dialogueId }. CHOOSE_DIALOGUE_OPTION accepts { dialogueInstanceId, nodeId, choiceId }; choices are validated and committed atomically with costs, effects and narrative flags."
           },
           "payload": { "type": "object", "additionalProperties": true }
         }
+      },
+      "DialogueText": {
+        "type": "object", "required": ["text"],
+        "properties": { "text": { "type": "string", "description": "English fallback" }, "translations": { "type": "object", "additionalProperties": { "type": "string" } } }
+      },
+      "StartDialoguePayload": {
+        "type": "object", "required": ["dialogueId"], "additionalProperties": false,
+        "properties": { "dialogueId": { "type": "string" } }
+      },
+      "ChooseDialogueOptionPayload": {
+        "type": "object", "required": ["dialogueInstanceId", "nodeId", "choiceId"], "additionalProperties": false,
+        "properties": { "dialogueInstanceId": { "type": "string", "format": "uuid" }, "nodeId": { "type": "string" }, "choiceId": { "type": "string" } }
       },
       "CommandResult": {
         "type": "object",

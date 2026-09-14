@@ -89,6 +89,8 @@ public sealed record RunAvailableCommand
 public static class RunCommandTypes
 {
     public const string StartEncounter = "START_ENCOUNTER";
+    public const string StartDialogue = "START_DIALOGUE";
+    public const string ChooseDialogueOption = "CHOOSE_DIALOGUE_OPTION";
     public const string ResolveCombat = "RESOLVE_COMBAT";
     public const string ResolveNode = "RESOLVE_NODE";
     public const string AdvanceNode = "ADVANCE_NODE";

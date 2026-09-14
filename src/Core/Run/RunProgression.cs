@@ -59,7 +59,8 @@ public enum RunActivityType
     CardSelection,
     Shop,
     Preparation,
-    CardUpgrade
+    CardUpgrade,
+    Dialogue
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -132,7 +133,8 @@ public sealed class RunActivityRegistry
         new CardSelectionRunActivityHandler(),
         new ShopRunActivityHandler(),
         new PreparationRunActivityHandler(),
-        new CardUpgradeRunActivityHandler()
+        new CardUpgradeRunActivityHandler(),
+        new Dialogue.DialogueRunActivityHandler()
     ]);
 }
 

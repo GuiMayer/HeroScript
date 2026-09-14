@@ -1,5 +1,14 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-13
+
+- Atividade `Dialogue` e conteúdo `dialogues` revisionado. `START_DIALOGUE` e
+  `CHOOSE_DIALOGUE_OPTION` usam o gateway canônico de comandos da run.
+- A leitura de run inclui `dialogues` (falas, opções, disponibilidade e
+  transcrição) e `narrativeFlags`. Custos e efeitos de uma resposta são atômicos.
+- Consulte [Sistema de diálogos](../systems/dialogue-system.md) para autoria,
+  integração Godot, comportamento de revisões e limitações de contexto.
+
 ## v1 — 2026-09-11
 
 - Candidatos de `/combats/{combatId}/legal-actions` expõem `costs`, obtidos da

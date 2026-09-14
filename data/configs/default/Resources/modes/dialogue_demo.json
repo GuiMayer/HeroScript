@@ -1,0 +1,17 @@
+{
+  "dialogue_demo": {
+    "modeId": "dialogue_demo",
+    "runDefinitionId": "dialogue_demo_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "standard_combat",
+    "calculationPipelineIds": ["default_effect_amount", "signed_resource_delta"],
+    "cardPoolIds": ["all_cards"],
+    "enemyPoolIds": ["spire_showcase_enemies"],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "development_versioned",
+    "capabilityPolicyId": "theorycraft_tools",
+    "progressionPolicyId": "standard_progression"
+  }
+}

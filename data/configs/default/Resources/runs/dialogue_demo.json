@@ -1,0 +1,12 @@
+{
+  "dialogue_demo_run": {
+    "runId": "dialogue_demo_run",
+    "startingResources": { "gold": 30 },
+    "startingHandSize": 1,
+    "startingDeck": ["basic_attack"],
+    "mapNodes": [
+      { "nodeId": "keeper", "activity": { "type": "Dialogue", "definitionId": "ember_keeper" }, "completionPolicy": "Required", "nextNodeIds": ["return"] },
+      { "nodeId": "return", "activity": { "type": "Dialogue", "definitionId": "ember_keeper" }, "completionPolicy": "Required", "nextNodeIds": [] }
+    ]
+  }
+}

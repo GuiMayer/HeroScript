@@ -10,6 +10,7 @@ ferramentas de QA. O contrato de máquina está em `/openapi/v1.json` e em
 | [Quickstart](getting-started.md) | Executar uma run determinística. |
 | [Contratos](contracts.md) | Implementar comandos idempotentes e tratar erros. |
 | [Runs e combate](runs-and-combat.md) | Recuperação, legalidade e replay. |
+| [Diálogos](../systems/dialogue-system.md) | Conversas ramificadas em JSON, condições, custos e integração Godot. |
 | [Combat sandbox para Godot](combat-sandbox.md) | Cenários, snapshots, timeline, branches e simulações. |
 | [Eventos](events.md) | Paginação e SSE. |
 | [Conteúdo e plataforma](content-and-platform.md) | Revisões, administração e recursos futuros. |

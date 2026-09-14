@@ -328,6 +328,8 @@ public sealed class RunController : BaseApiController
             run.CardSelections,
             run.Shops,
             run.Preparations,
+            dialogues = run.Dialogues.Select(dialogue => Core.Run.Dialogue.DialogueTransitions.View(run, dialogue)),
+            run.NarrativeFlags,
             run.Relics,
             run.Modifiers,
             run.CompletedActivityNodeIds,
