@@ -14,6 +14,7 @@ using Core.Effects;
 using Core.Math;
 using Core.Combat.Intents;
 using Core.Combat.TurnOrder;
+using Core.Run.Content;
 using Moq;
 
 namespace Core.Tests.Combat.Flow;
@@ -33,12 +34,10 @@ public sealed class CombatFlowPlannerTests
         }).Value;
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(item => item.Resolve("revision", "default")).Returns(Result<ContentRuntime>.Success(runtime));
-        var actions = new Mock<IActionManager>();
-        actions.Setup(item => item.GetDefinition(It.IsAny<string>())).Returns((string id) => ResolveAction(id));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(
             formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
-        var boundaries = new CombatBoundaryExecutor(TurnOrders(), actions.Object,
+        var boundaries = new CombatBoundaryExecutor(TurnOrders(), Cards(),
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers),
             new CombatOutcomeResolver());
@@ -180,17 +179,28 @@ public sealed class CombatFlowPlannerTests
         Assert.Equal(["ethereal"], result.Value.Deck.ExhaustPile);
     }
 
-    private static Result<ActionDefinition> ResolveAction(string id) =>
-        Result<ActionDefinition>.Success(new ActionDefinition
-        {
-            ActionId = id,
-            Tags = id switch
-            {
-                "retain" => ["retain"],
-                "ethereal" => ["ethereal"],
-                _ => []
-            }
-        });
+    private static IRunCardResolver Cards()
+    {
+        var resolver = new Mock<IRunCardResolver>();
+        resolver.Setup(item => item.Resolve(
+                It.IsAny<RunState>(),
+                It.IsAny<CardInstanceState>()))
+            .Returns((RunState _, CardInstanceState instance) =>
+                Result<EffectiveCardDefinition>.Success(new EffectiveCardDefinition
+                {
+                    CardInstanceId = instance.CardInstanceId,
+                    DefinitionId = instance.DefinitionId,
+                    DefinitionFingerprint = $"compiled:{instance.DefinitionId}",
+                    Tags = instance.DefinitionId switch
+                    {
+                        "retain" => ["retain"],
+                        "ethereal" => ["ethereal"],
+                        _ => []
+                    },
+                    Fingerprint = $"effective:{instance.CardInstanceId}"
+                }));
+        return resolver.Object;
+    }
 
     private static PhaseSequenceDefinition Sequence() => new()
     {
@@ -273,15 +283,12 @@ public sealed class CombatFlowPlannerTests
 
     private static ICombatBoundaryExecutor Boundaries()
     {
-        var actions = new Mock<IActionManager>();
-        actions.Setup(item => item.GetDefinition(It.IsAny<string>()))
-            .Returns((string id) => ResolveAction(id));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(
             formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
         return new CombatBoundaryExecutor(
             TurnOrders(),
-            actions.Object,
+            Cards(),
             new CombatStatusLifecycle(triggers),
             new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers),

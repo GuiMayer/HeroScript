@@ -11,6 +11,7 @@ using Core.Determinism;
 using Core.Effects;
 using Core.Resources;
 using Core.Run;
+using Core.Run.Content;
 
 namespace Core.Combat.Flow;
 
@@ -102,7 +103,7 @@ public interface ICombatBoundaryExecutor
 public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
 {
     private readonly ITurnOrderResolver _turnOrder;
-    private readonly IActionManager _actions;
+    private readonly IRunCardResolver _cards;
     private readonly ICombatStatusLifecycle _statusLifecycle;
     private readonly ICombatRelicLifecycle _relicLifecycle;
     private readonly ICombatResourceLifecycle _resourceLifecycle;
@@ -111,7 +112,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
 
     public CombatBoundaryExecutor(
         ITurnOrderResolver turnOrder,
-        IActionManager actions,
+        IRunCardResolver cards,
         ICombatStatusLifecycle statusLifecycle,
         ICombatRelicLifecycle relicLifecycle,
         ICombatResourceLifecycle resourceLifecycle,
@@ -119,7 +120,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         ICombatOutcomeResolver outcomes)
     {
         _turnOrder = turnOrder ?? throw new ArgumentNullException(nameof(turnOrder));
-        _actions = actions ?? throw new ArgumentNullException(nameof(actions));
+        _cards = cards ?? throw new ArgumentNullException(nameof(cards));
         _statusLifecycle = statusLifecycle ?? throw new ArgumentNullException(nameof(statusLifecycle));
         _relicLifecycle = relicLifecycle ?? throw new ArgumentNullException(nameof(relicLifecycle));
         _resourceLifecycle = resourceLifecycle ?? throw new ArgumentNullException(nameof(resourceLifecycle));
@@ -266,7 +267,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             runDeterminism,
             sequence,
             policies,
-            actionId => ResolveAction(run, actionId),
+            instance => ResolveCardTags(run, instance),
             _phases);
         if (planned.IsFailure)
             return Result<CombatFlowAdvanceResult>.Failure(planned.Error);
@@ -540,7 +541,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeterministicContext runDeterminism,
         PhaseSequenceDefinition sequence,
         CombatFlowPoliciesDefinition policies,
-        Func<string, Result<ActionDefinition>> resolveAction,
+        Func<CardInstanceState, Result<IReadOnlyList<string>>> resolveCardTags,
         IPhaseGraphReducer phases)
     {
         var activation = combat.ActivationState;
@@ -561,7 +562,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             activation.ActiveActorId,
             policies.DeckCycle,
             run.Determinism,
-            resolveAction);
+            resolveCardTags);
         if (endedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(endedDeck.Error);
 
@@ -867,10 +868,15 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         _ => "unknown"
     };
 
-    private Result<ActionDefinition> ResolveAction(RunState run, string actionId) =>
-        _actions is IRevisionedActionCatalog revisioned
-            ? revisioned.GetDefinition(actionId, run.Determinism.ContentRevision, run.ConfigName)
-            : _actions.GetDefinition(actionId);
+    private Result<IReadOnlyList<string>> ResolveCardTags(
+        RunState run,
+        CardInstanceState instance)
+    {
+        var effective = _cards.Resolve(run, instance);
+        return effective.IsFailure
+            ? Result<IReadOnlyList<string>>.Failure(effective.Error)
+            : Result<IReadOnlyList<string>>.Success(effective.Value.Tags);
+    }
 
     private static Result<ResourceRefreshResult> ApplyStartDeckCycle(
         RunState run,
@@ -904,7 +910,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         string actorId,
         DeckCyclePolicyDefinition policy,
         DeterministicContext context,
-        Func<string, Result<ActionDefinition>> resolveAction)
+        Func<CardInstanceState, Result<IReadOnlyList<string>>> resolveCardTags)
     {
         if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || deck.Hand.Count == 0)
             return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(deck, context, [], []));
@@ -914,14 +920,14 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         for (var index = 0; index < deck.Hand.Count; index++)
         {
             var cardInstanceId = deck.HandInstanceIds[index];
-            var cardId = deck.GetDefinitionId(cardInstanceId);
-            if (cardId == null)
+            var instance = deck.GetCard(cardInstanceId);
+            if (instance == null)
                 return Result<EndDeckCycleResult>.Failure(
                     $"Card instance not found: {cardInstanceId}");
-            var definition = resolveAction(cardId);
-            if (definition.IsFailure)
-                return Result<EndDeckCycleResult>.Failure(definition.Error);
-            var tags = definition.Value.Tags;
+            var resolvedTags = resolveCardTags(instance);
+            if (resolvedTags.IsFailure)
+                return Result<EndDeckCycleResult>.Failure(resolvedTags.Error);
+            var tags = resolvedTags.Value;
             var reference = cardInstanceId.ToString();
             if (!string.IsNullOrWhiteSpace(policy.EtherealTag) &&
                 tags.Contains(policy.EtherealTag, StringComparer.OrdinalIgnoreCase))

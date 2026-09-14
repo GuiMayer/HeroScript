@@ -499,6 +499,37 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     }
 
     [Fact]
+    public async Task EndTurnSimulation_ResolvesCardContainerTagsWithoutLegacyActionDefinitions()
+    {
+        var deck = Enumerable.Range(0, 5)
+            .Select(_ => new { definitionId = "arcane_bolt" })
+            .ToArray();
+        using var launchResponse = await _client.PostAsJsonAsync(
+            "/api/v1/sandbox/runs",
+            CreateScenario($"container-end-turn-{Guid.NewGuid():N}", deck: deck));
+        var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
+        var run = launch.GetProperty("run");
+        var runId = run.GetProperty("runId").GetGuid();
+        var sourceSequence = run.GetProperty("sequence").GetInt32();
+
+        using var simulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", new
+        {
+            sourceRunId = runId,
+            sourceSequence,
+            commands = new[]
+            {
+                new { type = "END_TURN", payload = new { actorId = "hero" } }
+            }
+        });
+        var simulation = await simulationResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.True(simulationResponse.StatusCode == HttpStatusCode.OK, simulation.GetRawText());
+        Assert.Equal(1, simulation.GetProperty("commandsExecuted").GetInt32());
+        Assert.Equal(sourceSequence, run.GetProperty("sequence").GetInt32());
+    }
+
+    [Fact]
     public async Task PrioritySandbox_ProposesAutoPassesAndResolvesOnlyAfterPlayerPass()
     {
         using var launchResponse = await _client.PostAsJsonAsync(
