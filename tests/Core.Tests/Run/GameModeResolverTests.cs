@@ -100,7 +100,7 @@ public sealed class GameModeResolverTests
             binding: new ContentBindingPolicyDefinition
             {
                 ContentBindingPolicyId = "binding",
-                ActiveRuns = "pinned"
+                ActiveRuns = ActiveRunContentBinding.Pinned
             });
 
         var result = resolver.Resolve("invalid", "test");
@@ -202,7 +202,7 @@ public sealed class GameModeResolverTests
             new Catalog<ContentBindingPolicyDefinition>(binding ?? new ContentBindingPolicyDefinition
             {
                 ContentBindingPolicyId = "binding",
-                ActiveRuns = "allow_versioned_activation"
+                ActiveRuns = ActiveRunContentBinding.Versioned
             }),
             new Catalog<CapabilityPolicyDefinition>(new CapabilityPolicyDefinition
             {

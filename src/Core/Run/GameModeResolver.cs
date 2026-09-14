@@ -271,7 +271,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         if (capabilities.AllowTimelineFork && !replay.AllowForkFromHistory)
             return Result.Failure("Capability policy enables timeline forks but replay policy rejects them");
         if (capabilities.AllowHotReloadActivation &&
-            !string.Equals(binding.ActiveRuns, "allow_versioned_activation", StringComparison.Ordinal))
+            binding.ActiveRuns != ActiveRunContentBinding.Versioned)
         {
             return Result.Failure(
                 "Capability policy enables hot reload activation but content binding policy rejects active runs");

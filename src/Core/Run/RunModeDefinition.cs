@@ -79,13 +79,11 @@ public sealed record CombatRulesDefinition
 public sealed record ReplayPolicyDefinition
 {
     public string ReplayPolicyId { get; init; } = string.Empty;
-    public bool JournalEnabled { get; init; } = true;
     public bool SemanticVerification { get; init; }
-    public string TimelineAccess { get; init; } = "summary";
+    public TimelineAccessLevel TimelineAccess { get; init; } = TimelineAccessLevel.Summary;
     public bool AllowHistoricalInspection { get; init; }
     public bool AllowForkFromHistory { get; init; }
     public bool AllowHeadRestore { get; init; }
-    public string Retention { get; init; } = "all_commands";
 }
 
 public sealed record TimelinePolicyDefinition
@@ -93,17 +91,35 @@ public sealed record TimelinePolicyDefinition
     public string TimelinePolicyId { get; init; } = string.Empty;
     public bool Enabled { get; init; }
     public bool GroupByTurn { get; init; }
-    public string Granularity { get; init; } = "command";
     public int MaxItemsPerPage { get; init; } = 200;
 }
 
 public sealed record ContentBindingPolicyDefinition
 {
     public string ContentBindingPolicyId { get; init; } = string.Empty;
-    public string NewRuns { get; init; } = "latest_published";
-    public string ActiveRuns { get; init; } = "pinned";
-    public string ActivationBoundary { get; init; } = "next_command";
-    public bool RetainHistoricalRevisions { get; init; } = true;
+    public ActiveRunContentBinding ActiveRuns { get; init; } = ActiveRunContentBinding.Pinned;
+    public ContentActivationBoundary ActivationBoundary { get; init; } = ContentActivationBoundary.OutsideCombat;
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum TimelineAccessLevel
+{
+    None,
+    Summary,
+    Full
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ActiveRunContentBinding
+{
+    Pinned,
+    Versioned
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum ContentActivationBoundary
+{
+    OutsideCombat
 }
 
 public sealed record CapabilityPolicyDefinition

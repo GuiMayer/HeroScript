@@ -52,7 +52,7 @@ public sealed class ToolAccessPolicyTests
             {
                 ReplayPolicy = new ReplayPolicyDefinition
                 {
-                    TimelineAccess = "summary",
+                    TimelineAccess = TimelineAccessLevel.Summary,
                     SemanticVerification = true
                 },
                 TimelinePolicy = new TimelinePolicyDefinition { Enabled = true },

@@ -229,7 +229,7 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
     {
         var mode = run.ResolvedMode;
         if (mode == null || !mode.TimelinePolicy.Enabled ||
-            string.Equals(mode.ReplayPolicy.TimelineAccess, "none", StringComparison.OrdinalIgnoreCase))
+            mode.ReplayPolicy.TimelineAccess == TimelineAccessLevel.None)
         {
             return Result.Failure("Game mode does not expose a combat timeline");
         }

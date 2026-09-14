@@ -871,7 +871,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 StringComparison.Ordinal)
             ? Result<RunState>.Success(current.Value)
             : PrepareContentRevisionActivation(current.Value, manifest.Value);
-        var boundary = current.Value.ResolvedMode?.ContentBindingPolicy.ActivationBoundary ?? "unavailable";
+        var boundary = current.Value.ResolvedMode?.ContentBindingPolicy.ActivationBoundary.ToString()
+            ?? "unavailable";
         return Result<ContentRevisionActivationPreview>.Success(new ContentRevisionActivationPreview(
             runId,
             current.Value.Determinism.ContentRevision,
@@ -890,17 +891,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure("Content revision activation requires a resolved game mode");
         if (!mode.CapabilityPolicy.AllowHotReloadActivation)
             return Result<RunState>.Failure($"Game mode does not allow content revision activation: {state.ModeId}");
-        if (!string.Equals(
-                mode.ContentBindingPolicy.ActiveRuns,
-                "allow_versioned_activation",
-                StringComparison.Ordinal))
+        if (mode.ContentBindingPolicy.ActiveRuns != ActiveRunContentBinding.Versioned)
         {
             return Result<RunState>.Failure("Game mode pins content for active runs");
         }
-        if (!string.Equals(
-                mode.ContentBindingPolicy.ActivationBoundary,
-                "next_command",
-                StringComparison.Ordinal))
+        if (mode.ContentBindingPolicy.ActivationBoundary != ContentActivationBoundary.OutsideCombat)
         {
             return Result<RunState>.Failure("Unsupported content activation boundary");
         }

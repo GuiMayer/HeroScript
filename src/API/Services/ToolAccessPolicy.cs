@@ -83,7 +83,7 @@ public sealed class ToolAccessPolicy : IToolAccessPolicy
         if (mode == null)
             return false;
         var timelineVisible = mode.TimelinePolicy.Enabled &&
-            !string.Equals(mode.ReplayPolicy.TimelineAccess, "none", StringComparison.OrdinalIgnoreCase);
+            mode.ReplayPolicy.TimelineAccess != TimelineAccessLevel.None;
         return capability switch
         {
             ToolCapabilities.TimelineRead => timelineVisible,

@@ -80,7 +80,7 @@ public sealed class ContentRevisionActivationTests
                 ContentBindingPolicy = new ContentBindingPolicyDefinition
                 {
                     ContentBindingPolicyId = "pinned",
-                    ActiveRuns = "pinned"
+                    ActiveRuns = ActiveRunContentBinding.Pinned
                 }
             }
         };
@@ -538,8 +538,8 @@ public sealed class ContentRevisionActivationTests
                 ContentBindingPolicy = new ContentBindingPolicyDefinition
                 {
                     ContentBindingPolicyId = "development_versioned",
-                    ActiveRuns = "allow_versioned_activation",
-                    ActivationBoundary = "next_command"
+                    ActiveRuns = ActiveRunContentBinding.Versioned,
+                    ActivationBoundary = ContentActivationBoundary.OutsideCombat
                 }
             }
         };

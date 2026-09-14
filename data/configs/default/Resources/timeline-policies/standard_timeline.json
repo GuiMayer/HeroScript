@@ -3,7 +3,6 @@
     "timelinePolicyId": "standard_timeline",
     "enabled": true,
     "groupByTurn": false,
-    "granularity": "command",
     "maxItemsPerPage": 200
   }
 }

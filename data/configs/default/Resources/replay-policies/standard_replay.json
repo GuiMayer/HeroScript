@@ -1,12 +1,10 @@
 {
   "standard_replay": {
     "replayPolicyId": "standard_replay",
-    "journalEnabled": true,
     "semanticVerification": true,
     "timelineAccess": "summary",
     "allowHistoricalInspection": false,
     "allowForkFromHistory": false,
-    "allowHeadRestore": false,
-    "retention": "all_commands"
+    "allowHeadRestore": false
   }
 }
