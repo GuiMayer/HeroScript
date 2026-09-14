@@ -1,5 +1,6 @@
 using API.Models;
 using API.Logging;
+using API.Services;
 using Core;
 using Core.Abstractions.Persistence;
 using Core.Caching;
@@ -71,6 +72,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 // Configure config reload settings (security flag)
 var allowConfigReload = builder.Configuration.GetValue<bool>("AllowConfigReload", false);
 builder.Services.AddSingleton(new ConfigReloadSettings { Enabled = allowConfigReload });
+var toolAccessSettings = builder.Configuration.GetSection("ToolAccess").Get<ToolAccessSettings>() ?? new();
+builder.Services.AddSingleton(toolAccessSettings);
+builder.Services.AddSingleton<IToolAccessPolicy, ToolAccessPolicy>();
 
 // Register OperationalEventBus first (singleton) - must be registered before other services that depend on it
 builder.Services.AddSingleton<IGameEventContextAccessor, GameEventContextAccessor>();

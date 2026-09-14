@@ -41,9 +41,9 @@ public sealed class RunCheatCapabilityTests
             payload
         });
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Contains("does not allow", problem.GetProperty("detail").GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("do not allow", problem.GetProperty("detail").GetString(), StringComparison.OrdinalIgnoreCase);
         var after = await game.GetRunStateAsync(runId);
         Assert.Equal(before.GetProperty("stateHash").GetString(), after.GetProperty("stateHash").GetString());
     }

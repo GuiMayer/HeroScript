@@ -2,6 +2,7 @@ using Core.Abstractions.Persistence;
 using Core.Config;
 using Core.Determinism;
 using API.Contracts;
+using API.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
@@ -12,11 +13,16 @@ public sealed class SystemController : ControllerBase
 {
     private readonly IConfigManager _configManager;
     private readonly IRunCommitReader _runRepository;
+    private readonly IToolAccessPolicy _toolAccess;
 
-    public SystemController(IConfigManager configManager, IRunCommitReader runRepository)
+    public SystemController(
+        IConfigManager configManager,
+        IRunCommitReader runRepository,
+        IToolAccessPolicy toolAccess)
     {
         _configManager = configManager;
         _runRepository = runRepository;
+        _toolAccess = toolAccess;
     }
 
     [HttpGet("health/live")]
@@ -92,6 +98,7 @@ public sealed class SystemController : ControllerBase
             "daily-challenge-proofs",
             "tcg-legality-reads",
             "sse-events"
-        }
+        },
+        toolAccess = _toolAccess.Snapshot
     });
 }

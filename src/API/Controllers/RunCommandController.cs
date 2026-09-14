@@ -1,4 +1,5 @@
 using API.Contracts;
+using API.Services;
 using Core.Run;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,15 +15,18 @@ public sealed class RunCommandController : BaseApiController
 {
     private readonly IGameplayCommandGateway _commands;
     private readonly IRunQueryService _runs;
+    private readonly IToolAccessPolicy _toolAccess;
 
     public RunCommandController(
         IGameplayCommandGateway commands,
         IRunQueryService runs,
+        IToolAccessPolicy toolAccess,
         ILogger<RunCommandController> logger)
         : base(logger)
     {
         _commands = commands;
         _runs = runs;
+        _toolAccess = toolAccess;
     }
 
     [HttpPost]
@@ -33,6 +37,21 @@ public sealed class RunCommandController : BaseApiController
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public IActionResult Execute(Guid runId, [FromBody] CommandEnvelope envelope)
     {
+        var requiredCapability = RequiredToolCapability(envelope.Type);
+        if (requiredCapability != null)
+        {
+            var run = _runs.GetRun(runId);
+            if (run.IsFailure)
+                return ApiNotFound(run.Error);
+            if (!_toolAccess.Allows(run.Value, requiredCapability))
+            {
+                return ApiProblem(
+                    StatusCodes.Status403Forbidden,
+                    ApiErrorCodes.Forbidden,
+                    "Tool capability denied",
+                    $"The active access profile and game mode do not allow '{requiredCapability}'");
+            }
+        }
         if (!envelope.ExpectedSequence.HasValue || !envelope.ExpectedStep.HasValue)
         {
             return ApiBadRequest(
@@ -67,6 +86,16 @@ public sealed class RunCommandController : BaseApiController
             return HandleException(exception, "execute run command", runId.ToString());
         }
     }
+
+    private static string? RequiredToolCapability(string? commandType) =>
+        commandType?.Trim().ToUpperInvariant() switch
+        {
+            RunCommandTypes.ApplyRunResource => ToolCapabilities.CheatRunResources,
+            RunCommandTypes.AddCardsToHand or RunCommandTypes.MoveCards => ToolCapabilities.CheatCardZones,
+            RunCommandTypes.ActivateContentRevision => ToolCapabilities.ContentActivate,
+            RunCommandTypes.RestoreHeadFromHistory => ToolCapabilities.HeadRestore,
+            _ => null
+        };
 
     private IActionResult MapFailure(Guid runId, string error, bool useCombatStep)
     {

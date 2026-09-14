@@ -1,4 +1,5 @@
 using API.Attributes;
+using API.Services;
 
 namespace API.Middleware;
 
@@ -15,7 +16,7 @@ public sealed class AdminKeyMiddleware
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, IToolAccessPolicy toolAccess)
     {
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<AdminEndpointAttribute>() == null)
@@ -37,6 +38,12 @@ public sealed class AdminKeyMiddleware
             !string.Equals(providedKey.ToString(), expectedKey, StringComparison.Ordinal))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        if (!toolAccess.Allows(ToolCapabilities.AdminOperations))
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
         }
 
