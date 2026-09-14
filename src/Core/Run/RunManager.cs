@@ -606,6 +606,12 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
 
     private Result ExecuteApplyRunResource(Guid runId, JsonElement payload)
     {
+        var capability = RequireCapability(
+            runId,
+            policy => policy.AllowRunResourceCheats,
+            "run resource cheats");
+        if (capability.IsFailure)
+            return capability;
         var request = DeserializePayload<RunResourceCommand>(payload);
         return ToResult(ApplyRunResource(
             runId,
@@ -617,16 +623,41 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime
 
     private Result ExecuteAddCardsToHand(Guid runId, JsonElement payload)
     {
+        var capability = RequireCapability(
+            runId,
+            policy => policy.AllowCardZoneCheats,
+            "card zone cheats");
+        if (capability.IsFailure)
+            return capability;
         var request = DeserializePayload<CardIdsCommand>(payload);
         return ToResult(AddCardsToHand(runId, request.CardIds));
     }
 
     private Result ExecuteMoveCards(Guid runId, JsonElement payload)
     {
+        var capability = RequireCapability(
+            runId,
+            policy => policy.AllowCardZoneCheats,
+            "card zone cheats");
+        if (capability.IsFailure)
+            return capability;
         var request = DeserializePayload<MoveCardsCommand>(payload);
         return !Enum.TryParse<CardConsumeDestination>(request.Destination, true, out var destination)
             ? Result.Failure($"Unknown card destination: {request.Destination}")
             : ToResult(MoveCards(runId, request.CardIds, destination));
+    }
+
+    private Result RequireCapability(
+        Guid runId,
+        Func<CapabilityPolicyDefinition, bool> allows,
+        string capabilityName)
+    {
+        if (!_runs.TryGetValue(runId, out var state))
+            return Result.Failure($"Run not found: {runId}");
+        var policy = state.ResolvedMode?.CapabilityPolicy;
+        return policy != null && allows(policy)
+            ? Result.Success()
+            : Result.Failure($"Game mode does not allow {capabilityName}: {state.ModeId ?? "unresolved"}");
     }
 
     private Result ExecutePickCardReward(Guid runId, JsonElement payload)

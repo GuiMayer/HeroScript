@@ -8,6 +8,8 @@
     "allowTimelineFork": false,
     "allowCombatSimulation": false,
     "allowHotReloadActivation": false,
+    "allowRunResourceCheats": false,
+    "allowCardZoneCheats": false,
     "cardInspectionDetail": "Resolved",
     "maxCards": 100,
     "maxActors": 6,

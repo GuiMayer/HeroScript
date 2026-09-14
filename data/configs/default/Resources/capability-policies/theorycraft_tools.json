@@ -8,6 +8,8 @@
     "allowTimelineFork": true,
     "allowCombatSimulation": true,
     "allowHotReloadActivation": true,
+    "allowRunResourceCheats": true,
+    "allowCardZoneCheats": true,
     "cardInspectionDetail": "Full",
     "maxCards": 100,
     "maxActors": 6,

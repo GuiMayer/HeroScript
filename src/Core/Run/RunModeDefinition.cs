@@ -116,6 +116,8 @@ public sealed record CapabilityPolicyDefinition
     public bool AllowTimelineFork { get; init; }
     public bool AllowCombatSimulation { get; init; }
     public bool AllowHotReloadActivation { get; init; }
+    public bool AllowRunResourceCheats { get; init; }
+    public bool AllowCardZoneCheats { get; init; }
     public InspectionDetailLevel CardInspectionDetail { get; init; } = InspectionDetailLevel.Resolved;
     public int MaxCards { get; init; } = 100;
     public int MaxActors { get; init; } = 6;
