@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Config;
 using Core.Content;
 using Core.Determinism;
+using Core.Run;
 using Mods;
 using Xunit;
 
@@ -230,6 +231,43 @@ public sealed class SettingCompilerTests
         Assert.Equal(first.Value.Bundle.Manifest.Revision, afterRestart.Value.Bundle.Manifest.Revision);
         var validation = new ContentGraphValidator().Validate(first.Value.Bundle);
         Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Errors));
+    }
+
+    [Fact]
+    public async Task PublicationValidation_RejectsAnInvalidComposedModePolicyGraph()
+    {
+        var root = ResourceProviderFactory.FindProjectRoot();
+        Assert.NotNull(root);
+        var compilation = await new SettingCompiler([
+                new DirectoryPackageProvider("base-game", Path.Combine(root!, "data", "configs"))
+            ])
+            .CompileAsync("default");
+        Assert.True(compilation.IsSuccess, compilation.IsFailure ? compilation.Error : null);
+
+        const string bindingPath = "content-binding-policies/development_versioned.json";
+        var invalidBundle = compilation.Value.Bundle with
+        {
+            Artifacts = compilation.Value.Bundle.Artifacts.SetItem(
+                bindingPath,
+                JsonSerializer.SerializeToElement(new
+                {
+                    development_versioned = new
+                    {
+                        contentBindingPolicyId = "development_versioned",
+                        activeRuns = "pinned",
+                        activationBoundary = "outsideCombat"
+                    }
+                }))
+        };
+
+        var validation = new ContentGraphValidator().Validate(invalidBundle);
+
+        Assert.False(validation.IsValid);
+        Assert.True(
+            validation.Errors.Any(error =>
+                error.Contains("modes/development_lab", StringComparison.Ordinal) &&
+                error.Contains("hot reload", StringComparison.OrdinalIgnoreCase)),
+            string.Join(Environment.NewLine, validation.Errors));
     }
 
     private static PackageManifest Package(

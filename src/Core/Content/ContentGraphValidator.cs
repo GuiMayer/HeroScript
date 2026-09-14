@@ -115,6 +115,40 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "progressionPolicyId", "run-progression-policies");
             RequireArray(runtime, errors, "modes", id, definition, "cardPoolIds", "card-pools");
             RequireArray(runtime, errors, "modes", id, definition, "enemyPoolIds", "enemy-pools");
+
+            var mode = runtime.GetDefinition<GameModeDefinition>("modes", id);
+            if (mode.IsFailure)
+            {
+                errors.Add($"modes/{id}: {mode.Error}");
+                continue;
+            }
+            var combat = GetRequiredDefinition<CombatRulesDefinition>(runtime,
+                "combat-rules", mode.Value.CombatRulesId);
+            var replay = GetRequiredDefinition<ReplayPolicyDefinition>(runtime,
+                "replay-policies", mode.Value.ReplayPolicyId);
+            var timeline = GetRequiredDefinition<TimelinePolicyDefinition>(runtime,
+                "timeline-policies", mode.Value.TimelinePolicyId);
+            var binding = GetRequiredDefinition<ContentBindingPolicyDefinition>(runtime,
+                "content-binding-policies", mode.Value.ContentBindingPolicyId);
+            var capabilities = GetRequiredDefinition<CapabilityPolicyDefinition>(runtime,
+                "capability-policies", mode.Value.CapabilityPolicyId);
+            var progression = GetRequiredDefinition<RunProgressionPolicyDefinition>(runtime,
+                "run-progression-policies", mode.Value.ProgressionPolicyId);
+            if (combat.IsFailure || replay.IsFailure || timeline.IsFailure || binding.IsFailure ||
+                capabilities.IsFailure || progression.IsFailure)
+            {
+                continue; // Missing references were reported above.
+            }
+
+            var policyGraph = GameModePolicyValidator.Validate(
+                combat.Value,
+                replay.Value,
+                timeline.Value,
+                binding.Value,
+                capabilities.Value,
+                progression.Value);
+            if (policyGraph.IsFailure)
+                errors.Add($"modes/{id}: {policyGraph.Error}");
         }
     }
 
@@ -891,6 +925,13 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         if (!runtime.GetDefinitions(targetKind).ContainsKey(targetId))
             errors.Add($"{sourceKind}/{sourceId} references missing {targetKind}/{targetId}");
     }
+
+    private static Result<T> GetRequiredDefinition<T>(
+        ContentRuntime runtime,
+        string kind,
+        string? definitionId) => string.IsNullOrWhiteSpace(definitionId)
+        ? Result<T>.Failure($"Definition id is required for kind '{kind}'")
+        : runtime.GetDefinition<T>(kind, definitionId);
 
     private static IEnumerable<string> FindStringProperties(JsonElement element, params string[] names)
     {
