@@ -1,5 +1,8 @@
 using API.Controllers;
+using API.Models;
+using API.Services;
 using Core.Common;
+using Core.Run;
 using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -27,6 +30,8 @@ public sealed class CombatCardControllerTests
             }));
         var controller = new CombatCardController(
             service.Object,
+            Runs(combatId),
+            new ToolAccessPolicy(new ToolAccessSettings { Profile = "dev_modder" }),
             Mock.Of<ILogger<CombatCardController>>());
 
         var response = controller.Evaluate(combatId, cardId, "hero", ["enemy"]);
@@ -40,16 +45,44 @@ public sealed class CombatCardControllerTests
     {
         var combatId = Guid.NewGuid();
         var service = new Mock<ICardInspectionService>();
-        service.Setup(item => item.InspectHand(combatId, "hero", It.IsAny<string[]>(), null))
+        service.Setup(item => item.InspectHand(
+                combatId,
+                "hero",
+                It.IsAny<string[]>(),
+                null,
+                InspectionDetailLevel.Full))
             .Returns(Result<IReadOnlyList<CardInspectionResult>>.Success(
                 [new CardInspectionResult(), new CardInspectionResult()]));
         var controller = new CombatCardController(
             service.Object,
+            Runs(combatId),
+            new ToolAccessPolicy(new ToolAccessSettings { Profile = "dev_modder" }),
             Mock.Of<ILogger<CombatCardController>>());
 
         var response = controller.EvaluateHand(combatId, "hero", []);
 
         Assert.IsType<OkObjectResult>(response);
-        service.Verify(item => item.InspectHand(combatId, "hero", It.IsAny<string[]>(), null), Times.Once);
+        service.Verify(item => item.InspectHand(
+            combatId,
+            "hero",
+            It.IsAny<string[]>(),
+            null,
+            InspectionDetailLevel.Full), Times.Once);
+    }
+
+    private static IRunQueryService Runs(Guid combatId)
+    {
+        var runs = new Mock<IRunQueryService>();
+        runs.Setup(item => item.GetRunByCombat(combatId)).Returns(Result<RunState>.Success(new RunState
+        {
+            ResolvedMode = new ResolvedGameMode
+            {
+                CapabilityPolicy = new CapabilityPolicyDefinition
+                {
+                    CardInspectionDetail = InspectionDetailLevel.Full
+                }
+            }
+        }));
+        return runs.Object;
     }
 }

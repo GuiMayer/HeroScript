@@ -1,4 +1,6 @@
 using API.Contracts;
+using API.Services;
+using Core.Run;
 using Core.Run.Sandbox;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +11,19 @@ namespace API.Controllers;
 public sealed class CombatTimelineController : BaseApiController
 {
     private readonly ICombatTimelineProjectionService _timeline;
+    private readonly IRunQueryService _runs;
+    private readonly IToolAccessPolicy _toolAccess;
 
-    public CombatTimelineController(ICombatTimelineProjectionService timeline, ILogger<CombatTimelineController> logger)
+    public CombatTimelineController(
+        ICombatTimelineProjectionService timeline,
+        IRunQueryService runs,
+        IToolAccessPolicy toolAccess,
+        ILogger<CombatTimelineController> logger)
         : base(logger)
     {
         _timeline = timeline;
+        _runs = runs;
+        _toolAccess = toolAccess;
     }
 
     [HttpGet]
@@ -23,6 +33,9 @@ public sealed class CombatTimelineController : BaseApiController
         [FromQuery] int limit = 200,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(combatId, ToolCapabilities.TimelineRead);
+        if (denied != null)
+            return denied;
         var result = await _timeline.GetAsync(combatId, afterSequence, limit, cancellationToken);
         return result.IsSuccess
             ? Ok(result.Value)
@@ -39,6 +52,9 @@ public sealed class CombatTimelineController : BaseApiController
         int sequence,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(combatId, ToolCapabilities.TimelineInspectState);
+        if (denied != null)
+            return denied;
         var result = await _timeline.GetHistoricalStateAsync(combatId, sequence, cancellationToken);
         return result.IsSuccess
             ? Ok(result.Value)
@@ -47,5 +63,19 @@ public sealed class CombatTimelineController : BaseApiController
                 ApiErrorCodes.RuleViolation,
                 "Historical combat state unavailable",
                 result.Error);
+    }
+
+    private IActionResult? Authorize(Guid combatId, string capability)
+    {
+        var run = _runs.GetRunByCombat(combatId);
+        if (run.IsFailure)
+            return ApiNotFound(run.Error);
+        return _toolAccess.Allows(run.Value, capability)
+            ? null
+            : ApiProblem(
+                StatusCodes.Status403Forbidden,
+                ApiErrorCodes.Forbidden,
+                "Tool capability denied",
+                $"The active access profile and game mode do not allow '{capability}'");
     }
 }

@@ -1,4 +1,6 @@
 using API.Contracts;
+using API.Services;
+using Core.Run;
 using Core.Run.Branching;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,11 +11,19 @@ namespace API.Controllers;
 public sealed class RunBranchController : BaseApiController
 {
     private readonly IRunBranchService _branches;
+    private readonly IRunQueryService _runs;
+    private readonly IToolAccessPolicy _toolAccess;
 
-    public RunBranchController(IRunBranchService branches, ILogger<RunBranchController> logger)
+    public RunBranchController(
+        IRunBranchService branches,
+        IRunQueryService runs,
+        IToolAccessPolicy toolAccess,
+        ILogger<RunBranchController> logger)
         : base(logger)
     {
         _branches = branches;
+        _runs = runs;
+        _toolAccess = toolAccess;
     }
 
     [HttpPost]
@@ -22,6 +32,9 @@ public sealed class RunBranchController : BaseApiController
         [FromBody] CreateRunBranchRequest request,
         CancellationToken cancellationToken)
     {
+        var denied = Authorize(runId, ToolCapabilities.BranchCreate);
+        if (denied != null)
+            return denied;
         var result = await _branches.CreateAsync(
             runId,
             request.SourceSequence,
@@ -56,6 +69,9 @@ public sealed class RunBranchController : BaseApiController
     [HttpGet]
     public async Task<IActionResult> List(Guid runId, CancellationToken cancellationToken)
     {
+        var denied = Authorize(runId, ToolCapabilities.BranchRead);
+        if (denied != null)
+            return denied;
         var branches = await _branches.ListAsync(runId, cancellationToken);
         return Ok(new { runId, branches, count = branches.Count });
     }
@@ -63,8 +79,25 @@ public sealed class RunBranchController : BaseApiController
     [HttpGet("/api/v1/runs/{runId:guid}/branch-tree")]
     public async Task<IActionResult> GetTree(Guid runId, CancellationToken cancellationToken)
     {
+        var denied = Authorize(runId, ToolCapabilities.BranchRead);
+        if (denied != null)
+            return denied;
         var tree = await _branches.GetTreeAsync(runId, cancellationToken);
         return tree.IsSuccess ? Ok(tree.Value) : ApiNotFound(tree.Error);
+    }
+
+    private IActionResult? Authorize(Guid runId, string capability)
+    {
+        var run = _runs.GetRun(runId);
+        if (run.IsFailure)
+            return ApiNotFound(run.Error);
+        return _toolAccess.Allows(run.Value, capability)
+            ? null
+            : ApiProblem(
+                StatusCodes.Status403Forbidden,
+                ApiErrorCodes.Forbidden,
+                "Tool capability denied",
+                $"The active access profile and game mode do not allow '{capability}'");
     }
 }
 

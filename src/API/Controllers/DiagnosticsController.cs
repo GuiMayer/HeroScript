@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Core.Caching;
 using API.Models;
 using CoreLogger = Core.Logging.ILogger;
+using API.Attributes;
 
 namespace API.Controllers;
 
@@ -10,6 +11,7 @@ namespace API.Controllers;
 /// Provides cache statistics, performance monitoring, and system information.
 /// </summary>
 [ApiController]
+[AdminEndpoint]
 [Route("api/v1/admin/diagnostics")]
 public class DiagnosticsController : ControllerBase
 {

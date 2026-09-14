@@ -1,4 +1,5 @@
 using API.Contracts;
+using API.Services;
 using Core.Abstractions.Persistence;
 using Core.Run;
 using Core.Run.Projections;
@@ -14,17 +15,23 @@ public sealed class RunJournalController : BaseApiController
     private readonly IRunCommitReader _commits;
     private readonly IRunCommitProjectionReader _projections;
     private readonly IRunReplayService _replay;
+    private readonly IRunQueryService _runs;
+    private readonly IToolAccessPolicy _toolAccess;
 
     public RunJournalController(
         IRunCommitReader commits,
         IRunCommitProjectionReader projections,
         IRunReplayService replay,
+        IRunQueryService runs,
+        IToolAccessPolicy toolAccess,
         ILogger<RunJournalController> logger)
         : base(logger)
     {
         _commits = commits;
         _projections = projections;
         _replay = replay;
+        _runs = runs;
+        _toolAccess = toolAccess;
     }
 
     [HttpGet("journal")]
@@ -34,6 +41,9 @@ public sealed class RunJournalController : BaseApiController
         [FromQuery] int limit = 100,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(runId, ToolCapabilities.TimelineRead);
+        if (denied != null)
+            return denied;
         if (afterSequence < 0 || limit is < 1 or > 1000)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid journal cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
         var entries = (await _projections.ReadRunAsync(runId, afterSequence, limit, cancellationToken))
@@ -57,6 +67,9 @@ public sealed class RunJournalController : BaseApiController
         Guid runId,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(runId, ToolCapabilities.TimelineRead);
+        if (denied != null)
+            return denied;
         var journal = await _projections.ReadRunAsync(runId, 0, int.MaxValue, cancellationToken);
         if (journal.Count == 0)
             return ApiNotFound($"Run commits not found: {runId}");
@@ -86,6 +99,9 @@ public sealed class RunJournalController : BaseApiController
         int sequence,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(runId, ToolCapabilities.TimelineInspectState);
+        if (denied != null)
+            return denied;
         if (sequence < 1)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid commit", "Sequence must be positive");
 
@@ -102,6 +118,9 @@ public sealed class RunJournalController : BaseApiController
         [FromQuery] int limit = 200,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(runId, ToolCapabilities.TimelineRead);
+        if (denied != null)
+            return denied;
         if (afterSequence < 0 || limit is < 1 or > 1000)
             return ApiBadRequest(ApiErrorCodes.InvalidRequest, "Invalid timeline cursor", "afterSequence must be non-negative and limit must be between 1 and 1000");
         var items = (await _projections.ReadRunAsync(runId, afterSequence, limit, cancellationToken))
@@ -134,10 +153,27 @@ public sealed class RunJournalController : BaseApiController
         Guid runId,
         CancellationToken cancellationToken = default)
     {
+        var denied = Authorize(runId, ToolCapabilities.ReplayVerify);
+        if (denied != null)
+            return denied;
         var verification = await _replay.VerifyAsync(runId, cancellationToken);
         return verification.Errors.Any(error => error.Contains("not found", StringComparison.OrdinalIgnoreCase))
             ? ApiNotFound(verification.Errors[0])
             : Ok(verification);
+    }
+
+    private IActionResult? Authorize(Guid runId, string capability)
+    {
+        var run = _runs.GetRun(runId);
+        if (run.IsFailure)
+            return ApiNotFound(run.Error);
+        return _toolAccess.Allows(run.Value, capability)
+            ? null
+            : ApiProblem(
+                StatusCodes.Status403Forbidden,
+                ApiErrorCodes.Forbidden,
+                "Tool capability denied",
+                $"The active access profile and game mode do not allow '{capability}'");
     }
 
 }

@@ -1,4 +1,5 @@
 using API.Contracts;
+using API.Services;
 using Core.Abstractions.Persistence;
 using Core.Determinism;
 using Core.Run;
@@ -15,17 +16,20 @@ public sealed class CombatJournalController : BaseApiController
     private readonly IRunQueryService _runs;
     private readonly IRunCommitProjectionReader _commits;
     private readonly IRunReplayService _replay;
+    private readonly IToolAccessPolicy _toolAccess;
 
     public CombatJournalController(
         IRunQueryService runs,
         IRunCommitProjectionReader commits,
         IRunReplayService replay,
+        IToolAccessPolicy toolAccess,
         ILogger<CombatJournalController> logger)
         : base(logger)
     {
         _runs = runs;
         _commits = commits;
         _replay = replay;
+        _toolAccess = toolAccess;
     }
 
     [HttpGet("journal")]
@@ -40,6 +44,8 @@ public sealed class CombatJournalController : BaseApiController
         var run = _runs.GetRunByCombat(combatId);
         if (run.IsFailure)
             return ApiNotFound(run.Error);
+        if (!_toolAccess.Allows(run.Value, ToolCapabilities.TimelineRead))
+            return ToolDenied(ToolCapabilities.TimelineRead);
         var entries = (await _commits.ReadCombatAsync(
                 run.Value.RunId,
                 combatId,
@@ -67,6 +73,8 @@ public sealed class CombatJournalController : BaseApiController
         var run = _runs.GetRunByCombat(combatId);
         if (run.IsFailure)
             return ApiNotFound(run.Error);
+        if (!_toolAccess.Allows(run.Value, ToolCapabilities.ReplayVerify))
+            return ToolDenied(ToolCapabilities.ReplayVerify);
 
         var verification = await _replay.VerifyAsync(run.Value.RunId, cancellationToken);
         var expectedCombat = run.Value.GetEncounter(combatId)?.Combat;
@@ -87,4 +95,10 @@ public sealed class CombatJournalController : BaseApiController
             verification.Errors
         });
     }
+
+    private IActionResult ToolDenied(string capability) => ApiProblem(
+        StatusCodes.Status403Forbidden,
+        ApiErrorCodes.Forbidden,
+        "Tool capability denied",
+        $"The active access profile and game mode do not allow '{capability}'");
 }

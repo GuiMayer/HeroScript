@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Core.Events;
 using System.Text.Json;
+using API.Attributes;
 
 namespace API.Controllers;
 
@@ -8,6 +9,7 @@ namespace API.Controllers;
 /// Read-only view of best-effort operational telemetry for diagnostics.
 /// </summary>
 [ApiController]
+[AdminEndpoint]
 [Route("api/v1/admin/telemetry")]
 public class TelemetryController : ControllerBase
 {

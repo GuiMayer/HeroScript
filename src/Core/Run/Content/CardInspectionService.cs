@@ -27,6 +27,7 @@ public sealed record CardInspectionRequest
         init => _selectedTargetIds = value?.ToImmutableArray() ?? [];
     }
     public string? CostOptionId { get; init; }
+    public InspectionDetailLevel MaximumDetail { get; init; } = InspectionDetailLevel.Full;
 }
 
 public sealed record CardInspectionVersion
@@ -132,7 +133,8 @@ public interface ICardInspectionService
         Guid combatId,
         string? actorId = null,
         IReadOnlyList<string>? selectedTargetIds = null,
-        string? costOptionId = null);
+        string? costOptionId = null,
+        InspectionDetailLevel maximumDetail = InspectionDetailLevel.Full);
 }
 
 /// <summary>
@@ -174,7 +176,8 @@ public sealed class CardInspectionService : ICardInspectionService
         Guid combatId,
         string? actorId = null,
         IReadOnlyList<string>? selectedTargetIds = null,
-        string? costOptionId = null)
+        string? costOptionId = null,
+        InspectionDetailLevel maximumDetail = InspectionDetailLevel.Full)
     {
         var resolved = ResolveCombat(combatId);
         if (resolved.IsFailure)
@@ -188,7 +191,8 @@ public sealed class CardInspectionService : ICardInspectionService
                 CardInstanceId = cardInstanceId,
                 ActorId = actorId,
                 SelectedTargetIds = selectedTargetIds ?? [],
-                CostOptionId = costOptionId
+                CostOptionId = costOptionId,
+                MaximumDetail = maximumDetail
             });
             if (inspected.IsFailure)
                 return Result<IReadOnlyList<CardInspectionResult>>.Failure(inspected.Error);
@@ -204,6 +208,7 @@ public sealed class CardInspectionService : ICardInspectionService
     {
         var detail = run.ResolvedMode?.CapabilityPolicy.CardInspectionDetail
             ?? InspectionDetailLevel.Full;
+        detail = (InspectionDetailLevel)System.Math.Min((int)detail, (int)request.MaximumDetail);
         if (detail == InspectionDetailLevel.Disabled)
             return Result<CardInspectionResult>.Failure("Card inspection is disabled by the game mode");
         var instance = run.Deck.GetCard(request.CardInstanceId);
