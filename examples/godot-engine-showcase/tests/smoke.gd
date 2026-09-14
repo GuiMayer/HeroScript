@@ -52,7 +52,8 @@ func _run() -> void:
 		check(not GameSession.combat.is_empty(), "materialize combat for %s" % mode.id)
 	var cards := await GameSession.content("cards")
 	check(cards.ok and cards.data.get("items", []).size() >= 4, "browse published JSON content")
-	check(await drive_complete_campaign(seed + 917), "complete all seven campaign activities")
+	check(await drive_complete_campaign(seed + 917), "complete all eight campaign activities")
+	check(GameSession.run.get("dialogues", []).any(func(dialogue): return bool(dialogue.get("completed", false))), "persist completed dialogue activity")
 	check(GameSession.run.get("relics", []).size() == 1, "persist and activate relic state")
 	check(GameSession.run.get("cardSelections", []).size() == 1, "persist card reward state")
 	check(GameSession.run.get("shops", []).size() == 1, "persist shop state")
@@ -102,7 +103,7 @@ func damaging_card_candidate() -> Dictionary:
 
 func choose_progression_command() -> Dictionary:
 	var choices := GameSession.activity_choices()
-	for type in ["START_ENCOUNTER", "RESOLVE_COMBAT", "ACQUIRE_RELIC", "CREATE_CARD_SELECTION", "PICK_CARD_REWARD",
+	for type in ["START_ENCOUNTER", "RESOLVE_COMBAT", "ACQUIRE_RELIC", "START_DIALOGUE", "CHOOSE_DIALOGUE_OPTION", "CREATE_CARD_SELECTION", "PICK_CARD_REWARD",
 		"CREATE_SHOP", "CREATE_PREPARATION", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD",
 		"RESOLVE_NODE", "ADVANCE_NODE"]:
 		for choice in choices:

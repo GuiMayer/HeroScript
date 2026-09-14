@@ -1,4 +1,6 @@
 {
+  "TALK": "CONVERSAR",
+  "CONVERSATION HISTORY": "HISTÓRICO DA CONVERSA",
   "JOURNEY HISTORY": "HISTÓRICO DE JORNADAS",
   "Every journey is an immutable engine record. Inspect, verify or replay it without changing its outcome.": "Cada jornada é um registro imutável da engine. Inspecione, verifique ou reproduza sem alterar o resultado.",
   "RECORDED JOURNEYS": "JORNADAS REGISTRADAS",

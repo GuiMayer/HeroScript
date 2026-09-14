@@ -26,7 +26,8 @@ func setup(owner, data: Dictionary) -> void:
 	var workspace := VBoxContainer.new()
 	workspace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	workspace.add_theme_constant_override("separation", 14)
-	workspace.add_child(_activity_summary(_current_node()))
+	if str(_current_node().get("activity", {}).get("type", "")) != "Dialogue":
+		workspace.add_child(_activity_summary(_current_node()))
 	action_panel = VBoxContainer.new()
 	action_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	action_panel.add_theme_constant_override("separation", 14)
@@ -117,6 +118,13 @@ func _activity_summary(node: Dictionary) -> Control:
 
 func _build_actions() -> void:
 	var choices := GameSession.activity_choices()
+	var dialogue: Dictionary = preload("res://scripts/presentation/dialogue_presenter.gd").build(GameSession.run, choices, I18n)
+	if not dialogue.is_empty():
+		var panel := preload("res://scripts/ui/dialogue_panel.gd").new()
+		panel.setup(dialogue)
+		panel.choice_requested.connect(_execute)
+		choice_buttons.append_array(panel.choice_buttons)
+		action_panel.add_child(panel)
 	if choices.is_empty():
 		action_panel.add_child(AppTheme.muted(I18n.text("Waiting for the next available action.")))
 		return
@@ -128,6 +136,7 @@ func _build_actions() -> void:
 	secondary.add_theme_constant_override("separation", 8)
 	for choice in choices:
 		var type := str(choice.type)
+		if type == "CHOOSE_DIALOGUE_OPTION": continue
 		if type == "ABANDON_RUN": continue # Run exit belongs to the pause menu.
 		if type == "ADVANCE_NODE": continue # The route itself is the navigation control.
 		var model: Dictionary = presenter.offer(choice)
@@ -180,6 +189,7 @@ func _choice_label(choice: Dictionary, model: Dictionary) -> String:
 	if templates.has(type): return I18n.text(templates[type]) % str(model.name)
 	if type == "REROLL_CARD_REWARD": return I18n.text("NEW OPTIONS")
 	if type == "REROLL_SHOP": return I18n.text("REFRESH STOCK")
+	if type == "START_DIALOGUE": return I18n.text("TALK")
 	return _friendly_command(type)
 
 func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
@@ -204,11 +214,11 @@ func _execute(choice: Dictionary) -> void:
 	var accepted := await GameSession.submit_activity(choice)
 	if not is_inside_tree():
 		return
-	for button in choice_buttons: button.disabled = false
+	for button in choice_buttons: button.disabled = bool(button.get_meta("engine_disabled", false))
 	if accepted:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
 			GameAudio.reward()
-			router.open_game()
+		router.open_game()
 
 func _maybe_auto_advance() -> void:
 	if auto_advancing or not is_inside_tree() or router.current_screen != "activity" or GameSession.busy or get_tree().paused:

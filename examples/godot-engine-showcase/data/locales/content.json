@@ -1,4 +1,7 @@
 {
+  "keeper": { "en": "The Keeper", "pt_BR": "A Guardiã" },
+  "return": { "en": "A familiar face", "pt_BR": "Um rosto conhecido" },
+  "Dialogue": { "en": "Conversation", "pt_BR": "Conversa" },
   "Encounter": {"en": "Encounter", "pt_BR": "Encontro"},
   "RelicReward": {"en": "Relic", "pt_BR": "Relíquia"},
   "CardSelection": {"en": "Card reward", "pt_BR": "Recompensa de carta"},

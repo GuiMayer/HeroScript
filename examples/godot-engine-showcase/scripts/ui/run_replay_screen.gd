@@ -146,6 +146,10 @@ func _render_state(entry: Dictionary, commit: Dictionary) -> void:
 		I18n.text("Stop: %s  •  Deck: %s cards  •  Relics: %s") % [node, card_count, state.get("relics", []).size()],
 		I18n.text("Resources: %s") % (", ".join(resources) if not resources.is_empty() else "—"),
 		I18n.text("State hash: %s") % str(entry.get("stateHash", ""))]
+	var dialogue_lines: Array[String] = preload("res://scripts/presentation/dialogue_presenter.gd").recorded_transcript(state, I18n)
+	if not dialogue_lines.is_empty():
+		frame_text.clear()
+		frame_text.add_text(I18n.text("CONVERSATION HISTORY") + "\n\n" + "\n\n".join(dialogue_lines))
 
 func _render_frames(entry: Dictionary) -> void:
 	var frames: Array = entry.get("frames", [])

@@ -7,6 +7,9 @@ static func build(run: Dictionary, commands: Array) -> Array:
 		var type := str(command.get("type", ""))
 		var valid: Dictionary = command.get("validPayload", {}) if command.get("validPayload") is Dictionary else {}
 		match type:
+			"CHOOSE_DIALOGUE_OPTION":
+				for id in valid.get("choiceIds", []):
+					choices.append(_choice(type, {"dialogueInstanceId": valid.get("dialogueInstanceId"), "nodeId": valid.get("nodeId"), "choiceId": id}, str(id), "dialogue"))
 			"ADVANCE_NODE":
 				for id in command.get("targetNodeIds", []):
 					choices.append(_choice(type, {"targetNodeId": id}, str(id), "node"))

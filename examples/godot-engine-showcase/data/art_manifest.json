@@ -3,10 +3,12 @@
   "defaults": {
     "cards": "card_unknown",
     "actors": "actor_unknown",
+    "portraits": "actor_unknown",
     "activities": "activity_unknown",
     "backgrounds": "battlefield"
   },
   "categories": {
+    "portraits": { "ember_keeper": "actor_adept" },
     "cards": {
       "basic_attack": "card_strike",
       "defend": "card_defend",
@@ -29,6 +31,7 @@
       "Shop": "activity_shop",
       "Preparation": "activity_camp",
       "CardUpgrade": "activity_forge",
+      "Dialogue": "activity_camp",
       "Victory": "activity_victory"
     },
     "backgrounds": {
