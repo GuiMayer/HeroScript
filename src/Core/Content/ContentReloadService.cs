@@ -143,8 +143,8 @@ public sealed class ContentReloadService : IContentReloadService, IDisposable
     {
         _events?.Publish(new ContentReloadedEvent
         {
-            EventId = Guid.NewGuid(),
-            Timestamp = DateTime.UtcNow,
+            EventId = Guid.NewGuid(), // nondeterministic-boundary: operational reload telemetry identity
+            Timestamp = DateTime.UtcNow, // nondeterministic-boundary: operational reload telemetry timestamp
             SettingId = settingId,
             Succeeded = succeeded,
             Revision = revision,
