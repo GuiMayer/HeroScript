@@ -24,14 +24,17 @@ var next_button: Button
 var frame_text: RichTextLabel
 var history_allowed := false
 var fork_allowed := false
+var branch_read_allowed := false
+var simulation_allowed := false
 var selected_entry: Dictionary = {}
 
 func setup(owner) -> void:
 	router = owner
 	screen_run_id = str(GameSession.run.get("runId", ""))
-	var policy: Dictionary = GameSession.run.get("resolvedMode", {}).get("replayPolicy", {})
-	history_allowed = bool(policy.get("allowHistoricalInspection", false))
-	fork_allowed = bool(policy.get("allowForkFromHistory", false))
+	history_allowed = GameSession.allows_tool("timeline.inspect_state")
+	fork_allowed = GameSession.allows_tool("timeline.branch.create")
+	branch_read_allowed = GameSession.allows_tool("timeline.branch.read")
+	simulation_allowed = GameSession.allows_tool("simulation.run")
 	add_theme_constant_override("separation", 8)
 	var header := HBoxContainer.new()
 	header.add_child(AppTheme.title(I18n.text("DETERMINISTIC TIMELINE"), 28))
@@ -59,8 +62,10 @@ func setup(owner) -> void:
 	tree_view.set_column_title(1, I18n.text("From command"))
 	tree_view.column_titles_visible = true
 	tree_view.item_activated.connect(_activate_selected)
+	tree_view.visible = branch_read_allowed
 	left.add_child(tree_view)
 	activate_button = _button(I18n.text("ACTIVATE BRANCH"), _activate_selected)
+	activate_button.visible = branch_read_allowed
 	left.add_child(activate_button)
 	body.add_child(AppTheme.panel(left))
 	var right := VBoxContainer.new()
@@ -90,11 +95,15 @@ func setup(owner) -> void:
 	branch_key.custom_minimum_size.x = 180
 	branch_key.placeholder_text = I18n.text("branch-name")
 	branch_key.text = "alternative"
+	branch_key.visible = fork_allowed
 	actions.add_child(branch_key)
 	branch_button = _button(I18n.text("BRANCH HERE"), _branch)
 	branch_button.disabled = not fork_allowed
+	branch_button.visible = fork_allowed
 	actions.add_child(branch_button)
-	actions.add_child(_button(I18n.text("SIMULATE CURRENT STATE"), _simulate))
+	var simulate_button := _button(I18n.text("SIMULATE CURRENT STATE"), _simulate)
+	simulate_button.visible = simulation_allowed
+	actions.add_child(simulate_button)
 	actions.add_child(_button(I18n.text("VERIFY REPLAY"), _verify))
 	right.add_child(actions)
 	body.add_child(AppTheme.panel(right))
@@ -102,7 +111,7 @@ func setup(owner) -> void:
 	add_child(playback)
 	playback.frame_presented.connect(_frame_presented)
 	call_deferred("_load")
-	call_deferred("_load_tree")
+	if branch_read_allowed: call_deferred("_load_tree")
 
 func _valid() -> bool:
 	return is_inside_tree() and screen_run_id == str(GameSession.run.get("runId", ""))
@@ -190,6 +199,7 @@ func _frame_presented(frame: Dictionary, index: int, total: int) -> void:
 			history_view.actor_panels[id].portrait_view.flash_hit()
 
 func _load_tree() -> void:
+	if not branch_read_allowed: return
 	var response := await GameSession.branch_tree()
 	if not _valid(): return
 	tree_view.clear()

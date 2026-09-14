@@ -30,26 +30,35 @@ func _run() -> void:
 		check(false, "find a playable card")
 	var timeline := await GameSession.timeline()
 	check(timeline.ok and timeline.data.get("items", []).size() >= 2, "read command timeline")
-	var origin_run_id := str(GameSession.run.get("runId", ""))
-	if timeline.ok and not timeline.data.get("items", []).is_empty():
-		var first_sequence := int(timeline.data.items[0].runSequence)
-		var branch := await GameSession.create_branch(first_sequence, "smoke-%s" % seed)
-		check(branch.ok, "create an immutable timeline branch")
-		var tree := await GameSession.branch_tree()
-		check(tree.ok, "read the branch tree")
-		await GameSession.continue_run(origin_run_id)
-	var simulation := await GameSession.simulate_end_turn()
-	check(simulation.ok, "simulate commands without mutating the run")
+	check(not GameSession.allows_tool("timeline.branch.create"), "campaign keeps timeline branches disabled")
+	check(not (await GameSession.create_branch(1, "denied")).ok, "campaign rejects branch tools locally")
+	check(not (await GameSession.simulate_end_turn()).ok, "campaign rejects simulation tools locally")
 	var verification := await GameSession.verify()
 	check(verification.ok and bool(verification.data.get("isValid", verification.data.get("valid", false))), "verify semantic replay")
 	var presentation_file := FileAccess.open("res://data/presentation.json", FileAccess.READ)
 	var presentation = JSON.parse_string(presentation_file.get_as_text())
 	presentation_file.close()
+	var sandbox_tools_checked := false
 	for mode in presentation.sandbox_modes:
 		check(await GameSession.start_sandbox(str(mode.id), presentation.default_scenario, seed + failures.size() + str(mode.id).length()),
 			"compile sandbox mode %s" % mode.id)
 		check(str(GameSession.run.get("modeId", "")) == str(mode.id), "activate sandbox mode %s" % mode.id)
 		check(not GameSession.combat.is_empty(), "materialize combat for %s" % mode.id)
+		if not sandbox_tools_checked:
+			sandbox_tools_checked = true
+			check(GameSession.allows_tool("timeline.branch.create") and GameSession.allows_tool("simulation.run"), "sandbox exposes branch and simulation tools")
+			var sandbox_timeline := await GameSession.timeline()
+			if sandbox_timeline.ok and not sandbox_timeline.data.get("items", []).is_empty():
+				var origin_run_id := str(GameSession.run.get("runId", ""))
+				var first_sequence := int(sandbox_timeline.data.items[0].runSequence)
+				var branch := await GameSession.create_branch(first_sequence, "smoke-%s" % seed)
+				check(branch.ok, "create an immutable sandbox timeline branch")
+				check((await GameSession.branch_tree()).ok, "read the sandbox branch tree")
+				await GameSession.continue_run(origin_run_id)
+			var simulation := await GameSession.simulate_end_turn()
+			var simulation_message := "simulate sandbox commands without mutating the run"
+			if not simulation.ok: simulation_message += ": %s" % JSON.stringify(simulation)
+			check(simulation.ok, simulation_message)
 	var cards := await GameSession.content("cards")
 	check(cards.ok and cards.data.get("items", []).size() >= 4, "browse published JSON content")
 	check(await drive_complete_campaign(seed + 917), "complete all eight campaign activities")

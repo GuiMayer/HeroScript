@@ -51,7 +51,10 @@ func run_commit(run_id: String, sequence: int) -> Dictionary:
 		"/api/v1/runs/%s/commits/%s" % [run_id.uri_encode(), sequence])
 
 func read_projections(run_id: String, combat_id: String, include_combat: bool) -> Dictionary:
-	var paths := {"commands": "/api/v1/runs/%s/available-commands" % run_id.uri_encode()}
+	var paths := {
+		"commands": "/api/v1/runs/%s/available-commands" % run_id.uri_encode(),
+		"capabilities": "/api/v1/runs/%s/capabilities" % run_id.uri_encode()
+	}
 	if include_combat:
 		paths["combat"] = "/api/v1/combats/%s" % combat_id.uri_encode()
 	return await _transport.request_many(paths)

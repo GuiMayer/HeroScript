@@ -15,6 +15,8 @@ var _run: Dictionary = {}
 var _combat: Dictionary = {}
 var _available_commands: Array = []
 var _legal_actions: Array = []
+var _tool_capabilities: Dictionary = {}
+var tool_profile := "normal"
 var run: Dictionary:
 	get: return _run.duplicate(true)
 var combat: Dictionary:
@@ -23,6 +25,8 @@ var available_commands: Array:
 	get: return _available_commands.duplicate(true)
 var legal_actions: Array:
 	get: return _legal_actions.duplicate(true)
+var tool_capabilities: Array:
+	get: return _tool_capabilities.keys().duplicate()
 var _gateway
 var available := false
 var content_revision := ""
@@ -146,6 +150,10 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 	_combat = next_combat.duplicate(true)
 	_available_commands = responses.commands.data.get("commands", []).duplicate(true)
 	_legal_actions = next_actions.duplicate(true)
+	_tool_capabilities = {}
+	tool_profile = str(responses.capabilities.data.get("profile", "normal"))
+	for capability in responses.capabilities.data.get("granted", []):
+		_tool_capabilities[str(capability)] = true
 	synchronized = true
 	changed.emit()
 	return true
@@ -154,6 +162,8 @@ func _refresh_failed(error: Dictionary) -> bool:
 	synchronized = false
 	_legal_actions = []
 	_available_commands = []
+	_tool_capabilities = {}
+	tool_profile = "normal"
 	failed.emit(error)
 	changed.emit()
 	return false
@@ -242,6 +252,8 @@ func invalidate() -> void:
 	_combat = {}
 	_legal_actions = []
 	_available_commands = []
+	_tool_capabilities = {}
+	tool_profile = "normal"
 	content_revision = ""
 	synchronized = false
 	operation_changed.emit(_operation)
@@ -268,16 +280,33 @@ func command(type: String) -> Dictionary:
 			return candidate
 	return {}
 
+func allows_tool(capability: String) -> bool:
+	return _tool_capabilities.has(capability)
+
+func _tool_denied(capability: String) -> Dictionary:
+	return {
+		"ok": false,
+		"status": 403,
+		"errorKey": "This tool is not available in the current mode.",
+		"error": "Tool capability denied: %s" % capability
+	}
+
 func timeline(after_sequence := 0) -> Dictionary:
+	if not allows_tool("timeline.read"):
+		return _tool_denied("timeline.read")
 	if _combat.is_empty():
 		return {"ok": false, "errorKey": "No active combat.", "error": "No active combat."}
 	var limit := mini(50, int(_run.get("resolvedMode", {}).get("timelinePolicy", {}).get("maxItemsPerPage", 50)))
 	return await _gateway.timeline(str(_combat.get("combatId", "")), after_sequence, limit)
 
 func branch_tree() -> Dictionary:
+	if not allows_tool("timeline.branch.read"):
+		return _tool_denied("timeline.branch.read")
 	return await _gateway.branch_tree(str(_run.get("runId", "")))
 
 func create_branch(sequence: int, key: String) -> Dictionary:
+	if not allows_tool("timeline.branch.create"):
+		return _tool_denied("timeline.branch.create")
 	if _combat.is_empty():
 		return {"ok": false, "errorKey": "No active combat.", "error": "No active combat."}
 	if has_pending_command: return {"ok": false, "errorKey": "Recover the pending command first."}
@@ -288,6 +317,8 @@ func create_branch(sequence: int, key: String) -> Dictionary:
 	return result
 
 func verify() -> Dictionary:
+	if not allows_tool("replay.verify"):
+		return _tool_denied("replay.verify")
 	return await verify_run(str(_run.get("runId", "")))
 
 func verify_run(run_id: String) -> Dictionary:
@@ -309,6 +340,8 @@ func replay_commit(run_id: String, sequence: int) -> Dictionary:
 	return await _gateway.run_commit(run_id, sequence)
 
 func simulate(commands: Array) -> Dictionary:
+	if not allows_tool("simulation.run"):
+		return _tool_denied("simulation.run")
 	return await _gateway.simulate(str(_run.get("runId", "")), int(_run.get("sequence", 0)), commands)
 
 func simulate_end_turn() -> Dictionary:
@@ -331,6 +364,8 @@ func inspect_hand(target_ids := []) -> Dictionary:
 	return await _gateway.inspect_hand(str(_combat.get("combatId", "")), input_actor_id(), target_ids)
 
 func historical_state(sequence: int) -> Dictionary:
+	if not allows_tool("timeline.inspect_state"):
+		return _tool_denied("timeline.inspect_state")
 	return await _gateway.historical_state(str(_combat.get("combatId", "")), sequence)
 
 func resolution(command_id: String) -> Dictionary:

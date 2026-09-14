@@ -51,6 +51,11 @@ class FakeTransport extends RefCounted:
 			if fail_refresh:
 				return {"ok": false, "status": 503, "error": "Offline fixture"}
 			return _ok({"commands": []})
+		if path.ends_with("/capabilities"):
+			return _ok({"profile": "dev_modder", "granted": [
+				"timeline.read", "timeline.inspect_state", "replay.verify",
+				"timeline.branch.read", "timeline.branch.create", "simulation.run"
+			]})
 		if path.contains("/legal-actions?"):
 			return _ok({"candidates": [legal]})
 		if path.contains("/combats/"):
@@ -110,6 +115,11 @@ func _run() -> void:
 	check(session is Node, "application session loads without interface scenes")
 	session.configure(Gateway.new(transport))
 	check(await session.start_campaign(42), "session can run against injected transport without a UI")
+	check(session.allows_tool("timeline.branch.create") and session.tool_profile == "dev_modder", "session consumes engine-issued tool capabilities")
+	var guarded_calls := transport.calls.size()
+	session._tool_capabilities.erase("simulation.run")
+	check(not (await session.simulate([])).ok and transport.calls.size() == guarded_calls, "denied tools never reach the transport")
+	session._tool_capabilities["simulation.run"] = true
 	var copy: Dictionary = session.run
 	copy.sequence = 999
 	check(session.run.sequence == 1, "interface snapshot mutations do not change session state")
