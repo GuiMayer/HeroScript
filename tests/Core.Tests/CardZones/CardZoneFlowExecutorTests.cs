@@ -32,6 +32,10 @@ public sealed class CardZoneFlowExecutorTests
         Assert.Equal(2, first.Value.State.GetZone(ready)!.InstanceIds.Count);
         Assert.Empty(first.Value.State.GetZone(spent)!.InstanceIds);
         Assert.Single(first.Value.State.GetZone(library)!.InstanceIds);
+        Assert.Equal(3, first.Value.Steps[0].InstanceIds.Length);
+        Assert.Equal(3, first.Value.Steps[0].TargetOrderAfter.Length);
+        Assert.True(first.Value.Steps[0].RandomDrawEnd > first.Value.Steps[0].RandomDrawStart);
+        Assert.Equal(2, first.Value.Steps[^1].InstanceIds.Length);
         Assert.Equal(first.Value.Fingerprint, repeated.Value.Fingerprint);
         Assert.Equal(first.Value.Context, repeated.Value.Context);
         Assert.Empty(cards.State.GetZone(ready)!.InstanceIds);

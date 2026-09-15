@@ -43,6 +43,10 @@ public sealed record CardZoneFlowStepRecord
     public ImmutableArray<Guid> InstanceIds { get; init; } = [];
     public ImmutableArray<Guid> CreatedInstanceIds { get; init; } = [];
     public ImmutableArray<Guid> DestroyedInstanceIds { get; init; } = [];
+    public ImmutableArray<Guid> SourceOrderBefore { get; init; } = [];
+    public ImmutableArray<Guid> SourceOrderAfter { get; init; } = [];
+    public ImmutableArray<Guid> TargetOrderBefore { get; init; } = [];
+    public ImmutableArray<Guid> TargetOrderAfter { get; init; } = [];
     public ulong RandomDrawStart { get; init; }
     public ulong RandomDrawEnd { get; init; }
     public string PreviousStateHash { get; init; } = string.Empty;
@@ -236,18 +240,39 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             currentContext = applied.Value.Context;
             if (!ReferenceEquals(before, currentState))
             {
-                var affected = before.Instances.Keys.Union(currentState.Instances.Keys)
-                    .Where(id => before.FindZone(id)?.Address.Key != currentState.FindZone(id)?.Address.Key ||
-                                 !before.Instances.ContainsKey(id) || !currentState.Instances.ContainsKey(id))
-                    .OrderBy(id => id).ToImmutableArray();
+                var sourceAddress = ResolveAddress(step.SourceZoneId, step.SourceOwner, context);
+                var targetAddress = ResolveAddress(step.TargetZoneId, step.TargetOwner, context);
+                var sourceBefore = sourceAddress == null ? ImmutableArray<Guid>.Empty
+                    : before.GetZone(sourceAddress)?.InstanceIds.ToImmutableArray() ?? [];
+                var sourceAfter = sourceAddress == null ? ImmutableArray<Guid>.Empty
+                    : currentState.GetZone(sourceAddress)?.InstanceIds.ToImmutableArray() ?? [];
+                var targetBefore = targetAddress == null ? ImmutableArray<Guid>.Empty
+                    : before.GetZone(targetAddress)?.InstanceIds.ToImmutableArray() ?? [];
+                var targetAfter = targetAddress == null ? ImmutableArray<Guid>.Empty
+                    : currentState.GetZone(targetAddress)?.InstanceIds.ToImmutableArray() ?? [];
+                var affected = step.Operation switch
+                {
+                    CardZoneOperation.Move =>
+                        targetAfter.Where(id => !targetBefore.Contains(id)).ToImmutableArray(),
+                    CardZoneOperation.Destroy =>
+                        sourceBefore.Where(id => !sourceAfter.Contains(id)).ToImmutableArray(),
+                    CardZoneOperation.Create =>
+                        targetAfter.Where(id => !targetBefore.Contains(id)).ToImmutableArray(),
+                    CardZoneOperation.Shuffle or CardZoneOperation.Reorder => sourceAfter,
+                    _ => ImmutableArray<Guid>.Empty
+                };
                 records.Add(new CardZoneFlowStepRecord
                 {
                     FlowId = flow.FlowId,
                     StepId = step.StepId,
                     Operation = step.Operation,
-                    SourceAddress = ResolveAddress(step.SourceZoneId, step.SourceOwner, context)?.Key,
-                    TargetAddress = ResolveAddress(step.TargetZoneId, step.TargetOwner, context)?.Key,
+                    SourceAddress = sourceAddress?.Key,
+                    TargetAddress = targetAddress?.Key,
                     InstanceIds = affected,
+                    SourceOrderBefore = sourceBefore,
+                    SourceOrderAfter = sourceAfter,
+                    TargetOrderBefore = targetBefore,
+                    TargetOrderAfter = targetAfter,
                     CreatedInstanceIds = currentState.Instances.Keys.Except(before.Instances.Keys).OrderBy(id => id).ToImmutableArray(),
                     DestroyedInstanceIds = before.Instances.Keys.Except(currentState.Instances.Keys).OrderBy(id => id).ToImmutableArray(),
                     RandomDrawStart = drawStart,
@@ -295,6 +320,9 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         if (sourceDefinition.IsFailure) return Fail(sourceDefinition.Error);
         var requested = ResolveCount(step.Selection, context);
         if (requested.IsFailure) return Fail(requested.Error);
+        if (step.Selection.Strategy == CardZoneSelectionStrategy.All &&
+            step.Selection.Count is null && string.IsNullOrWhiteSpace(step.Selection.CountFormula))
+            requested = Result<int>.Success(state.GetZone(source!)!.InstanceIds.Count);
         var effectiveSelection = step.Selection with
         {
             Count = requested.Value,
