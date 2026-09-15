@@ -42,4 +42,32 @@ public static class CardZoneRunFlowDispatcher
                 Variables = variables ?? new Dictionary<string, double>()
             });
     }
+
+    public static Result<CardZoneFlowResult> ResolveCard(
+        ICardZoneFlowExecutor? flows,
+        RunState run,
+        DeckState deck,
+        DeterministicContext context,
+        string flowId,
+        string actorId,
+        Guid cardInstanceId)
+    {
+        if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
+            return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
+        var compiled = CardZoneSystemCompiler.Compile(definition);
+        if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
+        if (!compiled.Value.Flows.ContainsKey(flowId))
+            return Result<CardZoneFlowResult>.Failure($"Card-resolution flow is not configured: {flowId}");
+        return flows.Execute(compiled.Value, deck.Topology, context, flowId,
+            new CardZoneFlowContext
+            {
+                Invocation = CardZoneFlowInvocation.CardResolution,
+                FlowOwnerId = "$run",
+                RunOwnerId = "$run",
+                ActiveActorId = actorId,
+                ContentRevision = context.ContentRevision,
+                ConfigName = run.ConfigName,
+                CardInstanceIds = [cardInstanceId]
+            });
+    }
 }

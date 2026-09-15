@@ -7,6 +7,7 @@ using Core.Common;
 using Core.Determinism;
 using Core.Run;
 using Core.Run.Content;
+using Core.CardZones;
 
 namespace Core.Combat.Flow;
 
@@ -38,9 +39,15 @@ public interface ICombatActionStateReducer
 public sealed class CombatActionStateReducer : ICombatActionStateReducer
 {
     private readonly ICombatOutcomeResolver _outcomes;
+    private readonly ICardZoneFlowExecutor? _cardZoneFlows;
 
-    public CombatActionStateReducer(ICombatOutcomeResolver outcomes) =>
+    public CombatActionStateReducer(
+        ICombatOutcomeResolver outcomes,
+        ICardZoneFlowExecutor? cardZoneFlows = null)
+    {
         _outcomes = outcomes ?? throw new ArgumentNullException(nameof(outcomes));
+        _cardZoneFlows = cardZoneFlows;
+    }
 
     public Result<CombatActionReduction> Apply(
         RunState run,
@@ -62,14 +69,37 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
         var destination = candidate.CardPlay?.Destination ?? CardConsumeDestination.None;
         if (candidate.CardPlay != null && consumedCardId != null && destination != CardConsumeDestination.None)
         {
-            var moved = DeckTransitions.MoveFromHand(
-                run.Deck,
-                [consumedCardId],
-                destination,
-                run.Determinism);
-            if (moved.IsFailure)
-                return Result<CombatActionReduction>.Failure(moved.Error);
-            run = run with { Deck = moved.Value.State, Determinism = moved.Value.Context };
+            if (run.ResolvedMode?.CardZoneSystem != null)
+            {
+                var flowId = destination switch
+                {
+                    CardConsumeDestination.Discard => "card.played.to-discard",
+                    CardConsumeDestination.Exhaust => "card.played.to-exhaust",
+                    _ => string.Empty
+                };
+                if (flowId.Length == 0)
+                    return Result<CombatActionReduction>.Failure(
+                        $"Card destination has no configured zone flow: {destination}");
+                var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
+                    run, run.Deck, run.Determinism, flowId,
+                    resolvedCommand?.ActorId ?? rootCommand.ActorId,
+                    Guid.Parse(consumedCardId));
+                if (flowed.IsFailure)
+                    return Result<CombatActionReduction>.Failure(flowed.Error);
+                run = run with
+                {
+                    Deck = new DeckState { Topology = flowed.Value.State },
+                    Determinism = flowed.Value.Context
+                };
+            }
+            else
+            {
+                var moved = DeckTransitions.MoveFromHand(run.Deck,
+                    [consumedCardId], destination, run.Determinism);
+                if (moved.IsFailure)
+                    return Result<CombatActionReduction>.Failure(moved.Error);
+                run = run with { Deck = moved.Value.State, Determinism = moved.Value.Context };
+            }
         }
         else
         {

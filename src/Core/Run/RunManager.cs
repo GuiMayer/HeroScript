@@ -1327,19 +1327,41 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             }
 
             var deck = state.Deck;
+            var cardContext = state.Determinism;
             if (destination != CardConsumeDestination.None)
             {
                 if (string.IsNullOrWhiteSpace(consumedCardId))
                     return Result<RunState>.Failure("Consumed card id is required");
-
-                var deckTransition = DeckTransitions.MoveFromHand(
-                    state.Deck,
-                    [consumedCardId],
-                    destination,
-                    state.Determinism);
-                if (deckTransition.IsFailure)
-                    return Result<RunState>.Failure(deckTransition.Error);
-                deck = deckTransition.Value.State;
+                if (state.ResolvedMode?.CardZoneSystem != null)
+                {
+                    if (!Guid.TryParse(consumedCardId, out var cardInstanceId))
+                        return Result<RunState>.Failure("Consumed card instance id is invalid");
+                    var flowId = destination switch
+                    {
+                        CardConsumeDestination.Discard => "card.played.to-discard",
+                        CardConsumeDestination.Exhaust => "card.played.to-exhaust",
+                        _ => string.Empty
+                    };
+                    if (flowId.Length == 0)
+                        return Result<RunState>.Failure(
+                            $"Card destination has no configured zone flow: {destination}");
+                    var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
+                        state, state.Deck, state.Determinism, flowId,
+                        command.ActorId, cardInstanceId);
+                    if (flowed.IsFailure)
+                        return Result<RunState>.Failure(flowed.Error);
+                    deck = new DeckState { Topology = flowed.Value.State };
+                    cardContext = flowed.Value.Context;
+                }
+                else
+                {
+                    var deckTransition = DeckTransitions.MoveFromHand(state.Deck,
+                        [consumedCardId], destination, state.Determinism);
+                    if (deckTransition.IsFailure)
+                        return Result<RunState>.Failure(deckTransition.Error);
+                    deck = deckTransition.Value.State;
+                    cardContext = deckTransition.Value.Context;
+                }
             }
 
             var rootPayload = JsonSerializer.SerializeToElement(new
@@ -1358,6 +1380,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     TransitionType = "combat.action.applied",
                     Combat = nextCombat,
                     Deck = deck,
+                    RunDeterminism = cardContext,
                     Payload = rootPayload
                 }],
                 rootPayload);

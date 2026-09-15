@@ -245,6 +245,19 @@
             "selection": { "strategy": "Explicit" }
           }
         ]
+      },
+      {
+        "flowId": "card.played.to-exhaust",
+        "allowedInvocations": ["CardResolution"],
+        "steps": [
+          {
+            "stepId": "move-played-card",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "selection": { "strategy": "Explicit" }
+          }
+        ]
       }
     ]
   }
