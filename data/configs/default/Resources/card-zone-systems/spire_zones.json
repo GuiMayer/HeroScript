@@ -67,6 +67,59 @@
         ]
       },
       {
+        "flowId": "run.draw",
+        "triggers": ["cards.draw-requested"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "draw-requested-cards",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Top", "countFormula": "requestedCount" },
+            "onInsufficient": "ExecuteFallbackAndRetry",
+            "fallbackFlowId": "activation.recycle",
+            "retryAfterFallback": true,
+            "moveAvailableBeforeFallback": true,
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "run.discard",
+        "triggers": ["cards.discard-requested"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "discard-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Explicit" }
+          }
+        ]
+      },
+      {
+        "flowId": "run.exhaust",
+        "triggers": ["cards.exhaust-requested"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "exhaust-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Explicit" }
+          }
+        ]
+      },
+      {
         "flowId": "activation.draw",
         "priority": 100,
         "triggers": ["activation.started"],
