@@ -103,4 +103,32 @@ public static class CardZoneTopologyValidator
             return Result.Failure("Every card instance must belong to exactly one zone");
         return Result.Success();
     }
+
+    public static Result ValidateAgainstSystem(
+        CardZoneTopologyState state,
+        CompiledCardZoneSystem system,
+        string? runOwnerId)
+    {
+        ArgumentNullException.ThrowIfNull(system);
+        var valid = Validate(state);
+        if (valid.IsFailure) return valid;
+        foreach (var zone in state.ZoneItems.Values)
+        {
+            if (!system.Zones.TryGetValue(zone.Address.ZoneId, out var definition))
+                return Result.Failure($"Card-zone topology references unknown zone: {zone.Address.ZoneId}");
+            if (definition.Capacity is { } capacity && zone.Items.Count > capacity)
+                return Result.Failure($"Card-zone topology exceeds capacity: {zone.Address.Key}");
+            if (definition.Ordering == CardZoneOrdering.Unordered &&
+                !zone.Items.SequenceEqual(zone.Items.OrderBy(id => id)))
+                return Result.Failure($"Unordered card zone must have canonical identity order: {zone.Address.Key}");
+            if (definition.OwnerScope == CardZoneOwnerScope.Global && zone.Address.OwnerId != "$global")
+                return Result.Failure($"Global card zone has a non-global owner: {zone.Address.Key}");
+            if (definition.OwnerScope == CardZoneOwnerScope.RunOwner &&
+                (string.IsNullOrWhiteSpace(runOwnerId) || zone.Address.OwnerId != runOwnerId))
+                return Result.Failure($"Run-owned card zone has the wrong owner: {zone.Address.Key}");
+            if (definition.OwnerScope == CardZoneOwnerScope.Actor && zone.Address.OwnerId == "$global")
+                return Result.Failure($"Actor card zone has a non-actor owner: {zone.Address.Key}");
+        }
+        return Result.Success();
+    }
 }

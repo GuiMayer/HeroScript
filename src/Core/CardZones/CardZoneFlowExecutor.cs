@@ -122,9 +122,13 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(deterministicContext);
         ArgumentNullException.ThrowIfNull(context);
+        var valid = CardZoneTopologyValidator.ValidateAgainstSystem(state, system, context.RunOwnerId);
+        if (valid.IsFailure) return Result<CardZoneFlowResult>.Failure(valid.Error);
         var records = ImmutableArray.CreateBuilder<CardZoneFlowStepRecord>();
         var result = ExecuteInternal(system, state, deterministicContext, flowId, context, records, 0);
         if (result.IsFailure) return Result<CardZoneFlowResult>.Failure(result.Error);
+        valid = CardZoneTopologyValidator.ValidateAgainstSystem(result.Value.State, system, context.RunOwnerId);
+        if (valid.IsFailure) return Result<CardZoneFlowResult>.Failure(valid.Error);
         return Result<CardZoneFlowResult>.Success(new CardZoneFlowResult
         {
             State = result.Value.State,
@@ -150,6 +154,8 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         CardZoneFlowContext context)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(boundary);
+        var valid = CardZoneTopologyValidator.ValidateAgainstSystem(state, system, context.RunOwnerId);
+        if (valid.IsFailure) return Result<CardZoneFlowResult>.Failure(valid.Error);
         var currentState = state;
         var currentContext = deterministicContext;
         var allSteps = ImmutableArray.CreateBuilder<CardZoneFlowStepRecord>();
@@ -192,6 +198,8 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             currentContext = executed.Value.Context;
             allSteps.AddRange(executed.Value.Steps);
         }
+        valid = CardZoneTopologyValidator.ValidateAgainstSystem(currentState, system, context.RunOwnerId);
+        if (valid.IsFailure) return Result<CardZoneFlowResult>.Failure(valid.Error);
         return Result<CardZoneFlowResult>.Success(new CardZoneFlowResult
         {
             State = currentState,

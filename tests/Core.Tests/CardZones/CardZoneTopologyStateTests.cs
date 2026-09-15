@@ -56,6 +56,77 @@ public sealed class CardZoneTopologyStateTests
         Assert.Single(state.GetZone(firstAddress)!.InstanceIds);
     }
 
+    [Fact]
+    public void Validator_RejectsSnapshotThatContradictsCompiledCapacityAndOrdering()
+    {
+        var system = Compile(new CardZoneDefinition
+        {
+            ZoneId = "library", OwnerScope = CardZoneOwnerScope.RunOwner,
+            Ordering = CardZoneOrdering.Unordered, Capacity = 1
+        });
+        var address = new CardZoneAddress { ZoneId = "library", OwnerId = "run-a" };
+        var state = new CardZoneTopologyState
+        {
+            Instances = new Dictionary<Guid, CardInstanceState>
+            {
+                [First] = Card(First), [Second] = Card(Second)
+            },
+            Zones = new Dictionary<string, CardZoneState>
+            {
+                [address.Key] = new() { Address = address, InstanceIds = [Second, First] }
+            }
+        };
+
+        Assert.True(CardZoneTopologyValidator.Validate(state).IsSuccess);
+        Assert.Contains("capacity", CardZoneTopologyValidator.ValidateAgainstSystem(state, system, "run-a").Error);
+        var oneCard = state with
+        {
+            Instances = new Dictionary<Guid, CardInstanceState> { [First] = Card(First) },
+            Zones = new Dictionary<string, CardZoneState>
+            {
+                [address.Key] = new() { Address = address, InstanceIds = [First] }
+            }
+        };
+        Assert.True(CardZoneTopologyValidator.ValidateAgainstSystem(oneCard, system, "run-a").IsSuccess);
+        Assert.Contains("wrong owner", CardZoneTopologyValidator.ValidateAgainstSystem(oneCard, system, "run-b").Error);
+    }
+
+    [Fact]
+    public void Validator_RejectsNonCanonicalUnorderedZone()
+    {
+        var system = Compile(new CardZoneDefinition
+        {
+            ZoneId = "library", OwnerScope = CardZoneOwnerScope.RunOwner,
+            Ordering = CardZoneOrdering.Unordered
+        });
+        var address = new CardZoneAddress { ZoneId = "library", OwnerId = "run-a" };
+        var state = new CardZoneTopologyState
+        {
+            Instances = new Dictionary<Guid, CardInstanceState>
+            {
+                [First] = Card(First), [Second] = Card(Second)
+            },
+            Zones = new Dictionary<string, CardZoneState>
+            {
+                [address.Key] = new() { Address = address, InstanceIds = [Second, First] }
+            }
+        };
+
+        Assert.Contains("canonical identity order",
+            CardZoneTopologyValidator.ValidateAgainstSystem(state, system, "run-a").Error);
+    }
+
+    private static CompiledCardZoneSystem Compile(CardZoneDefinition zone)
+    {
+        var compiled = CardZoneSystemCompiler.Compile(new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "test-zones",
+            Zones = [zone]
+        });
+        Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
+        return compiled.Value;
+    }
+
     private static CardInstanceState Card(Guid id) => new()
     {
         CardInstanceId = id,
