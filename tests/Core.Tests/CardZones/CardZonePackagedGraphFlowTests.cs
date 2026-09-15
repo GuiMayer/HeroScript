@@ -71,6 +71,9 @@ public sealed class CardZonePackagedGraphFlowTests
         Assert.Equal(first.Fingerprint, repeated.Fingerprint);
         Assert.True(first.State.Instances.Keys.ToHashSet().SetEquals(repeated.State.Instances.Keys));
         Assert.Equal(5, first.State.GetZone("hand", "run-a")!.InstanceIds.Count);
+        Assert.Equal(["card-5", "card-6", "card-7"],
+            first.State.GetZone("hand", "run-a")!.InstanceIds.Take(3)
+                .Select(id => first.State.GetCard(id)!.DefinitionId));
         Assert.Equal(3, first.State.GetZone("draw", "run-a")!.InstanceIds.Count);
         Assert.Empty(first.State.GetZone("discard", "run-a")!.InstanceIds);
         Assert.Empty(first.State.GetZone("exile", "run-a")!.InstanceIds);
@@ -132,6 +135,10 @@ public sealed class CardZonePackagedGraphFlowTests
             "activation.ended", context).Value;
         var recycled = executor.ExecuteBoundary(system, discarded.State, discarded.Context,
             "activation.started", context).Value;
+        Assert.Equal(["draw-five.available", "return-spent", "draw-five.retry"],
+            recycled.Steps.Select(step => step.StepId));
+        for (var index = 1; index < recycled.Steps.Length; index++)
+            Assert.Equal(recycled.Steps[index - 1].StateHash, recycled.Steps[index].PreviousStateHash);
         Assert.Contains(recycled.Steps, step => step.FlowId == "activation.recycle");
         return recycled;
     }

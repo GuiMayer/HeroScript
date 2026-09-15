@@ -143,6 +143,12 @@ public static partial class CardZoneSystemCompiler
             ValidateFlow(step.FallbackFlowId, "fallbackFlowId");
         else if (!string.IsNullOrWhiteSpace(step.FallbackFlowId))
             errors.Add($"{path}: fallbackFlowId requires ExecuteFallbackAndRetry");
+        if (step.MoveAvailableBeforeFallback &&
+            (step.Operation != CardZoneOperation.Move ||
+             step.OnInsufficient != CardZoneInsufficientPolicy.ExecuteFallbackAndRetry ||
+             !step.RetryAfterFallback ||
+             step.Selection.Strategy is CardZoneSelectionStrategy.All or CardZoneSelectionStrategy.Explicit))
+            errors.Add($"{path}: moveAvailableBeforeFallback requires a retryable move selection");
         if (step.OnOverflow == CardZoneOverflowPolicy.RedirectOverflow)
             ValidateFlow(step.OverflowFlowId, "overflowFlowId");
         else if (!string.IsNullOrWhiteSpace(step.OverflowFlowId))

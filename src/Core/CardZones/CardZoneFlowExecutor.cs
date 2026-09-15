@@ -242,55 +242,10 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
                 if (condition.IsFailure) return Result<(CardZoneTopologyState, DeterministicContext)>.Failure(condition.Error);
                 if (!condition.Value) continue;
             }
-            var before = currentState;
-            var drawStart = currentContext.RandomState.DrawCount;
             var applied = ApplyStep(system, currentState, currentContext, flow, step, context, records, depth);
             if (applied.IsFailure) return applied;
             currentState = applied.Value.State;
             currentContext = applied.Value.Context;
-            if (!ReferenceEquals(before, currentState))
-            {
-                var sourceAddress = ResolveAddress(step.SourceZoneId, step.SourceOwner, context);
-                var targetAddress = ResolveAddress(step.TargetZoneId, step.TargetOwner, context);
-                var sourceBefore = sourceAddress == null ? ImmutableArray<Guid>.Empty
-                    : before.GetZone(sourceAddress)?.InstanceIds.ToImmutableArray() ?? [];
-                var sourceAfter = sourceAddress == null ? ImmutableArray<Guid>.Empty
-                    : currentState.GetZone(sourceAddress)?.InstanceIds.ToImmutableArray() ?? [];
-                var targetBefore = targetAddress == null ? ImmutableArray<Guid>.Empty
-                    : before.GetZone(targetAddress)?.InstanceIds.ToImmutableArray() ?? [];
-                var targetAfter = targetAddress == null ? ImmutableArray<Guid>.Empty
-                    : currentState.GetZone(targetAddress)?.InstanceIds.ToImmutableArray() ?? [];
-                var affected = step.Operation switch
-                {
-                    CardZoneOperation.Move =>
-                        targetAfter.Where(id => !targetBefore.Contains(id)).ToImmutableArray(),
-                    CardZoneOperation.Destroy =>
-                        sourceBefore.Where(id => !sourceAfter.Contains(id)).ToImmutableArray(),
-                    CardZoneOperation.Create =>
-                        targetAfter.Where(id => !targetBefore.Contains(id)).ToImmutableArray(),
-                    CardZoneOperation.Shuffle or CardZoneOperation.Reorder => sourceAfter,
-                    _ => ImmutableArray<Guid>.Empty
-                };
-                records.Add(new CardZoneFlowStepRecord
-                {
-                    FlowId = flow.FlowId,
-                    StepId = step.StepId,
-                    Operation = step.Operation,
-                    SourceAddress = sourceAddress?.Key,
-                    TargetAddress = targetAddress?.Key,
-                    InstanceIds = affected,
-                    SourceOrderBefore = sourceBefore,
-                    SourceOrderAfter = sourceAfter,
-                    TargetOrderBefore = targetBefore,
-                    TargetOrderAfter = targetAfter,
-                    CreatedInstanceIds = currentState.Instances.Keys.Except(before.Instances.Keys).OrderBy(id => id).ToImmutableArray(),
-                    DestroyedInstanceIds = before.Instances.Keys.Except(currentState.Instances.Keys).OrderBy(id => id).ToImmutableArray(),
-                    RandomDrawStart = drawStart,
-                    RandomDrawEnd = currentContext.RandomState.DrawCount,
-                    PreviousStateHash = CanonicalJson.ComputeHash(before),
-                    StateHash = CanonicalJson.ComputeHash(currentState)
-                });
-            }
         }
         return Result<(CardZoneTopologyState, DeterministicContext)>.Success((currentState, currentContext));
     }
@@ -309,6 +264,11 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             return ExecuteInternal(system, state, deterministicContext, step.NestedFlowId!, context, records, depth + 1);
         var source = ResolveAddress(step.SourceZoneId, step.SourceOwner, context);
         var target = ResolveAddress(step.TargetZoneId, step.TargetOwner, context);
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Destroy or
+            CardZoneOperation.Shuffle or CardZoneOperation.Reorder && source == null)
+            return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} requires a resolvable source owner");
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Create && target == null)
+            return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} requires a resolvable target owner");
         if (step.Operation == CardZoneOperation.Shuffle)
         {
             var shuffled = CardZoneTransitions.Shuffle(state, source!, deterministicContext);
@@ -357,12 +317,59 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         if (selected.IsFailure) return Fail(selected.Error);
         if (selected.Value.InstanceIds.Length < requested.Value && step.OnInsufficient == CardZoneInsufficientPolicy.ExecuteFallbackAndRetry)
         {
-            var fallback = ExecuteInternal(system, state, selected.Value.Context, step.FallbackFlowId!, context, records, depth + 1);
+            var beforeFallbackState = state;
+            var beforeFallbackContext = selected.Value.Context;
+            var remaining = requested.Value;
+            if (beforeFallbackContext.RandomState.DrawCount != deterministicContext.RandomState.DrawCount)
+                records.Add(new CardZoneFlowStepRecord
+                {
+                    FlowId = flow.FlowId,
+                    StepId = $"{step.StepId}.select",
+                    Operation = step.Operation,
+                    SourceAddress = source!.Key,
+                    TargetAddress = target?.Key,
+                    InstanceIds = selected.Value.InstanceIds,
+                    RandomDrawStart = deterministicContext.RandomState.DrawCount,
+                    RandomDrawEnd = beforeFallbackContext.RandomState.DrawCount,
+                    PreviousStateHash = CanonicalJson.ComputeHash(state),
+                    StateHash = CanonicalJson.ComputeHash(state)
+                });
+            if (step.MoveAvailableBeforeFallback && !selected.Value.InstanceIds.IsEmpty)
+            {
+                var partial = ApplyStep(system, state, beforeFallbackContext, flow,
+                    step with
+                    {
+                        StepId = $"{step.StepId}.available",
+                        Selection = new CardZoneSelectionDefinition
+                        {
+                            Strategy = CardZoneSelectionStrategy.Explicit,
+                            Count = selected.Value.InstanceIds.Length,
+                            InstanceIds = selected.Value.InstanceIds
+                        },
+                        OnInsufficient = CardZoneInsufficientPolicy.AllowPartial,
+                        FallbackFlowId = null,
+                        MoveAvailableBeforeFallback = false
+                    }, context with { CardInstanceIds = selected.Value.InstanceIds }, records, depth + 1);
+                if (partial.IsFailure) return partial;
+                remaining -= partial.Value.State.GetZone(target!)!.InstanceIds.Count -
+                             state.GetZone(target!)!.InstanceIds.Count;
+                beforeFallbackState = partial.Value.State;
+                beforeFallbackContext = partial.Value.Context;
+            }
+            var fallback = ExecuteInternal(system, beforeFallbackState, beforeFallbackContext,
+                step.FallbackFlowId!, context, records, depth + 1);
             if (fallback.IsFailure) return fallback;
-            if (!step.RetryAfterFallback)
+            if (!step.RetryAfterFallback || remaining == 0)
                 return fallback;
             return ApplyStep(system, fallback.Value.State, fallback.Value.Context, flow,
-                step with { OnInsufficient = CardZoneInsufficientPolicy.AllowPartial }, context, records, depth + 1);
+                step with
+                {
+                    StepId = $"{step.StepId}.retry",
+                    Selection = step.Selection with { Count = remaining, CountFormula = null },
+                    OnInsufficient = CardZoneInsufficientPolicy.AllowPartial,
+                    FallbackFlowId = null,
+                    MoveAvailableBeforeFallback = false
+                }, context, records, depth + 1);
         }
         if (selected.Value.InstanceIds.Length < requested.Value && step.OnInsufficient == CardZoneInsufficientPolicy.RejectTransaction)
             return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} selected {selected.Value.InstanceIds.Length} of {requested.Value} required cards");
@@ -391,14 +398,47 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
                 : CardZoneTransitions.Move(state, source!, target!, accepted, step.Insertion, capacity,
                     sourceDefinition.Value.Ordering, targetDefinition.Value.Ordering, selected.Value.Context);
             if (movedAccepted.IsFailure) return Fail(movedAccepted.Error);
+            if (!accepted.IsEmpty)
+            {
+                var recorded = Convert(movedAccepted);
+                if (recorded.IsFailure) return recorded;
+            }
             return ExecuteInternal(system, movedAccepted.Value.State, movedAccepted.Value.Context, step.OverflowFlowId!,
                 context with { CardInstanceIds = overflow }, records, depth + 1);
         }
         return Convert(CardZoneTransitions.Move(state, source!, target!, ids, step.Insertion, capacity,
             sourceDefinition.Value.Ordering, targetDefinition.Value.Ordering, selected.Value.Context));
 
-        static Result<(CardZoneTopologyState, DeterministicContext)> Convert(Result<CardZoneTransition> result) =>
-            result.IsFailure ? Fail(result.Error) : Result<(CardZoneTopologyState, DeterministicContext)>.Success((result.Value.State, result.Value.Context));
+        Result<(CardZoneTopologyState, DeterministicContext)> Convert(Result<CardZoneTransition> result)
+        {
+            if (result.IsFailure) return Fail(result.Error);
+            var beforeHash = CanonicalJson.ComputeHash(state);
+            var afterHash = CanonicalJson.ComputeHash(result.Value.State);
+            if (beforeHash != afterHash ||
+                deterministicContext.RandomState.DrawCount != result.Value.Context.RandomState.DrawCount)
+            {
+                records.Add(new CardZoneFlowStepRecord
+                {
+                    FlowId = flow.FlowId,
+                    StepId = step.StepId,
+                    Operation = step.Operation,
+                    SourceAddress = source?.Key,
+                    TargetAddress = target?.Key,
+                    InstanceIds = result.Value.AffectedInstanceIds,
+                    CreatedInstanceIds = result.Value.CreatedInstanceIds,
+                    DestroyedInstanceIds = result.Value.DestroyedInstanceIds,
+                    SourceOrderBefore = source == null ? [] : state.GetZone(source)?.InstanceIds.ToImmutableArray() ?? [],
+                    SourceOrderAfter = source == null ? [] : result.Value.State.GetZone(source)?.InstanceIds.ToImmutableArray() ?? [],
+                    TargetOrderBefore = target == null ? [] : state.GetZone(target)?.InstanceIds.ToImmutableArray() ?? [],
+                    TargetOrderAfter = target == null ? [] : result.Value.State.GetZone(target)?.InstanceIds.ToImmutableArray() ?? [],
+                    RandomDrawStart = deterministicContext.RandomState.DrawCount,
+                    RandomDrawEnd = result.Value.Context.RandomState.DrawCount,
+                    PreviousStateHash = beforeHash,
+                    StateHash = afterHash
+                });
+            }
+            return Result<(CardZoneTopologyState, DeterministicContext)>.Success((result.Value.State, result.Value.Context));
+        }
         static Result<(CardZoneTopologyState, DeterministicContext)> Fail(string error) =>
             Result<(CardZoneTopologyState, DeterministicContext)>.Failure(error);
     }

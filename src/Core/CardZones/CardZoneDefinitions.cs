@@ -91,6 +91,7 @@ public sealed record CardZoneFlowStepDefinition
     public string? FallbackFlowId { get; init; }
     public string? OverflowFlowId { get; init; }
     public bool RetryAfterFallback { get; init; }
+    public bool MoveAvailableBeforeFallback { get; init; }
     public string? Condition { get; init; }
     public string? CardDefinitionId { get; init; }
     public CardInstanceLifetimeDefinition Lifetime { get; init; } = new();
