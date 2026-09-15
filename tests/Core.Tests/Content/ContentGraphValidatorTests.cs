@@ -48,6 +48,57 @@ public sealed class ContentGraphValidatorTests
         Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors));
     }
 
+    [Theory]
+    [InlineData("missing.flow", true)]
+    [InlineData("ability.cooldown", false)]
+    public void Validate_RejectsDispositionThatCannotInvokeARevisionedCardFlow(
+        string cardFlowId, bool flowMissing)
+    {
+        var bundle = Bundle(
+            ("cards", "cards/catalog.json", new Dictionary<string, object>
+            {
+                ["ability"] = new
+                {
+                    cardId = "ability",
+                    components = new[]
+                    {
+                        new { type = "disposition", componentId = "disposition", order = 10,
+                            destination = "Discard", cardZoneResolutionFlowId = cardFlowId }
+                    }
+                }
+            }),
+            ("card-zone-systems", "card-zone-systems/zones.json", new Dictionary<string, object>
+            {
+                ["zones"] = new
+                {
+                    cardZoneSystemId = "zones",
+                    zones = new[]
+                    {
+                        new { zoneId = "ready", ownerScope = "RunOwner", ordering = "Ordered" },
+                        new { zoneId = "spent", ownerScope = "RunOwner", ordering = "Ordered" }
+                    },
+                    flows = new[]
+                    {
+                        new
+                        {
+                            flowId = "ability.cooldown",
+                            allowedInvocations = new[] { flowMissing ? "CardResolution" : "Tool" },
+                            steps = new[]
+                            {
+                                new { stepId = "move", operation = "Move", sourceZoneId = "ready",
+                                    targetZoneId = "spent", selection = new { strategy = "Explicit" } }
+                            }
+                        }
+                    }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.Contains(result.Errors, error => error.Contains(
+            $"cards/ability references missing card-resolution zone flow {cardFlowId}", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Validate_RejectsDuplicateIdsAcrossArtifactsOfSameKind()
     {

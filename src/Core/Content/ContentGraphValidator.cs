@@ -401,11 +401,33 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             var compiled = compiler.Compile(id, runtime);
             if (compiled.IsFailure)
                 errors.Add($"cards/{id}: {compiled.Error}");
+            else
+                foreach (var disposition in compiled.Value.All<CardDispositionComponentDefinition>())
+                    if (!string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId))
+                        ValidateCardResolutionFlowReference(runtime, errors,
+                            $"cards/{id}", disposition.CardZoneResolutionFlowId);
             foreach (var value in FindStringProperties(definition, "resourceId", "targetResource"))
                 Require(runtime, errors, "cards", id, value, "resources");
             foreach (var value in FindStringProperties(definition, "statusId"))
                 Require(runtime, errors, "cards", id, value, "status-effects");
         }
+    }
+
+    private static void ValidateCardResolutionFlowReference(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors,
+        string source,
+        string flowId)
+    {
+        var found = runtime.GetDefinitions("card-zone-systems").Keys
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .Select(id => runtime.GetDefinition<CardZoneSystemDefinition>("card-zone-systems", id))
+            .Where(result => result.IsSuccess)
+            .SelectMany(result => result.Value.Flows)
+            .Any(flow => string.Equals(flow.FlowId, flowId, StringComparison.Ordinal) &&
+                flow.AllowedInvocations.Contains(CardZoneFlowInvocation.CardResolution));
+        if (!found)
+            errors.Add($"{source} references missing card-resolution zone flow {flowId}");
     }
 
     private static void ValidateCardComponentBundles(
@@ -729,6 +751,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         foreach (var (id, definition) in runtime.GetDefinitions("card-upgrades"))
         {
             RequireArray(runtime, errors, "card-upgrades", id, definition, "cardDefinitionIds", "cards");
+            foreach (var flowId in FindStringProperties(definition, "cardZoneResolutionFlowId"))
+                ValidateCardResolutionFlowReference(runtime, errors, $"card-upgrades/{id}", flowId);
             try
             {
                 var upgrade = definition.Deserialize<CardUpgradeDefinition>(CreateJsonOptions());
