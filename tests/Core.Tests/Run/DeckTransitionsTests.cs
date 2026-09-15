@@ -39,9 +39,12 @@ public sealed class DeckTransitionsTests
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
         Assert.Equal(DeckState.CurrentTopologyVersion, json.GetProperty("topologyVersion").GetInt32());
-        Assert.True(json.TryGetProperty("drawPileInstanceIds", out _));
-        Assert.True(json.TryGetProperty("cardInstances", out _));
-        Assert.True(json.TryGetProperty("collectionInstanceIds", out _));
+        Assert.True(json.TryGetProperty("topology", out var topology));
+        Assert.True(topology.TryGetProperty("zones", out _));
+        Assert.True(topology.TryGetProperty("instances", out _));
+        Assert.False(json.TryGetProperty("drawPileInstanceIds", out _));
+        Assert.False(json.TryGetProperty("cardInstances", out _));
+        Assert.False(json.TryGetProperty("collectionInstanceIds", out _));
         Assert.False(json.TryGetProperty("drawPile", out _));
         Assert.False(json.TryGetProperty("hand", out _));
         Assert.False(json.TryGetProperty("discardPile", out _));

@@ -15,6 +15,7 @@ using Core.Run.Branching;
 using Core.Run.Sandbox;
 using Core.StatusEffects;
 using Core.Resources;
+using Core.CardZones;
 using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
@@ -42,6 +43,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
     private readonly RunActivityRegistry _activities;
     private readonly RunProgressionService _progression;
     private readonly IRunActivityEffectExecutor? _activityEffects;
+    private readonly ICardZoneFlowExecutor? _cardZoneFlows;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, RunState> _runs = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _commandReceipts = new();
     // Only used by the direct test harness. Production command execution is
@@ -67,7 +69,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         IRunCommitReader? history = null,
         RunSessionGateProvider? sessionGates = null,
         RunActivityRegistry? activities = null,
-        IRunActivityEffectExecutor? activityEffects = null)
+        IRunActivityEffectExecutor? activityEffects = null,
+        ICardZoneFlowExecutor? cardZoneFlows = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -92,6 +95,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         _activities = activities ?? RunActivityRegistry.CreateDefault();
         _progression = new RunProgressionService(_activities);
         _activityEffects = activityEffects;
+        _cardZoneFlows = cardZoneFlows;
         _jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
@@ -184,10 +188,43 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             .ToArray();
         if (startingDeck.Count == 0)
             return Result<RunState>.Failure("Starting deck cannot be empty");
-        var deckResult = DeckTransitions.Create(startingDeck, context);
-        if (deckResult.IsFailure)
-            return Result<RunState>.Failure(deckResult.Error);
-        context = deckResult.Value.Context;
+        var startingHandSize = options.StartingHandSize ?? definition.StartingHandSize;
+        if (startingHandSize < 0)
+            return Result<RunState>.Failure("Starting hand size cannot be negative");
+
+        DeckState initialDeck;
+        IReadOnlyList<string> initiallyDrawnCards;
+        if (resolvedMode?.CardZoneSystem is { } zoneDefinition)
+        {
+            if (_cardZoneFlows == null)
+                return Result<RunState>.Failure("Card-zone flow executor is required for the selected game mode");
+            var compiled = CardZoneSystemCompiler.Compile(zoneDefinition);
+            if (compiled.IsFailure)
+                return Result<RunState>.Failure(compiled.Error);
+            var initialized = CardZoneRunInitializer.Initialize(
+                compiled.Value, definition, startingDeck, "$run", options.PlayerEntityId,
+                [], startingHandSize, contentRevision!, options.ConfigName, context, _cardZoneFlows);
+            if (initialized.IsFailure)
+                return Result<RunState>.Failure(initialized.Error);
+            initialDeck = new DeckState { Topology = initialized.Value.State };
+            context = initialized.Value.Context;
+            initiallyDrawnCards = initialDeck.Hand;
+        }
+        else
+        {
+            // Modes not yet bound to a card-zone graph retain the existing
+            // construction path until their content is migrated.
+            var deckResult = DeckTransitions.Create(startingDeck, context);
+            if (deckResult.IsFailure)
+                return Result<RunState>.Failure(deckResult.Error);
+            var initialDraw = DeckTransitions.Draw(deckResult.Value.State, startingHandSize,
+                deckResult.Value.Context);
+            if (initialDraw.IsFailure)
+                return Result<RunState>.Failure(initialDraw.Error);
+            initialDeck = initialDraw.Value.State;
+            context = initialDraw.Value.Context;
+            initiallyDrawnCards = initialDraw.Value.Cards;
+        }
 
         var state = new RunState
         {
@@ -204,7 +241,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             ResourceState = null!,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
             Map = mapResult.Value,
-            Deck = deckResult.Value.State,
+            Deck = initialDeck,
             Metadata = ToImmutableMetadata(definition.Metadata),
             ContentManifest = manifest,
             Determinism = context
@@ -218,17 +255,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure(runResources.Error);
         state = state with { ResourceState = runResources.Value };
 
-        var startingHandSize = options.StartingHandSize ?? definition.StartingHandSize;
-        if (startingHandSize < 0)
-            return Result<RunState>.Failure("Starting hand size cannot be negative");
-        var initialDraw = DeckTransitions.Draw(state.Deck, startingHandSize, state.Determinism);
-        if (initialDraw.IsFailure)
-            return Result<RunState>.Failure(initialDraw.Error);
-
         state = state with
         {
-            Deck = initialDraw.Value.State,
-            Determinism = initialDraw.Value.Context.AdvanceStep()
+            Determinism = state.Determinism.AdvanceStep()
         };
         var initialNode = state.Map.Nodes.FirstOrDefault(node => node.NodeId == state.CurrentNodeId);
         if (initialNode != null)
@@ -267,8 +296,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             options.ConfigName,
             options.PlayerEntityId,
             state.ResourceState.Resources.ToDictionary(pair => pair.Key, pair => pair.Value.Current)));
-        if (!initialDraw.Value.Cards.IsEmpty)
-            _eventBus?.Publish(new CardDrawnEvent(state.RunId, initialDraw.Value.Cards));
+        if (initiallyDrawnCards.Count > 0)
+            _eventBus?.Publish(new CardDrawnEvent(state.RunId, initiallyDrawnCards));
 
         return Result<RunState>.Success(state);
     }

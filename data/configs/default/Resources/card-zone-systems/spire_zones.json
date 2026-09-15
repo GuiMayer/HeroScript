@@ -25,7 +25,7 @@
         "presentation": { "slot": "discard_pile", "labelKey": "Discard pile" }
       },
       {
-        "zoneId": "exile",
+        "zoneId": "exhaust",
         "ownerScope": "RunOwner",
         "ordering": "Unordered",
         "visibility": { "contents": "All", "order": "Hidden" },
@@ -96,7 +96,7 @@
             "stepId": "exile-ethereal",
             "operation": "Move",
             "sourceZoneId": "hand",
-            "targetZoneId": "exile",
+            "targetZoneId": "exhaust",
             "selection": { "strategy": "ByTags", "requiredTags": ["ethereal"], "selectAllMatches": true },
             "onInsufficient": "AllowPartial"
           }
@@ -152,7 +152,7 @@
           {
             "stepId": "return-exile",
             "operation": "Move",
-            "sourceZoneId": "exile",
+            "sourceZoneId": "exhaust",
             "targetZoneId": "draw",
             "sourceOwner": "RunOwner",
             "targetOwner": "RunOwner",

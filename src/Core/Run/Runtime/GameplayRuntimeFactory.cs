@@ -8,6 +8,7 @@ using Core.Events;
 using Core.Effects;
 using Core.Resources;
 using Core.Run.Content;
+using Core.CardZones;
 
 namespace Core.Run.Runtime;
 
@@ -60,6 +61,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
     private readonly IEffectTriggerExecutor _effectTriggers;
     private readonly IGameEventContextAccessor _eventContext;
     private readonly IGameplayCommandCodec _codec;
+    private readonly ICardZoneFlowExecutor? _cardZoneFlows;
     private readonly IReadOnlyList<string> _registeredCommandTypes;
 
     public GameplayRuntimeFactory(
@@ -80,7 +82,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         IAutomaticFlowDriver automaticFlow,
         IEffectTriggerExecutor effectTriggers,
         IGameEventContextAccessor eventContext,
-        IGameplayCommandCodec codec)
+        IGameplayCommandCodec codec,
+        ICardZoneFlowExecutor? cardZoneFlows = null)
     {
         _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
         _resourceLoader = resourceLoader ?? throw new ArgumentNullException(nameof(resourceLoader));
@@ -100,6 +103,7 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
         _effectTriggers = effectTriggers ?? throw new ArgumentNullException(nameof(effectTriggers));
         _eventContext = eventContext ?? throw new ArgumentNullException(nameof(eventContext));
         _codec = codec ?? throw new ArgumentNullException(nameof(codec));
+        _cardZoneFlows = cardZoneFlows;
         _registeredCommandTypes = codec.Descriptors
             .Select(descriptor => descriptor.Type)
             .OrderBy(type => type, StringComparer.Ordinal)
@@ -136,7 +140,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             options.HistoryReader ?? options.CommitStore,
             sessionGates,
             activities,
-            activityEffects);
+            activityEffects,
+            _cardZoneFlows);
         RunManager CreatePlanningEngine() => new(
             _configManager,
             _resourceLoader,
@@ -153,7 +158,8 @@ public sealed class GameplayRuntimeFactory : IGameplayRuntimeFactory
             _resources,
             options.HistoryReader ?? options.CommitStore,
             activities: activities,
-            activityEffects: activityEffects);
+            activityEffects: activityEffects,
+            cardZoneFlows: _cardZoneFlows);
         var runCommands = new RunSessionCoordinator(
             runs,
             _codec,

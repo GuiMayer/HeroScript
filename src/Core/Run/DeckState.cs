@@ -32,26 +32,31 @@ public sealed record DeckState
         init => _topology = value ?? throw new ArgumentNullException(nameof(value));
     }
 
+    [JsonIgnore]
     public IReadOnlyList<Guid> DrawPileInstanceIds
     {
         get => GetIds("draw");
         init => SetIds("draw", value);
     }
+    [JsonIgnore]
     public IReadOnlyList<Guid> HandInstanceIds
     {
         get => GetIds("hand");
         init => SetIds("hand", value);
     }
+    [JsonIgnore]
     public IReadOnlyList<Guid> DiscardPileInstanceIds
     {
         get => GetIds("discard");
         init => SetIds("discard", value);
     }
+    [JsonIgnore]
     public IReadOnlyList<Guid> ExhaustPileInstanceIds
     {
         get => GetIds("exhaust");
         init => SetIds("exhaust", value);
     }
+    [JsonIgnore]
     public IReadOnlyDictionary<Guid, CardInstanceState> CardInstances
     {
         get => _topology.Instances;
@@ -60,6 +65,7 @@ public sealed record DeckState
             Instances = value ?? ImmutableDictionary<Guid, CardInstanceState>.Empty
         };
     }
+    [JsonIgnore]
     public IReadOnlyList<Guid> CollectionInstanceIds
     {
         get => _topology.CollectionInstanceIds;

@@ -29,6 +29,7 @@ using Core.Run.Events;
 using Core.Run.Projections;
 using Core.Run.Runtime;
 using Core.Run.Sandbox;
+using Core.CardZones;
 using Core.StatusEffects;
 using Core.Entity.Definitions;
 using Microsoft.AspNetCore.Mvc;
@@ -270,6 +271,9 @@ builder.Services.AddSingleton<ICardContentCatalog, CardContentCatalog>();
 builder.Services.AddSingleton<ICardPoolResolver, CardPoolResolver>();
 builder.Services.AddSingleton<ICardContentCompiler, CardContentCompiler>();
 builder.Services.AddSingleton<IEffectiveCardResolver, EffectiveCardResolver>();
+builder.Services.AddSingleton<ICardZoneCardMetadataResolver, RevisionedCardZoneCardMetadataResolver>();
+builder.Services.AddSingleton<ICardZoneRuleEvaluator, CardZoneRuntimeRuleEvaluator>();
+builder.Services.AddSingleton<ICardZoneFlowExecutor, CardZoneFlowExecutor>();
 builder.Services.AddSingleton<IRunCardResolver, RunCardResolver>();
 builder.Services.AddSingleton<ICalculationEngine>(sp =>
     new CalculationEngine(sp.GetRequiredService<IRuntimeFormulaEvaluator>()));

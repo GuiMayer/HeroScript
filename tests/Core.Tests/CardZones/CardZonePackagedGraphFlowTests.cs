@@ -76,7 +76,7 @@ public sealed class CardZonePackagedGraphFlowTests
                 .Select(id => first.State.GetCard(id)!.DefinitionId));
         Assert.Equal(3, first.State.GetZone("draw", "run-a")!.InstanceIds.Count);
         Assert.Empty(first.State.GetZone("discard", "run-a")!.InstanceIds);
-        Assert.Empty(first.State.GetZone("exile", "run-a")!.InstanceIds);
+        Assert.Empty(first.State.GetZone("exhaust", "run-a")!.InstanceIds);
     }
 
     [Fact]
@@ -140,7 +140,7 @@ public sealed class CardZonePackagedGraphFlowTests
         Assert.Equal("retained", ended.Value.State.GetCard(
             Assert.Single(ended.Value.State.GetZone("hand", "run-a")!.InstanceIds))!.DefinitionId);
         Assert.Equal("ethereal", ended.Value.State.GetCard(
-            Assert.Single(ended.Value.State.GetZone("exile", "run-a")!.InstanceIds))!.DefinitionId);
+            Assert.Single(ended.Value.State.GetZone("exhaust", "run-a")!.InstanceIds))!.DefinitionId);
         Assert.Equal("ordinary", ended.Value.State.GetCard(
             Assert.Single(ended.Value.State.GetZone("discard", "run-a")!.InstanceIds))!.DefinitionId);
         Assert.Equal(["exile-ethereal", "discard-unplayed"],
@@ -159,7 +159,7 @@ public sealed class CardZonePackagedGraphFlowTests
                 new CardZoneInitialBatch { ZoneId = "draw", OwnerId = "run-a", DefinitionIds = ["one"] },
                 new CardZoneInitialBatch { ZoneId = "hand", OwnerId = "run-a", DefinitionIds = ["two"] },
                 new CardZoneInitialBatch { ZoneId = "discard", OwnerId = "run-a", DefinitionIds = ["three"] },
-                new CardZoneInitialBatch { ZoneId = "exile", OwnerId = "run-a", DefinitionIds = ["four"] },
+                new CardZoneInitialBatch { ZoneId = "exhaust", OwnerId = "run-a", DefinitionIds = ["four"] },
                 new CardZoneInitialBatch
                 {
                     ZoneId = "hand", OwnerId = "run-a", DefinitionIds = ["temporary"],
@@ -184,7 +184,7 @@ public sealed class CardZonePackagedGraphFlowTests
         Assert.Equal(expectedPersistent, ended.Value.State.CollectionInstanceIds);
         Assert.Empty(ended.Value.State.GetZone("hand", "run-a")!.InstanceIds);
         Assert.Empty(ended.Value.State.GetZone("discard", "run-a")!.InstanceIds);
-        Assert.Empty(ended.Value.State.GetZone("exile", "run-a")!.InstanceIds);
+        Assert.Empty(ended.Value.State.GetZone("exhaust", "run-a")!.InstanceIds);
         Assert.DoesNotContain(ended.Value.State.Instances.Values, card => card.DefinitionId == "temporary");
         Assert.Equal(["encounter.ended", "return-hand", "return-discard", "return-exile"],
             ended.Value.Steps.Select(step => step.StepId));

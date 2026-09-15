@@ -207,7 +207,8 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
                 expectedStep = state.GetProperty("step").GetUInt64(),
                 payload = new { relicId = "ember_core" }
             });
-        Assert.Equal(HttpStatusCode.OK, acquireResponse.StatusCode);
+        Assert.True(acquireResponse.IsSuccessStatusCode,
+            await acquireResponse.Content.ReadAsStringAsync());
 
         using var relicsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/relics");
         var relics = await relicsResponse.Content.ReadFromJsonAsync<JsonElement>();
