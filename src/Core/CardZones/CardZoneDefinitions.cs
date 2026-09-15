@@ -30,6 +30,7 @@ public sealed record CardZoneDefinition
     public string ZoneId { get; init; } = string.Empty;
     public CardZoneOwnerScope OwnerScope { get; init; }
     public CardZoneOrdering Ordering { get; init; }
+    public bool AllowsCardPlay { get; init; }
     public int? Capacity { get; init; }
     public CardZoneVisibilityDefinition Visibility { get; init; } = new();
     public IReadOnlyDictionary<string, JsonElement> Presentation

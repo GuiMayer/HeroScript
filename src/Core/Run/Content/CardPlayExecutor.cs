@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Calculations;
+using Core.CardZones;
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
@@ -92,10 +93,10 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
         ArgumentNullException.ThrowIfNull(request.Combat);
         if (request.CardInstanceId == Guid.Empty)
             return Result<CardPlayExecutionResult>.Failure("CardInstanceId is required");
-        if (!request.Run.Deck.HandInstanceIds.Contains(request.CardInstanceId))
+        if (!CardZonePlaySource.Contains(request.Run, request.ActorId, request.CardInstanceId))
         {
             return Result<CardPlayExecutionResult>.Failure(
-                $"Card instance is not in run hand: {request.CardInstanceId}");
+                $"Card instance is not in a playable zone for {request.ActorId}: {request.CardInstanceId}");
         }
         var instance = request.Run.Deck.GetCard(request.CardInstanceId);
         if (instance == null)

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Core.Calculations;
+using Core.CardZones;
 using Core.Combat.Flow;
 using Core.Combat.Models;
 using Core.Combat.Reactions;
@@ -295,8 +296,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
             return Illegal("Only the configured run owner can play cards from its deck");
         if (command.CardInstanceId is not { } cardInstanceId || cardInstanceId == Guid.Empty)
             return Illegal("CardInstanceId is required for PLAY_CARD");
-        if (!run.Deck.HandInstanceIds.Contains(cardInstanceId))
-            return Illegal($"Card instance is not in run hand: {cardInstanceId}");
+        if (!CardZonePlaySource.Contains(run, command.ActorId, cardInstanceId))
+            return Illegal($"Card instance is not in a playable zone: {cardInstanceId}");
         if (origin != CombatCommandOrigin.PendingResolution && combat.PendingActions.Any(item =>
                 item.Command.CardInstanceId == cardInstanceId))
             return Illegal($"Card instance is already reserved by the reaction stack: {cardInstanceId}");
@@ -756,7 +757,8 @@ public sealed class LegalActionResolver : ILegalActionResolver
             .Where(item => item.Command.CardInstanceId.HasValue)
             .Select(item => item.Command.CardInstanceId!.Value)
             .ToHashSet();
-        foreach (var cardId in run.Deck.HandInstanceIds.Where(id => !reservedCards.Contains(id)).OrderBy(id => id))
+        foreach (var cardId in CardZonePlaySource.CardsForActor(run, actor.InstanceId)
+            .Where(id => !reservedCards.Contains(id)).OrderBy(id => id))
         {
             var instance = run.Deck.GetCard(cardId)
                 ?? throw new InvalidOperationException($"Card instance was not found: {cardId}");

@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Calculations;
+using Core.CardZones;
 using Core.Combat;
 using Core.Combat.Flow;
 using Core.Combat.LegalActions;
@@ -183,7 +184,8 @@ public sealed class CardInspectionService : ICardInspectionService
         if (resolved.IsFailure)
             return Result<IReadOnlyList<CardInspectionResult>>.Failure(resolved.Error);
         var results = ImmutableArray.CreateBuilder<CardInspectionResult>();
-        foreach (var cardInstanceId in resolved.Value.Run.Deck.HandInstanceIds)
+        foreach (var cardInstanceId in CardZonePlaySource.CardsForActor(resolved.Value.Run,
+            actorId ?? resolved.Value.Run.PlayerEntityId))
         {
             var inspected = Inspect(resolved.Value.Run, resolved.Value.Combat, new CardInspectionRequest
             {
@@ -261,7 +263,7 @@ public sealed class CardInspectionService : ICardInspectionService
                 FailureReasons = legal.Value.FailureReasons
             };
 
-        var isInHand = run.Deck.HandInstanceIds.Contains(request.CardInstanceId);
+        var isInHand = CardZonePlaySource.Contains(run, actorId, request.CardInstanceId);
         var preview = legal.Value.Candidate?.CardPlay;
 
         var context = detail == InspectionDetailLevel.Full
@@ -362,10 +364,6 @@ public sealed class CardInspectionService : ICardInspectionService
 
     private static string ResolveZone(DeckState deck, Guid cardInstanceId)
     {
-        if (deck.HandInstanceIds.Contains(cardInstanceId)) return "hand";
-        if (deck.DrawPileInstanceIds.Contains(cardInstanceId)) return "draw";
-        if (deck.DiscardPileInstanceIds.Contains(cardInstanceId)) return "discard";
-        if (deck.ExhaustPileInstanceIds.Contains(cardInstanceId)) return "exhaust";
-        return "collection";
+        return deck.Topology.FindZone(cardInstanceId)?.Address.ZoneId ?? "collection";
     }
 }

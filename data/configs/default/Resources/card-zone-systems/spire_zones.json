@@ -13,6 +13,7 @@
         "zoneId": "hand",
         "ownerScope": "RunOwner",
         "ordering": "Ordered",
+        "allowsCardPlay": true,
         "capacity": 10,
         "visibility": { "contents": "Owner", "order": "Visible" },
         "presentation": { "slot": "playable_cards", "labelKey": "Hand" }
