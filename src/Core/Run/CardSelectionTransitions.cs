@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.CardZones;
 using Core.Common;
 using Core.Resources;
 
@@ -42,7 +43,8 @@ public static class CardSelectionTransitions
     public static Result<RunStateTransition<CardSelectionState>> Pick(
         RunState state,
         Guid selectionInstanceId,
-        IReadOnlyList<string> cardIds)
+        IReadOnlyList<string> cardIds,
+        ICardZoneFlowExecutor? zoneFlows = null)
     {
         var located = Locate(state, selectionInstanceId);
         if (located.IsFailure)
@@ -70,7 +72,9 @@ public static class CardSelectionTransitions
             return Result<RunStateTransition<CardSelectionState>>.Failure(
                 $"Invalid card options: {string.Join(", ", invalid)}");
 
-        var deck = DeckTransitions.AddToDiscard(state.Deck, picks, state.Determinism);
+        var deck = state.ResolvedMode?.CardZoneSystem == null
+            ? DeckTransitions.AddToDiscard(state.Deck, picks, state.Determinism)
+            : CardZoneGrantTransitions.Grant(state, picks, zoneFlows);
         if (deck.IsFailure)
             return Result<RunStateTransition<CardSelectionState>>.Failure(deck.Error);
 

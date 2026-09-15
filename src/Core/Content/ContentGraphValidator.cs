@@ -202,8 +202,9 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 {
                     if (step.Operation != CardZoneOperation.Create ||
                         !flow.AllowedInvocations.Any(invocation => invocation is
-                            CardZoneFlowInvocation.Tool or CardZoneFlowInvocation.Effect))
-                        errors.Add($"card-zone-systems/{id}: $input is only valid for a tool or effect create flow");
+                            CardZoneFlowInvocation.Tool or CardZoneFlowInvocation.Effect or
+                            CardZoneFlowInvocation.GameplayCommand))
+                        errors.Add($"card-zone-systems/{id}: $input is only valid for a tool, effect, or gameplay-command create flow");
                     continue;
                 }
                 var card = runtime.GetDefinition<CardContentDefinition>("cards", step.CardDefinitionId);

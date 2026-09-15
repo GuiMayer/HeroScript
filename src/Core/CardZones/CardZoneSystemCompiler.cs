@@ -71,6 +71,10 @@ public static partial class CardZoneSystemCompiler
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
         var flows = definition.Flows.GroupBy(flow => flow.FlowId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        if (!string.IsNullOrWhiteSpace(definition.GameplayGrantFlowId) &&
+            (!flows.TryGetValue(definition.GameplayGrantFlowId, out var grantFlow) ||
+             !grantFlow.AllowedInvocations.Contains(CardZoneFlowInvocation.GameplayCommand)))
+            errors.Add("gameplayGrantFlowId must reference a gameplay-command flow");
 
         foreach (var zone in definition.Zones)
         {
@@ -126,8 +130,9 @@ public static partial class CardZoneSystemCompiler
         if (step.CardDefinitionId == "$input" &&
             (step.Operation != CardZoneOperation.Create ||
              !parentFlow.AllowedInvocations.Any(invocation => invocation is
-                 CardZoneFlowInvocation.Tool or CardZoneFlowInvocation.Effect)))
-            errors.Add($"{path}: $input requires a tool or effect create flow");
+                 CardZoneFlowInvocation.Tool or CardZoneFlowInvocation.Effect or
+                 CardZoneFlowInvocation.GameplayCommand)))
+            errors.Add($"{path}: $input requires a tool, effect, or gameplay-command create flow");
         if (step.Operation == CardZoneOperation.Create && step.CardDefinitionId?.StartsWith('$') == true &&
             step.CardDefinitionId != "$input")
             errors.Add($"{path}: unknown dynamic card definition token");

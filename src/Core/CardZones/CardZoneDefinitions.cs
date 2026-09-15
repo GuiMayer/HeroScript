@@ -11,6 +11,7 @@ public sealed record CardZoneSystemDefinition
 
     public string CardZoneSystemId { get; init; } = string.Empty;
     public CardZoneOwnerBinding FlowOwnerBinding { get; init; } = CardZoneOwnerBinding.RunOwner;
+    public string? GameplayGrantFlowId { get; init; }
     public IReadOnlyList<CardZoneDefinition> Zones
     {
         get => _zones;

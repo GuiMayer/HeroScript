@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.CardZones;
 using Core.Common;
 using Core.Resources;
 
@@ -39,7 +40,8 @@ public static class ShopTransitions
     public static Result<RunStateTransition<ShopItemState>> Buy(
         RunState state,
         Guid shopInstanceId,
-        string itemId)
+        string itemId,
+        ICardZoneFlowExecutor? zoneFlows = null)
     {
         var located = Locate(state, shopInstanceId);
         if (located.IsFailure)
@@ -73,7 +75,9 @@ public static class ShopTransitions
 
         if (!string.IsNullOrWhiteSpace(updatedItem.CardId))
         {
-            var deck = DeckTransitions.AddToDiscard(next.Deck, new[] { updatedItem.CardId }, next.Determinism);
+            var deck = next.ResolvedMode?.CardZoneSystem == null
+                ? DeckTransitions.AddToDiscard(next.Deck, new[] { updatedItem.CardId }, next.Determinism)
+                : CardZoneGrantTransitions.Grant(next, [updatedItem.CardId], zoneFlows);
             if (deck.IsFailure)
                 return Result<RunStateTransition<ShopItemState>>.Failure(deck.Error);
             next = next with { Deck = deck.Value.State, Determinism = deck.Value.Context };

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.CardZones;
 using Core.Common;
 using Core.Determinism;
 using Core.Combat.Modifiers;
@@ -106,7 +107,8 @@ public static class PreparationTransitions
     public static Result<RunStateTransition<PreparationOptionState>> CommitApply(
         RunState state,
         PreparationApplyPlan plan,
-        IReadOnlyList<ScriptModifierInstance> modifiers)
+        IReadOnlyList<ScriptModifierInstance> modifiers,
+        ICardZoneFlowExecutor? zoneFlows = null)
     {
         if (state.Determinism != plan.SourceContext)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(
@@ -131,7 +133,10 @@ public static class PreparationTransitions
         if (spent.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(spent.Error);
 
-        var deck = DeckTransitions.AddToDiscard(state.Deck, option.AddCardsToDiscard, plan.Context);
+        var deck = state.ResolvedMode?.CardZoneSystem == null
+            ? DeckTransitions.AddToDiscard(state.Deck, option.AddCardsToDiscard, plan.Context)
+            : CardZoneGrantTransitions.Grant(state with { Determinism = plan.Context },
+                option.AddCardsToDiscard, zoneFlows);
         if (deck.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(deck.Error);
 

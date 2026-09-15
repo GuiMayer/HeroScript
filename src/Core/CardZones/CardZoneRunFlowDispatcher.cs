@@ -139,6 +139,35 @@ public static class CardZoneRunFlowDispatcher
             });
     }
 
+    public static Result<CardZoneFlowResult> Grant(
+        ICardZoneFlowExecutor? flows,
+        RunState run,
+        IReadOnlyList<string> cardDefinitionIds)
+    {
+        if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
+            return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
+        if (string.IsNullOrWhiteSpace(definition.GameplayGrantFlowId))
+            return Result<CardZoneFlowResult>.Failure("Game mode has no gameplay grant flow");
+        var compiled = CardZoneSystemCompiler.Compile(definition);
+        if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
+        return flows.Execute(compiled.Value, run.Deck.Topology, run.Determinism,
+            definition.GameplayGrantFlowId, new CardZoneFlowContext
+            {
+                Invocation = CardZoneFlowInvocation.GameplayCommand,
+                FlowOwnerId = ResolveFlowOwner(definition, run.PlayerEntityId),
+                RunOwnerId = "$run",
+                ActiveActorId = run.PlayerEntityId,
+                ContentRevision = run.Determinism.ContentRevision,
+                ConfigName = run.ConfigName,
+                CardDefinitionIds = cardDefinitionIds,
+                Variables = new Dictionary<string, double>
+                {
+                    ["requestedCount"] = cardDefinitionIds.Count,
+                    ["requestedCardCount"] = cardDefinitionIds.Count
+                }
+            });
+    }
+
     private static string ResolveFlowOwner(CardZoneSystemDefinition definition, string actorId) =>
         definition.FlowOwnerBinding switch
         {

@@ -1,6 +1,7 @@
 {
   "spire_zones": {
     "cardZoneSystemId": "spire_zones",
+    "gameplayGrantFlowId": "grant.create-in-discard",
     "zones": [
       {
         "zoneId": "draw",
@@ -337,6 +338,20 @@
             "targetOwner": "RunOwner",
             "selection": { "strategy": "First", "countFormula": "requestedCount" },
             "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "grant.create-in-discard",
+        "allowedInvocations": ["GameplayCommand"],
+        "steps": [
+          {
+            "stepId": "create-awarded-cards",
+            "operation": "Create",
+            "targetZoneId": "discard",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": { "strategy": "Top", "countFormula": "requestedCount" }
           }
         ]
       },

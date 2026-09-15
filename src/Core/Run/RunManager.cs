@@ -2029,7 +2029,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<CardSelectionState>.Failure($"Run not found: {runId}");
 
-            var transition = CardSelectionTransitions.Pick(state, selectionInstanceId, cardIds);
+            var transition = CardSelectionTransitions.Pick(state, selectionInstanceId, cardIds, _cardZoneFlows);
             return transition.IsFailure
                 ? Result<CardSelectionState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2130,7 +2130,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<ShopItemState>.Failure($"Run not found: {runId}");
 
-            var transition = ShopTransitions.Buy(state, shopInstanceId, itemId);
+            var transition = ShopTransitions.Buy(state, shopInstanceId, itemId, _cardZoneFlows);
             return transition.IsFailure
                 ? Result<ShopItemState>.Failure(transition.Error)
                 : CommitTransition(
@@ -2241,7 +2241,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var transition = PreparationTransitions.CommitApply(
                 state,
                 plan.Value,
-                resolvedModifiers);
+                resolvedModifiers,
+                _cardZoneFlows);
             if (transition.IsFailure)
                 return Result<PreparationOptionState>.Failure(transition.Error);
 
