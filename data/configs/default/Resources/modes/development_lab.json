@@ -13,6 +13,7 @@
     "contentBindingPolicyId": "development_versioned",
     "capabilityPolicyId": "dev_modder_tools",
     "progressionPolicyId": "sandbox_progression",
+    "cardZoneSystemId": "spire_zones",
     "rules": {
       "presentation": "spire",
       "difficulty": "development"

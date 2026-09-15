@@ -13,6 +13,7 @@
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "standard_gameplay",
     "progressionPolicyId": "standard_progression",
+    "cardZoneSystemId": "spire_zones",
     "rules": {
       "presentation": "spire",
       "difficulty": "showcase"
@@ -32,6 +33,7 @@
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "experimental_tools",
     "progressionPolicyId": "standard_progression",
+    "cardZoneSystemId": "spire_zones",
     "rules": {
       "presentation": "spire",
       "difficulty": "experimental"

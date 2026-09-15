@@ -13,6 +13,7 @@
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "standard_gameplay",
     "progressionPolicyId": "standard_progression",
+    "cardZoneSystemId": "spire_zones",
     "rules": {
       "dailyEligible": true
     }

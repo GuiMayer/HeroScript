@@ -12,7 +12,8 @@
     "timelinePolicyId": "sandbox_timeline",
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "sandbox_tools",
-    "progressionPolicyId": "sandbox_progression"
+    "progressionPolicyId": "sandbox_progression",
+    "cardZoneSystemId": "spire_zones"
   },
   "combat_sandbox_fixed_actions": {
     "modeId": "combat_sandbox_fixed_actions",
@@ -27,7 +28,8 @@
     "timelinePolicyId": "sandbox_timeline",
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "sandbox_tools",
-    "progressionPolicyId": "sandbox_progression"
+    "progressionPolicyId": "sandbox_progression",
+    "cardZoneSystemId": "spire_zones"
   },
   "combat_sandbox_priority": {
     "modeId": "combat_sandbox_priority",
@@ -42,6 +44,7 @@
     "timelinePolicyId": "sandbox_timeline",
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "sandbox_tools",
-    "progressionPolicyId": "sandbox_progression"
+    "progressionPolicyId": "sandbox_progression",
+    "cardZoneSystemId": "spire_zones"
   }
 }

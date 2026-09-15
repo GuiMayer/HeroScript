@@ -305,6 +305,12 @@ builder.Services.AddSingleton<IResourceCatalog<GameModeDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "modes",
         definition => definition.ModeId));
+builder.Services.AddSingleton<IResourceCatalog<Core.CardZones.CardZoneSystemDefinition>>(sp =>
+    new ResourceCatalog<Core.CardZones.CardZoneSystemDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "card-zone-systems",
+        definition => definition.CardZoneSystemId));
 builder.Services.AddSingleton<IResourceCatalog<FlowRulesDefinition>>(sp =>
     new ResourceCatalog<FlowRulesDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -365,7 +371,8 @@ builder.Services.AddSingleton<GameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<ICardPoolResolver>(),
     sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
     sp.GetRequiredService<IContentRuntimeResolver>(),
-    new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("GameModeResolver"))));
+    new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("GameModeResolver")),
+    sp.GetRequiredService<IResourceCatalog<Core.CardZones.CardZoneSystemDefinition>>()));
 builder.Services.AddSingleton<IGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IRevisionedGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>

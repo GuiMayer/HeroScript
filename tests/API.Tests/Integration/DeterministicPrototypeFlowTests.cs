@@ -36,6 +36,10 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
         Assert.Equal("default", GetJsonString(started, "configName"));
         Assert.Equal(playerEntityId, GetJsonString(started, "playerEntityId"));
         Assert.Equal(64, started.GetProperty("contentRevision").GetString()!.Length);
+        Assert.Equal("spire_zones", started.GetProperty("resolvedMode")
+            .GetProperty("cardZoneSystem")
+            .GetProperty("cardZoneSystemId")
+            .GetString());
 
         // The starting hand contains the first five cards. This draw consumes
         // the other five published cards, including Fireball, without using

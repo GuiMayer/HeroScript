@@ -1,4 +1,5 @@
 using Core.Common;
+using Core.CardZones;
 using Core.Combat.Flow;
 using Core.Combat.TurnOrder;
 using Core.Config;
@@ -23,7 +24,8 @@ public sealed class GameModeResolverTests
             TimelinePolicyId = "timeline",
             ContentBindingPolicyId = "binding",
             CapabilityPolicyId = "capabilities",
-            ProgressionPolicyId = "progression"
+            ProgressionPolicyId = "progression",
+            CardZoneSystemId = "zones"
         });
 
         var result = resolver.Resolve("sandbox", "test");
@@ -33,6 +35,7 @@ public sealed class GameModeResolverTests
         Assert.Equal("flow", result.Value.FlowRules.FlowRulesId);
         Assert.Equal("combat", result.Value.CombatRules.CombatRulesId);
         Assert.True(result.Value.CapabilityPolicy.AllowTimelineFork);
+        Assert.Equal("zones", result.Value.CardZoneSystem?.CardZoneSystemId);
     }
 
     [Fact]
@@ -214,7 +217,17 @@ public sealed class GameModeResolverTests
             {
                 ProgressionPolicyId = "progression"
             }),
-            logger: logger);
+            logger: logger,
+            cardZoneSystems: new Catalog<CardZoneSystemDefinition>(new CardZoneSystemDefinition
+            {
+                CardZoneSystemId = "zones",
+                Zones = [new CardZoneDefinition
+                {
+                    ZoneId = "library",
+                    OwnerScope = CardZoneOwnerScope.Actor,
+                    Ordering = CardZoneOrdering.Ordered
+                }]
+            }));
     }
 
     private static CombatRulesDefinition CreateCombatRules() => new()

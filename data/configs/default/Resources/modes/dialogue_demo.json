@@ -12,6 +12,7 @@
     "timelinePolicyId": "sandbox_timeline",
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "sandbox_tools",
-    "progressionPolicyId": "standard_progression"
+    "progressionPolicyId": "standard_progression",
+    "cardZoneSystemId": "spire_zones"
   }
 }

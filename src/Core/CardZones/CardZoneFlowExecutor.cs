@@ -349,8 +349,10 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         {
             var fallback = ExecuteInternal(system, state, selected.Value.Context, step.FallbackFlowId!, context, records, depth + 1);
             if (fallback.IsFailure) return fallback;
+            if (!step.RetryAfterFallback)
+                return fallback;
             return ApplyStep(system, fallback.Value.State, fallback.Value.Context, flow,
-                step with { OnInsufficient = CardZoneInsufficientPolicy.RejectTransaction }, context, records, depth + 1);
+                step with { OnInsufficient = CardZoneInsufficientPolicy.AllowPartial }, context, records, depth + 1);
         }
         if (selected.Value.InstanceIds.Length < requested.Value && step.OnInsufficient == CardZoneInsufficientPolicy.RejectTransaction)
             return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} selected {selected.Value.InstanceIds.Length} of {requested.Value} required cards");

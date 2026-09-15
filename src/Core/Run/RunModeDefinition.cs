@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Core.Combat.Flow;
 using Core.Combat.TurnOrder;
 using Core.Calculations;
+using Core.CardZones;
 
 namespace Core.Run;
 
@@ -26,6 +27,7 @@ public sealed record GameModeDefinition
     public string? ContentBindingPolicyId { get; init; }
     public string? CapabilityPolicyId { get; init; }
     public string? ProgressionPolicyId { get; init; }
+    public string? CardZoneSystemId { get; init; }
 
     public IReadOnlyList<string> CalculationPipelineIds
     {
@@ -175,6 +177,7 @@ public sealed record ResolvedGameMode
     public ContentBindingPolicyDefinition ContentBindingPolicy { get; init; } = new();
     public CapabilityPolicyDefinition CapabilityPolicy { get; init; } = new();
     public RunProgressionPolicyDefinition ProgressionPolicy { get; init; } = new();
+    public CardZoneSystemDefinition? CardZoneSystem { get; init; }
 }
 
 public sealed record DailyChallengeDefinition

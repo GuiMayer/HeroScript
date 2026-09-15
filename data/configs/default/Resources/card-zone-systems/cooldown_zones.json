@@ -1,0 +1,35 @@
+{
+  "cooldown_zones": {
+    "cardZoneSystemId": "cooldown_zones",
+    "zones": [
+      { "zoneId": "inventory", "ownerScope": "Actor", "ordering": "Unordered", "visibility": { "contents": "Owner", "order": "Hidden" }, "presentation": { "slot": "inventory" } },
+      { "zoneId": "prepared", "ownerScope": "Actor", "ordering": "Ordered", "capacity": 4, "visibility": { "contents": "Owner", "order": "Visible" }, "presentation": { "slot": "abilities" } },
+      { "zoneId": "cooldown", "ownerScope": "Actor", "ordering": "Ordered", "visibility": { "contents": "All", "order": "Visible" }, "presentation": { "slot": "cooldowns" } }
+    ],
+    "flows": [
+      {
+        "flowId": "prepare.next",
+        "triggers": ["activation.started"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          { "stepId": "prepare-one", "operation": "Move", "sourceZoneId": "inventory", "targetZoneId": "prepared", "selection": { "strategy": "First", "count": 1 }, "onInsufficient": "AllowPartial", "onOverflow": "AllowPartial" }
+        ]
+      },
+      {
+        "flowId": "ability.cooldown",
+        "allowedInvocations": ["CardResolution"],
+        "steps": [
+          { "stepId": "place-on-cooldown", "operation": "Move", "sourceZoneId": "prepared", "targetZoneId": "cooldown", "selection": { "strategy": "Explicit" } }
+        ]
+      },
+      {
+        "flowId": "cooldown.return",
+        "triggers": ["round.ended"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          { "stepId": "return-first", "operation": "Move", "sourceZoneId": "cooldown", "targetZoneId": "inventory", "selection": { "strategy": "First", "count": 1 }, "onInsufficient": "AllowPartial" }
+        ]
+      }
+    ]
+  }
+}

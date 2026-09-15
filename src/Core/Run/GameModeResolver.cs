@@ -5,6 +5,7 @@ using Core.Config;
 using Core.Content;
 using Core.Logging;
 using Core.Run.Content;
+using Core.CardZones;
 
 namespace Core.Run;
 
@@ -37,6 +38,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     private readonly IContentRuntimeResolver? _contentRuntimes;
     private readonly ILogger? _logger;
     private readonly IResourceCatalog<RunProgressionPolicyDefinition> _progressionPolicies;
+    private readonly IResourceCatalog<CardZoneSystemDefinition>? _cardZoneSystems;
 
     public GameModeResolver(
         IResourceCatalog<GameModeDefinition> modes,
@@ -50,7 +52,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         ICardPoolResolver? cardPools = null,
         IResourceCatalog<EnemyPoolDefinition>? enemyPools = null,
         IContentRuntimeResolver? contentRuntimes = null,
-        ILogger? logger = null)
+        ILogger? logger = null,
+        IResourceCatalog<CardZoneSystemDefinition>? cardZoneSystems = null)
     {
         _modes = modes ?? throw new ArgumentNullException(nameof(modes));
         _flowRules = flowRules ?? throw new ArgumentNullException(nameof(flowRules));
@@ -64,6 +67,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         _contentRuntimes = contentRuntimes;
         _logger = logger;
         _progressionPolicies = progressionPolicies ?? throw new ArgumentNullException(nameof(progressionPolicies));
+        _cardZoneSystems = cardZoneSystems;
     }
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName)
@@ -121,6 +125,18 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
+        CardZoneSystemDefinition? cardZoneSystem = null;
+        if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId))
+        {
+            if (_cardZoneSystems == null)
+                return Result<ResolvedGameMode>.Failure("Card-zone system catalog is not configured");
+            var graph = _cardZoneSystems.Get(mode.Value.CardZoneSystemId, configName);
+            if (graph.IsFailure) return Result<ResolvedGameMode>.Failure(graph.Error);
+            var compiled = CardZoneSystemCompiler.Compile(graph.Value);
+            if (compiled.IsFailure) return Result<ResolvedGameMode>.Failure(compiled.Error);
+            cardZoneSystem = graph.Value;
+        }
+
         if (_cardPools != null)
         {
             foreach (var poolId in mode.Value.CardPoolIds)
@@ -151,7 +167,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             TimelinePolicy = timeline.Value,
             ContentBindingPolicy = binding.Value,
             CapabilityPolicy = capabilities.Value,
-            ProgressionPolicy = progression.Value
+            ProgressionPolicy = progression.Value,
+            CardZoneSystem = cardZoneSystem
         });
     }
 
@@ -217,6 +234,17 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
+        CardZoneSystemDefinition? cardZoneSystem = null;
+        if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId))
+        {
+            var graph = runtime.Value.GetDefinition<CardZoneSystemDefinition>(
+                "card-zone-systems", mode.Value.CardZoneSystemId);
+            if (graph.IsFailure) return Result<ResolvedGameMode>.Failure(graph.Error);
+            var compiled = CardZoneSystemCompiler.Compile(graph.Value);
+            if (compiled.IsFailure) return Result<ResolvedGameMode>.Failure(compiled.Error);
+            cardZoneSystem = graph.Value;
+        }
+
         foreach (var poolId in mode.Value.CardPoolIds)
         {
             var pool = runtime.Value.GetDefinition<CardPoolDefinition>("card-pools", poolId);
@@ -241,7 +269,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             TimelinePolicy = timeline.Value,
             ContentBindingPolicy = binding.Value,
             CapabilityPolicy = capabilities.Value,
-            ProgressionPolicy = progression.Value
+            ProgressionPolicy = progression.Value,
+            CardZoneSystem = cardZoneSystem
         });
     }
 

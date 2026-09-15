@@ -15,6 +15,7 @@ using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Core.StatusEffects;
+using Core.CardZones;
 
 namespace Core.Content;
 
@@ -58,6 +59,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
 
         var runtime = created.Value;
         ValidateModes(runtime, errors);
+        ValidateCardZoneSystems(runtime, errors);
         ValidateCombatRules(runtime, errors, warnings);
         ValidatePhaseSequences(runtime, errors);
         ValidateRuns(runtime, errors);
@@ -113,6 +115,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "contentBindingPolicyId", "content-binding-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "capabilityPolicyId", "capability-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "progressionPolicyId", "run-progression-policies");
+            if (TryGetProperty(definition, "cardZoneSystemId", out _))
+                RequireProperty(runtime, errors, "modes", id, definition, "cardZoneSystemId", "card-zone-systems");
             RequireArray(runtime, errors, "modes", id, definition, "cardPoolIds", "card-pools");
             RequireArray(runtime, errors, "modes", id, definition, "enemyPoolIds", "enemy-pools");
 
@@ -149,6 +153,31 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 progression.Value);
             if (policyGraph.IsFailure)
                 errors.Add($"modes/{id}: {policyGraph.Error}");
+        }
+    }
+
+    private static void ValidateCardZoneSystems(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
+    {
+        foreach (var id in runtime.GetDefinitions("card-zone-systems").Keys.OrderBy(id => id, StringComparer.Ordinal))
+        {
+            var definition = runtime.GetDefinition<CardZoneSystemDefinition>("card-zone-systems", id);
+            if (definition.IsFailure)
+            {
+                errors.Add($"card-zone-systems/{id}: {definition.Error}");
+                continue;
+            }
+            if (!string.Equals(definition.Value.CardZoneSystemId, id, StringComparison.Ordinal))
+                errors.Add($"card-zone-systems/{id}: cardZoneSystemId does not match definition key");
+            var compiled = CardZoneSystemCompiler.Compile(definition.Value);
+            if (compiled.IsFailure)
+                errors.Add($"card-zone-systems/{id}: {compiled.Error}");
+            foreach (var step in definition.Value.Flows.SelectMany(flow => flow.Steps))
+            {
+                if (string.IsNullOrWhiteSpace(step.CardDefinitionId)) continue;
+                var card = runtime.GetDefinition<CardContentDefinition>("cards", step.CardDefinitionId);
+                if (card.IsFailure)
+                    errors.Add($"card-zone-systems/{id}: unknown card definition {step.CardDefinitionId}");
+            }
         }
     }
 

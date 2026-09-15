@@ -1,0 +1,101 @@
+{
+  "spire_zones": {
+    "cardZoneSystemId": "spire_zones",
+    "zones": [
+      {
+        "zoneId": "draw",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "visibility": { "contents": "Owner", "order": "Hidden" },
+        "presentation": { "slot": "draw_pile", "labelKey": "Draw pile" }
+      },
+      {
+        "zoneId": "hand",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "capacity": 10,
+        "visibility": { "contents": "Owner", "order": "Visible" },
+        "presentation": { "slot": "playable_cards", "labelKey": "Hand" }
+      },
+      {
+        "zoneId": "discard",
+        "ownerScope": "RunOwner",
+        "ordering": "Ordered",
+        "visibility": { "contents": "All", "order": "Hidden" },
+        "presentation": { "slot": "discard_pile", "labelKey": "Discard pile" }
+      },
+      {
+        "zoneId": "exile",
+        "ownerScope": "RunOwner",
+        "ordering": "Unordered",
+        "visibility": { "contents": "All", "order": "Hidden" },
+        "presentation": { "slot": "exile_pile", "labelKey": "Exile" }
+      }
+    ],
+    "flows": [
+      {
+        "flowId": "activation.recycle",
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "return-spent",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "selection": { "strategy": "All" },
+            "insertion": { "strategy": "ShuffleAfterInsert" },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "activation.draw",
+        "priority": 100,
+        "triggers": ["activation.started"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "draw-five",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "selection": { "strategy": "Top", "count": 5 },
+            "onInsufficient": "ExecuteFallbackAndRetry",
+            "fallbackFlowId": "activation.recycle",
+            "retryAfterFallback": true,
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "activation.discard",
+        "priority": 100,
+        "triggers": ["activation.ended"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "discard-unplayed",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "selection": { "strategy": "All" },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "card.played.to-discard",
+        "allowedInvocations": ["CardResolution"],
+        "steps": [
+          {
+            "stepId": "move-played-card",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "selection": { "strategy": "Explicit" }
+          }
+        ]
+      }
+    ]
+  }
+}
