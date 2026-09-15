@@ -2,6 +2,8 @@ using System.Text.Json;
 using Core.Combat.Flow;
 using Core.Determinism;
 using Core.Run;
+using Core.CardZones;
+using Core.Common;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -44,6 +46,26 @@ public sealed class DeckTransitionsTests
         Assert.False(json.TryGetProperty("hand", out _));
         Assert.False(json.TryGetProperty("discardPile", out _));
         Assert.False(json.TryGetProperty("exhaustPile", out _));
+    }
+
+    [Fact]
+    public void TopologyBackedFacade_HasOneRegistryAndStableSerializationRoundTrip()
+    {
+        var created = DeckTransitions.Create(["strike", "defend"],
+            DeterministicContext.Create(42, "test-content")).Value;
+        var drawn = DeckTransitions.Draw(created.State, 1, created.Context).Value;
+        var encoded = JsonSerializer.Serialize(drawn.State,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var decoded = JsonSerializer.Deserialize<DeckState>(encoded,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.NotNull(decoded);
+        Assert.Equal(drawn.State.HandInstanceIds,
+            drawn.State.Topology.GetZone("hand", "$run")!.InstanceIds);
+        Assert.Equal(drawn.State.CardInstances.Keys, drawn.State.Topology.Instances.Keys);
+        Assert.True(CardZoneTopologyValidator.Validate(decoded.Topology).IsSuccess);
+        Assert.Equal(CanonicalJson.ComputeHash(drawn.State.Topology),
+            CanonicalJson.ComputeHash(decoded.Topology));
     }
 
     [Fact]

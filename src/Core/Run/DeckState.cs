@@ -1,136 +1,154 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
+using Core.CardZones;
 using Core.Determinism;
 
 namespace Core.Run;
 
 /// <summary>
-/// Immutable card topology. The instance registry is the permanent collection
-/// owned by the run; combat zones contain instance IDs only.
+/// Temporary semantic projection for consumers still awaiting card-zone
+/// migration. Topology is the sole instance registry and zone authority.
 /// </summary>
 public sealed record DeckState
 {
-    public const int CurrentTopologyVersion = 2;
+    public const int CurrentTopologyVersion = 3;
+    private const string LegacyOwnerId = "$run";
+    private static readonly string[] LegacyZoneIds = ["draw", "hand", "discard", "exhaust"];
 
-    private ImmutableList<Guid> _drawPile = [];
-    private ImmutableList<Guid> _hand = [];
-    private ImmutableList<Guid> _discardPile = [];
-    private ImmutableList<Guid> _exhaustPile = [];
-    private ImmutableList<Guid> _collectionOrder = [];
-    private ImmutableDictionary<Guid, CardInstanceState> _cardInstances =
-        ImmutableDictionary<Guid, CardInstanceState>.Empty;
+    private CardZoneTopologyState _topology = CardZoneTransitions.CreateEmpty(
+        LegacyZoneIds.Select(zoneId => new CardZoneAddress
+        {
+            ZoneId = zoneId,
+            OwnerId = LegacyOwnerId
+        })).Value;
 
     [JsonRequired]
     public int TopologyVersion { get; init; } = CurrentTopologyVersion;
 
+    [JsonRequired]
+    public CardZoneTopologyState Topology
+    {
+        get => _topology;
+        init => _topology = value ?? throw new ArgumentNullException(nameof(value));
+    }
+
     public IReadOnlyList<Guid> DrawPileInstanceIds
     {
-        get => _drawPile;
-        init => _drawPile = value?.ToImmutableList() ?? [];
+        get => GetIds("draw");
+        init => SetIds("draw", value);
     }
     public IReadOnlyList<Guid> HandInstanceIds
     {
-        get => _hand;
-        init => _hand = value?.ToImmutableList() ?? [];
+        get => GetIds("hand");
+        init => SetIds("hand", value);
     }
     public IReadOnlyList<Guid> DiscardPileInstanceIds
     {
-        get => _discardPile;
-        init => _discardPile = value?.ToImmutableList() ?? [];
+        get => GetIds("discard");
+        init => SetIds("discard", value);
     }
     public IReadOnlyList<Guid> ExhaustPileInstanceIds
     {
-        get => _exhaustPile;
-        init => _exhaustPile = value?.ToImmutableList() ?? [];
+        get => GetIds("exhaust");
+        init => SetIds("exhaust", value);
     }
     public IReadOnlyDictionary<Guid, CardInstanceState> CardInstances
     {
-        get => _cardInstances;
-        init
+        get => _topology.Instances;
+        init => _topology = _topology with
         {
-            _cardInstances = value?.ToImmutableDictionary()
-                ?? ImmutableDictionary<Guid, CardInstanceState>.Empty;
-            if (_collectionOrder.IsEmpty)
-                _collectionOrder = _cardInstances.Keys.OrderBy(id => id).ToImmutableList();
-        }
+            Instances = value ?? ImmutableDictionary<Guid, CardInstanceState>.Empty
+        };
     }
     public IReadOnlyList<Guid> CollectionInstanceIds
     {
-        get => _collectionOrder;
-        init => _collectionOrder = value?.ToImmutableList() ?? [];
+        get => _topology.CollectionInstanceIds;
+        init
+        {
+            var instances = _topology.InstanceItems;
+            var ordinal = 0UL;
+            foreach (var id in value ?? [])
+            {
+                if (instances.TryGetValue(id, out var instance))
+                    instances = instances.SetItem(id, instance with { CreationOrdinal = ordinal });
+                ordinal++;
+            }
+            _topology = _topology with { Instances = instances };
+        }
     }
 
-    internal ImmutableList<Guid> DrawPileItems => _drawPile;
-    internal ImmutableList<Guid> HandItems => _hand;
-    internal ImmutableList<Guid> DiscardPileItems => _discardPile;
-    internal ImmutableList<Guid> ExhaustPileItems => _exhaustPile;
-    internal ImmutableList<Guid> CollectionItems => _collectionOrder;
-    internal ImmutableDictionary<Guid, CardInstanceState> CardInstanceItems => _cardInstances;
+    internal ImmutableList<Guid> DrawPileItems => GetIds("draw").ToImmutableList();
+    internal ImmutableList<Guid> HandItems => GetIds("hand").ToImmutableList();
+    internal ImmutableList<Guid> DiscardPileItems => GetIds("discard").ToImmutableList();
+    internal ImmutableList<Guid> ExhaustPileItems => GetIds("exhaust").ToImmutableList();
+    internal ImmutableList<Guid> CollectionItems => _topology.CollectionInstanceIds.ToImmutableList();
+    internal ImmutableDictionary<Guid, CardInstanceState> CardInstanceItems => _topology.InstanceItems;
 
-    /// <summary>
-    /// Definition-oriented construction/display adapter. It is never serialized;
-    /// persisted topology is represented exclusively by instance IDs.
-    /// </summary>
     [JsonIgnore]
     public IReadOnlyList<string> DrawPile
     {
-        get => ResolveDefinitionIds(_drawPile);
-        init => SetDefinitionProjection(ref _drawPile, value, "draw");
+        get => ResolveDefinitionIds(DrawPileInstanceIds);
+        init => SetDefinitionProjection("draw", value);
     }
     [JsonIgnore]
     public IReadOnlyList<string> Hand
     {
-        get => ResolveDefinitionIds(_hand);
-        init => SetDefinitionProjection(ref _hand, value, "hand");
+        get => ResolveDefinitionIds(HandInstanceIds);
+        init => SetDefinitionProjection("hand", value);
     }
     [JsonIgnore]
     public IReadOnlyList<string> DiscardPile
     {
-        get => ResolveDefinitionIds(_discardPile);
-        init => SetDefinitionProjection(ref _discardPile, value, "discard");
+        get => ResolveDefinitionIds(DiscardPileInstanceIds);
+        init => SetDefinitionProjection("discard", value);
     }
     [JsonIgnore]
     public IReadOnlyList<string> ExhaustPile
     {
-        get => ResolveDefinitionIds(_exhaustPile);
-        init => SetDefinitionProjection(ref _exhaustPile, value, "exhaust");
+        get => ResolveDefinitionIds(ExhaustPileInstanceIds);
+        init => SetDefinitionProjection("exhaust", value);
     }
 
-    public CardInstanceState? GetCard(Guid cardInstanceId) =>
-        _cardInstances.GetValueOrDefault(cardInstanceId);
-
-    public string? GetDefinitionId(Guid cardInstanceId) =>
-        GetCard(cardInstanceId)?.DefinitionId;
-
+    public CardInstanceState? GetCard(Guid cardInstanceId) => _topology.GetCard(cardInstanceId);
+    public string? GetDefinitionId(Guid cardInstanceId) => GetCard(cardInstanceId)?.DefinitionId;
     public IReadOnlyList<string> ResolveDefinitionIds(IEnumerable<Guid> cardInstanceIds) =>
-        cardInstanceIds
-            .Select(id => GetDefinitionId(id) ?? throw new InvalidOperationException(
-                $"Card zone contains unknown instance: {id}"))
-            .ToImmutableArray();
+        cardInstanceIds.Select(id => GetDefinitionId(id) ?? throw new InvalidOperationException(
+            $"Card zone contains unknown instance: {id}")).ToImmutableArray();
 
-    private void SetDefinitionProjection(
-        ref ImmutableList<Guid> zone,
-        IEnumerable<string>? definitionIds,
-        string zoneName)
+    private IReadOnlyList<Guid> GetIds(string zoneId) =>
+        _topology.GetZone(zoneId, LegacyOwnerId)?.InstanceIds ?? [];
+
+    private void SetIds(string zoneId, IEnumerable<Guid>? ids)
+    {
+        var address = new CardZoneAddress { ZoneId = zoneId, OwnerId = LegacyOwnerId };
+        var zone = _topology.GetZone(address) ?? new CardZoneState { Address = address };
+        _topology = _topology with
+        {
+            Zones = _topology.ZoneItems.SetItem(address.Key,
+                zone with { InstanceIds = ids?.ToImmutableList() ?? [] })
+        };
+    }
+
+    private void SetDefinitionProjection(string zoneId, IEnumerable<string>? definitionIds)
     {
         var ids = ImmutableList.CreateBuilder<Guid>();
         var index = 0UL;
+        var instances = _topology.InstanceItems;
         foreach (var definitionId in definitionIds ?? [])
         {
-            if (string.IsNullOrWhiteSpace(definitionId))
-                continue;
-            var instanceId = DeterministicId.Create(
-                0,
-                index++,
-                $"deck-construction:{zoneName}:{definitionId}");
+            if (string.IsNullOrWhiteSpace(definitionId)) continue;
+            var instanceId = DeterministicId.Create(0, index++,
+                $"deck-construction:{zoneId}:{definitionId}");
             ids.Add(instanceId);
-            _collectionOrder = _collectionOrder.Add(instanceId);
-            _cardInstances = _cardInstances.SetItem(instanceId, new CardInstanceState
+            instances = instances.SetItem(instanceId, new CardInstanceState
             {
                 CardInstanceId = instanceId,
-                DefinitionId = definitionId
+                DefinitionId = definitionId,
+                OwnerId = LegacyOwnerId,
+                CreationOrdinal = (ulong)instances.Count
             });
         }
-        zone = ids.ToImmutable();
+        _topology = _topology with { Instances = instances };
+        SetIds(zoneId, ids.ToImmutable());
     }
 }
