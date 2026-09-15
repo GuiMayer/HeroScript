@@ -262,6 +262,27 @@ public static class CardZoneTransitions
         return Finish(next, context, ids, [], ids);
     }
 
+    public static Result<CardZoneTransition> ApplyUpgrade(
+        CardZoneTopologyState state,
+        Guid cardInstanceId,
+        CardUpgradeDefinition definition,
+        DeterministicContext context)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(context);
+        var valid = CardZoneTopologyValidator.Validate(state);
+        if (valid.IsFailure) return Result<CardZoneTransition>.Failure(valid.Error);
+        if (!state.InstanceItems.TryGetValue(cardInstanceId, out var instance))
+            return Result<CardZoneTransition>.Failure($"Card instance not found: {cardInstanceId}");
+        var upgraded = CardInstanceUpgradeTransitions.Apply(instance, definition);
+        if (upgraded.IsFailure) return Result<CardZoneTransition>.Failure(upgraded.Error);
+        var next = state with
+        {
+            Instances = state.InstanceItems.SetItem(cardInstanceId, upgraded.Value)
+        };
+        return Finish(next, context, [cardInstanceId], [], []);
+    }
+
     public static Result<CardZoneTransition> Shuffle(
         CardZoneTopologyState state,
         CardZoneAddress zoneAddress,

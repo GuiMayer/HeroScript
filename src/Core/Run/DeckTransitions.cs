@@ -338,26 +338,13 @@ public static class DeckTransitions
         ArgumentNullException.ThrowIfNull(context);
         if (!state.CardInstanceItems.TryGetValue(cardInstanceId, out var instance))
             return Result<DeckTransition>.Failure($"Card instance not found: {cardInstanceId}");
-        if (string.IsNullOrWhiteSpace(definition.UpgradeId))
-            return Result<DeckTransition>.Failure("Card upgrade id is required");
-        if (!definition.AppliesTo(instance.DefinitionId))
-            return Result<DeckTransition>.Failure(
-                $"Upgrade {definition.UpgradeId} does not apply to {instance.DefinitionId}");
-        var applications = instance.UpgradeItems.Count(upgrade =>
-            string.Equals(upgrade.UpgradeId, definition.UpgradeId, StringComparison.Ordinal));
-        if (applications >= System.Math.Max(1, definition.MaxApplications))
-            return Result<DeckTransition>.Failure($"Upgrade application limit reached: {definition.UpgradeId}");
-
-        var upgrade = new CardUpgradeState
-        {
-            UpgradeId = definition.UpgradeId,
-            Patches = definition.Patches
-        };
+        var upgraded = CardInstanceUpgradeTransitions.Apply(instance, definition);
+        if (upgraded.IsFailure) return Result<DeckTransition>.Failure(upgraded.Error);
         var next = state with
         {
             CardInstances = state.CardInstanceItems.SetItem(
                 cardInstanceId,
-                instance with { Upgrades = instance.UpgradeItems.Add(upgrade) })
+                upgraded.Value)
         };
         return Result<DeckTransition>.Success(
             new DeckTransition(next, context, [instance.DefinitionId]));

@@ -1,5 +1,6 @@
 using Core.CardZones;
 using Core.Determinism;
+using Core.Run;
 using Xunit;
 
 namespace Core.Tests.CardZones;
@@ -72,5 +73,30 @@ public sealed class CardZoneTransitionsTests
         Assert.Equal(collection, completed.State.GetZone(Ready)!.InstanceIds);
         Assert.Equal(collection, completed.State.CollectionInstanceIds);
         Assert.Equal(3, completed.State.Instances.Count);
+    }
+
+    [Fact]
+    public void ApplyUpgrade_ChangesOnlyTheSelectedImmutableInstance()
+    {
+        var empty = CardZoneTransitions.CreateEmpty([Library, Ready]).Value;
+        var created = CardZoneTransitions.CreateInstances(empty, Library, ["spark", "ward"],
+            new(), new(), null, CardZoneOrdering.Ordered,
+            DeterministicContext.Create(12, "content")).Value;
+        var id = created.State.CollectionInstanceIds[0];
+        var definition = new CardUpgradeDefinition
+        {
+            UpgradeId = "spark-plus", CardDefinitionIds = ["spark"]
+        };
+
+        var upgraded = CardZoneTransitions.ApplyUpgrade(created.State, id, definition, created.Context);
+        var repeated = CardZoneTransitions.ApplyUpgrade(upgraded.Value.State, id, definition, upgraded.Value.Context);
+
+        Assert.True(upgraded.IsSuccess, upgraded.IsFailure ? upgraded.Error : null);
+        Assert.Empty(created.State.GetCard(id)!.Upgrades);
+        Assert.Equal("spark-plus", Assert.Single(upgraded.Value.State.GetCard(id)!.Upgrades).UpgradeId);
+        Assert.Empty(upgraded.Value.State.GetCard(created.State.CollectionInstanceIds[1])!.Upgrades);
+        Assert.Equal(created.State.CollectionInstanceIds, upgraded.Value.State.CollectionInstanceIds);
+        Assert.True(repeated.IsFailure);
+        Assert.Contains("application limit", repeated.Error);
     }
 }
