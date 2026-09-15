@@ -89,6 +89,7 @@ public sealed record CardZoneFlowStepDefinition
     public CardZoneInsufficientPolicy OnInsufficient { get; init; } = CardZoneInsufficientPolicy.RejectTransaction;
     public CardZoneOverflowPolicy OnOverflow { get; init; } = CardZoneOverflowPolicy.RejectTransaction;
     public string? FallbackFlowId { get; init; }
+    public string? OverflowFlowId { get; init; }
     public bool RetryAfterFallback { get; init; }
     public string? Condition { get; init; }
     public string? CardDefinitionId { get; init; }

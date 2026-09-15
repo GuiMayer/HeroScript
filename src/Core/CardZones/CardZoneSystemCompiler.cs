@@ -85,8 +85,6 @@ public static partial class CardZoneSystemCompiler
             if (!ValidId(flow.FlowId)) errors.Add($"{path}: flowId is invalid");
             if (flow.AllowedInvocations.Count == 0 || flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Unspecified))
                 errors.Add($"{path}: allowedInvocations is required");
-            if (flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Boundary) && flow.Triggers.Count == 0)
-                errors.Add($"{path}: boundary flows require at least one trigger");
             if (flow.Steps.Count == 0) errors.Add($"{path}: at least one step is required");
             if (flow.Steps.Select(step => step.StepId).Distinct(StringComparer.Ordinal).Count() != flow.Steps.Count)
                 errors.Add($"{path}: step ids must be unique");
@@ -138,6 +136,10 @@ public static partial class CardZoneSystemCompiler
             ValidateFlow(step.FallbackFlowId, "fallbackFlowId");
         else if (!string.IsNullOrWhiteSpace(step.FallbackFlowId))
             errors.Add($"{path}: fallbackFlowId requires ExecuteFallbackAndRetry");
+        if (step.OnOverflow == CardZoneOverflowPolicy.RedirectOverflow)
+            ValidateFlow(step.OverflowFlowId, "overflowFlowId");
+        else if (!string.IsNullOrWhiteSpace(step.OverflowFlowId))
+            errors.Add($"{path}: overflowFlowId requires RedirectOverflow");
         if (step.Operation == CardZoneOperation.ExecuteFlow)
             ValidateFlow(step.NestedFlowId, "nestedFlowId");
 
@@ -157,7 +159,7 @@ public static partial class CardZoneSystemCompiler
     {
         var graph = flows.ToDictionary(
             flow => flow.FlowId,
-            flow => flow.Steps.SelectMany(step => new[] { step.FallbackFlowId, step.NestedFlowId })
+            flow => flow.Steps.SelectMany(step => new[] { step.FallbackFlowId, step.OverflowFlowId, step.NestedFlowId })
                 .Where(id => !string.IsNullOrWhiteSpace(id)).Cast<string>().Distinct(StringComparer.Ordinal).ToArray(),
             StringComparer.Ordinal);
         var visiting = new HashSet<string>(StringComparer.Ordinal);
