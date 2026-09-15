@@ -123,6 +123,46 @@
         ]
       },
       {
+        "flowId": "encounter.return-persistent",
+        "triggers": ["encounter.ended"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "return-hand",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "All" },
+            "insertion": { "strategy": "CreationOrder" },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "return-discard",
+            "operation": "Move",
+            "sourceZoneId": "discard",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "All" },
+            "insertion": { "strategy": "CreationOrder" },
+            "onInsufficient": "AllowPartial"
+          },
+          {
+            "stepId": "return-exile",
+            "operation": "Move",
+            "sourceZoneId": "exile",
+            "targetZoneId": "draw",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "All" },
+            "insertion": { "strategy": "CreationOrder" },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
         "flowId": "card.played.to-discard",
         "allowedInvocations": ["CardResolution"],
         "steps": [

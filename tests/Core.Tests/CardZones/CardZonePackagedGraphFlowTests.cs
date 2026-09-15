@@ -147,6 +147,51 @@ public sealed class CardZonePackagedGraphFlowTests
             ended.Value.Steps.Select(step => step.StepId));
     }
 
+    [Fact]
+    public void SpireGraph_EndEncounter_ExpiresTemporaryCardsAndRestoresCreationOrder()
+    {
+        var system = Load("spire_zones");
+        var initialized = CardZoneBootstrapper.Create(system, new CardZoneBootstrapPlan
+        {
+            RunOwnerId = "run-a",
+            Batches =
+            [
+                new CardZoneInitialBatch { ZoneId = "draw", OwnerId = "run-a", DefinitionIds = ["one"] },
+                new CardZoneInitialBatch { ZoneId = "hand", OwnerId = "run-a", DefinitionIds = ["two"] },
+                new CardZoneInitialBatch { ZoneId = "discard", OwnerId = "run-a", DefinitionIds = ["three"] },
+                new CardZoneInitialBatch { ZoneId = "exile", OwnerId = "run-a", DefinitionIds = ["four"] },
+                new CardZoneInitialBatch
+                {
+                    ZoneId = "hand", OwnerId = "run-a", DefinitionIds = ["temporary"],
+                    Lifetime = new CardInstanceLifetimeDefinition
+                    {
+                        Strategy = CardInstanceLifetimeStrategy.UntilBoundary,
+                        Boundary = "encounter.ended"
+                    }
+                }
+            ]
+        }, DeterministicContext.Create(73, "content-a")).Value;
+        var expectedPersistent = initialized.State.CollectionInstanceIds.Take(4).ToArray();
+
+        var ended = new CardZoneFlowExecutor().ExecuteBoundary(system,
+            initialized.State, initialized.Context, "encounter.ended", new CardZoneFlowContext
+            {
+                FlowOwnerId = "run-a", RunOwnerId = "run-a"
+            });
+
+        Assert.True(ended.IsSuccess, ended.IsFailure ? ended.Error : null);
+        Assert.Equal(expectedPersistent, ended.Value.State.GetZone("draw", "run-a")!.InstanceIds);
+        Assert.Equal(expectedPersistent, ended.Value.State.CollectionInstanceIds);
+        Assert.Empty(ended.Value.State.GetZone("hand", "run-a")!.InstanceIds);
+        Assert.Empty(ended.Value.State.GetZone("discard", "run-a")!.InstanceIds);
+        Assert.Empty(ended.Value.State.GetZone("exile", "run-a")!.InstanceIds);
+        Assert.DoesNotContain(ended.Value.State.Instances.Values, card => card.DefinitionId == "temporary");
+        Assert.Equal(["encounter.ended", "return-hand", "return-discard", "return-exile"],
+            ended.Value.Steps.Select(step => step.StepId));
+        for (var index = 1; index < ended.Value.Steps.Length; index++)
+            Assert.Equal(ended.Value.Steps[index - 1].StateHash, ended.Value.Steps[index].PreviousStateHash);
+    }
+
     private static CardZoneFlowResult RunSpire(ulong seed)
     {
         var system = Load("spire_zones");
