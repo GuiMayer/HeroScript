@@ -1,0 +1,187 @@
+using System.Collections.Immutable;
+using System.Text.RegularExpressions;
+using Core.Common;
+
+namespace Core.CardZones;
+
+public sealed record CompiledCardZoneSystem
+{
+    public string SystemId { get; init; } = string.Empty;
+    public ImmutableDictionary<string, CardZoneDefinition> Zones { get; init; } =
+        ImmutableDictionary<string, CardZoneDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+    public ImmutableDictionary<string, CardZoneFlowDefinition> Flows { get; init; } =
+        ImmutableDictionary<string, CardZoneFlowDefinition>.Empty.WithComparers(StringComparer.Ordinal);
+    public ImmutableDictionary<string, ImmutableArray<CardZoneFlowDefinition>> FlowsByTrigger { get; init; } =
+        ImmutableDictionary<string, ImmutableArray<CardZoneFlowDefinition>>.Empty.WithComparers(StringComparer.Ordinal);
+
+    public Result<CardZoneDefinition> GetZone(string zoneId) =>
+        Zones.TryGetValue(zoneId, out var zone)
+            ? Result<CardZoneDefinition>.Success(zone)
+            : Result<CardZoneDefinition>.Failure($"Card zone definition not found: {zoneId}");
+
+    public Result<CardZoneFlowDefinition> GetFlow(string flowId) =>
+        Flows.TryGetValue(flowId, out var flow)
+            ? Result<CardZoneFlowDefinition>.Success(flow)
+            : Result<CardZoneFlowDefinition>.Failure($"Card-zone flow not found: {flowId}");
+}
+
+public static partial class CardZoneSystemCompiler
+{
+    public static Result<CompiledCardZoneSystem> Compile(CardZoneSystemDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        var validation = Validate(definition);
+        if (validation.IsFailure)
+            return Result<CompiledCardZoneSystem>.Failure(validation.Error);
+        var zones = definition.Zones.ToImmutableDictionary(zone => zone.ZoneId, StringComparer.Ordinal);
+        var flows = definition.Flows.ToImmutableDictionary(flow => flow.FlowId, StringComparer.Ordinal);
+        var byTrigger = definition.Flows
+            .SelectMany(flow => flow.Triggers.Select(trigger => (trigger, flow)))
+            .GroupBy(item => item.trigger, StringComparer.Ordinal)
+            .ToImmutableDictionary(
+                group => group.Key,
+                group => group.Select(item => item.flow)
+                    .OrderBy(flow => flow.Priority)
+                    .ThenBy(flow => flow.FlowId, StringComparer.Ordinal)
+                    .ToImmutableArray(),
+                StringComparer.Ordinal);
+        return Result<CompiledCardZoneSystem>.Success(new CompiledCardZoneSystem
+        {
+            SystemId = definition.CardZoneSystemId,
+            Zones = zones,
+            Flows = flows,
+            FlowsByTrigger = byTrigger
+        });
+    }
+
+    public static Result Validate(CardZoneSystemDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        var errors = new List<string>();
+        if (!ValidId(definition.CardZoneSystemId)) errors.Add("cardZoneSystemId is invalid");
+        if (definition.Zones.Count == 0) errors.Add("At least one card zone is required");
+        if (definition.Zones.Select(zone => zone.ZoneId).Distinct(StringComparer.Ordinal).Count() != definition.Zones.Count)
+            errors.Add("Card zone ids must be unique");
+        if (definition.Flows.Select(flow => flow.FlowId).Distinct(StringComparer.Ordinal).Count() != definition.Flows.Count)
+            errors.Add("Card-zone flow ids must be unique");
+        var zoneIds = definition.Zones.Select(zone => zone.ZoneId).ToHashSet(StringComparer.Ordinal);
+        var flowIds = definition.Flows.Select(flow => flow.FlowId).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var zone in definition.Zones)
+        {
+            var path = $"zones/{zone.ZoneId}";
+            if (!ValidId(zone.ZoneId)) errors.Add($"{path}: zoneId is invalid");
+            if (zone.OwnerScope == CardZoneOwnerScope.Unspecified) errors.Add($"{path}: ownerScope is required");
+            if (zone.Ordering == CardZoneOrdering.Unspecified) errors.Add($"{path}: ordering is required");
+            if (zone.Capacity < 0) errors.Add($"{path}: capacity cannot be negative");
+            if (zone.Visibility.Contents == CardZoneVisibility.Unspecified ||
+                zone.Visibility.Order == CardZoneOrderVisibility.Unspecified)
+                errors.Add($"{path}: visibility is incomplete");
+        }
+
+        foreach (var flow in definition.Flows)
+        {
+            var path = $"flows/{flow.FlowId}";
+            if (!ValidId(flow.FlowId)) errors.Add($"{path}: flowId is invalid");
+            if (flow.AllowedInvocations.Count == 0 || flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Unspecified))
+                errors.Add($"{path}: allowedInvocations is required");
+            if (flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Boundary) && flow.Triggers.Count == 0)
+                errors.Add($"{path}: boundary flows require at least one trigger");
+            if (flow.Steps.Count == 0) errors.Add($"{path}: at least one step is required");
+            if (flow.Steps.Select(step => step.StepId).Distinct(StringComparer.Ordinal).Count() != flow.Steps.Count)
+                errors.Add($"{path}: step ids must be unique");
+            foreach (var step in flow.Steps)
+                ValidateStep(step, path, zoneIds, flowIds, errors);
+        }
+        ValidateAcyclic(definition.Flows, errors);
+        return errors.Count == 0 ? Result.Success() : Result.Failure(string.Join("; ", errors));
+    }
+
+    private static void ValidateStep(
+        CardZoneFlowStepDefinition step,
+        string flowPath,
+        IReadOnlySet<string> zoneIds,
+        IReadOnlySet<string> flowIds,
+        ICollection<string> errors)
+    {
+        var path = $"{flowPath}/steps/{step.StepId}";
+        if (!ValidId(step.StepId)) errors.Add($"{path}: stepId is invalid");
+        if (step.Operation == CardZoneOperation.Unspecified) errors.Add($"{path}: operation is required");
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Destroy or CardZoneOperation.Shuffle or CardZoneOperation.Reorder)
+            ValidateZone(step.SourceZoneId, "sourceZoneId");
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Create)
+            ValidateZone(step.TargetZoneId, "targetZoneId");
+        if (step.Operation == CardZoneOperation.Move && string.Equals(step.SourceZoneId, step.TargetZoneId, StringComparison.Ordinal))
+            errors.Add($"{path}: source and target zones must differ");
+        if (step.Operation == CardZoneOperation.Create && string.IsNullOrWhiteSpace(step.CardDefinitionId))
+            errors.Add($"{path}: create requires cardDefinitionId");
+        if (step.Operation == CardZoneOperation.Create && step.Lifetime.Strategy == CardInstanceLifetimeStrategy.Unspecified)
+            errors.Add($"{path}: create requires lifetime strategy");
+        if (step.Lifetime.Strategy == CardInstanceLifetimeStrategy.UntilBoundary && string.IsNullOrWhiteSpace(step.Lifetime.Boundary))
+            errors.Add($"{path}: until-boundary lifetime requires boundary");
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Destroy or CardZoneOperation.Reorder &&
+            step.Selection.Strategy == CardZoneSelectionStrategy.Unspecified)
+            errors.Add($"{path}: operation requires a selection strategy");
+        if (step.Selection.Count < 0) errors.Add($"{path}: selection count cannot be negative");
+        if (step.Selection.Count is not null && !string.IsNullOrWhiteSpace(step.Selection.CountFormula))
+            errors.Add($"{path}: selection cannot define both count and countFormula");
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Create &&
+            step.Insertion.Strategy == CardZoneInsertionStrategy.Unspecified)
+            errors.Add($"{path}: insertion strategy is required");
+        if (step.Insertion.Strategy == CardZoneInsertionStrategy.AtIndex && step.Insertion.Index is null)
+            errors.Add($"{path}: indexed insertion requires index");
+        if (step.OnInsufficient == CardZoneInsufficientPolicy.Unspecified)
+            errors.Add($"{path}: onInsufficient is required");
+        if (step.OnOverflow == CardZoneOverflowPolicy.Unspecified)
+            errors.Add($"{path}: onOverflow is required");
+        if (step.OnInsufficient == CardZoneInsufficientPolicy.ExecuteFallbackAndRetry)
+            ValidateFlow(step.FallbackFlowId, "fallbackFlowId");
+        else if (!string.IsNullOrWhiteSpace(step.FallbackFlowId))
+            errors.Add($"{path}: fallbackFlowId requires ExecuteFallbackAndRetry");
+        if (step.Operation == CardZoneOperation.ExecuteFlow)
+            ValidateFlow(step.NestedFlowId, "nestedFlowId");
+
+        void ValidateZone(string? id, string member)
+        {
+            if (string.IsNullOrWhiteSpace(id) || !zoneIds.Contains(id))
+                errors.Add($"{path}: {member} references an unknown zone");
+        }
+        void ValidateFlow(string? id, string member)
+        {
+            if (string.IsNullOrWhiteSpace(id) || !flowIds.Contains(id))
+                errors.Add($"{path}: {member} references an unknown flow");
+        }
+    }
+
+    private static void ValidateAcyclic(IReadOnlyList<CardZoneFlowDefinition> flows, ICollection<string> errors)
+    {
+        var graph = flows.ToDictionary(
+            flow => flow.FlowId,
+            flow => flow.Steps.SelectMany(step => new[] { step.FallbackFlowId, step.NestedFlowId })
+                .Where(id => !string.IsNullOrWhiteSpace(id)).Cast<string>().Distinct(StringComparer.Ordinal).ToArray(),
+            StringComparer.Ordinal);
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var id in graph.Keys)
+            Visit(id);
+
+        void Visit(string id)
+        {
+            if (visited.Contains(id)) return;
+            if (!visiting.Add(id))
+            {
+                errors.Add($"Card-zone flow graph contains a cycle at {id}");
+                return;
+            }
+            foreach (var next in graph.GetValueOrDefault(id) ?? []) Visit(next);
+            visiting.Remove(id);
+            visited.Add(id);
+        }
+    }
+
+    private static bool ValidId(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && IdPattern().IsMatch(value);
+
+    [GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9._-]*$", RegexOptions.CultureInvariant)]
+    private static partial Regex IdPattern();
+}
