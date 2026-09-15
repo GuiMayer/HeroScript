@@ -64,8 +64,10 @@ public static partial class CardZoneSystemCompiler
             errors.Add("Card zone ids must be unique");
         if (definition.Flows.Select(flow => flow.FlowId).Distinct(StringComparer.Ordinal).Count() != definition.Flows.Count)
             errors.Add("Card-zone flow ids must be unique");
-        var zoneIds = definition.Zones.Select(zone => zone.ZoneId).ToHashSet(StringComparer.Ordinal);
-        var flowIds = definition.Flows.Select(flow => flow.FlowId).ToHashSet(StringComparer.Ordinal);
+        var zones = definition.Zones.GroupBy(zone => zone.ZoneId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var flows = definition.Flows.GroupBy(flow => flow.FlowId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
         foreach (var zone in definition.Zones)
         {
@@ -77,6 +79,8 @@ public static partial class CardZoneSystemCompiler
             if (zone.Visibility.Contents == CardZoneVisibility.Unspecified ||
                 zone.Visibility.Order == CardZoneOrderVisibility.Unspecified)
                 errors.Add($"{path}: visibility is incomplete");
+            if (zone.Ordering == CardZoneOrdering.Unordered && zone.Visibility.Order == CardZoneOrderVisibility.Visible)
+                errors.Add($"{path}: unordered zones cannot expose an ordered position");
         }
 
         foreach (var flow in definition.Flows)
@@ -88,8 +92,10 @@ public static partial class CardZoneSystemCompiler
             if (flow.Steps.Count == 0) errors.Add($"{path}: at least one step is required");
             if (flow.Steps.Select(step => step.StepId).Distinct(StringComparer.Ordinal).Count() != flow.Steps.Count)
                 errors.Add($"{path}: step ids must be unique");
+            if (flow.Triggers.Count > 0 && !flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Boundary))
+                errors.Add($"{path}: triggered flows must allow boundary invocation");
             foreach (var step in flow.Steps)
-                ValidateStep(step, path, zoneIds, flowIds, errors);
+                ValidateStep(step, flow, path, zones, flows, errors);
         }
         ValidateAcyclic(definition.Flows, errors);
         return errors.Count == 0 ? Result.Success() : Result.Failure(string.Join("; ", errors));
@@ -97,9 +103,10 @@ public static partial class CardZoneSystemCompiler
 
     private static void ValidateStep(
         CardZoneFlowStepDefinition step,
+        CardZoneFlowDefinition parentFlow,
         string flowPath,
-        IReadOnlySet<string> zoneIds,
-        IReadOnlySet<string> flowIds,
+        IReadOnlyDictionary<string, CardZoneDefinition> zones,
+        IReadOnlyDictionary<string, CardZoneFlowDefinition> flows,
         ICollection<string> errors)
     {
         var path = $"{flowPath}/steps/{step.StepId}";
@@ -142,15 +149,47 @@ public static partial class CardZoneSystemCompiler
             errors.Add($"{path}: overflowFlowId requires RedirectOverflow");
         if (step.Operation == CardZoneOperation.ExecuteFlow)
             ValidateFlow(step.NestedFlowId, "nestedFlowId");
+        foreach (var referencedFlowId in new[] { step.FallbackFlowId, step.OverflowFlowId, step.NestedFlowId }
+                     .Where(id => !string.IsNullOrWhiteSpace(id)))
+        {
+            if (flows.TryGetValue(referencedFlowId!, out var referencedFlow) &&
+                parentFlow.AllowedInvocations.Any(invocation => !referencedFlow.AllowedInvocations.Contains(invocation)))
+                errors.Add($"{path}: referenced flow {referencedFlowId} must allow the parent's invocations");
+        }
+        if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Create &&
+            zones.TryGetValue(step.TargetZoneId ?? string.Empty, out var targetZone) &&
+            targetZone.Ordering == CardZoneOrdering.Unordered &&
+            step.Insertion.Strategy is CardZoneInsertionStrategy.Top or CardZoneInsertionStrategy.AtIndex or
+                CardZoneInsertionStrategy.RandomPosition or CardZoneInsertionStrategy.ShuffleAfterInsert)
+            errors.Add($"{path}: unordered target zone cannot use positional insertion");
+        if (zones.TryGetValue(step.SourceZoneId ?? string.Empty, out var sourceZone))
+        {
+            if (sourceZone.Ordering == CardZoneOrdering.Unordered &&
+                step.Selection.Strategy is CardZoneSelectionStrategy.Top or CardZoneSelectionStrategy.Bottom)
+                errors.Add($"{path}: unordered source zone cannot use top/bottom selection");
+            if (sourceZone.Ordering == CardZoneOrdering.Unordered &&
+                step.Operation is CardZoneOperation.Shuffle or CardZoneOperation.Reorder)
+                errors.Add($"{path}: unordered source zone cannot be shuffled or reordered");
+        }
+        if (step.Operation == CardZoneOperation.Reorder &&
+            step.Selection.Strategy is not (CardZoneSelectionStrategy.All or CardZoneSelectionStrategy.Explicit))
+            errors.Add($"{path}: reorder requires all or explicit selection");
+        if (step.Selection.Strategy == CardZoneSelectionStrategy.All &&
+            (step.Selection.Count is not null || !string.IsNullOrWhiteSpace(step.Selection.CountFormula)))
+            errors.Add($"{path}: all selection cannot define a count");
+        if (step.Selection.Strategy == CardZoneSelectionStrategy.ByTags && step.Selection.RequiredTags.Count == 0)
+            errors.Add($"{path}: tag selection requires requiredTags");
+        if (step.Selection.Strategy == CardZoneSelectionStrategy.ByCondition && string.IsNullOrWhiteSpace(step.Selection.Condition))
+            errors.Add($"{path}: conditional selection requires condition");
 
         void ValidateZone(string? id, string member)
         {
-            if (string.IsNullOrWhiteSpace(id) || !zoneIds.Contains(id))
+            if (string.IsNullOrWhiteSpace(id) || !zones.ContainsKey(id))
                 errors.Add($"{path}: {member} references an unknown zone");
         }
         void ValidateFlow(string? id, string member)
         {
-            if (string.IsNullOrWhiteSpace(id) || !flowIds.Contains(id))
+            if (string.IsNullOrWhiteSpace(id) || !flows.ContainsKey(id))
                 errors.Add($"{path}: {member} references an unknown flow");
         }
     }

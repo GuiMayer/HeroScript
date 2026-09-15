@@ -34,6 +34,59 @@ public sealed class CardZoneSystemCompilerTests
         Assert.Contains("cycle", result.Error);
     }
 
+    [Fact]
+    public void Compile_RejectsTriggeredFlowWithoutBoundaryInvocation()
+    {
+        var result = CardZoneSystemCompiler.Compile(System(Flow("draw", 0) with
+        {
+            AllowedInvocations = [CardZoneFlowInvocation.Tool]
+        }));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("triggered flows must allow boundary", result.Error);
+    }
+
+    [Fact]
+    public void Compile_RejectsFallbackThatCannotRunWithParentInvocation()
+    {
+        var parent = Flow("draw", 0) with
+        {
+            Steps = [Move("take") with
+            {
+                OnInsufficient = CardZoneInsufficientPolicy.ExecuteFallbackAndRetry,
+                FallbackFlowId = "recycle"
+            }]
+        };
+        var fallback = Flow("recycle", 0) with
+        {
+            Triggers = [],
+            AllowedInvocations = [CardZoneFlowInvocation.Tool]
+        };
+
+        var result = CardZoneSystemCompiler.Compile(System(parent, fallback));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("must allow the parent's invocations", result.Error);
+    }
+
+    [Fact]
+    public void Compile_RejectsOrderDependentOperationInUnorderedZone()
+    {
+        var system = System(Flow("take", 0)) with
+        {
+            Zones =
+            [
+                new CardZoneDefinition { ZoneId = "library", OwnerScope = CardZoneOwnerScope.Actor, Ordering = CardZoneOrdering.Unordered },
+                new CardZoneDefinition { ZoneId = "ready", OwnerScope = CardZoneOwnerScope.Actor, Ordering = CardZoneOrdering.Ordered }
+            ]
+        };
+
+        var result = CardZoneSystemCompiler.Compile(system);
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("unordered source zone cannot use top/bottom", result.Error);
+    }
+
     private static CardZoneSystemDefinition System(params CardZoneFlowDefinition[] flows) => new()
     {
         CardZoneSystemId = "test-zones",

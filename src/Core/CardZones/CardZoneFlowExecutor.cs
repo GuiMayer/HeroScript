@@ -15,6 +15,8 @@ public sealed record CardZoneFlowContext
     public string? Trigger { get; init; }
     public string FlowOwnerId { get; init; } = string.Empty;
     public string RunOwnerId { get; init; } = string.Empty;
+    public string? ContentRevision { get; init; }
+    public string? ConfigName { get; init; }
     public string? ActiveActorId { get; init; }
     public string? SourceActorId { get; init; }
     public string? TargetActorId { get; init; }
