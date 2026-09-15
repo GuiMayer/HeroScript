@@ -1,7 +1,9 @@
 extends VBoxContainer
 
 const Presenter = preload("res://scripts/presentation/combat_presenter.gd")
+const CardZonePresenter = preload("res://scripts/presentation/card_zone_presenter.gd")
 var presenter
+var zone_presenter
 var router
 var presentation: Dictionary
 var selected_target := ""
@@ -24,7 +26,9 @@ var reconnect_button: Button
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	presentation = data
-	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions, I18n, presentation)
+	zone_presenter = CardZonePresenter.new(GameSession.card_zones, I18n)
+	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions,
+		I18n, presentation, GameSession.card_zones)
 	Playback.frame_presented.connect(_on_frame)
 	add_theme_constant_override("separation", 8)
 	_build_header()
@@ -100,14 +104,16 @@ func _build_hand() -> void:
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 4)
 	var heading := HBoxContainer.new()
-	heading.add_child(AppTheme.title(I18n.text("HAND"), 17, AppTheme.GOLD))
+	heading.add_child(AppTheme.title(zone_presenter.playable_label(), 17, AppTheme.GOLD))
 	hint_label = AppTheme.muted(I18n.text("Select a card, then choose a highlighted target."), 13)
 	hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	heading.add_child(hint_label)
-	var counts: Dictionary = GameSession.run.get("deck", {}).get("counts", {})
-	for pair in [["Draw pile", "drawPileInstanceIds", "drawPile"], ["Discard pile", "discardPileInstanceIds", "discardPile"], ["Exile", "exhaustPileInstanceIds", "exhaustPile"]]:
-		var pile := _button("%s · %s" % [I18n.text(pair[0]), int(counts.get(pair[2], 0))], func(): _inspect_pile(pair[0], pair[1]))
+	for zone in zone_presenter.auxiliary_zones():
+		var zone_id := str(zone.get("zoneId", ""))
+		var label: String = zone_presenter.zone_label(zone)
+		var pile := _button("%s · %s" % [label, int(zone.get("count", 0))],
+			func(): _inspect_pile(label, zone_id))
 		pile.add_theme_font_size_override("font_size", 13)
 		pile.custom_minimum_size.y = 32
 		heading.add_child(pile)
@@ -116,11 +122,11 @@ func _build_hand() -> void:
 	hand_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	hand_row.add_theme_constant_override("separation", 12)
 	hand_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var hand_ids: Array = GameSession.run.get("deck", {}).get("handInstanceIds", [])
-	for id in hand_ids:
-		var card := _card_instance(str(id))
+	var playable_cards: Array = zone_presenter.playable_cards()
+	for card_view in playable_cards:
+		var card := _card_instance(str(card_view.get("cardInstanceId", "")))
 		if not card.is_empty(): hand_row.add_child(_card_button(card))
-	if hand_ids.is_empty(): hand_row.add_child(AppTheme.muted(I18n.text("Your hand is empty.")))
+	if playable_cards.is_empty(): hand_row.add_child(AppTheme.muted(I18n.text("Your hand is empty.")))
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 8)

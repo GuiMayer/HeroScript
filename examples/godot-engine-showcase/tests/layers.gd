@@ -5,6 +5,7 @@ const Session = preload("res://scripts/application/game_session.gd")
 const Gateway = preload("res://scripts/engine/engine_gateway.gd")
 const Presentation = preload("res://scripts/presentation/playback.gd")
 const Choices = preload("res://scripts/application/activity_choices.gd")
+const CardZones = preload("res://scripts/presentation/card_zone_presenter.gd")
 var failures := 0
 
 class FakeTransport extends RefCounted:
@@ -55,6 +56,13 @@ class FakeTransport extends RefCounted:
 			return _ok({"profile": "dev_modder", "granted": [
 				"timeline.read", "timeline.inspect_state", "replay.verify",
 				"timeline.branch.read", "timeline.branch.create", "simulation.run"
+			]})
+		if path.ends_with("/card-zones"):
+			return _ok({"topologyHash": "zone-test-hash", "zones": [
+				{"zoneId": "prepared", "presentation": {"slot": "playable_cards", "labelKey": "Hand"},
+					"count": 1, "contentsVisible": true, "cards": [{"cardInstanceId": "card-1", "definitionId": "strike"}]},
+				{"zoneId": "cooldown", "presentation": {"slot": "cooldown_track", "labelKey": "Cooldown"},
+					"count": 2, "contentsVisible": false, "cards": []}
 			]})
 		if path.contains("/legal-actions?"):
 			return _ok({"candidates": [legal]})
@@ -115,6 +123,14 @@ func _run() -> void:
 	check(session is Node, "application session loads without interface scenes")
 	session.configure(Gateway.new(transport))
 	check(await session.start_campaign(42), "session can run against injected transport without a UI")
+	var zone_view = CardZones.new(session.card_zones, i18n)
+	check(zone_view.playable_cards().size() == 1 and str(zone_view.playable_cards()[0].definitionId) == "strike",
+		"playable cards come from authored presentation slots, not fixed pile names")
+	check(zone_view.auxiliary_zones().size() == 1 and zone_view.zone_cards("cooldown").is_empty(),
+		"hidden auxiliary zones expose counts without contents")
+	var zone_copy: Dictionary = session.card_zones
+	zone_copy.topologyHash = "tampered"
+	check(session.card_zones.topologyHash == "zone-test-hash", "zone projection is a defensive copy")
 	check(session.allows_tool("timeline.branch.create") and session.tool_profile == "dev_modder", "session consumes engine-issued tool capabilities")
 	var guarded_calls := transport.calls.size()
 	session._tool_capabilities.erase("simulation.run")

@@ -1,5 +1,7 @@
 extends Node
 
+const CardZonePresenter = preload("res://scripts/presentation/card_zone_presenter.gd")
+
 var failures: Array[String] = []
 var _exit_code := 0
 var _original_last_run := ""
@@ -21,7 +23,8 @@ func _run() -> void:
 	if not start.is_empty():
 		check(await GameSession.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})), "start configured encounter")
 	check(not GameSession.combat.is_empty(), "receive combat projection")
-	check(GameSession.run.get("deck", {}).get("handInstanceIds", []).size() == 5, "receive deterministic opening hand")
+	check(CardZonePresenter.new(GameSession.card_zones, I18n).playable_cards().size() == 5,
+		"receive deterministic opening cards from the configured zone")
 	check(not GameSession.legal_actions.is_empty(), "receive legal-action previews")
 	var card_candidate := first_card_candidate()
 	if not card_candidate.is_empty():

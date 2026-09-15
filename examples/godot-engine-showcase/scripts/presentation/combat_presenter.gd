@@ -10,15 +10,22 @@ var _actors := {}
 var _by_card := {}
 var _evaluations := {}
 var _appearance: Dictionary = {}
+var _zone_snapshot: Dictionary = {}
 
-func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}) -> void:
+func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}, zone_snapshot := {}) -> void:
 	_i18n = translator
 	_run = run.duplicate(true)
 	_combat = combat.duplicate(true)
 	_actions = actions.duplicate(true)
 	_appearance = appearance.duplicate(true) if appearance is Dictionary else {}
-	for card in _run.get("deck", {}).get("cardInstances", []):
-		_cards[str(card.get("cardInstanceId", ""))] = card
+	_zone_snapshot = zone_snapshot.duplicate(true) if zone_snapshot is Dictionary else {}
+	if _zone_snapshot.get("zones", []) is Array and not _zone_snapshot.get("zones", []).is_empty():
+		for zone in _zone_snapshot.zones:
+			for card in zone.get("cards", []):
+				_cards[str(card.get("cardInstanceId", ""))] = card
+	else:
+		for card in _run.get("deck", {}).get("cardInstances", []):
+			_cards[str(card.get("cardInstanceId", ""))] = card
 	for actor in _combat.get("actors", []):
 		_actors[str(actor.get("instanceId", ""))] = actor
 	for candidate in _actions:
@@ -302,9 +309,14 @@ func inspection_data(id: String) -> Dictionary:
 
 func pile_cards(zone: String) -> Array:
 	var result: Array = []
-	for id in _run.get("deck", {}).get(zone, []):
-		var card := _card_instance(str(id))
-		if not card.is_empty(): result.append(card)
+	if _zone_snapshot.get("zones", []) is Array and not _zone_snapshot.get("zones", []).is_empty():
+		for view in _zone_snapshot.zones:
+			if str(view.get("zoneId", "")) == zone and bool(view.get("contentsVisible", false)):
+				result.append_array(view.get("cards", []))
+	else:
+		for id in _run.get("deck", {}).get(zone, []):
+			var card := _card_instance(str(id))
+			if not card.is_empty(): result.append(card)
 	# Avoid revealing the shuffled draw order through the inspector.
 	result.sort_custom(func(a, b): return str(a.get("definitionId", "")) < str(b.get("definitionId", "")))
 	return result

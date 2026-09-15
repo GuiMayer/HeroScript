@@ -16,6 +16,7 @@ var _combat: Dictionary = {}
 var _available_commands: Array = []
 var _legal_actions: Array = []
 var _tool_capabilities: Dictionary = {}
+var _card_zones: Dictionary = {}
 var tool_profile := "normal"
 var run: Dictionary:
 	get: return _run.duplicate(true)
@@ -27,6 +28,8 @@ var legal_actions: Array:
 	get: return _legal_actions.duplicate(true)
 var tool_capabilities: Array:
 	get: return _tool_capabilities.keys().duplicate()
+var card_zones: Dictionary:
+	get: return _card_zones.duplicate(true)
 var _gateway
 var available := false
 var content_revision := ""
@@ -97,6 +100,7 @@ func _open_run(kind: String, args: Array) -> bool:
 		return false
 	_run = response.data.get("run", response.data).duplicate(true)
 	_combat = {}
+	_card_zones = {}
 	synchronized = false
 	run_opened.emit(str(_run.get("runId", "")))
 	var ok := await _refresh(ticket)
@@ -148,6 +152,7 @@ func _refresh(ticket: int, committed_combat: Dictionary = {}, receipt_sequence :
 			next_actions = actions_response.data if actions_response.data is Array else actions_response.data.get("candidates", [])
 	_run = next_run.duplicate(true)
 	_combat = next_combat.duplicate(true)
+	_card_zones = responses.cardZones.data.duplicate(true)
 	_available_commands = responses.commands.data.get("commands", []).duplicate(true)
 	_legal_actions = next_actions.duplicate(true)
 	_tool_capabilities = {}
@@ -163,6 +168,7 @@ func _refresh_failed(error: Dictionary) -> bool:
 	_legal_actions = []
 	_available_commands = []
 	_tool_capabilities = {}
+	_card_zones = {}
 	tool_profile = "normal"
 	failed.emit(error)
 	changed.emit()
