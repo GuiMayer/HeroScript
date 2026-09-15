@@ -72,4 +72,5 @@ public sealed record CardTargetingNumericPatchDefinition : CardUpgradePatchDefin
 public sealed record CardDispositionPatchDefinition : CardUpgradePatchDefinition
 {
     public CardConsumeDestination Destination { get; init; } = CardConsumeDestination.Discard;
+    public string? CardZoneResolutionFlowId { get; init; }
 }

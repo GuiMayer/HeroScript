@@ -124,7 +124,9 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             CardCostAmountPatchDefinition cost => Enum.IsDefined(cost.Operation) && float.IsFinite(cost.Value),
             CardInfluenceNumericPatchDefinition influence => Enum.IsDefined(influence.Operation) && float.IsFinite(influence.Value),
             CardTargetingNumericPatchDefinition targeting => Enum.IsDefined(targeting.Attribute) && Enum.IsDefined(targeting.Operation),
-            CardDispositionPatchDefinition disposition => Enum.IsDefined(disposition.Destination),
+            CardDispositionPatchDefinition disposition => Enum.IsDefined(disposition.Destination) &&
+                (disposition.CardZoneResolutionFlowId == null ||
+                 !string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId)),
             _ => false
         };
         if (!validPolicy) return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid patch policy or non-finite value");
@@ -257,7 +259,11 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         CardDispositionPatchDefinition patch) =>
         component is CardDispositionComponentDefinition disposition
             ? Result<CardComponentDefinition>.Success(
-                disposition with { Destination = patch.Destination })
+                disposition with
+                {
+                    Destination = patch.Destination,
+                    CardZoneResolutionFlowId = patch.CardZoneResolutionFlowId ?? disposition.CardZoneResolutionFlowId
+                })
             : WrongType(component, "disposition");
 
     private static Result ValidateEffectiveComponents(

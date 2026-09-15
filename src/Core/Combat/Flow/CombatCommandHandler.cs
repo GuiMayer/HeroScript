@@ -67,19 +67,15 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
         var resolvedCommand = candidate.ResolvedCommand;
         var consumedCardId = resolvedCommand?.CardInstanceId?.ToString();
         var destination = candidate.CardPlay?.Destination ?? CardConsumeDestination.None;
-        if (candidate.CardPlay != null && consumedCardId != null && destination != CardConsumeDestination.None)
+        if (candidate.CardPlay != null && consumedCardId != null &&
+            (run.ResolvedMode?.CardZoneSystem != null || destination != CardConsumeDestination.None))
         {
             if (run.ResolvedMode?.CardZoneSystem != null)
             {
-                var flowId = destination switch
-                {
-                    CardConsumeDestination.Discard => "card.played.to-discard",
-                    CardConsumeDestination.Exhaust => "card.played.to-exhaust",
-                    _ => string.Empty
-                };
-                if (flowId.Length == 0)
+                var flowId = candidate.CardPlay.CardZoneResolutionFlowId;
+                if (string.IsNullOrWhiteSpace(flowId))
                     return Result<CombatActionReduction>.Failure(
-                        $"Card destination has no configured zone flow: {destination}");
+                        $"Card {candidate.CardPlay.Card.DefinitionId} requires a card-zone resolution flow");
                 var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
                     run, run.Deck, run.Determinism, flowId,
                     resolvedCommand?.ActorId ?? rootCommand.ActorId,
@@ -255,6 +251,7 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
                 decisionRuleId = request.DecisionRuleId,
                 consumedCardId = reduced.Value.ConsumedCardId,
                 destination = reduced.Value.Destination.ToString(),
+                cardZoneResolutionFlowId = candidate.CardPlay?.CardZoneResolutionFlowId,
                 cardResolution = candidate.CardPlay == null ? null : new
                 {
                     cardInstanceId = candidate.CardPlay.Card.CardInstanceId,

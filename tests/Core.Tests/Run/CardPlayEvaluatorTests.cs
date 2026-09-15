@@ -54,6 +54,7 @@ public sealed class CardPlayEvaluatorTests
         Assert.Equal(2, cost.Amount);
         Assert.True(cost.Affordable);
         Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
+        Assert.Equal("ability.cooldown", result.Value.CardZoneResolutionFlowId);
     }
 
     [Fact]
@@ -218,7 +219,8 @@ public sealed class CardPlayEvaluatorTests
             new CardDispositionComponentDefinition
             {
                 ComponentId = "disposition.default",
-                Destination = CardConsumeDestination.Discard
+                Destination = CardConsumeDestination.Discard,
+                CardZoneResolutionFlowId = "ability.cooldown"
             }
         ]).ToArray()
     };

@@ -37,7 +37,8 @@
         "type": "disposition",
         "componentId": "disposition.default",
         "order": 90,
-        "destination": "Discard"
+        "destination": "Discard",
+        "cardZoneResolutionFlowId": "card.played.to-discard"
       }
     ]
   },
@@ -81,7 +82,8 @@
         "type": "disposition",
         "componentId": "disposition.default",
         "order": 90,
-        "destination": "Discard"
+        "destination": "Discard",
+        "cardZoneResolutionFlowId": "card.played.to-discard"
       }
     ]
   },
@@ -137,7 +139,8 @@
         "type": "disposition",
         "componentId": "disposition.default",
         "order": 90,
-        "destination": "Discard"
+        "destination": "Discard",
+        "cardZoneResolutionFlowId": "card.played.to-discard"
       }
     ]
   },
@@ -180,7 +183,8 @@
         "type": "disposition",
         "componentId": "disposition.default",
         "order": 90,
-        "destination": "Discard"
+        "destination": "Discard",
+        "cardZoneResolutionFlowId": "card.played.to-discard"
       }
     ]
   },
@@ -222,7 +226,8 @@
         "type": "disposition",
         "componentId": "disposition.default",
         "order": 90,
-        "destination": "Discard"
+        "destination": "Discard",
+        "cardZoneResolutionFlowId": "card.played.to-discard"
       }
     ]
   }

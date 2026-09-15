@@ -1322,7 +1322,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         CombatActionCommand command,
         string? consumedCardId,
         CardConsumeDestination destination,
-        RunCommandIdentity? commandIdentity = null)
+        RunCommandIdentity? commandIdentity = null,
+        string? cardZoneResolutionFlowId = null)
     {
         ArgumentNullException.ThrowIfNull(previousCombat);
         ArgumentNullException.ThrowIfNull(nextCombat);
@@ -1370,7 +1371,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
             var deck = state.Deck;
             var cardContext = state.Determinism;
-            if (destination != CardConsumeDestination.None)
+            if (destination != CardConsumeDestination.None || state.ResolvedMode?.CardZoneSystem != null && consumedCardId != null)
             {
                 if (string.IsNullOrWhiteSpace(consumedCardId))
                     return Result<RunState>.Failure("Consumed card id is required");
@@ -1378,17 +1379,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 {
                     if (!Guid.TryParse(consumedCardId, out var cardInstanceId))
                         return Result<RunState>.Failure("Consumed card instance id is invalid");
-                    var flowId = destination switch
-                    {
-                        CardConsumeDestination.Discard => "card.played.to-discard",
-                        CardConsumeDestination.Exhaust => "card.played.to-exhaust",
-                        _ => string.Empty
-                    };
-                    if (flowId.Length == 0)
+                    if (string.IsNullOrWhiteSpace(cardZoneResolutionFlowId))
                         return Result<RunState>.Failure(
-                            $"Card destination has no configured zone flow: {destination}");
+                            "Card-zone resolution flow id is required for configured runs");
                     var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
-                        state, state.Deck, state.Determinism, flowId,
+                        state, state.Deck, state.Determinism, cardZoneResolutionFlowId,
                         command.ActorId, cardInstanceId);
                     if (flowed.IsFailure)
                         return Result<RunState>.Failure(flowed.Error);

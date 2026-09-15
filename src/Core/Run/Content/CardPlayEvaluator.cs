@@ -87,6 +87,7 @@ public sealed record CardPlayEvaluation
         init => _resolvedTargetIds = value?.ToImmutableArray() ?? [];
     }
     public CardConsumeDestination Destination { get; init; }
+    public string? CardZoneResolutionFlowId { get; init; }
     public IReadOnlyList<string> FailureReasons
     {
         get => _failureReasons;
@@ -241,6 +242,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             LegalTargetIds = targets.Value.LegalTargetIds,
             ResolvedTargetIds = targets.Value.ResolvedTargetIds,
             Destination = disposition.Destination,
+            CardZoneResolutionFlowId = disposition.CardZoneResolutionFlowId,
             FailureReasons = failureArray
         });
     }

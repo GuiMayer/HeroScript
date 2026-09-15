@@ -51,6 +51,7 @@ public sealed record CardPlayExecutionResult
         init => _applications = value?.ToImmutableArray() ?? [];
     }
     public CardConsumeDestination Destination { get; init; }
+    public string? CardZoneResolutionFlowId { get; init; }
     public string ResolutionFingerprint { get; init; } = string.Empty;
 }
 
@@ -185,6 +186,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
             Calculations = applied.Value.Calculations,
             Applications = applied.Value.Records,
             Destination = evaluation.Value.Destination,
+            CardZoneResolutionFlowId = evaluation.Value.CardZoneResolutionFlowId,
             ResolutionFingerprint = fingerprint
         });
     }
