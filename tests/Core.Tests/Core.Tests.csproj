@@ -27,6 +27,9 @@
     <None Include="..\..\data\configs\default\Resources\formulas\math_formulas.json"
           CopyToOutputDirectory="PreserveNewest"
           Link="Resources\formulas\math_formulas.json" />
+    <None Include="..\..\data\configs\default\Resources\card-zone-systems\*.json"
+          CopyToOutputDirectory="PreserveNewest"
+          Link="Resources\card-zone-systems\%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>
