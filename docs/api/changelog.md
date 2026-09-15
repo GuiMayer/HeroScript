@@ -1,5 +1,12 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-15
+
+- `GET /runs/{runId}/card-zones` expõe a topologia de cartas e a apresentação
+  revisionada do modo sem impor nomes ou funções às zonas. O campo
+  `topologyHash` identifica o snapshot; conteúdo e ordem não autorizados são
+  ocultados na projeção. A capacidade `run-card-zones` anuncia o contrato.
+
 ## v1 — 2026-09-13
 
 - Atividade `Dialogue` e conteúdo `dialogues` revisionado. `START_DIALOGUE` e

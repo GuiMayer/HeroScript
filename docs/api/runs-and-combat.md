@@ -179,6 +179,19 @@ draft e publicação, que produz uma nova revisão imutável.
 
 ## Recuperação e auditoria
 
+`GET /api/v1/runs/{runId}/card-zones` é a projeção genérica das zonas de cartas
+do grafo selecionado pelo modo. Cada zona tem `zoneId`, proprietário, escopo,
+metadados de apresentação, contagem e cartas visíveis. `contentsVisible` e
+`orderVisible` indicam o que a interface pode mostrar: quando a ordem é oculta,
+as cartas são devolvidas em ordem de identidade, não na ordem real do fluxo;
+quando o conteúdo é oculto, apenas a contagem é devolvida. A Godot deve usar
+`presentation.slot` para decidir onde desenhar a zona, sem inferir que `draw`,
+`hand`, `discard` ou `exhaust` tenham significado especial para a engine. O
+`topologyHash` permite comparar snapshots sem reconstruir as regras no cliente.
+
+`GET /deck` e `GET /hand` ainda são projeções do modo inicial de demonstração;
+clientes que pretendem admitir outros grafos de zonas devem usar `/card-zones`.
+
 Use os seguintes recursos depois de reconectar ou para suporte:
 
 | Objetivo | Endpoint |

@@ -66,6 +66,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             .Select(item => item.GetString())
             .ToArray();
         Assert.Contains("run-commits", capabilities);
+        Assert.Contains("run-card-zones", capabilities);
         Assert.DoesNotContain("run-checkpoints", capabilities);
     }
 

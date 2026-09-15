@@ -91,6 +91,7 @@ public sealed class SystemController : ControllerBase
             "run-commits",
             "run-content-revision",
             "run-card-instances",
+            "run-card-zones",
             "run-relics",
             "run-branches",
             "isolated-simulations",

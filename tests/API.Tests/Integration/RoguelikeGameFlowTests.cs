@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
@@ -33,6 +34,31 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         // Verify deck exists
         var deck = runState.GetProperty("deck");
         AssertDeckStateValid(deck);
+    }
+
+    [Fact]
+    public async Task CardZones_ExposeGraphPresentationAndCurrentTopology()
+    {
+        var runId = await Client.StartRunAsync();
+        using var response = await RawClient.GetAsync($"/api/v1/runs/{runId}/card-zones");
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync());
+        var snapshot = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(runId, snapshot.GetProperty("runId").GetGuid());
+        Assert.Equal(1, snapshot.GetProperty("sequence").GetInt32());
+        Assert.False(string.IsNullOrWhiteSpace(snapshot.GetProperty("topologyHash").GetString()));
+        var zones = snapshot.GetProperty("zones").EnumerateArray().ToArray();
+        Assert.Equal(["discard", "draw", "exhaust", "hand"],
+            zones.Select(zone => zone.GetProperty("zoneId").GetString()!).ToArray());
+        var hand = zones.Single(zone => zone.GetProperty("zoneId").GetString() == "hand");
+        Assert.Equal(5, hand.GetProperty("count").GetInt32());
+        Assert.True(hand.GetProperty("contentsVisible").GetBoolean());
+        Assert.True(hand.GetProperty("orderVisible").GetBoolean());
+        Assert.Equal(5, hand.GetProperty("cards").GetArrayLength());
+        Assert.Equal("playable_cards", hand.GetProperty("presentation")
+            .GetProperty("slot").GetString());
+        var draw = zones.Single(zone => zone.GetProperty("zoneId").GetString() == "draw");
+        Assert.False(draw.GetProperty("orderVisible").GetBoolean());
     }
 
     [Fact]

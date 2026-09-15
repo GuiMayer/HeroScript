@@ -5,6 +5,7 @@ using Core.Determinism;
 using Core.Config;
 using API.Contracts;
 using System.Text.Json;
+using Core.CardZones;
 
 namespace API.Controllers;
 
@@ -199,6 +200,15 @@ public sealed class RunController : BaseApiController
         {
             return HandleException(ex, "get run deck", runId.ToString());
         }
+    }
+
+    [HttpGet("/api/v1/runs/{runId:guid}/card-zones")]
+    public IActionResult GetCardZones(Guid runId)
+    {
+        var result = _runManager.GetRun(runId);
+        return result.IsFailure
+            ? ApiNotFound(result.Error)
+            : Ok(CardZoneReadModel.Project(result.Value));
     }
 
     [HttpGet("/api/v1/runs/{runId:guid}/hand")]
