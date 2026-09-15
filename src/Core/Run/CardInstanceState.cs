@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.CardZones;
 using Core.Run.Content;
 
 namespace Core.Run;
@@ -19,6 +20,9 @@ public sealed record CardInstanceState
 
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
+    public string OwnerId { get; init; } = "$run";
+    public ulong CreationOrdinal { get; init; }
+    public CardInstanceLifetimeDefinition Lifetime { get; init; } = new();
     public CardInstancePersistence Persistence { get; init; } = CardInstancePersistence.Run;
 
     public IReadOnlyList<CardUpgradeState> Upgrades
