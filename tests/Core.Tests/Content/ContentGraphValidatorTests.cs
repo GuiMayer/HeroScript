@@ -100,6 +100,34 @@ public sealed class ContentGraphValidatorTests
     }
 
     [Fact]
+    public void Validate_RejectsUnpublishedEffectZoneFlowInDialogueContent()
+    {
+        var bundle = Bundle(("dialogues", "dialogues/test.json", new Dictionary<string, object>
+        {
+            ["test"] = new
+            {
+                dialogueId = "test",
+                nodes = new[]
+                {
+                    new { nodeId = "start", choices = new[]
+                    {
+                        new { choiceId = "create", effects = new[]
+                        {
+                            new { effectId = "create", type = "CARD_ZONE_FLOW", cardZoneFlowId = "unpublished.flow" }
+                        } }
+                    } }
+                }
+            }
+        }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.Contains(result.Errors,
+            error => error.Contains("dialogues/test references missing effect zone flow unpublished.flow",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Validate_RejectsDuplicateIdsAcrossArtifactsOfSameKind()
     {
         var bundle = Bundle(

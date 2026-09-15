@@ -6,6 +6,7 @@ using Core.Determinism;
 using Core.Math;
 using Core.StatusEffects;
 using Core.Calculations;
+using Core.CardZones;
 using Core.Run;
 using Core.Resources;
 
@@ -60,6 +61,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     private readonly ICalculationInfluenceProvider? _influences;
     private readonly ICalculationSettlementPlanner _settlements;
     private readonly bool _allowUnconfiguredCalculations;
+    private readonly ICardZoneFlowExecutor? _cardZoneFlows;
 
     public EffectTriggerExecutor(
         IRuntimeFormulaEvaluator formulas,
@@ -68,7 +70,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         ICalculationEngine? calculations = null,
         ICalculationInfluenceProvider? influences = null,
         ICalculationSettlementPlanner? settlements = null,
-        bool allowUnconfiguredCalculations = false)
+        bool allowUnconfiguredCalculations = false,
+        ICardZoneFlowExecutor? cardZoneFlows = null)
     {
         _formulas = formulas ?? throw new ArgumentNullException(nameof(formulas));
         _effects = effects ?? throw new ArgumentNullException(nameof(effects));
@@ -77,6 +80,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         _influences = influences;
         _settlements = settlements ?? new CalculationSettlementPlanner();
         _allowUnconfiguredCalculations = allowUnconfiguredCalculations;
+        _cardZoneFlows = cardZoneFlows;
     }
 
     public Result<EffectBatchResult> Execute(EffectTriggerExecutionRequest request)
@@ -193,7 +197,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         if (RunEffectReducer.Supports(effect.Type))
                         {
                             if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
-                            var appliedRun = RunEffectReducer.Apply(currentRun, current, command, _contentRuntimes, request.ContentRevision);
+                            var appliedRun = RunEffectReducer.Apply(currentRun, current, command,
+                                _contentRuntimes, request.ContentRevision, _cardZoneFlows);
                             if (appliedRun.IsFailure) return Result.Failure(appliedRun.Error);
                             currentRun = appliedRun.Value.Run;
                             appliedRecords = [appliedRun.Value.Record];

@@ -62,6 +62,9 @@ public enum EffectType
     /// </summary>
     ADD_CARD_TO_HAND,
 
+    /// <summary>Executes a configured purpose-free card-zone flow.</summary>
+    CARD_ZONE_FLOW,
+
     APPLY_MODIFIER,
     REMOVE_MODIFIER
 }

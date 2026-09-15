@@ -102,4 +102,41 @@ public static class CardZoneRunFlowDispatcher
                 }
             });
     }
+
+    public static Result<CardZoneFlowResult> InvokeEffect(
+        ICardZoneFlowExecutor? flows,
+        RunState run,
+        string flowId,
+        string sourceActorId,
+        string targetActorId,
+        IReadOnlyList<Guid> cardInstanceIds,
+        IReadOnlyList<string> cardDefinitionIds,
+        int requestedCount)
+    {
+        if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
+            return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
+        var compiled = CardZoneSystemCompiler.Compile(definition);
+        if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
+        if (!compiled.Value.Flows.ContainsKey(flowId))
+            return Result<CardZoneFlowResult>.Failure($"Card-zone effect flow is not configured: {flowId}");
+        return flows.Execute(compiled.Value, run.Deck.Topology, run.Determinism,
+            flowId, new CardZoneFlowContext
+            {
+                Invocation = CardZoneFlowInvocation.Effect,
+                FlowOwnerId = targetActorId,
+                RunOwnerId = "$run",
+                ActiveActorId = targetActorId,
+                SourceActorId = sourceActorId,
+                TargetActorId = targetActorId,
+                ContentRevision = run.Determinism.ContentRevision,
+                ConfigName = run.ConfigName,
+                CardInstanceIds = cardInstanceIds,
+                CardDefinitionIds = cardDefinitionIds,
+                Variables = new Dictionary<string, double>
+                {
+                    ["requestedCount"] = requestedCount,
+                    ["requestedCardCount"] = requestedCount
+                }
+            });
+    }
 }

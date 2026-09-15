@@ -284,7 +284,8 @@ builder.Services.AddSingleton<IEffectTriggerExecutor>(sp => new EffectTriggerExe
     sp.GetRequiredService<IImmutableEffectProcessor>(),
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<ICalculationEngine>(),
-    sp.GetRequiredService<ICalculationInfluenceProvider>()));
+    sp.GetRequiredService<ICalculationInfluenceProvider>(),
+    cardZoneFlows: sp.GetRequiredService<ICardZoneFlowExecutor>()));
 builder.Services.AddSingleton<IResourceCatalog<RelicDefinition>>(sp =>
     new ResourceCatalog<RelicDefinition>(
         sp.GetRequiredService<IConfigManager>(),

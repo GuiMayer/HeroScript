@@ -248,6 +248,99 @@
         ]
       },
       {
+        "flowId": "effect.create-in-hand",
+        "allowedInvocations": ["Effect"],
+        "steps": [
+          {
+            "stepId": "create-requested-cards",
+            "operation": "Create",
+            "targetZoneId": "hand",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": { "strategy": "Top", "countFormula": "requestedCount" }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.draw",
+        "allowedInvocations": ["Effect"],
+        "steps": [
+          {
+            "stepId": "draw-requested-cards",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Top", "countFormula": "requestedCount" },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-selected-to-discard",
+        "allowedInvocations": ["Effect"],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Explicit", "countFormula": "requestedCount" }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-first-to-discard",
+        "allowedInvocations": ["Effect"],
+        "steps": [
+          {
+            "stepId": "move-first-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "First", "countFormula": "requestedCount" },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-selected-to-exhaust",
+        "allowedInvocations": ["Effect"],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Explicit", "countFormula": "requestedCount" }
+          }
+        ]
+      },
+      {
+        "flowId": "effect.move-first-to-exhaust",
+        "allowedInvocations": ["Effect"],
+        "steps": [
+          {
+            "stepId": "move-first-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "First", "countFormula": "requestedCount" },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
         "flowId": "tool.create-in-draw",
         "allowedInvocations": ["Tool"],
         "steps": [

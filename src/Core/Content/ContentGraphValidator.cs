@@ -67,6 +67,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateEntities(runtime, errors);
         ValidateCardComponentBundles(runtime, errors);
         ValidateCards(runtime, errors);
+        ValidateCardZoneEffectReferences(runtime, errors);
         ValidateActions(runtime, errors);
         ValidateGambits(runtime, errors);
         ValidateStatusEffects(runtime, errors);
@@ -200,8 +201,9 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 if (step.CardDefinitionId == "$input")
                 {
                     if (step.Operation != CardZoneOperation.Create ||
-                        !flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Tool))
-                        errors.Add($"card-zone-systems/{id}: $input is only valid for a tool create flow");
+                        !flow.AllowedInvocations.Any(invocation => invocation is
+                            CardZoneFlowInvocation.Tool or CardZoneFlowInvocation.Effect))
+                        errors.Add($"card-zone-systems/{id}: $input is only valid for a tool or effect create flow");
                     continue;
                 }
                 var card = runtime.GetDefinition<CardContentDefinition>("cards", step.CardDefinitionId);
@@ -428,6 +430,28 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 flow.AllowedInvocations.Contains(CardZoneFlowInvocation.CardResolution));
         if (!found)
             errors.Add($"{source} references missing card-resolution zone flow {flowId}");
+    }
+
+    private static void ValidateCardZoneEffectReferences(
+        ContentRuntime runtime,
+        ImmutableArray<string>.Builder errors)
+    {
+        var effectFlows = runtime.GetDefinitions("card-zone-systems").Keys
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .Select(id => runtime.GetDefinition<CardZoneSystemDefinition>("card-zone-systems", id))
+            .Where(result => result.IsSuccess)
+            .SelectMany(result => result.Value.Flows)
+            .Where(flow => flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Effect))
+            .Select(flow => flow.FlowId)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var kind in runtime.Manifest.Artifacts.Select(artifact => artifact.Kind)
+            .Where(kind => kind != "card-zone-systems")
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(kind => kind, StringComparer.Ordinal))
+        foreach (var (id, definition) in runtime.GetDefinitions(kind))
+        foreach (var flowId in FindStringProperties(definition, "cardZoneFlowId"))
+            if (!effectFlows.Contains(flowId))
+                errors.Add($"{kind}/{id} references missing effect zone flow {flowId}");
     }
 
     private static void ValidateCardComponentBundles(

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.CardZones;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Common;
@@ -14,10 +15,11 @@ public sealed record RunEffectApplication(RunState Run, EffectApplicationRecord 
 public static class RunEffectReducer
 {
     public static bool Supports(EffectType type) => type is EffectType.DRAW_CARD or EffectType.DISCARD_CARD or
-        EffectType.EXHAUST_CARD or EffectType.ADD_CARD_TO_HAND or EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER;
+        EffectType.EXHAUST_CARD or EffectType.ADD_CARD_TO_HAND or EffectType.CARD_ZONE_FLOW or
+        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER;
 
     public static Result<RunEffectApplication> Apply(RunState run, CombatState combat, ResolvedEffectCommand command,
-        IContentRuntimeResolver? runtimes, string revision)
+        IContentRuntimeResolver? runtimes, string revision, ICardZoneFlowExecutor? cardZoneFlows = null)
     {
         var effect = command.Definition;
         var targetId = command.TargetEntityIds.Single();
@@ -103,6 +105,42 @@ public static class RunEffectReducer
                         }]
                     }));
         }
+        if (run.ResolvedMode?.CardZoneSystem != null)
+        {
+            if (string.IsNullOrWhiteSpace(effect.CardZoneFlowId))
+                return Result<RunEffectApplication>.Failure(
+                    $"Card-zone effect {effect.EffectId} requires an authored cardZoneFlowId");
+            if (combat.GetActor(targetId) == null)
+                return Result<RunEffectApplication>.Failure("Card-zone effect target is not a combat actor");
+            if (effect.CardCount < 1 || effect.CardCount > EffectExecutionLimits.MaximumSteps)
+                return Result<RunEffectApplication>.Failure("Card count is outside execution limits");
+            if (!string.IsNullOrWhiteSpace(effect.CardDefinitionId))
+            {
+                if (runtimes == null)
+                    return Result<RunEffectApplication>.Failure("Pinned card content is unavailable");
+                var runtime = runtimes.Resolve(revision, run.ConfigName);
+                if (runtime.IsFailure) return Result<RunEffectApplication>.Failure(runtime.Error);
+                var card = runtime.Value.GetDefinition<CardContentDefinition>("cards", effect.CardDefinitionId);
+                if (card.IsFailure) return Result<RunEffectApplication>.Failure(card.Error);
+            }
+            var definitions = string.IsNullOrWhiteSpace(effect.CardDefinitionId)
+                ? [] : Enumerable.Repeat(effect.CardDefinitionId, effect.CardCount).ToArray();
+            var flowed = CardZoneRunFlowDispatcher.InvokeEffect(cardZoneFlows, run,
+                effect.CardZoneFlowId, command.SourceEntityId, targetId,
+                effect.CardInstanceIds, definitions, effect.CardCount);
+            if (flowed.IsFailure) return Result<RunEffectApplication>.Failure(flowed.Error);
+            var zoneAffected = flowed.Value.Steps
+                .SelectMany(step => step.InstanceIds.Concat(step.CreatedInstanceIds).Concat(step.DestroyedInstanceIds))
+                .Distinct().ToImmutableArray();
+            return Result<RunEffectApplication>.Success(new(
+                run with
+                {
+                    Deck = new DeckState { Topology = flowed.Value.State },
+                    Determinism = flowed.Value.Context
+                }, record with { CardInstanceIds = zoneAffected }));
+        }
+        if (effect.Type == EffectType.CARD_ZONE_FLOW)
+            return Result<RunEffectApplication>.Failure("CARD_ZONE_FLOW requires a configured card-zone system");
         if (targetId != run.PlayerEntityId)
             return Result<RunEffectApplication>.Failure("Deck effects require the configured run deck owner");
         if (effect.CardCount < 1 || effect.CardCount > EffectExecutionLimits.MaximumSteps)

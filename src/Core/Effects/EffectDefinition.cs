@@ -121,6 +121,7 @@ public record EffectDefinition
     public int? ModifierDuration { get; init; }
     public Combat.Models.GameplayOwner? ModifierOwner { get; init; }
     public string? CardDefinitionId { get; init; }
+    public string? CardZoneFlowId { get; init; }
     public int CardCount { get; init; } = 1;
     public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
     public bool ShuffleDiscardWhenEmpty { get; init; } = true;

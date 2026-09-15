@@ -23,6 +23,7 @@ public sealed class EffectsModelsTests
                 EffectType.DISCARD_CARD,
                 EffectType.EXHAUST_CARD,
                 EffectType.ADD_CARD_TO_HAND,
+                EffectType.CARD_ZONE_FLOW,
                 EffectType.APPLY_MODIFIER,
                 EffectType.REMOVE_MODIFIER
             },

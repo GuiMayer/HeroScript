@@ -122,8 +122,9 @@ public static partial class CardZoneSystemCompiler
             errors.Add($"{path}: create requires cardDefinitionId");
         if (step.CardDefinitionId == "$input" &&
             (step.Operation != CardZoneOperation.Create ||
-             !parentFlow.AllowedInvocations.Contains(CardZoneFlowInvocation.Tool)))
-            errors.Add($"{path}: $input requires a tool create flow");
+             !parentFlow.AllowedInvocations.Any(invocation => invocation is
+                 CardZoneFlowInvocation.Tool or CardZoneFlowInvocation.Effect)))
+            errors.Add($"{path}: $input requires a tool or effect create flow");
         if (step.Operation == CardZoneOperation.Create && step.CardDefinitionId?.StartsWith('$') == true &&
             step.CardDefinitionId != "$input")
             errors.Add($"{path}: unknown dynamic card definition token");
