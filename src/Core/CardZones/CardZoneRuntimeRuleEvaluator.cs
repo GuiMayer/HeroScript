@@ -92,8 +92,9 @@ public sealed class CardZoneRuntimeRuleEvaluator : ICardZoneRuleEvaluator
             var tags = _cards.ResolveTags(instance, context);
             return tags.IsFailure
                 ? Result<bool>.Failure(tags.Error)
-                : Result<bool>.Success(selection.RequiredTags.All(tag =>
-                    tags.Value.Contains(tag, StringComparer.Ordinal)));
+                : Result<bool>.Success(
+                    selection.RequiredTags.All(tag => tags.Value.Contains(tag, StringComparer.Ordinal)) &&
+                    selection.ExcludedTags.All(tag => !tags.Value.Contains(tag, StringComparer.Ordinal)));
         }
         if (selection.Strategy == CardZoneSelectionStrategy.ByCondition &&
             !string.IsNullOrWhiteSpace(selection.Condition))

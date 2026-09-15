@@ -111,6 +111,42 @@ public sealed class CardZonePackagedGraphFlowTests
         Assert.True(CardZoneTopologyValidator.ValidateAgainstSystem(returned.State, system, "run-a").IsSuccess);
     }
 
+    [Fact]
+    public void SpireGraph_EndActivation_RetainsTaggedCardsAndExilesEtherealCards()
+    {
+        var system = Load("spire_zones");
+        var initialized = CardZoneBootstrapper.Create(system, new CardZoneBootstrapPlan
+        {
+            RunOwnerId = "run-a",
+            Batches = [new CardZoneInitialBatch
+            {
+                ZoneId = "hand", OwnerId = "run-a",
+                DefinitionIds = ["retained", "ethereal", "ordinary"]
+            }]
+        }, DeterministicContext.Create(73, "content-a")).Value;
+        var executor = new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(
+            new CountVariableFormulas(), new AuthoredTagsMetadata(new Dictionary<string, string[]>
+            {
+                ["retained"] = ["retain"], ["ethereal"] = ["ethereal"]
+            })));
+
+        var ended = executor.ExecuteBoundary(system, initialized.State, initialized.Context,
+            "activation.ended", new CardZoneFlowContext
+            {
+                FlowOwnerId = "run-a", RunOwnerId = "run-a", ContentRevision = "content-a"
+            });
+
+        Assert.True(ended.IsSuccess, ended.IsFailure ? ended.Error : null);
+        Assert.Equal("retained", ended.Value.State.GetCard(
+            Assert.Single(ended.Value.State.GetZone("hand", "run-a")!.InstanceIds))!.DefinitionId);
+        Assert.Equal("ethereal", ended.Value.State.GetCard(
+            Assert.Single(ended.Value.State.GetZone("exile", "run-a")!.InstanceIds))!.DefinitionId);
+        Assert.Equal("ordinary", ended.Value.State.GetCard(
+            Assert.Single(ended.Value.State.GetZone("discard", "run-a")!.InstanceIds))!.DefinitionId);
+        Assert.Equal(["exile-ethereal", "discard-unplayed"],
+            ended.Value.Steps.Select(step => step.StepId));
+    }
+
     private static CardZoneFlowResult RunSpire(ulong seed)
     {
         var system = Load("spire_zones");
@@ -123,8 +159,12 @@ public sealed class CardZonePackagedGraphFlowTests
                 DefinitionIds = Enumerable.Range(0, 8).Select(index => $"card-{index}").ToArray()
             }]
         }, DeterministicContext.Create(seed, "content-a")).Value;
-        var executor = new CardZoneFlowExecutor();
-        var context = new CardZoneFlowContext { FlowOwnerId = "run-a", RunOwnerId = "run-a" };
+        var executor = new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(
+            new CountVariableFormulas(), new AuthoredTagsMetadata()));
+        var context = new CardZoneFlowContext
+        {
+            FlowOwnerId = "run-a", RunOwnerId = "run-a", ContentRevision = "content-a"
+        };
 
         var drawn = executor.ExecuteBoundary(system, initialized.State, initialized.Context,
             "activation.started", context).Value;
@@ -158,6 +198,18 @@ public sealed class CardZonePackagedGraphFlowTests
     {
         public Result<IReadOnlyList<string>> ResolveTags(CardInstanceState instance, CardZoneFlowContext context) =>
             Result<IReadOnlyList<string>>.Failure("This test does not select cards by tag");
+    }
+
+    private sealed class AuthoredTagsMetadata : ICardZoneCardMetadataResolver
+    {
+        private readonly IReadOnlyDictionary<string, string[]> _tags;
+
+        public AuthoredTagsMetadata(IReadOnlyDictionary<string, string[]>? tags = null) =>
+            _tags = tags ?? new Dictionary<string, string[]>(StringComparer.Ordinal);
+
+        public Result<IReadOnlyList<string>> ResolveTags(CardInstanceState instance, CardZoneFlowContext context) =>
+            Result<IReadOnlyList<string>>.Success(
+                _tags.TryGetValue(instance.DefinitionId, out var tags) ? tags : []);
     }
 
     private sealed class CountVariableFormulas : IRevisionedRuntimeFormulaEvaluator

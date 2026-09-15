@@ -87,6 +87,22 @@
         ]
       },
       {
+        "flowId": "activation.ethereal",
+        "priority": 50,
+        "triggers": ["activation.ended"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "exile-ethereal",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exile",
+            "selection": { "strategy": "ByTags", "requiredTags": ["ethereal"], "selectAllMatches": true },
+            "onInsufficient": "AllowPartial"
+          }
+        ]
+      },
+      {
         "flowId": "activation.discard",
         "priority": 100,
         "triggers": ["activation.ended"],
@@ -97,7 +113,11 @@
             "operation": "Move",
             "sourceZoneId": "hand",
             "targetZoneId": "discard",
-            "selection": { "strategy": "All" },
+            "selection": {
+              "strategy": "ByTags",
+              "excludedTags": ["retain", "ethereal"],
+              "selectAllMatches": true
+            },
             "onInsufficient": "AllowPartial"
           }
         ]

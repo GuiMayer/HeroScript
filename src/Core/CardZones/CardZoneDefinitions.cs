@@ -103,10 +103,12 @@ public sealed record CardZoneSelectionDefinition
     private ImmutableArray<Guid> _instanceIds = [];
     private ImmutableArray<string> _definitionIds = [];
     private ImmutableArray<string> _requiredTags = [];
+    private ImmutableArray<string> _excludedTags = [];
 
     public CardZoneSelectionStrategy Strategy { get; init; }
     public int? Count { get; init; }
     public string? CountFormula { get; init; }
+    public bool SelectAllMatches { get; init; }
     public IReadOnlyList<Guid> InstanceIds
     {
         get => _instanceIds;
@@ -121,6 +123,11 @@ public sealed record CardZoneSelectionDefinition
     {
         get => _requiredTags;
         init => _requiredTags = Normalize(value);
+    }
+    public IReadOnlyList<string> ExcludedTags
+    {
+        get => _excludedTags;
+        init => _excludedTags = Normalize(value);
     }
     public string? Condition { get; init; }
 

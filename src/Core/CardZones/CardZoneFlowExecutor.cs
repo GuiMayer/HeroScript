@@ -293,17 +293,11 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
         if (step.Selection.Strategy == CardZoneSelectionStrategy.All &&
             step.Selection.Count is null && string.IsNullOrWhiteSpace(step.Selection.CountFormula))
             requested = Result<int>.Success(state.GetZone(source!)!.InstanceIds.Count);
-        var effectiveSelection = step.Selection with
-        {
-            Count = requested.Value,
-            InstanceIds = step.Selection.Strategy == CardZoneSelectionStrategy.Explicit && context.CardInstanceIds.Count > 0
-                ? context.CardInstanceIds
-                : step.Selection.InstanceIds
-        };
         Func<CardInstanceState, bool>? predicate = null;
+        Dictionary<Guid, bool>? matches = null;
         if (step.Selection.Strategy is CardZoneSelectionStrategy.ByTags or CardZoneSelectionStrategy.ByCondition)
         {
-            var matches = new Dictionary<Guid, bool>();
+            matches = new Dictionary<Guid, bool>();
             foreach (var instanceId in state.GetZone(source!)!.InstanceIds)
             {
                 var instance = state.Instances[instanceId];
@@ -313,6 +307,21 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             }
             predicate = instance => matches.GetValueOrDefault(instance.CardInstanceId);
         }
+        if (step.Selection.SelectAllMatches)
+        {
+            var zoneIds = state.GetZone(source!)!.InstanceIds;
+            requested = Result<int>.Success(step.Selection.Strategy == CardZoneSelectionStrategy.ByDefinition
+                ? zoneIds.Count(id => step.Selection.DefinitionIds.Contains(
+                    state.Instances[id].DefinitionId, StringComparer.Ordinal))
+                : matches?.Count(pair => pair.Value) ?? 0);
+        }
+        var effectiveSelection = step.Selection with
+        {
+            Count = requested.Value,
+            InstanceIds = step.Selection.Strategy == CardZoneSelectionStrategy.Explicit && context.CardInstanceIds.Count > 0
+                ? context.CardInstanceIds
+                : step.Selection.InstanceIds
+        };
         var selected = CardZoneTransitions.Select(state, source!, effectiveSelection, deterministicContext, predicate);
         if (selected.IsFailure) return Fail(selected.Error);
         if (selected.Value.InstanceIds.Length < requested.Value && step.OnInsufficient == CardZoneInsufficientPolicy.ExecuteFallbackAndRetry)

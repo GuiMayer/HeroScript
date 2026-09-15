@@ -138,7 +138,8 @@ public static class CardZoneTransitions
             return Result<CardZoneSelectionResult>.Failure($"Card zone not found: {source.Key}");
 
         var eligible = zone.Items.Where(id => predicate?.Invoke(state.InstanceItems[id]) ?? true).ToImmutableArray();
-        var requested = selection.Count ?? (selection.Strategy == CardZoneSelectionStrategy.All ? eligible.Length : 1);
+        var requested = selection.Count ??
+            (selection.Strategy == CardZoneSelectionStrategy.All || selection.SelectAllMatches ? eligible.Length : 1);
         if (requested < 0)
             return Result<CardZoneSelectionResult>.Failure("Card-zone selection count cannot be negative");
         var current = context;

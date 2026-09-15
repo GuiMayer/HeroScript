@@ -184,8 +184,14 @@ public static partial class CardZoneSystemCompiler
         if (step.Selection.Strategy == CardZoneSelectionStrategy.All &&
             (step.Selection.Count is not null || !string.IsNullOrWhiteSpace(step.Selection.CountFormula)))
             errors.Add($"{path}: all selection cannot define a count");
-        if (step.Selection.Strategy == CardZoneSelectionStrategy.ByTags && step.Selection.RequiredTags.Count == 0)
-            errors.Add($"{path}: tag selection requires requiredTags");
+        if (step.Selection.Strategy == CardZoneSelectionStrategy.ByTags &&
+            step.Selection.RequiredTags.Count == 0 && step.Selection.ExcludedTags.Count == 0)
+            errors.Add($"{path}: tag selection requires requiredTags or excludedTags");
+        if (step.Selection.SelectAllMatches &&
+            (step.Selection.Strategy is not (CardZoneSelectionStrategy.ByTags or
+                CardZoneSelectionStrategy.ByCondition or CardZoneSelectionStrategy.ByDefinition) ||
+             step.Selection.Count is not null || !string.IsNullOrWhiteSpace(step.Selection.CountFormula)))
+            errors.Add($"{path}: selectAllMatches requires an unbounded filtered selection");
         if (step.Selection.Strategy == CardZoneSelectionStrategy.ByCondition && string.IsNullOrWhiteSpace(step.Selection.Condition))
             errors.Add($"{path}: conditional selection requires condition");
 
