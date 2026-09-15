@@ -54,6 +54,10 @@ func _build_header() -> void:
 	var turn := AppTheme.title(I18n.text("ROUND %s") % int(activation.get("round", GameSession.combat.get("currentTurn", 1))), 18, AppTheme.GOLD)
 	row.add_child(turn)
 	row.add_child(_button(I18n.text("TIMELINE  [%s]") % Preferences.action_label("open_timeline"), router.show_timeline, 165))
+	if not CardZonePresenter.tool_flows(GameSession.run).is_empty():
+		var tools := _button(I18n.text("ZONE TOOLS"), _open_zone_tools, 125)
+		action_buttons.append(tools)
+		row.add_child(tools)
 	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
 	add_child(row)
 
@@ -490,3 +494,25 @@ func _inspect_pile(label: String, zone: String) -> void:
 	dialog.setup(I18n.text(label), "\n".join(lines) if not lines.is_empty() else I18n.text("Empty"))
 	add_child(dialog)
 	dialog.popup_centered()
+
+func _open_zone_tools() -> void:
+	if _locked(): return
+	var flows: Array = CardZonePresenter.tool_flows(GameSession.run)
+	if flows.is_empty(): return
+	var dialog := preload("res://scripts/ui/card_zone_tool_dialog.gd").new()
+	dialog.setup(flows, selected_card)
+	dialog.flow_requested.connect(_execute_zone_flow)
+	add_child(dialog)
+	dialog.popup_centered()
+
+func _execute_zone_flow(payload: Dictionary) -> void:
+	if _locked(): return
+	submitting = true
+	_update_controls()
+	var accepted := await GameSession.execute_run_command("INVOKE_CARD_ZONE_FLOW", payload, str(payload.get("flowId", "")))
+	if not is_inside_tree(): return
+	if accepted:
+		router.open_game()
+	else:
+		submitting = false
+		_update_controls()

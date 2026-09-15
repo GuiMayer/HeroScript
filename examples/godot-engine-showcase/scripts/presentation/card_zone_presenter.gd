@@ -37,3 +37,31 @@ func zone_cards(zone_id: String) -> Array:
 		if str(zone.get("zoneId", "")) == zone_id:
 			return zone.get("cards", []).duplicate(true) if bool(zone.get("contentsVisible", false)) else []
 	return []
+
+static func tool_flows(run: Dictionary) -> Array:
+	var mode: Dictionary = run.get("resolvedMode", {})
+	if not bool(mode.get("capabilityPolicy", {}).get("allowCardZoneCheats", false)):
+		return []
+	var system: Dictionary = mode.get("cardZoneSystem", {})
+	var result: Array = []
+	for flow in system.get("flows", []):
+		if flow is Dictionary and "Tool" in flow.get("allowedInvocations", []):
+			result.append(flow.duplicate(true))
+	result.sort_custom(func(a, b): return str(a.get("flowId", "")) < str(b.get("flowId", "")))
+	return result
+
+static func tool_payload(flow: Dictionary, definition_text: String, instance_text: String, actor_id: String) -> Dictionary:
+	var payload := {"flowId": str(flow.get("flowId", ""))}
+	var definitions := _split_ids(definition_text)
+	var instances := _split_ids(instance_text)
+	if not definitions.is_empty(): payload["cardDefinitionIds"] = definitions
+	if not instances.is_empty(): payload["cardInstanceIds"] = instances
+	if not actor_id.strip_edges().is_empty(): payload["actorId"] = actor_id.strip_edges()
+	return payload
+
+static func _split_ids(value: String) -> Array[String]:
+	var result: Array[String] = []
+	for token in value.replace("\n", ",").split(",", false):
+		var id := token.strip_edges()
+		if not id.is_empty() and id not in result: result.append(id)
+	return result

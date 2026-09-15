@@ -128,6 +128,19 @@ func _run() -> void:
 		"playable cards come from authored presentation slots, not fixed pile names")
 	check(zone_view.auxiliary_zones().size() == 1 and zone_view.zone_cards("cooldown").is_empty(),
 		"hidden auxiliary zones expose counts without contents")
+	var tool_flow := {"flowId": "tool.transfer", "allowedInvocations": ["Tool"],
+		"steps": [{"operation": "Move", "sourceZoneId": "prepared", "targetZoneId": "cooldown",
+			"selection": {"strategy": "Explicit"}}]}
+	var tool_run := {"resolvedMode": {"capabilityPolicy": {"allowCardZoneCheats": true},
+		"cardZoneSystem": {"flows": [tool_flow, {"flowId": "boundary.initial", "allowedInvocations": ["Boundary"]}]}}}
+	check(CardZones.tool_flows(tool_run).size() == 1 and CardZones.tool_flows(tool_run)[0].flowId == "tool.transfer",
+		"zone tools are discovered from revisioned graph invocations")
+	var tool_payload: Dictionary = CardZones.tool_payload(tool_flow, "strike, defend, strike", "id-1, id-2", "player")
+	check(tool_payload == {"flowId": "tool.transfer", "cardDefinitionIds": ["strike", "defend"],
+		"cardInstanceIds": ["id-1", "id-2"], "actorId": "player"},
+		"zone tool form sends explicit identifiers without inferring zone purpose")
+	tool_run.resolvedMode.capabilityPolicy.allowCardZoneCheats = false
+	check(CardZones.tool_flows(tool_run).is_empty(), "normal mode does not display sandbox zone tools")
 	var zone_copy: Dictionary = session.card_zones
 	zone_copy.topologyHash = "tampered"
 	check(session.card_zones.topologyHash == "zone-test-hash", "zone projection is a defensive copy")
