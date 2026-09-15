@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Effects;
+using Core.CardZones;
 
 namespace Core.Run;
 
@@ -19,6 +20,8 @@ public sealed record RunDefinition
             ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     }
     public int StartingHandSize { get; init; } = 5;
+    public string? InitialCardZoneId { get; init; }
+    public CardZoneOwnerBinding InitialCardOwner { get; init; }
     public IReadOnlyList<string> StartingDeck
     {
         get => _startingDeck;

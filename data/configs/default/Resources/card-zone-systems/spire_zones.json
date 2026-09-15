@@ -34,6 +34,24 @@
     ],
     "flows": [
       {
+        "flowId": "run.initial-draw",
+        "triggers": ["run.started"],
+        "allowedInvocations": ["Boundary"],
+        "steps": [
+          {
+            "stepId": "draw-initial-cards",
+            "operation": "Move",
+            "sourceZoneId": "draw",
+            "targetZoneId": "hand",
+            "sourceOwner": "RunOwner",
+            "targetOwner": "RunOwner",
+            "selection": { "strategy": "Top", "countFormula": "startingHandSize" },
+            "onInsufficient": "AllowPartial",
+            "onOverflow": "AllowPartial"
+          }
+        ]
+      },
+      {
         "flowId": "activation.recycle",
         "allowedInvocations": ["Boundary"],
         "steps": [

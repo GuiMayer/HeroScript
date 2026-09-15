@@ -191,6 +191,38 @@ public sealed class ContentGraphValidatorTests
     }
 
     [Fact]
+    public void Validate_RejectsRunInitialPlacementOutsideSelectedCardZoneGraph()
+    {
+        var bundle = Bundle(
+            ("runs", "runs/test.json", new Dictionary<string, object>
+            {
+                ["test"] = new
+                {
+                    runId = "test", startingDeck = new[] { "spark" },
+                    startingResources = new { credits = 1 },
+                    initialCardZoneId = "missing", initialCardOwner = "RunOwner"
+                }
+            }),
+            ("modes", "modes/test.json", new Dictionary<string, object>
+            {
+                ["test"] = new { modeId = "test", runDefinitionId = "test", cardZoneSystemId = "zones" }
+            }),
+            ("card-zone-systems", "card-zone-systems/zones.json", new Dictionary<string, object>
+            {
+                ["zones"] = new
+                {
+                    cardZoneSystemId = "zones",
+                    zones = new[] { new { zoneId = "library", ownerScope = "RunOwner", ordering = "Ordered" } }
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+
+        Assert.Contains(result.Errors, error => error.Contains(
+            "run initial card zone and owner must match", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Validate_RejectsShopCostResourceOutsidePublishedGraph()
     {
         var bundle = Bundle(

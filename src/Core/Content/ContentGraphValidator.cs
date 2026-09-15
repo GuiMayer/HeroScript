@@ -126,6 +126,28 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 errors.Add($"modes/{id}: {mode.Error}");
                 continue;
             }
+            if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId) &&
+                !string.IsNullOrWhiteSpace(mode.Value.RunDefinitionId))
+            {
+                var runDefinition = runtime.GetDefinition<RunDefinition>("runs", mode.Value.RunDefinitionId);
+                var cardZones = runtime.GetDefinition<CardZoneSystemDefinition>(
+                    "card-zone-systems", mode.Value.CardZoneSystemId);
+                if (runDefinition.IsSuccess && cardZones.IsSuccess)
+                {
+                    var initialZone = cardZones.Value.Zones.FirstOrDefault(zone =>
+                        string.Equals(zone.ZoneId, runDefinition.Value.InitialCardZoneId, StringComparison.Ordinal));
+                    var requiredScope = runDefinition.Value.InitialCardOwner switch
+                    {
+                        CardZoneOwnerBinding.Global => CardZoneOwnerScope.Global,
+                        CardZoneOwnerBinding.RunOwner => CardZoneOwnerScope.RunOwner,
+                        CardZoneOwnerBinding.ActiveActor => CardZoneOwnerScope.Actor,
+                        _ => CardZoneOwnerScope.Unspecified
+                    };
+                    if (initialZone == null || requiredScope == CardZoneOwnerScope.Unspecified ||
+                        initialZone.OwnerScope != requiredScope)
+                        errors.Add($"modes/{id}: run initial card zone and owner must match card-zone-systems/{mode.Value.CardZoneSystemId}");
+                }
+            }
             var combat = GetRequiredDefinition<CombatRulesDefinition>(runtime,
                 "combat-rules", mode.Value.CombatRulesId);
             var replay = GetRequiredDefinition<ReplayPolicyDefinition>(runtime,

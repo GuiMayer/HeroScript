@@ -6,6 +6,8 @@
       "power_points": 0
     },
     "startingHandSize": 5,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
     "startingDeck": [
       "basic_attack",
       "basic_attack",

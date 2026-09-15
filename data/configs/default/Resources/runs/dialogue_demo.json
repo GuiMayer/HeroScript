@@ -3,6 +3,8 @@
     "runId": "dialogue_demo_run",
     "startingResources": { "gold": 30 },
     "startingHandSize": 1,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
     "startingDeck": ["basic_attack"],
     "mapNodes": [
       { "nodeId": "keeper", "activity": { "type": "Dialogue", "definitionId": "ember_keeper" }, "completionPolicy": "Required", "nextNodeIds": ["return"] },

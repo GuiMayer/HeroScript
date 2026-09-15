@@ -1,12 +1,67 @@
 using System.Text.Json;
 using Core.CardZones;
 using Core.Determinism;
+using Core.Common;
+using Core.Math;
+using Core.Run;
 using Xunit;
 
 namespace Core.Tests.CardZones;
 
 public sealed class CardZonePackagedGraphFlowTests
 {
+    [Fact]
+    public void RunInitializer_UsesAuthoredZoneAndInitialBoundaryAtPinnedRevision()
+    {
+        var system = Load("spire_zones");
+        var formulas = new CountVariableFormulas();
+        var executor = new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(
+            formulas, new UnusedCardMetadata()));
+        var definition = new RunDefinition
+        {
+            InitialCardZoneId = "draw", InitialCardOwner = CardZoneOwnerBinding.RunOwner
+        };
+        var starting = new RunStartingCard[]
+        {
+            new() { DefinitionId = "spark", Upgrades = [new CardUpgradeState { UpgradeId = "boost" }] },
+            new() { DefinitionId = "guard" },
+            new() { DefinitionId = "spark" },
+            new() { DefinitionId = "heal" }
+        };
+
+        var first = CardZoneRunInitializer.Initialize(system, definition, starting,
+            "run-a", "hero", [], 2, "content-a", "default",
+            DeterministicContext.Create(10, "content-a"), executor);
+        var repeated = CardZoneRunInitializer.Initialize(system, definition, starting,
+            "run-a", "hero", [], 2, "content-a", "default",
+            DeterministicContext.Create(10, "content-a"), executor);
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.Equal(first.Value.Fingerprint, repeated.Value.Fingerprint);
+        Assert.Equal("content-a", formulas.LastRevision);
+        Assert.Equal(2, first.Value.State.GetZone("hand", "run-a")!.InstanceIds.Count);
+        Assert.Equal(2, first.Value.State.GetZone("draw", "run-a")!.InstanceIds.Count);
+        Assert.Single(first.Value.InitialFlowSteps);
+        Assert.Contains(first.Value.State.Instances.Values, card =>
+            card.DefinitionId == "spark" && card.Upgrades.Any(upgrade => upgrade.UpgradeId == "boost"));
+    }
+
+    [Fact]
+    public void RunInitializer_CanPlaceCardsInActorZoneWithoutAHand()
+    {
+        var system = Load("cooldown_zones");
+        var initialized = CardZoneRunInitializer.Initialize(system, new RunDefinition
+        {
+            InitialCardZoneId = "inventory", InitialCardOwner = CardZoneOwnerBinding.ActiveActor
+        }, [new RunStartingCard { DefinitionId = "skill" }],
+            "run-a", "hero", [], 0, "content-a", "default",
+            DeterministicContext.Create(10, "content-a"), new CardZoneFlowExecutor());
+
+        Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
+        Assert.Single(initialized.Value.State.GetZone("inventory", "hero")!.InstanceIds);
+        Assert.Empty(initialized.Value.InitialFlowSteps);
+    }
+
     [Fact]
     public void SpireGraph_DrawPlayDiscardAndRecycle_IsRepeatable()
     {
@@ -90,5 +145,29 @@ public sealed class CardZonePackagedGraphFlowTests
         var compiled = CardZoneSystemCompiler.Compile(authored[id]);
         Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
         return compiled.Value;
+    }
+
+    private sealed class UnusedCardMetadata : ICardZoneCardMetadataResolver
+    {
+        public Result<IReadOnlyList<string>> ResolveTags(CardInstanceState instance, CardZoneFlowContext context) =>
+            Result<IReadOnlyList<string>>.Failure("This test does not select cards by tag");
+    }
+
+    private sealed class CountVariableFormulas : IRevisionedRuntimeFormulaEvaluator
+    {
+        public string? LastRevision { get; private set; }
+
+        public Result<float> Evaluate(string expressionOrFormulaId,
+            Dictionary<string, float>? variables = null, float initialValue = 0f) =>
+            variables?.TryGetValue(expressionOrFormulaId, out var value) == true
+                ? Result<float>.Success(value)
+                : Result<float>.Failure("Variable is not available");
+
+        public Result<float> EvaluateAtRevision(string expressionOrFormulaId, string contentRevision,
+            Dictionary<string, float>? variables = null, float initialValue = 0f)
+        {
+            LastRevision = contentRevision;
+            return Evaluate(expressionOrFormulaId, variables, initialValue);
+        }
     }
 }
