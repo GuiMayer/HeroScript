@@ -160,7 +160,8 @@ public static partial class CardZoneSystemCompiler
             zones.TryGetValue(step.TargetZoneId ?? string.Empty, out var targetZone) &&
             targetZone.Ordering == CardZoneOrdering.Unordered &&
             step.Insertion.Strategy is CardZoneInsertionStrategy.Top or CardZoneInsertionStrategy.AtIndex or
-                CardZoneInsertionStrategy.RandomPosition or CardZoneInsertionStrategy.ShuffleAfterInsert)
+                CardZoneInsertionStrategy.RandomPosition or CardZoneInsertionStrategy.ShuffleAfterInsert or
+                CardZoneInsertionStrategy.CreationOrder)
             errors.Add($"{path}: unordered target zone cannot use positional insertion");
         if (zones.TryGetValue(step.SourceZoneId ?? string.Empty, out var sourceZone))
         {

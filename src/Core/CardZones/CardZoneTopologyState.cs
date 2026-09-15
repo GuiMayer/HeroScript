@@ -63,6 +63,13 @@ public sealed record CardZoneTopologyState
     internal ImmutableDictionary<Guid, CardInstanceState> InstanceItems => _instances;
     internal ImmutableDictionary<string, CardZoneState> ZoneItems => _zones;
 
+    [JsonIgnore]
+    public IReadOnlyList<Guid> CollectionInstanceIds => _instances.Values
+        .OrderBy(instance => instance.CreationOrdinal)
+        .ThenBy(instance => instance.CardInstanceId)
+        .Select(instance => instance.CardInstanceId)
+        .ToImmutableArray();
+
     public CardZoneState? GetZone(CardZoneAddress address) =>
         _zones.GetValueOrDefault(address.Key);
 

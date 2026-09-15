@@ -111,7 +111,8 @@ public static class CardZoneTransitions
 
         var inserted = Insert(zone.Items, created.ToImmutable(), insertion, current);
         if (inserted.IsFailure) return Result<CardZoneTransition>.Failure(inserted.Error);
-        var items = Canonicalize(inserted.Value.Items, ordering);
+        var items = Canonicalize(
+            ApplyCreationOrder(inserted.Value.Items, insertion, instances.ToImmutable()), ordering);
         var next = state with
         {
             Instances = instances.ToImmutable(),
@@ -226,7 +227,8 @@ public static class CardZoneTransitions
             })
             .SetItem(target.Key, targetZone with
             {
-                InstanceIds = Canonicalize(inserted.Value.Items, targetOrdering)
+                InstanceIds = Canonicalize(
+                    ApplyCreationOrder(inserted.Value.Items, insertion, state.InstanceItems), targetOrdering)
             });
         var next = state with { Zones = zones };
         return Finish(next, inserted.Value.Context, ids, [], []);
@@ -321,6 +323,14 @@ public static class CardZoneTransitions
             ? items.OrderBy(id => id).ToImmutableList()
             : items;
 
+    private static ImmutableList<Guid> ApplyCreationOrder(
+        ImmutableList<Guid> items,
+        CardZoneInsertionDefinition insertion,
+        IReadOnlyDictionary<Guid, CardInstanceState> instances) =>
+        insertion.Strategy == CardZoneInsertionStrategy.CreationOrder
+            ? items.OrderBy(id => instances[id].CreationOrdinal).ThenBy(id => id).ToImmutableList()
+            : items;
+
     private static Result<(ImmutableList<Guid> Items, DeterministicContext Context)> Insert(
         ImmutableList<Guid> current,
         ImmutableArray<Guid> inserted,
@@ -336,6 +346,7 @@ public static class CardZoneTransitions
                 break;
             case CardZoneInsertionStrategy.Bottom:
             case CardZoneInsertionStrategy.PreserveSourceOrder:
+            case CardZoneInsertionStrategy.CreationOrder:
                 next = next.AddRange(inserted);
                 break;
             case CardZoneInsertionStrategy.AtIndex:

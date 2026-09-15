@@ -53,4 +53,24 @@ public sealed class CardZoneTransitionsTests
         Assert.Equal(2, created.State.GetZone(Library)!.InstanceIds.Count);
         Assert.Empty(created.State.GetZone(Ready)!.InstanceIds);
     }
+
+    [Fact]
+    public void CreationOrderInsertion_ReconstructsStableCollectionOrderWithoutASecondRegistry()
+    {
+        var empty = CardZoneTransitions.CreateEmpty([Library, Ready]).Value;
+        var created = CardZoneTransitions.CreateInstances(empty, Library, ["one", "two", "three"],
+            new(), new(), null, CardZoneOrdering.Ordered,
+            DeterministicContext.Create(12, "content")).Value;
+        var collection = created.State.CollectionInstanceIds.ToArray();
+        var middleAndLast = CardZoneTransitions.Move(created.State, Library, Ready,
+            collection.Skip(1).ToArray(), new(), null,
+            CardZoneOrdering.Ordered, CardZoneOrdering.Ordered, created.Context).Value;
+        var completed = CardZoneTransitions.Move(middleAndLast.State, Library, Ready,
+            [collection[0]], new() { Strategy = CardZoneInsertionStrategy.CreationOrder }, null,
+            CardZoneOrdering.Ordered, CardZoneOrdering.Ordered, middleAndLast.Context).Value;
+
+        Assert.Equal(collection, completed.State.GetZone(Ready)!.InstanceIds);
+        Assert.Equal(collection, completed.State.CollectionInstanceIds);
+        Assert.Equal(3, completed.State.Instances.Count);
+    }
 }

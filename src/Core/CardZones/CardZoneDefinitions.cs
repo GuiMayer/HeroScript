@@ -168,7 +168,7 @@ public enum CardZoneOperation { Unspecified, Create, Move, Destroy, Shuffle, Reo
 public enum CardZoneSelectionStrategy { Unspecified, Explicit, Top, Bottom, First, Last, All, Random, ByDefinition, ByTags, ByCondition }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum CardZoneInsertionStrategy { Unspecified, Top, Bottom, AtIndex, RandomPosition, PreserveSourceOrder, ShuffleAfterInsert }
+public enum CardZoneInsertionStrategy { Unspecified, Top, Bottom, AtIndex, RandomPosition, PreserveSourceOrder, ShuffleAfterInsert, CreationOrder }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CardZoneInsufficientPolicy { Unspecified, RejectTransaction, AllowPartial, ExecuteFallbackAndRetry }
