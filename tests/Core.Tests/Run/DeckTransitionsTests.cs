@@ -113,6 +113,30 @@ public sealed class DeckTransitionsTests
     }
 
     [Fact]
+    public void Draw_RecyclesDiscardAndCompletesInOneAtomicTransition()
+    {
+        var initial = new DeckState
+        {
+            DrawPile = ["a"],
+            DiscardPile = ["b", "c", "d"]
+        };
+        var context = DeterministicContext.Create(321, "test-content");
+
+        var first = DeckTransitions.Draw(initial, 4, context, true, false);
+        var repeated = DeckTransitions.Draw(initial, 4, context, true, false);
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.Equal(first.Value.State.HandInstanceIds, repeated.Value.State.HandInstanceIds);
+        Assert.Equal(first.Value.Context, repeated.Value.Context);
+        Assert.Equal(4, first.Value.State.HandInstanceIds.Count);
+        Assert.Empty(first.Value.State.DrawPileInstanceIds);
+        Assert.Empty(first.Value.State.DiscardPileInstanceIds);
+        Assert.Empty(initial.HandInstanceIds);
+        Assert.Equal(["a"], initial.DrawPile);
+        Assert.Equal(["b", "c", "d"], initial.DiscardPile);
+    }
+
+    [Fact]
     public void MoveFromHand_IsAtomicWhenDuplicateIsMissing()
     {
         var state = new DeckState { Hand = new[] { "a" } };
