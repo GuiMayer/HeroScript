@@ -907,9 +907,6 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeckCyclePolicyDefinition policy,
         DeterministicContext context)
     {
-        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || policy.DrawPerActivation == 0)
-            return Result<ResourceRefreshResult>.Success(new ResourceRefreshResult(deck, context, []));
-
         if (run.ResolvedMode?.CardZoneSystem != null)
         {
             var flowed = CardZoneCombatLifecycle.Start(_cardZoneFlows, run,
@@ -918,6 +915,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             return Result<ResourceRefreshResult>.Success(new ResourceRefreshResult(
                 flowed.Value.Deck, flowed.Value.Context, flowed.Value.DrawnCards));
         }
+
+        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || policy.DrawPerActivation == 0)
+            return Result<ResourceRefreshResult>.Success(new ResourceRefreshResult(deck, context, []));
 
         var availableHandSlots = System.Math.Max(0, policy.HandLimit - deck.Hand.Count);
         var count = System.Math.Min(policy.DrawPerActivation, availableHandSlots);
@@ -942,9 +942,6 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         DeterministicContext context,
         Func<CardInstanceState, Result<IReadOnlyList<string>>> resolveCardTags)
     {
-        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || deck.Hand.Count == 0)
-            return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(deck, context, [], []));
-
         if (run.ResolvedMode?.CardZoneSystem != null)
         {
             var flowed = CardZoneCombatLifecycle.End(_cardZoneFlows, run,
@@ -954,6 +951,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 flowed.Value.Deck, flowed.Value.Context,
                 flowed.Value.DiscardedInstanceIds, flowed.Value.ExhaustedInstanceIds));
         }
+
+        if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || deck.Hand.Count == 0)
+            return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(deck, context, [], []));
 
         var exhaust = new List<string>();
         var discard = new List<string>();

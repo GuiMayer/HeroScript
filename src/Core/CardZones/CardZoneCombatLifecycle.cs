@@ -23,14 +23,15 @@ public static class CardZoneCombatLifecycle
         ICardZoneFlowExecutor? flows, RunState run, DeckState deck,
         DeterministicContext context, string actorId)
     {
-        var previousHand = deck.HandInstanceIds.ToHashSet();
+        var previousPlayable = CardZonePlaySource.CardsForActor(run with { Deck = deck }, actorId).ToHashSet();
         var flowed = CardZoneRunFlowDispatcher.Execute(flows, run, deck,
             context, "activation.started", actorId);
         if (flowed.IsFailure) return Result<CardZoneActivationStartResult>.Failure(flowed.Error);
         var next = new DeckState { Topology = flowed.Value.State };
         return Result<CardZoneActivationStartResult>.Success(new CardZoneActivationStartResult(
             next, flowed.Value.Context,
-            next.HandInstanceIds.Where(id => !previousHand.Contains(id))
+            CardZonePlaySource.CardsForActor(run with { Deck = next }, actorId)
+                .Where(id => !previousPlayable.Contains(id))
                 .Select(id => next.GetDefinitionId(id)!).ToImmutableArray()));
     }
 

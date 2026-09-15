@@ -112,6 +112,41 @@ public sealed class CardZonePackagedGraphFlowTests
     }
 
     [Fact]
+    public void ActorOwnedGraph_UsesConfiguredFlowOwnerForRunLifecycleAndCardResolution()
+    {
+        var graph = ReadDefinition("cooldown_zones");
+        var system = CardZoneSystemCompiler.Compile(graph).Value;
+        var initial = CardZoneBootstrapper.Create(system, new CardZoneBootstrapPlan
+        {
+            RunOwnerId = "$run", ActorIds = ["hero"],
+            Batches = [new CardZoneInitialBatch
+            {
+                ZoneId = "inventory", OwnerId = "hero", DefinitionIds = ["ability"]
+            }]
+        }, DeterministicContext.Create(77, "content-a")).Value;
+        var run = new RunState
+        {
+            PlayerEntityId = "hero",
+            Deck = new DeckState { Topology = initial.State },
+            Determinism = initial.Context,
+            ResolvedMode = new ResolvedGameMode { CardZoneSystem = graph }
+        };
+        var executor = new CardZoneFlowExecutor();
+
+        var started = CardZoneCombatLifecycle.Start(executor, run, run.Deck, run.Determinism, "hero");
+        Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
+        Assert.Single(started.Value.DrawnCards);
+        Assert.Empty(started.Value.Deck.HandInstanceIds);
+        var prepared = Assert.Single(started.Value.Deck.Topology.GetZone("prepared", "hero")!.InstanceIds);
+        var successor = run with { Deck = started.Value.Deck, Determinism = started.Value.Context };
+        var spent = CardZoneRunFlowDispatcher.ResolveCard(executor, successor, successor.Deck,
+            successor.Determinism, "ability.cooldown", "hero", prepared);
+
+        Assert.True(spent.IsSuccess, spent.IsFailure ? spent.Error : null);
+        Assert.Equal(prepared, Assert.Single(spent.Value.State.GetZone("cooldown", "hero")!.InstanceIds));
+    }
+
+    [Fact]
     public void SpireGraph_EndActivation_RetainsTaggedCardsAndExilesEtherealCards()
     {
         var system = Load("spire_zones");
@@ -230,13 +265,18 @@ public sealed class CardZonePackagedGraphFlowTests
 
     private static CompiledCardZoneSystem Load(string id)
     {
+        var compiled = CardZoneSystemCompiler.Compile(ReadDefinition(id));
+        Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
+        return compiled.Value;
+    }
+
+    private static CardZoneSystemDefinition ReadDefinition(string id)
+    {
         var path = Path.Combine(AppContext.BaseDirectory, "Resources", "card-zone-systems", $"{id}.json");
         var authored = JsonSerializer.Deserialize<Dictionary<string, CardZoneSystemDefinition>>(
             File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         Assert.NotNull(authored);
-        var compiled = CardZoneSystemCompiler.Compile(authored[id]);
-        Assert.True(compiled.IsSuccess, compiled.IsFailure ? compiled.Error : null);
-        return compiled.Value;
+        return authored[id];
     }
 
     private sealed class UnusedCardMetadata : ICardZoneCardMetadataResolver

@@ -1,6 +1,7 @@
 {
   "cooldown_zones": {
     "cardZoneSystemId": "cooldown_zones",
+    "flowOwnerBinding": "ActiveActor",
     "zones": [
       { "zoneId": "inventory", "ownerScope": "Actor", "ordering": "Unordered", "visibility": { "contents": "Owner", "order": "Hidden" }, "presentation": { "slot": "inventory" } },
       { "zoneId": "prepared", "ownerScope": "Actor", "ordering": "Ordered", "allowsCardPlay": true, "capacity": 4, "visibility": { "contents": "Owner", "order": "Visible" }, "presentation": { "slot": "abilities" } },

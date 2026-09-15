@@ -28,14 +28,13 @@ public static class CardZoneRunFlowDispatcher
             return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
         var compiled = CardZoneSystemCompiler.Compile(definition);
         if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
-        if (!compiled.Value.FlowsByTrigger.ContainsKey(trigger))
-            return Result<CardZoneFlowResult>.Failure($"Card-zone boundary is not configured: {trigger}");
+        var actorId = activeActorId ?? run.PlayerEntityId;
         return flows.ExecuteBoundary(compiled.Value, deck.Topology, context, trigger,
             new CardZoneFlowContext
             {
-                FlowOwnerId = "$run",
+                FlowOwnerId = ResolveFlowOwner(definition, actorId),
                 RunOwnerId = "$run",
-                ActiveActorId = activeActorId ?? run.PlayerEntityId,
+                ActiveActorId = actorId,
                 ContentRevision = context.ContentRevision,
                 ConfigName = run.ConfigName,
                 CardInstanceIds = cardInstanceIds ?? [],
@@ -62,7 +61,7 @@ public static class CardZoneRunFlowDispatcher
             new CardZoneFlowContext
             {
                 Invocation = CardZoneFlowInvocation.CardResolution,
-                FlowOwnerId = "$run",
+                FlowOwnerId = ResolveFlowOwner(definition, actorId),
                 RunOwnerId = "$run",
                 ActiveActorId = actorId,
                 ContentRevision = context.ContentRevision,
@@ -89,7 +88,7 @@ public static class CardZoneRunFlowDispatcher
             flowId, new CardZoneFlowContext
             {
                 Invocation = CardZoneFlowInvocation.Tool,
-                FlowOwnerId = "$run",
+                FlowOwnerId = ResolveFlowOwner(definition, actorId ?? run.PlayerEntityId),
                 RunOwnerId = "$run",
                 ActiveActorId = actorId ?? run.PlayerEntityId,
                 ContentRevision = run.Determinism.ContentRevision,
@@ -139,4 +138,12 @@ public static class CardZoneRunFlowDispatcher
                 }
             });
     }
+
+    private static string ResolveFlowOwner(CardZoneSystemDefinition definition, string actorId) =>
+        definition.FlowOwnerBinding switch
+        {
+            CardZoneOwnerBinding.ActiveActor => actorId,
+            CardZoneOwnerBinding.Global => "$global",
+            _ => "$run"
+        };
 }

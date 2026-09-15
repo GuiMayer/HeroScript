@@ -59,6 +59,9 @@ public static partial class CardZoneSystemCompiler
         ArgumentNullException.ThrowIfNull(definition);
         var errors = new List<string>();
         if (!ValidId(definition.CardZoneSystemId)) errors.Add("cardZoneSystemId is invalid");
+        if (definition.FlowOwnerBinding is not (CardZoneOwnerBinding.RunOwner or
+            CardZoneOwnerBinding.ActiveActor or CardZoneOwnerBinding.Global))
+            errors.Add("flowOwnerBinding must be RunOwner, ActiveActor, or Global");
         if (definition.Zones.Count == 0) errors.Add("At least one card zone is required");
         if (definition.Zones.Select(zone => zone.ZoneId).Distinct(StringComparer.Ordinal).Count() != definition.Zones.Count)
             errors.Add("Card zone ids must be unique");

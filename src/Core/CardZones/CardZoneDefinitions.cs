@@ -10,6 +10,7 @@ public sealed record CardZoneSystemDefinition
     private ImmutableArray<CardZoneFlowDefinition> _flows = [];
 
     public string CardZoneSystemId { get; init; } = string.Empty;
+    public CardZoneOwnerBinding FlowOwnerBinding { get; init; } = CardZoneOwnerBinding.RunOwner;
     public IReadOnlyList<CardZoneDefinition> Zones
     {
         get => _zones;
