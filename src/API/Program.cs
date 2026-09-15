@@ -416,7 +416,8 @@ builder.Services.AddSingleton<ICombatBoundaryExecutor>(sp => new CombatBoundaryE
     sp.GetRequiredService<ICombatRelicLifecycle>(),
     sp.GetRequiredService<ICombatResourceLifecycle>(),
     sp.GetRequiredService<IPhaseGraphReducer>(),
-    sp.GetRequiredService<ICombatOutcomeResolver>()));
+    sp.GetRequiredService<ICombatOutcomeResolver>(),
+    sp.GetRequiredService<ICardZoneFlowExecutor>()));
 builder.Services.AddSingleton<ICombatFlowPlanner>(sp => new CombatFlowPlanner(
     sp.GetRequiredService<IContentRuntimeResolver>(),
     sp.GetRequiredService<ICombatBoundaryExecutor>(),

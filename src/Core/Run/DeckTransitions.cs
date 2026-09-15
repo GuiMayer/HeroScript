@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Core.Combat.Flow;
 using Core.Common;
 using Core.Determinism;
+using Core.CardZones;
 
 namespace Core.Run;
 
@@ -408,6 +409,13 @@ public static class DeckTransitions
             {
                 CardInstanceId = allocated.Value,
                 DefinitionId = definitionId,
+                Lifetime = persistence == CardInstancePersistence.Encounter
+                    ? new CardInstanceLifetimeDefinition
+                    {
+                        Strategy = CardInstanceLifetimeStrategy.UntilBoundary,
+                        Boundary = "encounter.ended"
+                    }
+                    : new CardInstanceLifetimeDefinition(),
                 Persistence = persistence
             });
         }

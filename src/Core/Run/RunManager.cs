@@ -1198,7 +1198,19 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 initializedRun.Determinism.ContentRevision != state.Determinism.ContentRevision ||
                 initializedRun.Determinism.Seed != state.Determinism.Seed))
                 return Result<RunState>.Failure("Initialized run snapshot does not match encounter owner");
-            if (initializedRun == null && state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
+            if (initializedRun == null && state.ResolvedMode?.CardZoneSystem != null)
+            {
+                var initialHandSize = state.ResolvedMode.CombatRules.Flow.DeckCycle.InitialHandSize;
+                var deficit = System.Math.Max(0, initialHandSize - state.Deck.HandInstanceIds.Count);
+                var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state,
+                    state.Deck, seed.Context, "encounter.started",
+                    variables: new Dictionary<string, double> { ["initialHandDeficit"] = deficit });
+                if (flowed.IsFailure)
+                    return Result<RunState>.Failure(flowed.Error);
+                encounterDeck = Result<DeckTransition>.Success(new DeckTransition(
+                    new DeckState { Topology = flowed.Value.State }, flowed.Value.Context, []));
+            }
+            else if (initializedRun == null && state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
             {
                 encounterDeck = DeckTransitions.BeginEncounter(
                     state.Deck,
@@ -1531,7 +1543,18 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure("Encounter no longer belongs to the current map node");
 
             var cleanedState = state;
-            if (state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
+            if (state.ResolvedMode?.CardZoneSystem != null)
+            {
+                var flowed = ExecuteCardZoneBoundary(state, "encounter.ended");
+                if (flowed.IsFailure)
+                    return Result<RunState>.Failure(flowed.Error);
+                cleanedState = state with
+                {
+                    Deck = new DeckState { Topology = flowed.Value.State },
+                    Determinism = flowed.Value.Context
+                };
+            }
+            else if (state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
             {
                 var cleanup = DeckTransitions.EndEncounter(
                     state.Deck,
@@ -2321,26 +2344,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         string trigger,
         IReadOnlyList<Guid>? cardInstanceIds = null,
         IReadOnlyDictionary<string, double>? variables = null)
-    {
-        if (_cardZoneFlows == null || state.ResolvedMode?.CardZoneSystem is not { } definition)
-            return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
-        var compiled = CardZoneSystemCompiler.Compile(definition);
-        if (compiled.IsFailure)
-            return Result<CardZoneFlowResult>.Failure(compiled.Error);
-        if (!compiled.Value.FlowsByTrigger.ContainsKey(trigger))
-            return Result<CardZoneFlowResult>.Failure($"Card-zone boundary is not configured: {trigger}");
-        return _cardZoneFlows.ExecuteBoundary(compiled.Value, state.Deck.Topology,
-            state.Determinism, trigger, new CardZoneFlowContext
-            {
-                FlowOwnerId = "$run",
-                RunOwnerId = "$run",
-                ActiveActorId = state.PlayerEntityId,
-                ContentRevision = state.Determinism.ContentRevision,
-                ConfigName = state.ConfigName,
-                CardInstanceIds = cardInstanceIds ?? [],
-                Variables = variables ?? ImmutableDictionary<string, double>.Empty
-            });
-    }
+        => CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state, state.Deck,
+            state.Determinism, trigger, cardInstanceIds: cardInstanceIds, variables: variables);
 
     private Result<IReadOnlyList<string>> MoveCards(
         Guid runId,
