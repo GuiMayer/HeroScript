@@ -16,6 +16,18 @@ public sealed record CardZoneTransition(
     ImmutableArray<Guid> CreatedInstanceIds,
     ImmutableArray<Guid> DestroyedInstanceIds);
 
+public sealed record CardZoneCardCreation
+{
+    private ImmutableArray<CardUpgradeState> _upgrades = [];
+
+    public string DefinitionId { get; init; } = string.Empty;
+    public IReadOnlyList<CardUpgradeState> Upgrades
+    {
+        get => _upgrades;
+        init => _upgrades = value?.ToImmutableArray() ?? [];
+    }
+}
+
 /// <summary>
 /// Pure card-zone primitives. They know identities, order and capacity, but no
 /// gameplay meaning, boundary, content repository or persistence service.
@@ -46,9 +58,25 @@ public static class CardZoneTransitions
         CardZoneOrdering ordering,
         DeterministicContext context)
     {
+        ArgumentNullException.ThrowIfNull(definitionIds);
+        return CreateInstances(state, target,
+            definitionIds.Select(id => new CardZoneCardCreation { DefinitionId = id }).ToArray(),
+            lifetime, insertion, capacity, ordering, context);
+    }
+
+    public static Result<CardZoneTransition> CreateInstances(
+        CardZoneTopologyState state,
+        CardZoneAddress target,
+        IReadOnlyList<CardZoneCardCreation> cards,
+        CardInstanceLifetimeDefinition lifetime,
+        CardZoneInsertionDefinition insertion,
+        int? capacity,
+        CardZoneOrdering ordering,
+        DeterministicContext context)
+    {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(target);
-        ArgumentNullException.ThrowIfNull(definitionIds);
+        ArgumentNullException.ThrowIfNull(cards);
         ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(insertion);
         ArgumentNullException.ThrowIfNull(context);
@@ -56,27 +84,28 @@ public static class CardZoneTransitions
         if (valid.IsFailure) return Result<CardZoneTransition>.Failure(valid.Error);
         if (!state.ZoneItems.TryGetValue(target.Key, out var zone))
             return Result<CardZoneTransition>.Failure($"Card zone not found: {target.Key}");
-        if (definitionIds.Any(string.IsNullOrWhiteSpace))
+        if (cards.Any(card => card == null || string.IsNullOrWhiteSpace(card.DefinitionId)))
             return Result<CardZoneTransition>.Failure("Card definition id cannot be empty");
-        if (capacity.HasValue && zone.Items.Count + definitionIds.Count > capacity.Value)
+        if (capacity.HasValue && zone.Items.Count + cards.Count > capacity.Value)
             return Result<CardZoneTransition>.Failure($"Card zone capacity exceeded: {target.Key}");
 
         var instances = state.InstanceItems.ToBuilder();
-        var created = ImmutableArray.CreateBuilder<Guid>(definitionIds.Count);
+        var created = ImmutableArray.CreateBuilder<Guid>(cards.Count);
         var current = context;
-        foreach (var definitionId in definitionIds)
+        foreach (var card in cards)
         {
             var ordinal = current.IdSequence;
-            var allocated = current.AllocateId($"card-zone:{target.Key}:{definitionId}");
+            var allocated = current.AllocateId($"card-zone:{target.Key}:{card.DefinitionId}");
             current = allocated.Context;
             created.Add(allocated.Value);
             instances.Add(allocated.Value, new CardInstanceState
             {
                 CardInstanceId = allocated.Value,
-                DefinitionId = definitionId,
+                DefinitionId = card.DefinitionId,
                 OwnerId = target.OwnerId,
                 CreationOrdinal = ordinal,
-                Lifetime = lifetime
+                Lifetime = lifetime,
+                Upgrades = card.Upgrades
             });
         }
 

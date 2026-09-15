@@ -7,6 +7,7 @@ namespace Core.CardZones;
 public sealed record CardZoneInitialBatch
 {
     private ImmutableArray<string> _definitionIds = [];
+    private ImmutableArray<CardZoneCardCreation> _cards = [];
 
     public string ZoneId { get; init; } = string.Empty;
     public string OwnerId { get; init; } = string.Empty;
@@ -14,6 +15,11 @@ public sealed record CardZoneInitialBatch
     {
         get => _definitionIds;
         init => _definitionIds = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardZoneCardCreation> Cards
+    {
+        get => _cards;
+        init => _cards = value?.ToImmutableArray() ?? [];
     }
     public CardInstanceLifetimeDefinition Lifetime { get; init; } = new();
     public CardZoneInsertionDefinition Insertion { get; init; } = new();
@@ -82,6 +88,8 @@ public static class CardZoneBootstrapper
 
         foreach (var batch in plan.Batches)
         {
+            if (batch.Cards.Count > 0 && batch.DefinitionIds.Count > 0)
+                return Result<CardZoneBootstrapResult>.Failure("Initial card batch cannot mix cards and definitionIds");
             if (!system.Zones.TryGetValue(batch.ZoneId, out var zone))
                 return Result<CardZoneBootstrapResult>.Failure($"Initial card zone not found: {batch.ZoneId}");
             if (zone.OwnerScope == CardZoneOwnerScope.Actor && !actors.Contains(batch.OwnerId, StringComparer.Ordinal))
@@ -89,7 +97,10 @@ public static class CardZoneBootstrapper
             var target = Address(batch.ZoneId, batch.OwnerId);
             if (!state.ZoneItems.ContainsKey(target.Key))
                 return Result<CardZoneBootstrapResult>.Failure($"Initial card-zone address not found: {target.Key}");
-            var initialized = CardZoneTransitions.CreateInstances(state, target, batch.DefinitionIds,
+            var cards = batch.Cards.Count > 0
+                ? batch.Cards
+                : batch.DefinitionIds.Select(id => new CardZoneCardCreation { DefinitionId = id }).ToArray();
+            var initialized = CardZoneTransitions.CreateInstances(state, target, cards,
                 batch.Lifetime, batch.Insertion, zone.Capacity, zone.Ordering, current);
             if (initialized.IsFailure) return Result<CardZoneBootstrapResult>.Failure(initialized.Error);
             state = initialized.Value.State;

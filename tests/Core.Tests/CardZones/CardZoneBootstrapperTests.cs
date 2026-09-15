@@ -1,5 +1,6 @@
 using Core.CardZones;
 using Core.Determinism;
+using Core.Run;
 using Xunit;
 
 namespace Core.Tests.CardZones;
@@ -63,6 +64,30 @@ public sealed class CardZoneBootstrapperTests
         Assert.True(result.IsFailure);
         Assert.Contains("capacity", result.Error);
         Assert.Equal(0UL, original.IdSequence);
+    }
+
+    [Fact]
+    public void Create_PreservesPreconfiguredCardUpgradesWithoutMutatingInput()
+    {
+        var system = Compile(Zone("slot", CardZoneOwnerScope.RunOwner, CardZoneOrdering.Ordered));
+        var upgrades = new List<CardUpgradeState> { new() { UpgradeId = "boost-one" } };
+        var plan = new CardZoneBootstrapPlan
+        {
+            RunOwnerId = "run-a",
+            Batches = [new CardZoneInitialBatch
+            {
+                ZoneId = "slot", OwnerId = "run-a",
+                Cards = [new CardZoneCardCreation { DefinitionId = "spark", Upgrades = upgrades }]
+            }]
+        };
+        upgrades.Clear();
+
+        var initialized = CardZoneBootstrapper.Create(system, plan,
+            DeterministicContext.Create(9, "content-a"));
+
+        Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
+        var instance = Assert.Single(initialized.Value.State.Instances.Values);
+        Assert.Equal("boost-one", Assert.Single(instance.Upgrades).UpgradeId);
     }
 
     private static CompiledCardZoneSystem Compile(params CardZoneDefinition[] zones)
