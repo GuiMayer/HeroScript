@@ -62,6 +62,89 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
+    public async Task Sandbox_CanInvokeOnlyAuthorizedZoneToolFlows()
+    {
+        var runId = await Client.StartRunAsync(modeId: "combat_sandbox");
+        var before = await Client.GetRunStateAsync(runId);
+        using var created = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_FLOW",
+            expectedSequence = before.GetProperty("sequence").GetInt32(),
+            expectedStep = before.GetProperty("step").GetUInt64(),
+            payload = new
+            {
+                flowId = "tool.create-in-hand",
+                cardDefinitionIds = new[] { "basic_attack", "defend" }
+            }
+        });
+        Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync());
+        using var zonesResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/card-zones");
+        var zones = await zonesResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var hand = zones.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "hand");
+        Assert.Equal(7, hand.GetProperty("count").GetInt32());
+        Assert.Contains(hand.GetProperty("cards").EnumerateArray(),
+            card => card.GetProperty("definitionId").GetString() == "defend");
+
+        var after = await Client.GetRunStateAsync(runId);
+        var movedId = hand.GetProperty("cards").EnumerateArray()
+            .Single(card => card.GetProperty("definitionId").GetString() == "defend")
+            .GetProperty("cardInstanceId").GetGuid();
+        using var moved = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_FLOW",
+            expectedSequence = after.GetProperty("sequence").GetInt32(),
+            expectedStep = after.GetProperty("step").GetUInt64(),
+            payload = new
+            {
+                flowId = "tool.move-hand-to-discard",
+                cardInstanceIds = new[] { movedId }
+            }
+        });
+        Assert.True(moved.IsSuccessStatusCode, await moved.Content.ReadAsStringAsync());
+        after = await Client.GetRunStateAsync(runId);
+        using var forbidden = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_FLOW",
+            expectedSequence = after.GetProperty("sequence").GetInt32(),
+            expectedStep = after.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "run.initial-draw" }
+        });
+        Assert.False(forbidden.IsSuccessStatusCode);
+        Assert.Equal(after.GetProperty("sequence").GetInt32(),
+            (await Client.GetRunStateAsync(runId)).GetProperty("sequence").GetInt32());
+
+        using var unknownCard = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_FLOW",
+            expectedSequence = after.GetProperty("sequence").GetInt32(),
+            expectedStep = after.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "tool.create-in-draw", cardDefinitionIds = new[] { "not-published" } }
+        });
+        Assert.False(unknownCard.IsSuccessStatusCode);
+        using var verified = await RawClient.PostAsync($"/api/v1/runs/{runId}/verify", null);
+        Assert.True(verified.IsSuccessStatusCode, await verified.Content.ReadAsStringAsync());
+        var proof = await verified.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(proof.GetProperty("isValid").GetBoolean());
+
+        var standardId = await Client.StartRunAsync();
+        var standard = await Client.GetRunStateAsync(standardId);
+        using var disabled = await RawClient.PostAsJsonAsync($"/api/v1/runs/{standardId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_FLOW",
+            expectedSequence = standard.GetProperty("sequence").GetInt32(),
+            expectedStep = standard.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "tool.create-in-hand", cardDefinitionIds = new[] { "basic_attack" } }
+        });
+        Assert.False(disabled.IsSuccessStatusCode);
+    }
+
+    [Fact]
     public async Task DrawCards_FromDrawPile_MovesToHand()
     {
         // Setup: Start run

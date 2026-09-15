@@ -6,6 +6,9 @@
   revisionada do modo sem impor nomes ou funções às zonas. O campo
   `topologyHash` identifica o snapshot; conteúdo e ordem não autorizados são
   ocultados na projeção. A capacidade `run-card-zones` anuncia o contrato.
+- `INVOKE_CARD_ZONE_FLOW` permite a modos com ferramentas de zonas executar
+  somente fluxos `Tool` publicados no grafo. Instâncias e definições de carta
+  são entradas; colocação, seleção e ordem continuam autoradas em JSON.
 
 ## v1 — 2026-09-13
 

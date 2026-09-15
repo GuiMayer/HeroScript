@@ -120,6 +120,13 @@ public static partial class CardZoneSystemCompiler
             errors.Add($"{path}: source and target zones must differ");
         if (step.Operation == CardZoneOperation.Create && string.IsNullOrWhiteSpace(step.CardDefinitionId))
             errors.Add($"{path}: create requires cardDefinitionId");
+        if (step.CardDefinitionId == "$input" &&
+            (step.Operation != CardZoneOperation.Create ||
+             !parentFlow.AllowedInvocations.Contains(CardZoneFlowInvocation.Tool)))
+            errors.Add($"{path}: $input requires a tool create flow");
+        if (step.Operation == CardZoneOperation.Create && step.CardDefinitionId?.StartsWith('$') == true &&
+            step.CardDefinitionId != "$input")
+            errors.Add($"{path}: unknown dynamic card definition token");
         if (step.Operation == CardZoneOperation.Create && step.Lifetime.Strategy == CardInstanceLifetimeStrategy.Unspecified)
             errors.Add($"{path}: create requires lifetime strategy");
         if (step.Lifetime.Strategy == CardInstanceLifetimeStrategy.UntilBoundary && string.IsNullOrWhiteSpace(step.Lifetime.Boundary))

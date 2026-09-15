@@ -8,6 +8,7 @@ namespace Core.CardZones;
 public sealed record CardZoneFlowContext
 {
     private ImmutableArray<Guid> _cardInstanceIds = [];
+    private ImmutableArray<string> _cardDefinitionIds = [];
     private ImmutableDictionary<string, double> _variables =
         ImmutableDictionary<string, double>.Empty.WithComparers(StringComparer.Ordinal);
 
@@ -26,6 +27,11 @@ public sealed record CardZoneFlowContext
     {
         get => _cardInstanceIds;
         init => _cardInstanceIds = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<string> CardDefinitionIds
+    {
+        get => _cardDefinitionIds;
+        init => _cardDefinitionIds = value?.ToImmutableArray() ?? [];
     }
     public IReadOnlyDictionary<string, double> Variables
     {
@@ -280,8 +286,15 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             if (createTargetDefinition.IsFailure) return Fail(createTargetDefinition.Error);
             var count = ResolveCount(step.Selection, context);
             if (count.IsFailure) return Fail(count.Error);
+            var definitions = step.CardDefinitionId == "$input"
+                ? context.CardDefinitionIds
+                : Enumerable.Repeat(step.CardDefinitionId!, count.Value).ToArray();
+            if (definitions.Count != count.Value)
+                return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} requires exactly {count.Value} requested card definitions");
+            if (definitions.Any(string.IsNullOrWhiteSpace))
+                return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} received an empty card definition id");
             var created = CardZoneTransitions.CreateInstances(state, target!,
-                Enumerable.Repeat(step.CardDefinitionId!, count.Value).ToArray(), step.Lifetime,
+                definitions, step.Lifetime,
                 step.Insertion, createTargetDefinition.Value.Capacity, createTargetDefinition.Value.Ordering, deterministicContext);
             return Convert(created);
         }

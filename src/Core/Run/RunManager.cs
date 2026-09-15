@@ -589,6 +589,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
             RunCommandTypes.ApplyRunResource => ExecuteApplyRunResource(runId, payload),
             RunCommandTypes.AddCardsToHand => ExecuteAddCardsToHand(runId, payload),
+            RunCommandTypes.InvokeCardZoneFlow => ExecuteInvokeCardZoneFlow(runId, payload),
             RunCommandTypes.MoveCards => ExecuteMoveCards(runId, payload),
             RunCommandTypes.AbandonRun => ExecuteAbandonRun(runId),
             RunCommandTypes.ResolveCombat => Result.Failure(
@@ -660,6 +661,47 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return capability;
         var request = DeserializePayload<CardIdsCommand>(payload);
         return ToResult(AddCardsToHand(runId, request.CardIds));
+    }
+
+    private Result ExecuteInvokeCardZoneFlow(Guid runId, JsonElement payload)
+    {
+        var capability = RequireCapability(runId,
+            policy => policy.AllowCardZoneCheats, "card zone tools");
+        if (capability.IsFailure) return capability;
+        var request = DeserializePayload<CardZoneFlowCommand>(payload);
+        if (string.IsNullOrWhiteSpace(request.FlowId))
+            return Result.Failure("Card-zone flow id is required");
+        using (_sessionGates.Enter(runId))
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result.Failure($"Run not found: {runId}");
+            if (request.CardDefinitionIds is { Count: > 0 } definitions)
+            {
+                if (_contentDefinitions == null)
+                    return Result.Failure("Pinned card content is required for zone creation");
+                foreach (var definitionId in definitions)
+                {
+                    if (string.IsNullOrWhiteSpace(definitionId))
+                        return Result.Failure("Card definition id cannot be empty");
+                    var card = _contentDefinitions.Resolve<CardContentDefinition>(
+                        state, "cards", definitionId);
+                    if (card.IsFailure)
+                        return Result.Failure(card.Error);
+                }
+            }
+            var flowed = CardZoneRunFlowDispatcher.InvokeTool(_cardZoneFlows, state,
+                request.FlowId, request.CardInstanceIds ?? [],
+                request.CardDefinitionIds ?? [], request.ActorId);
+            if (flowed.IsFailure) return Result.Failure(flowed.Error);
+            if (flowed.Value.Steps.IsEmpty)
+                return Result.Failure("Card-zone tool flow produced no transition");
+            var candidate = state with
+            {
+                Deck = new DeckState { Topology = flowed.Value.State },
+                Determinism = flowed.Value.Context.AdvanceStep()
+            };
+            return ToResult(Persist(candidate, RunCommandTypes.InvokeCardZoneFlow, payload));
+        }
     }
 
     private Result ExecuteMoveCards(Guid runId, JsonElement payload)

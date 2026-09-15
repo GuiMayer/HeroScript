@@ -163,6 +163,7 @@ Envie-os ao gateway da run com o `payload` correspondente:
 | Tipo | Payload |
 | --- | --- |
 | `DRAW_CARDS` | `{ "count": 1 }` |
+| `INVOKE_CARD_ZONE_FLOW` | `{ "flowId": "tool.create-in-hand", "cardDefinitionIds": ["basic_attack"] }` |
 | `DISCARD_CARDS` | `{ "cardIds": ["... "] }` |
 | `SHUFFLE_DISCARD` | `{}` |
 | `CREATE_CARD_SELECTION` | `{ "selectionId": "basic_reward" }` |
@@ -176,6 +177,17 @@ Envie-os ao gateway da run com o `payload` correspondente:
 As coleções `/card-selections`, `/shops` e `/preparations` permanecem apenas
 como read models. Alterações de conteúdo seguem o fluxo administrativo de
 draft e publicação, que produz uma nova revisão imutável.
+
+`INVOKE_CARD_ZONE_FLOW` é uma ferramenta de modo experimental/sandbox/dev:
+exige `capabilityPolicy.allowCardZoneCheats` e só executa fluxos do grafo
+revisionado com `allowedInvocations: ["Tool"]`. O payload pode trazer
+`cardInstanceIds` para selecionar instâncias, `cardDefinitionIds` para criação
+e `actorId` quando o fluxo depende de um ator. Em um passo `Create`,
+`cardDefinitionId: "$input"` consome exatamente as definições enviadas; a
+engine injeta `requestedCardCount` a partir do tamanho real da lista. O
+cliente não escolhe zona de destino nem ordem diretamente: isso permanece na
+definição JSON do fluxo. Fluxos de lifecycle ou resolução de carta não podem
+ser invocados como ferramenta.
 
 ## Recuperação e auditoria
 

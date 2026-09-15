@@ -193,9 +193,17 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             var compiled = CardZoneSystemCompiler.Compile(definition.Value);
             if (compiled.IsFailure)
                 errors.Add($"card-zone-systems/{id}: {compiled.Error}");
-            foreach (var step in definition.Value.Flows.SelectMany(flow => flow.Steps))
+            foreach (var flow in definition.Value.Flows)
+            foreach (var step in flow.Steps)
             {
                 if (string.IsNullOrWhiteSpace(step.CardDefinitionId)) continue;
+                if (step.CardDefinitionId == "$input")
+                {
+                    if (step.Operation != CardZoneOperation.Create ||
+                        !flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Tool))
+                        errors.Add($"card-zone-systems/{id}: $input is only valid for a tool create flow");
+                    continue;
+                }
                 var card = runtime.GetDefinition<CardContentDefinition>("cards", step.CardDefinitionId);
                 if (card.IsFailure)
                     errors.Add($"card-zone-systems/{id}: unknown card definition {step.CardDefinitionId}");

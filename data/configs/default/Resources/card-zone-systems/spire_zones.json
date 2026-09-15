@@ -247,6 +247,60 @@
         ]
       },
       {
+        "flowId": "tool.create-in-draw",
+        "allowedInvocations": ["Tool"],
+        "steps": [
+          {
+            "stepId": "create-requested-cards",
+            "operation": "Create",
+            "targetZoneId": "draw",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": { "strategy": "Top", "countFormula": "requestedCardCount" }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.create-in-hand",
+        "allowedInvocations": ["Tool"],
+        "steps": [
+          {
+            "stepId": "create-requested-cards",
+            "operation": "Create",
+            "targetZoneId": "hand",
+            "targetOwner": "RunOwner",
+            "cardDefinitionId": "$input",
+            "selection": { "strategy": "Top", "countFormula": "requestedCardCount" }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.move-hand-to-discard",
+        "allowedInvocations": ["Tool"],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "discard",
+            "selection": { "strategy": "Explicit" }
+          }
+        ]
+      },
+      {
+        "flowId": "tool.move-hand-to-exhaust",
+        "allowedInvocations": ["Tool"],
+        "steps": [
+          {
+            "stepId": "move-selected-cards",
+            "operation": "Move",
+            "sourceZoneId": "hand",
+            "targetZoneId": "exhaust",
+            "selection": { "strategy": "Explicit" }
+          }
+        ]
+      },
+      {
         "flowId": "card.played.to-exhaust",
         "allowedInvocations": ["CardResolution"],
         "steps": [

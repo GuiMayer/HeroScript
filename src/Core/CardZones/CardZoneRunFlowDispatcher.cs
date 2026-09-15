@@ -70,4 +70,36 @@ public static class CardZoneRunFlowDispatcher
                 CardInstanceIds = [cardInstanceId]
             });
     }
+
+    public static Result<CardZoneFlowResult> InvokeTool(
+        ICardZoneFlowExecutor? flows,
+        RunState run,
+        string flowId,
+        IReadOnlyList<Guid> cardInstanceIds,
+        IReadOnlyList<string> cardDefinitionIds,
+        string? actorId = null)
+    {
+        if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
+            return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
+        var compiled = CardZoneSystemCompiler.Compile(definition);
+        if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
+        if (!compiled.Value.Flows.ContainsKey(flowId))
+            return Result<CardZoneFlowResult>.Failure($"Card-zone tool flow is not configured: {flowId}");
+        return flows.Execute(compiled.Value, run.Deck.Topology, run.Determinism,
+            flowId, new CardZoneFlowContext
+            {
+                Invocation = CardZoneFlowInvocation.Tool,
+                FlowOwnerId = "$run",
+                RunOwnerId = "$run",
+                ActiveActorId = actorId ?? run.PlayerEntityId,
+                ContentRevision = run.Determinism.ContentRevision,
+                ConfigName = run.ConfigName,
+                CardInstanceIds = cardInstanceIds,
+                CardDefinitionIds = cardDefinitionIds,
+                Variables = new Dictionary<string, double>
+                {
+                    ["requestedCardCount"] = cardDefinitionIds.Count
+                }
+            });
+    }
 }

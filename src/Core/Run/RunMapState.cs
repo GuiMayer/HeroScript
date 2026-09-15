@@ -115,6 +115,7 @@ public static class RunCommandTypes
     public const string ActivateContentRevision = "ACTIVATE_CONTENT_REVISION";
     public const string ApplyRunResource = "APPLY_RUN_RESOURCE";
     public const string AddCardsToHand = "ADD_CARDS_TO_HAND";
+    public const string InvokeCardZoneFlow = "INVOKE_CARD_ZONE_FLOW";
     public const string MoveCards = "MOVE_CARDS";
     public const string AbandonRun = "ABANDON_RUN";
 }
