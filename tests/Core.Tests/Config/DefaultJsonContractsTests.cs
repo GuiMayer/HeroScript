@@ -102,7 +102,7 @@ public class DefaultJsonContractsTests
         {
             foreach (var option in preparation.GetProperty("options").EnumerateArray())
             {
-                if (option.TryGetProperty("addCardsToDiscard", out var addCards))
+                if (option.TryGetProperty("grantedCardIds", out var addCards))
                 {
                     foreach (var cardId in addCards.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrWhiteSpace(x)))
                         Assert.Contains(cardId!, cards);

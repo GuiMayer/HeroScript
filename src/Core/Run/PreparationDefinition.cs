@@ -24,7 +24,7 @@ public sealed record PreparationDefinition
 
 public sealed record PreparationOptionDefinition
 {
-    private ImmutableList<string> _addCardsToDiscard = [];
+    private ImmutableList<string> _grantedCardIds = [];
     private ImmutableList<PreparationModifierGrantDefinition> _applyModifiers = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
     private ImmutableArray<ResourceAmount> _costs = [];
@@ -35,10 +35,10 @@ public sealed record PreparationOptionDefinition
         get => _costs;
         init => _costs = value?.ToImmutableArray() ?? [];
     }
-    public IReadOnlyList<string> AddCardsToDiscard
+    public IReadOnlyList<string> GrantedCardIds
     {
-        get => _addCardsToDiscard;
-        init => _addCardsToDiscard = value?.ToImmutableList() ?? [];
+        get => _grantedCardIds;
+        init => _grantedCardIds = value?.ToImmutableList() ?? [];
     }
     public IReadOnlyList<PreparationModifierGrantDefinition> ApplyModifiers
     {
@@ -85,7 +85,7 @@ public sealed record PreparationState
 
 public sealed record PreparationOptionState
 {
-    private ImmutableList<string> _addCardsToDiscard = [];
+    private ImmutableList<string> _grantedCardIds = [];
     private ImmutableList<PreparationModifierGrantState> _applyModifiers = [];
     private ImmutableList<Guid> _appliedModifierInstanceIds = [];
     private ImmutableArray<ResourceAmount> _costs = [];
@@ -96,10 +96,10 @@ public sealed record PreparationOptionState
         get => _costs;
         init => _costs = value?.ToImmutableArray() ?? [];
     }
-    public IReadOnlyList<string> AddCardsToDiscard
+    public IReadOnlyList<string> GrantedCardIds
     {
-        get => _addCardsToDiscard;
-        init => _addCardsToDiscard = value?.ToImmutableList() ?? [];
+        get => _grantedCardIds;
+        init => _grantedCardIds = value?.ToImmutableList() ?? [];
     }
     public IReadOnlyList<PreparationModifierGrantState> ApplyModifiers
     {

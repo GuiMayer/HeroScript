@@ -489,8 +489,8 @@ public sealed class RunManagerTests
     [Fact]
     public void PickCards_AddsRewardToDiscardPile()
     {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var manager = CreateManager(useCardZones: true);
+        var run = StartZoneRun(manager).Value;
 
         var selection = manager.CreateCardSelection(run.RunId, "basic_reward");
         var pick = manager.PickCards(run.RunId, selection.Value.SelectionInstanceId, new[] { "zap" });
@@ -589,8 +589,8 @@ public sealed class RunManagerTests
     [Fact]
     public void BuyShopItem_SpendsGoldAndAddsCardToDiscardPile()
     {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var manager = CreateManager(useCardZones: true);
+        var run = StartZoneRun(manager).Value;
 
         var shop = manager.CreateShop(run.RunId, "basic_shop");
         var item = manager.BuyShopItem(run.RunId, shop.Value.ShopInstanceId, "buy_zap");
@@ -714,8 +714,8 @@ public sealed class RunManagerTests
     [Fact]
     public void ApplyPreparationOption_SpendsResourcesAndAddsConfiguredCards()
     {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var manager = CreateManager(useCardZones: true);
+        var run = StartZoneRun(manager).Value;
 
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation");
         var option = manager.ApplyPreparationOption(run.RunId, preparation.Value.PreparationInstanceId, "pack_supplies");
@@ -732,8 +732,8 @@ public sealed class RunManagerTests
     public void ApplyPreparationOption_AppliesConfiguredScriptModifiers()
     {
         var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
-        var manager = CreateManager(scriptModifierManager: modifierManager.Object);
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var manager = CreateManager(scriptModifierManager: modifierManager.Object, useCardZones: true);
+        var run = StartZoneRun(manager).Value;
         run = manager.ApplyRunResource(
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
         modifierManager
@@ -942,7 +942,8 @@ public sealed class RunManagerTests
         IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierManager = null,
         IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
-        string? runJson = null)
+        string? runJson = null,
+        bool useCardZones = false)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
@@ -970,13 +971,107 @@ public sealed class RunManagerTests
                 ["basic_preparation"] = JsonDocument.Parse(PreparationJson).RootElement.GetProperty("basic_preparation").Clone()
             });
 
+        IGameModeResolver? modeResolver = null;
+        ICardZoneFlowExecutor? zoneFlows = null;
+        if (useCardZones)
+        {
+            var modes = new Mock<IGameModeResolver>();
+            modes.Setup(item => item.Resolve("test-mode", "test"))
+                .Returns(Result<ResolvedGameMode>.Success(new()
+                {
+                    Definition = new() { ModeId = "test-mode" },
+                    CardZoneSystem = TestZoneGraph()
+                }));
+            modeResolver = modes.Object;
+            zoneFlows = new CardZoneFlowExecutor(new TestCardZoneRules());
+        }
+
         return new RunManager(
             _configManager.Object,
             _resourceLoader.Object,
             scriptModifierCatalog: scriptModifierManager,
             repository: repository,
             contentManifestProvider: contentManifestProvider,
-            resources: TestDataBuilders.MockResourceManager().Object);
+            gameModeResolver: modeResolver,
+            resources: TestDataBuilders.MockResourceManager().Object,
+            cardZoneFlows: zoneFlows);
+    }
+
+    private static Result<RunState> StartZoneRun(RunManager manager) =>
+        manager.StartRun(new RunStartOptions(
+            "test",
+            "default_run",
+            "hero",
+            Seed: 42,
+            ContentRevision: "test",
+            ModeId: "test-mode"));
+
+    private static CardZoneSystemDefinition TestZoneGraph() => new()
+    {
+        CardZoneSystemId = "test-zones",
+        GameplayGrantFlowId = "grant",
+        Zones =
+        [
+            new() { ZoneId = "draw", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+            new() { ZoneId = "hand", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered,
+                AllowsCardPlay = true },
+            new() { ZoneId = "discard", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered }
+        ],
+        Flows =
+        [
+            new()
+            {
+                FlowId = "start",
+                Triggers = ["run.started"],
+                AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                Steps = [new()
+                {
+                    StepId = "move",
+                    Operation = CardZoneOperation.Move,
+                    SourceZoneId = "draw",
+                    TargetZoneId = "hand",
+                    SourceOwner = CardZoneOwnerBinding.RunOwner,
+                    TargetOwner = CardZoneOwnerBinding.RunOwner,
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = 2 },
+                    OnInsufficient = CardZoneInsufficientPolicy.AllowPartial
+                }]
+            },
+            new()
+            {
+                FlowId = "grant",
+                AllowedInvocations = [CardZoneFlowInvocation.GameplayCommand],
+                Steps = [new()
+                {
+                    StepId = "create",
+                    Operation = CardZoneOperation.Create,
+                    TargetZoneId = "discard",
+                    TargetOwner = CardZoneOwnerBinding.RunOwner,
+                    CardDefinitionId = "$input",
+                    Selection = new()
+                    {
+                        Strategy = CardZoneSelectionStrategy.Top,
+                        CountFormula = "requestedCount"
+                    }
+                }]
+            }
+        ]
+    };
+
+    private sealed class TestCardZoneRules : ICardZoneRuleEvaluator
+    {
+        public Result<bool> EvaluateCondition(string expression, CardZoneFlowContext context) =>
+            Result<bool>.Failure("Conditions are not used by this test graph");
+
+        public Result<int> EvaluateCount(string expression, CardZoneFlowContext context) =>
+            context.Variables.TryGetValue(expression, out var value)
+                ? Result<int>.Success(checked((int)value))
+                : Result<int>.Failure($"Missing test variable: {expression}");
+
+        public Result<bool> Matches(
+            CardInstanceState instance,
+            CardZoneSelectionDefinition selection,
+            CardZoneFlowContext context) =>
+            Result<bool>.Failure("Predicates are not used by this test graph");
     }
 
     private static CombatActorState CreateCombatActorState(string entityId, bool isHero)
@@ -1059,6 +1154,8 @@ public sealed class RunManagerTests
         "runId": "default_run",
         "startingResources": { "gold": 25, "power_points": 0 },
         "initialPlayableCardCount": 2,
+        "initialCardZoneId": "draw",
+        "initialCardOwner": "RunOwner",
         "startingCards": ["strike", "defend", "zap"],
         "mapNodes": [
           {
@@ -1083,6 +1180,8 @@ public sealed class RunManagerTests
         "runId": "default_run",
         "startingResources": { "gold": 25, "power_points": 0 },
         "initialPlayableCardCount": 1,
+        "initialCardZoneId": "draw",
+        "initialCardOwner": "RunOwner",
         "startingCards": ["strike", "defend"],
         "mapNodes": [
           {
@@ -1211,11 +1310,11 @@ public sealed class RunManagerTests
       "basic_preparation": {
         "preparationId": "basic_preparation",
         "options": [
-          { "optionId": "pack_supplies", "costs": [{ "resourceId": "gold", "amount": 5 }], "addCardsToDiscard": ["heal"] },
+          { "optionId": "pack_supplies", "costs": [{ "resourceId": "gold", "amount": 5 }], "grantedCardIds": ["heal"] },
           {
             "optionId": "train_spell",
             "costs": [{ "resourceId": "power_points", "amount": 1 }],
-            "addCardsToDiscard": ["fireball"],
+            "grantedCardIds": ["fireball"],
             "applyModifiers": [
               { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
             ]
@@ -1223,7 +1322,7 @@ public sealed class RunManagerTests
           {
             "optionId": "double_train",
             "costs": [{ "resourceId": "power_points", "amount": 2 }],
-            "addCardsToDiscard": ["fireball"],
+            "grantedCardIds": ["fireball"],
             "applyModifiers": [
               { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "double_train" },
               { "ownerId": "run", "modifierId": "missing_modifier", "stacks": 1, "duration": -1, "sourceId": "double_train" }

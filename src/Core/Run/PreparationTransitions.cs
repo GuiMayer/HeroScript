@@ -41,7 +41,7 @@ public static class PreparationTransitions
             {
                 OptionId = option.OptionId,
                 Costs = option.Costs,
-                AddCardsToDiscard = option.AddCardsToDiscard,
+                GrantedCardIds = option.GrantedCardIds,
                 ApplyModifiers = option.ApplyModifiers.Select(modifier => new PreparationModifierGrantState
                 {
                     OwnerId = modifier.OwnerId,
@@ -133,10 +133,8 @@ public static class PreparationTransitions
         if (spent.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(spent.Error);
 
-        var deck = state.ResolvedMode?.CardZoneSystem == null
-            ? DeckTransitions.AddToDiscard(state.Deck, option.AddCardsToDiscard, plan.Context)
-            : CardZoneGrantTransitions.Grant(state with { Determinism = plan.Context },
-                option.AddCardsToDiscard, zoneFlows);
+        var deck = CardZoneGrantTransitions.Grant(state with { Determinism = plan.Context },
+            option.GrantedCardIds, zoneFlows);
         if (deck.IsFailure)
             return Result<RunStateTransition<PreparationOptionState>>.Failure(deck.Error);
 

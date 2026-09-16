@@ -1,3 +1,5 @@
+using Core.CardZones;
+using Core.Common;
 using Core.Determinism;
 using Core.Run;
 using Core.Combat.Modifiers;
@@ -30,7 +32,8 @@ public sealed class RunSubmoduleTransitionsTests
         var result = CardSelectionTransitions.Pick(
             state,
             state.CardSelections[0].SelectionInstanceId,
-            new[] { "fireball" });
+            new[] { "fireball" },
+            ZoneFlows());
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.False(state.CardSelections[0].Completed);
@@ -73,7 +76,8 @@ public sealed class RunSubmoduleTransitionsTests
         var success = ShopTransitions.Buy(
             WithResources(state, new ResourceAmount { ResourceId = "gold", Amount = 10 }),
             shopId,
-            "card");
+            "card",
+            ZoneFlows());
 
         Assert.True(failure.IsFailure);
         Assert.False(state.Shops[0].Items[0].Purchased);
@@ -105,7 +109,7 @@ public sealed class RunSubmoduleTransitionsTests
                         {
                             OptionId = "train",
                             Costs = [new ResourceAmount { ResourceId = "power_points", Amount = 1 }],
-                            AddCardsToDiscard = new[] { "fireball" },
+                            GrantedCardIds = new[] { "fireball" },
                             ApplyModifiers = new[]
                             {
                                 new PreparationModifierGrantState
@@ -145,7 +149,8 @@ public sealed class RunSubmoduleTransitionsTests
                     OwnerId = first.Value.ModifierGrants[0].OwnerId,
                     Definition = new ScriptModifierDefinition { ModifierId = "power" }
                 }
-            });
+            },
+            ZoneFlows());
 
         Assert.True(committed.IsSuccess, committed.IsFailure ? committed.Error : null);
         Assert.False(state.Preparations[0].Options[0].Applied);
@@ -249,13 +254,73 @@ public sealed class RunSubmoduleTransitionsTests
 
     private static readonly Guid RunId = Guid.Parse("00000000-0000-8000-8000-000000000001");
 
-    private static RunState CreateState() => new()
+    private static RunState CreateState()
     {
-        RunId = RunId,
-        ConfigName = "test",
-        PlayerEntityId = "hero",
-        Determinism = DeterministicContext.Create(42, "test-content")
+        var graph = ZoneGraph();
+        var topology = CardZoneBootstrapper.Create(
+            CardZoneSystemCompiler.Compile(graph).Value,
+            new CardZoneBootstrapPlan { RunOwnerId = "$run" },
+            DeterministicContext.Create(42, "test-content")).Value;
+        return new()
+        {
+            RunId = RunId,
+            ConfigName = "test",
+            PlayerEntityId = "hero",
+            Deck = new DeckState { Topology = topology.State },
+            Determinism = topology.Context,
+            ResolvedMode = new() { CardZoneSystem = graph }
+        };
+    }
+
+    private static ICardZoneFlowExecutor ZoneFlows() =>
+        new CardZoneFlowExecutor(new TestCardZoneRules());
+
+    private static CardZoneSystemDefinition ZoneGraph() => new()
+    {
+        CardZoneSystemId = "submodule-zones",
+        GameplayGrantFlowId = "grant",
+        Zones = [new()
+        {
+            ZoneId = "discard",
+            OwnerScope = CardZoneOwnerScope.RunOwner,
+            Ordering = CardZoneOrdering.Ordered
+        }],
+        Flows = [new()
+        {
+            FlowId = "grant",
+            AllowedInvocations = [CardZoneFlowInvocation.GameplayCommand],
+            Steps = [new()
+            {
+                StepId = "create",
+                Operation = CardZoneOperation.Create,
+                TargetZoneId = "discard",
+                TargetOwner = CardZoneOwnerBinding.RunOwner,
+                CardDefinitionId = "$input",
+                Selection = new()
+                {
+                    Strategy = CardZoneSelectionStrategy.Top,
+                    CountFormula = "requestedCount"
+                }
+            }]
+        }]
     };
+
+    private sealed class TestCardZoneRules : ICardZoneRuleEvaluator
+    {
+        public Result<bool> EvaluateCondition(string expression, CardZoneFlowContext context) =>
+            Result<bool>.Failure("Conditions are not used by this test graph");
+
+        public Result<int> EvaluateCount(string expression, CardZoneFlowContext context) =>
+            context.Variables.TryGetValue(expression, out var value)
+                ? Result<int>.Success(checked((int)value))
+                : Result<int>.Failure($"Missing test variable: {expression}");
+
+        public Result<bool> Matches(
+            CardInstanceState instance,
+            CardZoneSelectionDefinition selection,
+            CardZoneFlowContext context) =>
+            Result<bool>.Failure("Predicates are not used by this test graph");
+    }
 
     private static RunState WithResources(RunState state, params ResourceAmount[] amounts)
     {

@@ -859,7 +859,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
     {
         foreach (var (id, definition) in runtime.GetDefinitions("preparations"))
         {
-            foreach (var cardId in FindStringArrayItems(definition, "addCardsToDiscard"))
+            foreach (var cardId in FindStringArrayItems(definition, "grantedCardIds"))
                 Require(runtime, errors, "preparations", id, cardId, "cards");
             foreach (var modifierId in FindStringProperties(definition, "modifierId"))
                 Require(runtime, errors, "preparations", id, modifierId, "modifiers");

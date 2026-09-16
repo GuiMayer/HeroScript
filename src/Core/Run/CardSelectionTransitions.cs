@@ -72,9 +72,7 @@ public static class CardSelectionTransitions
             return Result<RunStateTransition<CardSelectionState>>.Failure(
                 $"Invalid card options: {string.Join(", ", invalid)}");
 
-        var deck = state.ResolvedMode?.CardZoneSystem == null
-            ? DeckTransitions.AddToDiscard(state.Deck, picks, state.Determinism)
-            : CardZoneGrantTransitions.Grant(state, picks, zoneFlows);
+        var deck = CardZoneGrantTransitions.Grant(state, picks, zoneFlows);
         if (deck.IsFailure)
             return Result<RunStateTransition<CardSelectionState>>.Failure(deck.Error);
 

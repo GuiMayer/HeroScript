@@ -2,11 +2,11 @@
   "basic_preparation": {
     "preparationId": "basic_preparation",
     "options": [
-      { "optionId": "pack_supplies", "costs": [{ "resourceId": "gold", "amount": 10 }], "addCardsToDiscard": ["heal"] },
+      { "optionId": "pack_supplies", "costs": [{ "resourceId": "gold", "amount": 10 }], "grantedCardIds": ["heal"] },
       {
         "optionId": "train_spell",
         "costs": [{ "resourceId": "power_points", "amount": 1 }],
-        "addCardsToDiscard": ["fireball"],
+        "grantedCardIds": ["fireball"],
         "applyModifiers": [
           { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
         ]

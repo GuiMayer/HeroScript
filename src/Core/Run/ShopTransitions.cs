@@ -75,9 +75,7 @@ public static class ShopTransitions
 
         if (!string.IsNullOrWhiteSpace(updatedItem.CardId))
         {
-            var deck = next.ResolvedMode?.CardZoneSystem == null
-                ? DeckTransitions.AddToDiscard(next.Deck, new[] { updatedItem.CardId }, next.Determinism)
-                : CardZoneGrantTransitions.Grant(next, [updatedItem.CardId], zoneFlows);
+            var deck = CardZoneGrantTransitions.Grant(next, [updatedItem.CardId], zoneFlows);
             if (deck.IsFailure)
                 return Result<RunStateTransition<ShopItemState>>.Failure(deck.Error);
             next = next with { Deck = deck.Value.State, Determinism = deck.Value.Context };
