@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Core.CardZones;
 using Core.Calculations;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
@@ -17,31 +18,23 @@ namespace Core.Tests.Effects;
 public sealed class RunEffectTransactionTests
 {
     [Fact]
-    public void DeckEffectsAreSequentialAndFailureDiscardsTheWholeRunSnapshot()
+    public void CardZoneEffectsAreSequentialAndFailureDiscardsTheWholeRunSnapshot()
     {
         var run = Run();
-        var draw = new EffectDefinition { Type = EffectType.DRAW_CARD, Target = EffectTarget.SELF, CardCount = 2 };
-        var discard = new EffectDefinition { Type = EffectType.DISCARD_CARD, Target = EffectTarget.SELF, CardCount = 1 };
+        var draw = ZoneEffect("draw-two");
+        var discard = ZoneEffect("discard-one");
         var request = EffectTransactionTests.Request(draw, discard) with { Run = run };
-        var result = EffectTransactionTests.Executor().Execute(request);
+        var result = ZoneEffectExecutor().Execute(request);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Single(result.Value.Run!.Deck.HandInstanceIds);
-        Assert.Single(result.Value.Run.Deck.DiscardPileInstanceIds);
-        Assert.Empty(run.Deck.HandInstanceIds);
+        Assert.Single(result.Value.Run!.Deck.Topology.GetZone("active", "$run")!.InstanceIds);
+        Assert.Single(result.Value.Run.Deck.Topology.GetZone("spent", "$run")!.InstanceIds);
+        Assert.Empty(run.Deck.Topology.GetZone("active", "$run")!.InstanceIds);
         Assert.NotEqual(result.Value.Steps[0].RunBeforeHash, result.Value.Steps[0].RunAfterHash);
         var invalid = EffectTransactionTests.Request(draw, discard, new()
             { Type = EffectType.DAMAGE, Target = EffectTarget.SELF, TargetResource = "missing", FlatValue = 1 }) with { Run = run };
         var before = CanonicalJson.ComputeHash(run);
-        Assert.True(EffectTransactionTests.Executor().Execute(invalid).IsFailure);
+        Assert.True(ZoneEffectExecutor().Execute(invalid).IsFailure);
         Assert.Equal(before, CanonicalJson.ComputeHash(run));
-    }
-
-    [Fact]
-    public void PartialDrawDoesNotThrowWhenFewerCardsExist()
-    {
-        var result = DeckTransitions.Draw(Run().Deck, 20, Run().Determinism, false, true);
-        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(3, result.Value.Cards.Length);
     }
 
     [Fact]
@@ -125,8 +118,7 @@ public sealed class RunEffectTransactionTests
     public void TenMixedTransactionsHaveIdenticalStateAndTrace()
     {
         var (executor, run) = WithModifierRuntime();
-        var request = EffectTransactionTests.Request(new()
-            { Type = EffectType.DRAW_CARD, Target = EffectTarget.SELF, CardCount = 1 },
+        var request = EffectTransactionTests.Request(ZoneEffect("draw-one"),
             new() { Type = EffectType.APPLY_MODIFIER, Target = EffectTarget.SELF, ModifierId = "power" },
             EffectTransactionTests.Resource(EffectType.DAMAGE, 1) with { Chance = .5f, Repeat = 4 }) with { Run = run };
         var results = Enumerable.Range(0, 10).Select(_ => executor.Execute(request)).ToArray();
@@ -136,8 +128,22 @@ public sealed class RunEffectTransactionTests
 
     private static RunState Run()
     {
-        var deck = DeckTransitions.Create(["a", "b", "c"], DeterministicContext.Create(1, "revision")).Value;
-        return new() { RunId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"), PlayerEntityId = "hero", Deck = deck.State, Determinism = deck.Context };
+        var graph = ZoneGraph();
+        var topology = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(graph).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches = [new CardZoneInitialBatch
+                    { ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["a", "b", "c"] }]
+            }, DeterministicContext.Create(1, "revision")).Value;
+        return new()
+        {
+            RunId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            PlayerEntityId = "hero",
+            Deck = new DeckState { Topology = topology.State },
+            Determinism = topology.Context,
+            ResolvedMode = new() { CardZoneSystem = graph }
+        };
     }
 
     private static (EffectTriggerExecutor Executor, RunState Run) WithModifierRuntime()
@@ -160,7 +166,60 @@ public sealed class RunEffectTransactionTests
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(item => item.Resolve("revision", "default")).Returns(Result<ContentRuntime>.Success(runtime.Value));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
-        return (new(formulas, new ImmutableEffectProcessor(), runtimes.Object, new CalculationEngine(), new RunModifierInfluenceProvider(formulas)),
-            Run() with { ResolvedMode = new() { Definition = new() { CalculationPipelineIds = ["amount"] } } });
+        var run = Run();
+        return (new(formulas, new ImmutableEffectProcessor(), runtimes.Object, new CalculationEngine(),
+                new RunModifierInfluenceProvider(formulas), cardZoneFlows: new CardZoneFlowExecutor()),
+            run with { ResolvedMode = run.ResolvedMode! with
+                { Definition = new() { CalculationPipelineIds = ["amount"] } } });
     }
+
+    private static EffectDefinition ZoneEffect(string flowId) => new()
+    {
+        Type = EffectType.CARD_ZONE_FLOW,
+        Target = EffectTarget.SELF,
+        CardZoneFlowId = flowId
+    };
+
+    private static EffectTriggerExecutor ZoneEffectExecutor() => new(
+        Mock.Of<IRuntimeFormulaEvaluator>(),
+        new ImmutableEffectProcessor(),
+        allowUnconfiguredCalculations: true,
+        cardZoneFlows: new CardZoneFlowExecutor());
+
+    private static CardZoneSystemDefinition ZoneGraph() => new()
+    {
+        CardZoneSystemId = "transaction-zones",
+        Zones =
+        [
+            new() { ZoneId = "reserve", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+            new() { ZoneId = "active", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+            new() { ZoneId = "spent", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered }
+        ],
+        Flows =
+        [
+            Move("draw-two", "reserve", "active", 2),
+            Move("draw-one", "reserve", "active", 1),
+            Move("discard-one", "active", "spent", 1)
+        ]
+    };
+
+    private static CardZoneFlowDefinition Move(
+        string flowId,
+        string sourceZoneId,
+        string targetZoneId,
+        int count) => new()
+    {
+        FlowId = flowId,
+        AllowedInvocations = [CardZoneFlowInvocation.Effect],
+        Steps = [new()
+        {
+            StepId = "move",
+            Operation = CardZoneOperation.Move,
+            SourceZoneId = sourceZoneId,
+            TargetZoneId = targetZoneId,
+            SourceOwner = CardZoneOwnerBinding.RunOwner,
+            TargetOwner = CardZoneOwnerBinding.RunOwner,
+            Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = count }
+        }]
+    };
 }

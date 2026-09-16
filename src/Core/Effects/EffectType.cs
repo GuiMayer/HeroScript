@@ -41,27 +41,7 @@ public enum EffectType
     /// </summary>
     DISPEL_STATUS,
     
-    // ===== CARTAS/DECK =====
-    /// <summary>
-    /// Compra carta do deck
-    /// </summary>
-    DRAW_CARD,
-    
-    /// <summary>
-    /// Descarta carta da mão
-    /// </summary>
-    DISCARD_CARD,
-    
-    /// <summary>
-    /// Exausta carta (remove da run)
-    /// </summary>
-    EXHAUST_CARD,
-    
-    /// <summary>
-    /// Adiciona carta específica à mão
-    /// </summary>
-    ADD_CARD_TO_HAND,
-
+    // ===== CARD ZONES =====
     /// <summary>Executes a configured purpose-free card-zone flow.</summary>
     CARD_ZONE_FLOW,
 

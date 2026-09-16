@@ -107,6 +107,30 @@ public sealed class CombatFlowPlannerTests
     [Fact]
     public void LifecycleDeckChangesSurviveInitializationAndActivationPlanning()
     {
+        var zones = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "lifecycle-zones",
+            Zones =
+            [
+                new() { ZoneId = "reserve", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+                new() { ZoneId = "active", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered }
+            ],
+            Flows = [new()
+            {
+                FlowId = "relic.activate",
+                AllowedInvocations = [CardZoneFlowInvocation.Effect],
+                Steps = [new()
+                {
+                    StepId = "move",
+                    Operation = CardZoneOperation.Move,
+                    SourceZoneId = "reserve",
+                    TargetZoneId = "active",
+                    SourceOwner = CardZoneOwnerBinding.RunOwner,
+                    TargetOwner = CardZoneOwnerBinding.RunOwner,
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.First, Count = 1 }
+                }]
+            }]
+        };
         const string path = "phase-sequences/test.json";
         var runtime = ContentRuntime.Create(new()
         {
@@ -118,22 +142,31 @@ public sealed class CombatFlowPlannerTests
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(item => item.Resolve("revision", "default")).Returns(Result<ContentRuntime>.Success(runtime));
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
+        var zoneFlows = new CardZoneFlowExecutor();
         var triggers = new EffectTriggerExecutor(
-            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
+            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true,
+            cardZoneFlows: zoneFlows);
         var boundaries = new CombatBoundaryExecutor(TurnOrders(), Cards(),
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers),
-            new CombatOutcomeResolver());
+            new CombatOutcomeResolver(), zoneFlows);
         var planner = new CombatFlowPlanner(runtimes.Object, boundaries, Mock.Of<IIntentResolver>());
-        var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
+        var cards = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(zones).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches = [new CardZoneInitialBatch
+                    { ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["strike", "strike", "strike"] }]
+            }, DeterministicContext.Create(99, "revision")).Value;
         var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
             { InitialPlayableCardCount = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
                 DrawPerActivation = 0, EndDiscard = DeckEndDiscardStrategy.None } };
         var run = new RunState
         {
-            RunId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), PlayerEntityId = "hero", Deck = deck.State,
-            Determinism = deck.Context,
-            ResolvedMode = new() { CombatRules = new()
+            RunId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), PlayerEntityId = "hero",
+            Deck = new DeckState { Topology = cards.State },
+            Determinism = cards.Context,
+            ResolvedMode = new() { CardZoneSystem = zones, CombatRules = new()
                 { DefaultPhaseSequenceId = "test", TurnOrder = TurnPolicy(), Flow = policies } },
             Relics = [new()
             {
@@ -142,7 +175,12 @@ public sealed class CombatFlowPlannerTests
                 Triggers = new[] { CombatTriggerBoundaries.CombatStart, "EndActivation" }.Select(boundary => new EffectTriggerDefinition
                 {
                     TriggerId = boundary, Boundary = boundary,
-                    Effects = [new() { Type = EffectType.DRAW_CARD, Target = EffectTarget.SELF, CardCount = 1 }]
+                    Effects = [new()
+                    {
+                        Type = EffectType.CARD_ZONE_FLOW,
+                        Target = EffectTarget.SELF,
+                        CardZoneFlowId = "relic.activate"
+                    }]
                 }).ToImmutableArray()
             }]
         };
@@ -150,7 +188,7 @@ public sealed class CombatFlowPlannerTests
             DeterministicContext.Create(42, "revision"));
         var initialized = planner.InitializeTransaction(run, combat);
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
-        Assert.Single(initialized.Value.Run.Deck.HandInstanceIds);
+        Assert.Single(initialized.Value.Run.Deck.Topology.GetZone("active", "$run")!.InstanceIds);
         Assert.NotEmpty(initialized.Value.EffectSteps);
         Assert.NotEmpty(initialized.Value.Applications);
         Assert.Equal(64, initialized.Value.Fingerprint.Length);
@@ -160,9 +198,10 @@ public sealed class CombatFlowPlannerTests
         var advanced = planner.AdvanceActivation(initialized.Value.Run, initialized.Value.Combat,
             initialized.Value.Run.Deck, initialized.Value.Run.Determinism);
         Assert.True(advanced.IsSuccess, advanced.IsFailure ? advanced.Error : null);
-        Assert.Equal(2, advanced.Value.Deck.HandInstanceIds.Count);
-        Assert.Equal(2, advanced.Value.Steps.Last(step => step.RunSnapshot != null).RunSnapshot!.Deck.HandInstanceIds.Count);
-        Assert.Empty(run.Deck.HandInstanceIds);
+        Assert.Equal(2, advanced.Value.Deck.Topology.GetZone("active", "$run")!.InstanceIds.Count);
+        Assert.Equal(2, advanced.Value.Steps.Last(step => step.RunSnapshot != null).RunSnapshot!
+            .Deck.Topology.GetZone("active", "$run")!.InstanceIds.Count);
+        Assert.Empty(run.Deck.Topology.GetZone("active", "$run")!.InstanceIds);
         Assert.Equal("enemy", advanced.Value.Combat.ActivationState!.ActiveActorId);
     }
 
@@ -368,7 +407,8 @@ public sealed class CombatFlowPlannerTests
     {
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(
-            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true);
+            formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true,
+            cardZoneFlows: cardZoneFlows);
         return new CombatBoundaryExecutor(
             TurnOrders(),
             Cards(),

@@ -27,6 +27,6 @@ Content-Type: application/json
   "commandId": "{{commandId}}",
   "expectedSequence": 1,
   "expectedStep": 1,
-  "type": "DRAW_CARDS",
-  "payload": { "count": 1 }
+  "type": "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+  "payload": { "flowId": "run.draw", "requestedCount": 1 }
 }

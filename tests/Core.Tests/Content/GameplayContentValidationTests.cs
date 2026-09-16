@@ -33,7 +33,7 @@ public sealed class GameplayContentValidationTests
             Type = EffectType.APPLY_MODIFIER, ModifierId = "missing", Chance = 0,
             ModifierOwner = new() { Kind = GameplayOwnerKind.Side }, ChainedEffects = [new()
             {
-                Type = EffectType.DRAW_CARD, CardCount = -1
+                Type = EffectType.CARD_ZONE_FLOW, CardZoneFlowId = "missing", CardCount = -1
             }]
         }] }));
         Assert.Contains(result.Errors, error => error.Contains("modifiers/missing"));
@@ -50,7 +50,7 @@ public sealed class GameplayContentValidationTests
     public void InvalidFormulaGrammarOrNamespaceIsRejected(string formula)
     {
         var result = Validate(("actions", "test", new ActionDefinition { ActionId = "test", Effects = [new()
-            { Type = EffectType.DRAW_CARD, Condition = formula }] }));
+            { Type = EffectType.CARD_ZONE_FLOW, CardZoneFlowId = "missing", Condition = formula }] }));
         Assert.False(result.IsValid);
     }
 
@@ -60,9 +60,10 @@ public sealed class GameplayContentValidationTests
         var result = Validate(("formulas", "scaled", new FormulaDefinition
         {
             Params = new() { ["stacks"] = 1 }, Operations = [new() { Op = "MULTIPLY", Value = "params.stacks" }]
-        }), ("actions", "test", new ActionDefinition { ActionId = "test", Effects = [new()
-            { Type = EffectType.DRAW_CARD, Condition = "scaled", ChainedEffects = [new()
-                { Type = EffectType.DRAW_CARD, Condition = "stacks / duration" }] }] }));
+        }), ("modifiers", "formula-owner", new ScriptModifierDefinition { ModifierId = "formula-owner" }),
+            ("actions", "test", new ActionDefinition { ActionId = "test", Effects = [new()
+            { Type = EffectType.REMOVE_MODIFIER, ModifierId = "formula-owner", Condition = "scaled", ChainedEffects = [new()
+                { Type = EffectType.REMOVE_MODIFIER, ModifierId = "formula-owner", Condition = "stacks / duration" }] }] }));
         Assert.True(result.IsValid, string.Join("; ", result.Errors));
     }
 
@@ -89,7 +90,8 @@ public sealed class GameplayContentValidationTests
         {
             StatusId = "broken",
             Stacking = (StackReapplyPolicy)999,
-            Triggers = [new() { TriggerId = "x", Boundary = "OnHit", Effects = [new() { Type = EffectType.DRAW_CARD }] }]
+            Triggers = [new() { TriggerId = "x", Boundary = "OnHit", Effects = [new()
+                { Type = EffectType.CARD_ZONE_FLOW, CardZoneFlowId = "missing" }] }]
         }));
         Assert.Contains(result.Errors, error => error.Contains("invalid default/max stacks"));
         Assert.Contains(result.Errors, error => error.Contains("invalid modifier durationBoundary"));
@@ -110,6 +112,8 @@ public sealed class GameplayContentValidationTests
     [InlineData("status-effects", "{\"legacy\":{\"statusId\":\"legacy\",\"type\":\"BURNING\"}}")]
     [InlineData("modifiers", "{\"legacy\":{\"modifierId\":\"legacy\",\"modifierKey\":\"damage\"}}")]
     [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"DAMAGE\",\"timing\":\"IMMEDIATE\"}]}}")]
+    [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"DRAW_CARD\"}]}}")]
+    [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"CARD_ZONE_FLOW\",\"cardZoneFlowId\":\"x\",\"shuffleDiscardWhenEmpty\":true}]}}")]
     public void RemovedLegacyFieldsAreRejectedInsteadOfSilentlyIgnored(string kind, string json)
     {
         var result = ValidateRaw(kind, json);

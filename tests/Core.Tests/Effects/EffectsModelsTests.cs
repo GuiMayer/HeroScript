@@ -19,10 +19,6 @@ public sealed class EffectsModelsTests
                 EffectType.APPLY_STATUS,
                 EffectType.REMOVE_STATUS,
                 EffectType.DISPEL_STATUS,
-                EffectType.DRAW_CARD,
-                EffectType.DISCARD_CARD,
-                EffectType.EXHAUST_CARD,
-                EffectType.ADD_CARD_TO_HAND,
                 EffectType.CARD_ZONE_FLOW,
                 EffectType.APPLY_MODIFIER,
                 EffectType.REMOVE_MODIFIER

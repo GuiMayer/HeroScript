@@ -124,8 +124,6 @@ public record EffectDefinition
     public string? CardZoneFlowId { get; init; }
     public int CardCount { get; init; } = 1;
     public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
-    public bool ShuffleDiscardWhenEmpty { get; init; } = true;
-    public bool AllowPartialDraw { get; init; } = true;
     
     // ===== CONDIÇÕES =====
     

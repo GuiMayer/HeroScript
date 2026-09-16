@@ -19,6 +19,9 @@
 - Constantes e payloads internos desses comandos antigos também foram removidos;
   testes de infraestrutura usam um comando neutro próprio, sem perpetuar o
   vocabulário de pilhas no contrato do núcleo.
+- Os efeitos fixos `DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD` e
+  `ADD_CARD_TO_HAND` foram substituídos por `CARD_ZONE_FLOW`. Toda semântica de
+  movimentação e criação agora pertence ao grafo JSON selecionado pelo modo.
 
 ## v1 — 2026-09-15
 

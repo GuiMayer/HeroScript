@@ -4,7 +4,7 @@ Diálogos são atividades da run, definidos em JSON e executados pela engine. A 
 
 ## Jogar e experimentar
 
-Na campanha **The Ember Path**, inicie uma nova jornada, vença o primeiro combate e receba a relíquia. A próxima parada é **The Keeper / A Guardiã**. Pressione **TALK / CONVERSAR**. Perguntar sobre o topo abre uma informação nova; comprar uma carta custa 20 de ouro e usa o efeito universal `ADD_CARD_TO_HAND`.
+Na campanha **The Ember Path**, inicie uma nova jornada, vença o primeiro combate e receba a relíquia. A próxima parada é **The Keeper / A Guardiã**. Pressione **TALK / CONVERSAR**. Perguntar sobre o topo abre uma informação nova; comprar uma carta custa 20 de ouro e usa `CARD_ZONE_FLOW`. O fluxo configurado pelo setting decide onde a nova instância aparece.
 
 Para testar apenas conversas pela API, crie uma run com `modeId: "dialogue_demo"`. Esse modo possui duas visitas à mesma personagem: a memória é compartilhada entre elas, enquanto as escolhas `once` pertencem à instância da conversa. O exemplo pode ser aberto na Godot pelo fluxo de continuar uma run.
 

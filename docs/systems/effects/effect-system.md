@@ -86,14 +86,19 @@ O catálogo inclui famílias para:
 
 - recursos: `DAMAGE`, `HEAL`, `MODIFY_RESOURCE`;
 - status: `APPLY_STATUS`, `REMOVE_STATUS`, `DISPEL_STATUS`;
-- cartas/deck: `DRAW_CARD`, `DISCARD_CARD`, `EXHAUST_CARD`,
-  `ADD_CARD_TO_HAND`;
+- zonas de cartas: `CARD_ZONE_FLOW`, que invoca um fluxo publicado sem
+  interpretar o propósito das zonas;
 - modifiers: `APPLY_MODIFIER`, `REMOVE_MODIFIER`.
 
 O enum público contém somente primitivas executáveis. Condição é um campo do
 efeito e composição usa `chainedEffects`; lifecycle usa triggers do proprietário.
 A validação de publicação impede referências quebradas antes de uma run usar a
 revisão.
+
+`CARD_ZONE_FLOW` declara `cardZoneFlowId`, `cardCount` e, quando aplicável,
+identidades ou definições de cartas. A origem, o destino, a seleção, a ordem,
+capacidade e política de insuficiência pertencem ao grafo de zonas. Não existem
+efeitos especiais de compra, descarte, exaustão ou adição à mão no núcleo.
 
 ## Recursos são genéricos
 

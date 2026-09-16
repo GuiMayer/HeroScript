@@ -9,7 +9,6 @@ public static class EffectDefinitionValidator
     public static bool IsExecutable(EffectType type) => type is
         EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE or
         EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS or
-        EffectType.DRAW_CARD or EffectType.DISCARD_CARD or EffectType.EXHAUST_CARD or EffectType.ADD_CARD_TO_HAND or
         EffectType.CARD_ZONE_FLOW or
         EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER;
 
@@ -64,16 +63,13 @@ public static class EffectDefinitionValidator
             if (effect.ModifierOwner is { } owner && (!Enum.IsDefined(owner.Kind) ||
                 owner.Kind is GameplayOwnerKind.Entity or GameplayOwnerKind.Side && string.IsNullOrWhiteSpace(owner.Id)))
                 Error("invalid modifier owner");
-            if (effect.Type is EffectType.DRAW_CARD or EffectType.DISCARD_CARD or EffectType.EXHAUST_CARD or
-                EffectType.ADD_CARD_TO_HAND or EffectType.CARD_ZONE_FLOW)
+            if (effect.Type == EffectType.CARD_ZONE_FLOW)
             {
                 if (effect.CardCount is < 1 or > EffectExecutionLimits.MaximumSteps) Error("invalid cardCount");
                 if (effect.CardInstanceIds.Any(id => id == Guid.Empty) || effect.CardInstanceIds.Distinct().Count() != effect.CardInstanceIds.Length)
                     Error("cardInstanceIds must be unique nonempty ids");
                 if (!effect.CardInstanceIds.IsEmpty && effect.CardInstanceIds.Length != effect.CardCount) Error("cardInstanceIds must match cardCount");
             }
-            if (effect.Type == EffectType.ADD_CARD_TO_HAND && string.IsNullOrWhiteSpace(effect.CardDefinitionId))
-                Error("ADD_CARD_TO_HAND requires cardDefinitionId");
             if (effect.Type == EffectType.CARD_ZONE_FLOW && string.IsNullOrWhiteSpace(effect.CardZoneFlowId))
                 Error("CARD_ZONE_FLOW requires cardZoneFlowId");
             inspect?.Invoke(effect, path);
