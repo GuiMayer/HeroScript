@@ -167,6 +167,7 @@ Envie-os ao gateway da run com o `payload` correspondente:
 | Tipo | Payload |
 | --- | --- |
 | `DRAW_CARDS` | `{ "count": 1 }` |
+| `INVOKE_CARD_ZONE_GAMEPLAY_FLOW` | `{ "flowId": "run.draw", "requestedCount": 1 }` |
 | `INVOKE_CARD_ZONE_FLOW` | `{ "flowId": "tool.create-in-hand", "cardDefinitionIds": ["basic_attack"] }` |
 | `DISCARD_CARDS` | `{ "cardIds": ["... "] }` |
 | `SHUFFLE_DISCARD` | `{}` |
@@ -192,6 +193,15 @@ engine injeta `requestedCardCount` a partir do tamanho real da lista. O
 cliente não escolhe zona de destino nem ordem diretamente: isso permanece na
 definição JSON do fluxo. Fluxos de lifecycle ou resolução de carta não podem
 ser invocados como ferramenta.
+
+`INVOKE_CARD_ZONE_GAMEPLAY_FLOW` é a mutação genérica para um modo com zonas
+configuradas. Não exige cheats e executa apenas fluxos declarados com
+`allowedInvocations: ["GameplayCommand"]`. O jogador envia `flowId`,
+`requestedCount` opcional e `cardInstanceIds` de cartas visíveis; não pode
+enviar `cardDefinitionIds` nem `actorId`. O fluxo JSON decide origem,
+destino, seleção, capacidade e ordem. Uma execução sem transição não produz
+commit. O comando é determinístico, atômico e auditável como qualquer outro
+comando da run.
 
 ## Recuperação e auditoria
 

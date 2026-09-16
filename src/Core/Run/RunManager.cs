@@ -590,6 +590,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.ApplyRunResource => ExecuteApplyRunResource(runId, payload),
             RunCommandTypes.AddCardsToHand => ExecuteAddCardsToHand(runId, payload),
             RunCommandTypes.InvokeCardZoneFlow => ExecuteInvokeCardZoneFlow(runId, payload),
+            RunCommandTypes.InvokeCardZoneGameplayFlow => ExecuteInvokeCardZoneGameplayFlow(runId, payload),
             RunCommandTypes.MoveCards => ExecuteMoveCards(runId, payload),
             RunCommandTypes.AbandonRun => ExecuteAbandonRun(runId),
             RunCommandTypes.ResolveCombat => Result.Failure(
@@ -701,6 +702,40 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Determinism = flowed.Value.Context.AdvanceStep()
             };
             return ToResult(Persist(candidate, RunCommandTypes.InvokeCardZoneFlow, payload));
+        }
+    }
+
+    private Result ExecuteInvokeCardZoneGameplayFlow(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<GameplayCardZoneFlowCommand>(payload);
+        if (string.IsNullOrWhiteSpace(request.FlowId))
+            return Result.Failure("Card-zone gameplay flow id is required");
+        if (request.RequestedCount is < 0)
+            return Result.Failure("Requested card count cannot be negative");
+        using (_sessionGates.Enter(runId))
+        {
+            if (!_runs.TryGetValue(runId, out var state))
+                return Result.Failure($"Run not found: {runId}");
+            var selected = request.CardInstanceIds ?? [];
+            if (selected.Count != selected.Distinct().Count())
+                return Result.Failure("Card instance selected more than once");
+            var visible = CardZoneReadModel.Project(state).Zones
+                .SelectMany(zone => zone.Cards)
+                .Select(card => card.CardInstanceId)
+                .ToHashSet();
+            if (selected.Any(id => !visible.Contains(id)))
+                return Result.Failure("Selected card instance is not visible in this run");
+            var flowed = CardZoneRunFlowDispatcher.InvokeGameplay(_cardZoneFlows,
+                state, request.FlowId, selected, request.RequestedCount ?? selected.Count);
+            if (flowed.IsFailure) return Result.Failure(flowed.Error);
+            if (flowed.Value.Steps.IsEmpty)
+                return Result.Failure("Card-zone gameplay flow produced no transition");
+            var candidate = state with
+            {
+                Deck = new DeckState { Topology = flowed.Value.State },
+                Determinism = flowed.Value.Context.AdvanceStep()
+            };
+            return ToResult(Persist(candidate, RunCommandTypes.InvokeCardZoneGameplayFlow, payload));
         }
     }
 

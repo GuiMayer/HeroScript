@@ -102,6 +102,37 @@ public static class CardZoneRunFlowDispatcher
             });
     }
 
+    public static Result<CardZoneFlowResult> InvokeGameplay(
+        ICardZoneFlowExecutor? flows,
+        RunState run,
+        string flowId,
+        IReadOnlyList<Guid> cardInstanceIds,
+        int requestedCount)
+    {
+        if (flows == null || run.ResolvedMode?.CardZoneSystem is not { } definition)
+            return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
+        var compiled = CardZoneSystemCompiler.Compile(definition);
+        if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
+        if (!compiled.Value.Flows.ContainsKey(flowId))
+            return Result<CardZoneFlowResult>.Failure($"Card-zone gameplay flow is not configured: {flowId}");
+        return flows.Execute(compiled.Value, run.Deck.Topology, run.Determinism,
+            flowId, new CardZoneFlowContext
+            {
+                Invocation = CardZoneFlowInvocation.GameplayCommand,
+                FlowOwnerId = ResolveFlowOwner(definition, run.PlayerEntityId),
+                RunOwnerId = "$run",
+                ActiveActorId = run.PlayerEntityId,
+                ContentRevision = run.Determinism.ContentRevision,
+                ConfigName = run.ConfigName,
+                CardInstanceIds = cardInstanceIds,
+                Variables = new Dictionary<string, double>
+                {
+                    ["requestedCount"] = requestedCount,
+                    ["requestedCardCount"] = requestedCount
+                }
+            });
+    }
+
     public static Result<CardZoneFlowResult> InvokeEffect(
         ICardZoneFlowExecutor? flows,
         RunState run,

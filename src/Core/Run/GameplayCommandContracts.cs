@@ -257,6 +257,7 @@ public static class GameplayCommandDescriptors
         Run<RunResourceCommand>(RunCommandTypes.ApplyRunResource),
         Run<CardIdsCommand>(RunCommandTypes.AddCardsToHand),
         Run<CardZoneFlowCommand>(RunCommandTypes.InvokeCardZoneFlow),
+        Run<GameplayCardZoneFlowCommand>(RunCommandTypes.InvokeCardZoneGameplayFlow),
         Run<MoveCardsCommand>(RunCommandTypes.MoveCards),
         Run<EmptyGameplayCommand>(RunCommandTypes.AbandonRun),
         new(RunCommandTypes.StartEncounter, typeof(StartEncounterCommand), GameplayCommandRoute.StartEncounter),
@@ -278,6 +279,10 @@ public sealed record CardZoneFlowCommand(
     IReadOnlyList<Guid>? CardInstanceIds = null,
     IReadOnlyList<string>? CardDefinitionIds = null,
     string? ActorId = null);
+public sealed record GameplayCardZoneFlowCommand(
+    string FlowId,
+    IReadOnlyList<Guid>? CardInstanceIds = null,
+    int? RequestedCount = null);
 public sealed record CardSelectionCommand(string SelectionId);
 public sealed record CardSelectionCardsCommand(Guid SelectionInstanceId, IReadOnlyList<string> CardIds);
 public sealed record RerollCardSelectionCommand(Guid SelectionInstanceId, IReadOnlyList<string>? LockedCardIds = null);

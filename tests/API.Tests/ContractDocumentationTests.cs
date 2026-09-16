@@ -68,6 +68,11 @@ public sealed class ContractDocumentationTests
         Assert.True(frameProperties.TryGetProperty("calculations", out _));
         Assert.True(frameProperties.TryGetProperty("applications", out _));
         Assert.True(frameProperties.TryGetProperty("cardZoneSteps", out _));
+        var zoneGameplayPayload = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("GameplayCardZoneFlowPayload").GetProperty("properties");
+        Assert.True(zoneGameplayPayload.TryGetProperty("flowId", out _));
+        Assert.True(zoneGameplayPayload.TryGetProperty("requestedCount", out _));
+        Assert.False(zoneGameplayPayload.TryGetProperty("cardDefinitionIds", out _));
         Assert.True(root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CardInspectionResult").GetProperty("properties")
             .TryGetProperty("previewSteps", out _));

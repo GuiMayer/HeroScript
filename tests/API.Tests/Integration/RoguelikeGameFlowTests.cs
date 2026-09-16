@@ -37,6 +37,69 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
+    public async Task NormalRun_CanInvokeAuthoredGameplayZoneFlowButNotToolFlow()
+    {
+        var runId = await Client.StartRunAsync();
+        var before = await Client.GetRunStateAsync(runId);
+        using var zonesBeforeResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/card-zones");
+        var zonesBefore = await zonesBeforeResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var handBefore = zonesBefore.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "hand")
+            .GetProperty("count").GetInt32();
+
+        using var drawn = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            expectedSequence = before.GetProperty("sequence").GetInt32(),
+            expectedStep = before.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "run.draw", requestedCount = 1 }
+        });
+        Assert.True(drawn.IsSuccessStatusCode, await drawn.Content.ReadAsStringAsync());
+
+        using var zonesAfterResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/card-zones");
+        var zonesAfter = await zonesAfterResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var handAfter = zonesAfter.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "hand")
+            .GetProperty("count").GetInt32();
+        Assert.Equal(handBefore + 1, handAfter);
+
+        var selectedCard = zonesAfter.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "hand")
+            .GetProperty("cards")[0].GetProperty("cardInstanceId").GetGuid();
+        var afterDraw = await Client.GetRunStateAsync(runId);
+        using var discarded = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            expectedSequence = afterDraw.GetProperty("sequence").GetInt32(),
+            expectedStep = afterDraw.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "run.discard", cardInstanceIds = new[] { selectedCard } }
+        });
+        Assert.True(discarded.IsSuccessStatusCode, await discarded.Content.ReadAsStringAsync());
+        using var zonesDiscardResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/card-zones");
+        var zonesDiscard = await zonesDiscardResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(handBefore, zonesDiscard.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "hand")
+            .GetProperty("count").GetInt32());
+
+        var current = await Client.GetRunStateAsync(runId);
+        using var toolOnly = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            expectedSequence = current.GetProperty("sequence").GetInt32(),
+            expectedStep = current.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "tool.create-in-hand", requestedCount = 1 }
+        });
+        Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, toolOnly.StatusCode);
+        Assert.Contains("does not allow invocation",
+            await toolOnly.Content.ReadAsStringAsync());
+        Assert.Equal(current.GetProperty("sequence").GetInt32(),
+            (await Client.GetRunStateAsync(runId)).GetProperty("sequence").GetInt32());
+    }
+
+    [Fact]
     public async Task CardZones_ExposeGraphPresentationAndCurrentTopology()
     {
         var runId = await Client.StartRunAsync();

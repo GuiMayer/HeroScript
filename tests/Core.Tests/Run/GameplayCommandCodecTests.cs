@@ -27,6 +27,28 @@ public sealed class GameplayCommandCodecTests
     }
 
     [Fact]
+    public void Decode_CardZoneGameplayFlow_RejectsToolOnlyPayloadFields()
+    {
+        var command = _codec.Decode(new GameplayCommandEnvelope(
+            new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.InvokeCardZoneGameplayFlow, 1, 0),
+            JsonSerializer.SerializeToElement(new
+            {
+                flowId = "run.draw", requestedCount = 2
+            })));
+        Assert.True(command.IsSuccess, command.IsFailure ? command.Error : null);
+        Assert.Equal(2, Assert.IsType<GameplayCardZoneFlowCommand>(command.Value.Payload).RequestedCount);
+
+        var invalid = _codec.Decode(new GameplayCommandEnvelope(
+            new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.InvokeCardZoneGameplayFlow, 1, 0),
+            JsonSerializer.SerializeToElement(new
+            {
+                flowId = "run.draw", cardDefinitionIds = new[] { "arbitrary" }
+            })));
+        Assert.True(invalid.IsFailure);
+        Assert.Contains("cardDefinitionIds", invalid.Error);
+    }
+
+    [Fact]
     public void Decode_RejectsUnknownCommandType()
     {
         var result = _codec.Decode(new GameplayCommandEnvelope(

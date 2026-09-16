@@ -567,9 +567,18 @@
           "expectedStep": { "type": "integer", "format": "uint64" },
           "type": {
             "type": "string",
-            "description": "Canonical command type. ACTIVATE_CONTENT_REVISION accepts { revision } and is allowed only when the run's resolved GameMode enables versioned activation. START_DIALOGUE accepts { dialogueId }. CHOOSE_DIALOGUE_OPTION accepts { dialogueInstanceId, nodeId, choiceId }; choices are validated and committed atomically with costs, effects and narrative flags."
+            "description": "Canonical command type. INVOKE_CARD_ZONE_GAMEPLAY_FLOW accepts a configured GameplayCommand flow with { flowId, cardInstanceIds?, requestedCount? }; it cannot create arbitrary card definitions or invoke Tool flows. ACTIVATE_CONTENT_REVISION accepts { revision } and is allowed only when the run's resolved GameMode enables versioned activation. START_DIALOGUE accepts { dialogueId }. CHOOSE_DIALOGUE_OPTION accepts { dialogueInstanceId, nodeId, choiceId }; choices are validated and committed atomically with costs, effects and narrative flags."
           },
           "payload": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "GameplayCardZoneFlowPayload": {
+        "type": "object", "required": ["flowId"], "additionalProperties": false,
+        "description": "Only authored GameplayCommand flows can be invoked; selected instances must be visible to the player.",
+        "properties": {
+          "flowId": { "type": "string" },
+          "cardInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "requestedCount": { "type": "integer", "minimum": 0 }
         }
       },
       "DialogueText": {
