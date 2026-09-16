@@ -306,7 +306,7 @@
             { "instanceId": "player", "entityDefinitionId": "player_warrior", "sideId": "player", "controllerBinding": { "kind": "Player" } },
             { "instanceId": "opponent", "entityDefinitionId": "enemy_goblin", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
           ],
-          "deck": [{ "definitionId": "powerful_spell" }],
+          "startingCards": [{ "definitionId": "powerful_spell" }],
           "initialState": { "resourcesByActor": { "player": { "energy": 3, "mana": 5, "health": 100 } } }
         },
         "response": {

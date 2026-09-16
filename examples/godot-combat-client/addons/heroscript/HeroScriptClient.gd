@@ -68,7 +68,7 @@ func launch_sandbox(seed: int = 20260909, attempt_key: String = "") -> bool:
 				"controllerBinding": {"kind": "AI", "policyId": "gambit"}
 			}
 		],
-		"deck": [
+		"startingCards": [
 			{"definitionId": "basic_attack"},
 			{"definitionId": "basic_attack"},
 			{"definitionId": "defend"},

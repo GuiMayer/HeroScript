@@ -70,7 +70,7 @@ public class DefaultJsonContractsTests
         Assert.NotEmpty(runs);
         foreach (var (runId, run) in runs)
         {
-            foreach (var cardId in run.GetProperty("startingDeck").EnumerateArray().Select(x => x.GetString()))
+            foreach (var cardId in run.GetProperty("startingCards").EnumerateArray().Select(x => x.GetString()))
                 Assert.Contains(cardId!, cards);
         }
     }

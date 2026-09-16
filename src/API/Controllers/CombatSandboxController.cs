@@ -43,7 +43,7 @@ public sealed class CombatSandboxController : BaseApiController
                 scenario = compiled.Value.Scenario,
                 compiled.Value.ScenarioHash,
                 contentRevision = compiled.Value.ContentManifest.Revision,
-                deck = compiled.Value.RunStart.StartingDeck,
+                startingCards = compiled.Value.RunStart.StartingCards,
                 actors = compiled.Value.Participants
             })
             : ApiProblem(

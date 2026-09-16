@@ -328,7 +328,7 @@ public class RunModelsTests
         Assert.Equal("default_run", runDef.RunId);
         Assert.Empty(runDef.StartingResources);
         Assert.Equal(5, runDef.InitialPlayableCardCount);
-        Assert.Empty(runDef.StartingDeck);
+        Assert.Empty(runDef.StartingCards);
         Assert.Empty(runDef.MapNodes);
         Assert.Empty(runDef.Metadata);
     }
@@ -346,7 +346,7 @@ public class RunModelsTests
                 ["insight"] = 3
             },
             InitialPlayableCardCount = 6,
-            StartingDeck = new List<string> { "strike", "strike", "defend", "bash" },
+            StartingCards = new List<string> { "strike", "strike", "defend", "bash" },
             MapNodes = new List<RunMapNodeDefinition>
             {
                 new()
@@ -363,7 +363,7 @@ public class RunModelsTests
         Assert.Equal(100, runDef.StartingResources["credits"]);
         Assert.Equal(3, runDef.StartingResources["insight"]);
         Assert.Equal(6, runDef.InitialPlayableCardCount);
-        Assert.Equal(4, runDef.StartingDeck.Count);
+        Assert.Equal(4, runDef.StartingCards.Count);
         Assert.Single(runDef.MapNodes);
         Assert.Single(runDef.Metadata);
     }
@@ -379,12 +379,12 @@ public class RunModelsTests
     }
     
     [Fact]
-    public void RunDefinition_StartingDeck_CanContainDuplicates()
+    public void RunDefinition_StartingCards_CanContainDuplicates()
     {
         // Arrange & Act
         var runDef = new RunDefinition
         {
-            StartingDeck = new List<string> 
+            StartingCards = new List<string>
             { 
                 "strike", "strike", "strike", "strike", "strike",
                 "defend", "defend", "defend", "defend", "defend"
@@ -392,9 +392,9 @@ public class RunModelsTests
         };
         
         // Assert
-        Assert.Equal(10, runDef.StartingDeck.Count);
-        Assert.Equal(5, runDef.StartingDeck.Count(c => c == "strike"));
-        Assert.Equal(5, runDef.StartingDeck.Count(c => c == "defend"));
+        Assert.Equal(10, runDef.StartingCards.Count);
+        Assert.Equal(5, runDef.StartingCards.Count(c => c == "strike"));
+        Assert.Equal(5, runDef.StartingCards.Count(c => c == "defend"));
     }
     
     [Fact]
@@ -599,7 +599,7 @@ public class RunModelsTests
             RunId = "ironclad_ascension_0",
             StartingResources = new Dictionary<string, float> { ["gold"] = 99 },
             InitialPlayableCardCount = 5,
-            StartingDeck = new List<string>
+            StartingCards = new List<string>
             {
                 "strike", "strike", "strike", "strike", "strike",
                 "defend", "defend", "defend", "defend", 
@@ -608,10 +608,10 @@ public class RunModelsTests
         };
         
         // Assert
-        Assert.Equal(10, ironcladRun.StartingDeck.Count);
-        Assert.Equal(5, ironcladRun.StartingDeck.Count(c => c == "strike"));
-        Assert.Equal(4, ironcladRun.StartingDeck.Count(c => c == "defend"));
-        Assert.Single(ironcladRun.StartingDeck, c => c == "bash");
+        Assert.Equal(10, ironcladRun.StartingCards.Count);
+        Assert.Equal(5, ironcladRun.StartingCards.Count(c => c == "strike"));
+        Assert.Equal(4, ironcladRun.StartingCards.Count(c => c == "defend"));
+        Assert.Single(ironcladRun.StartingCards, c => c == "bash");
     }
     
     [Fact]

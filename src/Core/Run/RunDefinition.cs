@@ -6,7 +6,7 @@ namespace Core.Run;
 
 public sealed record RunDefinition
 {
-    private ImmutableList<string> _startingDeck = [];
+    private ImmutableList<string> _startingCards = [];
     private ImmutableList<RunMapNodeDefinition> _mapNodes = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
     private ImmutableDictionary<string, float> _startingResources =
@@ -22,10 +22,10 @@ public sealed record RunDefinition
     public int InitialPlayableCardCount { get; init; } = 5;
     public string? InitialCardZoneId { get; init; }
     public CardZoneOwnerBinding InitialCardOwner { get; init; }
-    public IReadOnlyList<string> StartingDeck
+    public IReadOnlyList<string> StartingCards
     {
-        get => _startingDeck;
-        init => _startingDeck = value?.ToImmutableList() ?? [];
+        get => _startingCards;
+        init => _startingCards = value?.ToImmutableList() ?? [];
     }
     public IReadOnlyList<RunMapNodeDefinition> MapNodes
     {

@@ -8,7 +8,7 @@
     "initialPlayableCardCount": 5,
     "initialCardZoneId": "draw",
     "initialCardOwner": "RunOwner",
-    "startingDeck": [
+    "startingCards": [
       "basic_attack",
       "basic_attack",
       "basic_attack",

@@ -501,12 +501,12 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
     [Fact]
     public async Task EndTurnSimulation_ResolvesCardContainerTagsWithoutLegacyActionDefinitions()
     {
-        var deck = Enumerable.Range(0, 5)
+        var startingCards = Enumerable.Range(0, 5)
             .Select(_ => new { definitionId = "arcane_bolt" })
             .ToArray();
         using var launchResponse = await _client.PostAsJsonAsync(
             "/api/v1/sandbox/runs",
-            CreateScenario($"container-end-turn-{Guid.NewGuid():N}", deck: deck));
+            CreateScenario($"container-end-turn-{Guid.NewGuid():N}", startingCards: startingCards));
         var launch = await launchResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
         var run = launch.GetProperty("run");
@@ -1118,7 +1118,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             new { resourcesByActor = new Dictionary<string, object>
             {
                 ["hero"] = new { energy = 3, health = 20 }
-            } }, enemyDefinitionId: "spire_wisp", deck: new[]
+            } }, enemyDefinitionId: "spire_wisp", startingCards: new[]
             {
                 new { definitionId = "defend" }, new { definitionId = "defend" },
                 new { definitionId = "basic_attack" }, new { definitionId = "basic_attack" },
@@ -1205,7 +1205,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         object? initialState = null,
         string modeId = "combat_sandbox",
         string enemyDefinitionId = "enemy_goblin",
-        object? deck = null) => new
+        object? startingCards = null) => new
     {
         schemaVersion = 2,
         modeId,
@@ -1229,7 +1229,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
                 controllerBinding = new { kind = "AI", policyId = "gambit" }
             }
         },
-        deck = deck ?? new[]
+        startingCards = startingCards ?? new[]
         {
             new { definitionId = "basic_attack" },
             new { definitionId = "basic_attack" },

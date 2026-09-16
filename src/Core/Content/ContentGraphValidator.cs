@@ -218,7 +218,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
     {
         foreach (var (id, definition) in runtime.GetDefinitions("runs"))
         {
-            RequireArray(runtime, errors, "runs", id, definition, "startingDeck", "cards");
+            RequireArray(runtime, errors, "runs", id, definition, "startingCards", "cards");
             if (!TryGetProperty(definition, "startingResources", out var resources) ||
                 resources.ValueKind != JsonValueKind.Object ||
                 !resources.EnumerateObject().Any())

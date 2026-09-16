@@ -23,7 +23,7 @@ Content-Type: application/json
       "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
     }
   ],
-  "deck": [
+  "startingCards": [
     { "definitionId": "basic_attack" },
     { "definitionId": "basic_attack" },
     { "definitionId": "defend" },
@@ -52,7 +52,7 @@ Content-Type: application/json
       "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" }
     }
   ],
-  "deck": [
+  "startingCards": [
     { "definitionId": "basic_attack" },
     { "definitionId": "basic_attack" },
     { "definitionId": "defend" },

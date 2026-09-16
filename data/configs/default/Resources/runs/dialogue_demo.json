@@ -5,7 +5,7 @@
     "initialPlayableCardCount": 1,
     "initialCardZoneId": "draw",
     "initialCardOwner": "RunOwner",
-    "startingDeck": ["basic_attack"],
+    "startingCards": ["basic_attack"],
     "mapNodes": [
       { "nodeId": "keeper", "activity": { "type": "Dialogue", "definitionId": "ember_keeper" }, "completionPolicy": "Required", "nextNodeIds": ["return"] },
       { "nodeId": "return", "activity": { "type": "Dialogue", "definitionId": "ember_keeper" }, "completionPolicy": "Required", "nextNodeIds": [] }

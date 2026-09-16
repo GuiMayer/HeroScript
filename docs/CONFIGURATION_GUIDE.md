@@ -139,7 +139,7 @@ All configuration files use JSON format with the following structure:
     {
       "id": "default_run",
       "startingGold": 100,
-      "startingDeck": [
+      "startingCards": [
         "strike", "strike", "strike", "strike", "strike",
         "defend", "defend", "defend", "defend"
       ],

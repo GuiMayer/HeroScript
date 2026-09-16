@@ -12,7 +12,7 @@ public sealed record RunStartOptions(
     string? ContentRevision = null,
     string? ModeId = null,
     string? ChallengeId = null,
-    IReadOnlyList<RunStartingCard>? StartingDeck = null,
+    IReadOnlyList<RunStartingCard>? StartingCards = null,
     int? InitialPlayableCardCount = null,
     string? ScenarioHash = null,
     string? AttemptKey = null,

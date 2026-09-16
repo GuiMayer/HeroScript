@@ -1180,7 +1180,7 @@ public sealed class RunManagerTests
         "runId": "default_run",
         "startingResources": { "gold": 25, "power_points": 0 },
         "initialPlayableCardCount": 2,
-        "startingDeck": ["strike", "defend", "zap"],
+        "startingCards": ["strike", "defend", "zap"],
         "mapNodes": [
           {
             "nodeId": "start",
@@ -1204,7 +1204,7 @@ public sealed class RunManagerTests
         "runId": "default_run",
         "startingResources": { "gold": 25, "power_points": 0 },
         "initialPlayableCardCount": 1,
-        "startingDeck": ["strike", "defend"],
+        "startingCards": ["strike", "defend"],
         "mapNodes": [
           {
             "nodeId": "start",

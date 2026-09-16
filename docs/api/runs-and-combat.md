@@ -166,7 +166,7 @@ sendo a autoridade.
 
 ## Comandos de economia e recompensas
 
-Deck, recompensas, lojas e preparação não possuem rotas próprias de mutação.
+Cartas, recompensas, lojas e preparação não possuem rotas próprias de mutação.
 Envie-os ao gateway da run com o `payload` correspondente:
 
 | Tipo | Payload |

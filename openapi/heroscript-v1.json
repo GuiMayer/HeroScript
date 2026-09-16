@@ -536,7 +536,7 @@
       },
       "CombatScenarioDefinition": {
         "type": "object",
-        "required": ["schemaVersion", "modeId", "seed", "attemptKey", "participants", "deck"],
+        "required": ["schemaVersion", "modeId", "seed", "attemptKey", "participants", "startingCards"],
         "properties": {
           "schemaVersion": { "type": "integer", "const": 2 },
           "modeId": { "type": "string" },
@@ -566,7 +566,7 @@
               "additionalProperties": false
             }
           },
-          "deck": { "type": "array", "items": { "type": "object" } },
+          "startingCards": { "type": "array", "items": { "type": "object" } },
           "initialState": { "type": "object" }
         }
       },

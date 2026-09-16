@@ -22,7 +22,7 @@ namespace Core.Run.Sandbox;
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CombatScenarioDefinition
 {
-    private ImmutableArray<ScenarioCardDefinition> _deck = [];
+    private ImmutableArray<ScenarioCardDefinition> _startingCards = [];
     private ImmutableArray<ScenarioParticipantDefinition> _participants = [];
     private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
 
@@ -42,10 +42,10 @@ public sealed record CombatScenarioDefinition
         get => _influences;
         init => _influences = value?.ToImmutableArray() ?? [];
     }
-    public IReadOnlyList<ScenarioCardDefinition> Deck
+    public IReadOnlyList<ScenarioCardDefinition> StartingCards
     {
-        get => _deck;
-        init => _deck = value?.ToImmutableArray() ?? [];
+        get => _startingCards;
+        init => _startingCards = value?.ToImmutableArray() ?? [];
     }
     public IReadOnlyList<ScenarioParticipantDefinition> Participants
     {
@@ -195,7 +195,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             return Result<CompiledCombatScenario>.Failure($"Game mode does not allow scenario authoring: {scenario.ModeId}");
         if (!mode.Value.CapabilityPolicy.AllowCustomDeck)
             return Result<CompiledCombatScenario>.Failure($"Game mode does not allow custom decks: {scenario.ModeId}");
-        if (scenario.Deck.Count < 1 || scenario.Deck.Count > mode.Value.CapabilityPolicy.MaxCards)
+        if (scenario.StartingCards.Count < 1 || scenario.StartingCards.Count > mode.Value.CapabilityPolicy.MaxCards)
             return Result<CompiledCombatScenario>.Failure($"Scenario deck must contain between 1 and {mode.Value.CapabilityPolicy.MaxCards} cards");
         if (scenario.Participants.Count < 1 || scenario.Participants.Count > mode.Value.CapabilityPolicy.MaxActors)
             return Result<CompiledCombatScenario>.Failure($"Scenario must contain between 1 and {mode.Value.CapabilityPolicy.MaxActors} actors");
@@ -211,7 +211,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         if (allowedCards.IsFailure)
             return Result<CompiledCombatScenario>.Failure(allowedCards.Error);
         var startingCards = new List<RunStartingCard>();
-        foreach (var card in scenario.Deck)
+        foreach (var card in scenario.StartingCards)
         {
             if (string.IsNullOrWhiteSpace(card.DefinitionId))
                 return Result<CompiledCombatScenario>.Failure("Scenario deck contains an empty definitionId");
@@ -298,7 +298,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
         var normalized = scenario with
         {
             ContentRevision = manifest.Value.Revision,
-            Deck = scenario.Deck.Select(card => card with
+            StartingCards = scenario.StartingCards.Select(card => card with
             {
                 UpgradeIds = card.UpgradeIds.OrderBy(id => id, StringComparer.Ordinal).ToArray()
             }).ToArray(),
@@ -331,7 +331,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 normalized.Seed,
                 manifest.Value.Revision,
                 normalized.ModeId,
-                StartingDeck: startingCards,
+                StartingCards: startingCards,
                 InitialPlayableCardCount: System.Math.Min(
                     mode.Value.CombatRules.Flow.DeckCycle.DrawPerActivation,
                     startingCards.Count),

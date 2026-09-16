@@ -277,7 +277,7 @@ public sealed class ContentGraphValidatorTests
             {
                 ["test"] = new
                 {
-                    runId = "test", startingDeck = new[] { "spark" },
+                    runId = "test", startingCards = new[] { "spark" },
                     startingResources = new { credits = 1 },
                     initialCardZoneId = "missing", initialCardOwner = "RunOwner"
                 }

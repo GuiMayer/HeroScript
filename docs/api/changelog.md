@@ -7,6 +7,8 @@
   removidas; `/runs/{runId}/card-zones` é a única projeção das zonas.
 - A inspeção de carta usa `isInPlayableZone`, derivado de `allowsCardPlay`, sem
   presumir uma zona chamada `hand`.
+- Runs e cenários recebem `startingCards`; a entrada não presume que essas
+  instâncias formarão um deck, pois o grafo decide a zona inicial.
 
 ## v1 — 2026-09-15
 

@@ -183,11 +183,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             $"{options.ModeId ?? "default"}:{options.ChallengeId ?? "none"}:{options.AttemptKey ?? "default"}");
         context = runId.Context;
 
-        var startingDeck = options.StartingDeck ?? definition.StartingDeck
+        var startingCards = options.StartingCards ?? definition.StartingCards
             .Select(cardId => new RunStartingCard { DefinitionId = cardId })
             .ToArray();
-        if (startingDeck.Count == 0)
-            return Result<RunState>.Failure("Starting deck cannot be empty");
+        if (startingCards.Count == 0)
+            return Result<RunState>.Failure("Starting cards cannot be empty");
         var initialPlayableCardCount = options.InitialPlayableCardCount ?? definition.InitialPlayableCardCount;
         if (initialPlayableCardCount < 0)
             return Result<RunState>.Failure("Initial playable card count cannot be negative");
@@ -202,7 +202,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (compiled.IsFailure)
                 return Result<RunState>.Failure(compiled.Error);
             var initialized = CardZoneRunInitializer.Initialize(
-                compiled.Value, definition, startingDeck, "$run", options.PlayerEntityId,
+                compiled.Value, definition, startingCards, "$run", options.PlayerEntityId,
                 [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows);
             if (initialized.IsFailure)
                 return Result<RunState>.Failure(initialized.Error);
@@ -221,7 +221,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             // Modes not yet bound to a card-zone graph retain the existing
             // construction path until their content is migrated.
-            var deckResult = DeckTransitions.Create(startingDeck, context);
+            var deckResult = DeckTransitions.Create(startingCards, context);
             if (deckResult.IsFailure)
                 return Result<RunState>.Failure(deckResult.Error);
             var initialDraw = DeckTransitions.Draw(deckResult.Value.State, initialPlayableCardCount,
@@ -288,7 +288,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     RunDefinitionId = effectiveRunDefinitionId,
                     Seed = seed,
                     ContentRevision = contentRevision,
-                    StartingDeck = startingDeck,
+                    StartingCards = startingCards,
                     InitialPlayableCardCount = initialPlayableCardCount,
                     Scenario = options.Scenario,
                     SettingId = options.SettingId ?? options.ConfigName

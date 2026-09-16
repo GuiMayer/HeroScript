@@ -78,6 +78,10 @@ public sealed class ContractDocumentationTests
         Assert.True(cardInspectionProperties.TryGetProperty("previewSteps", out _));
         Assert.True(cardInspectionProperties.TryGetProperty("isInPlayableZone", out _));
         Assert.False(cardInspectionProperties.TryGetProperty("isInHand", out _));
+        var scenarioProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CombatScenarioDefinition").GetProperty("properties");
+        Assert.True(scenarioProperties.TryGetProperty("startingCards", out _));
+        Assert.False(scenarioProperties.TryGetProperty("deck", out _));
         Assert.True(root.GetProperty("paths").TryGetProperty("/api/v1/runs/{runId}/card-zones", out _));
         var runReadProperties = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("RunReadModel").GetProperty("properties");
