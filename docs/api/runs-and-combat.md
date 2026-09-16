@@ -215,7 +215,8 @@ metadados de apresentação, contagem e cartas visíveis. `contentsVisible` e
 `orderVisible` indicam o que a interface pode mostrar: quando a ordem é oculta,
 as cartas são devolvidas em ordem de identidade, não na ordem real do fluxo;
 quando o conteúdo é oculto, apenas a contagem é devolvida. A Godot deve usar
-`presentation.slot` para decidir onde desenhar a zona, sem inferir que `draw`,
+`presentation.slot` para decidir onde desenhar a zona e `allowsCardPlay` para
+identificar as cartas jogáveis, sem inferir que `draw`,
 `hand`, `discard` ou `exhaust` tenham significado especial para a engine. O
 `topologyHash` permite comparar snapshots sem reconstruir as regras no cliente.
 

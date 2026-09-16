@@ -18,6 +18,7 @@ public sealed record CardZoneView(
     string? ScopeId,
     CardZoneOwnerScope OwnerScope,
     CardZoneOrdering Ordering,
+    bool AllowsCardPlay,
     CardZoneVisibilityDefinition Visibility,
     IReadOnlyDictionary<string, JsonElement> Presentation,
     int Count,
@@ -72,6 +73,7 @@ public static class CardZoneReadModel
                 return new CardZoneView(zone.Address.ZoneId, zone.Address.OwnerId,
                     zone.Address.ScopeId, definition?.OwnerScope ?? CardZoneOwnerScope.Unspecified,
                     definition?.Ordering ?? CardZoneOrdering.Unspecified,
+                    definition?.AllowsCardPlay ?? false,
                     visibility, definition?.Presentation ??
                         new Dictionary<string, JsonElement>(),
                     zone.InstanceIds.Count, contentsVisible, orderVisible, cards);

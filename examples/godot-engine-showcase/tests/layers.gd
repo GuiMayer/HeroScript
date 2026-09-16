@@ -59,9 +59,11 @@ class FakeTransport extends RefCounted:
 			]})
 		if path.ends_with("/card-zones"):
 			return _ok({"topologyHash": "zone-test-hash", "zones": [
-				{"zoneId": "prepared", "presentation": {"slot": "playable_cards", "labelKey": "Hand"},
+				{"zoneId": "prepared", "allowsCardPlay": true,
+					"presentation": {"slot": "prepared_track", "labelKey": "Hand"},
 					"count": 1, "contentsVisible": true, "cards": [{"cardInstanceId": "card-1", "definitionId": "strike"}]},
-				{"zoneId": "cooldown", "presentation": {"slot": "cooldown_track", "labelKey": "Cooldown"},
+				{"zoneId": "cooldown", "allowsCardPlay": false,
+					"presentation": {"slot": "cooldown_track", "labelKey": "Cooldown"},
 					"count": 2, "contentsVisible": false, "cards": []}
 			]})
 		if path.contains("/legal-actions?"):
@@ -125,7 +127,7 @@ func _run() -> void:
 	check(await session.start_campaign(42), "session can run against injected transport without a UI")
 	var zone_view = CardZones.new(session.card_zones, i18n)
 	check(zone_view.playable_cards().size() == 1 and str(zone_view.playable_cards()[0].definitionId) == "strike",
-		"playable cards come from authored presentation slots, not fixed pile names")
+		"playable cards come from the authored play rule, not zone names or visual slots")
 	check(zone_view.auxiliary_zones().size() == 1 and zone_view.zone_cards("cooldown").is_empty(),
 		"hidden auxiliary zones expose counts without contents")
 	var tool_flow := {"flowId": "tool.transfer", "allowedInvocations": ["Tool"],

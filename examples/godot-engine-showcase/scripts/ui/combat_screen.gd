@@ -130,7 +130,7 @@ func _build_hand() -> void:
 	for card_view in playable_cards:
 		var card := _card_instance(str(card_view.get("cardInstanceId", "")))
 		if not card.is_empty(): hand_row.add_child(_card_button(card))
-	if playable_cards.is_empty(): hand_row.add_child(AppTheme.muted(I18n.text("Your hand is empty.")))
+	if playable_cards.is_empty(): hand_row.add_child(AppTheme.muted(I18n.text("No playable cards.")))
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 8)

@@ -140,11 +140,13 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         var hand = zones.Single(zone => zone.GetProperty("zoneId").GetString() == "hand");
         Assert.Equal(5, hand.GetProperty("count").GetInt32());
         Assert.True(hand.GetProperty("contentsVisible").GetBoolean());
+        Assert.True(hand.GetProperty("allowsCardPlay").GetBoolean());
         Assert.True(hand.GetProperty("orderVisible").GetBoolean());
         Assert.Equal(5, hand.GetProperty("cards").GetArrayLength());
         Assert.Equal("playable_cards", hand.GetProperty("presentation")
             .GetProperty("slot").GetString());
         var draw = zones.Single(zone => zone.GetProperty("zoneId").GetString() == "draw");
+        Assert.False(draw.GetProperty("allowsCardPlay").GetBoolean());
         Assert.False(draw.GetProperty("orderVisible").GetBoolean());
     }
 
