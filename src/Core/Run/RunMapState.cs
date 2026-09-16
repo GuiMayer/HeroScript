@@ -94,9 +94,6 @@ public static class RunCommandTypes
     public const string ResolveCombat = "RESOLVE_COMBAT";
     public const string ResolveNode = "RESOLVE_NODE";
     public const string AdvanceNode = "ADVANCE_NODE";
-    public const string DrawCards = "DRAW_CARDS";
-    public const string DiscardCards = "DISCARD_CARDS";
-    public const string ShuffleDiscard = "SHUFFLE_DISCARD";
     public const string CreateCardSelection = "CREATE_CARD_SELECTION";
     public const string PickCardReward = "PICK_CARD_REWARD";
     public const string RerollCardReward = "REROLL_CARD_REWARD";
@@ -114,9 +111,7 @@ public static class RunCommandTypes
     public const string RestoreHeadFromHistory = "RESTORE_HEAD_FROM_HISTORY";
     public const string ActivateContentRevision = "ACTIVATE_CONTENT_REVISION";
     public const string ApplyRunResource = "APPLY_RUN_RESOURCE";
-    public const string AddCardsToHand = "ADD_CARDS_TO_HAND";
     public const string InvokeCardZoneFlow = "INVOKE_CARD_ZONE_FLOW";
     public const string InvokeCardZoneGameplayFlow = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW";
-    public const string MoveCards = "MOVE_CARDS";
     public const string AbandonRun = "ABANDON_RUN";
 }

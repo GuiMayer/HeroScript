@@ -17,7 +17,7 @@ public sealed record CommandEnvelope : IValidatableObject
     /// <summary>Deterministic aggregate step the client observed before issuing the command.</summary>
     public ulong? ExpectedStep { get; init; }
 
-    /// <summary>Canonical command type, such as <c>DRAW_CARDS</c> or <c>PLAY_CARD</c>.</summary>
+    /// <summary>Canonical command type, such as <c>INVOKE_CARD_ZONE_GAMEPLAY_FLOW</c> or <c>PLAY_CARD</c>.</summary>
     [Required]
     public string Type { get; init; } = string.Empty;
 

@@ -16,6 +16,9 @@
 - O `RunManager` não oferece mais mutações diretas de mão, compra, descarte ou
   exaustão. Toda movimentação externa passa pelo gateway e por fluxos de zonas
   autorados, preservando uma única autoridade determinística.
+- Constantes e payloads internos desses comandos antigos também foram removidos;
+  testes de infraestrutura usam um comando neutro próprio, sem perpetuar o
+  vocabulário de pilhas no contrato do núcleo.
 
 ## v1 — 2026-09-15
 

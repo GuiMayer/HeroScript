@@ -267,8 +267,6 @@ public static class GameplayCommandDescriptors
 public sealed record EmptyGameplayCommand;
 public sealed record AdvanceNodeCommand(string TargetNodeId);
 public sealed record ResolveNodeCommand(string CurrentNodeId);
-public sealed record CountCommand(int Count);
-public sealed record CardIdsCommand(IReadOnlyList<string> CardIds);
 public sealed record CardZoneFlowCommand(
     string FlowId,
     IReadOnlyList<Guid>? CardInstanceIds = null,
@@ -297,7 +295,6 @@ public sealed record RunResourceCommand(
     float Value,
     Core.Effects.ResourceEffectOperation Operation,
     Core.Resources.ResourceValueField Field = Core.Resources.ResourceValueField.Current);
-public sealed record MoveCardsCommand(IReadOnlyList<string> CardIds, string Destination);
 public sealed record StartEncounterCommand(
     IReadOnlyList<CombatParticipantReference> Participants,
     IReadOnlyDictionary<string, IReadOnlyDictionary<string, float>>? InitialResourceValues = null);

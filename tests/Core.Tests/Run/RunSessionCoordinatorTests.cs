@@ -11,6 +11,8 @@ namespace Core.Tests.Run;
 
 public sealed class RunSessionCoordinatorTests
 {
+    private const string TestCommandType = "TEST_SET_VALUE";
+
     [Fact]
     public async Task DifferentRuns_CanAppendConcurrently()
     {
@@ -88,8 +90,8 @@ public sealed class RunSessionCoordinatorTests
     private static RunSessionCoordinator CreateCoordinator(TestQueries queries, TestCommitStore store)
     {
         var descriptor = new GameplayCommandDescriptor(
-            RunCommandTypes.DrawCards,
-            typeof(CountCommand),
+            TestCommandType,
+            typeof(TestValueCommand),
             GameplayCommandRoute.Run);
         return new RunSessionCoordinator(
             queries,
@@ -102,11 +104,11 @@ public sealed class RunSessionCoordinatorTests
 
     private static GameplayCommandEnvelope Command(RunState state, Guid commandId, int count)
     {
-        var payload = JsonSerializer.SerializeToElement(new CountCommand(count));
+        var payload = JsonSerializer.SerializeToElement(new TestValueCommand(count));
         return new GameplayCommandEnvelope(
             new RunCommandIdentity(
                 commandId,
-                RunCommandTypes.DrawCards,
+                TestCommandType,
                 state.Sequence,
                 state.Determinism.Step),
             payload);
@@ -120,13 +122,15 @@ public sealed class RunSessionCoordinatorTests
         Determinism = DeterministicContext.Create(seed, new string('a', 64)).AdvanceStep()
     };
 
-    private sealed class TestHandler(GameplayCommandDescriptor descriptor) : IRunCommandHandler<CountCommand>
+    private sealed record TestValueCommand(int Count);
+
+    private sealed class TestHandler(GameplayCommandDescriptor descriptor) : IRunCommandHandler<TestValueCommand>
     {
         public GameplayCommandDescriptor Descriptor { get; } = descriptor;
 
         public Result<RunTransitionPlan> Plan(
             RunState state,
-            CountCommand payload,
+            TestValueCommand payload,
             GameplayCommandExecutionContext context)
         {
             var candidate = state with
