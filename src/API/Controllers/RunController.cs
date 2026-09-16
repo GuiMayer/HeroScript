@@ -194,7 +194,7 @@ public sealed class RunController : BaseApiController
         try
         {
             var result = _runManager.GetRun(runId);
-            return result.IsFailure ? NotFound(new { error = result.Error }) : Ok(MapDeck(result.Value.Deck));
+            return result.IsFailure ? NotFound(new { error = result.Error }) : Ok(MapDeck(result.Value));
         }
         catch (Exception ex)
         {
@@ -219,12 +219,16 @@ public sealed class RunController : BaseApiController
             var result = _runManager.GetRun(runId);
             if (result.IsFailure)
                 return NotFound(new { error = result.Error });
-            var deck = result.Value.Deck;
+            var run = result.Value;
+            var deck = run.Deck;
+            var snapshot = CardZoneReadModel.Project(run);
+            var visible = VisibleCardIds(snapshot);
             return Ok(new
             {
                 runId,
-                cards = deck.HandInstanceIds
-                    .Select(id => MapCardInstance(deck, deck.CardInstances[id]))
+                cards = CardZonePlaySource.CardsForActor(run, run.PlayerEntityId)
+                    .Where(visible.Contains)
+                    .Select(id => MapCardInstance(deck, snapshot, deck.CardInstances[id]))
                     .ToArray()
             });
         }
@@ -257,8 +261,10 @@ public sealed class RunController : BaseApiController
         var result = _runManager.GetRun(runId);
         if (result.IsFailure)
             return ApiNotFound(result.Error);
-        return result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card)
-            ? Ok(MapCardInstance(result.Value.Deck, card))
+        var snapshot = CardZoneReadModel.Project(result.Value);
+        return VisibleCardIds(snapshot).Contains(cardInstanceId) &&
+            result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card)
+            ? Ok(MapCardInstance(result.Value.Deck, snapshot, card))
             : ApiNotFound($"Card instance not found: {cardInstanceId}");
     }
 
@@ -268,7 +274,8 @@ public sealed class RunController : BaseApiController
         var result = _runManager.GetRun(runId);
         if (result.IsFailure)
             return ApiNotFound(result.Error);
-        if (!result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card))
+        if (!VisibleCardIds(CardZoneReadModel.Project(result.Value)).Contains(cardInstanceId) ||
+            !result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card))
             return ApiNotFound($"Card instance not found: {cardInstanceId}");
         if (_cardUpgrades == null)
         {
@@ -331,7 +338,7 @@ public sealed class RunController : BaseApiController
             run.Determinism.EngineVersion,
             run.Determinism.Step,
             stateHash = CanonicalJson.ComputeHash(run),
-            deck = MapDeck(run.Deck),
+            deck = MapDeck(run),
             map = MapMap(run),
             run.ActiveEncounterId,
             run.Encounters,
@@ -386,17 +393,21 @@ public sealed class RunController : BaseApiController
         bool Recoverable,
         string? RecoveryError);
 
-    private static object MapDeck(DeckState deck)
+    private static object MapDeck(RunState run)
     {
+        var deck = run.Deck;
+        var snapshot = CardZoneReadModel.Project(run);
+        var visible = VisibleCardIds(snapshot);
         return new
         {
-            deck.DrawPileInstanceIds,
-            deck.HandInstanceIds,
-            deck.DiscardPileInstanceIds,
-            deck.ExhaustPileInstanceIds,
+            drawPileInstanceIds = VisibleZoneIds(snapshot, "draw"),
+            handInstanceIds = VisibleZoneIds(snapshot, "hand"),
+            discardPileInstanceIds = VisibleZoneIds(snapshot, "discard"),
+            exhaustPileInstanceIds = VisibleZoneIds(snapshot, "exhaust"),
             cardInstances = deck.CardInstances.Values
+                .Where(card => visible.Contains(card.CardInstanceId))
                 .OrderBy(card => card.CardInstanceId)
-                .Select(card => MapCardInstance(deck, card))
+                .Select(card => MapCardInstance(deck, snapshot, card))
                 .ToArray(),
             counts = new
             {
@@ -408,32 +419,34 @@ public sealed class RunController : BaseApiController
         };
     }
 
-    private static object MapCardInstance(DeckState deck, CardInstanceState card)
+    private static object MapCardInstance(DeckState deck, CardZoneSnapshot snapshot, CardInstanceState card)
     {
         var (zone, index) = FindCardZone(deck, card.CardInstanceId);
+        var address = deck.Topology.FindZone(card.CardInstanceId)?.Address;
+        var view = snapshot.Zones.FirstOrDefault(item => item.ZoneId == address?.ZoneId &&
+            item.OwnerId == address?.OwnerId && item.ScopeId == address?.ScopeId);
         return new
         {
             card.CardInstanceId,
             card.DefinitionId,
             card.Upgrades,
             zone,
-            zoneIndex = index
+            zoneIndex = view?.OrderVisible == true ? index : -1
         };
     }
 
+    private static HashSet<Guid> VisibleCardIds(CardZoneSnapshot snapshot) => snapshot.Zones
+        .SelectMany(zone => zone.Cards.Select(card => card.CardInstanceId)).ToHashSet();
+
+    private static IReadOnlyList<Guid> VisibleZoneIds(CardZoneSnapshot snapshot, string zoneId) =>
+        snapshot.Zones.Where(zone => zone.ZoneId == zoneId && zone.OwnerId == "$run")
+            .SelectMany(zone => zone.Cards.Select(card => card.CardInstanceId)).ToArray();
+
     private static (string Zone, int Index) FindCardZone(DeckState deck, Guid cardInstanceId)
     {
-        var index = deck.DrawPileInstanceIds.ToList().IndexOf(cardInstanceId);
-        if (index >= 0)
-            return ("draw", index);
-        index = deck.HandInstanceIds.ToList().IndexOf(cardInstanceId);
-        if (index >= 0)
-            return ("hand", index);
-        index = deck.DiscardPileInstanceIds.ToList().IndexOf(cardInstanceId);
-        if (index >= 0)
-            return ("discard", index);
-        index = deck.ExhaustPileInstanceIds.ToList().IndexOf(cardInstanceId);
-        return index >= 0 ? ("exhaust", index) : ("unknown", -1);
+        var zone = deck.Topology.FindZone(cardInstanceId);
+        if (zone == null) return ("unknown", -1);
+        return (zone.Address.ZoneId, zone.InstanceIds.ToList().IndexOf(cardInstanceId));
     }
 
 }

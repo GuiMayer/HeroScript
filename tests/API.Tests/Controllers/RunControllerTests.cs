@@ -1,6 +1,7 @@
 using API.Controllers;
 using Core.Abstractions.Persistence;
 using Core.Common;
+using Core.CardZones;
 using Core.Run;
 using Core.Resources;
 using Microsoft.AspNetCore.Mvc;
@@ -80,6 +81,74 @@ public sealed class RunControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
+    }
+
+    [Fact]
+    public void RunProjection_RedactsHiddenActorCardsAndReadsPlayableActorZone()
+    {
+        var visibleId = Guid.Parse("10000000-0000-8000-8000-000000000001");
+        var hiddenId = Guid.Parse("10000000-0000-8000-8000-000000000002");
+        var prepared = new CardZoneAddress { ZoneId = "prepared", OwnerId = "hero" };
+        var secret = new CardZoneAddress { ZoneId = "secret", OwnerId = "enemy" };
+        var run = CreateRun() with
+        {
+            ResolvedMode = new ResolvedGameMode
+            {
+                CardZoneSystem = new CardZoneSystemDefinition
+                {
+                    CardZoneSystemId = "actor-graph",
+                    Zones =
+                    [
+                        new CardZoneDefinition
+                        {
+                            ZoneId = "prepared", OwnerScope = CardZoneOwnerScope.Actor,
+                            AllowsCardPlay = true, Visibility = new CardZoneVisibilityDefinition
+                            {
+                                Contents = CardZoneVisibility.Owner
+                            }
+                        },
+                        new CardZoneDefinition
+                        {
+                            ZoneId = "secret", OwnerScope = CardZoneOwnerScope.Actor,
+                            Visibility = new CardZoneVisibilityDefinition
+                            {
+                                Contents = CardZoneVisibility.None
+                            }
+                        }
+                    ]
+                }
+            },
+            Deck = new DeckState { Topology = new CardZoneTopologyState
+            {
+                Instances = new Dictionary<Guid, CardInstanceState>
+                {
+                    [visibleId] = new() { CardInstanceId = visibleId, DefinitionId = "shown", OwnerId = "hero" },
+                    [hiddenId] = new() { CardInstanceId = hiddenId, DefinitionId = "hidden", OwnerId = "enemy" }
+                },
+                Zones = new Dictionary<string, CardZoneState>
+                {
+                    [prepared.Key] = new() { Address = prepared, InstanceIds = [visibleId] },
+                    [secret.Key] = new() { Address = secret, InstanceIds = [hiddenId] }
+                }
+            } }
+        };
+        _runManager.Setup(manager => manager.GetRun(run.RunId)).Returns(Result<RunState>.Success(run));
+
+        var state = JsonSerializer.SerializeToElement(
+            Assert.IsType<OkObjectResult>(_controller.GetState(run.RunId)).Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var hand = JsonSerializer.SerializeToElement(
+            Assert.IsType<OkObjectResult>(_controller.GetHand(run.RunId)).Value,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.Equal("shown", Assert.Single(state.GetProperty("deck").GetProperty("cardInstances").EnumerateArray())
+            .GetProperty("definitionId").GetString());
+        Assert.Equal("prepared", Assert.Single(hand.GetProperty("cards").EnumerateArray())
+            .GetProperty("zone").GetString());
+        Assert.Equal(-1, Assert.Single(hand.GetProperty("cards").EnumerateArray())
+            .GetProperty("zoneIndex").GetInt32());
+        Assert.IsType<NotFoundObjectResult>(_controller.GetCard(run.RunId, hiddenId));
+        Assert.IsType<NotFoundObjectResult>(_controller.GetCardUpgradeOptions(run.RunId, hiddenId));
     }
 
     [Fact]
