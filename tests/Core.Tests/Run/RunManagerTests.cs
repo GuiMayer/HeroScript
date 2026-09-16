@@ -463,27 +463,6 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public void DrawCards_ShufflesDiscardWhenDrawPileIsEmpty()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-        var discard = manager.DiscardCards(
-            run.RunId,
-            run.Deck.HandInstanceIds.Select(id => id.ToString()).ToArray());
-        Assert.True(discard.IsSuccess, discard.IsFailure ? discard.Error : null);
-
-        var drawn = manager.DrawCards(run.RunId, 3);
-        run = manager.GetRun(run.RunId).Value;
-
-        Assert.True(drawn.IsSuccess, drawn.IsFailure ? drawn.Error : null);
-        Assert.Equal("zap", drawn.Value[0]);
-        Assert.Equal(
-            new[] { "defend", "strike" },
-            drawn.Value.Skip(1).OrderBy(card => card, StringComparer.Ordinal));
-        Assert.Equal(3, run.Deck.Hand.Count);
-    }
-
-    [Fact]
     public void ApplyRunResource_SupportsOperationsAndFields()
     {
         var manager = CreateManager();
@@ -868,100 +847,6 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public void ConsumeCardsFromHand_Discard_RemovesFromHandAndAddsToDiscard()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-
-        var cardInstanceId = FindHandInstance(run.Deck, "strike");
-        var result = manager.ConsumeCardsFromHand(run.RunId, [cardInstanceId.ToString()], CardConsumeDestination.Discard);
-        run = manager.GetRun(run.RunId).Value;
-
-        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.DoesNotContain("strike", run.Deck.Hand);
-        Assert.Contains("strike", run.Deck.DiscardPile);
-    }
-
-    [Fact]
-    public void ConsumeCardsFromHand_Exhaust_RemovesFromHandAndAddsToExhaust()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-
-        var cardInstanceId = FindHandInstance(run.Deck, "defend");
-        var result = manager.ConsumeCardsFromHand(run.RunId, [cardInstanceId.ToString()], CardConsumeDestination.Exhaust);
-        run = manager.GetRun(run.RunId).Value;
-
-        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.DoesNotContain("defend", run.Deck.Hand);
-        Assert.Contains("defend", run.Deck.ExhaustPile);
-    }
-
-    [Fact]
-    public void ConsumeCardsFromHand_None_KeepsCardInHand()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-
-        var cardInstanceId = FindHandInstance(run.Deck, "strike");
-        var result = manager.ConsumeCardsFromHand(run.RunId, [cardInstanceId.ToString()], CardConsumeDestination.None);
-
-        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Contains("strike", run.Deck.Hand);
-        Assert.DoesNotContain("strike", run.Deck.DiscardPile);
-        Assert.DoesNotContain("strike", run.Deck.ExhaustPile);
-    }
-
-    [Fact]
-    public void ConsumeCardsFromHand_MissingCard_Fails()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-
-        var missingInstanceId = Guid.Parse("ffffffff-ffff-8fff-bfff-ffffffffffff");
-        var result = manager.ConsumeCardsFromHand(run.RunId, [missingInstanceId.ToString()], CardConsumeDestination.Discard);
-
-        Assert.True(result.IsFailure);
-        Assert.Contains("Card instance not found in hand", result.Error);
-    }
-
-    [Fact]
-    public void ConsumeCardsFromHand_DuplicateCards_RemovesSingleOccurrence()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-        manager.AddCardsToHand(run.RunId, new[] { "strike" });
-        run = manager.GetRun(run.RunId).Value;
-        var cardInstanceId = FindHandInstance(run.Deck, "strike");
-
-        var result = manager.ConsumeCardsFromHand(run.RunId, [cardInstanceId.ToString()], CardConsumeDestination.Discard);
-        run = manager.GetRun(run.RunId).Value;
-
-        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Single(run.Deck.Hand, card => card == "strike");
-        Assert.Single(run.Deck.DiscardPile, card => card == "strike");
-    }
-
-    [Fact]
-    public void HasCardInHand_ReturnsWhetherCardExists()
-    {
-        var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
-
-        var present = manager.HasCardInHand(
-            run.RunId,
-            FindHandInstance(run.Deck, "strike").ToString());
-        var missing = manager.HasCardInHand(
-            run.RunId,
-            Guid.Parse("ffffffff-ffff-8fff-bfff-ffffffffffff").ToString());
-
-        Assert.True(present.IsSuccess, present.IsFailure ? present.Error : null);
-        Assert.True(missing.IsSuccess, missing.IsFailure ? missing.Error : null);
-        Assert.True(present.Value);
-        Assert.False(missing.Value);
-    }
-
-    [Fact]
     public void CommandGateway_DeduplicatesRetryAndRejectsStaleVersion()
     {
         var manager = CreateManager();
@@ -1036,12 +921,6 @@ public sealed class RunManagerTests
                 Directory.Delete(path, recursive: true);
         }
     }
-
-    private static Guid FindHandInstance(DeckState deck, string definitionId) =>
-        deck.HandInstanceIds.First(id => string.Equals(
-            deck.GetDefinitionId(id),
-            definitionId,
-            StringComparison.Ordinal));
 
     private static float Amount(IEnumerable<ResourceAmount> amounts, string resourceId) =>
         amounts.Single(amount => amount.ResourceId.Equals(resourceId, StringComparison.OrdinalIgnoreCase)).Amount;

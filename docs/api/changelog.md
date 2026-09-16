@@ -13,6 +13,9 @@
   hash da topologia. `CardDrawnEvent` fica restrito ao executor legado sem grafo.
 - Os comandos específicos `DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`,
   `ADD_CARDS_TO_HAND` e `SHUFFLE_DISCARD` não são mais publicados pelo codec.
+- O `RunManager` não oferece mais mutações diretas de mão, compra, descarte ou
+  exaustão. Toda movimentação externa passa pelo gateway e por fluxos de zonas
+  autorados, preservando uma única autoridade determinística.
 
 ## v1 — 2026-09-15
 
