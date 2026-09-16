@@ -113,8 +113,13 @@ public static class CardZoneRunFlowDispatcher
             return Result<CardZoneFlowResult>.Failure("Run has no configured card-zone executor");
         var compiled = CardZoneSystemCompiler.Compile(definition);
         if (compiled.IsFailure) return Result<CardZoneFlowResult>.Failure(compiled.Error);
-        if (!compiled.Value.Flows.ContainsKey(flowId))
+        if (!compiled.Value.Flows.TryGetValue(flowId, out var flow))
             return Result<CardZoneFlowResult>.Failure($"Card-zone gameplay flow is not configured: {flowId}");
+        if (!flow.AllowedInvocations.Contains(CardZoneFlowInvocation.GameplayCommand))
+            return Result<CardZoneFlowResult>.Failure(
+                $"Card-zone flow {flowId} does not allow invocation GameplayCommand");
+        if (!flow.PlayerInvokable)
+            return Result<CardZoneFlowResult>.Failure($"Card-zone gameplay flow is not player-invokable: {flowId}");
         return flows.Execute(compiled.Value, run.Deck.Topology, run.Determinism,
             flowId, new CardZoneFlowContext
             {

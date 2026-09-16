@@ -56,6 +56,7 @@ public sealed record CardZoneFlowDefinition
     private ImmutableArray<CardZoneFlowStepDefinition> _steps = [];
 
     public string FlowId { get; init; } = string.Empty;
+    public bool PlayerInvokable { get; init; }
     public int Priority { get; init; }
     public IReadOnlyList<string> Triggers
     {

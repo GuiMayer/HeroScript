@@ -88,6 +88,7 @@
       },
       {
         "flowId": "run.draw",
+        "playerInvokable": true,
         "allowedInvocations": ["GameplayCommand"],
         "steps": [
           {
@@ -108,6 +109,7 @@
       },
       {
         "flowId": "run.discard",
+        "playerInvokable": true,
         "allowedInvocations": ["GameplayCommand"],
         "steps": [
           {
@@ -123,6 +125,7 @@
       },
       {
         "flowId": "run.exhaust",
+        "playerInvokable": true,
         "allowedInvocations": ["GameplayCommand"],
         "steps": [
           {

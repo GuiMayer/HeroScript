@@ -98,6 +98,18 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         Assert.Equal(current.GetProperty("sequence").GetInt32(),
             (await Client.GetRunStateAsync(runId)).GetProperty("sequence").GetInt32());
 
+        using var internalGrant = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            expectedSequence = current.GetProperty("sequence").GetInt32(),
+            expectedStep = current.GetProperty("step").GetUInt64(),
+            payload = new { flowId = "grant.create-in-discard" }
+        });
+        Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, internalGrant.StatusCode);
+        Assert.Contains("not player-invokable",
+            await internalGrant.Content.ReadAsStringAsync());
+
         using var purposeBound = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
         {
             commandId = Guid.NewGuid(),

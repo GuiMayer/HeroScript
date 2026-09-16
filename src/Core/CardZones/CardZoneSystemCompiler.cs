@@ -96,6 +96,8 @@ public static partial class CardZoneSystemCompiler
             if (!ValidId(flow.FlowId)) errors.Add($"{path}: flowId is invalid");
             if (flow.AllowedInvocations.Count == 0 || flow.AllowedInvocations.Contains(CardZoneFlowInvocation.Unspecified))
                 errors.Add($"{path}: allowedInvocations is required");
+            if (flow.PlayerInvokable && !flow.AllowedInvocations.Contains(CardZoneFlowInvocation.GameplayCommand))
+                errors.Add($"{path}: playerInvokable requires GameplayCommand invocation");
             if (flow.Steps.Count == 0) errors.Add($"{path}: at least one step is required");
             if (flow.Steps.Select(step => step.StepId).Distinct(StringComparer.Ordinal).Count() != flow.Steps.Count)
                 errors.Add($"{path}: step ids must be unique");

@@ -193,12 +193,15 @@ ser invocados como ferramenta.
 
 `INVOKE_CARD_ZONE_GAMEPLAY_FLOW` é a mutação genérica para um modo com zonas
 configuradas. Não exige cheats e executa apenas fluxos declarados com
-`allowedInvocations: ["GameplayCommand"]`. O jogador envia `flowId`,
+`allowedInvocations: ["GameplayCommand"]` e `playerInvokable: true`.
+Fluxos internos de recompensa e preparação não podem ser chamados
+diretamente pela API. O jogador envia `flowId`,
 `requestedCount` opcional e `cardInstanceIds` de cartas visíveis; não pode
 enviar `cardDefinitionIds` nem `actorId`. O fluxo JSON decide origem,
 destino, seleção, capacidade e ordem. Uma execução sem transição não produz
 commit. O comando é determinístico, atômico e auditável como qualquer outro
 comando da run.
+
 Em runs com grafo de zonas, `DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`,
 `ADD_CARDS_TO_HAND` e `SHUFFLE_DISCARD` são recusados: seus nomes embutem
 propósitos de pilha que a engine não pode presumir. Modos ainda sem grafo

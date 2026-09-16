@@ -35,6 +35,19 @@ public sealed class CardZoneSystemCompilerTests
     }
 
     [Fact]
+    public void Compile_RejectsPlayerInvokableFlowWithoutGameplayInvocation()
+    {
+        var result = CardZoneSystemCompiler.Compile(System(Flow("direct", 0) with
+        {
+            Triggers = [], PlayerInvokable = true,
+            AllowedInvocations = [CardZoneFlowInvocation.Tool]
+        }));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("playerInvokable requires GameplayCommand", result.Error);
+    }
+
+    [Fact]
     public void Compile_RejectsTriggeredFlowWithoutBoundaryInvocation()
     {
         var result = CardZoneSystemCompiler.Compile(System(Flow("draw", 0) with
