@@ -76,7 +76,19 @@
         "x-heroscript-stability": "stable",
         "parameters": [{ "$ref": "#/components/parameters/RunId" }],
         "responses": {
-          "200": { "description": "Immutable run read model" },
+          "200": { "description": "Immutable run read model", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RunReadModel" } } } },
+          "404": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
+    "/api/v1/runs/{runId}/card-zones": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "getRunCardZones",
+        "x-heroscript-stability": "stable",
+        "parameters": [{ "$ref": "#/components/parameters/RunId" }],
+        "responses": {
+          "200": { "description": "Purpose-independent card-zone projection with visibility already applied", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CardZoneSnapshot" } } } },
           "404": { "$ref": "#/components/responses/Problem" }
         }
       }
@@ -369,7 +381,7 @@
           { "name": "costOptionId", "in": "query", "schema": { "type": "string" } }
         ],
         "responses": {
-          "200": { "description": "One card evaluation for every hand instance", "content": { "application/json": { "schema": { "type": "object", "properties": { "combatId": { "type": "string", "format": "uuid" }, "cards": { "type": "array", "items": { "$ref": "#/components/schemas/CardInspectionResult" } } } } } } },
+          "200": { "description": "One card evaluation for every instance in an authored playable zone for the selected actor", "content": { "application/json": { "schema": { "type": "object", "properties": { "combatId": { "type": "string", "format": "uuid" }, "cards": { "type": "array", "items": { "$ref": "#/components/schemas/CardInspectionResult" } } } } } } },
           "400": { "$ref": "#/components/responses/Problem" }
         }
       }
@@ -570,6 +582,57 @@
             "description": "Canonical command type. INVOKE_CARD_ZONE_GAMEPLAY_FLOW accepts a configured GameplayCommand flow with { flowId, cardInstanceIds?, requestedCount? }; it cannot create arbitrary card definitions or invoke Tool flows. ACTIVATE_CONTENT_REVISION accepts { revision } and is allowed only when the run's resolved GameMode enables versioned activation. START_DIALOGUE accepts { dialogueId }. CHOOSE_DIALOGUE_OPTION accepts { dialogueInstanceId, nodeId, choiceId }; choices are validated and committed atomically with costs, effects and narrative flags."
           },
           "payload": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "RunReadModel": {
+        "type": "object",
+        "required": ["runId", "sequence", "step", "stateHash", "cardZones"],
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" },
+          "sequence": { "type": "integer", "minimum": 0 },
+          "step": { "type": "integer", "minimum": 0 },
+          "stateHash": { "type": "string" },
+          "cardZones": { "$ref": "#/components/schemas/CardZoneSnapshot" }
+        },
+        "additionalProperties": true
+      },
+      "CardZoneSnapshot": {
+        "type": "object",
+        "required": ["runId", "sequence", "step", "topologyHash", "zones"],
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" },
+          "sequence": { "type": "integer", "minimum": 0 },
+          "step": { "type": "integer", "minimum": 0 },
+          "topologyHash": { "type": "string" },
+          "zones": { "type": "array", "items": { "$ref": "#/components/schemas/CardZoneView" } }
+        }
+      },
+      "CardZoneView": {
+        "type": "object",
+        "required": ["zoneId", "ownerId", "ownerScope", "ordering", "allowsCardPlay", "visibility", "presentation", "count", "contentsVisible", "orderVisible", "cards"],
+        "properties": {
+          "zoneId": { "type": "string" },
+          "ownerId": { "type": "string" },
+          "scopeId": { "type": "string", "nullable": true },
+          "ownerScope": { "type": "string" },
+          "ordering": { "type": "string" },
+          "allowsCardPlay": { "type": "boolean" },
+          "visibility": { "type": "object", "additionalProperties": true },
+          "presentation": { "type": "object", "additionalProperties": true },
+          "count": { "type": "integer", "minimum": 0 },
+          "contentsVisible": { "type": "boolean" },
+          "orderVisible": { "type": "boolean" },
+          "cards": { "type": "array", "items": { "$ref": "#/components/schemas/CardZoneCardView" } }
+        }
+      },
+      "CardZoneCardView": {
+        "type": "object",
+        "required": ["cardInstanceId", "definitionId", "upgrades", "lifetime"],
+        "properties": {
+          "cardInstanceId": { "type": "string", "format": "uuid" },
+          "definitionId": { "type": "string" },
+          "upgrades": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "lifetime": { "type": "object", "additionalProperties": true }
         }
       },
       "GameplayCardZoneFlowPayload": {
@@ -1116,12 +1179,12 @@
       },
       "CardInspectionResult": {
         "type": "object",
-        "required": ["version", "detail", "zone", "isInHand", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewSteps", "previewApplications", "disposition", "resolutionFingerprint"],
+        "required": ["version", "detail", "zone", "isInPlayableZone", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewSteps", "previewApplications", "disposition", "resolutionFingerprint"],
         "properties": {
           "version": { "type": "object", "description": "Run, combat, engine and content-revision coordinates used by this projection", "additionalProperties": true },
           "detail": { "type": "string", "enum": ["Resolved", "Full"] },
-          "zone": { "type": "string", "enum": ["hand", "draw", "discard", "exhaust", "collection"] },
-          "isInHand": { "type": "boolean" },
+          "zone": { "type": "string", "description": "Authored card-zone identifier containing this instance." },
+          "isInPlayableZone": { "type": "boolean" },
           "isPlayable": { "type": "boolean", "description": "Includes card conditions, costs, targeting, active actor, phase and action budget." },
           "baseContainer": { "type": "object", "additionalProperties": true },
           "compiledContainer": { "type": "object", "additionalProperties": true },

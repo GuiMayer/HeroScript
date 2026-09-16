@@ -41,11 +41,11 @@ public sealed class CombatCardControllerTests
     }
 
     [Fact]
-    public void EvaluateHand_ReturnsOneBatchProjection()
+    public void EvaluatePlayableCards_ReturnsOneBatchProjection()
     {
         var combatId = Guid.NewGuid();
         var service = new Mock<ICardInspectionService>();
-        service.Setup(item => item.InspectHand(
+        service.Setup(item => item.InspectPlayableCards(
                 combatId,
                 "hero",
                 It.IsAny<string[]>(),
@@ -59,10 +59,10 @@ public sealed class CombatCardControllerTests
             new ToolAccessPolicy(new ToolAccessSettings { Profile = "dev_modder" }),
             Mock.Of<ILogger<CombatCardController>>());
 
-        var response = controller.EvaluateHand(combatId, "hero", []);
+        var response = controller.EvaluatePlayableCards(combatId, "hero", []);
 
         Assert.IsType<OkObjectResult>(response);
-        service.Verify(item => item.InspectHand(
+        service.Verify(item => item.InspectPlayableCards(
             combatId,
             "hero",
             It.IsAny<string[]>(),

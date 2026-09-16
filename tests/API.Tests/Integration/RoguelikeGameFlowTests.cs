@@ -31,9 +31,9 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         AssertJsonPropertyEquals(runState, "configName", "default");
         AssertJsonPropertyEquals(runState, "playerEntityId", "player");
         
-        // Verify deck exists
-        var deck = runState.GetProperty("deck");
-        AssertDeckStateValid(deck);
+        // Verify authored card zones exist
+        var cardZones = runState.GetProperty("cardZones");
+        AssertCardZoneStateValid(cardZones);
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         Assert.True(drawnCards.Count <= 5, "Should draw at most 5 cards");
 
         // Verify hand updated
-        var hand = await Client.GetHandAsync(runId);
+        var hand = await Client.GetPlayableCardIdsAsync(runId);
         Assert.Contains(drawnCards[0], hand);
     }
 
@@ -277,7 +277,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         AssertEntityHasResource(hero, "energy");
 
         // Play a card (simulate Strike)
-        var hand = await Client.GetHandAsync(runId);
+        var hand = await Client.GetPlayableCardIdsAsync(runId);
         Assert.NotEmpty(hand);
         var cardToPlay = hand.First();
         var result = await Client.ExecuteActionAsync(combatId, playerEntityId,
@@ -380,7 +380,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
         var (runId, runState) = await SetupRunAsync();
         await Client.DrawCardsAsync(runId, 3);
         
-        var hand = await Client.GetHandAsync(runId);
+        var hand = await Client.GetPlayableCardIdsAsync(runId);
         Assert.NotEmpty(hand);
 
         // Discard first card
@@ -392,7 +392,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
 
         // Definition IDs can legitimately repeat; one deterministic instance
         // must move zones without requiring every copy to disappear.
-        var updatedHand = await Client.GetHandAsync(runId);
+        var updatedHand = await Client.GetPlayableCardIdsAsync(runId);
         Assert.Equal(hand.Count - 1, updatedHand.Count);
         Assert.Equal(
             hand.Count(cardId => cardId == cardToDiscard) - 1,

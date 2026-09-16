@@ -232,8 +232,9 @@ permite preparar qualquer zona no começo da run ou do encontro sem codificar o
 conceito de “mão” no executor; o conteúdo padrão usa a variável genérica
 `initialPlayableCardCount`.
 
-`GET /deck` e `GET /hand` ainda são projeções do modo inicial de demonstração;
-clientes que pretendem admitir outros grafos de zonas devem usar `/card-zones`.
+As projeções específicas `/deck` e `/hand` não fazem parte do contrato: clientes
+devem consumir `/card-zones` ou o campo `cardZones` do estado da run. Assim um
+modo pode trocar nomes, quantidade e finalidade das zonas sem alterar a API.
 
 Use os seguintes recursos depois de reconectar ou para suporte:
 

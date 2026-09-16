@@ -1,5 +1,13 @@
 # Changelog do contrato público
 
+## v1 — 2026-09-16
+
+- O estado da run expõe `cardZones` em vez da projeção fixa `deck`.
+- As rotas específicas `/runs/{runId}/deck` e `/runs/{runId}/hand` foram
+  removidas; `/runs/{runId}/card-zones` é a única projeção das zonas.
+- A inspeção de carta usa `isInPlayableZone`, derivado de `allowsCardPlay`, sem
+  presumir uma zona chamada `hand`.
+
 ## v1 — 2026-09-15
 
 - `GET /runs/{runId}/card-zones` expõe a topologia de cartas e a apresentação

@@ -59,7 +59,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         var currentEnergy = GetJsonInt(energy, "current");
 
         Assert.True(currentEnergy >= 2, "The default run must start combat with enough energy for Fireball.");
-        var fireballCard = await Client.GetHandCardInstanceIdAsync(runId, "fireball");
+        var fireballCard = await Client.GetPlayableCardInstanceIdAsync(runId, "fireball");
         var actionResult = await Client.ExecuteActionAsync(combatId, playerEntityId,
             targetId: "enemy_1", cardId: fireballCard.ToString(), runId: runId);
 
@@ -151,7 +151,7 @@ public sealed class PuzzleRpgGameFlowTests : GameEngineIntegrationTestBase
         Assert.Equal(GetJsonInt(energy, "maximum"), currentEnergy);
 
         var currentRun = await Client.GetRunStateAsync(runId);
-        var fireballCard = await Client.GetHandCardInstanceIdAsync(runId, "fireball");
+        var fireballCard = await Client.GetPlayableCardInstanceIdAsync(runId, "fireball");
         var fireballResponse = await Client.PostRawAsync($"/api/v1/combats/{combatId}/commands", new
         {
             commandId = Guid.NewGuid(),

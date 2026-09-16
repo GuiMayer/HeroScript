@@ -39,7 +39,7 @@ public sealed class DialogueFlowTests
         Assert.Equal(receipt.GetProperty("stateHash").GetString(), duplicateReceipt.GetProperty("stateHash").GetString());
         var after = await game.GetRunStateAsync(runId);
         Assert.Equal(10, after.GetProperty("resources").GetProperty("gold").GetProperty("current").GetSingle());
-        Assert.Equal(initial.GetProperty("deck").GetProperty("cardInstances").GetArrayLength() + 1, after.GetProperty("deck").GetProperty("cardInstances").GetArrayLength());
+        Assert.Equal(VisibleCardCount(initial) + 1, VisibleCardCount(after));
         Assert.Equal("accepted", after.GetProperty("narrativeFlags").GetProperty("keeper.trade").GetString());
 
         using var branchResponse = await client.PostAsJsonAsync($"/api/v1/runs/{runId}/branches", new { sourceSequence = started.GetProperty("sequence").GetInt32(), branchKey = "decline-the-offer" });
@@ -86,6 +86,10 @@ public sealed class DialogueFlowTests
         var verification = await verify.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(verify.IsSuccessStatusCode && verification.GetProperty("isValid").GetBoolean(), verification.GetRawText());
     }
+
+    private static int VisibleCardCount(JsonElement run) => run.GetProperty("cardZones")
+        .GetProperty("zones").EnumerateArray()
+        .Sum(zone => zone.GetProperty("cards").GetArrayLength());
 
     private static async Task<HttpResponseMessage> Post(HttpClient client, Guid runId, string type, object payload)
     {

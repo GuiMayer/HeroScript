@@ -53,13 +53,14 @@ public sealed class CombatCardController : BaseApiController
     }
 
     [HttpGet("evaluations")]
-    public IActionResult EvaluateHand(
+    public IActionResult EvaluatePlayableCards(
         Guid combatId,
         [FromQuery] string? actorId = null,
         [FromQuery] string[]? targetIds = null,
         [FromQuery] string? costOptionId = null)
     {
-        var result = _cards.InspectHand(combatId, actorId, targetIds, costOptionId, MaximumDetail(combatId));
+        var result = _cards.InspectPlayableCards(
+            combatId, actorId, targetIds, costOptionId, MaximumDetail(combatId));
         return result.IsSuccess
             ? Ok(new { combatId, cards = result.Value })
             : ApiBadRequest(ApiErrorCodes.InvalidOperation, "Card evaluation failed", result.Error);

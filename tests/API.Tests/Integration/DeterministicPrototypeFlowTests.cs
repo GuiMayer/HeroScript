@@ -57,7 +57,7 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
             .GetProperty("health")
             .GetProperty("current")
             .GetDouble();
-        var fireball = (await Client.GetHandAsync(runId)).Single(cardId => cardId == "fireball");
+        var fireball = (await Client.GetPlayableCardIdsAsync(runId)).Single(cardId => cardId == "fireball");
 
         var afterAction = await Client.ExecuteActionAsync(
             combatId,

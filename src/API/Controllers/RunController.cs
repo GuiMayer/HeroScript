@@ -188,20 +188,6 @@ public sealed class RunController : BaseApiController
         }
     }
 
-    [HttpGet("/api/v1/runs/{runId:guid}/deck")]
-    public IActionResult GetDeck(Guid runId)
-    {
-        try
-        {
-            var result = _runManager.GetRun(runId);
-            return result.IsFailure ? NotFound(new { error = result.Error }) : Ok(MapDeck(result.Value));
-        }
-        catch (Exception ex)
-        {
-            return HandleException(ex, "get run deck", runId.ToString());
-        }
-    }
-
     [HttpGet("/api/v1/runs/{runId:guid}/card-zones")]
     public IActionResult GetCardZones(Guid runId)
     {
@@ -209,33 +195,6 @@ public sealed class RunController : BaseApiController
         return result.IsFailure
             ? ApiNotFound(result.Error)
             : Ok(CardZoneReadModel.Project(result.Value));
-    }
-
-    [HttpGet("/api/v1/runs/{runId:guid}/hand")]
-    public IActionResult GetHand(Guid runId)
-    {
-        try
-        {
-            var result = _runManager.GetRun(runId);
-            if (result.IsFailure)
-                return NotFound(new { error = result.Error });
-            var run = result.Value;
-            var deck = run.Deck;
-            var snapshot = CardZoneReadModel.Project(run);
-            var visible = VisibleCardIds(snapshot);
-            return Ok(new
-            {
-                runId,
-                cards = CardZonePlaySource.CardsForActor(run, run.PlayerEntityId)
-                    .Where(visible.Contains)
-                    .Select(id => MapCardInstance(deck, snapshot, deck.CardInstances[id]))
-                    .ToArray()
-            });
-        }
-        catch (Exception ex)
-        {
-            return HandleException(ex, "get run hand", runId.ToString());
-        }
     }
 
     [HttpGet("/api/v1/runs/{runId:guid}/relics")]
@@ -338,7 +297,7 @@ public sealed class RunController : BaseApiController
             run.Determinism.EngineVersion,
             run.Determinism.Step,
             stateHash = CanonicalJson.ComputeHash(run),
-            deck = MapDeck(run),
+            cardZones = CardZoneReadModel.Project(run),
             map = MapMap(run),
             run.ActiveEncounterId,
             run.Encounters,
@@ -393,32 +352,6 @@ public sealed class RunController : BaseApiController
         bool Recoverable,
         string? RecoveryError);
 
-    private static object MapDeck(RunState run)
-    {
-        var deck = run.Deck;
-        var snapshot = CardZoneReadModel.Project(run);
-        var visible = VisibleCardIds(snapshot);
-        return new
-        {
-            drawPileInstanceIds = VisibleZoneIds(snapshot, "draw"),
-            handInstanceIds = VisibleZoneIds(snapshot, "hand"),
-            discardPileInstanceIds = VisibleZoneIds(snapshot, "discard"),
-            exhaustPileInstanceIds = VisibleZoneIds(snapshot, "exhaust"),
-            cardInstances = deck.CardInstances.Values
-                .Where(card => visible.Contains(card.CardInstanceId))
-                .OrderBy(card => card.CardInstanceId)
-                .Select(card => MapCardInstance(deck, snapshot, card))
-                .ToArray(),
-            counts = new
-            {
-                drawPile = deck.DrawPileInstanceIds.Count,
-                hand = deck.HandInstanceIds.Count,
-                discardPile = deck.DiscardPileInstanceIds.Count,
-                exhaustPile = deck.ExhaustPileInstanceIds.Count
-            }
-        };
-    }
-
     private static object MapCardInstance(DeckState deck, CardZoneSnapshot snapshot, CardInstanceState card)
     {
         var (zone, index) = FindCardZone(deck, card.CardInstanceId);
@@ -437,10 +370,6 @@ public sealed class RunController : BaseApiController
 
     private static HashSet<Guid> VisibleCardIds(CardZoneSnapshot snapshot) => snapshot.Zones
         .SelectMany(zone => zone.Cards.Select(card => card.CardInstanceId)).ToHashSet();
-
-    private static IReadOnlyList<Guid> VisibleZoneIds(CardZoneSnapshot snapshot, string zoneId) =>
-        snapshot.Zones.Where(zone => zone.ZoneId == zoneId && zone.OwnerId == "$run")
-            .SelectMany(zone => zone.Cards.Select(card => card.CardInstanceId)).ToArray();
 
     private static (string Zone, int Index) FindCardZone(DeckState deck, Guid cardInstanceId)
     {

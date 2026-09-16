@@ -73,9 +73,16 @@ public sealed class ContractDocumentationTests
         Assert.True(zoneGameplayPayload.TryGetProperty("flowId", out _));
         Assert.True(zoneGameplayPayload.TryGetProperty("requestedCount", out _));
         Assert.False(zoneGameplayPayload.TryGetProperty("cardDefinitionIds", out _));
-        Assert.True(root.GetProperty("components").GetProperty("schemas")
-            .GetProperty("CardInspectionResult").GetProperty("properties")
-            .TryGetProperty("previewSteps", out _));
+        var cardInspectionProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("CardInspectionResult").GetProperty("properties");
+        Assert.True(cardInspectionProperties.TryGetProperty("previewSteps", out _));
+        Assert.True(cardInspectionProperties.TryGetProperty("isInPlayableZone", out _));
+        Assert.False(cardInspectionProperties.TryGetProperty("isInHand", out _));
+        Assert.True(root.GetProperty("paths").TryGetProperty("/api/v1/runs/{runId}/card-zones", out _));
+        var runReadProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("RunReadModel").GetProperty("properties");
+        Assert.True(runReadProperties.TryGetProperty("cardZones", out _));
+        Assert.False(runReadProperties.TryGetProperty("deck", out _));
         var timelineProperties = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CombatTimelineItem").GetProperty("properties");
         Assert.True(timelineProperties.TryGetProperty("resolutionCommandId", out _));

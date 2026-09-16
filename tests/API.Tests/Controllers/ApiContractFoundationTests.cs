@@ -127,6 +127,17 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(path, json.GetProperty("instance").GetString());
     }
 
+    [Theory]
+    [InlineData("deck")]
+    [InlineData("hand")]
+    public async Task PurposeSpecificCardZoneRoutes_AreNotPublished(string route)
+    {
+        using var response = await _client.GetAsync(
+            $"/api/v1/runs/00000000-0000-0000-0000-000000000001/{route}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     [Fact]
     public async Task ContentRevisionEndpoints_ExposeCanonicalManifest()
     {
@@ -176,8 +187,9 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.True(state.TryGetProperty("contentManifest", out _));
         Assert.Equal("start", state.GetProperty("map").GetProperty("currentNodeId").GetString());
 
-        var card = state.GetProperty("deck").GetProperty("cardInstances")
+        var card = state.GetProperty("cardZones").GetProperty("zones")
             .EnumerateArray()
+            .SelectMany(zone => zone.GetProperty("cards").EnumerateArray())
             .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
         var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
         using var cardResponse = await _client.GetAsync(

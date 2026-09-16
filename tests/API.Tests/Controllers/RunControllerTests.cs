@@ -72,12 +72,12 @@ public sealed class RunControllerTests
     }
 
     [Fact]
-    public void GetHand_ReturnsHandForRun()
+    public void GetCardZones_ReturnsAuthoredZonesForRun()
     {
         var state = CreateRun();
         _runManager.Setup(m => m.GetRun(state.RunId)).Returns(Result<RunState>.Success(state));
 
-        var result = _controller.GetHand(state.RunId);
+        var result = _controller.GetCardZones(state.RunId);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(ok.Value);
@@ -137,16 +137,18 @@ public sealed class RunControllerTests
         var state = JsonSerializer.SerializeToElement(
             Assert.IsType<OkObjectResult>(_controller.GetState(run.RunId)).Value,
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        var hand = JsonSerializer.SerializeToElement(
-            Assert.IsType<OkObjectResult>(_controller.GetHand(run.RunId)).Value,
+        var zones = JsonSerializer.SerializeToElement(
+            Assert.IsType<OkObjectResult>(_controller.GetCardZones(run.RunId)).Value,
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
-        Assert.Equal("shown", Assert.Single(state.GetProperty("deck").GetProperty("cardInstances").EnumerateArray())
+        Assert.Equal("shown", Assert.Single(state.GetProperty("cardZones").GetProperty("zones")
+                .EnumerateArray().SelectMany(zone => zone.GetProperty("cards").EnumerateArray()))
             .GetProperty("definitionId").GetString());
-        Assert.Equal("prepared", Assert.Single(hand.GetProperty("cards").EnumerateArray())
-            .GetProperty("zone").GetString());
-        Assert.Equal(-1, Assert.Single(hand.GetProperty("cards").EnumerateArray())
-            .GetProperty("zoneIndex").GetInt32());
+        var preparedZone = zones.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "prepared");
+        Assert.Equal("shown", Assert.Single(preparedZone.GetProperty("cards").EnumerateArray())
+            .GetProperty("definitionId").GetString());
+        Assert.False(preparedZone.GetProperty("orderVisible").GetBoolean());
         Assert.IsType<NotFoundObjectResult>(_controller.GetCard(run.RunId, hiddenId));
         Assert.IsType<NotFoundObjectResult>(_controller.GetCardUpgradeOptions(run.RunId, hiddenId));
     }

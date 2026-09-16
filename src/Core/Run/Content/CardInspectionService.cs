@@ -96,7 +96,7 @@ public sealed record CardInspectionResult
     public CardInspectionVersion Version { get; init; } = new();
     public InspectionDetailLevel Detail { get; init; }
     public string Zone { get; init; } = string.Empty;
-    public bool IsInHand { get; init; }
+    public bool IsInPlayableZone { get; init; }
     public bool IsPlayable { get; init; }
     public CardContentDefinition BaseContainer { get; init; } = null!;
     public CompiledCardDefinition CompiledContainer { get; init; } = null!;
@@ -130,7 +130,7 @@ public sealed record CardInspectionResult
 public interface ICardInspectionService
 {
     Result<CardInspectionResult> Inspect(CardInspectionRequest request);
-    Result<IReadOnlyList<CardInspectionResult>> InspectHand(
+    Result<IReadOnlyList<CardInspectionResult>> InspectPlayableCards(
         Guid combatId,
         string? actorId = null,
         IReadOnlyList<string>? selectedTargetIds = null,
@@ -173,7 +173,7 @@ public sealed class CardInspectionService : ICardInspectionService
             : Inspect(resolved.Value.Run, resolved.Value.Combat, request);
     }
 
-    public Result<IReadOnlyList<CardInspectionResult>> InspectHand(
+    public Result<IReadOnlyList<CardInspectionResult>> InspectPlayableCards(
         Guid combatId,
         string? actorId = null,
         IReadOnlyList<string>? selectedTargetIds = null,
@@ -263,7 +263,7 @@ public sealed class CardInspectionService : ICardInspectionService
                 FailureReasons = legal.Value.FailureReasons
             };
 
-        var isInHand = CardZonePlaySource.Contains(run, actorId, request.CardInstanceId);
+        var isInPlayableZone = CardZonePlaySource.Contains(run, actorId, request.CardInstanceId);
         var preview = legal.Value.Candidate?.CardPlay;
 
         var context = detail == InspectionDetailLevel.Full
@@ -283,7 +283,7 @@ public sealed class CardInspectionService : ICardInspectionService
             },
             effective = effective.Value.Fingerprint,
             evaluation = resolvedEvaluation,
-            isInHand,
+            isInPlayableZone,
             context
         });
         return Result<CardInspectionResult>.Success(new CardInspectionResult
@@ -302,8 +302,8 @@ public sealed class CardInspectionService : ICardInspectionService
             },
             Detail = detail,
             Zone = ResolveZone(run.Deck, request.CardInstanceId),
-            IsInHand = isInHand,
-            IsPlayable = isInHand && resolvedEvaluation.IsLegal,
+            IsInPlayableZone = isInPlayableZone,
+            IsPlayable = isInPlayableZone && resolvedEvaluation.IsLegal,
             BaseContainer = authored.Value,
             CompiledContainer = compiled.Value,
             AppliedUpgrades = effective.Value.AppliedUpgrades,

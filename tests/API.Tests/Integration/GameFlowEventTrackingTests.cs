@@ -130,7 +130,7 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
 
         await ExecuteBasicAttackAsync(runId, combatId, playerEntityId, "enemy_1");
 
-        var defendCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "defend");
+        var defendCard = (await Client.GetPlayableCardIdsAsync(runId)).First(cardId => cardId == "defend");
         await Client.ExecuteActionAsync(combatId, playerEntityId, cardId: defendCard, runId: runId);
 
         await Client.EndTurnAsync(combatId, runId);
@@ -178,7 +178,7 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
 
     private async Task ExecuteBasicAttackAsync(Guid runId, Guid combatId, string playerEntityId, string targetId)
     {
-        var card = (await Client.GetHandAsync(runId)).First(cardId => cardId == "basic_attack");
+        var card = (await Client.GetPlayableCardIdsAsync(runId)).First(cardId => cardId == "basic_attack");
         await Client.ExecuteActionAsync(combatId, playerEntityId, targetId, cardId: card, runId: runId);
     }
 }

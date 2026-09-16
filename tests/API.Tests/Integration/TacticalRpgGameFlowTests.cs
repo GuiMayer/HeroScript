@@ -51,13 +51,13 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
         var combatId = await Client.StartCombatAsync(playerEntityId, new[] { "enemy_1", "enemy_2" }, runId: runId);
         var combatState = await Client.GetCombatStateAsync(combatId);
         var initialTurn = GetJsonInt(combatState, "currentTurn");
-        var hand = await Client.GetHandAsync(runId);
+        var hand = await Client.GetPlayableCardIdsAsync(runId);
 
         // Execute two real cards through the run-owned combat command gateway.
         var attackCard = hand.First(cardId => cardId == "basic_attack");
         await Client.ExecuteActionAsync(combatId, playerEntityId, targetId: "enemy_1", cardId: attackCard, runId: runId);
 
-        var defendCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "defend");
+        var defendCard = (await Client.GetPlayableCardIdsAsync(runId)).First(cardId => cardId == "defend");
         await Client.ExecuteActionAsync(combatId, playerEntityId, cardId: defendCard, runId: runId);
 
         // End turn
@@ -84,7 +84,7 @@ public sealed class TacticalRpgGameFlowTests : GameEngineIntegrationTestBase
             .GetProperty("health")
             .GetProperty("current")
             .GetDouble();
-        var fireballCard = (await Client.GetHandAsync(runId)).First(cardId => cardId == "fireball");
+        var fireballCard = (await Client.GetPlayableCardIdsAsync(runId)).First(cardId => cardId == "fireball");
 
         var actionResult = await Client.ExecuteActionAsync(combatId, playerEntityId,
             targetId: "enemy_1",

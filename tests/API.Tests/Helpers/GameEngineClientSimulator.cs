@@ -66,10 +66,10 @@ public class GameEngineClientSimulator
 
     public async Task<List<string>> DrawCardsAsync(Guid runId, int count = 1)
     {
-        var before = await GetHandCardsAsync(runId);
+        var before = await GetPlayableCardsAsync(runId);
         await ExecuteRunCommandStateAsync(runId, "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
             new { flowId = "run.draw", requestedCount = count });
-        var after = await GetHandCardsAsync(runId);
+        var after = await GetPlayableCardsAsync(runId);
         var previousIds = before.Select(card => card.CardInstanceId).ToHashSet();
         return after
             .Where(card => !previousIds.Contains(card.CardInstanceId))
@@ -79,13 +79,13 @@ public class GameEngineClientSimulator
 
     public async Task<JsonElement> DiscardCardsAsync(Guid runId, IEnumerable<string> cardIds)
     {
-        var hand = await GetHandCardsAsync(runId);
+        var playableCards = await GetPlayableCardsAsync(runId);
         var used = new HashSet<Guid>();
         var instanceIds = cardIds.Select(reference =>
         {
             if (Guid.TryParse(reference, out var instanceId))
                 return instanceId;
-            var card = hand.First(item =>
+            var card = playableCards.First(item =>
                 !used.Contains(item.CardInstanceId) &&
                 string.Equals(item.DefinitionId, reference, StringComparison.Ordinal));
             used.Add(card.CardInstanceId);
@@ -95,27 +95,29 @@ public class GameEngineClientSimulator
             new { flowId = "run.discard", cardInstanceIds = instanceIds });
     }
 
-    public async Task<List<string>> GetHandAsync(Guid runId)
+    public async Task<List<string>> GetPlayableCardIdsAsync(Guid runId)
     {
-        return (await GetHandCardsAsync(runId))
+        return (await GetPlayableCardsAsync(runId))
             .Select(card => card.DefinitionId)
             .ToList();
     }
 
-    public async Task<Guid> GetHandCardInstanceIdAsync(Guid runId, string definitionId)
+    public async Task<Guid> GetPlayableCardInstanceIdAsync(Guid runId, string definitionId)
     {
-        return (await GetHandCardsAsync(runId))
+        return (await GetPlayableCardsAsync(runId))
             .First(card => string.Equals(card.DefinitionId, definitionId, StringComparison.Ordinal))
             .CardInstanceId;
     }
 
-    private async Task<List<HandCard>> GetHandCardsAsync(Guid runId)
+    private async Task<List<PlayableCard>> GetPlayableCardsAsync(Guid runId)
     {
-        var response = await _client.GetAsync($"/api/v1/runs/{runId}/hand");
+        var response = await _client.GetAsync($"/api/v1/runs/{runId}/card-zones");
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();
-        return json.GetProperty("cards").EnumerateArray()
-            .Select(card => new HandCard(
+        return json.GetProperty("zones").EnumerateArray()
+            .Where(zone => zone.GetProperty("allowsCardPlay").GetBoolean())
+            .SelectMany(zone => zone.GetProperty("cards").EnumerateArray())
+            .Select(card => new PlayableCard(
                 card.GetProperty("cardInstanceId").GetGuid(),
                 card.GetProperty("definitionId").GetString()!))
             .ToList();
@@ -177,7 +179,7 @@ public class GameEngineClientSimulator
         Guid? cardInstanceId = null;
         if (!string.IsNullOrWhiteSpace(cardId) && !Guid.TryParse(cardId, out _))
         {
-            cardInstanceId = await GetHandCardInstanceIdAsync(ownerRunId, cardId);
+            cardInstanceId = await GetPlayableCardInstanceIdAsync(ownerRunId, cardId);
         }
         else if (Guid.TryParse(cardId, out var parsedCardInstanceId))
         {
@@ -216,7 +218,7 @@ public class GameEngineClientSimulator
         return receipt.GetProperty("state").GetProperty("combat").Clone();
     }
 
-    private sealed record HandCard(Guid CardInstanceId, string DefinitionId);
+    private sealed record PlayableCard(Guid CardInstanceId, string DefinitionId);
 
     public async Task<JsonElement> EndTurnAsync(Guid combatId, Guid? runId = null)
     {
