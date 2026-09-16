@@ -54,9 +54,13 @@ public static class CardZoneReadModel
                 };
                 var owns = zone.Address.OwnerId == "$run" ||
                            zone.Address.OwnerId == run.PlayerEntityId;
+                var hasZoneTools = run.ResolvedMode?.CapabilityPolicy.AllowCardZoneCheats == true;
                 var contentsVisible = visibility.Contents == CardZoneVisibility.All ||
-                    visibility.Contents == CardZoneVisibility.Owner && owns;
-                var orderVisible = contentsVisible && visibility.Order == CardZoneOrderVisibility.Visible;
+                    visibility.Contents == CardZoneVisibility.Owner && owns ||
+                    visibility.Contents == CardZoneVisibility.ToolCapability && hasZoneTools;
+                var orderVisible = contentsVisible &&
+                    (visibility.Order == CardZoneOrderVisibility.Visible ||
+                     visibility.Order == CardZoneOrderVisibility.ToolCapability && hasZoneTools);
                 var ids = orderVisible ? zone.InstanceIds : zone.InstanceIds.OrderBy(id => id).ToArray();
                 var cards = contentsVisible
                     ? ids.Select(id => run.Deck.GetCard(id) ?? throw new InvalidOperationException(
