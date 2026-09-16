@@ -119,7 +119,7 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
             payload = new { count = 1 }
         });
         Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, purposeBound.StatusCode);
-        Assert.Contains("INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+        Assert.Contains("Unsupported command type",
             await purposeBound.Content.ReadAsStringAsync());
     }
 

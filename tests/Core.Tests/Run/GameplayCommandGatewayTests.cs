@@ -18,13 +18,13 @@ public sealed class GameplayCommandGatewayTests
     {
         var runId = Guid.NewGuid();
         var commandId = Guid.NewGuid();
-        var payload = JsonSerializer.SerializeToElement(new { count = 2 });
-        var expected = Receipt(runId, commandId, RunCommandTypes.DrawCards);
+        var payload = JsonSerializer.SerializeToElement(new { targetNodeId = "next" });
+        var expected = Receipt(runId, commandId, RunCommandTypes.AdvanceNode);
         var processor = new Mock<IRunCommandProcessor>();
         processor.Setup(service => service.Execute(
                 runId,
                 It.Is<GameplayCommandEnvelope>(command =>
-                    command.Identity.Type == RunCommandTypes.DrawCards &&
+                    command.Identity.Type == RunCommandTypes.AdvanceNode &&
                     command.Identity.PayloadHash == CanonicalJson.ComputeHash(payload))))
             .Returns(Result<RunCommandReceipt>.Success(expected));
         var gateway = Create(processor.Object);
@@ -32,7 +32,7 @@ public sealed class GameplayCommandGatewayTests
         var result = gateway.Execute(
             runId,
             new GameplayCommandEnvelope(
-                new RunCommandIdentity(commandId, " draw_cards ", 1, 0),
+                new RunCommandIdentity(commandId, " advance_node ", 1, 0),
                 payload));
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
@@ -48,8 +48,8 @@ public sealed class GameplayCommandGatewayTests
         var result = gateway.Execute(
             Guid.NewGuid(),
             new GameplayCommandEnvelope(
-                new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.DrawCards, 1, 0, "wrong"),
-                JsonSerializer.SerializeToElement(new { count = 1 })));
+                new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.AdvanceNode, 1, 0, "wrong"),
+                JsonSerializer.SerializeToElement(new { targetNodeId = "next" })));
 
         Assert.True(result.IsFailure);
         Assert.Contains("payload hash", result.Error, StringComparison.OrdinalIgnoreCase);

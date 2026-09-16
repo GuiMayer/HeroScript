@@ -91,7 +91,6 @@ public sealed class RunCommandController : BaseApiController
         commandType?.Trim().ToUpperInvariant() switch
         {
             RunCommandTypes.ApplyRunResource => ToolCapabilities.CheatRunResources,
-            RunCommandTypes.AddCardsToHand or RunCommandTypes.MoveCards => ToolCapabilities.CheatCardZones,
             RunCommandTypes.ActivateContentRevision => ToolCapabilities.ContentActivate,
             RunCommandTypes.RestoreHeadFromHistory => ToolCapabilities.HeadRestore,
             _ => null

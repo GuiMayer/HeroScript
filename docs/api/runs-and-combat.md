@@ -207,10 +207,10 @@ destino, seleção, capacidade e ordem. Uma execução sem transição não prod
 commit. O comando é determinístico, atômico e auditável como qualquer outro
 comando da run.
 
-Em runs com grafo de zonas, `DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`,
-`ADD_CARDS_TO_HAND` e `SHUFFLE_DISCARD` são recusados: seus nomes embutem
-propósitos de pilha que a engine não pode presumir. Modos ainda sem grafo
-mantêm esses comandos até a migração de seu conteúdo.
+`DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`, `ADD_CARDS_TO_HAND` e
+`SHUFFLE_DISCARD` não são comandos publicados: seus nomes embutem propósitos de
+pilha que a engine não pode presumir. Gameplay usa
+`INVOKE_CARD_ZONE_GAMEPLAY_FLOW`; ferramentas usam `INVOKE_CARD_ZONE_FLOW`.
 
 ## Recuperação e auditoria
 

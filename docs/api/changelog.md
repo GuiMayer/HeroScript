@@ -11,6 +11,8 @@
   instâncias formarão um deck, pois o grafo decide a zona inicial.
 - Fronteiras autoradas publicam `CardZonesTransitionedEvent`, com os passos e o
   hash da topologia. `CardDrawnEvent` fica restrito ao executor legado sem grafo.
+- Os comandos específicos `DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`,
+  `ADD_CARDS_TO_HAND` e `SHUFFLE_DISCARD` não são mais publicados pelo codec.
 
 ## v1 — 2026-09-15
 

@@ -13,17 +13,17 @@ public sealed class GameplayCommandCodecTests
     [Fact]
     public void Decode_NormalizesAndHashesExactlyOnce()
     {
-        var payload = JsonSerializer.SerializeToElement(new { count = 3 });
+        var payload = JsonSerializer.SerializeToElement(new { targetNodeId = "next" });
         var commandId = Guid.Parse("10000000-0000-0000-0000-000000000001");
 
         var result = _codec.Decode(new GameplayCommandEnvelope(
-            new RunCommandIdentity(commandId, " draw_cards ", 4, 9),
+            new RunCommandIdentity(commandId, " advance_node ", 4, 9),
             payload));
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(RunCommandTypes.DrawCards, result.Value.Envelope.Identity.Type);
+        Assert.Equal(RunCommandTypes.AdvanceNode, result.Value.Envelope.Identity.Type);
         Assert.Equal(CanonicalJson.ComputeHash(payload), result.Value.Envelope.Identity.PayloadHash);
-        Assert.Equal(new CountCommand(3), result.Value.Payload);
+        Assert.Equal(new AdvanceNodeCommand("next"), result.Value.Payload);
     }
 
     [Fact]
@@ -59,12 +59,28 @@ public sealed class GameplayCommandCodecTests
         Assert.Contains("Unsupported command type", result.Error);
     }
 
+    [Theory]
+    [InlineData("DRAW_CARDS")]
+    [InlineData("DISCARD_CARDS")]
+    [InlineData("SHUFFLE_DISCARD")]
+    [InlineData("ADD_CARDS_TO_HAND")]
+    [InlineData("MOVE_CARDS")]
+    public void Decode_DoesNotPublishPurposeBoundCardCommands(string commandType)
+    {
+        var result = _codec.Decode(new GameplayCommandEnvelope(
+            new RunCommandIdentity(Guid.NewGuid(), commandType, 0, 0),
+            JsonSerializer.SerializeToElement(new { })));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Unsupported command type", result.Error);
+    }
+
     [Fact]
     public void Decode_RejectsUnknownPayloadProperty()
     {
         var result = _codec.Decode(new GameplayCommandEnvelope(
-            new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.DrawCards, 0, 0),
-            JsonSerializer.SerializeToElement(new { count = 1, hiddenMutation = true })));
+            new RunCommandIdentity(Guid.NewGuid(), RunCommandTypes.AdvanceNode, 0, 0),
+            JsonSerializer.SerializeToElement(new { targetNodeId = "next", hiddenMutation = true })));
 
         Assert.True(result.IsFailure);
         Assert.Contains("hiddenMutation", result.Error);

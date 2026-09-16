@@ -8,28 +8,21 @@ namespace API.Tests.Integration;
 
 public sealed class RunCheatCapabilityTests
 {
-    [Theory]
-    [InlineData("APPLY_RUN_RESOURCE")]
-    [InlineData("ADD_CARDS_TO_HAND")]
-    [InlineData("MOVE_CARDS")]
-    public async Task StandardMode_RejectsDirectStateCheats(string commandType)
+    [Fact]
+    public async Task StandardMode_RejectsDirectResourceCheat()
     {
         using var factory = new TestWebApplicationFactory();
         using var client = factory.CreateClient();
         var game = new GameEngineClientSimulator(client);
         var runId = await game.StartRunAsync(modeId: "standard", seed: 14092026);
         var before = await game.GetRunStateAsync(runId);
-        var payload = commandType switch
+        const string commandType = "APPLY_RUN_RESOURCE";
+        var payload = new
         {
-            "APPLY_RUN_RESOURCE" => (object)new
-            {
-                resourceId = "gold",
-                value = 999,
-                operation = "SET",
-                field = "Current"
-            },
-            "ADD_CARDS_TO_HAND" => new { cardIds = new[] { "fireball" } },
-            _ => new { cardIds = Array.Empty<string>(), destination = "Exhaust" }
+            resourceId = "gold",
+            value = 999,
+            operation = "SET",
+            field = "Current"
         };
 
         using var response = await client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new

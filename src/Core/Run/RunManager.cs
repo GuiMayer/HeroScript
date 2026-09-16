@@ -574,13 +574,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.ResolveNode => ToResult(ResolveCurrentNode(
                 runId,
                 DeserializePayload<ResolveNodeCommand>(payload).CurrentNodeId)),
-            RunCommandTypes.DrawCards => ToResult(DrawCards(
-                runId,
-                DeserializePayload<CountCommand>(payload).Count)),
-            RunCommandTypes.DiscardCards => ToResult(DiscardCards(
-                runId,
-                DeserializePayload<CardIdsCommand>(payload).CardIds)),
-            RunCommandTypes.ShuffleDiscard => ShuffleDiscardIntoDrawPile(runId),
             RunCommandTypes.CreateCardSelection => ExecuteCreateCardSelection(runId, payload),
             RunCommandTypes.PickCardReward => ExecutePickCardReward(runId, payload),
             RunCommandTypes.RerollCardReward => ExecuteRerollCardReward(runId, payload),
@@ -597,10 +590,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
             RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
             RunCommandTypes.ApplyRunResource => ExecuteApplyRunResource(runId, payload),
-            RunCommandTypes.AddCardsToHand => ExecuteAddCardsToHand(runId, payload),
             RunCommandTypes.InvokeCardZoneFlow => ExecuteInvokeCardZoneFlow(runId, payload),
             RunCommandTypes.InvokeCardZoneGameplayFlow => ExecuteInvokeCardZoneGameplayFlow(runId, payload),
-            RunCommandTypes.MoveCards => ExecuteMoveCards(runId, payload),
             RunCommandTypes.AbandonRun => ExecuteAbandonRun(runId),
             RunCommandTypes.ResolveCombat => Result.Failure(
                 "RESOLVE_COMBAT must be executed through the run encounter coordinator"),
@@ -659,18 +650,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             request.Value,
             request.Operation,
             request.Field));
-    }
-
-    private Result ExecuteAddCardsToHand(Guid runId, JsonElement payload)
-    {
-        var capability = RequireCapability(
-            runId,
-            policy => policy.AllowCardZoneCheats,
-            "card zone cheats");
-        if (capability.IsFailure)
-            return capability;
-        var request = DeserializePayload<CardIdsCommand>(payload);
-        return ToResult(AddCardsToHand(runId, request.CardIds));
     }
 
     private Result ExecuteInvokeCardZoneFlow(Guid runId, JsonElement payload)
@@ -746,20 +725,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             };
             return ToResult(Persist(candidate, RunCommandTypes.InvokeCardZoneGameplayFlow, payload));
         }
-    }
-
-    private Result ExecuteMoveCards(Guid runId, JsonElement payload)
-    {
-        var capability = RequireCapability(
-            runId,
-            policy => policy.AllowCardZoneCheats,
-            "card zone cheats");
-        if (capability.IsFailure)
-            return capability;
-        var request = DeserializePayload<MoveCardsCommand>(payload);
-        return !Enum.TryParse<CardConsumeDestination>(request.Destination, true, out var destination)
-            ? Result.Failure($"Unknown card destination: {request.Destination}")
-            : ToResult(MoveCards(runId, request.CardIds, destination));
     }
 
     private Result RequireCapability(
