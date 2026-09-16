@@ -9,6 +9,8 @@
   presumir uma zona chamada `hand`.
 - Runs e cenários recebem `startingCards`; a entrada não presume que essas
   instâncias formarão um deck, pois o grafo decide a zona inicial.
+- Fronteiras autoradas publicam `CardZonesTransitionedEvent`, com os passos e o
+  hash da topologia. `CardDrawnEvent` fica restrito ao executor legado sem grafo.
 
 ## v1 — 2026-09-15
 

@@ -18,6 +18,18 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
+    public async Task GraphRunStart_PublishesZoneTransitionInsteadOfDrawSemantics()
+    {
+        var (runId, _) = await SetupRunAsync();
+
+        var events = await Client.GetEventsAsync(runId: runId);
+        var eventTypes = events.Select(item => item.GetProperty("eventType").GetString()).ToArray();
+
+        Assert.Contains(nameof(Core.Events.Domain.CardZonesTransitionedEvent), eventTypes);
+        Assert.DoesNotContain(nameof(Core.Events.Domain.CardDrawnEvent), eventTypes);
+    }
+
+    [Fact]
     public async Task GetEvents_CombatEvents_ReturnsHistory()
     {
         var (runId, combatId, playerEntityId, _) = await SetupPrototypeCombatAsync(new[] { "enemy_1" });

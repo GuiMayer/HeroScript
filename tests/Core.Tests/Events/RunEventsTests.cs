@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Core.Events;
 using Core.Events.Domain;
 using Core.Resources;
+using Core.CardZones;
 using Xunit;
 
 namespace Core.Tests.Events;
@@ -200,6 +201,35 @@ public class RunEventsTests
         Assert.Equal("strike,defend,bash,strike,defend", evt.Target);
         Assert.Equal(5, evt.Payload["count"]);
         Assert.IsType<string[]>(evt.Payload["cardIds"]);
+    }
+
+    [Fact]
+    public void CardZonesTransitionedEvent_PreservesPurposeFreeFlowEvidence()
+    {
+        var runId = Guid.NewGuid();
+        var steps = new[]
+        {
+            new CardZoneFlowStepRecord
+            {
+                FlowId = "prepare",
+                StepId = "move",
+                Operation = CardZoneOperation.Move,
+                SourceAddress = "$run::hero::inventory",
+                TargetAddress = "$run::hero::prepared",
+                StateHash = "after"
+            }
+        };
+
+        var evt = new CardZonesTransitionedEvent(
+            runId, "run.started", "topology-hash", steps);
+
+        Assert.Equal(runId, evt.RunId);
+        Assert.Equal("run.started", evt.Boundary);
+        Assert.Equal("topology-hash", evt.TopologyHash);
+        Assert.Equal("prepare", Assert.Single(evt.Steps).FlowId);
+        Assert.Equal(nameof(CardZonesTransitionedEvent), evt.EventType);
+        Assert.Equal("card_zones_transitioned", evt.Verb);
+        Assert.Equal(1, evt.Payload["count"]);
     }
     
     // ==================== CARD DISCARDED EVENT TESTS ====================

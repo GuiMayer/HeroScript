@@ -193,7 +193,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure("Initial playable card count cannot be negative");
 
         DeckState initialDeck;
-        IReadOnlyList<string> initiallyDrawnCards;
+        IReadOnlyList<string> legacyInitiallyDrawnCards;
+        IReadOnlyList<CardZoneFlowStepRecord> initialZoneSteps;
         if (resolvedMode?.CardZoneSystem is { } zoneDefinition)
         {
             if (_cardZoneFlows == null)
@@ -208,14 +209,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure(initialized.Error);
             initialDeck = new DeckState { Topology = initialized.Value.State };
             context = initialized.Value.Context;
-            initiallyDrawnCards = CardZonePlaySource.CardsForActor(new RunState
-                {
-                    PlayerEntityId = options.PlayerEntityId,
-                    ResolvedMode = resolvedMode,
-                    Deck = initialDeck
-                }, options.PlayerEntityId)
-                .Select(id => initialDeck.GetDefinitionId(id)!)
-                .ToArray();
+            legacyInitiallyDrawnCards = [];
+            initialZoneSteps = initialized.Value.InitialFlowSteps;
         }
         else
         {
@@ -230,7 +225,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure(initialDraw.Error);
             initialDeck = initialDraw.Value.State;
             context = initialDraw.Value.Context;
-            initiallyDrawnCards = initialDraw.Value.Cards;
+            legacyInitiallyDrawnCards = initialDraw.Value.Cards;
+            initialZoneSteps = [];
         }
 
         var state = new RunState
@@ -303,8 +299,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             options.ConfigName,
             options.PlayerEntityId,
             state.ResourceState.Resources.ToDictionary(pair => pair.Key, pair => pair.Value.Current)));
-        if (initiallyDrawnCards.Count > 0)
-            _eventBus?.Publish(new CardDrawnEvent(state.RunId, initiallyDrawnCards));
+        if (initialZoneSteps.Count > 0)
+            _eventBus?.Publish(new CardZonesTransitionedEvent(
+                state.RunId,
+                "run.started",
+                CanonicalJson.ComputeHash(state.Deck.Topology),
+                initialZoneSteps));
+        if (legacyInitiallyDrawnCards.Count > 0)
+            _eventBus?.Publish(new CardDrawnEvent(state.RunId, legacyInitiallyDrawnCards));
 
         return Result<RunState>.Success(state);
     }

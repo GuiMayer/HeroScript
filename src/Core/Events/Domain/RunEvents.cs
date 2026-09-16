@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Core.CardZones;
 using Core.Resources;
 
 namespace Core.Events.Domain;
@@ -143,6 +144,50 @@ public sealed record CardDrawnEvent : GameEvent
             ["runId"] = runId,
             ["cardIds"] = cardIds.ToArray(),
             ["count"] = cardIds.Count
+        };
+    }
+}
+
+/// <summary>
+/// Published after an authored card-zone boundary changes the topology. The
+/// event describes transitions without assigning gameplay meaning to a zone.
+/// </summary>
+public sealed record CardZonesTransitionedEvent : GameEvent
+{
+    private ImmutableArray<CardZoneFlowStepRecord> _steps = [];
+
+    public Guid RunId { get; init; }
+    public string Boundary { get; init; } = string.Empty;
+    public string TopologyHash { get; init; } = string.Empty;
+    public IReadOnlyList<CardZoneFlowStepRecord> Steps
+    {
+        get => _steps;
+        init => _steps = value?.ToImmutableArray() ?? [];
+    }
+
+    public CardZonesTransitionedEvent(
+        Guid runId,
+        string boundary,
+        string topologyHash,
+        IReadOnlyList<CardZoneFlowStepRecord> steps)
+    {
+        RunId = runId;
+        Boundary = boundary;
+        TopologyHash = topologyHash;
+        Steps = steps;
+        EventType = nameof(CardZonesTransitionedEvent);
+        Category = EventCategory.RUN;
+        Severity = EventSeverity.DEBUG;
+        Subject = runId.ToString();
+        Verb = "card_zones_transitioned";
+        Target = boundary;
+        Payload = new Dictionary<string, object>
+        {
+            ["runId"] = runId,
+            ["boundary"] = boundary,
+            ["topologyHash"] = topologyHash,
+            ["steps"] = steps.ToArray(),
+            ["count"] = steps.Count
         };
     }
 }
