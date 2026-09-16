@@ -8,7 +8,7 @@ namespace Core.CardZones;
 public sealed record CardZoneActivationStartResult(
     DeckState Deck,
     DeterministicContext Context,
-    IReadOnlyList<string> DrawnCards)
+    IReadOnlyList<string> NewlyPlayableDefinitionIds)
 {
     public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
 }
@@ -16,8 +16,7 @@ public sealed record CardZoneActivationStartResult(
 public sealed record CardZoneActivationEndResult(
     DeckState Deck,
     DeterministicContext Context,
-    IReadOnlyList<string> DiscardedInstanceIds,
-    IReadOnlyList<string> ExhaustedInstanceIds)
+    IReadOnlyList<string> AffectedInstanceIds)
 {
     public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
 }
@@ -48,17 +47,15 @@ public static class CardZoneCombatLifecycle
         ICardZoneFlowExecutor? flows, RunState run, DeckState deck,
         DeterministicContext context, string actorId)
     {
-        var previousDiscard = deck.DiscardPileInstanceIds.ToHashSet();
-        var previousExhaust = deck.ExhaustPileInstanceIds.ToHashSet();
         var flowed = CardZoneRunFlowDispatcher.Execute(flows, run, deck,
             context, "activation.ended", actorId);
         if (flowed.IsFailure) return Result<CardZoneActivationEndResult>.Failure(flowed.Error);
         var next = new DeckState { Topology = flowed.Value.State };
         return Result<CardZoneActivationEndResult>.Success(new CardZoneActivationEndResult(
             next, flowed.Value.Context,
-            next.DiscardPileInstanceIds.Where(id => !previousDiscard.Contains(id))
-                .Select(id => id.ToString()).ToImmutableArray(),
-            next.ExhaustPileInstanceIds.Where(id => !previousExhaust.Contains(id))
+            flowed.Value.Steps.SelectMany(step => step.InstanceIds
+                    .Concat(step.CreatedInstanceIds).Concat(step.DestroyedInstanceIds))
+                .Distinct()
                 .Select(id => id.ToString()).ToImmutableArray())
         {
             CardZoneSteps = flowed.Value.Steps

@@ -45,20 +45,34 @@ public sealed class CombatFlowPlannerTests
                     SourceZoneId = "reserve", TargetZoneId = "active",
                     Selection = new CardZoneSelectionDefinition
                     {
-                        Strategy = CardZoneSelectionStrategy.First, Count = 1
+                        Strategy = CardZoneSelectionStrategy.First,
+                        CountFormula = "initialHandDeficit"
                     }
                 }]
             }]
         };
-        var executor = new CardZoneFlowExecutor();
+        var formulas = new Mock<IRuntimeFormulaEvaluator>();
+        formulas.Setup(value => value.Evaluate("initialHandDeficit",
+                It.IsAny<Dictionary<string, float>?>(), It.IsAny<float>()))
+            .Returns((string _, Dictionary<string, float>? variables, float _) =>
+                Result<float>.Success(variables!["initialHandDeficit"]));
+        var executor = new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(
+            formulas.Object, Mock.Of<ICardZoneCardMetadataResolver>()));
         var seeded = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(definition).Value,
             new CardZoneBootstrapPlan
             {
                 RunOwnerId = "$run",
-                Batches = [new CardZoneInitialBatch
-                {
-                    ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["skill"]
-                }]
+                Batches =
+                [
+                    new CardZoneInitialBatch
+                    {
+                        ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["skill"]
+                    },
+                    new CardZoneInitialBatch
+                    {
+                        ZoneId = "active", OwnerId = "$run", DefinitionIds = ["ready-skill"]
+                    }
+                ]
             }, DeterministicContext.Create(99UL, "revision")).Value;
         var run = new RunState
         {
@@ -71,10 +85,14 @@ public sealed class CombatFlowPlannerTests
             [Entity("hero", true, 1), Entity("enemy", false, 1)],
             DeterministicContext.Create(42UL, "revision"));
 
+        var policies = Policies() with
+        {
+            DeckCycle = Policies().DeckCycle with { InitialHandSize = 2 }
+        };
         var first = Boundaries(executor).InitializeTransaction(run, combat,
-            Sequence(), Policies(), TurnPolicy());
+            Sequence(), policies, TurnPolicy());
         var repeated = Boundaries(executor).InitializeTransaction(run, combat,
-            Sequence(), Policies(), TurnPolicy());
+            Sequence(), policies, TurnPolicy());
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.Equal(first.Value.Fingerprint, repeated.Value.Fingerprint);
@@ -82,7 +100,7 @@ public sealed class CombatFlowPlannerTests
         Assert.Equal("prepare-encounter", move.FlowId);
         Assert.Equal("$run::$run::reserve", move.SourceAddress);
         Assert.Equal("$run::$run::active", move.TargetAddress);
-        Assert.Single(first.Value.Run.Deck.Topology.GetZone("active", "$run")!.InstanceIds);
+        Assert.Equal(2, first.Value.Run.Deck.Topology.GetZone("active", "$run")!.InstanceIds.Count);
         Assert.Single(run.Deck.Topology.GetZone("reserve", "$run")!.InstanceIds);
     }
 

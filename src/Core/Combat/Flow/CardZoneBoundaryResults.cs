@@ -8,6 +8,7 @@ namespace Core.Combat.Flow;
 internal sealed record EndDeckCycleResult(
     DeckState State,
     DeterministicContext Context,
+    IReadOnlyList<string> AffectedInstanceIds,
     IReadOnlyList<string> Discarded,
     IReadOnlyList<string> Exhausted)
 {
@@ -17,7 +18,7 @@ internal sealed record EndDeckCycleResult(
 internal sealed record ResourceRefreshResult(
     DeckState State,
     DeterministicContext Context,
-    IReadOnlyList<string> Cards)
+    IReadOnlyList<string> NewlyPlayableDefinitionIds)
 {
     public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
 }

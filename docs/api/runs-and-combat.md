@@ -156,6 +156,9 @@ o comando e todos os seus frames. Cada frame contém quatro visões complementar
 O início do encontro também gera um frame `combat.initialized`, portanto
 movimentos de zonas configurados para `encounter.started`, regeneração,
 relíquias e status de abertura não ficam invisíveis ao cliente.
+Nos frames de ativação, `newlyPlayableCardDefinitionIds` e
+`affectedCardInstanceIds` são projeções neutras; `cardZoneSteps` permanece o
+trace completo. Campos de descarte/exílio só têm conteúdo no caminho sem grafo.
 Esses dados são diagnóstico e apresentação; o estado final persistido continua
 sendo a autoridade.
 

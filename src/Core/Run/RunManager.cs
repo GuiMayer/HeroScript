@@ -208,7 +208,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure(initialized.Error);
             initialDeck = new DeckState { Topology = initialized.Value.State };
             context = initialized.Value.Context;
-            initiallyDrawnCards = initialDeck.Hand;
+            initiallyDrawnCards = CardZonePlaySource.CardsForActor(new RunState
+                {
+                    PlayerEntityId = options.PlayerEntityId,
+                    ResolvedMode = resolvedMode,
+                    Deck = initialDeck
+                }, options.PlayerEntityId)
+                .Select(id => initialDeck.GetDefinitionId(id)!)
+                .ToArray();
         }
         else
         {
@@ -1278,7 +1285,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (initializedRun == null && state.ResolvedMode?.CardZoneSystem != null)
             {
                 var initialHandSize = state.ResolvedMode.CombatRules.Flow.DeckCycle.InitialHandSize;
-                var deficit = System.Math.Max(0, initialHandSize - state.Deck.HandInstanceIds.Count);
+                var playableCount = CardZonePlaySource.CardsForActor(state,
+                    combatState.ActivationState?.ActiveActorId ?? state.PlayerEntityId).Count;
+                var deficit = System.Math.Max(0, initialHandSize - playableCount);
                 var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state,
                     state.Deck, seed.Context, "encounter.started",
                     variables: new Dictionary<string, double> { ["initialHandDeficit"] = deficit });
