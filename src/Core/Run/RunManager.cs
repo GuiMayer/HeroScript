@@ -188,9 +188,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             .ToArray();
         if (startingDeck.Count == 0)
             return Result<RunState>.Failure("Starting deck cannot be empty");
-        var startingHandSize = options.StartingHandSize ?? definition.StartingHandSize;
-        if (startingHandSize < 0)
-            return Result<RunState>.Failure("Starting hand size cannot be negative");
+        var initialPlayableCardCount = options.InitialPlayableCardCount ?? definition.InitialPlayableCardCount;
+        if (initialPlayableCardCount < 0)
+            return Result<RunState>.Failure("Initial playable card count cannot be negative");
 
         DeckState initialDeck;
         IReadOnlyList<string> initiallyDrawnCards;
@@ -203,7 +203,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure(compiled.Error);
             var initialized = CardZoneRunInitializer.Initialize(
                 compiled.Value, definition, startingDeck, "$run", options.PlayerEntityId,
-                [], startingHandSize, contentRevision!, options.ConfigName, context, _cardZoneFlows);
+                [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows);
             if (initialized.IsFailure)
                 return Result<RunState>.Failure(initialized.Error);
             initialDeck = new DeckState { Topology = initialized.Value.State };
@@ -224,7 +224,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var deckResult = DeckTransitions.Create(startingDeck, context);
             if (deckResult.IsFailure)
                 return Result<RunState>.Failure(deckResult.Error);
-            var initialDraw = DeckTransitions.Draw(deckResult.Value.State, startingHandSize,
+            var initialDraw = DeckTransitions.Draw(deckResult.Value.State, initialPlayableCardCount,
                 deckResult.Value.Context);
             if (initialDraw.IsFailure)
                 return Result<RunState>.Failure(initialDraw.Error);
@@ -289,7 +289,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     Seed = seed,
                     ContentRevision = contentRevision,
                     StartingDeck = startingDeck,
-                    StartingHandSize = startingHandSize,
+                    InitialPlayableCardCount = initialPlayableCardCount,
                     Scenario = options.Scenario,
                     SettingId = options.SettingId ?? options.ConfigName
                 });
@@ -1284,13 +1284,13 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure("Initialized run snapshot does not match encounter owner");
             if (initializedRun == null && state.ResolvedMode?.CardZoneSystem != null)
             {
-                var initialHandSize = state.ResolvedMode.CombatRules.Flow.DeckCycle.InitialHandSize;
-                var playableCount = CardZonePlaySource.CardsForActor(state,
-                    combatState.ActivationState?.ActiveActorId ?? state.PlayerEntityId).Count;
-                var deficit = System.Math.Max(0, initialHandSize - playableCount);
+                var initialPlayableCardCount = state.ResolvedMode.CombatRules.Flow.DeckCycle.InitialPlayableCardCount;
                 var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state,
                     state.Deck, seed.Context, "encounter.started",
-                    variables: new Dictionary<string, double> { ["initialHandDeficit"] = deficit });
+                    variables: new Dictionary<string, double>
+                    {
+                        ["initialPlayableCardCount"] = initialPlayableCardCount
+                    });
                 if (flowed.IsFailure)
                     return Result<RunState>.Failure(flowed.Error);
                 encounterDeck = Result<DeckTransition>.Success(new DeckTransition(

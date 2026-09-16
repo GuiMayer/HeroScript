@@ -112,6 +112,8 @@ public sealed record CardZoneSelectionDefinition
     public CardZoneSelectionStrategy Strategy { get; init; }
     public int? Count { get; init; }
     public string? CountFormula { get; init; }
+    public int? TargetZoneCount { get; init; }
+    public string? TargetZoneCountFormula { get; init; }
     public bool SelectAllMatches { get; init; }
     public IReadOnlyList<Guid> InstanceIds
     {

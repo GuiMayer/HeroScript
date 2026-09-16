@@ -332,7 +332,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 manifest.Value.Revision,
                 normalized.ModeId,
                 StartingDeck: startingCards,
-                StartingHandSize: System.Math.Min(
+                InitialPlayableCardCount: System.Math.Min(
                     mode.Value.CombatRules.Flow.DeckCycle.DrawPerActivation,
                     startingCards.Count),
                 ScenarioHash: scenarioHash,

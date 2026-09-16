@@ -41,7 +41,7 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
             .GetProperty("cardZoneSystemId")
             .GetString());
 
-        // The starting hand contains the first five cards. This draw consumes
+        // The initial playable zone contains the first five cards. This draw consumes
         // the other five published cards, including Fireball, without using
         // an out-of-band setup hook.
         var drawn = await Client.DrawCardsAsync(runId, 5);

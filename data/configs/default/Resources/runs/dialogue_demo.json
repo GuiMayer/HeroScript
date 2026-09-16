@@ -2,7 +2,7 @@
   "dialogue_demo_run": {
     "runId": "dialogue_demo_run",
     "startingResources": { "gold": 30 },
-    "startingHandSize": 1,
+    "initialPlayableCardCount": 1,
     "initialCardZoneId": "draw",
     "initialCardOwner": "RunOwner",
     "startingDeck": ["basic_attack"],

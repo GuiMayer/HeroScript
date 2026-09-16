@@ -146,8 +146,23 @@ public static partial class CardZoneSystemCompiler
             step.Selection.Strategy == CardZoneSelectionStrategy.Unspecified)
             errors.Add($"{path}: operation requires a selection strategy");
         if (step.Selection.Count < 0) errors.Add($"{path}: selection count cannot be negative");
-        if (step.Selection.Count is not null && !string.IsNullOrWhiteSpace(step.Selection.CountFormula))
-            errors.Add($"{path}: selection cannot define both count and countFormula");
+        if (step.Selection.TargetZoneCount < 0)
+            errors.Add($"{path}: selection targetZoneCount cannot be negative");
+        var countSources = new object?[]
+        {
+            step.Selection.Count,
+            string.IsNullOrWhiteSpace(step.Selection.CountFormula) ? null : step.Selection.CountFormula,
+            step.Selection.TargetZoneCount,
+            string.IsNullOrWhiteSpace(step.Selection.TargetZoneCountFormula)
+                ? null
+                : step.Selection.TargetZoneCountFormula
+        }.Count(value => value != null);
+        if (countSources > 1)
+            errors.Add($"{path}: selection can define only one count source");
+        if ((step.Selection.TargetZoneCount is not null ||
+             !string.IsNullOrWhiteSpace(step.Selection.TargetZoneCountFormula)) &&
+            step.Operation != CardZoneOperation.Move)
+            errors.Add($"{path}: target-zone count requires a move operation");
         if (step.Operation is CardZoneOperation.Move or CardZoneOperation.Create &&
             step.Insertion.Strategy == CardZoneInsertionStrategy.Unspecified)
             errors.Add($"{path}: insertion strategy is required");
@@ -200,7 +215,7 @@ public static partial class CardZoneSystemCompiler
             step.Selection.Strategy is not (CardZoneSelectionStrategy.All or CardZoneSelectionStrategy.Explicit))
             errors.Add($"{path}: reorder requires all or explicit selection");
         if (step.Selection.Strategy == CardZoneSelectionStrategy.All &&
-            (step.Selection.Count is not null || !string.IsNullOrWhiteSpace(step.Selection.CountFormula)))
+            countSources > 0)
             errors.Add($"{path}: all selection cannot define a count");
         if (step.Selection.Strategy == CardZoneSelectionStrategy.ByTags &&
             step.Selection.RequiredTags.Count == 0 && step.Selection.ExcludedTags.Count == 0)
@@ -208,7 +223,7 @@ public static partial class CardZoneSystemCompiler
         if (step.Selection.SelectAllMatches &&
             (step.Selection.Strategy is not (CardZoneSelectionStrategy.ByTags or
                 CardZoneSelectionStrategy.ByCondition or CardZoneSelectionStrategy.ByDefinition) ||
-             step.Selection.Count is not null || !string.IsNullOrWhiteSpace(step.Selection.CountFormula)))
+             countSources > 0))
             errors.Add($"{path}: selectAllMatches requires an unbounded filtered selection");
         if (step.Selection.Strategy == CardZoneSelectionStrategy.ByCondition && string.IsNullOrWhiteSpace(step.Selection.Condition))
             errors.Add($"{path}: conditional selection requires condition");

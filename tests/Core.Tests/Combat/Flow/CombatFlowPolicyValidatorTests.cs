@@ -115,7 +115,7 @@ public sealed class CombatFlowPolicyValidatorTests
         DeckCycle = new()
         {
             HandLimit = 10,
-            InitialHandSize = 5,
+            InitialPlayableCardCount = 5,
             ActorScope = FlowActorScope.RunOwner,
             EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
             EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,

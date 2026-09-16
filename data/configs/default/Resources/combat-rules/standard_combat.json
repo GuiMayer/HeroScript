@@ -35,7 +35,7 @@
       "deckCycle": {
         "drawPerActivation": 5,
         "handLimit": 10,
-        "initialHandSize": 5,
+        "initialPlayableCardCount": 5,
         "actorScope": "RunOwner",
         "encounterStart": "PreserveZones",
         "encounterCleanup": "ReturnToDrawPile",

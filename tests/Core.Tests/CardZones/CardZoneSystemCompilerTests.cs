@@ -100,6 +100,31 @@ public sealed class CardZoneSystemCompilerTests
         Assert.Contains("unordered source zone cannot use top/bottom", result.Error);
     }
 
+    [Fact]
+    public void Compile_RejectsConflictingSelectionCountSources()
+    {
+        var flow = Flow("fill", 0) with
+        {
+            Steps =
+            [
+                Move("fill") with
+                {
+                    Selection = new CardZoneSelectionDefinition
+                    {
+                        Strategy = CardZoneSelectionStrategy.Top,
+                        Count = 1,
+                        TargetZoneCount = 4
+                    }
+                }
+            ]
+        };
+
+        var result = CardZoneSystemCompiler.Compile(System(flow));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("only one count source", result.Error);
+    }
+
     private static CardZoneSystemDefinition System(params CardZoneFlowDefinition[] flows) => new()
     {
         CardZoneSystemId = "test-zones",

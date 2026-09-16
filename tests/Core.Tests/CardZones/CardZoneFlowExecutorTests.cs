@@ -7,6 +7,58 @@ namespace Core.Tests.CardZones;
 public sealed class CardZoneFlowExecutorTests
 {
     [Fact]
+    public void Execute_TargetZoneCountMovesOnlyTheMissingAmount()
+    {
+        var definition = Definition() with
+        {
+            Flows =
+            [
+                new CardZoneFlowDefinition
+                {
+                    FlowId = "fill-ready",
+                    AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                    Steps =
+                    [
+                        new CardZoneFlowStepDefinition
+                        {
+                            StepId = "fill",
+                            Operation = CardZoneOperation.Move,
+                            SourceZoneId = "library",
+                            TargetZoneId = "ready",
+                            Selection = new()
+                            {
+                                Strategy = CardZoneSelectionStrategy.Top,
+                                TargetZoneCount = 4
+                            },
+                            OnInsufficient = CardZoneInsufficientPolicy.AllowPartial
+                        }
+                    ]
+                }
+            ]
+        };
+        var system = CardZoneSystemCompiler.Compile(definition).Value;
+        var topology = CardZoneTransitions.CreateEmpty(
+            [Address("library"), Address("spent"), Address("ready")]).Value;
+        var library = CardZoneTransitions.CreateInstances(topology, Address("library"), ["a", "b", "c"],
+            new(), new(), null, CardZoneOrdering.Ordered, DeterministicContext.Create(1, "content")).Value;
+        var ready = CardZoneTransitions.CreateInstances(library.State, Address("ready"), ["d", "e"],
+            new(), new(), 10, CardZoneOrdering.Ordered, library.Context).Value;
+
+        var result = new CardZoneFlowExecutor().Execute(system, ready.State, ready.Context,
+            "fill-ready", new CardZoneFlowContext
+            {
+                Invocation = CardZoneFlowInvocation.Boundary,
+                FlowOwnerId = "mage",
+                RunOwnerId = "mage"
+            });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(4, result.Value.State.GetZone(Address("ready"))!.InstanceIds.Count);
+        Assert.Single(result.Value.State.GetZone(Address("library"))!.InstanceIds);
+        Assert.Equal(2, Assert.Single(result.Value.Steps).InstanceIds.Length);
+    }
+
+    [Fact]
     public void Execute_FallbackRecycleAndRetryIsAtomicAndDeterministic()
     {
         var system = CardZoneSystemCompiler.Compile(Definition()).Value;

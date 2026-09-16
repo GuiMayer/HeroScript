@@ -200,7 +200,7 @@ public sealed class DeckTransitionsTests
             Policy() with
             {
                 EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
-                InitialHandSize = 2,
+                InitialPlayableCardCount = 2,
                 ExhaustPersistence = ExhaustPersistenceStrategy.Encounter
             },
             exhausted.Context);
@@ -221,7 +221,7 @@ public sealed class DeckTransitionsTests
         var policy = Policy() with
         {
             EncounterStart = EncounterDeckStartStrategy.ResetShuffled,
-            InitialHandSize = 3
+            InitialPlayableCardCount = 3
         };
 
         var first = DeckTransitions.BeginEncounter(created.State, policy, created.Context);
@@ -303,7 +303,7 @@ public sealed class DeckTransitionsTests
     {
         DrawPerActivation = 5,
         HandLimit = 10,
-        InitialHandSize = 5,
+        InitialPlayableCardCount = 5,
         ActorScope = FlowActorScope.RunOwner,
         EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
         EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,

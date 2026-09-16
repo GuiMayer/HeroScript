@@ -225,6 +225,13 @@ identificar as cartas jogáveis, sem inferir que `draw`,
 `hand`, `discard` ou `exhaust` tenham significado especial para a engine. O
 `topologyHash` permite comparar snapshots sem reconstruir as regras no cliente.
 
+Fluxos também podem usar `selection.targetZoneCount` ou
+`selection.targetZoneCountFormula`. Nesse caso, a engine seleciona somente a
+quantidade ausente para a zona de destino alcançar a ocupação configurada. Isso
+permite preparar qualquer zona no começo da run ou do encontro sem codificar o
+conceito de “mão” no executor; o conteúdo padrão usa a variável genérica
+`initialPlayableCardCount`.
+
 `GET /deck` e `GET /hand` ainda são projeções do modo inicial de demonstração;
 clientes que pretendem admitir outros grafos de zonas devem usar `/card-zones`.
 

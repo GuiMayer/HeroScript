@@ -46,16 +46,16 @@ public sealed class CombatFlowPlannerTests
                     Selection = new CardZoneSelectionDefinition
                     {
                         Strategy = CardZoneSelectionStrategy.First,
-                        CountFormula = "initialHandDeficit"
+                        TargetZoneCountFormula = "initialPlayableCardCount"
                     }
                 }]
             }]
         };
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
-        formulas.Setup(value => value.Evaluate("initialHandDeficit",
+        formulas.Setup(value => value.Evaluate("initialPlayableCardCount",
                 It.IsAny<Dictionary<string, float>?>(), It.IsAny<float>()))
             .Returns((string _, Dictionary<string, float>? variables, float _) =>
-                Result<float>.Success(variables!["initialHandDeficit"]));
+                Result<float>.Success(variables!["initialPlayableCardCount"]));
         var executor = new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(
             formulas.Object, Mock.Of<ICardZoneCardMetadataResolver>()));
         var seeded = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(definition).Value,
@@ -87,7 +87,7 @@ public sealed class CombatFlowPlannerTests
 
         var policies = Policies() with
         {
-            DeckCycle = Policies().DeckCycle with { InitialHandSize = 2 }
+            DeckCycle = Policies().DeckCycle with { InitialPlayableCardCount = 2 }
         };
         var first = Boundaries(executor).InitializeTransaction(run, combat,
             Sequence(), policies, TurnPolicy());
@@ -127,7 +127,7 @@ public sealed class CombatFlowPlannerTests
         var planner = new CombatFlowPlanner(runtimes.Object, boundaries, Mock.Of<IIntentResolver>());
         var deck = DeckTransitions.Create(["strike", "strike", "strike"], DeterministicContext.Create(99, "revision")).Value;
         var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
-            { InitialHandSize = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
+            { InitialPlayableCardCount = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
                 DrawPerActivation = 0, EndDiscard = DeckEndDiscardStrategy.None } };
         var run = new RunState
         {
@@ -328,7 +328,7 @@ public sealed class CombatFlowPlannerTests
         {
             DrawPerActivation = 1,
             HandLimit = 10,
-            InitialHandSize = 0,
+            InitialPlayableCardCount = 0,
             ActorScope = FlowActorScope.RunOwner,
             EncounterStart = EncounterDeckStartStrategy.PreserveZones,
             EncounterCleanup = EncounterDeckCleanupStrategy.PreserveZones,

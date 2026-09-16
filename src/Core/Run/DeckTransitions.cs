@@ -145,8 +145,8 @@ public static class DeckTransitions
             return Result<DeckTransition>.Failure(topology.Error);
         if (policy.EncounterStart == EncounterDeckStartStrategy.Unspecified)
             return Result<DeckTransition>.Failure("Encounter deck start strategy is required");
-        if (policy.InitialHandSize < 0 || policy.InitialHandSize > policy.HandLimit)
-            return Result<DeckTransition>.Failure("Encounter initial hand size is invalid");
+        if (policy.InitialPlayableCardCount < 0 || policy.InitialPlayableCardCount > policy.HandLimit)
+            return Result<DeckTransition>.Failure("Encounter initial playable card count is invalid");
 
         var current = state;
         var currentContext = context;
@@ -167,7 +167,7 @@ public static class DeckTransitions
                 (current, currentContext) = ShuffleDrawPile(current, currentContext);
         }
 
-        var drawCount = System.Math.Max(0, policy.InitialHandSize - current.HandItems.Count);
+        var drawCount = System.Math.Max(0, policy.InitialPlayableCardCount - current.HandItems.Count);
         var drawn = Draw(
             current,
             drawCount,

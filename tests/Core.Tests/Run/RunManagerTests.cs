@@ -201,7 +201,7 @@ public sealed class RunManagerTests
     }
 
     [Fact]
-    public void StartRun_LoadsDefinitionFromJsonAndDrawsStartingHand()
+    public void StartRun_LoadsDefinitionFromJsonAndSelectsInitialPlayableCards()
     {
         var manager = CreateManager();
 
@@ -1179,7 +1179,7 @@ public sealed class RunManagerTests
       "default_run": {
         "runId": "default_run",
         "startingResources": { "gold": 25, "power_points": 0 },
-        "startingHandSize": 2,
+        "initialPlayableCardCount": 2,
         "startingDeck": ["strike", "defend", "zap"],
         "mapNodes": [
           {
@@ -1203,7 +1203,7 @@ public sealed class RunManagerTests
       "default_run": {
         "runId": "default_run",
         "startingResources": { "gold": 25, "power_points": 0 },
-        "startingHandSize": 1,
+        "initialPlayableCardCount": 1,
         "startingDeck": ["strike", "defend"],
         "mapNodes": [
           {

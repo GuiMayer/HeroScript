@@ -327,7 +327,7 @@ public class RunModelsTests
         // Assert
         Assert.Equal("default_run", runDef.RunId);
         Assert.Empty(runDef.StartingResources);
-        Assert.Equal(5, runDef.StartingHandSize);
+        Assert.Equal(5, runDef.InitialPlayableCardCount);
         Assert.Empty(runDef.StartingDeck);
         Assert.Empty(runDef.MapNodes);
         Assert.Empty(runDef.Metadata);
@@ -345,7 +345,7 @@ public class RunModelsTests
                 ["credits"] = 100,
                 ["insight"] = 3
             },
-            StartingHandSize = 6,
+            InitialPlayableCardCount = 6,
             StartingDeck = new List<string> { "strike", "strike", "defend", "bash" },
             MapNodes = new List<RunMapNodeDefinition>
             {
@@ -362,20 +362,20 @@ public class RunModelsTests
         Assert.Equal("ironclad_run", runDef.RunId);
         Assert.Equal(100, runDef.StartingResources["credits"]);
         Assert.Equal(3, runDef.StartingResources["insight"]);
-        Assert.Equal(6, runDef.StartingHandSize);
+        Assert.Equal(6, runDef.InitialPlayableCardCount);
         Assert.Equal(4, runDef.StartingDeck.Count);
         Assert.Single(runDef.MapNodes);
         Assert.Single(runDef.Metadata);
     }
     
     [Fact]
-    public void RunDefinition_StartingHandSize_DefaultsToFive()
+    public void RunDefinition_InitialPlayableCardCount_DefaultsToFive()
     {
         // Arrange & Act
         var runDef = new RunDefinition();
         
         // Assert
-        Assert.Equal(5, runDef.StartingHandSize);
+        Assert.Equal(5, runDef.InitialPlayableCardCount);
     }
     
     [Fact]
@@ -598,7 +598,7 @@ public class RunModelsTests
         {
             RunId = "ironclad_ascension_0",
             StartingResources = new Dictionary<string, float> { ["gold"] = 99 },
-            StartingHandSize = 5,
+            InitialPlayableCardCount = 5,
             StartingDeck = new List<string>
             {
                 "strike", "strike", "strike", "strike", "strike",

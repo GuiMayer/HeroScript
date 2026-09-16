@@ -19,7 +19,7 @@ public sealed record RunDefinition
         init => _startingResources = value?.ToImmutableDictionary(StringComparer.OrdinalIgnoreCase)
             ?? ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     }
-    public int StartingHandSize { get; init; } = 5;
+    public int InitialPlayableCardCount { get; init; } = 5;
     public string? InitialCardZoneId { get; init; }
     public CardZoneOwnerBinding InitialCardOwner { get; init; }
     public IReadOnlyList<string> StartingDeck

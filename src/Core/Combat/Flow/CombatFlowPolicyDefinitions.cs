@@ -80,7 +80,7 @@ public sealed record DeckCyclePolicyDefinition
 
     public int DrawPerActivation { get; init; }
     public int HandLimit { get; init; }
-    public int InitialHandSize { get; init; }
+    public int InitialPlayableCardCount { get; init; }
     public FlowActorScope ActorScope { get; init; }
     public EncounterDeckStartStrategy EncounterStart { get; init; }
     public EncounterDeckCleanupStrategy EncounterCleanup { get; init; }
@@ -286,8 +286,8 @@ public static class CombatFlowPolicyValidator
             return Result.Failure("AI intent refresh and invalidation policies are required");
         if (policies.DeckCycle.DrawPerActivation < 0 ||
             policies.DeckCycle.HandLimit < 1 ||
-            policies.DeckCycle.InitialHandSize < 0 ||
-            policies.DeckCycle.InitialHandSize > policies.DeckCycle.HandLimit)
+            policies.DeckCycle.InitialPlayableCardCount < 0 ||
+            policies.DeckCycle.InitialPlayableCardCount > policies.DeckCycle.HandLimit)
             return Result.Failure("Deck cycle draw and hand limits are invalid");
         if (policies.DeckCycle.ActorScope == FlowActorScope.Unspecified)
             return Result.Failure("Deck cycle actorScope is required");

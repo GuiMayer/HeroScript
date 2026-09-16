@@ -301,10 +301,12 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
 
         var sourceDefinition = system.GetZone(step.SourceZoneId!);
         if (sourceDefinition.IsFailure) return Fail(sourceDefinition.Error);
-        var requested = ResolveCount(step.Selection, context);
+        var requested = ResolveCount(step.Selection, context, state, target);
         if (requested.IsFailure) return Fail(requested.Error);
         if (step.Selection.Strategy == CardZoneSelectionStrategy.All &&
-            step.Selection.Count is null && string.IsNullOrWhiteSpace(step.Selection.CountFormula))
+            step.Selection.Count is null && string.IsNullOrWhiteSpace(step.Selection.CountFormula) &&
+            step.Selection.TargetZoneCount is null &&
+            string.IsNullOrWhiteSpace(step.Selection.TargetZoneCountFormula))
             requested = Result<int>.Success(state.GetZone(source!)!.InstanceIds.Count);
         Func<CardInstanceState, bool>? predicate = null;
         Dictionary<Guid, bool>? matches = null;
@@ -387,7 +389,13 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
                 step with
                 {
                     StepId = $"{step.StepId}.retry",
-                    Selection = step.Selection with { Count = remaining, CountFormula = null },
+                    Selection = step.Selection with
+                    {
+                        Count = remaining,
+                        CountFormula = null,
+                        TargetZoneCount = null,
+                        TargetZoneCountFormula = null
+                    },
                     OnInsufficient = CardZoneInsufficientPolicy.AllowPartial,
                     FallbackFlowId = null,
                     MoveAvailableBeforeFallback = false
@@ -465,9 +473,26 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
             Result<(CardZoneTopologyState, DeterministicContext)>.Failure(error);
     }
 
-    private Result<int> ResolveCount(CardZoneSelectionDefinition selection, CardZoneFlowContext context)
+    private Result<int> ResolveCount(
+        CardZoneSelectionDefinition selection,
+        CardZoneFlowContext context,
+        CardZoneTopologyState? state = null,
+        CardZoneAddress? target = null)
     {
         if (!string.IsNullOrWhiteSpace(selection.CountFormula)) return _rules.EvaluateCount(selection.CountFormula, context);
+        if (selection.TargetZoneCount is not null || !string.IsNullOrWhiteSpace(selection.TargetZoneCountFormula))
+        {
+            if (state == null || target == null)
+                return Result<int>.Failure("Target-zone count requires a resolved target zone");
+            var desired = selection.TargetZoneCount is { } fixedCount
+                ? Result<int>.Success(fixedCount)
+                : _rules.EvaluateCount(selection.TargetZoneCountFormula!, context);
+            if (desired.IsFailure) return desired;
+            var current = state.GetZone(target)?.InstanceIds.Count;
+            if (current is null)
+                return Result<int>.Failure($"Card zone not found: {target.Key}");
+            return Result<int>.Success(System.Math.Max(0, desired.Value - current.Value));
+        }
         if (selection.Strategy == CardZoneSelectionStrategy.Explicit && context.CardInstanceIds.Count > 0)
             return Result<int>.Success(context.CardInstanceIds.Count);
         return Result<int>.Success(selection.Count ?? 1);

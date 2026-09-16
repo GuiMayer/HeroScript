@@ -117,13 +117,12 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var cardZoneSteps = new List<CardZoneFlowStepRecord>();
         if (run.ResolvedMode?.CardZoneSystem != null)
         {
-            var playableCount = CardZonePlaySource.CardsForActor(run,
-                combat.ActivationState?.ActiveActorId ?? run.PlayerEntityId).Count;
-            var deficit = System.Math.Max(0,
-                policies.DeckCycle.InitialHandSize - playableCount);
             var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, run, run.Deck,
                 run.Determinism, "encounter.started",
-                variables: new Dictionary<string, double> { ["initialHandDeficit"] = deficit });
+                variables: new Dictionary<string, double>
+                {
+                    ["initialPlayableCardCount"] = policies.DeckCycle.InitialPlayableCardCount
+                });
             if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
             cardZoneSteps.AddRange(flowed.Value.Steps);
             run = run with

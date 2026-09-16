@@ -47,7 +47,7 @@
             "targetZoneId": "hand",
             "sourceOwner": "RunOwner",
             "targetOwner": "RunOwner",
-            "selection": { "strategy": "Top", "countFormula": "startingHandSize" },
+            "selection": { "strategy": "Top", "targetZoneCountFormula": "initialPlayableCardCount" },
             "onInsufficient": "AllowPartial",
             "onOverflow": "AllowPartial"
           }
@@ -59,13 +59,13 @@
         "allowedInvocations": ["Boundary"],
         "steps": [
           {
-            "stepId": "fill-initial-hand",
+            "stepId": "fill-initial-playable-zone",
             "operation": "Move",
             "sourceZoneId": "draw",
             "targetZoneId": "hand",
             "sourceOwner": "RunOwner",
             "targetOwner": "RunOwner",
-            "selection": { "strategy": "Top", "countFormula": "initialHandDeficit" },
+            "selection": { "strategy": "Top", "targetZoneCountFormula": "initialPlayableCardCount" },
             "onInsufficient": "AllowPartial",
             "onOverflow": "AllowPartial"
           }

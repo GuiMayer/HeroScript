@@ -26,7 +26,7 @@ public static class CardZoneRunInitializer
         string runOwnerId,
         string playerActorId,
         IReadOnlyList<string> actorIds,
-        int startingHandSize,
+        int initialPlayableCardCount,
         string contentRevision,
         string configName,
         DeterministicContext context,
@@ -38,8 +38,8 @@ public static class CardZoneRunInitializer
         ArgumentNullException.ThrowIfNull(actorIds);
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(flows);
-        if (startingHandSize < 0)
-            return Result<CardZoneRunInitializationResult>.Failure("Starting hand size cannot be negative");
+        if (initialPlayableCardCount < 0)
+            return Result<CardZoneRunInitializationResult>.Failure("Initial playable card count cannot be negative");
         if (string.IsNullOrWhiteSpace(contentRevision) || string.IsNullOrWhiteSpace(configName))
             return Result<CardZoneRunInitializationResult>.Failure("Run card zones require pinned content identity");
         if (string.IsNullOrWhiteSpace(definition.InitialCardZoneId) ||
@@ -87,7 +87,10 @@ public static class CardZoneRunInitializer
                 ActiveActorId = playerActorId,
                 ContentRevision = contentRevision,
                 ConfigName = configName,
-                Variables = new Dictionary<string, double> { ["startingHandSize"] = startingHandSize }
+                Variables = new Dictionary<string, double>
+                {
+                    ["initialPlayableCardCount"] = initialPlayableCardCount
+                }
             });
         if (executed.IsFailure) return Result<CardZoneRunInitializationResult>.Failure(executed.Error);
         return Result<CardZoneRunInitializationResult>.Success(new CardZoneRunInitializationResult(

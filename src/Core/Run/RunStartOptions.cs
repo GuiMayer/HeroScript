@@ -13,7 +13,7 @@ public sealed record RunStartOptions(
     string? ModeId = null,
     string? ChallengeId = null,
     IReadOnlyList<RunStartingCard>? StartingDeck = null,
-    int? StartingHandSize = null,
+    int? InitialPlayableCardCount = null,
     string? ScenarioHash = null,
     string? AttemptKey = null,
     Sandbox.CombatScenarioDefinition? Scenario = null,
