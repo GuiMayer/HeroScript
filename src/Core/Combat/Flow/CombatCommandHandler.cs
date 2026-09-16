@@ -91,6 +91,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
                     Determinism = flowed.Value.Context
                 };
                 cardZoneSteps = flowed.Value.Steps;
+                destination = CardConsumeDestination.None;
             }
             else
             {

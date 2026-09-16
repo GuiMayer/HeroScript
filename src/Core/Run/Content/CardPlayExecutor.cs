@@ -127,7 +127,8 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 SelectedTargetIds = request.SelectedTargetIds,
                 CostOptionId = request.CostOptionId,
                 ContentRevision = request.Run.Determinism.ContentRevision,
-                IgnoreConfiguredCosts = request.IgnoreConfiguredCosts
+                IgnoreConfiguredCosts = request.IgnoreConfiguredCosts,
+                UseCardZoneResolution = request.Run.ResolvedMode?.CardZoneSystem != null
             });
         if (evaluation.IsFailure)
             return Result<CardPlayExecutionResult>.Failure(evaluation.Error);

@@ -159,6 +159,8 @@ relíquias e status de abertura não ficam invisíveis ao cliente.
 Nos frames de ativação, `newlyPlayableCardDefinitionIds` e
 `affectedCardInstanceIds` são projeções neutras; `cardZoneSteps` permanece o
 trace completo. Campos de descarte/exílio só têm conteúdo no caminho sem grafo.
+Da mesma forma, `destination`/`disposition` é `None` quando há um grafo: o
+destino real pertence a `cardZoneResolutionFlowId` e aos seus passos.
 Esses dados são diagnóstico e apresentação; o estado final persistido continua
 sendo a autoridade.
 

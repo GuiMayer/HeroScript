@@ -55,6 +55,17 @@ public sealed class CardPlayEvaluatorTests
         Assert.True(cost.Affordable);
         Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
         Assert.Equal("ability.cooldown", result.Value.CardZoneResolutionFlowId);
+
+        var graphResult = evaluator.Evaluate(card, combat, new CardPlayRequest
+        {
+            ActorId = "hero",
+            SelectedTargetIds = ["enemy"],
+            Variables = new Dictionary<string, float> { ["enabled"] = 1 },
+            UseCardZoneResolution = true
+        });
+        Assert.True(graphResult.IsSuccess, graphResult.IsFailure ? graphResult.Error : null);
+        Assert.Equal(CardConsumeDestination.None, graphResult.Value.Destination);
+        Assert.Equal("ability.cooldown", graphResult.Value.CardZoneResolutionFlowId);
     }
 
     [Fact]
