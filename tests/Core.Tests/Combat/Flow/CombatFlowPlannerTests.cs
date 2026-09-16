@@ -15,12 +15,77 @@ using Core.Math;
 using Core.Combat.Intents;
 using Core.Combat.TurnOrder;
 using Core.Run.Content;
+using Core.CardZones;
 using Moq;
 
 namespace Core.Tests.Combat.Flow;
 
 public sealed class CombatFlowPlannerTests
 {
+    [Fact]
+    public void EncounterInitialization_RecordsConfiguredZoneMovesInItsDeterministicTrace()
+    {
+        var definition = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "test-zones",
+            Zones =
+            [
+                new CardZoneDefinition { ZoneId = "reserve", OwnerScope = CardZoneOwnerScope.RunOwner,
+                    Ordering = CardZoneOrdering.Ordered },
+                new CardZoneDefinition { ZoneId = "active", OwnerScope = CardZoneOwnerScope.RunOwner,
+                    Ordering = CardZoneOrdering.Ordered, AllowsCardPlay = true }
+            ],
+            Flows = [new CardZoneFlowDefinition
+            {
+                FlowId = "prepare-encounter", Triggers = ["encounter.started"],
+                AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                Steps = [new CardZoneFlowStepDefinition
+                {
+                    StepId = "move", Operation = CardZoneOperation.Move,
+                    SourceZoneId = "reserve", TargetZoneId = "active",
+                    Selection = new CardZoneSelectionDefinition
+                    {
+                        Strategy = CardZoneSelectionStrategy.First, Count = 1
+                    }
+                }]
+            }]
+        };
+        var executor = new CardZoneFlowExecutor();
+        var seeded = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(definition).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches = [new CardZoneInitialBatch
+                {
+                    ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["skill"]
+                }]
+            }, DeterministicContext.Create(99UL, "revision")).Value;
+        var run = new RunState
+        {
+            PlayerEntityId = "hero",
+            Determinism = seeded.Context,
+            Deck = new DeckState { Topology = seeded.State },
+            ResolvedMode = new ResolvedGameMode { CardZoneSystem = definition }
+        };
+        var combat = CombatTransitions.Create(
+            [Entity("hero", true, 1), Entity("enemy", false, 1)],
+            DeterministicContext.Create(42UL, "revision"));
+
+        var first = Boundaries(executor).InitializeTransaction(run, combat,
+            Sequence(), Policies(), TurnPolicy());
+        var repeated = Boundaries(executor).InitializeTransaction(run, combat,
+            Sequence(), Policies(), TurnPolicy());
+
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        Assert.Equal(first.Value.Fingerprint, repeated.Value.Fingerprint);
+        var move = Assert.Single(first.Value.CardZoneSteps);
+        Assert.Equal("prepare-encounter", move.FlowId);
+        Assert.Equal("$run::$run::reserve", move.SourceAddress);
+        Assert.Equal("$run::$run::active", move.TargetAddress);
+        Assert.Single(first.Value.Run.Deck.Topology.GetZone("active", "$run")!.InstanceIds);
+        Assert.Single(run.Deck.Topology.GetZone("reserve", "$run")!.InstanceIds);
+    }
+
     [Fact]
     public void LifecycleDeckChangesSurviveInitializationAndActivationPlanning()
     {
@@ -281,7 +346,7 @@ public sealed class CombatFlowPlannerTests
     private static ITurnOrderResolver TurnOrders() =>
         new TurnOrderResolver(Mock.Of<IRuntimeFormulaEvaluator>());
 
-    private static ICombatBoundaryExecutor Boundaries()
+    private static ICombatBoundaryExecutor Boundaries(ICardZoneFlowExecutor? cardZoneFlows = null)
     {
         var formulas = Mock.Of<IRuntimeFormulaEvaluator>();
         var triggers = new EffectTriggerExecutor(
@@ -293,7 +358,7 @@ public sealed class CombatFlowPlannerTests
             new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers),
             new PhaseGraphReducer(formulas, triggers),
-            new CombatOutcomeResolver());
+            new CombatOutcomeResolver(), cardZoneFlows);
     }
 
     private static CombatActorState Entity(string id, bool isHero, float energy)

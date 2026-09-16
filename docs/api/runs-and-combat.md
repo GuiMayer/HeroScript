@@ -154,7 +154,8 @@ o comando e todos os seus frames. Cada frame contém quatro visões complementar
   `applications[].cardZoneSteps`; a engine não interpreta o propósito da zona.
 
 O início do encontro também gera um frame `combat.initialized`, portanto
-regeneração, relíquias e status de abertura não ficam invisíveis ao cliente.
+movimentos de zonas configurados para `encounter.started`, regeneração,
+relíquias e status de abertura não ficam invisíveis ao cliente.
 Esses dados são diagnóstico e apresentação; o estado final persistido continua
 sendo a autoridade.
 

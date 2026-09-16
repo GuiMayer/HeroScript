@@ -16,39 +16,6 @@ using Core.CardZones;
 
 namespace Core.Combat.Flow;
 
-public sealed record CombatInitializationResult(CombatState Combat, RunState Run)
-{
-    private ImmutableArray<EffectExecutionStep> _effectSteps = [];
-    private ImmutableArray<CalculationResult> _calculations = [];
-    private ImmutableArray<EffectApplicationRecord> _applications = [];
-    private ImmutableArray<PhaseTransitionRecord> _phaseTransitions = [];
-
-    public IReadOnlyList<EffectExecutionStep> EffectSteps
-    {
-        get => _effectSteps;
-        init => _effectSteps = value?.ToImmutableArray() ?? [];
-    }
-
-    public IReadOnlyList<CalculationResult> Calculations
-    {
-        get => _calculations;
-        init => _calculations = value?.ToImmutableArray() ?? [];
-    }
-
-    public IReadOnlyList<EffectApplicationRecord> Applications
-    {
-        get => _applications;
-        init => _applications = value?.ToImmutableArray() ?? [];
-    }
-
-    public IReadOnlyList<PhaseTransitionRecord> PhaseTransitions
-    {
-        get => _phaseTransitions;
-        init => _phaseTransitions = value?.ToImmutableArray() ?? [];
-    }
-
-    public string Fingerprint { get; init; } = string.Empty;
-}
 public sealed record CombatFlowAdvanceResult
 {
     private ImmutableArray<CombatResolutionStep> _steps = [];
@@ -147,6 +114,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var effectSteps = new List<EffectExecutionStep>();
         var applications = new List<EffectApplicationRecord>();
         var phaseTransitions = new List<PhaseTransitionRecord>();
+        var cardZoneSteps = new List<CardZoneFlowStepRecord>();
         if (run.ResolvedMode?.CardZoneSystem != null)
         {
             var deficit = System.Math.Max(0,
@@ -155,6 +123,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 run.Determinism, "encounter.started",
                 variables: new Dictionary<string, double> { ["initialHandDeficit"] = deficit });
             if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
+            cardZoneSteps.AddRange(flowed.Value.Steps);
             run = run with
             {
                 Deck = new DeckState { Topology = flowed.Value.State },
@@ -226,14 +195,16 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 completed.Value.Run ?? run,
                 effectSteps,
                 applications,
-                phaseTransitions));
+                phaseTransitions,
+                cardZoneSteps));
         }
         return Result<CombatInitializationResult>.Success(CreateInitializationResult(
             current,
             run,
             effectSteps,
             applications,
-            phaseTransitions));
+            phaseTransitions,
+            cardZoneSteps));
     }
 
     public Result<CombatRelicLifecycleResult> Complete(RunState run, CombatState combat)
@@ -780,13 +751,15 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         RunState run,
         IEnumerable<EffectExecutionStep> effectSteps,
         IEnumerable<EffectApplicationRecord> applications,
-        IEnumerable<PhaseTransitionRecord>? phaseTransitions = null)
+        IEnumerable<PhaseTransitionRecord>? phaseTransitions = null,
+        IEnumerable<CardZoneFlowStepRecord>? cardZoneSteps = null)
     {
         var normalizedSteps = effectSteps
             .Select((step, index) => step with { Index = index })
             .ToImmutableArray();
         var immutableApplications = applications.ToImmutableArray();
         var immutablePhaseTransitions = phaseTransitions?.ToImmutableArray() ?? [];
+        var immutableCardZoneSteps = cardZoneSteps?.ToImmutableArray() ?? [];
         var calculations = normalizedSteps
             .Where(step => step.Calculation != null)
             .Select(step => step.Calculation!)
@@ -797,13 +770,15 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             Calculations = calculations,
             Applications = immutableApplications,
             PhaseTransitions = immutablePhaseTransitions,
+            CardZoneSteps = immutableCardZoneSteps,
             Fingerprint = CanonicalJson.ComputeHash(new
             {
                 combat,
                 run,
                 effectSteps = normalizedSteps,
                 applications = immutableApplications,
-                phaseTransitions = immutablePhaseTransitions
+                phaseTransitions = immutablePhaseTransitions,
+                cardZoneSteps = immutableCardZoneSteps
             })
         };
     }

@@ -169,7 +169,8 @@ public sealed class CombatFlowPlanner : ICombatFlowPlanner
             run = initialized.Run,
             effectSteps = initialized.EffectSteps,
             applications = initialized.Applications,
-            phaseTransitions = initialized.PhaseTransitions
+            phaseTransitions = initialized.PhaseTransitions,
+            cardZoneSteps = initialized.CardZoneSteps
         })
     };
 }

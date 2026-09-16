@@ -363,6 +363,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         EffectSteps = initialized.EffectSteps,
         Calculations = initialized.Calculations,
         Applications = initialized.Applications,
+        CardZoneSteps = initialized.CardZoneSteps,
         Payload = JsonSerializer.SerializeToElement(new
         {
             activeActorId = initialized.Combat.ActivationState?.ActiveActorId,
