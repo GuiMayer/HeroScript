@@ -8,13 +8,19 @@ namespace Core.CardZones;
 public sealed record CardZoneActivationStartResult(
     DeckState Deck,
     DeterministicContext Context,
-    IReadOnlyList<string> DrawnCards);
+    IReadOnlyList<string> DrawnCards)
+{
+    public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
+}
 
 public sealed record CardZoneActivationEndResult(
     DeckState Deck,
     DeterministicContext Context,
     IReadOnlyList<string> DiscardedInstanceIds,
-    IReadOnlyList<string> ExhaustedInstanceIds);
+    IReadOnlyList<string> ExhaustedInstanceIds)
+{
+    public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
+}
 
 /// <summary>Adapts purpose-free zone flow results to combat lifecycle payloads.</summary>
 public static class CardZoneCombatLifecycle
@@ -32,7 +38,10 @@ public static class CardZoneCombatLifecycle
             next, flowed.Value.Context,
             CardZonePlaySource.CardsForActor(run with { Deck = next }, actorId)
                 .Where(id => !previousPlayable.Contains(id))
-                .Select(id => next.GetDefinitionId(id)!).ToImmutableArray()));
+                .Select(id => next.GetDefinitionId(id)!).ToImmutableArray())
+        {
+            CardZoneSteps = flowed.Value.Steps
+        });
     }
 
     public static Result<CardZoneActivationEndResult> End(
@@ -50,6 +59,9 @@ public static class CardZoneCombatLifecycle
             next.DiscardPileInstanceIds.Where(id => !previousDiscard.Contains(id))
                 .Select(id => id.ToString()).ToImmutableArray(),
             next.ExhaustPileInstanceIds.Where(id => !previousExhaust.Contains(id))
-                .Select(id => id.ToString()).ToImmutableArray()));
+                .Select(id => id.ToString()).ToImmutableArray())
+        {
+            CardZoneSteps = flowed.Value.Steps
+        });
     }
 }

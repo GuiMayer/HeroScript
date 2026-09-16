@@ -137,7 +137,11 @@ public static class RunEffectReducer
                 {
                     Deck = new DeckState { Topology = flowed.Value.State },
                     Determinism = flowed.Value.Context
-                }, record with { CardInstanceIds = zoneAffected }));
+                }, record with
+                {
+                    CardInstanceIds = zoneAffected,
+                    CardZoneSteps = flowed.Value.Steps
+                }));
         }
         if (effect.Type == EffectType.CARD_ZONE_FLOW)
             return Result<RunEffectApplication>.Failure("CARD_ZONE_FLOW requires a configured card-zone system");

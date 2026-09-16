@@ -14,6 +14,7 @@ using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Core.Run.Replay;
+using Core.CardZones;
 using Moq;
 using System.Text.Json;
 using Xunit;
@@ -365,6 +366,12 @@ public sealed class RunManagerTests
                         RunSnapshot = gameplay,
                         RunDeterminism = gameplay.Determinism,
                         EffectSteps = [new EffectExecutionStep { EffectInstanceId = "status.tick" }],
+                        CardZoneSteps = [new CardZoneFlowStepRecord
+                        {
+                            FlowId = "activation.ended", StepId = "move",
+                            Operation = CardZoneOperation.Move,
+                            SourceAddress = "ready|hero", TargetAddress = "spent|hero"
+                        }],
                         Payload = JsonSerializer.SerializeToElement(new { actorId = "hero" })
                     },
                     new CombatResolutionStep
@@ -395,6 +402,8 @@ public sealed class RunManagerTests
                 "status.tick",
                 Assert.Single(resolution.Frames[0].EffectSteps).EffectInstanceId);
             Assert.Empty(resolution.Frames[1].EffectSteps);
+            Assert.Equal("activation.ended", Assert.Single(resolution.Frames[0].CardZoneSteps).FlowId);
+            Assert.Empty(resolution.Frames[1].CardZoneSteps);
             var commits = await repository.LoadCommitsAsync(run.RunId);
             var transition = commits[^1];
             Assert.Equal(rootCommand.CommandId, transition.RootCommand.CommandId);

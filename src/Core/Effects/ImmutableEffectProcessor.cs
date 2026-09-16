@@ -5,6 +5,7 @@ using Core.Determinism;
 using Core.Resources;
 using Core.StatusEffects;
 using Core.Calculations;
+using Core.CardZones;
 
 namespace Core.Effects;
 
@@ -73,6 +74,7 @@ public sealed record EffectApplicationRecord
     public Guid? StatusInstanceId { get; init; }
     public ImmutableArray<Guid> RemovedStatusInstanceIds { get; init; } = [];
     public ImmutableArray<Guid> CardInstanceIds { get; init; } = [];
+    public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
     public Guid? ModifierInstanceId { get; init; }
     public string? ModifierId { get; init; }
     public ImmutableArray<Guid> RemovedModifierInstanceIds { get; init; } = [];

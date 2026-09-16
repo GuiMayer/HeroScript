@@ -5,6 +5,7 @@ using Core.Common;
 using Core.Determinism;
 using Core.Calculations;
 using Core.Effects;
+using Core.CardZones;
 
 namespace Core.Run;
 
@@ -13,6 +14,7 @@ public sealed record CombatResolutionStep
     private ImmutableArray<EffectExecutionStep> _effectSteps = [];
     private ImmutableArray<CalculationResult> _calculations = [];
     private ImmutableArray<EffectApplicationRecord> _applications = [];
+    private ImmutableArray<CardZoneFlowStepRecord> _cardZoneSteps = [];
 
     public string TransitionType { get; init; } = string.Empty;
     public CombatState Combat { get; init; } = null!;
@@ -35,6 +37,11 @@ public sealed record CombatResolutionStep
     {
         get => _applications;
         init => _applications = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardZoneFlowStepRecord> CardZoneSteps
+    {
+        get => _cardZoneSteps;
+        init => _cardZoneSteps = value?.ToImmutableArray() ?? [];
     }
 }
 

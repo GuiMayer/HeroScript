@@ -609,6 +609,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             EffectSteps = exited.Value.Steps,
             Calculations = exited.Value.Calculations,
             Applications = exited.Value.Applications,
+            CardZoneSteps = endedDeck.Value.CardZoneSteps,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 actorId = activation.ActiveActorId,
@@ -688,6 +689,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             Deck = run.Deck,
             RunDeterminism = run.Determinism,
             RunSnapshot = run,
+            CardZoneSteps = startedDeck.Value.CardZoneSteps,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 actorId = nextActorId,
@@ -913,7 +915,10 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
                 deck, context, actorId);
             if (flowed.IsFailure) return Result<ResourceRefreshResult>.Failure(flowed.Error);
             return Result<ResourceRefreshResult>.Success(new ResourceRefreshResult(
-                flowed.Value.Deck, flowed.Value.Context, flowed.Value.DrawnCards));
+                flowed.Value.Deck, flowed.Value.Context, flowed.Value.DrawnCards)
+            {
+                CardZoneSteps = flowed.Value.CardZoneSteps
+            });
         }
 
         if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || policy.DrawPerActivation == 0)
@@ -949,7 +954,10 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
             if (flowed.IsFailure) return Result<EndDeckCycleResult>.Failure(flowed.Error);
             return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(
                 flowed.Value.Deck, flowed.Value.Context,
-                flowed.Value.DiscardedInstanceIds, flowed.Value.ExhaustedInstanceIds));
+                flowed.Value.DiscardedInstanceIds, flowed.Value.ExhaustedInstanceIds)
+            {
+                CardZoneSteps = flowed.Value.CardZoneSteps
+            });
         }
 
         if (!ScopeApplies(policy.ActorScope, combat, run, actorId) || deck.Hand.Count == 0)
@@ -1086,14 +1094,4 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         combat.GetActor(actorId) is { } actor &&
         combat.ControllerOf(actor) == ControllerKind.Player;
 
-    private sealed record EndDeckCycleResult(
-        DeckState State,
-        DeterministicContext Context,
-        IReadOnlyList<string> Discarded,
-        IReadOnlyList<string> Exhausted);
-
-    private sealed record ResourceRefreshResult(
-        DeckState State,
-        DeterministicContext Context,
-        IReadOnlyList<string> Cards);
 }

@@ -1547,6 +1547,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             EffectSteps = candidate.Step.EffectSteps,
             Calculations = candidate.Step.Calculations,
             Applications = candidate.Step.Applications,
+            CardZoneSteps = candidate.Step.CardZoneSteps,
             StateAfter = mode == AnimationFrameMode.FullSnapshots
                 ? candidate.Step.Combat
                 : null,

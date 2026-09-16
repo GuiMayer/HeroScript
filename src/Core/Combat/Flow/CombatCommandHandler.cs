@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Combat.LegalActions;
 using Core.Combat.Models;
@@ -18,6 +19,7 @@ public sealed record CombatActionReduction
     public CombatActionCommand? ResolvedCommand { get; init; }
     public string? ConsumedCardId { get; init; }
     public CardConsumeDestination Destination { get; init; }
+    public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
     public bool RequestsActivationAdvance { get; init; }
 }
 
@@ -67,6 +69,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
         var resolvedCommand = candidate.ResolvedCommand;
         var consumedCardId = resolvedCommand?.CardInstanceId?.ToString();
         var destination = candidate.CardPlay?.Destination ?? CardConsumeDestination.None;
+        ImmutableArray<CardZoneFlowStepRecord> cardZoneSteps = [];
         if (candidate.CardPlay != null && consumedCardId != null &&
             (run.ResolvedMode?.CardZoneSystem != null || destination != CardConsumeDestination.None))
         {
@@ -87,6 +90,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
                     Deck = new DeckState { Topology = flowed.Value.State },
                     Determinism = flowed.Value.Context
                 };
+                cardZoneSteps = flowed.Value.Steps;
             }
             else
             {
@@ -136,6 +140,7 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             ResolvedCommand = resolvedCommand,
             ConsumedCardId = consumedCardId,
             Destination = destination,
+            CardZoneSteps = cardZoneSteps,
             RequestsActivationAdvance = resolvedEndsTurn || activationBudgetExhausted
         });
     }
@@ -244,6 +249,7 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
             EffectSteps = candidate.Steps,
             Calculations = candidate.Calculations,
             Applications = candidate.Applications,
+            CardZoneSteps = reduced.Value.CardZoneSteps,
             Payload = JsonSerializer.SerializeToElement(new
             {
                 combatId = request.CombatId,

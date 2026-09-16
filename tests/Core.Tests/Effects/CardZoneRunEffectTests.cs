@@ -74,6 +74,9 @@ public sealed class CardZoneRunEffectTests
         Assert.Empty(first.Value.Run.Deck.Topology.GetZone(ready)!.InstanceIds);
         Assert.Equal(cardId, Assert.Single(first.Value.Run.Deck.Topology.GetZone(spent)!.InstanceIds));
         Assert.Equal(cardId, Assert.Single(first.Value.Record.CardInstanceIds));
+        Assert.Equal("ability.spend", Assert.Single(first.Value.Record.CardZoneSteps).FlowId);
+        Assert.Equal(ready.Key, first.Value.Record.CardZoneSteps[0].SourceAddress);
+        Assert.Equal(spent.Key, first.Value.Record.CardZoneSteps[0].TargetAddress);
         Assert.Equal(cardId, Assert.Single(run.Deck.Topology.GetZone(ready)!.InstanceIds));
     }
 }

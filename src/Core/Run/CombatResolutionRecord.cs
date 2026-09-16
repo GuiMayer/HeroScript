@@ -4,6 +4,7 @@ using Core.Combat.Flow;
 using Core.Combat.Models;
 using Core.Calculations;
 using Core.Effects;
+using Core.CardZones;
 
 namespace Core.Run;
 
@@ -12,6 +13,7 @@ public sealed record CombatAnimationFrame
     private ImmutableArray<EffectExecutionStep> _effectSteps = [];
     private ImmutableArray<CalculationResult> _calculations = [];
     private ImmutableArray<EffectApplicationRecord> _applications = [];
+    private ImmutableArray<CardZoneFlowStepRecord> _cardZoneSteps = [];
 
     public Guid FrameId { get; init; }
     public int Index { get; init; }
@@ -35,6 +37,11 @@ public sealed record CombatAnimationFrame
     {
         get => _applications;
         init => _applications = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardZoneFlowStepRecord> CardZoneSteps
+    {
+        get => _cardZoneSteps;
+        init => _cardZoneSteps = value?.ToImmutableArray() ?? [];
     }
 }
 

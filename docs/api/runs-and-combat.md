@@ -144,11 +144,14 @@ servidor para tomar essa decisão.
 
 Cada resolução informa `initialCombatStateHash`, `finalCombatStateHash` e
 `resolutionFingerprint`. `rootSequence` aponta para o único commit que contém
-o comando e todos os seus frames. Cada frame contém três visões complementares:
+o comando e todos os seus frames. Cada frame contém quatro visões complementares:
 
 - `effectSteps`: ordem, condição/chance, alvo, proveniência e hashes de cada efeito;
 - `calculations`: buckets e contribuições numéricas usados pelo frame;
 - `applications`: mudanças concretas de recurso, status, carta ou modifier.
+- `cardZoneSteps`: entradas, saídas e ordenação de cartas em zonas, com IDs de
+  fluxo/etapa e hashes. Movimentos disparados por efeitos também aparecem em
+  `applications[].cardZoneSteps`; a engine não interpreta o propósito da zona.
 
 O início do encontro também gera um frame `combat.initialized`, portanto
 regeneração, relíquias e status de abertura não ficam invisíveis ao cliente.

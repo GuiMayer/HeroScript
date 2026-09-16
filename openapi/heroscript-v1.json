@@ -864,7 +864,7 @@
       },
       "CombatAnimationFrame": {
         "type": "object",
-        "required": ["frameId", "index", "runSequence", "combatStep", "transitionType", "payload", "effectSteps", "calculations", "applications", "snapshotSequence"],
+        "required": ["frameId", "index", "runSequence", "combatStep", "transitionType", "payload", "effectSteps", "calculations", "applications", "cardZoneSteps", "snapshotSequence"],
         "properties": {
           "frameId": { "type": "string", "format": "uuid" },
           "index": { "type": "integer", "minimum": 0 },
@@ -886,6 +886,11 @@
             "type": "array",
             "description": "Concrete immutable mutations produced by the frame.",
             "items": { "$ref": "#/components/schemas/EffectApplicationRecord" }
+          },
+          "cardZoneSteps": {
+            "type": "array",
+            "description": "Ordered, purpose-independent card-zone transitions produced by this command frame.",
+            "items": { "$ref": "#/components/schemas/CardZoneFlowStepRecord" }
           },
           "stateAfter": {
             "type": "object",
@@ -943,6 +948,7 @@
           "statusInstanceId": { "type": "string", "format": "uuid", "nullable": true },
           "removedStatusInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
           "cardInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "cardZoneSteps": { "type": "array", "items": { "$ref": "#/components/schemas/CardZoneFlowStepRecord" } },
           "modifierInstanceId": { "type": "string", "format": "uuid", "nullable": true },
           "modifierId": { "type": "string", "nullable": true },
           "removedModifierInstanceIds": {
@@ -956,6 +962,29 @@
             "items": { "$ref": "#/components/schemas/ModifierStackApplicationRecord" }
           },
           "provenance": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "CardZoneFlowStepRecord": {
+        "type": "object",
+        "description": "A single revisioned card-zone flow step, including ordering and deterministic state hashes.",
+        "required": ["flowId", "stepId", "operation", "instanceIds", "createdInstanceIds", "destroyedInstanceIds", "previousStateHash", "stateHash"],
+        "properties": {
+          "flowId": { "type": "string" },
+          "stepId": { "type": "string" },
+          "operation": { "type": "string" },
+          "sourceAddress": { "type": "string", "nullable": true },
+          "targetAddress": { "type": "string", "nullable": true },
+          "instanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "createdInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "destroyedInstanceIds": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "sourceOrderBefore": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "sourceOrderAfter": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "targetOrderBefore": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "targetOrderAfter": { "type": "array", "items": { "type": "string", "format": "uuid" } },
+          "randomDrawStart": { "type": "integer", "format": "uint64" },
+          "randomDrawEnd": { "type": "integer", "format": "uint64" },
+          "previousStateHash": { "type": "string" },
+          "stateHash": { "type": "string" }
         }
       },
       "ModifierStackApplicationRecord": {

@@ -67,6 +67,7 @@ public sealed class ContractDocumentationTests
         Assert.True(frameProperties.TryGetProperty("effectSteps", out _));
         Assert.True(frameProperties.TryGetProperty("calculations", out _));
         Assert.True(frameProperties.TryGetProperty("applications", out _));
+        Assert.True(frameProperties.TryGetProperty("cardZoneSteps", out _));
         Assert.True(root.GetProperty("components").GetProperty("schemas")
             .GetProperty("CardInspectionResult").GetProperty("properties")
             .TryGetProperty("previewSteps", out _));
