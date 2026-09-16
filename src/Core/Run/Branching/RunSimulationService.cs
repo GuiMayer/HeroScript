@@ -252,8 +252,7 @@ public sealed class RunSimulationService : IRunSimulationService
         return journal.Count(commit => commit.Sequence > 1);
     }
 
-    private static int CountCards(DeckState deck) =>
-        deck.DrawPile.Count + deck.Hand.Count + deck.DiscardPile.Count + deck.ExhaustPile.Count;
+    private static int CountCards(DeckState deck) => deck.Topology.Instances.Count;
 
     private static Guid CreateCommandId(Guid runId, int index, string type, string payloadHash)
     {

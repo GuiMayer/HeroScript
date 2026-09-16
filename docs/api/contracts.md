@@ -39,10 +39,11 @@ Um `effectStep` registra a ordem, alvo, repetição, chance, proveniência,
 resultado numérico e hashes antes/depois. Uma `application` registra a mutação
 concreta sem presumir que um recurso específico representa vida ou mana.
 
-Para jogar uma carta de uma mão com instâncias, envie o UUID em
-`snapshot.hand[].cardInstanceId` como `payload.cardId`. IDs de definição, como
+Para jogar uma carta de uma zona autorizada pela configuração, envie o UUID em
+`snapshot.playableCards[].cardInstanceId` como `payload.cardId`. IDs de definição, como
 `basic_attack`, descrevem conteúdo; IDs de instância identificam a cópia
-específica que será movida para descarte/exaustão e pode ter upgrades próprios.
+específica que será movimentada pelo fluxo de zonas configurado e pode ter
+upgrades próprios. Cada entrada também informa `zoneId` e `zoneOwnerId`.
 
 ## Erros
 

@@ -7,19 +7,20 @@ using Core.Common;
 using Core.Determinism;
 using Core.Run.Content;
 using Core.StatusEffects;
+using Core.CardZones;
 
 namespace Core.Run.Sandbox;
 
 public sealed record SandboxCombatSnapshot
 {
-    private ImmutableArray<SandboxCardSnapshot> _hand = [];
+    private ImmutableArray<SandboxCardSnapshot> _playableCards = [];
 
     public SandboxRunSnapshot Run { get; init; } = new();
     public SandboxCombatSnapshotState Combat { get; init; } = new();
-    public IReadOnlyList<SandboxCardSnapshot> Hand
+    public IReadOnlyList<SandboxCardSnapshot> PlayableCards
     {
-        get => _hand;
-        init => _hand = value?.ToImmutableArray() ?? [];
+        get => _playableCards;
+        init => _playableCards = value?.ToImmutableArray() ?? [];
     }
 }
 
@@ -96,7 +97,9 @@ public sealed record SandboxCardSnapshot
 
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
-    public int HandIndex { get; init; }
+    public int PlayableIndex { get; init; }
+    public string ZoneId { get; init; } = string.Empty;
+    public string ZoneOwnerId { get; init; } = string.Empty;
     public IReadOnlyList<CardUpgradeState> Upgrades
     {
         get => _upgrades;
@@ -162,7 +165,7 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                 Board = combat.Board,
                 Actors = actors
             },
-            Hand = MapHand(run.Value.Deck)
+            PlayableCards = MapPlayableCards(run.Value, combat.ActivationState?.ActiveActorId)
         });
     }
 
@@ -194,20 +197,24 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
         };
     }
 
-    private static IReadOnlyList<SandboxCardSnapshot> MapHand(DeckState deck)
+    private static IReadOnlyList<SandboxCardSnapshot> MapPlayableCards(RunState run, string? actorId)
     {
         var cards = new List<SandboxCardSnapshot>();
-        for (var index = 0; index < deck.Hand.Count; index++)
+        var playable = CardZonePlaySource.CardsForActor(run, actorId ?? run.PlayerEntityId);
+        for (var index = 0; index < playable.Count; index++)
         {
-            var instanceId = deck.HandInstanceIds[index];
-            var instance = deck.GetCard(instanceId)
+            var instanceId = playable[index];
+            var instance = run.Deck.GetCard(instanceId)
                 ?? throw new InvalidOperationException($"Card instance not found: {instanceId}");
-            var definitionId = instance.DefinitionId;
+            var address = run.Deck.Topology.FindZone(instanceId)?.Address
+                ?? throw new InvalidOperationException($"Playable card has no zone: {instanceId}");
             cards.Add(new SandboxCardSnapshot
             {
                 CardInstanceId = instanceId,
-                DefinitionId = definitionId,
-                HandIndex = index,
+                DefinitionId = instance.DefinitionId,
+                PlayableIndex = index,
+                ZoneId = address.ZoneId,
+                ZoneOwnerId = address.OwnerId,
                 Upgrades = instance.Upgrades
             });
         }

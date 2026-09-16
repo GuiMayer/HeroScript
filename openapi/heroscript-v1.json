@@ -788,11 +788,11 @@
       },
       "SandboxCombatSnapshot": {
         "type": "object",
-        "required": ["run", "combat", "hand"],
+        "required": ["run", "combat", "playableCards"],
         "properties": {
           "run": { "type": "object", "additionalProperties": true },
           "combat": { "$ref": "#/components/schemas/SandboxCombatStateSnapshot" },
-          "hand": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+          "playableCards": { "type": "array", "description": "Cards in every authored zone that allows play for the active actor.", "items": { "type": "object", "additionalProperties": true } }
         }
       },
       "SandboxCombatStateSnapshot": {

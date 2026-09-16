@@ -61,7 +61,7 @@ Exemplo de ação de carta:
 }
 ```
 
-`cardInstanceId` vem de `snapshot.hand[].cardInstanceId`, não do ID da
+`cardInstanceId` vem de `snapshot.playableCards[].cardInstanceId`, não do ID da
 definição. Assim cópias iguais podem ter upgrades, histórico e destino próprios.
 
 `initialState.effects` pode declarar status iniciais para atores do cenário

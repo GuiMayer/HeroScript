@@ -104,6 +104,10 @@ public sealed class ContractDocumentationTests
             root.GetProperty("components").GetProperty("schemas")
                 .GetProperty("SandboxCombatSnapshot").GetProperty("properties")
                 .GetProperty("combat").GetProperty("$ref").GetString());
+        var sandboxProperties = root.GetProperty("components").GetProperty("schemas")
+            .GetProperty("SandboxCombatSnapshot").GetProperty("properties");
+        Assert.True(sandboxProperties.TryGetProperty("playableCards", out _));
+        Assert.False(sandboxProperties.TryGetProperty("hand", out _));
         var legalCandidateProperties = root.GetProperty("components").GetProperty("schemas")
             .GetProperty("LegalActionCandidate").GetProperty("properties");
         Assert.True(legalCandidateProperties.TryGetProperty("reactionTransition", out _));

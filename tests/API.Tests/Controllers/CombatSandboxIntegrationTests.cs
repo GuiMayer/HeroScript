@@ -185,7 +185,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
                 using var initialResponse = await firstClient.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
                 var initial = await initialResponse.Content.ReadFromJsonAsync<JsonElement>();
                 Assert.Equal(HttpStatusCode.OK, initialResponse.StatusCode);
-                var cardId = initial.GetProperty("hand").EnumerateArray()
+                var cardId = initial.GetProperty("playableCards").EnumerateArray()
                     .First(card => card.GetProperty("definitionId").GetString() == "basic_attack")
                     .GetProperty("cardInstanceId").GetGuid();
                 var proposalCommandId = Guid.Parse("71000000-0000-8000-8000-000000000001");
@@ -311,7 +311,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
 
         using var beforeResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var before = await beforeResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var card = before.GetProperty("hand").EnumerateArray()
+        var card = before.GetProperty("playableCards").EnumerateArray()
             .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
         var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
 
@@ -438,7 +438,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var initialResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var initial = await initialResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, initialResponse.StatusCode);
-        var card = initial.GetProperty("hand").EnumerateArray()
+        var card = initial.GetProperty("playableCards").EnumerateArray()
             .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
         var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
         var simulationRequest = new
@@ -489,9 +489,9 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             SnapshotResource(manual, "hero", "energy"),
             SnapshotResource(simulated, "hero", "energy"));
         Assert.Equal(
-            manual.GetProperty("hand").EnumerateArray()
+            manual.GetProperty("playableCards").EnumerateArray()
                 .Select(item => item.GetProperty("definitionId").GetString()),
-            simulated.GetProperty("hand").EnumerateArray()
+            simulated.GetProperty("playableCards").EnumerateArray()
                 .Select(item => item.GetProperty("definitionId").GetString()));
         Assert.Equal(
             manual.GetProperty("combat").GetProperty("pendingActions").GetArrayLength(),
@@ -552,7 +552,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var initialResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var initial = await initialResponse.Content.ReadFromJsonAsync<JsonElement>();
         var initialHealth = Health(initial, "goblin_a");
-        var cardId = initial.GetProperty("hand").EnumerateArray()
+        var cardId = initial.GetProperty("playableCards").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack")
             .GetProperty("cardInstanceId").GetGuid();
 
@@ -588,7 +588,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal("hero", proposedSnapshot.GetProperty("combat").GetProperty("priorityWindow")
             .GetProperty("holderActorId").GetString());
         Assert.Single(proposedSnapshot.GetProperty("combat").GetProperty("pendingActions").EnumerateArray());
-        Assert.Contains(proposedSnapshot.GetProperty("hand").EnumerateArray(),
+        Assert.Contains(proposedSnapshot.GetProperty("playableCards").EnumerateArray(),
             card => card.GetProperty("cardInstanceId").GetGuid() == cardId);
         using var retryResponse = await _client.PostAsJsonAsync(
             $"/api/v1/combats/{combatId}/commands", proposalCommand);
@@ -687,7 +687,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
         Assert.Equal(runId, snapshot.GetProperty("run").GetProperty("runId").GetGuid());
         Assert.Equal(combatId, snapshot.GetProperty("combat").GetProperty("combatId").GetGuid());
-        Assert.Equal(5, snapshot.GetProperty("hand").GetArrayLength());
+        Assert.Equal(5, snapshot.GetProperty("playableCards").GetArrayLength());
         Assert.Contains(
             snapshot.GetProperty("combat").GetProperty("actors").EnumerateArray(),
             actor => actor.GetProperty("instanceId").GetString() == "goblin_a");
@@ -711,7 +711,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.Contains(legal.GetProperty("candidates").EnumerateArray(), candidate =>
             candidate.GetProperty("command").GetProperty("actionType").GetString() == "PLAY_CARD");
 
-        var basicAttack = snapshot.GetProperty("hand").EnumerateArray()
+        var basicAttack = snapshot.GetProperty("playableCards").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
         var simulationRequest = new
         {
@@ -790,7 +790,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var branchSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{branchRunId}/snapshot");
         var branchSnapshot = await branchSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, branchSnapshotResponse.StatusCode);
-        var branchAttack = branchSnapshot.GetProperty("hand").EnumerateArray()
+        var branchAttack = branchSnapshot.GetProperty("playableCards").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
         var branchEnemyHealth = Health(branchSnapshot, "goblin_a");
 
@@ -859,7 +859,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         var initialHealth = Health(snapshot, "goblin_a");
-        var attack = snapshot.GetProperty("hand").EnumerateArray()
+        var attack = snapshot.GetProperty("playableCards").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
         using var actionResponse = await _client.PostAsJsonAsync(
             $"/api/v1/combats/{combatId}/commands",
@@ -900,7 +900,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var restoredSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var restoredSnapshot = await restoredSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(initialHealth, Health(restoredSnapshot, "goblin_a"));
-        Assert.Equal(snapshot.GetProperty("hand").GetArrayLength(), restoredSnapshot.GetProperty("hand").GetArrayLength());
+        Assert.Equal(snapshot.GetProperty("playableCards").GetArrayLength(), restoredSnapshot.GetProperty("playableCards").GetArrayLength());
 
         using var verification = await _client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var replay = await verification.Content.ReadFromJsonAsync<JsonElement>();
@@ -965,7 +965,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var initialSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var initialSnapshot = await initialSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, initialSnapshotResponse.StatusCode);
-        var hand = initialSnapshot.GetProperty("hand").EnumerateArray().ToArray();
+        var hand = initialSnapshot.GetProperty("playableCards").EnumerateArray().ToArray();
         var fireball = hand.Single(card => card.GetProperty("definitionId").GetString() == "fireball");
         var basicAttack = hand.First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
 
@@ -1054,7 +1054,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
 
         using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var heal = snapshot.GetProperty("hand").EnumerateArray()
+        var heal = snapshot.GetProperty("playableCards").EnumerateArray()
             .Single(card => card.GetProperty("definitionId").GetString() == "heal");
 
         await ExecuteCardCommand(runId, combatId, heal, "hero");
@@ -1085,7 +1085,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
         using var snapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var strike = snapshot.GetProperty("hand").EnumerateArray()
+        var strike = snapshot.GetProperty("playableCards").EnumerateArray()
             .First(card => card.GetProperty("definitionId").GetString() == "basic_attack");
 
         var result = await ExecuteCardCommandResult(runId, combatId, strike, "goblin_a", Guid.NewGuid());
@@ -1130,7 +1130,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
         using var beforeResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var before = await beforeResponse.Content.ReadFromJsonAsync<JsonElement>();
-        var defends = before.GetProperty("hand").EnumerateArray().Where(card => card.GetProperty("definitionId").GetString() == "defend").ToArray();
+        var defends = before.GetProperty("playableCards").EnumerateArray().Where(card => card.GetProperty("definitionId").GetString() == "defend").ToArray();
         await ExecuteCardCommand(runId, combatId, defends[0], "hero");
         var defended = await ExecuteCardCommand(runId, combatId, defends[1], "hero");
         Assert.Equal(10, CombatResource(defended, "hero", "block"));
@@ -1263,7 +1263,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         using var snapshotResponse = await client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, snapshotResponse.StatusCode);
-        var card = snapshot.GetProperty("hand").EnumerateArray()
+        var card = snapshot.GetProperty("playableCards").EnumerateArray()
             .First(item => item.GetProperty("definitionId").GetString() == "basic_attack");
         var cardInstanceId = card.GetProperty("cardInstanceId").GetGuid();
 
