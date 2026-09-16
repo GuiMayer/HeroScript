@@ -25,6 +25,9 @@
 - Recompensas, lojas e preparações sempre concedem cartas pelo
   `gameplayGrantFlowId` do grafo. Preparações declaram `grantedCardIds`, sem
   escolher uma pilha de destino no próprio conteúdo.
+- Toda run agora exige `modeId` e um sistema de zonas válido. A inicialização
+  fixa de deck/mão foi removida, assim como os eventos órfãos específicos de
+  compra, descarte, adição ao deck e alteração de deck.
 
 ## v1 — 2026-09-15
 

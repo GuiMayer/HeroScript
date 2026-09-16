@@ -44,7 +44,7 @@ public sealed class RunManagerTests
             });
         var manager = CreateManager(repository: repository.Object);
         var started = manager.StartRun(new RunStartOptions(
-            "test", "default_run", "hero", Seed: 10UL, ContentRevision: "test"));
+            "test", "default_run", "hero", Seed: 10UL, ContentRevision: "test", ModeId: "test-mode"));
         Assert.True(started.IsSuccess);
 
         var changed = manager.ApplyRunResource(
@@ -66,7 +66,7 @@ public sealed class RunManagerTests
             using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository);
             var started = manager.StartRun(new RunStartOptions(
-                "test", "default_run", "hero", Seed: 20UL, ContentRevision: "test"));
+                "test", "default_run", "hero", Seed: 20UL, ContentRevision: "test", ModeId: "test-mode"));
             Assert.True(started.IsSuccess);
             var changed = manager.ApplyRunResource(
                 started.Value.RunId, "gold", 5, ResourceEffectOperation.ADD);
@@ -99,6 +99,16 @@ public sealed class RunManagerTests
     }
 
     [Fact]
+    public void StartRun_RequiresAnExplicitMode()
+    {
+        var result = CreateManager().StartRun(new RunStartOptions(
+            "test", "default_run", "hero", Seed: 1, ContentRevision: "test"));
+
+        Assert.True(result.IsFailure);
+        Assert.Contains("Game mode id is required", result.Error);
+    }
+
+    [Fact]
     public void StartRun_SameInputsProduceIdenticalStateAndHash()
     {
         var options = new RunStartOptions(
@@ -106,7 +116,8 @@ public sealed class RunManagerTests
             "default_run",
             "hero",
             Seed: 0xC0FFEEUL,
-            ContentRevision: "test-content-v1");
+            ContentRevision: "test-content-v1",
+            ModeId: "test-mode");
 
         var first = CreateManager().StartRun(options);
         var second = CreateManager().StartRun(options);
@@ -145,9 +156,9 @@ public sealed class RunManagerTests
         var manager = CreateManager(contentManifestProvider: manifests.Object);
 
         var started = manager.StartRun(new RunStartOptions(
-            "test", "default_run", "hero", Seed: 123UL));
+            "test", "default_run", "hero", Seed: 123UL, ModeId: "test-mode"));
         var mismatch = manager.StartRun(new RunStartOptions(
-            "test", "default_run", "hero", Seed: 124UL, ContentRevision: "stale"));
+            "test", "default_run", "hero", Seed: 124UL, ContentRevision: "stale", ModeId: "test-mode"));
 
         Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
         Assert.Equal(manifest.Revision, started.Value.Determinism.ContentRevision);
@@ -205,7 +216,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
 
-        var result = manager.StartRun("test", "default_run", "hero");
+        var result = StartZoneRun(manager);
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.Equal("test", result.Value.ConfigName);
@@ -222,7 +233,7 @@ public sealed class RunManagerTests
     public void MapCommands_PersistResolvedAndVisitedStateInOrder()
     {
         var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
 
         var resolve = manager.ResolveCurrentNode(run.RunId, "start");
         var available = manager.GetAvailableCommands(run.RunId);
@@ -245,7 +256,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager(runJson: CombatRunJson);
         var run = manager.StartRun(new RunStartOptions(
-            "test", "default_run", "hero", Seed: 91UL, ContentRevision: "test")).Value;
+            "test", "default_run", "hero", Seed: 91UL, ContentRevision: "test", ModeId: "test-mode")).Value;
         var combatSeed = run.Determinism.DrawUInt64().Value;
         var combat = CombatTransitions.Create(
             [CreateCombatActorState("hero", isHero: true), CreateCombatActorState("enemy", isHero: false)],
@@ -283,7 +294,8 @@ public sealed class RunManagerTests
                 TargetId = "enemy"
             },
             cardInstanceId,
-            CardConsumeDestination.Discard);
+            CardConsumeDestination.Discard,
+            cardZoneResolutionFlowId: "card.played");
         var resolved = manager.ResolveEncounter(
             run.RunId,
             committed.Value.Sequence,
@@ -314,7 +326,7 @@ public sealed class RunManagerTests
             using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository, runJson: CombatRunJson);
             var run = manager.StartRun(new RunStartOptions(
-                "test", "default_run", "hero", Seed: 93UL, ContentRevision: "test")).Value;
+                "test", "default_run", "hero", Seed: 93UL, ContentRevision: "test", ModeId: "test-mode")).Value;
             var combatSeed = run.Determinism.DrawUInt64().Value;
             var combat = CombatTransitions.Create(
                 [CreateCombatActorState("hero", isHero: true), CreateCombatActorState("enemy", isHero: false)],
@@ -429,7 +441,7 @@ public sealed class RunManagerTests
             using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository, runJson: CombatRunJson);
             var run = manager.StartRun(new RunStartOptions(
-                "test", "default_run", "hero", Seed: 92UL, ContentRevision: "test")).Value;
+                "test", "default_run", "hero", Seed: 92UL, ContentRevision: "test", ModeId: "test-mode")).Value;
             var combatSeed = run.Determinism.DrawUInt64().Value;
             var combat = CombatTransitions.Create(
                 [CreateCombatActorState("hero", isHero: true), CreateCombatActorState("enemy", isHero: false)],
@@ -466,7 +478,7 @@ public sealed class RunManagerTests
     public void ApplyRunResource_SupportsOperationsAndFields()
     {
         var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
 
         var gold = manager.ApplyRunResource(run.RunId, "gold", 10, ResourceEffectOperation.SUBTRACT);
         var pp = manager.ApplyRunResource(run.RunId, "power_points", 3, ResourceEffectOperation.ADD);
@@ -489,7 +501,7 @@ public sealed class RunManagerTests
     [Fact]
     public void PickCards_AddsRewardToDiscardPile()
     {
-        var manager = CreateManager(useCardZones: true);
+        var manager = CreateManager();
         var run = StartZoneRun(manager).Value;
 
         var selection = manager.CreateCardSelection(run.RunId, "basic_reward");
@@ -506,7 +518,7 @@ public sealed class RunManagerTests
     public void CreateCardSelection_WithPool_GeneratesEnrichedOptions()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
 
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward");
 
@@ -522,7 +534,7 @@ public sealed class RunManagerTests
     public void RerollCardSelection_FreeReroll_ReplacesUnlockedOptionsWithoutSpendingGold()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
 
         var reroll = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId, new[] { "heal" });
@@ -539,7 +551,7 @@ public sealed class RunManagerTests
     public void DecomposeCardSelectionOption_AddsPowerPointsAndBlocksPick()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
 
         var decompose = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
@@ -557,7 +569,7 @@ public sealed class RunManagerTests
     public void PickCards_WhenInvalidPick_DoesNotCompleteSelectionOrAddCards()
     {
         var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var selection = manager.CreateCardSelection(run.RunId, "basic_reward").Value;
         var originalDiscard = run.Deck.DiscardPile.ToArray();
 
@@ -573,7 +585,7 @@ public sealed class RunManagerTests
     public void DecomposeCardSelectionOption_WhenAlreadyDecomposed_DoesNotAddPowerPointsAgain()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var first = manager.DecomposeCardSelectionOption(run.RunId, selection.SelectionInstanceId, "fireball");
         var powerPointsAfterFirst = manager.GetRun(run.RunId).Value.ResourceState.Current("power_points");
@@ -589,7 +601,7 @@ public sealed class RunManagerTests
     [Fact]
     public void BuyShopItem_SpendsGoldAndAddsCardToDiscardPile()
     {
-        var manager = CreateManager(useCardZones: true);
+        var manager = CreateManager();
         var run = StartZoneRun(manager).Value;
 
         var shop = manager.CreateShop(run.RunId, "basic_shop");
@@ -607,7 +619,7 @@ public sealed class RunManagerTests
     public void BuyShopItem_WithInsufficientResources_DoesNotMutateRunOrItem()
     {
         var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         run = manager.ApplyRunResource(
             run.RunId,
             "gold",
@@ -628,7 +640,7 @@ public sealed class RunManagerTests
     public void CreateShop_WithPool_GeneratesPricedItems()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
 
         var shop = manager.CreateShop(run.RunId, "dynamic_shop");
 
@@ -645,7 +657,7 @@ public sealed class RunManagerTests
     public void RerollShop_ChargesGoldAndRegeneratesItems()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
 
         var reroll = manager.RerollShop(run.RunId, shop.ShopInstanceId);
@@ -663,7 +675,7 @@ public sealed class RunManagerTests
     public void RerollShop_WithInsufficientGold_DoesNotMutateShop()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var shop = manager.CreateShop(run.RunId, "dynamic_shop").Value;
         run = manager.ApplyRunResource(
             run.RunId,
@@ -687,7 +699,7 @@ public sealed class RunManagerTests
     public void RerollCardSelection_WithInsufficientGold_DoesNotMutateSelection()
     {
         var manager = CreateManagerWithContent();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         var selection = manager.CreateCardSelection(run.RunId, "pool_reward").Value;
         var free = manager.RerollCardSelection(run.RunId, selection.SelectionInstanceId);
         Assert.True(free.IsSuccess, free.IsFailure ? free.Error : null);
@@ -714,7 +726,7 @@ public sealed class RunManagerTests
     [Fact]
     public void ApplyPreparationOption_SpendsResourcesAndAddsConfiguredCards()
     {
-        var manager = CreateManager(useCardZones: true);
+        var manager = CreateManager();
         var run = StartZoneRun(manager).Value;
 
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation");
@@ -732,7 +744,7 @@ public sealed class RunManagerTests
     public void ApplyPreparationOption_AppliesConfiguredScriptModifiers()
     {
         var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
-        var manager = CreateManager(scriptModifierManager: modifierManager.Object, useCardZones: true);
+        var manager = CreateManager(scriptModifierManager: modifierManager.Object);
         var run = StartZoneRun(manager).Value;
         run = manager.ApplyRunResource(
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
@@ -765,7 +777,7 @@ public sealed class RunManagerTests
     public void ApplyPreparationOption_WhenModifierManagerMissing_RollsBackResourcesAndCards()
     {
         var manager = CreateManager();
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         run = manager.ApplyRunResource(
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
         var originalGold = run.ResourceState.Current("gold");
@@ -788,7 +800,7 @@ public sealed class RunManagerTests
     {
         var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         run = manager.ApplyRunResource(
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
         var originalGold = run.ResourceState.Current("gold");
@@ -816,7 +828,7 @@ public sealed class RunManagerTests
     {
         var modifierManager = new Mock<IPinnedContentCatalog<ScriptModifierDefinition>>();
         var manager = CreateManager(scriptModifierManager: modifierManager.Object);
-        var run = manager.StartRun("test", "default_run", "hero").Value;
+        var run = StartZoneRun(manager).Value;
         run = manager.ApplyRunResource(
             run.RunId, "power_points", 3, ResourceEffectOperation.ADD).Value;
         var originalGold = run.ResourceState.Current("gold");
@@ -851,7 +863,7 @@ public sealed class RunManagerTests
     {
         var manager = CreateManager();
         var started = manager.StartRun(new RunStartOptions(
-            "test", "default_run", "hero", Seed: 500UL, ContentRevision: "test")).Value;
+            "test", "default_run", "hero", Seed: 500UL, ContentRevision: "test", ModeId: "test-mode")).Value;
         var payload = JsonSerializer.SerializeToElement(new { currentNodeId = "start" });
         var command = new GameplayCommandEnvelope(
             new RunCommandIdentity(
@@ -894,7 +906,7 @@ public sealed class RunManagerTests
             using var repository = new FileRunCommitStore(path, NullLogger.Instance);
             var manager = CreateManager(repository: repository);
             var started = manager.StartRun(new RunStartOptions(
-                "test", "default_run", "hero", Seed: 501UL, ContentRevision: "test")).Value;
+                "test", "default_run", "hero", Seed: 501UL, ContentRevision: "test", ModeId: "test-mode")).Value;
             var payload = JsonSerializer.SerializeToElement(new { currentNodeId = "start" });
             var command = new GameplayCommandEnvelope(
                 new RunCommandIdentity(
@@ -942,8 +954,7 @@ public sealed class RunManagerTests
         IPinnedContentCatalog<ScriptModifierDefinition>? scriptModifierManager = null,
         IRunCommitStore? repository = null,
         IContentManifestProvider? contentManifestProvider = null,
-        string? runJson = null,
-        bool useCardZones = false)
+        string? runJson = null)
     {
         _configManager.Setup(m => m.ResolveInheritanceChain("test")).Returns(new[] { "test" });
         _resourceLoader
@@ -971,20 +982,10 @@ public sealed class RunManagerTests
                 ["basic_preparation"] = JsonDocument.Parse(PreparationJson).RootElement.GetProperty("basic_preparation").Clone()
             });
 
-        IGameModeResolver? modeResolver = null;
-        ICardZoneFlowExecutor? zoneFlows = null;
-        if (useCardZones)
-        {
-            var modes = new Mock<IGameModeResolver>();
-            modes.Setup(item => item.Resolve("test-mode", "test"))
-                .Returns(Result<ResolvedGameMode>.Success(new()
-                {
-                    Definition = new() { ModeId = "test-mode" },
-                    CardZoneSystem = TestZoneGraph()
-                }));
-            modeResolver = modes.Object;
-            zoneFlows = new CardZoneFlowExecutor(new TestCardZoneRules());
-        }
+        var modes = new Mock<IGameModeResolver>();
+        modes.Setup(item => item.Resolve("test-mode", "test"))
+            .Returns(Result<ResolvedGameMode>.Success(TestResolvedMode()));
+        var zoneFlows = new CardZoneFlowExecutor(new TestCardZoneRules());
 
         return new RunManager(
             _configManager.Object,
@@ -992,7 +993,7 @@ public sealed class RunManagerTests
             scriptModifierCatalog: scriptModifierManager,
             repository: repository,
             contentManifestProvider: contentManifestProvider,
-            gameModeResolver: modeResolver,
+            gameModeResolver: modes.Object,
             resources: TestDataBuilders.MockResourceManager().Object,
             cardZoneFlows: zoneFlows);
     }
@@ -1005,6 +1006,19 @@ public sealed class RunManagerTests
             Seed: 42,
             ContentRevision: "test",
             ModeId: "test-mode"));
+
+    private static ResolvedGameMode TestResolvedMode() => new()
+    {
+        Definition = new() { ModeId = "test-mode" },
+        CombatRules = new()
+        {
+            Flow = new()
+            {
+                Animation = new() { Mode = AnimationFrameMode.FullSnapshots }
+            }
+        },
+        CardZoneSystem = TestZoneGraph()
+    };
 
     private static CardZoneSystemDefinition TestZoneGraph() => new()
     {
@@ -1052,6 +1066,21 @@ public sealed class RunManagerTests
                         Strategy = CardZoneSelectionStrategy.Top,
                         CountFormula = "requestedCount"
                     }
+                }]
+            },
+            new()
+            {
+                FlowId = "card.played",
+                AllowedInvocations = [CardZoneFlowInvocation.CardResolution],
+                Steps = [new()
+                {
+                    StepId = "move",
+                    Operation = CardZoneOperation.Move,
+                    SourceZoneId = "hand",
+                    TargetZoneId = "discard",
+                    SourceOwner = CardZoneOwnerBinding.RunOwner,
+                    TargetOwner = CardZoneOwnerBinding.RunOwner,
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.Explicit }
                 }]
             }
         ]
@@ -1133,12 +1162,17 @@ public sealed class RunManagerTests
 
         var catalog = new CardContentCatalog(_configManager.Object, _resourceLoader.Object);
         var resolver = new CardPoolResolver(_configManager.Object, _resourceLoader.Object, catalog);
+        var modes = new Mock<IGameModeResolver>();
+        modes.Setup(item => item.Resolve("test-mode", "test"))
+            .Returns(Result<ResolvedGameMode>.Success(TestResolvedMode()));
         return new RunManager(
             _configManager.Object,
             _resourceLoader.Object,
             resolver,
             catalog,
-            resources: TestDataBuilders.MockResourceManager().Object);
+            gameModeResolver: modes.Object,
+            resources: TestDataBuilders.MockResourceManager().Object,
+            cardZoneFlows: new CardZoneFlowExecutor(new TestCardZoneRules()));
     }
 
     private static Dictionary<string, JsonElement> ParseResource(string json)

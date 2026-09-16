@@ -100,11 +100,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         _jsonOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
-    public Result<RunState> StartRun(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player")
-    {
-        return StartRun(new RunStartOptions(configName, runDefinitionId, playerEntityId));
-    }
-
     public Result<RunState> StartRun(RunStartOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -115,6 +110,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure("Run definition id is required");
         if (string.IsNullOrWhiteSpace(options.PlayerEntityId))
             return Result<RunState>.Failure("Player entity id is required");
+        if (string.IsNullOrWhiteSpace(options.ModeId))
+            return Result<RunState>.Failure("Game mode id is required");
         var publishedRuntimeRequired = _contentPublications != null && _contentRuntimes != null;
         if (publishedRuntimeRequired && string.IsNullOrWhiteSpace(options.SettingId))
             return Result<RunState>.Failure("Setting id is required");
@@ -122,8 +119,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure("Setting id must match the content configuration name");
         if (publishedRuntimeRequired && string.IsNullOrWhiteSpace(options.ContentRevision))
             return Result<RunState>.Failure("Published content revision is required");
-        if (publishedRuntimeRequired && string.IsNullOrWhiteSpace(options.ModeId))
-            return Result<RunState>.Failure("Game mode id is required");
 
         ResolvedContentManifest? resolvedContent = null;
         if (_contentManifestProvider != null)
@@ -135,24 +130,22 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         }
 
         var effectiveRunDefinitionId = options.RunDefinitionId;
-        ResolvedGameMode? resolvedMode = null;
-        if (!string.IsNullOrWhiteSpace(options.ModeId))
+        var mode = _gameModeResolver switch
         {
-            var mode = _gameModeResolver switch
-            {
-                IRevisionedGameModeResolver revisioned when resolvedContent != null =>
-                    revisioned.Resolve(options.ModeId, options.ConfigName, resolvedContent.Revision),
-                null => ResolveLegacyMode(options.ModeId, options.ConfigName),
-                _ => _gameModeResolver.Resolve(options.ModeId, options.ConfigName)
-            };
-            if (mode.IsFailure)
-                return Result<RunState>.Failure(mode.Error);
-            resolvedMode = mode.Value;
-            if (!resolvedMode.Definition.AllowCustomSeed && options.Seed.HasValue && string.IsNullOrWhiteSpace(options.ChallengeId))
-                return Result<RunState>.Failure($"Game mode does not allow a custom seed: {options.ModeId}");
-            if (!string.IsNullOrWhiteSpace(resolvedMode.Definition.RunDefinitionId))
-                effectiveRunDefinitionId = resolvedMode.Definition.RunDefinitionId;
-        }
+            IRevisionedGameModeResolver revisioned when resolvedContent != null =>
+                revisioned.Resolve(options.ModeId, options.ConfigName, resolvedContent.Revision),
+            null => ResolveLegacyMode(options.ModeId, options.ConfigName),
+            _ => _gameModeResolver.Resolve(options.ModeId, options.ConfigName)
+        };
+        if (mode.IsFailure)
+            return Result<RunState>.Failure(mode.Error);
+        var resolvedMode = mode.Value;
+        if (!resolvedMode.Definition.AllowCustomSeed && options.Seed.HasValue && string.IsNullOrWhiteSpace(options.ChallengeId))
+            return Result<RunState>.Failure($"Game mode does not allow a custom seed: {options.ModeId}");
+        if (!string.IsNullOrWhiteSpace(resolvedMode.Definition.RunDefinitionId))
+            effectiveRunDefinitionId = resolvedMode.Definition.RunDefinitionId;
+        if (resolvedMode.CardZoneSystem == null)
+            return Result<RunState>.Failure($"Game mode requires a card-zone system: {options.ModeId}");
 
         var definitionResult = LoadDefinition(
             options.ConfigName,
@@ -192,42 +185,19 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         if (initialPlayableCardCount < 0)
             return Result<RunState>.Failure("Initial playable card count cannot be negative");
 
-        DeckState initialDeck;
-        IReadOnlyList<string> legacyInitiallyDrawnCards;
-        IReadOnlyList<CardZoneFlowStepRecord> initialZoneSteps;
-        if (resolvedMode?.CardZoneSystem is { } zoneDefinition)
-        {
-            if (_cardZoneFlows == null)
-                return Result<RunState>.Failure("Card-zone flow executor is required for the selected game mode");
-            var compiled = CardZoneSystemCompiler.Compile(zoneDefinition);
-            if (compiled.IsFailure)
-                return Result<RunState>.Failure(compiled.Error);
-            var initialized = CardZoneRunInitializer.Initialize(
-                compiled.Value, definition, startingCards, "$run", options.PlayerEntityId,
-                [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows);
-            if (initialized.IsFailure)
-                return Result<RunState>.Failure(initialized.Error);
-            initialDeck = new DeckState { Topology = initialized.Value.State };
-            context = initialized.Value.Context;
-            legacyInitiallyDrawnCards = [];
-            initialZoneSteps = initialized.Value.InitialFlowSteps;
-        }
-        else
-        {
-            // Modes not yet bound to a card-zone graph retain the existing
-            // construction path until their content is migrated.
-            var deckResult = DeckTransitions.Create(startingCards, context);
-            if (deckResult.IsFailure)
-                return Result<RunState>.Failure(deckResult.Error);
-            var initialDraw = DeckTransitions.Draw(deckResult.Value.State, initialPlayableCardCount,
-                deckResult.Value.Context);
-            if (initialDraw.IsFailure)
-                return Result<RunState>.Failure(initialDraw.Error);
-            initialDeck = initialDraw.Value.State;
-            context = initialDraw.Value.Context;
-            legacyInitiallyDrawnCards = initialDraw.Value.Cards;
-            initialZoneSteps = [];
-        }
+        if (_cardZoneFlows == null)
+            return Result<RunState>.Failure("Card-zone flow executor is required for the selected game mode");
+        var compiled = CardZoneSystemCompiler.Compile(resolvedMode.CardZoneSystem);
+        if (compiled.IsFailure)
+            return Result<RunState>.Failure(compiled.Error);
+        var initialized = CardZoneRunInitializer.Initialize(
+            compiled.Value, definition, startingCards, "$run", options.PlayerEntityId,
+            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows);
+        if (initialized.IsFailure)
+            return Result<RunState>.Failure(initialized.Error);
+        var initialDeck = new DeckState { Topology = initialized.Value.State };
+        context = initialized.Value.Context;
+        var initialZoneSteps = initialized.Value.InitialFlowSteps;
 
         var state = new RunState
         {
@@ -299,15 +269,12 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             options.ConfigName,
             options.PlayerEntityId,
             state.ResourceState.Resources.ToDictionary(pair => pair.Key, pair => pair.Value.Current)));
-        if (initialZoneSteps.Count > 0)
+        if (initialZoneSteps.Length > 0)
             _eventBus?.Publish(new CardZonesTransitionedEvent(
                 state.RunId,
                 "run.started",
                 CanonicalJson.ComputeHash(state.Deck.Topology),
                 initialZoneSteps));
-        if (legacyInitiallyDrawnCards.Count > 0)
-            _eventBus?.Publish(new CardDrawnEvent(state.RunId, legacyInitiallyDrawnCards));
-
         return Result<RunState>.Success(state);
     }
 

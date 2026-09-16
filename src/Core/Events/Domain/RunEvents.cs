@@ -116,39 +116,6 @@ public sealed record RunResourceChangedEvent : GameEvent
 }
 
 /// <summary>
-/// Published when one or more cards are drawn from the draw pile into hand.
-/// </summary>
-public sealed record CardDrawnEvent : GameEvent
-{
-    private ImmutableList<string> _cardIds = [];
-
-    public Guid RunId { get; init; }
-    public IReadOnlyList<string> CardIds
-    {
-        get => _cardIds;
-        init => _cardIds = value?.ToImmutableList() ?? [];
-    }
-
-    public CardDrawnEvent(Guid runId, IReadOnlyList<string> cardIds)
-    {
-        RunId = runId;
-        CardIds = cardIds;
-        EventType = nameof(CardDrawnEvent);
-        Category = EventCategory.RUN;
-        Severity = EventSeverity.DEBUG;
-        Subject = runId.ToString();
-        Verb = "cards_drawn";
-        Target = string.Join(",", cardIds);
-        Payload = new Dictionary<string, object>
-        {
-            ["runId"] = runId,
-            ["cardIds"] = cardIds.ToArray(),
-            ["count"] = cardIds.Count
-        };
-    }
-}
-
-/// <summary>
 /// Published after an authored card-zone boundary changes the topology. The
 /// event describes transitions without assigning gameplay meaning to a zone.
 /// </summary>
@@ -188,65 +155,6 @@ public sealed record CardZonesTransitionedEvent : GameEvent
             ["topologyHash"] = topologyHash,
             ["steps"] = steps.ToArray(),
             ["count"] = steps.Count
-        };
-    }
-}
-
-/// <summary>
-/// Published when cards are discarded from hand.
-/// </summary>
-public sealed record CardDiscardedEvent : GameEvent
-{
-    private ImmutableList<string> _cardIds = [];
-
-    public Guid RunId { get; init; }
-    public IReadOnlyList<string> CardIds
-    {
-        get => _cardIds;
-        init => _cardIds = value?.ToImmutableList() ?? [];
-    }
-
-    public CardDiscardedEvent(Guid runId, IReadOnlyList<string> cardIds)
-    {
-        RunId = runId;
-        CardIds = cardIds;
-        EventType = nameof(CardDiscardedEvent);
-        Category = EventCategory.RUN;
-        Severity = EventSeverity.DEBUG;
-        Subject = runId.ToString();
-        Verb = "cards_discarded";
-        Target = string.Join(",", cardIds);
-        Payload = new Dictionary<string, object>
-        {
-            ["runId"] = runId,
-            ["cardIds"] = cardIds.ToArray(),
-            ["count"] = cardIds.Count
-        };
-    }
-}
-
-/// <summary>
-/// Published when a new card is permanently added to the run deck.
-/// </summary>
-public sealed record CardAddedToDeckEvent : GameEvent
-{
-    public Guid RunId { get; init; }
-    public string CardId { get; init; } = string.Empty;
-
-    public CardAddedToDeckEvent(Guid runId, string cardId)
-    {
-        RunId = runId;
-        CardId = cardId;
-        EventType = nameof(CardAddedToDeckEvent);
-        Category = EventCategory.RUN;
-        Severity = EventSeverity.INFO;
-        Subject = runId.ToString();
-        Verb = "card_added_to_deck";
-        Target = cardId;
-        Payload = new Dictionary<string, object>
-        {
-            ["runId"] = runId,
-            ["cardId"] = cardId
         };
     }
 }
@@ -491,35 +399,6 @@ public sealed record PreparationAppliedEvent : GameEvent
         {
             ["runId"] = runId,
             ["preparationId"] = preparationId
-        };
-    }
-}
-
-/// <summary>
-/// Published when the player's deck composition changes (cards added, removed, or upgraded).
-/// </summary>
-public sealed record DeckChangedEvent : GameEvent
-{
-    public Guid RunId { get; init; }
-    public int TotalCards { get; init; }
-    public string ChangeReason { get; init; } = string.Empty;
-
-    public DeckChangedEvent(Guid runId, int totalCards, string changeReason)
-    {
-        RunId = runId;
-        TotalCards = totalCards;
-        ChangeReason = changeReason;
-        EventType = nameof(DeckChangedEvent);
-        Category = EventCategory.RUN;
-        Severity = EventSeverity.DEBUG;
-        Subject = runId.ToString();
-        Verb = "deck_changed";
-        Target = changeReason;
-        Payload = new Dictionary<string, object>
-        {
-            ["runId"] = runId,
-            ["totalCards"] = totalCards,
-            ["changeReason"] = changeReason
         };
     }
 }

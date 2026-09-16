@@ -26,7 +26,7 @@ public sealed class GameFlowEventTrackingTests : GameEngineIntegrationTestBase
         var eventTypes = events.Select(item => item.GetProperty("eventType").GetString()).ToArray();
 
         Assert.Contains(nameof(Core.Events.Domain.CardZonesTransitionedEvent), eventTypes);
-        Assert.DoesNotContain(nameof(Core.Events.Domain.CardDrawnEvent), eventTypes);
+        Assert.DoesNotContain("CardDrawnEvent", eventTypes);
     }
 
     [Fact]

@@ -16,7 +16,6 @@ public interface IRunQueryService
 
 public interface IRunCreationService
 {
-    Result<RunState> StartRun(string configName = "default", string runDefinitionId = "default_run", string playerEntityId = "player");
     Result<RunState> StartRun(RunStartOptions options);
 }
 

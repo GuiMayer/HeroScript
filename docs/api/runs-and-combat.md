@@ -2,9 +2,10 @@
 
 ## Fluxo autoritativo
 
-1. Crie a run com `POST /api/v1/runs`, informando seed e revisão de conteúdo
-   quando o cliente precisar reproduzir uma partida externa. Omitir `modeId`
-   seleciona o modo canônico `standard`.
+1. Crie a run com `POST /api/v1/runs`, informando `settingId`, `modeId` e a
+   revisão publicada. Informe também a seed quando o cliente precisar
+   reproduzir uma partida externa. O modo é explícito porque seleciona todo o
+   grafo de regras, inclusive o sistema de zonas de cartas.
 2. Leia `GET /api/v1/runs/{runId}` e guarde `sequence`, `step`,
    `contentRevision` e hash retornados.
 3. Consulte mapa e comandos permitidos em `/map` e `/available-commands`.

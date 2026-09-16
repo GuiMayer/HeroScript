@@ -163,46 +163,6 @@ public class RunEventsTests
         Assert.Equal(50f, evt.Payload["delta"]);
     }
     
-    // ==================== CARD DRAWN EVENT TESTS ====================
-    
-    [Fact]
-    public void CardDrawnEvent_SingleCard_SetsAllProperties()
-    {
-        // Arrange
-        var runId = Guid.NewGuid();
-        var cardIds = new List<string> { "strike" };
-        
-        // Act
-        var evt = new CardDrawnEvent(runId, cardIds);
-        
-        // Assert
-        Assert.Equal(runId, evt.RunId);
-        Assert.Single(evt.CardIds);
-        Assert.Equal("strike", evt.CardIds[0]);
-        Assert.Equal(nameof(CardDrawnEvent), evt.EventType);
-        Assert.Equal(EventCategory.RUN, evt.Category);
-        Assert.Equal(EventSeverity.DEBUG, evt.Severity);
-        Assert.Equal("cards_drawn", evt.Verb);
-        Assert.Equal("strike", evt.Target);
-    }
-    
-    [Fact]
-    public void CardDrawnEvent_MultipleCards_PayloadContainsCount()
-    {
-        // Arrange
-        var runId = Guid.NewGuid();
-        var cardIds = new List<string> { "strike", "defend", "bash", "strike", "defend" };
-        
-        // Act
-        var evt = new CardDrawnEvent(runId, cardIds);
-        
-        // Assert
-        Assert.Equal(5, evt.CardIds.Count);
-        Assert.Equal("strike,defend,bash,strike,defend", evt.Target);
-        Assert.Equal(5, evt.Payload["count"]);
-        Assert.IsType<string[]>(evt.Payload["cardIds"]);
-    }
-
     [Fact]
     public void CardZonesTransitionedEvent_PreservesPurposeFreeFlowEvidence()
     {
@@ -230,49 +190,6 @@ public class RunEventsTests
         Assert.Equal(nameof(CardZonesTransitionedEvent), evt.EventType);
         Assert.Equal("card_zones_transitioned", evt.Verb);
         Assert.Equal(1, evt.Payload["count"]);
-    }
-    
-    // ==================== CARD DISCARDED EVENT TESTS ====================
-    
-    [Fact]
-    public void CardDiscardedEvent_MultipleCards_SetsAllProperties()
-    {
-        // Arrange
-        var runId = Guid.NewGuid();
-        var cardIds = new List<string> { "curse", "wound" };
-        
-        // Act
-        var evt = new CardDiscardedEvent(runId, cardIds);
-        
-        // Assert
-        Assert.Equal(runId, evt.RunId);
-        Assert.Equal(2, evt.CardIds.Count);
-        Assert.Equal(nameof(CardDiscardedEvent), evt.EventType);
-        Assert.Equal(EventCategory.RUN, evt.Category);
-        Assert.Equal(EventSeverity.DEBUG, evt.Severity);
-        Assert.Equal("cards_discarded", evt.Verb);
-        Assert.Equal("curse,wound", evt.Target);
-    }
-    
-    // ==================== CARD ADDED TO DECK EVENT TESTS ====================
-    
-    [Fact]
-    public void CardAddedToDeckEvent_FullConstruction_SetsAllProperties()
-    {
-        // Arrange
-        var runId = Guid.NewGuid();
-        
-        // Act
-        var evt = new CardAddedToDeckEvent(runId, "whirlwind");
-        
-        // Assert
-        Assert.Equal(runId, evt.RunId);
-        Assert.Equal("whirlwind", evt.CardId);
-        Assert.Equal(nameof(CardAddedToDeckEvent), evt.EventType);
-        Assert.Equal(EventCategory.RUN, evt.Category);
-        Assert.Equal(EventSeverity.INFO, evt.Severity);
-        Assert.Equal("card_added_to_deck", evt.Verb);
-        Assert.Equal("whirlwind", evt.Target);
     }
     
     // ==================== REWARD GENERATED EVENT TESTS ====================
@@ -480,39 +397,6 @@ public class RunEventsTests
         Assert.Equal("rest_heal", evt.Target);
     }
     
-    // ==================== DECK CHANGED EVENT TESTS ====================
-    
-    [Fact]
-    public void DeckChangedEvent_FullConstruction_SetsAllProperties()
-    {
-        // Arrange
-        var runId = Guid.NewGuid();
-        
-        // Act
-        var evt = new DeckChangedEvent(runId, 35, "card_added");
-        
-        // Assert
-        Assert.Equal(runId, evt.RunId);
-        Assert.Equal(35, evt.TotalCards);
-        Assert.Equal("card_added", evt.ChangeReason);
-        Assert.Equal(nameof(DeckChangedEvent), evt.EventType);
-        Assert.Equal(EventSeverity.DEBUG, evt.Severity);
-        Assert.Equal("deck_changed", evt.Verb);
-        Assert.Equal("card_added", evt.Target);
-    }
-    
-    [Fact]
-    public void DeckChangedEvent_PayloadContainsAllData()
-    {
-        // Arrange & Act
-        var evt = new DeckChangedEvent(Guid.NewGuid(), 20, "card_removed");
-        
-        // Assert
-        Assert.Equal(3, evt.Payload.Count);
-        Assert.Equal(20, evt.Payload["totalCards"]);
-        Assert.Equal("card_removed", evt.Payload["changeReason"]);
-    }
-    
     // ==================== REALISTIC SCENARIOS ====================
     
     [Fact]
@@ -569,18 +453,10 @@ public class RunEventsTests
         // Player picks a card
         var pickEvent = new CardRewardPickedEvent(runId, selectionId, "armaments");
         
-        // Card added to deck
-        var addEvent = new CardAddedToDeckEvent(runId, "armaments");
-        
-        // Deck changed
-        var deckEvent = new DeckChangedEvent(runId, 11, "reward_picked");
-        
         // Assert
         Assert.Equal(selectionId, rewardEvent.SelectionId);
         Assert.Equal(selectionId, pickEvent.SelectionId);
         Assert.Equal("armaments", pickEvent.PickedCardId);
-        Assert.Equal("armaments", addEvent.CardId);
-        Assert.Equal(11, deckEvent.TotalCards);
     }
     
     [Fact]
@@ -624,39 +500,10 @@ public class RunEventsTests
         var ppEvent = new RunResourceChangedEvent(
             runId, "power_points", ResourceValueField.Current, ResourceMutationOperation.Add, 0, 25);
         
-        // Deck changed
-        var deckEvent = new DeckChangedEvent(runId, 9, "card_decomposed");
-        
         // Assert
         Assert.Equal("strike", decomposeEvent.CardId);
         Assert.Equal(25, decomposeEvent.PowerPointsGained);
         Assert.Equal(25, ppEvent.ValueDelta);
         Assert.Equal("power_points", ppEvent.ResourceId);
-        Assert.Equal(9, deckEvent.TotalCards);
-    }
-    
-    [Fact]
-    public void Scenario_CombatCardFlow_DrawAndDiscard()
-    {
-        // Arrange
-        var runId = Guid.NewGuid();
-        
-        // Act - Draw 5 cards
-        var drawEvent = new CardDrawnEvent(
-            runId, 
-            new List<string> { "strike", "strike", "defend", "defend", "bash" }
-        );
-        
-        // Discard 2 cards at end of turn
-        var discardEvent = new CardDiscardedEvent(
-            runId,
-            new List<string> { "strike", "defend" }
-        );
-        
-        // Assert
-        Assert.Equal(5, drawEvent.CardIds.Count);
-        Assert.Equal(5, drawEvent.Payload["count"]);
-        Assert.Equal(2, discardEvent.CardIds.Count);
-        Assert.Equal(2, discardEvent.Payload["count"]);
     }
 }
