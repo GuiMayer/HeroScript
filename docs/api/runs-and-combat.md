@@ -166,11 +166,8 @@ Envie-os ao gateway da run com o `payload` correspondente:
 
 | Tipo | Payload |
 | --- | --- |
-| `DRAW_CARDS` | `{ "count": 1 }` |
 | `INVOKE_CARD_ZONE_GAMEPLAY_FLOW` | `{ "flowId": "run.draw", "requestedCount": 1 }` |
 | `INVOKE_CARD_ZONE_FLOW` | `{ "flowId": "tool.create-in-hand", "cardDefinitionIds": ["basic_attack"] }` |
-| `DISCARD_CARDS` | `{ "cardIds": ["... "] }` |
-| `SHUFFLE_DISCARD` | `{}` |
 | `CREATE_CARD_SELECTION` | `{ "selectionId": "basic_reward" }` |
 | `PICK_CARD_REWARD` | `{ "selectionInstanceId": "...", "cardIds": ["..."] }` |
 | `REROLL_CARD_REWARD` | `{ "selectionInstanceId": "...", "lockedCardIds": [] }` |
@@ -202,6 +199,10 @@ enviar `cardDefinitionIds` nem `actorId`. O fluxo JSON decide origem,
 destino, seleção, capacidade e ordem. Uma execução sem transição não produz
 commit. O comando é determinístico, atômico e auditável como qualquer outro
 comando da run.
+Em runs com grafo de zonas, `DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`,
+`ADD_CARDS_TO_HAND` e `SHUFFLE_DISCARD` são recusados: seus nomes embutem
+propósitos de pilha que a engine não pode presumir. Modos ainda sem grafo
+mantêm esses comandos até a migração de seu conteúdo.
 
 ## Recuperação e auditoria
 

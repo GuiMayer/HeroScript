@@ -67,7 +67,8 @@ public class GameEngineClientSimulator
     public async Task<List<string>> DrawCardsAsync(Guid runId, int count = 1)
     {
         var before = await GetHandCardsAsync(runId);
-        await ExecuteRunCommandStateAsync(runId, "DRAW_CARDS", new { count });
+        await ExecuteRunCommandStateAsync(runId, "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            new { flowId = "run.draw", requestedCount = count });
         var after = await GetHandCardsAsync(runId);
         var previousIds = before.Select(card => card.CardInstanceId).ToHashSet();
         return after
@@ -90,7 +91,8 @@ public class GameEngineClientSimulator
             used.Add(card.CardInstanceId);
             return card.CardInstanceId;
         }).ToArray();
-        return await ExecuteRunCommandStateAsync(runId, "DISCARD_CARDS", new { cardIds = instanceIds });
+        return await ExecuteRunCommandStateAsync(runId, "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            new { flowId = "run.discard", cardInstanceIds = instanceIds });
     }
 
     public async Task<List<string>> GetHandAsync(Guid runId)

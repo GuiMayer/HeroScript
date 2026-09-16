@@ -1868,35 +1868,20 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
             if (count < 0)
                 return Result<IReadOnlyList<string>>.Failure("Draw count cannot be negative");
+            if (state.ResolvedMode?.CardZoneSystem != null)
+                return Result<IReadOnlyList<string>>.Failure(
+                    "Configured card zones require INVOKE_CARD_ZONE_GAMEPLAY_FLOW for card movement");
 
             var policy = state.ResolvedMode?.CombatRules.Flow.DeckCycle;
             if (policy != null && count > System.Math.Max(0, policy.HandLimit - state.Deck.HandInstanceIds.Count))
                 return Result<IReadOnlyList<string>>.Failure("Draw count exceeds the configured hand limit");
-            DeckState nextDeck;
-            DeterministicContext nextContext;
-            if (state.ResolvedMode?.CardZoneSystem != null)
-            {
-                var priorHandIds = state.Deck.HandInstanceIds.ToHashSet();
-                var flowed = ExecuteCardZoneBoundary(state, "cards.draw-requested",
-                    variables: new Dictionary<string, double> { ["requestedCount"] = count });
-                if (flowed.IsFailure)
-                    return Result<IReadOnlyList<string>>.Failure(flowed.Error);
-                nextDeck = new DeckState { Topology = flowed.Value.State };
-                nextContext = flowed.Value.Context;
-                drawn = nextDeck.HandInstanceIds.Where(id => !priorHandIds.Contains(id))
-                    .Select(id => nextDeck.GetDefinitionId(id)!)
-                    .ToImmutableArray();
-            }
-            else
-            {
-                var transition = DeckTransitions.Draw(state.Deck, count, state.Determinism,
-                    policy?.ShuffleDiscardWhenDrawEmpty ?? true, policy?.AllowPartialDraw ?? false);
-                if (transition.IsFailure)
-                    return Result<IReadOnlyList<string>>.Failure(transition.Error);
-                nextDeck = transition.Value.State;
-                nextContext = transition.Value.Context;
-                drawn = transition.Value.Cards;
-            }
+            var transition = DeckTransitions.Draw(state.Deck, count, state.Determinism,
+                policy?.ShuffleDiscardWhenDrawEmpty ?? true, policy?.AllowPartialDraw ?? false);
+            if (transition.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(transition.Error);
+            var nextDeck = transition.Value.State;
+            var nextContext = transition.Value.Context;
+            drawn = transition.Value.Cards;
             if (!drawn.IsEmpty)
             {
                 state = state with
@@ -1932,6 +1917,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
+            if (state.ResolvedMode?.CardZoneSystem != null)
+                return Result<IReadOnlyList<string>>.Failure(
+                    "Configured card zones require an authored flow, not ADD_CARDS_TO_HAND");
 
             var transition = DeckTransitions.AddToHand(state.Deck, cardIds, state.Determinism);
             if (transition.IsFailure)
@@ -1977,6 +1965,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
+            if (state.ResolvedMode?.CardZoneSystem != null)
+                return Result<IReadOnlyList<string>>.Failure(
+                    "Configured card zones require an authored flow, not CONSUME_CARDS_FROM_HAND");
 
             var transition = DeckTransitions.MoveFromHand(state.Deck, cardIds, destination, state.Determinism);
             if (transition.IsFailure)
@@ -2007,6 +1998,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result.Failure($"Run not found: {runId}");
+            if (state.ResolvedMode?.CardZoneSystem != null)
+                return Result.Failure(
+                    "Configured card zones require an authored flow, not SHUFFLE_DISCARD");
 
             var transition = DeckTransitions.ShuffleDiscardIntoDrawPile(state.Deck, state.Determinism);
             if (!transition.Cards.IsEmpty)
@@ -2438,11 +2432,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
     private Result<CardZoneFlowResult> ExecuteCardZoneBoundary(
         RunState state,
-        string trigger,
-        IReadOnlyList<Guid>? cardInstanceIds = null,
-        IReadOnlyDictionary<string, double>? variables = null)
+        string trigger)
         => CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state, state.Deck,
-            state.Determinism, trigger, cardInstanceIds: cardInstanceIds, variables: variables);
+            state.Determinism, trigger);
 
     private Result<IReadOnlyList<string>> MoveCards(
         Guid runId,
@@ -2453,55 +2445,19 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (!_runs.TryGetValue(runId, out var state))
                 return Result<IReadOnlyList<string>>.Failure($"Run not found: {runId}");
-
-            DeckState nextDeck;
-            DeterministicContext nextContext;
-            IReadOnlyList<string> movedCards;
             if (state.ResolvedMode?.CardZoneSystem != null)
-            {
-                if (cardIds.Count == 0)
-                    return Result<IReadOnlyList<string>>.Failure("At least one card instance id is required");
-                var selected = new List<Guid>(cardIds.Count);
-                foreach (var value in cardIds)
-                {
-                    if (!Guid.TryParse(value, out var id))
-                        return Result<IReadOnlyList<string>>.Failure($"Invalid card instance id: {value}");
-                    if (!state.Deck.HandInstanceIds.Contains(id))
-                        return Result<IReadOnlyList<string>>.Failure($"Card instance not found in hand: {id}");
-                    if (selected.Contains(id))
-                        return Result<IReadOnlyList<string>>.Failure($"Card instance selected more than once: {id}");
-                    selected.Add(id);
-                }
-                var trigger = destination switch
-                {
-                    CardConsumeDestination.Discard => "cards.discard-requested",
-                    CardConsumeDestination.Exhaust => "cards.exhaust-requested",
-                    _ => string.Empty
-                };
-                if (trigger.Length == 0)
-                    return Result<IReadOnlyList<string>>.Failure($"Unsupported card consume destination: {destination}");
-                var flowed = ExecuteCardZoneBoundary(state, trigger, selected);
-                if (flowed.IsFailure)
-                    return Result<IReadOnlyList<string>>.Failure(flowed.Error);
-                nextDeck = new DeckState { Topology = flowed.Value.State };
-                nextContext = flowed.Value.Context;
-                movedCards = selected.Select(id => nextDeck.GetDefinitionId(id)!).ToImmutableArray();
-            }
-            else
-            {
-                var transition = DeckTransitions.MoveFromHand(state.Deck, cardIds,
-                    destination, state.Determinism);
-                if (transition.IsFailure)
-                    return Result<IReadOnlyList<string>>.Failure(transition.Error);
-                nextDeck = transition.Value.State;
-                nextContext = transition.Value.Context;
-                movedCards = transition.Value.Cards;
-            }
+                return Result<IReadOnlyList<string>>.Failure(
+                    "Configured card zones require INVOKE_CARD_ZONE_GAMEPLAY_FLOW for card movement");
+
+            var transition = DeckTransitions.MoveFromHand(state.Deck, cardIds,
+                destination, state.Determinism);
+            if (transition.IsFailure)
+                return Result<IReadOnlyList<string>>.Failure(transition.Error);
 
             state = state with
             {
-                Deck = nextDeck,
-                Determinism = nextContext.AdvanceStep()
+                Deck = transition.Value.State,
+                Determinism = transition.Value.Context.AdvanceStep()
             };
             var persisted = Persist(
                 state,
@@ -2510,7 +2466,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (persisted.IsFailure)
                 return Result<IReadOnlyList<string>>.Failure(persisted.Error);
 
-            return Result<IReadOnlyList<string>>.Success(movedCards);
+            return Result<IReadOnlyList<string>>.Success(transition.Value.Cards);
         }
     }
 

@@ -97,6 +97,18 @@ public sealed class RoguelikeGameFlowTests : GameEngineIntegrationTestBase
             await toolOnly.Content.ReadAsStringAsync());
         Assert.Equal(current.GetProperty("sequence").GetInt32(),
             (await Client.GetRunStateAsync(runId)).GetProperty("sequence").GetInt32());
+
+        using var purposeBound = await RawClient.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            type = "DRAW_CARDS",
+            expectedSequence = current.GetProperty("sequence").GetInt32(),
+            expectedStep = current.GetProperty("step").GetUInt64(),
+            payload = new { count = 1 }
+        });
+        Assert.Equal(System.Net.HttpStatusCode.UnprocessableEntity, purposeBound.StatusCode);
+        Assert.Contains("INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            await purposeBound.Content.ReadAsStringAsync());
     }
 
     [Fact]

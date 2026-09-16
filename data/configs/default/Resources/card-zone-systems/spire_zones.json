@@ -88,8 +88,7 @@
       },
       {
         "flowId": "run.draw",
-        "triggers": ["cards.draw-requested"],
-        "allowedInvocations": ["Boundary", "GameplayCommand"],
+        "allowedInvocations": ["GameplayCommand"],
         "steps": [
           {
             "stepId": "draw-requested-cards",
@@ -109,8 +108,7 @@
       },
       {
         "flowId": "run.discard",
-        "triggers": ["cards.discard-requested"],
-        "allowedInvocations": ["Boundary", "GameplayCommand"],
+        "allowedInvocations": ["GameplayCommand"],
         "steps": [
           {
             "stepId": "discard-selected-cards",
@@ -125,8 +123,7 @@
       },
       {
         "flowId": "run.exhaust",
-        "triggers": ["cards.exhaust-requested"],
-        "allowedInvocations": ["Boundary", "GameplayCommand"],
+        "allowedInvocations": ["GameplayCommand"],
         "steps": [
           {
             "stepId": "exhaust-selected-cards",

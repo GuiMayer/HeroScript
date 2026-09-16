@@ -95,7 +95,8 @@ public sealed class DeterministicPrototypeFlowTests : GameEngineIntegrationTestB
             .EnumerateArray()
             .Select(entry => entry.GetProperty("commandType").GetString())
             .ToList();
-        Assert.Equal(new[] { RunCommandTypes.StartRun, "DRAW_CARDS", "START_ENCOUNTER", "PLAY_CARD" }, commandTypes);
+        Assert.Equal(new[] { RunCommandTypes.StartRun, RunCommandTypes.InvokeCardZoneGameplayFlow,
+            "START_ENCOUNTER", "PLAY_CARD" }, commandTypes);
 
         using var verifyResponse = await RawClient.PostAsync($"/api/v1/runs/{runId}/verify", null);
         var verification = await verifyResponse.Content.ReadFromJsonAsync<JsonElement>();

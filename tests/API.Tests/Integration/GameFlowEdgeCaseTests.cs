@@ -40,7 +40,7 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
     }
 
     [Fact]
-    public async Task DrawCards_InsufficientDeck_ReturnsSemanticValidationError()
+    public async Task CardZoneGameplayFlow_ExcessiveDraw_UsesAuthoredPartialPolicy()
     {
         // Setup run
         var (runId, runState) = await SetupRunAsync();
@@ -51,11 +51,16 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
             commandId = Guid.NewGuid(),
             expectedSequence = GetJsonInt(runState, "sequence"),
             expectedStep = runState.GetProperty("step").GetUInt64(),
-            type = "DRAW_CARDS",
-            payload = new { count = 1000 }
+            type = "INVOKE_CARD_ZONE_GAMEPLAY_FLOW",
+            payload = new { flowId = "run.draw", requestedCount = 1000 }
         });
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var zonesResponse = await RawClient.GetAsync($"/api/v1/runs/{runId}/card-zones");
+        var zones = await zonesResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var hand = zones.GetProperty("zones").EnumerateArray()
+            .Single(zone => zone.GetProperty("zoneId").GetString() == "hand");
+        Assert.InRange(hand.GetProperty("count").GetInt32(), 1, 10);
     }
 
     [Fact]

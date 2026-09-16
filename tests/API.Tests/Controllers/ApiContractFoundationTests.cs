@@ -354,7 +354,8 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             sourceSequence,
             commands = new[]
             {
-                new { type = RunCommandTypes.DrawCards, payload = new { count = 1 } }
+                new { type = RunCommandTypes.InvokeCardZoneGameplayFlow,
+                    payload = new { flowId = "run.draw", requestedCount = 1 } }
             }
         };
         using var simulationResponse = await _client.PostAsJsonAsync("/api/v1/simulations", simulationRequest);
