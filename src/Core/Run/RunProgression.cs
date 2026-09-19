@@ -610,3 +610,40 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
         return commands;
     }
 }
+
+public sealed record CardUpgradeCommandOption(
+    Guid CardInstanceId,
+    string CardDefinitionId,
+    string UpgradeId);
+
+/// <summary>
+/// Projects only executable card/upgrade pairs. This keeps discovery and
+/// command execution aligned instead of asking clients to infer content rules.
+/// </summary>
+public static class CardUpgradeCommandOptions
+{
+    public static IReadOnlyList<CardUpgradeCommandOption> Project(
+        RunState run,
+        IEnumerable<CardUpgradeDefinition> definitions)
+    {
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(definitions);
+        var upgrades = definitions
+            .OrderBy(definition => definition.UpgradeId, StringComparer.Ordinal)
+            .ToArray();
+        return run.Deck.Topology.Instances.Values
+            .OrderBy(card => card.CreationOrdinal)
+            .ThenBy(card => card.CardInstanceId)
+            .SelectMany(card => upgrades
+                .Where(upgrade => upgrade.AppliesTo(card.DefinitionId))
+                .Where(upgrade => card.Upgrades.Count(applied => string.Equals(
+                    applied.UpgradeId,
+                    upgrade.UpgradeId,
+                    StringComparison.Ordinal)) < System.Math.Max(1, upgrade.MaxApplications))
+                .Select(upgrade => new CardUpgradeCommandOption(
+                    card.CardInstanceId,
+                    card.DefinitionId,
+                    upgrade.UpgradeId)))
+            .ToArray();
+    }
+}

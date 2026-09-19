@@ -406,9 +406,56 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
     public Result<IReadOnlyList<RunAvailableCommand>> GetAvailableCommands(Guid runId)
     {
         var run = GetRun(runId);
-        return run.IsFailure
-            ? Result<IReadOnlyList<RunAvailableCommand>>.Failure(run.Error)
-            : _progression.GetAvailableCommands(run.Value);
+        if (run.IsFailure)
+            return Result<IReadOnlyList<RunAvailableCommand>>.Failure(run.Error);
+        var commands = _progression.GetAvailableCommands(run.Value);
+        if (commands.IsFailure || _contentDefinitions == null)
+            return commands;
+        var upgradeCommand = commands.Value.FirstOrDefault(command =>
+            string.Equals(command.Type, RunCommandTypes.UpgradeCard, StringComparison.Ordinal));
+        if (upgradeCommand == null)
+            return commands;
+
+        var upgradeIds = upgradeCommand.ValidPayload.TryGetProperty("upgradeIds", out var configured) &&
+                         configured.ValueKind == JsonValueKind.Array
+            ? configured.EnumerateArray()
+                .Where(item => item.ValueKind == JsonValueKind.String)
+                .Select(item => item.GetString())
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Cast<string>()
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray()
+            : [];
+        var definitions = new List<CardUpgradeDefinition>(upgradeIds.Length);
+        foreach (var upgradeId in upgradeIds)
+        {
+            var definition = _contentDefinitions.Resolve<CardUpgradeDefinition>(
+                run.Value,
+                "card-upgrades",
+                upgradeId);
+            if (definition.IsFailure)
+                return Result<IReadOnlyList<RunAvailableCommand>>.Failure(definition.Error);
+            definitions.Add(definition.Value);
+        }
+
+        var options = CardUpgradeCommandOptions.Project(run.Value, definitions);
+        var enriched = commands.Value.Select(command =>
+            string.Equals(command.Type, RunCommandTypes.UpgradeCard, StringComparison.Ordinal)
+                ? command with
+                {
+                    ValidPayload = JsonSerializer.SerializeToElement(new
+                    {
+                        options = options.Select(option => new
+                        {
+                            cardInstanceId = option.CardInstanceId,
+                            cardDefinitionId = option.CardDefinitionId,
+                            upgradeId = option.UpgradeId
+                        }).ToArray()
+                    })
+                }
+                : command).ToArray();
+        return Result<IReadOnlyList<RunAvailableCommand>>.Success(enriched);
     }
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId)

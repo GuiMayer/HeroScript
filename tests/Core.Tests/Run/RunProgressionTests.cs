@@ -261,6 +261,62 @@ public sealed class RunProgressionTests
     }
 
     [Fact]
+    public void CardUpgradeOptions_ExposeOnlyApplicablePairsWithRemainingApplications()
+    {
+        var system = CardZoneSystemCompiler.Compile(new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "upgrade-options",
+            Zones = [new CardZoneDefinition
+            {
+                ZoneId = "deck",
+                OwnerScope = CardZoneOwnerScope.RunOwner,
+                Ordering = CardZoneOrdering.Ordered
+            }]
+        }).Value;
+        var topology = CardZoneBootstrapper.Create(system, new CardZoneBootstrapPlan
+        {
+            RunOwnerId = "$run",
+            Batches = [new CardZoneInitialBatch
+            {
+                ZoneId = "deck",
+                OwnerId = "$run",
+                Cards =
+                [
+                    new CardZoneCardCreation
+                    {
+                        DefinitionId = "strike",
+                        Upgrades = [new CardUpgradeState { UpgradeId = "sharp" }]
+                    },
+                    new CardZoneCardCreation { DefinitionId = "guard" }
+                ]
+            }]
+        }, DeterministicContext.Create(42, Revision)).Value.State;
+        var run = State("forge", new RunMapState(), new RunProgressionPolicyDefinition()) with
+        {
+            Deck = new DeckState { Topology = topology }
+        };
+
+        var options = CardUpgradeCommandOptions.Project(run,
+        [
+            new CardUpgradeDefinition
+            {
+                UpgradeId = "sharp",
+                CardDefinitionIds = ["strike"],
+                MaxApplications = 1
+            },
+            new CardUpgradeDefinition
+            {
+                UpgradeId = "reinforced",
+                CardDefinitionIds = ["guard"]
+            }
+        ]);
+
+        var option = Assert.Single(options);
+        Assert.Equal("guard", option.CardDefinitionId);
+        Assert.Equal("reinforced", option.UpgradeId);
+    }
+
+    [Fact]
     public void RelicRewardActivity_AdvertisesPinnedRelicAndBecomesResolvableAfterAcquisition()
     {
         var map = RunMapTransitions.Create(
