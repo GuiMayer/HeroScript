@@ -212,7 +212,7 @@
         "type": "condition",
         "componentId": "condition.wounded-target",
         "order": 15,
-        "expression": "0.51 - target.resources.health.percent",
+        "expression": "51 - target.resources.health.percent",
         "failureReason": "Target must be at or below half health"
       },
       {

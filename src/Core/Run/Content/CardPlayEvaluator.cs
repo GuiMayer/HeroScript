@@ -137,14 +137,33 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             card.Tags.Append("action").ToHashSet(StringComparer.Ordinal), _formulas, request.ContentRevision);
         if (constraints.IsFailure) return Result<CardPlayEvaluation>.Failure(constraints.Error);
         failures.AddRange(constraints.Value);
-        var conditionTarget = request.SelectedTargetIds.Count > 0
-            ? combat.GetActor(request.SelectedTargetIds[0])
-            : null;
+        var targets = ResolveTargets(card, combat, actor, request.SelectedTargetIds);
+        if (targets.IsFailure)
+            return Result<CardPlayEvaluation>.Failure(targets.Error);
+        failures.AddRange(targets.Value.Failures);
+        var conditionTargetId = request.SelectedTargetIds.FirstOrDefault()
+            ?? targets.Value.ResolvedTargetIds.FirstOrDefault();
+        var conditionTarget = conditionTargetId == null
+            ? null
+            : combat.GetActor(conditionTargetId);
         var variables = BuildVariables(actor, conditionTarget, request.Variables);
 
         var conditionTraces = ImmutableArray.CreateBuilder<CardConditionTrace>();
         foreach (var condition in card.All<CardConditionComponentDefinition>())
         {
+            if (conditionTarget == null && ReferencesTargetContext(condition.Expression))
+            {
+                const string missingTarget = "A target is required to evaluate this card condition";
+                conditionTraces.Add(new CardConditionTrace
+                {
+                    ComponentId = condition.ComponentId,
+                    Expression = condition.Expression,
+                    Passed = false,
+                    FailureReason = missingTarget
+                });
+                failures.Add(missingTarget);
+                continue;
+            }
             var evaluated = EvaluateFormula(
                 condition.Expression,
                 variables,
@@ -220,11 +239,6 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             if (aggregate.IsFailure)
                 failures.Add($"Selected card costs cannot be paid: {aggregate.Error}");
         }
-
-        var targets = ResolveTargets(card, combat, actor, request.SelectedTargetIds);
-        if (targets.IsFailure)
-            return Result<CardPlayEvaluation>.Failure(targets.Error);
-        failures.AddRange(targets.Value.Failures);
 
         var failureArray = failures.Distinct(StringComparer.Ordinal).ToImmutableArray();
         return Result<CardPlayEvaluation>.Success(new CardPlayEvaluation
@@ -355,6 +369,10 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
         !string.IsNullOrWhiteSpace(revision) && _formulas is IRevisionedRuntimeFormulaEvaluator revisioned
             ? revisioned.EvaluateAtRevision(expression, revision, variables)
             : _formulas.Evaluate(expression, variables);
+
+    private static bool ReferencesTargetContext(string expression) =>
+        expression.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(token => token.StartsWith("target.", StringComparison.Ordinal));
 
     private static Dictionary<string, float> BuildVariables(
         CombatActorState actor,

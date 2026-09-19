@@ -146,6 +146,63 @@ public sealed class CardPlayEvaluatorTests
     }
 
     [Fact]
+    public void Evaluate_TargetConditionWithoutSelection_IsAnIllegalCandidateInsteadOfAResolverFailure()
+    {
+        var hero = Entity("hero", true, ("health", 100));
+        var enemy = Entity("enemy", false, ("health", 40));
+        var card = Card(
+            new CardConditionComponentDefinition
+            {
+                ComponentId = "condition.wounded_target",
+                Expression = "51 - target.resources.health.percent",
+                FailureReason = "Target must be wounded"
+            },
+            Target(EffectTarget.TARGET));
+
+        var result = CreateEvaluator().Evaluate(
+            card,
+            Combat(hero, enemy),
+            new CardPlayRequest { ActorId = "hero" });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(result.Value.IsLegal);
+        Assert.Contains(
+            result.Value.FailureReasons,
+            failure => failure.Contains("target", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Evaluate_AutomaticTargetConditionUsesResolvedTargetContext()
+    {
+        var hero = Entity("hero", true, ("health", 100));
+        var enemy = Entity("enemy", false, ("health", 40));
+        var card = Card(
+            new CardConditionComponentDefinition
+            {
+                ComponentId = "condition.wounded_target",
+                Expression = "target.resources.health.percent",
+                FailureReason = "Target must be alive"
+            },
+            new CardTargetingComponentDefinition
+            {
+                ComponentId = "target.lowest_health",
+                Target = EffectTarget.LOWEST_RESOURCE_ENEMY,
+                SelectionResourceId = "health",
+                MinimumTargets = 1,
+                MaximumTargets = 1
+            });
+
+        var result = CreateEvaluator().Evaluate(
+            card,
+            Combat(hero, enemy),
+            new CardPlayRequest { ActorId = "hero" });
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.True(result.Value.IsLegal);
+        Assert.Equal("enemy", Assert.Single(result.Value.ResolvedTargetIds));
+    }
+
+    [Fact]
     public void Evaluate_AutomaticResourceTargetIgnoresEntitiesWithoutConfiguredResource()
     {
         var hero = Entity("hero", true, ("mana", 5));
