@@ -7,6 +7,47 @@ camadas separadas de transporte, gateway, aplicação, playback e UI. A estrutur
 atual está em [Arquitetura do cliente](../../examples/godot-engine-showcase/ARCHITECTURE.md).
 As medições abaixo registram a entrega de otimização original.
 
+## Atualização de desempenho — 2026-09-19
+
+O caminho interativo foi refeito sem alterar regras, RNG, atomicidade ou a
+ordem dos frames. A campanha longa da Godot agora executa comandos com mediana
+de **197 ms**, p95 de **512 ms** e máximo de **512 ms** em 34 POSTs. A medição
+de referência antes desta rodada registrava mediana de **7.054 ms** e máximo de
+**17.737 ms**. O smoke test passou a falhar quando p95 excede 1 segundo ou um
+pico ultrapassa o teto de regressão de 1,5 segundo; os dois valores continuam
+visíveis para investigar outliers em vez de escondê-los numa média.
+
+A run medida (`9dd2e6dd-1c38-8527-90ec-8319ccfcc984`) terminou com 84 commits:
+3,84 MiB no total, commit mediano de 40,3 KiB e máximo de 262,6 KiB. Foram 12
+checkpoints e 72 deltas. A fixture equivalente anterior crescia para 194,26
+MiB, com snapshots individuais de até 6,29 MiB.
+
+As mudanças que produziram o resultado foram:
+
+1. resoluções de combate saíram do estado vivo e passaram a ser projeções dos
+   commits; timeline, replay e endpoint de resolução leem a mesma autoridade;
+2. gameplay normal usa frames compactos, mantendo snapshots completos como
+   opção configurável;
+3. clones por round-trip de JSON foram removidos do fluxo imutável;
+4. commits preparados reutilizam hashes e bytes canônicos, com cursores de
+   append por run e índices derivados por commandId;
+5. leituras de projeção são paginadas, e a busca idempotente não materializa o
+   histórico completo;
+6. schema 3 persiste deltas determinísticos e checkpoints a cada 25 comandos e
+   nas fronteiras de ciclo de vida; a leitura sempre valida o hash reconstruído;
+7. canonicalização escreve diretamente em bytes e reutiliza, apenas durante a
+   transação, hashes de instâncias explicitamente imutáveis;
+8. a resposta de comando de combate deixou de serializar uma segunda cópia da
+   run; conserva `runStep`, projeção do combate e resolução para concorrência e
+   playback;
+9. a gravação mantém flush durável único, rename atômico e locks por run.
+
+O orçamento mede somente o POST do comando — cálculo imediato, persistência,
+serialização, HTTP local e parse pela Godot. A reprodução das animações e as
+projeções GET posteriores não inflam artificialmente esse número. Tempos
+absolutos não são usados em testes unitários, pois hardware e armazenamento
+variam; o orçamento ponta a ponta pertence ao smoke test Release.
+
 ## Resultado
 
 A demo possui português/inglês em runtime, seleção de carta e alvo sem recriar

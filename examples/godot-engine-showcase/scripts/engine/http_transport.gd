@@ -44,7 +44,13 @@ func request(method: HTTPClient.Method, path: String, body = null, timeout_secon
 		node.queue_free()
 		return _failure("Could not start the request (%s).", 0, null, [error])
 	var completed: Array = await node.request_completed
-	timings.append({"method": method, "path": path, "ms": Time.get_ticks_msec() - started})
+	var operation := str(body.get("type", "")) if body is Dictionary else ""
+	timings.append({
+		"method": method,
+		"path": path,
+		"operation": operation,
+		"ms": Time.get_ticks_msec() - started
+	})
 	if timings.size() > 200:
 		timings.pop_front()
 	node.queue_free()

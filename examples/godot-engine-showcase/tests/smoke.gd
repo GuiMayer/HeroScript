@@ -1,6 +1,8 @@
 extends Node
 
 const CardZonePresenter = preload("res://scripts/presentation/card_zone_presenter.gd")
+const COMMAND_P95_BUDGET_MS := 1000
+const COMMAND_MAX_BUDGET_MS := 1500
 
 var failures: Array[String] = []
 var _exit_code := 0
@@ -77,8 +79,16 @@ func _run() -> void:
 	var durations: Array = commands.map(func(item): return int(item.ms))
 	durations.sort()
 	if not durations.is_empty():
+		var p95_index := mini(durations.size() - 1, int(ceil(durations.size() * 0.95)) - 1)
 		print("COMMAND_HTTP samples=", durations.size(), " median_ms=", durations[durations.size() / 2],
-			" max_ms=", durations[-1])
+			" p95_ms=", durations[p95_index], " max_ms=", durations[-1])
+		check(int(durations[p95_index]) <= COMMAND_P95_BUDGET_MS,
+			"keep command p95 within the one-second interaction budget")
+		check(int(durations[-1]) <= COMMAND_MAX_BUDGET_MS,
+			"keep worst-case commands below the regression ceiling")
+		for item in commands:
+			if int(item.ms) >= 750:
+				print("SLOW_COMMAND operation=", item.operation, " ms=", item.ms, " path=", item.path)
 	finish()
 
 func drive_complete_campaign(seed: int) -> bool:
