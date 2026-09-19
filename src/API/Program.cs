@@ -412,7 +412,6 @@ builder.Services.AddSingleton<ICombatFactory>(sp => new CombatFactory(
 builder.Services.AddSingleton<ICombatOutcomeResolver, CombatOutcomeResolver>();
 builder.Services.AddSingleton<ICombatBoundaryExecutor>(sp => new CombatBoundaryExecutor(
     sp.GetRequiredService<ITurnOrderResolver>(),
-    sp.GetRequiredService<IRunCardResolver>(),
     sp.GetRequiredService<ICombatStatusLifecycle>(),
     sp.GetRequiredService<ICombatRelicLifecycle>(),
     sp.GetRequiredService<ICombatResourceLifecycle>(),

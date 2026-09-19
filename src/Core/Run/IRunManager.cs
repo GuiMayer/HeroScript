@@ -46,16 +46,6 @@ public interface IRunEncounterCommitter : IRunCombatResolutionCommitter
         CombatState? stateBeforeInitialization = null,
         CombatResolutionStep? initializationStep = null,
         JsonElement rootPayload = default);
-    Result<RunState> CommitCombatAction(
-        Guid runId,
-        int expectedSequence,
-        CombatState previousCombat,
-        CombatState nextCombat,
-        CombatActionCommand command,
-        string? consumedCardId,
-        CardConsumeDestination destination,
-        RunCommandIdentity? commandIdentity = null,
-        string? cardZoneResolutionFlowId = null);
     Result<RunState> ResolveEncounter(
         Guid runId,
         int expectedSequence,

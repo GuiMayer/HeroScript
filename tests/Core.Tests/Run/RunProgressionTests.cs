@@ -4,6 +4,7 @@ using Core.Effects;
 using Core.Math;
 using Core.Resources;
 using Core.Run;
+using Core.CardZones;
 using Moq;
 using Xunit;
 
@@ -367,13 +368,28 @@ public sealed class RunProgressionTests
     {
         var combatId = Guid.NewGuid();
         var map = RunMapTransitions.Create([Node("combat", RunActivityType.Encounter)], _activities).Value;
+        var zones = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "progression-test",
+            Zones = [new()
+            {
+                ZoneId = "cards", OwnerScope = CardZoneOwnerScope.RunOwner,
+                Ordering = CardZoneOrdering.Ordered
+            }]
+        };
+        var cards = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(zones).Value,
+            new CardZoneBootstrapPlan { RunOwnerId = "$run" },
+            DeterministicContext.Create(1, "test")).Value;
         var run = State("combat", map, policy) with
         {
             Sequence = 4,
             ActiveEncounterId = combatId,
+            Deck = new DeckState { Topology = cards.State },
+            Determinism = cards.Context,
             ResolvedMode = new ResolvedGameMode
             {
                 ProgressionPolicy = policy,
+                CardZoneSystem = zones,
                 CombatRules = new() { Flow = new() { DeckCycle = null! } }
             },
             Encounters = [new RunEncounterState
@@ -398,7 +414,8 @@ public sealed class RunProgressionTests
         var manager = new RunManager(
             Mock.Of<Core.Config.IConfigManager>(),
             Mock.Of<Core.Config.IResourceLoader>(),
-            activities: _activities);
+            activities: _activities,
+            cardZoneFlows: new CardZoneFlowExecutor());
         Assert.True(manager.HydrateForReplay(run).IsSuccess);
         var resolved = manager.ResolveEncounter(run.RunId, run.Sequence, combatId);
         Assert.True(resolved.IsSuccess, resolved.IsFailure ? resolved.Error : null);

@@ -146,7 +146,7 @@ public sealed class CombatFlowPlannerTests
         var triggers = new EffectTriggerExecutor(
             formulas, new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true,
             cardZoneFlows: zoneFlows);
-        var boundaries = new CombatBoundaryExecutor(TurnOrders(), Cards(),
+        var boundaries = new CombatBoundaryExecutor(TurnOrders(),
             new CombatStatusLifecycle(triggers), new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers), new PhaseGraphReducer(formulas, triggers),
             new CombatOutcomeResolver(), zoneFlows);
@@ -206,23 +206,35 @@ public sealed class CombatFlowPlannerTests
     }
 
     [Fact]
-    public void InitializeAndAdvance_UsePinnedPoliciesWithoutMutatingInputs()
+    public void InitializeAndAdvance_UseAuthoredZoneFlowsWithoutMutatingInputs()
     {
         var context = DeterministicContext.Create(42UL, "revision");
         var combat = CombatTransitions.Create(
             [Entity("hero", isHero: true, energy: 0), Entity("enemy", isHero: false, energy: 0)],
             context);
+        var zones = LifecycleZones();
+        var seeded = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(zones).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches =
+                [
+                    new() { ZoneId = "draw", OwnerId = "$run", DefinitionIds = ["future"] },
+                    new() { ZoneId = "hand", OwnerId = "$run", DefinitionIds = ["strike", "retain"] }
+                ]
+            }, DeterministicContext.Create(99UL, "revision")).Value;
         var run = new RunState
         {
             RunId = Guid.NewGuid(),
             PlayerEntityId = "hero",
-            Deck = new DeckState { Hand = ["strike", "retain"] },
-            Determinism = DeterministicContext.Create(99UL, "revision")
+            Deck = new DeckState { Topology = seeded.State },
+            Determinism = seeded.Context,
+            ResolvedMode = new() { CardZoneSystem = zones }
         };
         var sequence = Sequence();
         var policies = Policies();
 
-        var boundaries = Boundaries();
+        var boundaries = Boundaries(ZoneExecutor());
         var initialized = boundaries.InitializeTransaction(
             run, combat, sequence, policies, TurnPolicy());
         Assert.True(initialized.IsSuccess, initialized.IsFailure ? initialized.Error : null);
@@ -244,47 +256,41 @@ public sealed class CombatFlowPlannerTests
         Assert.True(first.Value.Steps.Count >= 3);
         Assert.Equal("enemy", first.Value.Combat.ActivationState!.ActiveActorId);
         Assert.False(first.Value.Combat.ActivationState.WaitingForInput);
-        Assert.Equal(["retain"], first.Value.Deck.Hand);
+        Assert.Equal(["retain", "future"], first.Value.Deck.Hand);
         Assert.Equal(["strike"], first.Value.Deck.DiscardPile);
-
-        var secondRun = initialized.Value.Run with
-        {
-            Deck = first.Value.Deck,
-            Determinism = first.Value.Steps[^1].RunDeterminism!.AdvanceStep()
-        };
-        var second = boundaries.AdvanceActivation(
-            secondRun,
-            first.Value.Combat,
-            first.Value.Deck,
-            secondRun.Determinism,
-            sequence,
-            policies,
-            TurnPolicy());
-        Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
-        Assert.Equal("hero", second.Value.Combat.ActivationState!.ActiveActorId);
-        Assert.True(second.Value.Combat.ActivationState.WaitingForInput);
-        Assert.Equal(2, second.Value.Combat.ActivationState.Round);
-        Assert.Equal(["retain", "strike"], second.Value.Deck.Hand);
-        Assert.Empty(second.Value.Deck.DiscardPile);
+        Assert.Equal(["strike", "retain"], run.Deck.Hand);
     }
 
     [Fact]
-    public void AdvanceActivation_ExhaustsEtherealBeforeDiscardingNonRetain()
+    public void AdvanceActivation_AppliesPriorityOrderedAuthoredEndFlows()
     {
+        var zones = LifecycleZones();
+        var seeded = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(zones).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches = [new()
+                {
+                    ZoneId = "hand", OwnerId = "$run",
+                    DefinitionIds = ["ethereal", "strike", "retain"]
+                }]
+            }, DeterministicContext.Create(7UL, "revision")).Value;
         var run = new RunState
         {
             RunId = Guid.NewGuid(),
             PlayerEntityId = "hero",
-            Determinism = DeterministicContext.Create(7UL, "revision")
+            Deck = new DeckState { Topology = seeded.State },
+            Determinism = seeded.Context,
+            ResolvedMode = new() { CardZoneSystem = zones }
         };
         var combat = CombatTransitions.Create(
             [Entity("hero", true, 3), Entity("enemy", false, 3)],
             DeterministicContext.Create(8UL, "revision"));
-        var boundaries = Boundaries();
+        var boundaries = Boundaries(ZoneExecutor());
         var initialized = boundaries.InitializeTransaction(
             run, combat, Sequence(), Policies(), TurnPolicy()).Value;
         combat = initialized.Combat;
-        var deck = new DeckState { Hand = ["ethereal", "strike", "retain"] };
+        var deck = initialized.Run.Deck;
 
         var result = boundaries.AdvanceActivation(
             initialized.Run,
@@ -301,27 +307,73 @@ public sealed class CombatFlowPlannerTests
         Assert.Equal(["ethereal"], result.Value.Deck.ExhaustPile);
     }
 
-    private static IRunCardResolver Cards()
+    private static CardZoneSystemDefinition LifecycleZones() => new()
     {
-        var resolver = new Mock<IRunCardResolver>();
-        resolver.Setup(item => item.Resolve(
-                It.IsAny<RunState>(),
-                It.IsAny<CardInstanceState>()))
-            .Returns((RunState _, CardInstanceState instance) =>
-                Result<EffectiveCardDefinition>.Success(new EffectiveCardDefinition
+        CardZoneSystemId = "lifecycle",
+        Zones =
+        [
+            new() { ZoneId = "draw", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+            new() { ZoneId = "hand", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered,
+                AllowsCardPlay = true },
+            new() { ZoneId = "discard", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+            new() { ZoneId = "exhaust", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Unordered }
+        ],
+        Flows =
+        [
+            new()
+            {
+                FlowId = "activation.ethereal", Priority = 50, Triggers = ["activation.ended"],
+                AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                Steps = [new()
                 {
-                    CardInstanceId = instance.CardInstanceId,
-                    DefinitionId = instance.DefinitionId,
-                    DefinitionFingerprint = $"compiled:{instance.DefinitionId}",
-                    Tags = instance.DefinitionId switch
-                    {
-                        "retain" => ["retain"],
-                        "ethereal" => ["ethereal"],
-                        _ => []
-                    },
-                    Fingerprint = $"effective:{instance.CardInstanceId}"
-                }));
-        return resolver.Object;
+                    StepId = "move-ethereal", Operation = CardZoneOperation.Move,
+                    SourceZoneId = "hand", TargetZoneId = "exhaust",
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.ByTags,
+                        RequiredTags = ["ethereal"], SelectAllMatches = true },
+                    OnInsufficient = CardZoneInsufficientPolicy.AllowPartial
+                }]
+            },
+            new()
+            {
+                FlowId = "activation.discard", Priority = 100, Triggers = ["activation.ended"],
+                AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                Steps = [new()
+                {
+                    StepId = "move-unplayed", Operation = CardZoneOperation.Move,
+                    SourceZoneId = "hand", TargetZoneId = "discard",
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.ByTags,
+                        ExcludedTags = ["retain", "ethereal"], SelectAllMatches = true },
+                    OnInsufficient = CardZoneInsufficientPolicy.AllowPartial
+                }]
+            },
+            new()
+            {
+                FlowId = "activation.draw", Priority = 100, Triggers = ["activation.started"],
+                AllowedInvocations = [CardZoneFlowInvocation.Boundary],
+                Steps = [new()
+                {
+                    StepId = "draw-one", Operation = CardZoneOperation.Move,
+                    SourceZoneId = "draw", TargetZoneId = "hand",
+                    Selection = new() { Strategy = CardZoneSelectionStrategy.Top, Count = 1 },
+                    OnInsufficient = CardZoneInsufficientPolicy.AllowPartial
+                }]
+            }
+        ]
+    };
+
+    private static ICardZoneFlowExecutor ZoneExecutor() => new CardZoneFlowExecutor(
+        new CardZoneRuntimeRuleEvaluator(Mock.Of<IRuntimeFormulaEvaluator>(), new AuthoredTags()));
+
+    private sealed class AuthoredTags : ICardZoneCardMetadataResolver
+    {
+        public Result<IReadOnlyList<string>> ResolveTags(
+            CardInstanceState instance, CardZoneFlowContext context) =>
+            Result<IReadOnlyList<string>>.Success(instance.DefinitionId switch
+            {
+                "retain" => ["retain"],
+                "ethereal" => ["ethereal"],
+                _ => []
+            });
     }
 
     private static PhaseSequenceDefinition Sequence() => new()
@@ -411,7 +463,6 @@ public sealed class CombatFlowPlannerTests
             cardZoneFlows: cardZoneFlows);
         return new CombatBoundaryExecutor(
             TurnOrders(),
-            Cards(),
             new CombatStatusLifecycle(triggers),
             new CombatRelicLifecycle(triggers),
             new CombatResourceLifecycle(triggers),

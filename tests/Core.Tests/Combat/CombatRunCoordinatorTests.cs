@@ -127,15 +127,6 @@ public sealed class CombatRunCoordinatorTests
         Assert.Contains(captured.Steps, step => step.TransitionType == "combat.ai.action");
         Assert.Contains(captured.Steps, step => step.TransitionType == "combat.ai.end_turn");
         committer.Verify(service => service.CommitCombatResolution(It.IsAny<CombatResolutionCommit>()), Times.Once);
-        _runManager.Verify(manager => manager.CommitCombatAction(
-            It.IsAny<Guid>(),
-            It.IsAny<int>(),
-            It.IsAny<CombatState>(),
-            It.IsAny<CombatState>(),
-            It.IsAny<CombatActionCommand>(),
-            It.IsAny<string?>(),
-            It.IsAny<CardConsumeDestination>(),
-            It.IsAny<RunCommandIdentity?>()), Times.Never);
     }
 
     [Fact]

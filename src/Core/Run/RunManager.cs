@@ -1216,9 +1216,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 initializedRun.Determinism.ContentRevision != state.Determinism.ContentRevision ||
                 initializedRun.Determinism.Seed != state.Determinism.Seed))
                 return Result<RunState>.Failure("Initialized run snapshot does not match encounter owner");
-            if (initializedRun == null && state.ResolvedMode?.CardZoneSystem != null)
+            if (initializedRun == null)
             {
-                var initialPlayableCardCount = state.ResolvedMode.CombatRules.Flow.DeckCycle.InitialPlayableCardCount;
+                var initialPlayableCardCount = state.ResolvedMode!.CombatRules.Flow.DeckCycle.InitialPlayableCardCount;
                 var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state,
                     state.Deck, seed.Context, "encounter.started",
                     variables: new Dictionary<string, double>
@@ -1229,15 +1229,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     return Result<RunState>.Failure(flowed.Error);
                 encounterDeck = Result<DeckTransition>.Success(new DeckTransition(
                     new DeckState { Topology = flowed.Value.State }, flowed.Value.Context, []));
-            }
-            else if (initializedRun == null && state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
-            {
-                encounterDeck = DeckTransitions.BeginEncounter(
-                    state.Deck,
-                    deckPolicy,
-                    seed.Context);
-                if (encounterDeck.IsFailure)
-                    return Result<RunState>.Failure(encounterDeck.Error);
             }
             var candidate = state with
             {
@@ -1289,116 +1280,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 commandIdentity,
                 scope: "combat",
                 combatId: combatState.CombatId);
-        }
-    }
-
-    public Result<RunState> CommitCombatAction(
-        Guid runId,
-        int expectedSequence,
-        CombatState previousCombat,
-        CombatState nextCombat,
-        CombatActionCommand command,
-        string? consumedCardId,
-        CardConsumeDestination destination,
-        RunCommandIdentity? commandIdentity = null,
-        string? cardZoneResolutionFlowId = null)
-    {
-        ArgumentNullException.ThrowIfNull(previousCombat);
-        ArgumentNullException.ThrowIfNull(nextCombat);
-        ArgumentNullException.ThrowIfNull(command);
-
-        using (_sessionGates.Enter(runId))
-        {
-            if (!_runs.TryGetValue(runId, out var state))
-                return Result<RunState>.Failure($"Run not found: {runId}");
-            if (state.Sequence != expectedSequence)
-            {
-                return Result<RunState>.Failure(
-                    $"Stale run combat action: expected sequence {expectedSequence}, current is {state.Sequence}");
-            }
-
-            var encounterIndex = FindEncounterIndex(state, previousCombat.CombatId);
-            if (encounterIndex < 0 || state.ActiveEncounterId != previousCombat.CombatId)
-                return Result<RunState>.Failure($"Active run encounter not found: {previousCombat.CombatId}");
-
-            var encounter = state.Encounters[encounterIndex];
-            if (!string.Equals(
-                    CanonicalJson.ComputeHash(encounter.Combat),
-                    CanonicalJson.ComputeHash(previousCombat),
-                    StringComparison.Ordinal))
-            {
-                return Result<RunState>.Failure("Run-owned combat changed before the action could be committed");
-            }
-            if (nextCombat.CombatId != previousCombat.CombatId ||
-                command.RunId != runId ||
-                nextCombat.RunId != runId ||
-                !string.Equals(nextCombat.RunNodeId, encounter.NodeId, StringComparison.Ordinal) ||
-                nextCombat.Determinism.Seed != previousCombat.Determinism.Seed ||
-                !string.Equals(
-                    nextCombat.Determinism.ContentRevision,
-                    state.Determinism.ContentRevision,
-                    StringComparison.Ordinal) ||
-                !string.Equals(
-                    nextCombat.Determinism.EngineVersion,
-                    state.Determinism.EngineVersion,
-                    StringComparison.Ordinal) ||
-                nextCombat.Determinism.Step <= previousCombat.Determinism.Step)
-            {
-                return Result<RunState>.Failure("Invalid replacement combat state for run action");
-            }
-
-            var deck = state.Deck;
-            var cardContext = state.Determinism;
-            if (destination != CardConsumeDestination.None || state.ResolvedMode?.CardZoneSystem != null && consumedCardId != null)
-            {
-                if (string.IsNullOrWhiteSpace(consumedCardId))
-                    return Result<RunState>.Failure("Consumed card id is required");
-                if (state.ResolvedMode?.CardZoneSystem != null)
-                {
-                    if (!Guid.TryParse(consumedCardId, out var cardInstanceId))
-                        return Result<RunState>.Failure("Consumed card instance id is invalid");
-                    if (string.IsNullOrWhiteSpace(cardZoneResolutionFlowId))
-                        return Result<RunState>.Failure(
-                            "Card-zone resolution flow id is required for configured runs");
-                    var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
-                        state, state.Deck, state.Determinism, cardZoneResolutionFlowId,
-                        command.ActorId, cardInstanceId);
-                    if (flowed.IsFailure)
-                        return Result<RunState>.Failure(flowed.Error);
-                    deck = new DeckState { Topology = flowed.Value.State };
-                    cardContext = flowed.Value.Context;
-                }
-                else
-                {
-                    var deckTransition = DeckTransitions.MoveFromHand(state.Deck,
-                        [consumedCardId], destination, state.Determinism);
-                    if (deckTransition.IsFailure)
-                        return Result<RunState>.Failure(deckTransition.Error);
-                    deck = deckTransition.Value.State;
-                    cardContext = deckTransition.Value.Context;
-                }
-            }
-
-            var rootPayload = JsonSerializer.SerializeToElement(new
-            {
-                combatId = nextCombat.CombatId,
-                command,
-                consumedCardId,
-                destination = destination.ToString()
-            }, _jsonOptions);
-            return CommitCombatResolutionLocked(
-                state,
-                previousCombat,
-                commandIdentity,
-                [new CombatResolutionStep
-                {
-                    TransitionType = "combat.action.applied",
-                    Combat = nextCombat,
-                    Deck = deck,
-                    RunDeterminism = cardContext,
-                    Payload = rootPayload
-                }],
-                rootPayload);
         }
     }
 
@@ -1581,32 +1462,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (!string.Equals(state.CurrentNodeId, encounter.NodeId, StringComparison.Ordinal))
                 return Result<RunState>.Failure("Encounter no longer belongs to the current map node");
 
-            var cleanedState = state;
-            if (state.ResolvedMode?.CardZoneSystem != null)
+            var flowed = ExecuteCardZoneBoundary(state, "encounter.ended");
+            if (flowed.IsFailure)
+                return Result<RunState>.Failure(flowed.Error);
+            var cleanedState = state with
             {
-                var flowed = ExecuteCardZoneBoundary(state, "encounter.ended");
-                if (flowed.IsFailure)
-                    return Result<RunState>.Failure(flowed.Error);
-                cleanedState = state with
-                {
-                    Deck = new DeckState { Topology = flowed.Value.State },
-                    Determinism = flowed.Value.Context
-                };
-            }
-            else if (state.ResolvedMode?.CombatRules.Flow.DeckCycle is { } deckPolicy)
-            {
-                var cleanup = DeckTransitions.EndEncounter(
-                    state.Deck,
-                    deckPolicy,
-                    state.Determinism);
-                if (cleanup.IsFailure)
-                    return Result<RunState>.Failure(cleanup.Error);
-                cleanedState = state with
-                {
-                    Deck = cleanup.Value.State,
-                    Determinism = cleanup.Value.Context
-                };
-            }
+                Deck = new DeckState { Topology = flowed.Value.State },
+                Determinism = flowed.Value.Context
+            };
 
             var currentNode = cleanedState.Map.Nodes.First(node => node.NodeId == encounter.NodeId);
             var resolved = encounter with
