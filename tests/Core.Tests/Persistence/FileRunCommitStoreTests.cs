@@ -88,8 +88,8 @@ public sealed class FileRunCommitStoreTests : IDisposable
         var json = await File.ReadAllTextAsync(path);
         var corruptHash = new string('0', 64);
         var corrupted = json.Replace(
-            $"\"StateHash\": \"{commit.StateHash}\"",
-            $"\"StateHash\": \"{corruptHash}\"",
+            $"\"StateHash\":\"{commit.StateHash}\"",
+            $"\"StateHash\":\"{corruptHash}\"",
             StringComparison.Ordinal);
         Assert.NotEqual(json, corrupted);
         await File.WriteAllTextAsync(path, corrupted);

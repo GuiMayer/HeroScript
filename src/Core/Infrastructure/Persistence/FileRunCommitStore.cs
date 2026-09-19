@@ -37,7 +37,10 @@ public sealed class FileRunCommitStore : IRunCommitStore, IDisposable
         Directory.CreateDirectory(_storePath);
         _options = new JsonSerializerOptions
         {
-            WriteIndented = true,
+            // Commits can contain full combat projections and grow quickly.
+            // Whitespace adds substantial synchronous I/O without contributing
+            // to canonical hashes, validation or replay semantics.
+            WriteIndented = false,
             PropertyNameCaseInsensitive = false,
             UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
