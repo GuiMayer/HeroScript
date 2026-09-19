@@ -1,6 +1,11 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using Core.Calculations;
+using Core.CardZones;
+using Core.Combat.Flow;
+using Core.Combat.Models;
 using Core.Determinism;
+using Core.Effects;
 using Core.Run;
 using Core.Run.Branching;
 
@@ -8,6 +13,11 @@ namespace Core.Abstractions.Persistence;
 
 public sealed record RunCommitFrame
 {
+    private ImmutableArray<EffectExecutionStep> _effectSteps = [];
+    private ImmutableArray<CalculationResult> _calculations = [];
+    private ImmutableArray<EffectApplicationRecord> _applications = [];
+    private ImmutableArray<CardZoneFlowStepRecord> _cardZoneSteps = [];
+
     public int FrameIndex { get; init; }
     public ulong Step { get; init; }
     public string Scope { get; init; } = "run";
@@ -19,6 +29,46 @@ public sealed record RunCommitFrame
     public int? Activation { get; init; }
     public string ResultHash { get; init; } = string.Empty;
     public JsonElement Resolution { get; init; }
+    public Guid? ResolutionFrameId { get; init; }
+    public ulong? CombatStep { get; init; }
+    public int? SnapshotSequence { get; init; }
+    public CombatState? CombatStateAfter { get; init; }
+    public IReadOnlyList<EffectExecutionStep> EffectSteps
+    {
+        get => _effectSteps;
+        init => _effectSteps = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CalculationResult> Calculations
+    {
+        get => _calculations;
+        init => _calculations = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectApplicationRecord> Applications
+    {
+        get => _applications;
+        init => _applications = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardZoneFlowStepRecord> CardZoneSteps
+    {
+        get => _cardZoneSteps;
+        init => _cardZoneSteps = value?.ToImmutableArray() ?? [];
+    }
+}
+
+/// <summary>
+/// Compact header for a combat resolution. Frame details live on the commit
+/// frames so timeline, replay and resolution queries share one authority.
+/// </summary>
+public sealed record RunCommitCombatResolution
+{
+    public Guid CommandId { get; init; }
+    public Guid CombatId { get; init; }
+    public string CommandType { get; init; } = string.Empty;
+    public AnimationFrameMode Mode { get; init; }
+    public int RootSequence { get; init; }
+    public string InitialCombatStateHash { get; init; } = string.Empty;
+    public string FinalCombatStateHash { get; init; } = string.Empty;
+    public string ResolutionFingerprint { get; init; } = string.Empty;
 }
 
 public sealed record RunCommitFact
@@ -59,6 +109,7 @@ public sealed record RunCommit
     public DateTime LogicalTimestamp { get; init; } = DateTime.UnixEpoch;
     public RunState StateAfter { get; init; } = null!;
     public RunLineage? Lineage { get; init; }
+    public RunCommitCombatResolution? CombatResolution { get; init; }
 
     public IReadOnlyList<RunCommitFrame> Frames
     {
@@ -113,6 +164,18 @@ public sealed record RunCommit
             throw new InvalidOperationException("Run commit command payload hash does not match its envelope");
         if (_frames.Length == 0 || _facts.Length == 0)
             throw new InvalidOperationException("Run commit requires at least one frame and one durable fact");
+
+        if (CombatResolution is { } resolution &&
+            (resolution.CommandId != RootCommand.CommandId ||
+             resolution.CombatId == Guid.Empty ||
+             !string.Equals(resolution.CommandType, RootCommand.Type, StringComparison.Ordinal) ||
+             resolution.RootSequence != Sequence ||
+             string.IsNullOrWhiteSpace(resolution.InitialCombatStateHash) ||
+             string.IsNullOrWhiteSpace(resolution.FinalCombatStateHash) ||
+             string.IsNullOrWhiteSpace(resolution.ResolutionFingerprint)))
+        {
+            throw new InvalidOperationException("Run commit combat resolution header is invalid");
+        }
 
         for (var index = 0; index < _frames.Length; index++)
         {

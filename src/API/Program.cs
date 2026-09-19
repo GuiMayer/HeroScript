@@ -247,6 +247,7 @@ builder.Services.AddSingleton<IRunCommitStore>(sp =>
 });
 builder.Services.AddSingleton<IRunCommitReader>(sp => sp.GetRequiredService<IRunCommitStore>());
 builder.Services.AddSingleton<IRunCommitProjectionReader, RunCommitProjectionReader>();
+builder.Services.AddSingleton<ICombatResolutionReader, CombatResolutionReader>();
 
 // Register Run content and manager
 builder.Services.AddSingleton<IContentKindRegistry>(_ => ContentKindRegistry.Default);

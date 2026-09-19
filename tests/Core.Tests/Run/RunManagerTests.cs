@@ -355,6 +355,11 @@ public sealed class RunManagerTests
             Assert.Equal(rootCommand.CommandId, transition.RootCommand.CommandId);
             Assert.Equal("COMBAT_ACTION", transition.RootCommand.Type);
             Assert.Equal(2, transition.Frames.Count);
+            var projectedResolution = Core.Run.Projections.CombatResolutionProjection.FromCommit(transition);
+            Assert.NotNull(projectedResolution);
+            Assert.Equal(
+                CanonicalJson.ComputeHash(resolution),
+                CanonicalJson.ComputeHash(projectedResolution));
             Assert.Equal(
                 new[] { "combat.activation.ended", "combat.activation.started" },
                 transition.Frames.Select(frame => frame.Kind));

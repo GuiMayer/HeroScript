@@ -246,7 +246,7 @@ public sealed class CombatTimelineProjectionService : ICombatTimelineProjectionS
     {
         var combat = commit.StateAfter.GetEncounter(combatId)!.Combat;
         var resolutionCommandId = commit.RootCommand.CommandId;
-        var resolution = commit.StateAfter.GetCombatResolution(resolutionCommandId);
+        var resolution = CombatResolutionProjection.FromCommit(commit);
         return new CombatTimelineItem
         {
             RunSequence = commit.Sequence,

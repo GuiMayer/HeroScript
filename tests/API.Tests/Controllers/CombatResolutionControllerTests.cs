@@ -1,6 +1,7 @@
 using API.Controllers;
 using Core.Combat.Flow;
 using Core.Run;
+using Core.Run.Projections;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -11,7 +12,7 @@ namespace API.Tests.Controllers;
 public sealed class CombatResolutionControllerTests
 {
     [Fact]
-    public void Get_ReturnsDurableAnimationQueue()
+    public async Task Get_ReturnsDurableAnimationQueue()
     {
         var combatId = Guid.NewGuid();
         var commandId = Guid.NewGuid();
@@ -34,22 +35,19 @@ public sealed class CombatResolutionControllerTests
                 }
             ]
         };
-        var run = new RunState
-        {
-            RunId = Guid.NewGuid(),
-            CombatResolutions = new Dictionary<Guid, CombatResolutionRecord>
-            {
-                [commandId] = resolution
-            }
-        };
+        var run = new RunState { RunId = Guid.NewGuid() };
         var runs = new Mock<IRunManager>();
         runs.Setup(manager => manager.GetRunByCombat(combatId))
             .Returns(Core.Common.Result<RunState>.Success(run));
+        var resolutions = new Mock<ICombatResolutionReader>();
+        resolutions.Setup(reader => reader.GetAsync(run.RunId, commandId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Core.Common.Result<CombatResolutionRecord?>.Success(resolution));
         var controller = new CombatResolutionController(
             runs.Object,
+            resolutions.Object,
             Mock.Of<ILogger<CombatResolutionController>>());
 
-        var result = controller.Get(combatId, commandId);
+        var result = await controller.Get(combatId, commandId, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.Same(resolution, ok.Value);

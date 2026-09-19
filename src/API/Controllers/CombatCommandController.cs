@@ -68,7 +68,7 @@ public sealed class CombatCommandController : BaseApiController
                 {
                     run = receipt.State,
                     combat = encounter == null ? null : CombatStateResponse.From(encounter.Combat),
-                    resolution = receipt.State.GetCombatResolution(receipt.CommandId)
+                    resolution = receipt.CombatResolution
                 },
                 step: encounter?.Combat.Determinism.Step));
         }

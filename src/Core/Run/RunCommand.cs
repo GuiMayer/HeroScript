@@ -27,6 +27,7 @@ public sealed record RunCommandReceipt
     public string PreviousStateHash { get; init; } = string.Empty;
     public string StateHash { get; init; } = string.Empty;
     public RunState State { get; init; } = new();
+    public CombatResolutionRecord? CombatResolution { get; init; }
     public RunJournalEntry JournalEntry { get; init; } = new();
     public IReadOnlyList<RunCommitFrame> Frames
     {

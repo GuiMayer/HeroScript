@@ -294,6 +294,7 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
             State = commit.StateAfter,
+            CombatResolution = Projections.CombatResolutionProjection.FromCommit(commit),
             JournalEntry = entry,
             Frames = commit.Frames,
             Duplicate = duplicate

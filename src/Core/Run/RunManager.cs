@@ -1289,6 +1289,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     item => item.Key,
                     item => (IReadOnlyList<StatusEffectInstance>)item.Value.ToArray(),
                     StringComparer.Ordinal));
+            CombatResolutionRecord? combatResolution = null;
             if (commandIdentity != null && initializationStep != null)
             {
                 if (initializationStep.Combat.CombatId != combatState.CombatId ||
@@ -1304,7 +1305,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     RunSnapshot = initializedRun ?? candidate,
                     RunDeterminism = initializedRun?.Determinism ?? candidate.Determinism
                 };
-                var record = CreateCombatResolutionRecord(
+                combatResolution = CreateCombatResolutionRecord(
                     state,
                     stateBeforeInitialization ?? combatState,
                     commandIdentity,
@@ -1313,7 +1314,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 {
                     CombatResolutions = candidate.CombatResolutions
                         .ToImmutableDictionary()
-                        .SetItem(commandIdentity.CommandId, record)
+                        .SetItem(commandIdentity.CommandId, combatResolution)
                 };
             }
             return Persist(
@@ -1322,7 +1323,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 rootPayload.ValueKind == JsonValueKind.Undefined ? journalCommand : rootPayload,
                 commandIdentity,
                 scope: "combat",
-                combatId: combatState.CombatId);
+                combatId: combatState.CombatId,
+                combatResolution: combatResolution);
         }
     }
 
@@ -1410,19 +1412,20 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             candidates.Add((candidate, step));
         }
 
+        CombatResolutionRecord? combatResolution = null;
         if (rootCommand != null)
         {
-            var record = CreateCombatResolutionRecord(state, previousCombat, rootCommand, candidates);
+            combatResolution = CreateCombatResolutionRecord(state, previousCombat, rootCommand, candidates);
             var final = candidates[^1];
             candidates[^1] = (final.State with
             {
                 CombatResolutions = final.State.CombatResolutions
                     .ToImmutableDictionary()
-                    .SetItem(rootCommand.CommandId, record)
+                    .SetItem(rootCommand.CommandId, combatResolution)
             }, final.Step);
         }
 
-        return PersistBatch(state, candidates, rootCommand, rootPayload);
+        return PersistBatch(state, candidates, rootCommand, rootPayload, combatResolution);
     }
 
     private CombatResolutionRecord CreateCombatResolutionRecord(
@@ -2170,7 +2173,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         object command,
         RunCommandIdentity? commandIdentity = null,
         string scope = "run",
-        Guid? combatId = null)
+        Guid? combatId = null,
+        CombatResolutionRecord? combatResolution = null)
     {
         _runs.TryGetValue(state.RunId, out var previous);
         try
@@ -2203,6 +2207,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var scopedCombat = combatId.HasValue
                 ? snapshot.GetEncounter(combatId.Value)?.Combat
                 : null;
+            var animationFrame = combatResolution?.Frames.SingleOrDefault();
             var frames = new[]
             {
                 new RunCommitFrame
@@ -2210,7 +2215,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     FrameIndex = 0,
                     Step = snapshot.Determinism.Step,
                     Scope = scope,
-                    Kind = effectiveType,
+                    Kind = animationFrame?.TransitionType ?? effectiveType,
                     CombatId = combatId,
                     ActorId = scopedCombat?.ActivationState?.ActiveActorId,
                     PhaseId = scopedCombat?.PhaseState?.Cursor,
@@ -2219,7 +2224,15 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     ResultHash = scopedCombat == null
                         ? CanonicalJson.ComputeHash(snapshot)
                         : CanonicalJson.ComputeHash(scopedCombat),
-                    Resolution = effectiveCommand
+                    Resolution = animationFrame?.Payload ?? effectiveCommand,
+                    ResolutionFrameId = animationFrame?.FrameId,
+                    CombatStep = animationFrame?.CombatStep,
+                    SnapshotSequence = animationFrame?.SnapshotSequence,
+                    CombatStateAfter = animationFrame?.StateAfter,
+                    EffectSteps = animationFrame?.EffectSteps ?? [],
+                    Calculations = animationFrame?.Calculations ?? [],
+                    Applications = animationFrame?.Applications ?? [],
+                    CardZoneSteps = animationFrame?.CardZoneSteps ?? []
                 }
             };
             var commit = new RunCommit
@@ -2235,6 +2248,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime,
                 StateAfter = snapshot,
                 Lineage = nextSequence == 1 ? snapshot.Lineage : null,
+                CombatResolution = ToCommitResolution(combatResolution),
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };
@@ -2262,7 +2276,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         RunState previous,
         IReadOnlyList<(RunState State, CombatResolutionStep Step)> candidates,
         RunCommandIdentity? rootCommand,
-        JsonElement rootPayload = default)
+        JsonElement rootPayload = default,
+        CombatResolutionRecord? combatResolution = null)
     {
         try
         {
@@ -2281,21 +2296,33 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 previous,
                 rootCommand?.Type ?? candidates[^1].Step.TransitionType,
                 commandPayload);
-            var frames = candidates.Select((candidate, index) => new RunCommitFrame
+            var frames = candidates.Select((candidate, index) =>
             {
-                FrameIndex = index,
-                Step = candidate.State.Determinism.Step,
-                Scope = "combat",
-                Kind = candidate.Step.TransitionType,
-                CombatId = candidate.Step.Combat.CombatId,
-                ActorId = candidate.Step.Combat.ActivationState?.ActiveActorId,
-                PhaseId = candidate.Step.Combat.PhaseState?.Cursor,
-                Round = candidate.Step.Combat.ActivationState?.Round ?? candidate.Step.Combat.CurrentTurn,
-                Activation = candidate.Step.Combat.ActivationState?.ActivationNumber,
-                ResultHash = CanonicalJson.ComputeHash(candidate.Step.Combat),
-                Resolution = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
-                    ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
-                    : candidate.Step.Payload.Clone()
+                var animationFrame = combatResolution?.Frames.ElementAtOrDefault(index);
+                return new RunCommitFrame
+                {
+                    FrameIndex = index,
+                    Step = candidate.State.Determinism.Step,
+                    Scope = "combat",
+                    Kind = candidate.Step.TransitionType,
+                    CombatId = candidate.Step.Combat.CombatId,
+                    ActorId = candidate.Step.Combat.ActivationState?.ActiveActorId,
+                    PhaseId = candidate.Step.Combat.PhaseState?.Cursor,
+                    Round = candidate.Step.Combat.ActivationState?.Round ?? candidate.Step.Combat.CurrentTurn,
+                    Activation = candidate.Step.Combat.ActivationState?.ActivationNumber,
+                    ResultHash = CanonicalJson.ComputeHash(candidate.Step.Combat),
+                    Resolution = candidate.Step.Payload.ValueKind == JsonValueKind.Undefined
+                        ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
+                        : candidate.Step.Payload.Clone(),
+                    ResolutionFrameId = animationFrame?.FrameId,
+                    CombatStep = animationFrame?.CombatStep,
+                    SnapshotSequence = animationFrame?.SnapshotSequence,
+                    CombatStateAfter = animationFrame?.StateAfter,
+                    EffectSteps = animationFrame?.EffectSteps ?? candidate.Step.EffectSteps,
+                    Calculations = animationFrame?.Calculations ?? candidate.Step.Calculations,
+                    Applications = animationFrame?.Applications ?? candidate.Step.Applications,
+                    CardZoneSteps = animationFrame?.CardZoneSteps ?? candidate.Step.CardZoneSteps
+                };
             }).ToArray();
             var commit = new RunCommit
             {
@@ -2309,6 +2336,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 AfterStep = finalState.Determinism.Step,
                 LogicalTimestamp = finalState.Determinism.LogicalTimestamp.UtcDateTime,
                 StateAfter = finalState,
+                CombatResolution = ToCommitResolution(combatResolution),
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };
@@ -2341,6 +2369,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
             State = commit.StateAfter,
+            CombatResolution = Projections.CombatResolutionProjection.FromCommit(commit),
             JournalEntry = entry,
             Frames = commit.Frames,
             Duplicate = duplicate
@@ -2371,6 +2400,21 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             previous?.Determinism.Step ?? 0,
             payloadHash);
     }
+
+    private static RunCommitCombatResolution? ToCommitResolution(CombatResolutionRecord? resolution) =>
+        resolution == null
+            ? null
+            : new RunCommitCombatResolution
+            {
+                CommandId = resolution.CommandId,
+                CombatId = resolution.CombatId,
+                CommandType = resolution.CommandType,
+                Mode = resolution.Mode,
+                RootSequence = resolution.RootSequence,
+                InitialCombatStateHash = resolution.InitialCombatStateHash,
+                FinalCombatStateHash = resolution.FinalCombatStateHash,
+                ResolutionFingerprint = resolution.ResolutionFingerprint
+            };
 
     private static bool IsSameCommand(RunJournalEntry entry, GameplayCommandEnvelope command)
     {
