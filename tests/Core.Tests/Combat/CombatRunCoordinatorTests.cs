@@ -9,6 +9,7 @@ using Core.Determinism;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
+using Core.CardZones;
 using Moq;
 using Xunit;
 
@@ -362,13 +363,23 @@ public sealed class CombatRunCoordinatorTests
         IReadOnlyList<string> definitionIds,
         DeterministicContext context)
     {
-        var created = DeckTransitions.Create(definitionIds, context);
+        var definition = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "coordinator-test",
+            Zones = [new()
+            {
+                ZoneId = "hand", OwnerScope = CardZoneOwnerScope.RunOwner,
+                Ordering = CardZoneOrdering.Ordered, AllowsCardPlay = true
+            }]
+        };
+        var created = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(definition).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches = [new() { ZoneId = "hand", OwnerId = "$run", DefinitionIds = definitionIds }]
+            }, context);
         if (created.IsFailure)
             throw new InvalidOperationException(created.Error);
-        return created.Value.State with
-        {
-            DrawPileInstanceIds = [],
-            HandInstanceIds = created.Value.State.DrawPileInstanceIds
-        };
+        return new DeckState { Topology = created.Value.State };
     }
 }

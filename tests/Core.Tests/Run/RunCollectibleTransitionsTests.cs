@@ -4,6 +4,7 @@ using Core.Run;
 using Core.Calculations;
 using Core.Effects;
 using Core.Run.Content;
+using Core.CardZones;
 using Xunit;
 
 namespace Core.Tests.Run;
@@ -11,34 +12,22 @@ namespace Core.Tests.Run;
 public sealed class RunCollectibleTransitionsTests
 {
     [Fact]
-    public void CardInstances_AreUniqueReproducibleAndFollowTheirZone()
-    {
-        var first = DeckTransitions.Create(
-            ["strike", "strike", "defend"],
-            DeterministicContext.Create(42, "content-v1")).Value;
-        var second = DeckTransitions.Create(
-            ["strike", "strike", "defend"],
-            DeterministicContext.Create(42, "content-v1")).Value;
-
-        Assert.Equal(first.State.DrawPileInstanceIds, second.State.DrawPileInstanceIds);
-        Assert.Equal(3, first.State.DrawPileInstanceIds.Distinct().Count());
-        Assert.All(first.State.DrawPileInstanceIds, instanceId =>
-            Assert.True(first.State.CardInstances.ContainsKey(instanceId)));
-
-        var drawn = DeckTransitions.Draw(first.State, 1, first.Context).Value;
-        Assert.Equal("strike", drawn.State.Hand[0]);
-        Assert.Equal(first.State.DrawPileInstanceIds[0], drawn.State.HandInstanceIds[0]);
-        Assert.Equal(first.State.DrawPileInstanceIds[1], drawn.State.DrawPileInstanceIds[0]);
-        Assert.Empty(first.State.Hand);
-    }
-
-    [Fact]
     public void CardUpgrade_ReplacesOnlyTheSelectedInstance()
     {
-        var created = DeckTransitions.Create(
-            ["strike", "strike"],
-            DeterministicContext.Create(7, "content-v1")).Value;
-        var selectedId = created.State.DrawPileInstanceIds[1];
+        var zones = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "upgrade-test",
+            Zones = [new() { ZoneId = "collection", OwnerScope = CardZoneOwnerScope.RunOwner,
+                Ordering = CardZoneOrdering.Ordered }]
+        };
+        var created = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(zones).Value,
+            new CardZoneBootstrapPlan
+            {
+                RunOwnerId = "$run",
+                Batches = [new() { ZoneId = "collection", OwnerId = "$run", DefinitionIds = ["strike", "strike"] }]
+            }, DeterministicContext.Create(7, "content-v1")).Value;
+        var instanceIds = created.State.GetZone("collection", "$run")!.InstanceIds;
+        var selectedId = instanceIds[1];
         var definition = new CardUpgradeDefinition
         {
             UpgradeId = "sharpened",
@@ -55,16 +44,16 @@ public sealed class RunCollectibleTransitionsTests
             ]
         };
 
-        var upgraded = DeckTransitions.ApplyUpgrade(
+        var upgraded = CardZoneTransitions.ApplyUpgrade(
             created.State,
             selectedId,
             definition,
             created.Context).Value.State;
 
-        Assert.Empty(created.State.CardInstances[selectedId].Upgrades);
-        Assert.Single(upgraded.CardInstances[selectedId].Upgrades);
-        Assert.Empty(upgraded.CardInstances[created.State.DrawPileInstanceIds[0]].Upgrades);
-        Assert.True(DeckTransitions.ApplyUpgrade(
+        Assert.Empty(created.State.Instances[selectedId].Upgrades);
+        Assert.Single(upgraded.Instances[selectedId].Upgrades);
+        Assert.Empty(upgraded.Instances[instanceIds[0]].Upgrades);
+        Assert.True(CardZoneTransitions.ApplyUpgrade(
             upgraded,
             selectedId,
             definition,

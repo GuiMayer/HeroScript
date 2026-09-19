@@ -828,8 +828,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         if (!string.Equals(definition.Value.UpgradeId, request.UpgradeId, StringComparison.Ordinal))
             return Result.Failure($"Card upgrade definition identity mismatch: {request.UpgradeId}");
 
-        var transition = DeckTransitions.ApplyUpgrade(
-            run.Deck,
+        var transition = CardZoneTransitions.ApplyUpgrade(
+            run.Deck.Topology,
             request.CardInstanceId,
             definition.Value,
             run.Determinism);
@@ -837,7 +837,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result.Failure(transition.Error);
         var candidate = run with
         {
-            Deck = transition.Value.State,
+            Deck = new DeckState { Topology = transition.Value.State },
             Determinism = transition.Value.Context.AdvanceStep(),
             CompletedActivityNodeIds = currentNode?.Activity.Type == RunActivityType.CardUpgrade
                 ? run.CompletedActivityNodeIds
@@ -1210,8 +1210,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 NodeId = currentNode.NodeId,
                 Combat = combatState
             };
-            var encounterDeck = Result<DeckTransition>.Success(
-                new DeckTransition(initializedRun?.Deck ?? state.Deck, initializedRun?.Determinism ?? seed.Context, []));
+            var encounterDeck = Result<CardZoneRunTransition>.Success(
+                new CardZoneRunTransition(initializedRun?.Deck ?? state.Deck,
+                    initializedRun?.Determinism ?? seed.Context, []));
             if (initializedRun != null && (initializedRun.RunId != state.RunId ||
                 initializedRun.Determinism.ContentRevision != state.Determinism.ContentRevision ||
                 initializedRun.Determinism.Seed != state.Determinism.Seed))
@@ -1227,7 +1228,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     });
                 if (flowed.IsFailure)
                     return Result<RunState>.Failure(flowed.Error);
-                encounterDeck = Result<DeckTransition>.Success(new DeckTransition(
+                encounterDeck = Result<CardZoneRunTransition>.Success(new CardZoneRunTransition(
                     new DeckState { Topology = flowed.Value.State }, flowed.Value.Context, []));
             }
             var candidate = state with
@@ -1554,7 +1555,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
     private Result ValidateLoadedRunCompatibility(RunState state)
     {
-        var topology = DeckTransitions.ValidateTopology(state.Deck);
+        var topology = CardZoneTopologyValidator.Validate(state.Deck.Topology);
         if (topology.IsFailure)
             return topology;
 

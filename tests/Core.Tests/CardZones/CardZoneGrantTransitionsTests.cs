@@ -55,7 +55,7 @@ public sealed class CardZoneGrantTransitionsTests
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(repeated.Value));
-        Assert.Equal(["strike", "guard", "strike"], first.Value.Cards.ToArray());
+        Assert.Equal(["strike", "guard", "strike"], first.Value.CardDefinitionIds.ToArray());
         Assert.Equal(3, first.Value.State.Topology.GetZone("vault", "$run")!.InstanceIds.Count);
         Assert.Empty(first.Value.State.HandInstanceIds);
         Assert.Empty(run.Deck.Topology.GetZone("vault", "$run")!.InstanceIds);

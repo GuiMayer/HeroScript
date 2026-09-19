@@ -10,26 +10,11 @@ namespace Core.Tests.Run;
 
 /// <summary>
 /// Comprehensive tests for Run namespace models
-/// Covers DeckState, CardConsumeDestination, RunState, RunDefinition, RunMapNodeDefinition
+/// Covers DeckState, RunState, RunDefinition, RunMapNodeDefinition
 /// </summary>
 [Trait("Category", "Unit")]
 public class RunModelsTests
 {
-    // ==================== CARD CONSUME DESTINATION ENUM TESTS ====================
-    
-    [Fact]
-    public void CardConsumeDestination_AllValuesAreDefined()
-    {
-        // Arrange & Act
-        var values = Enum.GetValues<CardConsumeDestination>();
-        
-        // Assert
-        Assert.Contains(CardConsumeDestination.None, values);
-        Assert.Contains(CardConsumeDestination.Discard, values);
-        Assert.Contains(CardConsumeDestination.Exhaust, values);
-        Assert.Equal(3, values.Length);
-    }
-    
     // ==================== DECK STATE TESTS ====================
     
     [Fact]
