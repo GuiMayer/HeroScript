@@ -48,7 +48,7 @@ public sealed class CardInspectionServiceTests
             IsLegal = true,
             LegalTargetIds = ["enemy"],
             ResolvedTargetIds = ["enemy"],
-            Destination = CardConsumeDestination.Discard
+            CardZoneResolutionFlowId = "card.played"
         };
         var runs = new Mock<IRunManager>();
         runs.Setup(manager => manager.GetRunByCombat(CombatId))
@@ -85,7 +85,7 @@ public sealed class CardInspectionServiceTests
                         Combat = run.GetEncounter(CombatId)!.Combat,
                         Card = effective,
                         Evaluation = evaluation,
-                        Destination = CardConsumeDestination.Discard,
+                        CardZoneResolutionFlowId = "card.played",
                         ResolutionFingerprint = "exact-preview"
                     }
                 }

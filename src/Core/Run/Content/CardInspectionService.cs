@@ -123,7 +123,6 @@ public sealed record CardInspectionResult
         get => _previewSteps;
         init => _previewSteps = value?.ToImmutableArray() ?? [];
     }
-    public CardConsumeDestination Disposition { get; init; }
     public string ResolutionFingerprint { get; init; } = string.Empty;
 }
 
@@ -313,7 +312,6 @@ public sealed class CardInspectionService : ICardInspectionService
             Calculations = preview?.Calculations ?? [],
             PreviewApplications = preview?.Applications ?? [],
             PreviewSteps = preview?.Steps ?? [],
-            Disposition = resolvedEvaluation.Destination,
             ResolutionFingerprint = fingerprint
         });
     }

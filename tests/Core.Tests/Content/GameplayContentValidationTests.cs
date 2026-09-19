@@ -114,6 +114,7 @@ public sealed class GameplayContentValidationTests
     [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"DAMAGE\",\"timing\":\"IMMEDIATE\"}]}}")]
     [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"DRAW_CARD\"}]}}")]
     [InlineData("actions", "{\"legacy\":{\"actionId\":\"legacy\",\"effects\":[{\"type\":\"CARD_ZONE_FLOW\",\"cardZoneFlowId\":\"x\",\"shuffleDiscardWhenEmpty\":true}]}}")]
+    [InlineData("cards", "{\"legacy\":{\"cardId\":\"legacy\",\"components\":[{\"type\":\"disposition\",\"componentId\":\"resolution\",\"destination\":\"Discard\",\"cardZoneResolutionFlowId\":\"x\"}]}}")]
     public void RemovedLegacyFieldsAreRejectedInsteadOfSilentlyIgnored(string kind, string json)
     {
         var result = ValidateRaw(kind, json);

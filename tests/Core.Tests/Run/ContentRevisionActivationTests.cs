@@ -445,7 +445,7 @@ public sealed class ContentRevisionActivationTests
                         new CardDispositionComponentDefinition
                         {
                             ComponentId = "disposition",
-                            Destination = CardConsumeDestination.Discard
+                            CardZoneResolutionFlowId = "card.played"
                         }
                     ]
                 }

@@ -135,6 +135,9 @@ public sealed class CardContentCompiler : ICardContentCompiler
                 targeting.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
                 string.IsNullOrWhiteSpace(targeting.SelectionResourceId) =>
                 Result.Failure($"Card {cardId} targeting {component.ComponentId} requires selectionResourceId"),
+            CardDispositionComponentDefinition disposition when
+                string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId) =>
+                Result.Failure($"Card {cardId} disposition {component.ComponentId} requires cardZoneResolutionFlowId"),
             CardTriggerComponentDefinition trigger when string.IsNullOrWhiteSpace(trigger.Boundary) =>
                 Result.Failure($"Card {cardId} trigger {component.ComponentId} requires boundary"),
             CardInfluenceComponentDefinition influence when string.IsNullOrWhiteSpace(influence.Channel) ||

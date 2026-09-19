@@ -46,7 +46,7 @@ public sealed class CardContentCompilerTests
                 {
                     ComponentId = "disposition.default",
                     Order = 90,
-                    Destination = CardConsumeDestination.Discard
+                    CardZoneResolutionFlowId = "card.played"
                 },
                 new CardCostComponentDefinition
                 {
@@ -153,7 +153,7 @@ public sealed class CardContentCompilerTests
                   "type": "disposition",
                   "componentId": "disposition.default",
                   "order": 90,
-                  "destination": "Discard"
+                  "cardZoneResolutionFlowId": "card.played"
                 }
               ]
             }

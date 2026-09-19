@@ -22,7 +22,6 @@ public sealed record CardPlayRequest
     }
     public string? CostOptionId { get; init; }
     public bool IgnoreConfiguredCosts { get; init; }
-    public bool UseCardZoneResolution { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
     public IReadOnlyDictionary<string, float> Variables
     {
@@ -87,8 +86,7 @@ public sealed record CardPlayEvaluation
         get => _resolvedTargetIds;
         init => _resolvedTargetIds = value?.ToImmutableArray() ?? [];
     }
-    public CardConsumeDestination Destination { get; init; }
-    public string? CardZoneResolutionFlowId { get; init; }
+    public string CardZoneResolutionFlowId { get; init; } = string.Empty;
     public IReadOnlyList<string> FailureReasons
     {
         get => _failureReasons;
@@ -242,9 +240,6 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             AffordableCostOptionIds = affordableOptions.OrderBy(id => id, StringComparer.Ordinal).ToArray(),
             LegalTargetIds = targets.Value.LegalTargetIds,
             ResolvedTargetIds = targets.Value.ResolvedTargetIds,
-            Destination = request.UseCardZoneResolution
-                ? CardConsumeDestination.None
-                : disposition.Destination,
             CardZoneResolutionFlowId = disposition.CardZoneResolutionFlowId,
             FailureReasons = failureArray
         });

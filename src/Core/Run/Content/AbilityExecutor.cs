@@ -189,7 +189,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
             {
                 ComponentId = "ability.disposition",
                 Order = 90,
-                Destination = CardConsumeDestination.None
+                CardZoneResolutionFlowId = "ability.no-card-resolution"
             }
         };
         if (definition.RequiresTarget)

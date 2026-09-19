@@ -170,7 +170,8 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                     Reference(address, "resources", targeting.SelectionResourceId);
                     break;
                 case CardDispositionComponentDefinition disposition:
-                    if (!Enum.IsDefined(disposition.Destination)) Error(address, "invalid card disposition");
+                    if (string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId))
+                        Error(address, "card disposition requires cardZoneResolutionFlowId");
                     break;
             }
         }

@@ -124,9 +124,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             CardCostAmountPatchDefinition cost => Enum.IsDefined(cost.Operation) && float.IsFinite(cost.Value),
             CardInfluenceNumericPatchDefinition influence => Enum.IsDefined(influence.Operation) && float.IsFinite(influence.Value),
             CardTargetingNumericPatchDefinition targeting => Enum.IsDefined(targeting.Attribute) && Enum.IsDefined(targeting.Operation),
-            CardDispositionPatchDefinition disposition => Enum.IsDefined(disposition.Destination) &&
-                (disposition.CardZoneResolutionFlowId == null ||
-                 !string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId)),
+            CardDispositionPatchDefinition disposition =>
+                !string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId),
             _ => false
         };
         if (!validPolicy) return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid patch policy or non-finite value");
@@ -261,8 +260,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             ? Result<CardComponentDefinition>.Success(
                 disposition with
                 {
-                    Destination = patch.Destination,
-                    CardZoneResolutionFlowId = patch.CardZoneResolutionFlowId ?? disposition.CardZoneResolutionFlowId
+                    CardZoneResolutionFlowId = patch.CardZoneResolutionFlowId
                 })
             : WrongType(component, "disposition");
 
@@ -337,9 +335,9 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             },
             CardDispositionPatchDefinition => trace with
             {
-                Attribute = "Destination",
-                PreviousChoice = ((CardDispositionComponentDefinition)before).Destination.ToString(),
-                CurrentChoice = ((CardDispositionComponentDefinition)after).Destination.ToString()
+                Attribute = "CardZoneResolutionFlowId",
+                PreviousChoice = ((CardDispositionComponentDefinition)before).CardZoneResolutionFlowId,
+                CurrentChoice = ((CardDispositionComponentDefinition)after).CardZoneResolutionFlowId
             },
             _ => throw new InvalidOperationException($"Unsupported upgrade trace: {patch.GetType().Name}")
         };

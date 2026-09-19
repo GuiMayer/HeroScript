@@ -50,8 +50,7 @@ public sealed record CardTargetingComponentDefinition : CardComponentDefinition
 
 public sealed record CardDispositionComponentDefinition : CardComponentDefinition
 {
-    public CardConsumeDestination Destination { get; init; } = CardConsumeDestination.Discard;
-    public string? CardZoneResolutionFlowId { get; init; }
+    public string CardZoneResolutionFlowId { get; init; } = string.Empty;
 }
 
 public sealed record CardTriggerComponentDefinition : CardComponentDefinition

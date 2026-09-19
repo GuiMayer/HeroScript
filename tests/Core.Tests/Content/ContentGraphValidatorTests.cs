@@ -28,7 +28,7 @@ public sealed class ContentGraphValidatorTests
     }
 
     [Fact]
-    public void Validate_AcceptsCanonicalCardComponents()
+    public void Validate_RejectsDispositionWithoutPublishedCardResolutionFlow()
     {
         var bundle = Bundle(
             ("cards", "cards/catalog.json", new Dictionary<string, object>
@@ -38,14 +38,16 @@ public sealed class ContentGraphValidatorTests
                     cardId = "strike",
                     components = new[]
                     {
-                        new { type = "disposition", componentId = "destination", order = 10, destination = "Discard" }
+                        new { type = "disposition", componentId = "resolution", order = 10,
+                            cardZoneResolutionFlowId = "card.played" }
                     }
                 }
             }));
 
         var result = new ContentGraphValidator().Validate(bundle);
 
-        Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Errors));
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("card.played", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -63,7 +65,7 @@ public sealed class ContentGraphValidatorTests
                     components = new[]
                     {
                         new { type = "disposition", componentId = "disposition", order = 10,
-                            destination = "Discard", cardZoneResolutionFlowId = cardFlowId }
+                            cardZoneResolutionFlowId = cardFlowId }
                     }
                 }
             }),

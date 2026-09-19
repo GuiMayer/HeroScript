@@ -333,8 +333,7 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
         {
             CombatState = driven.Value.Combat,
             RunState = committed.Value,
-            ConsumedCardId = handled.Value.ConsumedCardId,
-            Destination = handled.Value.Destination
+            ConsumedCardId = handled.Value.ConsumedCardId
         });
     }
 

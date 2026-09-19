@@ -18,7 +18,6 @@ public sealed record CombatActionReduction
     public CombatState Combat { get; init; } = null!;
     public CombatActionCommand? ResolvedCommand { get; init; }
     public string? ConsumedCardId { get; init; }
-    public CardConsumeDestination Destination { get; init; }
     public ImmutableArray<CardZoneFlowStepRecord> CardZoneSteps { get; init; } = [];
     public bool RequestsActivationAdvance { get; init; }
 }
@@ -68,44 +67,31 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
         run = candidate.SuccessorRun;
         var resolvedCommand = candidate.ResolvedCommand;
         var consumedCardId = resolvedCommand?.CardInstanceId?.ToString();
-        var destination = candidate.CardPlay?.Destination ?? CardConsumeDestination.None;
         ImmutableArray<CardZoneFlowStepRecord> cardZoneSteps = [];
-        if (candidate.CardPlay != null && consumedCardId != null &&
-            (run.ResolvedMode?.CardZoneSystem != null || destination != CardConsumeDestination.None))
+        if (candidate.CardPlay != null)
         {
-            if (run.ResolvedMode?.CardZoneSystem != null)
+            if (consumedCardId == null)
+                return Result<CombatActionReduction>.Failure("Played card instance id is required");
+            var flowId = candidate.CardPlay.CardZoneResolutionFlowId;
+            if (string.IsNullOrWhiteSpace(flowId))
+                return Result<CombatActionReduction>.Failure(
+                    $"Card {candidate.CardPlay.Card.DefinitionId} requires a card-zone resolution flow");
+            var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
+                run, run.Deck, run.Determinism, flowId,
+                resolvedCommand?.ActorId ?? rootCommand.ActorId,
+                Guid.Parse(consumedCardId));
+            if (flowed.IsFailure)
+                return Result<CombatActionReduction>.Failure(flowed.Error);
+            run = run with
             {
-                var flowId = candidate.CardPlay.CardZoneResolutionFlowId;
-                if (string.IsNullOrWhiteSpace(flowId))
-                    return Result<CombatActionReduction>.Failure(
-                        $"Card {candidate.CardPlay.Card.DefinitionId} requires a card-zone resolution flow");
-                var flowed = CardZoneRunFlowDispatcher.ResolveCard(_cardZoneFlows,
-                    run, run.Deck, run.Determinism, flowId,
-                    resolvedCommand?.ActorId ?? rootCommand.ActorId,
-                    Guid.Parse(consumedCardId));
-                if (flowed.IsFailure)
-                    return Result<CombatActionReduction>.Failure(flowed.Error);
-                run = run with
-                {
-                    Deck = new DeckState { Topology = flowed.Value.State },
-                    Determinism = flowed.Value.Context
-                };
-                cardZoneSteps = flowed.Value.Steps;
-                destination = CardConsumeDestination.None;
-            }
-            else
-            {
-                var moved = DeckTransitions.MoveFromHand(run.Deck,
-                    [consumedCardId], destination, run.Determinism);
-                if (moved.IsFailure)
-                    return Result<CombatActionReduction>.Failure(moved.Error);
-                run = run with { Deck = moved.Value.State, Determinism = moved.Value.Context };
-            }
+                Deck = new DeckState { Topology = flowed.Value.State },
+                Determinism = flowed.Value.Context
+            };
+            cardZoneSteps = flowed.Value.Steps;
         }
         else
         {
             consumedCardId = null;
-            destination = CardConsumeDestination.None;
         }
 
         var combat = resolvedCommand == null
@@ -140,7 +126,6 @@ public sealed class CombatActionStateReducer : ICombatActionStateReducer
             Combat = combat,
             ResolvedCommand = resolvedCommand,
             ConsumedCardId = consumedCardId,
-            Destination = destination,
             CardZoneSteps = cardZoneSteps,
             RequestsActivationAdvance = resolvedEndsTurn || activationBudgetExhausted
         });
@@ -171,7 +156,6 @@ public sealed record CombatCommandHandlingResult
     public RunState NextRun { get; init; } = null!;
     public LegalActionCandidate Candidate { get; init; } = null!;
     public string? ConsumedCardId { get; init; }
-    public CardConsumeDestination Destination { get; init; }
     public bool RequestsActivationAdvance { get; init; }
 }
 
@@ -257,7 +241,6 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
                 command = payloadCommand,
                 decisionRuleId = request.DecisionRuleId,
                 consumedCardId = reduced.Value.ConsumedCardId,
-                destination = reduced.Value.Destination.ToString(),
                 cardZoneResolutionFlowId = candidate.CardPlay?.CardZoneResolutionFlowId,
                 cardResolution = candidate.CardPlay == null ? null : new
                 {
@@ -290,7 +273,6 @@ public sealed class CombatCommandHandler : ICombatCommandHandler
             NextRun = stepRun with { Determinism = stepRun.Determinism.AdvanceStep() },
             Candidate = candidate,
             ConsumedCardId = reduced.Value.ConsumedCardId,
-            Destination = reduced.Value.Destination,
             RequestsActivationAdvance = reduced.Value.RequestsActivationAdvance
         });
     }

@@ -124,7 +124,7 @@ public sealed class CardPlayExecutorTests
         Assert.Equal("empowered", result.Value.Calculations[0].BaseTrace[1].SourceId);
         Assert.Equal(5, result.Value.Calculations[0].BaseTrace[1].Input);
         Assert.Equal(7, result.Value.Calculations[0].BaseTrace[1].Output);
-        Assert.Equal(CardConsumeDestination.Discard, result.Value.Destination);
+        Assert.Equal("card.played", result.Value.CardZoneResolutionFlowId);
         var action = Assert.Single(result.Value.Combat.ActionHistory);
         Assert.Equal(ActionType.PLAY_CARD, action.ActionType);
         Assert.Equal(instanceId, action.CardInstanceId);
@@ -419,7 +419,7 @@ public sealed class CardPlayExecutorTests
     {
         ComponentId = "disposition.default",
         Order = 90,
-        Destination = CardConsumeDestination.Discard
+        CardZoneResolutionFlowId = "card.played"
     };
 
     private static CalculationPipelineDefinition Pipeline() => new()

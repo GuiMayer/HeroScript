@@ -50,8 +50,7 @@ public sealed record CardPlayExecutionResult
         get => _applications;
         init => _applications = value?.ToImmutableArray() ?? [];
     }
-    public CardConsumeDestination Destination { get; init; }
-    public string? CardZoneResolutionFlowId { get; init; }
+    public string CardZoneResolutionFlowId { get; init; } = string.Empty;
     public string ResolutionFingerprint { get; init; } = string.Empty;
 }
 
@@ -127,8 +126,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
                 SelectedTargetIds = request.SelectedTargetIds,
                 CostOptionId = request.CostOptionId,
                 ContentRevision = request.Run.Determinism.ContentRevision,
-                IgnoreConfiguredCosts = request.IgnoreConfiguredCosts,
-                UseCardZoneResolution = request.Run.ResolvedMode?.CardZoneSystem != null
+                IgnoreConfiguredCosts = request.IgnoreConfiguredCosts
             });
         if (evaluation.IsFailure)
             return Result<CardPlayExecutionResult>.Failure(evaluation.Error);
@@ -186,7 +184,6 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
             Evaluation = evaluation.Value,
             Calculations = applied.Value.Calculations,
             Applications = applied.Value.Records,
-            Destination = evaluation.Value.Destination,
             CardZoneResolutionFlowId = evaluation.Value.CardZoneResolutionFlowId,
             ResolutionFingerprint = fingerprint
         });

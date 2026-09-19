@@ -325,8 +325,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             SelectedTargetIds = Targets(command),
             CostOptionId = command.CostOptionId,
             ContentRevision = run.Determinism.ContentRevision,
-            IgnoreConfiguredCosts = IgnoreCosts(run, command),
-            UseCardZoneResolution = run.ResolvedMode?.CardZoneSystem != null
+            IgnoreConfiguredCosts = IgnoreCosts(run, command)
         });
         if (evaluation.IsFailure)
             return Result<LegalActionEvaluation>.Failure(evaluation.Error);
