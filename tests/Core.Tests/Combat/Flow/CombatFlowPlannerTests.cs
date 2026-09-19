@@ -46,7 +46,7 @@ public sealed class CombatFlowPlannerTests
                     Selection = new CardZoneSelectionDefinition
                     {
                         Strategy = CardZoneSelectionStrategy.First,
-                        TargetZoneCountFormula = "initialPlayableCardCount"
+                        TargetZoneCount = 2
                     }
                 }]
             }]
@@ -85,10 +85,7 @@ public sealed class CombatFlowPlannerTests
             [Entity("hero", true, 1), Entity("enemy", false, 1)],
             DeterministicContext.Create(42UL, "revision"));
 
-        var policies = Policies() with
-        {
-            DeckCycle = Policies().DeckCycle with { InitialPlayableCardCount = 2 }
-        };
+        var policies = Policies();
         var first = Boundaries(executor).InitializeTransaction(run, combat,
             Sequence(), policies, TurnPolicy());
         var repeated = Boundaries(executor).InitializeTransaction(run, combat,
@@ -158,9 +155,7 @@ public sealed class CombatFlowPlannerTests
                 Batches = [new CardZoneInitialBatch
                     { ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["strike", "strike", "strike"] }]
             }, DeterministicContext.Create(99, "revision")).Value;
-        var policies = Policies() with { Ai = new() { PublishIntents = false }, DeckCycle = Policies().DeckCycle with
-            { InitialPlayableCardCount = 0, EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
-                DrawPerActivation = 0, EndDiscard = DeckEndDiscardStrategy.None } };
+        var policies = Policies() with { Ai = new() { PublishIntents = false } };
         var run = new RunState
         {
             RunId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), PlayerEntityId = "hero",
@@ -415,23 +410,6 @@ public sealed class CombatFlowPlannerTests
 
     private static CombatFlowPoliciesDefinition Policies() => new()
     {
-        DeckCycle = new()
-        {
-            DrawPerActivation = 1,
-            HandLimit = 10,
-            InitialPlayableCardCount = 0,
-            ActorScope = FlowActorScope.RunOwner,
-            EncounterStart = EncounterDeckStartStrategy.PreserveZones,
-            EncounterCleanup = EncounterDeckCleanupStrategy.PreserveZones,
-            ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,
-            GeneratedCardPersistence = GeneratedCardPersistenceStrategy.Encounter,
-            EndDiscard = DeckEndDiscardStrategy.NonRetain,
-            RetainTags = ["retain"],
-            EtherealTag = "ethereal",
-            ShuffleDiscardWhenDrawEmpty = true,
-            AllowPartialDraw = true,
-            Fatigue = FatigueStrategy.None
-        },
         ResourceCycle = new()
         {
             ResourceId = "energy",

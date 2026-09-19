@@ -65,7 +65,7 @@
             "targetZoneId": "hand",
             "sourceOwner": "RunOwner",
             "targetOwner": "RunOwner",
-            "selection": { "strategy": "Top", "targetZoneCountFormula": "initialPlayableCardCount" },
+            "selection": { "strategy": "Top", "targetZoneCount": 5 },
             "onInsufficient": "AllowPartial",
             "onOverflow": "AllowPartial"
           }

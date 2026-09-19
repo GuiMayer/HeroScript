@@ -4,27 +4,27 @@ namespace Core.Events.Domain;
 
 public sealed record ActivationStartedEvent : GameEvent
 {
-    private ImmutableList<string> _drawnCardIds = [];
+    private ImmutableList<string> _affectedCardInstanceIds = [];
 
     public Guid CombatId { get; init; }
     public Guid? RunId { get; init; }
     public string ActorId { get; init; } = string.Empty;
     public int Round { get; init; }
     public int ActivationIndex { get; init; }
-    public IReadOnlyList<string> DrawnCardIds
+    public IReadOnlyList<string> AffectedCardInstanceIds
     {
-        get => _drawnCardIds;
-        init => _drawnCardIds = value?.ToImmutableList() ?? [];
+        get => _affectedCardInstanceIds;
+        init => _affectedCardInstanceIds = value?.ToImmutableList() ?? [];
     }
 
-    public ActivationStartedEvent(Guid combatId, Guid? runId, string actorId, int round, int activationIndex, IReadOnlyList<string> drawnCardIds, int turn)
+    public ActivationStartedEvent(Guid combatId, Guid? runId, string actorId, int round, int activationIndex, IReadOnlyList<string> affectedCardInstanceIds, int turn)
     {
         CombatId = combatId;
         RunId = runId;
         ActorId = actorId;
         Round = round;
         ActivationIndex = activationIndex;
-        DrawnCardIds = drawnCardIds;
+        AffectedCardInstanceIds = affectedCardInstanceIds;
         EventType = nameof(ActivationStartedEvent);
         Category = EventCategory.COMBAT;
         Severity = EventSeverity.INFO;
@@ -39,34 +39,34 @@ public sealed record ActivationStartedEvent : GameEvent
             ["actorId"] = actorId,
             ["round"] = round,
             ["activationIndex"] = activationIndex,
-            ["drawnCardIds"] = drawnCardIds.ToArray()
+            ["affectedCardInstanceIds"] = affectedCardInstanceIds.ToArray()
         };
     }
 }
 
 public sealed record ActivationEndedEvent : GameEvent
 {
-    private ImmutableList<string> _discardedCardIds = [];
+    private ImmutableList<string> _affectedCardInstanceIds = [];
 
     public Guid CombatId { get; init; }
     public Guid? RunId { get; init; }
     public string ActorId { get; init; } = string.Empty;
     public int Round { get; init; }
     public int ActivationIndex { get; init; }
-    public IReadOnlyList<string> DiscardedCardIds
+    public IReadOnlyList<string> AffectedCardInstanceIds
     {
-        get => _discardedCardIds;
-        init => _discardedCardIds = value?.ToImmutableList() ?? [];
+        get => _affectedCardInstanceIds;
+        init => _affectedCardInstanceIds = value?.ToImmutableList() ?? [];
     }
 
-    public ActivationEndedEvent(Guid combatId, Guid? runId, string actorId, int round, int activationIndex, IReadOnlyList<string> discardedCardIds, int turn)
+    public ActivationEndedEvent(Guid combatId, Guid? runId, string actorId, int round, int activationIndex, IReadOnlyList<string> affectedCardInstanceIds, int turn)
     {
         CombatId = combatId;
         RunId = runId;
         ActorId = actorId;
         Round = round;
         ActivationIndex = activationIndex;
-        DiscardedCardIds = discardedCardIds;
+        AffectedCardInstanceIds = affectedCardInstanceIds;
         EventType = nameof(ActivationEndedEvent);
         Category = EventCategory.COMBAT;
         Severity = EventSeverity.INFO;
@@ -81,7 +81,7 @@ public sealed record ActivationEndedEvent : GameEvent
             ["actorId"] = actorId,
             ["round"] = round,
             ["activationIndex"] = activationIndex,
-            ["discardedCardIds"] = discardedCardIds.ToArray()
+            ["affectedCardInstanceIds"] = affectedCardInstanceIds.ToArray()
         };
     }
 }

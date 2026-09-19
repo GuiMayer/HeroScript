@@ -332,9 +332,6 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 manifest.Value.Revision,
                 normalized.ModeId,
                 StartingCards: startingCards,
-                InitialPlayableCardCount: System.Math.Min(
-                    mode.Value.CombatRules.Flow.DeckCycle.DrawPerActivation,
-                    startingCards.Count),
                 ScenarioHash: scenarioHash,
                 AttemptKey: normalized.AttemptKey,
                 Scenario: normalized,

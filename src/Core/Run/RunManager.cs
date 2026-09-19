@@ -1219,13 +1219,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure("Initialized run snapshot does not match encounter owner");
             if (initializedRun == null)
             {
-                var initialPlayableCardCount = state.ResolvedMode!.CombatRules.Flow.DeckCycle.InitialPlayableCardCount;
                 var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, state,
-                    state.Deck, seed.Context, "encounter.started",
-                    variables: new Dictionary<string, double>
-                    {
-                        ["initialPlayableCardCount"] = initialPlayableCardCount
-                    });
+                    state.Deck, seed.Context, "encounter.started");
                 if (flowed.IsFailure)
                     return Result<RunState>.Failure(flowed.Error);
                 encounterDeck = Result<CardZoneRunTransition>.Success(new CardZoneRunTransition(

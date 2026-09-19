@@ -265,18 +265,6 @@ public sealed class GameModeResolverTests
                     WhenInvalid = InvalidIntentStrategy.Recompute
                 }
             },
-            DeckCycle = new()
-            {
-                HandLimit = 10,
-                InitialPlayableCardCount = 5,
-                ActorScope = FlowActorScope.RunOwner,
-                EncounterStart = EncounterDeckStartStrategy.ResetOrdered,
-                EncounterCleanup = EncounterDeckCleanupStrategy.ReturnToDrawPile,
-                ExhaustPersistence = ExhaustPersistenceStrategy.Encounter,
-                GeneratedCardPersistence = GeneratedCardPersistenceStrategy.Encounter,
-                EndDiscard = DeckEndDiscardStrategy.NonRetain,
-                Fatigue = FatigueStrategy.None
-            },
             ResourceCycle = new()
             {
                 ResourceId = "energy",

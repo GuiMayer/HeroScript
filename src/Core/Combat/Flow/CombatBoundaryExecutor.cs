@@ -113,11 +113,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         var phaseTransitions = new List<PhaseTransitionRecord>();
         var cardZoneSteps = new List<CardZoneFlowStepRecord>();
         var flowed = CardZoneRunFlowDispatcher.Execute(_cardZoneFlows, run, run.Deck,
-            run.Determinism, "encounter.started",
-            variables: new Dictionary<string, double>
-            {
-                ["initialPlayableCardCount"] = policies.DeckCycle.InitialPlayableCardCount
-            });
+            run.Determinism, "encounter.started");
         if (flowed.IsFailure) return Result<CombatInitializationResult>.Failure(flowed.Error);
         cardZoneSteps.AddRange(flowed.Value.Steps);
         run = run with
@@ -534,12 +530,10 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (exited.IsFailure)
             return Result<CombatResolutionStep>.Failure(exited.Error);
         run = exited.Value.Run;
-        var endedDeck = ApplyEndDeckCycle(
+        var endedDeck = ApplyEndCardZoneLifecycle(
             run,
-            exited.Value.Combat,
             deck,
             activation.ActiveActorId,
-            policies.DeckCycle,
             run.Determinism);
         if (endedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(endedDeck.Error);
@@ -560,9 +554,9 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         {
             TransitionType = "combat.activation.ended",
             Combat = endedCombat,
-            Deck = endedDeck.Value.State,
+            Deck = endedDeck.Value.Deck,
             RunDeterminism = endedDeck.Value.Context,
-            RunSnapshot = run with { Deck = endedDeck.Value.State, Determinism = endedDeck.Value.Context },
+            RunSnapshot = run with { Deck = endedDeck.Value.Deck, Determinism = endedDeck.Value.Context },
             EffectSteps = exited.Value.Steps,
             Calculations = exited.Value.Calculations,
             Applications = exited.Value.Applications,
@@ -611,12 +605,10 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         if (refreshed.IsFailure)
             return Result<CombatResolutionStep>.Failure(refreshed.Error);
 
-        var startedDeck = ApplyStartDeckCycle(
+        var startedDeck = ApplyStartCardZoneLifecycle(
             run,
-            refreshed.Value,
             deck,
             nextActorId,
-            policies.DeckCycle,
             drawContext);
         if (startedDeck.IsFailure)
             return Result<CombatResolutionStep>.Failure(startedDeck.Error);
@@ -637,7 +629,7 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         {
             ActivationState = nextActivation
         };
-        run = run with { Deck = startedDeck.Value.State, Determinism = startedDeck.Value.Context };
+        run = run with { Deck = startedDeck.Value.Deck, Determinism = startedDeck.Value.Context };
         var startStep = new CombatResolutionStep
         {
             TransitionType = "combat.activation.started",
@@ -851,41 +843,22 @@ public sealed class CombatBoundaryExecutor : ICombatBoundaryExecutor
         _ => "unknown"
     };
 
-    private Result<ResourceRefreshResult> ApplyStartDeckCycle(
+    private Result<CardZoneActivationStartResult> ApplyStartCardZoneLifecycle(
         RunState run,
-        CombatState combat,
         DeckState deck,
         string actorId,
-        DeckCyclePolicyDefinition policy,
         DeterministicContext context)
     {
-        var flowed = CardZoneCombatLifecycle.Start(_cardZoneFlows, run,
-            deck, context, actorId);
-        if (flowed.IsFailure) return Result<ResourceRefreshResult>.Failure(flowed.Error);
-        return Result<ResourceRefreshResult>.Success(new ResourceRefreshResult(
-            flowed.Value.Deck, flowed.Value.Context, flowed.Value.NewlyPlayableDefinitionIds)
-        {
-            CardZoneSteps = flowed.Value.CardZoneSteps
-        });
+        return CardZoneCombatLifecycle.Start(_cardZoneFlows, run, deck, context, actorId);
     }
 
-    private Result<EndDeckCycleResult> ApplyEndDeckCycle(
+    private Result<CardZoneActivationEndResult> ApplyEndCardZoneLifecycle(
         RunState run,
-        CombatState combat,
         DeckState deck,
         string actorId,
-        DeckCyclePolicyDefinition policy,
         DeterministicContext context)
     {
-        var flowed = CardZoneCombatLifecycle.End(_cardZoneFlows, run,
-            deck, context, actorId);
-        if (flowed.IsFailure) return Result<EndDeckCycleResult>.Failure(flowed.Error);
-        return Result<EndDeckCycleResult>.Success(new EndDeckCycleResult(
-            flowed.Value.Deck, flowed.Value.Context,
-            flowed.Value.AffectedInstanceIds)
-        {
-            CardZoneSteps = flowed.Value.CardZoneSteps
-        });
+        return CardZoneCombatLifecycle.End(_cardZoneFlows, run, deck, context, actorId);
     }
 
     private static Result<CombatState> RefreshActorResource(

@@ -32,22 +32,6 @@
           "whenInvalid": "Recompute"
         }
       },
-      "deckCycle": {
-        "drawPerActivation": 5,
-        "handLimit": 10,
-        "initialPlayableCardCount": 5,
-        "actorScope": "RunOwner",
-        "encounterStart": "PreserveZones",
-        "encounterCleanup": "ReturnToDrawPile",
-        "exhaustPersistence": "Encounter",
-        "generatedCardPersistence": "Encounter",
-        "endDiscard": "NonRetain",
-        "retainTags": ["retain"],
-        "etherealTag": "ethereal",
-        "shuffleDiscardWhenDrawEmpty": true,
-        "allowPartialDraw": true,
-        "fatigue": "None"
-      },
       "resourceCycle": {
         "resourceId": "energy",
         "actorScope": "PlayerControlled",

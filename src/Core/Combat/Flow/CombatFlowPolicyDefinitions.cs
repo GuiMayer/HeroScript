@@ -13,7 +13,6 @@ public sealed record CombatFlowPoliciesDefinition
     public AutomaticResolutionPolicyDefinition AutomaticResolution { get; init; } = new();
     public ActionBudgetPolicyDefinition ActionBudget { get; init; } = new();
     public AiTurnPolicyDefinition Ai { get; init; } = new();
-    public DeckCyclePolicyDefinition DeckCycle { get; init; } = new();
     public ResourceCyclePolicyDefinition ResourceCycle { get; init; } = new();
     public StatusTimingPolicyDefinition StatusTiming { get; init; } = new();
     public OutcomePolicyDefinition Outcome { get; init; } = new();
@@ -72,34 +71,6 @@ public sealed record ActionBudgetPolicyDefinition
             .Distinct(StringComparer.Ordinal)
             .ToImmutableArray() ?? [];
     }
-}
-
-public sealed record DeckCyclePolicyDefinition
-{
-    private ImmutableArray<string> _retainTags = [];
-
-    public int DrawPerActivation { get; init; }
-    public int HandLimit { get; init; }
-    public int InitialPlayableCardCount { get; init; }
-    public FlowActorScope ActorScope { get; init; }
-    public EncounterDeckStartStrategy EncounterStart { get; init; }
-    public EncounterDeckCleanupStrategy EncounterCleanup { get; init; }
-    public ExhaustPersistenceStrategy ExhaustPersistence { get; init; }
-    public GeneratedCardPersistenceStrategy GeneratedCardPersistence { get; init; }
-    public DeckEndDiscardStrategy EndDiscard { get; init; }
-    public IReadOnlyList<string> RetainTags
-    {
-        get => _retainTags;
-        init => _retainTags = value?
-            .Where(item => !string.IsNullOrWhiteSpace(item))
-            .Select(item => item.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToImmutableArray() ?? [];
-    }
-    public string? EtherealTag { get; init; }
-    public bool ShuffleDiscardWhenDrawEmpty { get; init; }
-    public bool AllowPartialDraw { get; init; }
-    public FatigueStrategy Fatigue { get; init; }
 }
 
 public sealed record ResourceCyclePolicyDefinition
@@ -188,24 +159,6 @@ public enum ActionCostStrategy { Unspecified, Configured, Ignore }
 public enum FlowActorScope { Unspecified, RunOwner, PlayerControlled, AiControlled, All }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum DeckEndDiscardStrategy { Unspecified, None, All, NonRetain, DownToHandLimit }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum EncounterDeckStartStrategy { Unspecified, PreserveZones, ResetOrdered, ResetShuffled }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum EncounterDeckCleanupStrategy { Unspecified, PreserveZones, ReturnToDrawPile }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ExhaustPersistenceStrategy { Unspecified, Encounter, Run }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum GeneratedCardPersistenceStrategy { Unspecified, Encounter, Run }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum FatigueStrategy { Unspecified, None }
-
-[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ResourceRefreshStrategy { Unspecified, ResetToMax, Add, Preserve, Set }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -284,24 +237,6 @@ public static class CombatFlowPolicyValidator
         if (policies.Ai.Intent.Refresh == IntentRefreshStrategy.Unspecified ||
             policies.Ai.Intent.WhenInvalid == InvalidIntentStrategy.Unspecified)
             return Result.Failure("AI intent refresh and invalidation policies are required");
-        if (policies.DeckCycle.DrawPerActivation < 0 ||
-            policies.DeckCycle.HandLimit < 1 ||
-            policies.DeckCycle.InitialPlayableCardCount < 0 ||
-            policies.DeckCycle.InitialPlayableCardCount > policies.DeckCycle.HandLimit)
-            return Result.Failure("Deck cycle draw and hand limits are invalid");
-        if (policies.DeckCycle.ActorScope == FlowActorScope.Unspecified)
-            return Result.Failure("Deck cycle actorScope is required");
-        if (policies.DeckCycle.EndDiscard == DeckEndDiscardStrategy.Unspecified ||
-            policies.DeckCycle.Fatigue == FatigueStrategy.Unspecified)
-            return Result.Failure("Deck cycle discard and fatigue strategies are required");
-        if (policies.DeckCycle.EncounterStart == EncounterDeckStartStrategy.Unspecified ||
-            policies.DeckCycle.EncounterCleanup == EncounterDeckCleanupStrategy.Unspecified ||
-            policies.DeckCycle.ExhaustPersistence == ExhaustPersistenceStrategy.Unspecified ||
-            policies.DeckCycle.GeneratedCardPersistence == GeneratedCardPersistenceStrategy.Unspecified)
-        {
-            return Result.Failure(
-                "Deck encounter start, cleanup, exhaust and generated-card persistence strategies are required");
-        }
         if (string.IsNullOrWhiteSpace(policies.ResourceCycle.ResourceId) ||
             policies.ResourceCycle.StartActivation == ResourceRefreshStrategy.Unspecified ||
             policies.ResourceCycle.ActorScope == FlowActorScope.Unspecified)

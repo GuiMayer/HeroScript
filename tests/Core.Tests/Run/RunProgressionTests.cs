@@ -390,7 +390,7 @@ public sealed class RunProgressionTests
             {
                 ProgressionPolicy = policy,
                 CardZoneSystem = zones,
-                CombatRules = new() { Flow = new() { DeckCycle = null! } }
+                CombatRules = new() { Flow = new() }
             },
             Encounters = [new RunEncounterState
             {
