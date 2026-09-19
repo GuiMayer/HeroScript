@@ -6,6 +6,7 @@ var base_url := "http://127.0.0.1:5271"
 var available := false
 var last_error := ""
 var timings: Array[Dictionary] = []
+var default_timeout_seconds := 30.0
 
 class RequestBatch extends RefCounted:
 	signal completed
@@ -27,10 +28,11 @@ func _request_part(batch: RequestBatch, key: String, path: String) -> void:
 	if batch.remaining == 0:
 		batch.completed.emit()
 
-func request(method: HTTPClient.Method, path: String, body = null, timeout_seconds := 12.0) -> Dictionary:
+func request(method: HTTPClient.Method, path: String, body = null, timeout_seconds := -1.0) -> Dictionary:
 	var started := Time.get_ticks_msec()
 	var node := HTTPRequest.new()
-	node.timeout = maxf(timeout_seconds, 1.0)
+	var resolved_timeout := default_timeout_seconds if timeout_seconds <= 0.0 else timeout_seconds
+	node.timeout = maxf(resolved_timeout, 1.0)
 	add_child(node)
 	var headers := PackedStringArray(["Accept: application/json"])
 	var encoded := ""

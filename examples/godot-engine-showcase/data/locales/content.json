@@ -56,6 +56,20 @@
 	"pt_BR": "Dardo Arcano",
 	"en": "Arcane Bolt"
   },
+  "venom_cut": { "pt_BR": "Corte Venenoso", "en": "Venom Cut" },
+  "battle_focus": { "pt_BR": "Foco de Batalha", "en": "Battle Focus" },
+  "expose_weakness": { "pt_BR": "Expor Fraqueza", "en": "Expose Weakness" },
+  "chain_lightning": { "pt_BR": "Relâmpago em Cadeia", "en": "Chain Lightning" },
+  "execution": { "pt_BR": "Execução", "en": "Execution" },
+  "tactical_recall": { "pt_BR": "Recordação Tática", "en": "Tactical Recall" },
+  "conjure_spark": { "pt_BR": "Conjurar Centelha", "en": "Conjure Spark" },
+  "fading_guard": { "pt_BR": "Guarda Efêmera", "en": "Fading Guard" },
+  "equilibrium": { "pt_BR": "Equilíbrio", "en": "Equilibrium" },
+  "piercing_ray": { "pt_BR": "Raio Perfurante", "en": "Piercing Ray" },
+  "cleanse": { "pt_BR": "Purificar", "en": "Cleanse" },
+  "prismatic_burst": { "pt_BR": "Explosão Prismática", "en": "Prismatic Burst" },
+  "cull_weakest": { "pt_BR": "Abater o Mais Fraco", "en": "Cull the Weakest" },
+  "renewal": { "pt_BR": "Renovação", "en": "Renewal" },
   "spire_adept": {
 	"pt_BR": "Adepto das Brasas",
 	"en": "Ember Adept"
@@ -68,6 +82,9 @@
 	"pt_BR": "Sentinela de Obsidiana",
 	"en": "Obsidian Sentinel"
   },
+  "spire_venomling": { "pt_BR": "Peçonhento", "en": "Venomling" },
+  "spire_hexer": { "pt_BR": "Feiticeiro das Cinzas", "en": "Cinder Hexer" },
+  "spire_bulwark": { "pt_BR": "Baluarte Vivo", "en": "Living Bulwark" },
   "player_warrior": {
 	"pt_BR": "Guerreiro",
 	"en": "Warrior"
@@ -92,6 +109,9 @@
 	"pt_BR": "Vulnerável",
 	"en": "Vulnerable"
   },
+  "regeneration": { "pt_BR": "Regeneração", "en": "Regeneration" },
+  "fortified": { "pt_BR": "Fortificado", "en": "Fortified" },
+  "silenced": { "pt_BR": "Silenciado", "en": "Silenced" },
   "weak": {
 	"pt_BR": "Fraqueza",
 	"en": "Weak"
@@ -104,10 +124,20 @@
 	"pt_BR": "Núcleo de Brasa",
 	"en": "Ember Core"
   },
+  "mana_prism": { "pt_BR": "Prisma de Mana", "en": "Mana Prism" },
+  "venom_lens": { "pt_BR": "Lente de Peçonha", "en": "Venom Lens" },
   "sharpened_edge": {
 	"pt_BR": "Fio Afiado",
 	"en": "Sharpened Edge"
   },
+  "venom_edge": { "pt_BR": "Fio Venenoso", "en": "Venom Edge" },
+  "amplified_chain": { "pt_BR": "Cadeia Amplificada", "en": "Amplified Chain" },
+  "reinforced_guard": { "pt_BR": "Guarda Reforçada", "en": "Reinforced Guard" },
+  "enemy_poison_spit": { "pt_BR": "Cuspe Venenoso", "en": "Poison Spit" },
+  "enemy_arcane_lock": { "pt_BR": "Selo Arcano", "en": "Arcane Lock" },
+  "enemy_draining_touch": { "pt_BR": "Toque Drenante", "en": "Draining Touch" },
+  "enemy_bulwark": { "pt_BR": "Baluarte de Obsidiana", "en": "Obsidian Bulwark" },
+  "enemy_crushing_blow": { "pt_BR": "Golpe Esmagador", "en": "Crushing Blow" },
   "rest": {
 	"pt_BR": "Descansar",
 	"en": "Rest"

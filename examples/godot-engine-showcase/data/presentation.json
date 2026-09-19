@@ -30,6 +30,76 @@
       "name": "Arcane Bolt",
       "text": "Attack an enemy using mana. See the preview for current values.",
       "tone": "power"
+    },
+    "venom_cut": {
+      "name": "Venom Cut",
+      "text": "Deal damage and apply a damage-over-time status.",
+      "tone": "attack"
+    },
+    "battle_focus": {
+      "name": "Battle Focus",
+      "text": "Gain persistent offensive scaling, then leave the encounter cycle.",
+      "tone": "power"
+    },
+    "expose_weakness": {
+      "name": "Expose Weakness",
+      "text": "Damage a target and increase subsequent damage taken.",
+      "tone": "attack"
+    },
+    "chain_lightning": {
+      "name": "Chain Lightning",
+      "text": "Spend Mana to damage every enemy.",
+      "tone": "power"
+    },
+    "execution": {
+      "name": "Execution",
+      "text": "A high-damage attack usable only against a wounded target.",
+      "tone": "attack"
+    },
+    "tactical_recall": {
+      "name": "Tactical Recall",
+      "text": "Move two cards into the playable zone using a configured flow.",
+      "tone": "skill"
+    },
+    "conjure_spark": {
+      "name": "Conjure Spark",
+      "text": "Create an Arcane Bolt in the playable zone, then exhaust.",
+      "tone": "power"
+    },
+    "fading_guard": {
+      "name": "Fading Guard",
+      "text": "Gain Block. If left unplayed, its ethereal tag moves it to exile.",
+      "tone": "skill"
+    },
+    "equilibrium": {
+      "name": "Equilibrium",
+      "text": "Gain Block. Its retain tag keeps it between activations.",
+      "tone": "skill"
+    },
+    "piercing_ray": {
+      "name": "Piercing Ray",
+      "text": "Damage bypasses Block through a calculation-pipeline tag rule.",
+      "tone": "power"
+    },
+    "cleanse": {
+      "name": "Cleanse",
+      "text": "Remove up to two debuffs from yourself.",
+      "tone": "skill"
+    },
+    "prismatic_burst": {
+      "name": "Prismatic Burst",
+      "text": "Choose between Energy and Mana as the payment resource.",
+      "tone": "power"
+    },
+    "cull_weakest": {
+      "name": "Cull the Weakest",
+      "text": "Automatically targets the enemy with the least Health.",
+      "tone": "attack"
+    },
+    "renewal": {
+      "name": "Renewal",
+      "text": "Apply a status that restores Health over several activations.",
+      "tone": "skill"
     }
   },
   "nodes": {
@@ -63,8 +133,28 @@
       "icon": "⬆",
       "hint": "Upgrade"
     },
+    "prism": {
+      "name": "Prismatic Shrine",
+      "icon": "◈",
+      "hint": "Mana relic"
+    },
+    "swarm": {
+      "name": "Infested Gallery",
+      "icon": "♞",
+      "hint": "Multiple enemies"
+    },
+    "lens": {
+      "name": "Venom Lens",
+      "icon": "◉",
+      "hint": "Synergy relic"
+    },
+    "hexer": {
+      "name": "Cinder Archive",
+      "icon": "✧",
+      "hint": "Resource control"
+    },
     "summit": {
-      "name": "Obsidian Sentinel",
+      "name": "Living Bulwark",
       "icon": "♛",
       "hint": "Boss"
     }
@@ -97,8 +187,17 @@
         }
       },
       {
-        "instanceId": "opponent",
-        "entityDefinitionId": "spire_sentinel",
+        "instanceId": "hexer",
+        "entityDefinitionId": "spire_hexer",
+        "sideId": "opposition",
+        "controllerBinding": {
+          "kind": "AI",
+          "policyId": "gambit"
+        }
+      },
+      {
+        "instanceId": "venomling",
+        "entityDefinitionId": "spire_venomling",
         "sideId": "opposition",
         "controllerBinding": {
           "kind": "AI",
@@ -106,36 +205,42 @@
         }
       }
     ],
-    "deck": [
+    "startingCards": [
       {
-        "definitionId": "arcane_bolt"
+        "definitionId": "chain_lightning"
       },
       {
-        "definitionId": "basic_attack"
+        "definitionId": "venom_cut"
       },
       {
-        "definitionId": "basic_attack"
+        "definitionId": "expose_weakness"
       },
       {
-        "definitionId": "basic_attack"
+        "definitionId": "piercing_ray"
       },
       {
-        "definitionId": "defend"
+        "definitionId": "fading_guard"
       },
       {
-        "definitionId": "defend"
+        "definitionId": "equilibrium"
       },
       {
-        "definitionId": "defend"
+        "definitionId": "tactical_recall"
       },
       {
-        "definitionId": "fireball"
+        "definitionId": "prismatic_burst"
       },
       {
-        "definitionId": "fireball"
+        "definitionId": "cleanse"
       },
       {
-        "definitionId": "heal"
+        "definitionId": "execution"
+      },
+      {
+        "definitionId": "battle_focus"
+      },
+      {
+        "definitionId": "renewal"
       }
     ],
     "initialState": {
@@ -145,9 +250,13 @@
           "energy": 3,
           "mana": 4
         },
-        "opponent": {
-          "health": 52,
+        "hexer": {
+          "health": 38,
           "mana": 6
+        },
+        "venomling": {
+          "health": 24,
+          "mana": 0
         }
       },
       "effects": []

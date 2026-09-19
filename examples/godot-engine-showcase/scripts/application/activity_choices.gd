@@ -27,15 +27,13 @@ static func build(run: Dictionary, commands: Array) -> Array:
 					payload["itemId" if shop else "optionId"] = id
 					choices.append(_choice(type, payload, str(id), "content"))
 			"UPGRADE_CARD":
-				for upgrade_id in valid.get("upgradeIds", []):
-					for card_id in valid.get("cardInstanceIds", []):
-						var definition := str(card_id)
-						for card in run.get("deck", {}).get("cardInstances", []):
-							if str(card.get("cardInstanceId", "")) == str(card_id):
-								definition = str(card.get("definitionId", card_id))
-						var choice := _choice(type, {"cardInstanceId": card_id, "upgradeId": upgrade_id}, definition, "card")
-						choice["variantId"] = upgrade_id
-						choices.append(choice)
+				for option in valid.get("options", []):
+					var card_id = option.get("cardInstanceId")
+					var upgrade_id = option.get("upgradeId")
+					var definition := str(option.get("cardDefinitionId", card_id))
+					var choice := _choice(type, {"cardInstanceId": card_id, "upgradeId": upgrade_id}, definition, "card")
+					choice["variantId"] = upgrade_id
+					choices.append(choice)
 			"REROLL_CARD_REWARD":
 				choices.append(_choice(type, {"selectionInstanceId": valid.get("selectionInstanceId"), "lockedCardIds": []}, "", "", true))
 			"REROLL_SHOP":

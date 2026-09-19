@@ -29,6 +29,10 @@ try {
     catch {
         $apiEnvironment = @{
             ASPNETCORE_URLS = $apiUrl
+            ToolAccess__Profile = 'dev_modder'
+            Admin__Enabled = 'true'
+            Admin__ApiKey = 'dev-admin-key'
+            AllowConfigReload = 'true'
             Persistence__RunStatePath = (Join-Path $runtimeRoot 'runs')
             Persistence__ContentStorePath = (Join-Path $runtimeRoot 'content')
             Persistence__OperationalTelemetryPath = (Join-Path $runtimeRoot 'telemetry')

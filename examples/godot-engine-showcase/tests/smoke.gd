@@ -10,6 +10,7 @@ func _ready() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	GameSession.failed.connect(func(error): print("[ENGINE ERROR] ", JSON.stringify(error)))
 	_original_last_run = Preferences.last_run_id
 	check(await GameSession.connect_engine(), "connect to HeroScript and resolve a content revision")
 	if not failures.is_empty():
@@ -64,9 +65,9 @@ func _run() -> void:
 			check(simulation.ok, simulation_message)
 	var cards := await GameSession.content("cards")
 	check(cards.ok and cards.data.get("items", []).size() >= 4, "browse published JSON content")
-	check(await drive_complete_campaign(seed + 917), "complete all eight campaign activities")
+	check(await drive_complete_campaign(seed + 917), "complete the expanded campaign")
 	check(GameSession.run.get("dialogues", []).any(func(dialogue): return bool(dialogue.get("completed", false))), "persist completed dialogue activity")
-	check(GameSession.run.get("relics", []).size() == 1, "persist and activate relic state")
+	check(GameSession.run.get("relics", []).size() >= 3, "persist and activate multiple relic states")
 	check(GameSession.run.get("cardSelections", []).size() == 1, "persist card reward state")
 	check(GameSession.run.get("shops", []).size() == 1, "persist shop state")
 	check(GameSession.run.get("preparations", []).size() == 1, "persist preparation state")
@@ -87,9 +88,11 @@ func drive_complete_campaign(seed: int) -> bool:
 		if str(GameSession.run.get("lifecycle", "Active")).to_lower() != "active":
 			return str(GameSession.run.get("lifecycle", "")).to_lower() == "completed"
 		if not GameSession.combat.is_empty() and str(GameSession.combat.get("status", "ACTIVE")) == "ACTIVE":
-			var damage := damaging_card_candidate()
-			if not damage.is_empty():
-				if not await GameSession.submit_candidate(damage):
+			var action := damaging_card_candidate()
+			if action.is_empty():
+				action = first_card_candidate()
+			if not action.is_empty():
+				if not await GameSession.submit_candidate(action):
 					return false
 			else:
 				var endings: Array = GameSession.legal_actions.filter(func(item): return str(item.command.get("actionType", "")) == "END_TURN")
@@ -104,14 +107,20 @@ func drive_complete_campaign(seed: int) -> bool:
 	return false
 
 func damaging_card_candidate() -> Dictionary:
+	var best: Dictionary = {}
+	var best_damage := 0.0
 	for candidate in GameSession.legal_actions:
 		if str(candidate.get("source", "")) != "Card":
 			continue
+		var damage := 0.0
 		for application in candidate.get("applications", []):
 			if str(application.get("resourceId", "")) == "health" and \
 				float(application.get("currentValue", 0)) < float(application.get("previousValue", 0)):
-				return candidate
-	return {}
+				damage += float(application.get("previousValue", 0)) - float(application.get("currentValue", 0))
+		if damage > best_damage:
+			best_damage = damage
+			best = candidate
+	return best
 
 func choose_progression_command() -> Dictionary:
 	var choices := GameSession.activity_choices()
@@ -120,9 +129,6 @@ func choose_progression_command() -> Dictionary:
 		"RESOLVE_NODE", "ADVANCE_NODE"]:
 		for choice in choices:
 			if str(choice.type) != type:
-				continue
-			# Test strategy only; the application exposes every advertised upgrade.
-			if type == "UPGRADE_CARD" and str(choice.subjectId) != "basic_attack":
 				continue
 			return choice
 	return {}
