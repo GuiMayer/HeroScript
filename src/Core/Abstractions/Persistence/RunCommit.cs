@@ -1,5 +1,7 @@
 using System.Collections.Immutable;
+using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Calculations;
 using Core.CardZones;
 using Core.Combat.Flow;
@@ -123,7 +125,7 @@ public sealed record RunCommit
         init => _facts = value?.ToImmutableArray() ?? [];
     }
 
-    public void Validate()
+    public void Validate(string? computedStateHash = null)
     {
         if (SchemaVersion != CurrentSchemaVersion)
             throw new InvalidOperationException($"Unsupported run commit schema: {SchemaVersion}");
@@ -139,7 +141,8 @@ public sealed record RunCommit
             throw new InvalidOperationException("Run commit deterministic step range is invalid");
         if (Sequence > 1 && string.IsNullOrWhiteSpace(PreviousStateHash))
             throw new InvalidOperationException("Non-initial run commit requires previousStateHash");
-        if (!string.Equals(CanonicalJson.ComputeHash(StateAfter), StateHash, StringComparison.Ordinal))
+        var actualStateHash = computedStateHash ?? CanonicalJson.ComputeHash(StateAfter);
+        if (!string.Equals(actualStateHash, StateHash, StringComparison.Ordinal))
             throw new InvalidOperationException("Run commit stateHash does not match stateAfter");
         if (Sequence == 1)
         {
@@ -218,6 +221,61 @@ public sealed record RunCommit
         StateHash = StateHash,
         LogicalTimestamp = LogicalTimestamp
     };
+}
+
+/// <summary>
+/// Immutable serialized form used by the append path. Preparing once keeps
+/// validation, hashing and persistence on the same canonical bytes.
+/// </summary>
+public sealed class PreparedRunCommit
+{
+    private PreparedRunCommit(RunCommit commit, byte[] bytes, string byteHash)
+    {
+        Commit = commit;
+        Bytes = bytes;
+        ByteHash = byteHash;
+    }
+
+    public RunCommit Commit { get; }
+    public ReadOnlyMemory<byte> Bytes { get; }
+    public string ByteHash { get; }
+
+    public static PreparedRunCommit Create(RunCommit commit)
+    {
+        ArgumentNullException.ThrowIfNull(commit);
+        var stateHash = CanonicalJson.ComputeHash(commit.StateAfter);
+        return CreateVerified(commit, stateHash);
+    }
+
+    public static PreparedRunCommit CreateVerified(RunCommit commit, string computedStateHash)
+    {
+        ArgumentNullException.ThrowIfNull(commit);
+        ArgumentException.ThrowIfNullOrWhiteSpace(computedStateHash);
+        commit.Validate(computedStateHash);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(commit, RunCommitJson.Options);
+        return new PreparedRunCommit(
+            commit,
+            bytes,
+            Convert.ToHexString(SHA256.HashData(bytes)));
+    }
+}
+
+public static class RunCommitJson
+{
+    public static JsonSerializerOptions Options { get; } = CreateOptions();
+
+    private static JsonSerializerOptions CreateOptions()
+    {
+        var options = new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            PropertyNameCaseInsensitive = false,
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
+    }
 }
 
 public sealed record RunCommitAppendResult(RunCommit Commit, bool Duplicate);

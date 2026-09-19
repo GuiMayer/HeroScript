@@ -33,6 +33,26 @@ public sealed class FileRunCommitStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task AppendPrepared_ReusesValidatedCanonicalBytes()
+    {
+        var commit = CreateCommit(Guid.NewGuid(), 1, null, 10);
+        var prepared = PreparedRunCommit.CreateVerified(commit, commit.StateHash);
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+
+        var appended = await store.AppendPreparedAsync(prepared);
+        var path = Path.Combine(
+            _directory,
+            commit.RunId.ToString("D"),
+            "commits",
+            "00000001.json");
+        var persisted = await File.ReadAllBytesAsync(path);
+
+        Assert.False(appended.Duplicate);
+        Assert.Equal(prepared.Bytes.ToArray(), persisted);
+        Assert.Equal(commit.StateHash, (await store.LoadCommitAsync(commit.RunId, 1))!.StateHash);
+    }
+
+    [Fact]
     public async Task Append_RoundTripsLifecycleBoundarySetInCanonicalOrder()
     {
         var runId = Guid.NewGuid();

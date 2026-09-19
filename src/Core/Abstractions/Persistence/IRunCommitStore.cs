@@ -20,3 +20,10 @@ public interface IRunCommitStore : IRunCommitReader
     Task<RunCommitAppendResult> AppendAsync(RunCommit commit, CancellationToken ct = default);
     Task DeleteRunAsync(Guid runId, CancellationToken ct = default);
 }
+
+public interface IPreparedRunCommitStore
+{
+    Task<RunCommitAppendResult> AppendPreparedAsync(
+        PreparedRunCommit prepared,
+        CancellationToken ct = default);
+}

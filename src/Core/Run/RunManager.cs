@@ -2183,6 +2183,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var previousHash = previous == null
                 ? string.Empty
                 : CanonicalJson.ComputeHash(previous);
+            var stateHash = CanonicalJson.ComputeHash(snapshot);
             var effectiveIdentity = NormalizeCommitIdentity(
                 identity,
                 snapshot,
@@ -2207,7 +2208,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     Round = scopedCombat?.ActivationState?.Round ?? scopedCombat?.CurrentTurn,
                     Activation = scopedCombat?.ActivationState?.ActivationNumber,
                     ResultHash = scopedCombat == null
-                        ? CanonicalJson.ComputeHash(snapshot)
+                        ? stateHash
                         : CanonicalJson.ComputeHash(scopedCombat),
                     Resolution = animationFrame?.Payload ?? effectiveCommand,
                     ResolutionFrameId = animationFrame?.FrameId,
@@ -2227,7 +2228,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 RootCommand = effectiveIdentity,
                 Command = effectiveCommand,
                 PreviousStateHash = previousHash,
-                StateHash = CanonicalJson.ComputeHash(snapshot),
+                StateHash = stateHash,
                 BeforeStep = previous?.Determinism.Step ?? 0,
                 AfterStep = snapshot.Determinism.Step,
                 LogicalTimestamp = snapshot.Determinism.LogicalTimestamp.UtcDateTime,
@@ -2237,12 +2238,16 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };
+            var prepared = PreparedRunCommit.CreateVerified(commit, stateHash);
 
-            _repository?.AppendAsync(commit).GetAwaiter().GetResult();
+            if (_repository is IPreparedRunCommitStore preparedStore)
+                preparedStore.AppendPreparedAsync(prepared).GetAwaiter().GetResult();
+            else
+                _repository?.AppendAsync(commit).GetAwaiter().GetResult();
 
             _runs[state.RunId] = state;
             _commandReceipts[(state.RunId, effectiveIdentity.CommandId)] =
-                CreateReceipt(commit, duplicate: false);
+                CreateReceipt(prepared.Commit, duplicate: false);
             return Result<RunState>.Success(state);
         }
         catch (Exception exception)
@@ -2270,6 +2275,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunState>.Failure("A run commit requires at least one transition frame");
             var sequence = checked(previous.Sequence + 1);
             var finalState = candidates[^1].State with { Sequence = sequence };
+            var previousStateHash = CanonicalJson.ComputeHash(previous);
+            var stateHash = CanonicalJson.ComputeHash(finalState);
             var commandPayload = rootPayload.ValueKind == JsonValueKind.Undefined
                 ? candidates[^1].Step.Payload.ValueKind == JsonValueKind.Undefined
                     ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
@@ -2315,8 +2322,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Sequence = sequence,
                 RootCommand = identity,
                 Command = commandPayload,
-                PreviousStateHash = CanonicalJson.ComputeHash(previous),
-                StateHash = CanonicalJson.ComputeHash(finalState),
+                PreviousStateHash = previousStateHash,
+                StateHash = stateHash,
                 BeforeStep = previous.Determinism.Step,
                 AfterStep = finalState.Determinism.Step,
                 LogicalTimestamp = finalState.Determinism.LogicalTimestamp.UtcDateTime,
@@ -2325,12 +2332,16 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };
+            var prepared = PreparedRunCommit.CreateVerified(commit, stateHash);
 
-            _repository?.AppendAsync(commit).GetAwaiter().GetResult();
+            if (_repository is IPreparedRunCommitStore preparedStore)
+                preparedStore.AppendPreparedAsync(prepared).GetAwaiter().GetResult();
+            else
+                _repository?.AppendAsync(commit).GetAwaiter().GetResult();
 
             _runs[previous.RunId] = finalState;
             _commandReceipts[(previous.RunId, identity.CommandId)] =
-                CreateReceipt(commit, duplicate: false);
+                CreateReceipt(prepared.Commit, duplicate: false);
             return Result<RunState>.Success(finalState);
         }
         catch (Exception exception)

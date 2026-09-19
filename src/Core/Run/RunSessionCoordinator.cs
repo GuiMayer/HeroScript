@@ -168,6 +168,8 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
         {
             PayloadHash = CanonicalJson.ComputeHash(payload)
         };
+        var previousStateHash = CanonicalJson.ComputeHash(plan.PreviousState);
+        var stateHash = CanonicalJson.ComputeHash(stateAfter);
         var frames = plan.Frames.Count == 0
             ? new[]
             {
@@ -177,7 +179,7 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
                     Step = stateAfter.Determinism.Step,
                     Scope = "run",
                     Kind = identity.Type,
-                    ResultHash = CanonicalJson.ComputeHash(stateAfter),
+                    ResultHash = stateHash,
                     Resolution = payload
                 }
             }
@@ -213,8 +215,8 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
             Sequence = nextSequence,
             RootCommand = identity,
             Command = payload,
-            PreviousStateHash = CanonicalJson.ComputeHash(plan.PreviousState),
-            StateHash = CanonicalJson.ComputeHash(stateAfter),
+            PreviousStateHash = previousStateHash,
+            StateHash = stateHash,
             BeforeStep = plan.PreviousState.Determinism.Step,
             AfterStep = stateAfter.Determinism.Step,
             LogicalTimestamp = stateAfter.Determinism.LogicalTimestamp.UtcDateTime,
@@ -222,14 +224,17 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
             Frames = frames,
             Facts = facts
         };
+        var prepared = PreparedRunCommit.CreateVerified(commit, stateHash);
 
-        if (_store != null)
+        if (_store is IPreparedRunCommitStore preparedStore)
+            await preparedStore.AppendPreparedAsync(prepared, cancellationToken).ConfigureAwait(false);
+        else if (_store != null)
             await _store.AppendAsync(commit, cancellationToken).ConfigureAwait(false);
 
         // Publication is deliberately after the durable append. If append
         // fails, neither the live aggregate nor the receipt cache changes.
         _publish(stateAfter);
-        var receipt = CreateReceipt(commit, duplicate: false);
+        var receipt = CreateReceipt(prepared.Commit, duplicate: false);
         _receipts[(stateAfter.RunId, identity.CommandId)] = receipt;
         return Result<RunCommandReceipt>.Success(receipt);
     }
