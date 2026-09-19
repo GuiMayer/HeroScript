@@ -88,7 +88,7 @@ public sealed class RunSessionCoordinatorTests
     }
 
     [Fact]
-    public async Task NewCommands_IndexDurableReceiptsOnlyOncePerRun()
+    public async Task NewCommands_QueryDurableReceiptsByCommandId()
     {
         var state = CreateState(Guid.NewGuid(), 66);
         var queries = new TestQueries(state);
@@ -101,7 +101,8 @@ public sealed class RunSessionCoordinatorTests
         var second = await coordinator.ExecuteAsync(current.RunId, Command(current, Guid.NewGuid(), 2));
 
         Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
-        Assert.Equal(1, store.LoadCommitsCount);
+        Assert.Equal(2, store.FindCommandCount);
+        Assert.Equal(0, store.LoadCommitsCount);
         Assert.Equal(2, store.AppendCount);
     }
 
@@ -193,11 +194,23 @@ public sealed class RunSessionCoordinatorTests
         private int _maximumConcurrentAppends;
         private int _appendCount;
         private int _loadCommitsCount;
+        private int _findCommandCount;
 
         public bool FailAppend { get; init; }
         public int MaximumConcurrentAppends => Volatile.Read(ref _maximumConcurrentAppends);
         public int AppendCount => Volatile.Read(ref _appendCount);
         public int LoadCommitsCount => Volatile.Read(ref _loadCommitsCount);
+        public int FindCommandCount => Volatile.Read(ref _findCommandCount);
+
+        public Task<RunCommit?> FindCommandAsync(
+            Guid runId,
+            Guid commandId,
+            CancellationToken ct = default)
+        {
+            Interlocked.Increment(ref _findCommandCount);
+            return Task.FromResult(Snapshot().LastOrDefault(commit =>
+                commit.RunId == runId && commit.RootCommand.CommandId == commandId));
+        }
 
         public async Task<RunCommitAppendResult> AppendAsync(
             RunCommit commit,

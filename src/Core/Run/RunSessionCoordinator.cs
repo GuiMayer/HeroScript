@@ -49,7 +49,6 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
     private readonly Action<RunState> _publish;
     private readonly RunSessionGateProvider _gates;
     private readonly ConcurrentDictionary<(Guid RunId, Guid CommandId), RunCommandReceipt> _receipts = new();
-    private readonly ConcurrentDictionary<Guid, byte> _indexedReceiptRuns = new();
 
     public RunSessionCoordinator(
         IRunQueryService queries,
@@ -262,19 +261,14 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
 
         try
         {
-            if (!_indexedReceiptRuns.ContainsKey(runId))
+            var commit = await _history.FindCommandAsync(runId, commandId, cancellationToken)
+                .ConfigureAwait(false);
+            if (commit != null)
             {
-                var commits = await _history.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false);
-                foreach (var commit in commits)
-                {
-                    var receipt = CreateReceipt(commit, duplicate: false);
-                    _receipts[(runId, commit.RootCommand.CommandId)] = receipt;
-                }
-                _indexedReceiptRuns.TryAdd(runId, 0);
-            }
-
-            if (_receipts.TryGetValue((runId, commandId), out cached))
+                cached = CreateReceipt(commit, duplicate: false);
+                _receipts[(runId, commandId)] = cached;
                 return Result<RunCommandReceipt?>.Success(cached with { Duplicate = true });
+            }
             return _receiptFallback?.FindReceipt(runId, commandId)
                 ?? Result<RunCommandReceipt?>.Success(null);
         }

@@ -65,11 +65,11 @@ public sealed class RunCommitProjectionReader : IRunCommitProjectionReader
         CancellationToken cancellationToken = default)
     {
         ValidateCursor(afterSequence, limit);
-        return (await _commits.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false))
-            .Where(commit => commit.Sequence > afterSequence)
-            .OrderBy(commit => commit.Sequence)
-            .Take(limit)
-            .ToArray();
+        return await _commits.LoadCommitsAsync(
+            runId,
+            afterSequence,
+            limit,
+            cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<RunCommit>> ReadCombatAsync(
@@ -80,12 +80,30 @@ public sealed class RunCommitProjectionReader : IRunCommitProjectionReader
         CancellationToken cancellationToken = default)
     {
         ValidateCursor(afterSequence, limit);
-        return (await _commits.LoadCommitsAsync(runId, cancellationToken).ConfigureAwait(false))
-            .Where(commit => commit.Sequence > afterSequence)
-            .Where(commit => RunCommitScope.ContainsCombat(commit, combatId))
-            .OrderBy(commit => commit.Sequence)
-            .Take(limit)
-            .ToArray();
+        var matches = new List<RunCommit>(limit);
+        var cursor = afterSequence;
+        var batchSize = System.Math.Max(32, limit);
+        while (matches.Count < limit)
+        {
+            var batch = await _commits.LoadCommitsAsync(
+                runId,
+                cursor,
+                batchSize,
+                cancellationToken).ConfigureAwait(false);
+            if (batch.Count == 0)
+                break;
+            foreach (var commit in batch)
+            {
+                if (RunCommitScope.ContainsCombat(commit, combatId))
+                    matches.Add(commit);
+                if (matches.Count == limit)
+                    break;
+            }
+            cursor = batch[^1].Sequence;
+            if (batch.Count < batchSize)
+                break;
+        }
+        return matches;
     }
 
     private static void ValidateCursor(int afterSequence, int limit)

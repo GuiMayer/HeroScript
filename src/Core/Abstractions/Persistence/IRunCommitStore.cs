@@ -6,6 +6,22 @@ public interface IRunCommitReader
 {
     Task<RunCommit?> LoadCommitAsync(Guid runId, int sequence, CancellationToken ct = default);
     Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(Guid runId, CancellationToken ct = default);
+    async Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(
+        Guid runId,
+        int afterSequence,
+        int limit,
+        CancellationToken ct = default)
+    {
+        if (afterSequence < 0)
+            throw new ArgumentOutOfRangeException(nameof(afterSequence));
+        if (limit < 1)
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        return (await LoadCommitsAsync(runId, ct).ConfigureAwait(false))
+            .Where(commit => commit.Sequence > afterSequence)
+            .OrderBy(commit => commit.Sequence)
+            .Take(limit)
+            .ToArray();
+    }
     async Task<RunCommit?> FindCommandAsync(Guid runId, Guid commandId, CancellationToken ct = default) =>
         (await LoadCommitsAsync(runId, ct).ConfigureAwait(false))
             .LastOrDefault(commit => commit.RootCommand.CommandId == commandId);

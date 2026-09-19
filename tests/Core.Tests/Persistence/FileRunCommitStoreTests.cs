@@ -101,6 +101,24 @@ public sealed class FileRunCommitStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task RangeRead_ReturnsOnlyRequestedSequences()
+    {
+        using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var runId = Guid.NewGuid();
+        var first = CreateCommit(runId, 1, null, 1);
+        var second = CreateCommit(runId, 2, first.StateHash, 2);
+        var third = CreateCommit(runId, 3, second.StateHash, 3);
+        await store.AppendAsync(first);
+        await store.AppendAsync(second);
+        await store.AppendAsync(third);
+
+        var page = await store.LoadCommitsAsync(runId, afterSequence: 1, limit: 1);
+
+        Assert.Single(page);
+        Assert.Equal(2, page[0].Sequence);
+    }
+
+    [Fact]
     public async Task Append_DifferentCommitAtSameSequenceFails()
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);
@@ -191,11 +209,12 @@ public sealed class FileRunCommitStoreTests : IDisposable
         }
         using var restarted = new FileRunCommitStore(_directory, NullLogger.Instance, capacity);
         Assert.Equal(second.StateHash, (await restarted.FindCommandAsync(runId, second.RootCommand.CommandId))!.StateHash);
-        // Warm lookup must still reject corrupt bytes, including negative lookups.
+        // Direct reads remain authoritative even though negative command lookups
+        // can be answered by the complete derived index without scanning history.
         var path = Path.Combine(_directory, runId.ToString("D"), "commits", "00000001.json");
         var json = await File.ReadAllTextAsync(path);
         await File.WriteAllTextAsync(path, json.Replace(first.StateHash, new string('0', first.StateHash.Length), StringComparison.Ordinal));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => restarted.FindCommandAsync(runId, Guid.NewGuid()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => restarted.LoadCommitAsync(runId, 1));
     }
 
     [Theory]

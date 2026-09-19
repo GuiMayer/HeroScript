@@ -20,7 +20,7 @@ public sealed class RunCommitProjectionTests
         var unrelatedNamedCommand = Commit(runId, 1, "END_TURN", "run", null);
         var scopedArbitraryCommand = Commit(runId, 2, "CUSTOM_RULE", "combat", combatId);
         var source = new Mock<IRunCommitReader>();
-        source.Setup(reader => reader.LoadCommitsAsync(runId, It.IsAny<CancellationToken>()))
+        source.Setup(reader => reader.LoadCommitsAsync(runId, 0, It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([unrelatedNamedCommand, scopedArbitraryCommand]);
         var projection = new RunCommitProjectionReader(source.Object);
 

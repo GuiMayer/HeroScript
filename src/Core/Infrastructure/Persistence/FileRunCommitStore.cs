@@ -75,6 +75,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                     throw new InvalidOperationException(
                         $"Run commit sequence collision: {commit.RunId}/{commit.Sequence}");
                 }
+                await WriteCommandIndexBestEffortAsync(existing, ct).ConfigureAwait(false);
                 return new RunCommitAppendResult(existing, true);
             }
 
@@ -116,6 +117,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             _validatedBytes?.Set(
                 prepared.ByteHash,
                 ValidatedCommitIdentity.From(commit));
+            await WriteCommandIndexBestEffortAsync(commit, ct).ConfigureAwait(false);
             _logger.LogInformation($"Run commit {commit.Sequence} appended for run {commit.RunId}");
             return new RunCommitAppendResult(commit, false);
         }
@@ -180,6 +182,54 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         }
     }
 
+    public async Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(
+        Guid runId,
+        int afterSequence,
+        int limit,
+        CancellationToken ct = default)
+    {
+        if (afterSequence < 0)
+            throw new ArgumentOutOfRangeException(nameof(afterSequence));
+        if (limit < 1)
+            throw new ArgumentOutOfRangeException(nameof(limit));
+
+        var gate = Gate(runId);
+        await gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var sequences = ListSequencesUnsafe(runId)
+                .Where(sequence => sequence > afterSequence)
+                .Take(limit)
+                .ToArray();
+            if (sequences.Length == 0)
+                return [];
+
+            RunCommit? previous = sequences[0] > 1
+                ? await LoadCommitUnsafeAsync(runId, sequences[0] - 1, ct).ConfigureAwait(false)
+                : null;
+            var commits = new List<RunCommit>(sequences.Length);
+            foreach (var sequence in sequences)
+            {
+                var commit = await LoadCommitUnsafeAsync(runId, sequence, ct).ConfigureAwait(false)
+                    ?? throw new InvalidDataException($"Run commit disappeared while reading: {runId}/{sequence}");
+                if (previous != null && !string.Equals(
+                        previous.StateHash,
+                        commit.PreviousStateHash,
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException($"Broken run commit hash chain at sequence {sequence}");
+                }
+                commits.Add(commit);
+                previous = commit;
+            }
+            return commits;
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
     public async Task<RunCommit?> FindCommandAsync(
         Guid runId,
         Guid commandId,
@@ -189,9 +239,28 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            var indexedSequence = await ReadCommandIndexUnsafeAsync(runId, commandId, ct)
+                .ConfigureAwait(false);
+            if (indexedSequence.HasValue)
+            {
+                var indexed = await LoadCommitUnsafeAsync(runId, indexedSequence.Value, ct)
+                    .ConfigureAwait(false)
+                    ?? throw new InvalidDataException(
+                        $"Indexed run commit is missing: {runId}/{indexedSequence.Value}");
+                if (indexed.RootCommand.CommandId != commandId)
+                    throw new InvalidDataException($"Run command index is invalid: {runId}/{commandId}");
+                return indexed;
+            }
+
+            var sequences = ListSequencesUnsafe(runId);
+            var latestSequence = sequences.LastOrDefault();
+            if (await IsCommandIndexCompleteUnsafeAsync(runId, latestSequence, ct).ConfigureAwait(false))
+                return null;
+
             ValidatedCommitIdentity? previous = null;
             int? found = null;
-            foreach (var sequence in ListSequencesUnsafe(runId))
+            var indexComplete = true;
+            foreach (var sequence in sequences)
             {
                 var bytes = await File.ReadAllBytesAsync(GetCommitPath(runId, sequence), ct).ConfigureAwait(false);
                 var fingerprint = Convert.ToHexString(SHA256.HashData(bytes));
@@ -212,8 +281,15 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                 }
                 if (identity.CommandId == commandId)
                     found = sequence;
+                indexComplete &= await WriteCommandIndexEntryBestEffortAsync(
+                    runId,
+                    identity.CommandId,
+                    identity.Sequence,
+                    ct).ConfigureAwait(false);
                 previous = identity;
             }
+            if (indexComplete)
+                await WriteCommandIndexHeadBestEffortAsync(runId, latestSequence, ct).ConfigureAwait(false);
             return found.HasValue
                 ? await LoadCommitUnsafeAsync(runId, found.Value, ct).ConfigureAwait(false)
                 : null;
@@ -376,6 +452,12 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
 
     private string GetRunDirectory(Guid runId) => Path.Combine(_storePath, runId.ToString("D"));
     private string GetCommitDirectory(Guid runId) => Path.Combine(GetRunDirectory(runId), "commits");
+    private string GetCommandIndexDirectory(Guid runId) =>
+        Path.Combine(GetRunDirectory(runId), "index", "commands");
+    private string GetCommandIndexPath(Guid runId, Guid commandId) =>
+        Path.Combine(GetCommandIndexDirectory(runId), $"{commandId:N}.idx");
+    private string GetCommandIndexHeadPath(Guid runId) =>
+        Path.Combine(GetRunDirectory(runId), "index", "head.idx");
     private string GetCommitPath(Guid runId, int sequence) =>
         Path.Combine(GetCommitDirectory(runId), $"{sequence:D8}.json");
 
@@ -384,5 +466,90 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         if (!File.Exists(path))
             return;
         try { File.Delete(path); } catch { /* best effort */ }
+    }
+
+    private async Task<int?> ReadCommandIndexUnsafeAsync(
+        Guid runId,
+        Guid commandId,
+        CancellationToken ct)
+    {
+        var path = GetCommandIndexPath(runId, commandId);
+        if (!File.Exists(path))
+            return null;
+        var text = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
+        return int.TryParse(text, out var sequence) && sequence > 0
+            ? sequence
+            : throw new InvalidDataException($"Run command index is unreadable: {runId}/{commandId}");
+    }
+
+    private async Task<bool> IsCommandIndexCompleteUnsafeAsync(
+        Guid runId,
+        int latestSequence,
+        CancellationToken ct)
+    {
+        if (latestSequence == 0)
+            return true;
+        var path = GetCommandIndexHeadPath(runId);
+        if (!File.Exists(path))
+            return false;
+        var text = await File.ReadAllTextAsync(path, ct).ConfigureAwait(false);
+        return int.TryParse(text, out var indexedSequence) && indexedSequence == latestSequence;
+    }
+
+    private async Task WriteCommandIndexBestEffortAsync(RunCommit commit, CancellationToken ct)
+    {
+        var entryWritten = await WriteCommandIndexEntryBestEffortAsync(
+            commit.RunId,
+            commit.RootCommand.CommandId,
+            commit.Sequence,
+            ct).ConfigureAwait(false);
+        if (entryWritten)
+            await WriteCommandIndexHeadBestEffortAsync(commit.RunId, commit.Sequence, ct)
+                .ConfigureAwait(false);
+    }
+
+    private async Task<bool> WriteCommandIndexEntryBestEffortAsync(
+        Guid runId,
+        Guid commandId,
+        int sequence,
+        CancellationToken ct) =>
+        await WriteDerivedIndexBestEffortAsync(
+            GetCommandIndexPath(runId, commandId),
+            sequence,
+            ct).ConfigureAwait(false);
+
+    private async Task<bool> WriteCommandIndexHeadBestEffortAsync(
+        Guid runId,
+        int sequence,
+        CancellationToken ct) =>
+        await WriteDerivedIndexBestEffortAsync(
+            GetCommandIndexHeadPath(runId),
+            sequence,
+            ct).ConfigureAwait(false);
+
+    private async Task<bool> WriteDerivedIndexBestEffortAsync(
+        string path,
+        int sequence,
+        CancellationToken ct)
+    {
+        var temporaryPath = path + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            await File.WriteAllTextAsync(temporaryPath, sequence.ToString(), ct).ConfigureAwait(false);
+            File.Move(temporaryPath, path, overwrite: true);
+            return true;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            CleanupTempFile(temporaryPath);
+            throw;
+        }
+        catch (Exception exception)
+        {
+            CleanupTempFile(temporaryPath);
+            _logger.LogWarning($"Failed to update derived run index '{path}': {exception.Message}");
+            return false;
+        }
     }
 }
