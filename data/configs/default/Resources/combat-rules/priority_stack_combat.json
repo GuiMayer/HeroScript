@@ -40,7 +40,7 @@
         "tieBreak": "Draw"
       },
       "encounterResolution": { "strategy": "ManualAck" },
-      "animation": { "mode": "FullSnapshots" },
+      "animation": { "mode": "CompactWithSnapshotLookup" },
       "journal": { "granularity": "Full" },
       "reactions": {
         "strategy": "PriorityStack",

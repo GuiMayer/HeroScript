@@ -809,11 +809,15 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             });
         var branchAction = await branchActionResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.True(branchActionResponse.StatusCode == HttpStatusCode.OK, branchAction.GetRawText());
-        var fullResolution = branchAction.GetProperty("state").GetProperty("resolution");
-        Assert.Equal("FullSnapshots", fullResolution.GetProperty("mode").GetString());
+        var branchResolution = branchAction.GetProperty("state").GetProperty("resolution");
+        Assert.Equal("CompactWithSnapshotLookup", branchResolution.GetProperty("mode").GetString());
         Assert.All(
-            fullResolution.GetProperty("frames").EnumerateArray(),
-            frame => Assert.Equal(JsonValueKind.Object, frame.GetProperty("stateAfter").ValueKind));
+            branchResolution.GetProperty("frames").EnumerateArray(),
+            frame =>
+            {
+                Assert.Equal(JsonValueKind.Null, frame.GetProperty("stateAfter").ValueKind);
+                Assert.True(frame.GetProperty("snapshotSequence").GetInt32() > 0);
+            });
 
         using var updatedBranchSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{branchRunId}/snapshot");
         var updatedBranchSnapshot = await updatedBranchSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
