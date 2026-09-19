@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Core.Determinism;
 using Xunit;
 
@@ -39,5 +41,49 @@ public class CanonicalJsonTests
         Assert.NotEqual(
             CanonicalJson.ComputeHash(new[] { "a", "b" }),
             CanonicalJson.ComputeHash(new[] { "b", "a" }));
+    }
+
+    [Fact]
+    public void HashScope_ReusesOnlyTheSameOptedInImmutableInstance()
+    {
+        var converter = new CountingConverter();
+        var options = new JsonSerializerOptions();
+        options.Converters.Add(converter);
+        var value = new MemoizableValue(7);
+
+        string first;
+        using (CanonicalJson.BeginHashScope())
+        {
+            first = CanonicalJson.ComputeHash(value, options);
+            Assert.Equal(first, CanonicalJson.ComputeHash(value, options));
+            Assert.Equal(1, converter.Writes);
+            Assert.NotEqual(first, CanonicalJson.ComputeHash(new MemoizableValue(8), options));
+            Assert.Equal(2, converter.Writes);
+        }
+
+        Assert.Equal(first, CanonicalJson.ComputeHash(value, options));
+        Assert.Equal(3, converter.Writes);
+    }
+
+    private sealed record MemoizableValue(int Value) : ICanonicalHashMemoizable;
+
+    private sealed class CountingConverter : JsonConverter<MemoizableValue>
+    {
+        public int Writes { get; private set; }
+
+        public override MemoizableValue Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options) =>
+            new(reader.GetInt32());
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            MemoizableValue value,
+            JsonSerializerOptions options)
+        {
+            Writes++;
+            writer.WriteNumberValue(value.Value);
+        }
     }
 }

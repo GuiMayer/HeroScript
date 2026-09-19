@@ -9,7 +9,7 @@ using Core.StatusEffects;
 namespace Core.Combat.Models;
 
 /// <summary>Immutable combat aggregate with one generic actor roster.</summary>
-public sealed record CombatState
+public sealed record CombatState : ICanonicalHashMemoizable
 {
     private ImmutableSortedDictionary<string, CombatActorState> _actors =
         ImmutableSortedDictionary<string, CombatActorState>.Empty.WithComparers(StringComparer.Ordinal);

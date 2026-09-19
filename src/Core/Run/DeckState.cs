@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
 using System.Text.Json.Serialization;
 using Core.CardZones;
+using Core.Determinism;
 
 namespace Core.Run;
 
 /// <summary>Purpose-free persisted card topology owned by a run.</summary>
-public sealed record DeckState
+public sealed record DeckState : ICanonicalHashMemoizable
 {
     public const int CurrentTopologyVersion = 3;
     private CardZoneTopologyState _topology = CardZoneTransitions.CreateEmpty([]).Value;

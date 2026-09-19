@@ -9,7 +9,7 @@ using Core.Run.Branching;
 
 namespace Core.Run;
 
-public sealed record RunState
+public sealed record RunState : ICanonicalHashMemoizable
 {
     private ImmutableList<string> _completedActivityNodeIds = [];
     public Guid RunId { get; init; }

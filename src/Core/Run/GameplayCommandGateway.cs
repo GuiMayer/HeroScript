@@ -1,6 +1,7 @@
 using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Determinism;
 using Core.Events;
 
 namespace Core.Run;
@@ -62,6 +63,7 @@ public sealed class GameplayCommandGateway : IGameplayCommandGateway
         Guid? combatId = null)
     {
         ArgumentNullException.ThrowIfNull(command);
+        using var hashScope = CanonicalJson.BeginHashScope();
         var decodedResult = _codec.Decode(command);
         if (decodedResult.IsFailure)
             return Result<GameplayCommandResult>.Failure(decodedResult.Error);
