@@ -2179,7 +2179,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     ? state.Lineage ?? RunLineage.Root(state.RunId)
                     : previous.Lineage
             };
-            var snapshot = CreateSnapshot(state);
+            var snapshot = state;
             var previousHash = previous == null
                 ? string.Empty
                 : CanonicalJson.ComputeHash(previous);
@@ -2269,7 +2269,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (candidates.Count == 0)
                 return Result<RunState>.Failure("A run commit requires at least one transition frame");
             var sequence = checked(previous.Sequence + 1);
-            var finalState = CreateSnapshot(candidates[^1].State with { Sequence = sequence });
+            var finalState = candidates[^1].State with { Sequence = sequence };
             var commandPayload = rootPayload.ValueKind == JsonValueKind.Undefined
                 ? candidates[^1].Step.Payload.ValueKind == JsonValueKind.Undefined
                     ? JsonSerializer.SerializeToElement(new { }, _jsonOptions)
@@ -2414,13 +2414,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                        ? CanonicalJson.ComputeHash(command.Payload)
                        : command.Identity.PayloadHash,
                    StringComparison.Ordinal);
-    }
-
-    private RunState CreateSnapshot(RunState state)
-    {
-        var json = JsonSerializer.Serialize(state, _jsonOptions);
-        return JsonSerializer.Deserialize<RunState>(json, _jsonOptions)
-            ?? throw new InvalidOperationException("Failed to create a run-state snapshot");
     }
 
     private static int SaturatingEconomyChange(int current, int amount)

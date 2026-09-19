@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using Core.Abstractions.Persistence;
 using Core.Common;
 using Core.Determinism;
@@ -159,11 +158,11 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
             return Result<RunCommandReceipt>.Failure("Run transition plan context must match its candidate state");
 
         var nextSequence = checked(plan.PreviousState.Sequence + 1);
-        var stateAfter = Snapshot(plan.CandidateState with
+        var stateAfter = plan.CandidateState with
         {
             Sequence = nextSequence,
             Lineage = plan.PreviousState.Lineage
-        });
+        };
         var payload = command.Payload.Clone();
         var identity = command.Identity with
         {
@@ -314,10 +313,4 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
                 : command.Identity.PayloadHash,
             StringComparison.Ordinal);
 
-    private static RunState Snapshot(RunState state)
-    {
-        var json = JsonSerializer.Serialize(state);
-        return JsonSerializer.Deserialize<RunState>(json)
-            ?? throw new InvalidOperationException("Failed to create a run-state snapshot");
-    }
 }
