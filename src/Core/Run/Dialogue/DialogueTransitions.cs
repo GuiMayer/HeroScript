@@ -17,7 +17,7 @@ public static class DialogueTransitions
         DialogueConditionKind.Not => condition.Children.Length == 1 && !Meets(run, condition.Children[0]),
         DialogueConditionKind.Flag => run.NarrativeFlags.TryGetValue(condition.Id, out var flag) && flag == condition.Value,
         DialogueConditionKind.ResourceAtLeast => run.ResourceState.Get(condition.Id) is { } resource && resource.Current >= condition.Amount,
-        DialogueConditionKind.HasCard => run.Deck.CardInstances.Values.Any(card => card.DefinitionId == condition.Id),
+        DialogueConditionKind.HasCard => run.Deck.Topology.Instances.Values.Any(card => card.DefinitionId == condition.Id),
         DialogueConditionKind.HasRelic => run.Relics.Any(relic => relic.DefinitionId == condition.Id),
         DialogueConditionKind.VisitedNode => run.Map.VisitedNodeIds.Contains(condition.Id),
         DialogueConditionKind.ResolvedNode => run.Map.ResolvedNodeIds.Contains(condition.Id),

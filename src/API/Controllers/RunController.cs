@@ -222,7 +222,7 @@ public sealed class RunController : BaseApiController
             return ApiNotFound(result.Error);
         var snapshot = CardZoneReadModel.Project(result.Value);
         return VisibleCardIds(snapshot).Contains(cardInstanceId) &&
-            result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card)
+            result.Value.Deck.Topology.Instances.TryGetValue(cardInstanceId, out var card)
             ? Ok(MapCardInstance(result.Value.Deck, snapshot, card))
             : ApiNotFound($"Card instance not found: {cardInstanceId}");
     }
@@ -234,7 +234,7 @@ public sealed class RunController : BaseApiController
         if (result.IsFailure)
             return ApiNotFound(result.Error);
         if (!VisibleCardIds(CardZoneReadModel.Project(result.Value)).Contains(cardInstanceId) ||
-            !result.Value.Deck.CardInstances.TryGetValue(cardInstanceId, out var card))
+            !result.Value.Deck.Topology.Instances.TryGetValue(cardInstanceId, out var card))
             return ApiNotFound($"Card instance not found: {cardInstanceId}");
         if (_cardUpgrades == null)
         {

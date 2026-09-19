@@ -15,7 +15,7 @@ public static class CardZonePlaySource
         if (string.IsNullOrWhiteSpace(actorId)) return [];
         var graph = run.ResolvedMode?.CardZoneSystem;
         if (graph == null)
-            return run.Deck.HandInstanceIds;
+            return [];
 
         var definitions = graph.Zones.Where(zone => zone.AllowsCardPlay)
             .ToDictionary(zone => zone.ZoneId, StringComparer.Ordinal);

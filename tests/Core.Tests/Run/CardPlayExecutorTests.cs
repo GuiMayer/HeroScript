@@ -448,14 +448,12 @@ public sealed class CardPlayExecutorTests
         return new RunState
         {
             RunId = Guid.Parse("20000000-0000-8000-8000-000000000001"),
+            PlayerEntityId = "hero",
             ConfigName = "default",
-            Deck = new DeckState
-            {
-                CardInstances = new Dictionary<Guid, CardInstanceState> { [cardInstanceId] = instance },
-                HandInstanceIds = [cardInstanceId]
-            },
+            Deck = TestCardZones.WithInstance("playable", instance),
             ResolvedMode = new ResolvedGameMode
             {
+                CardZoneSystem = TestCardZones.Graph(["playable"], "playable"),
                 Definition = new GameModeDefinition
                 {
                     ModeId = "test",

@@ -58,16 +58,12 @@ public sealed class CardZonePlaySourceTests
     }
 
     [Fact]
-    public void LegacyMode_RetainsExistingHandProjection()
+    public void MissingZoneGraph_GrantsNoImplicitPlaySource()
     {
-        var run = new RunState
-        {
-            PlayerEntityId = "player",
-            Deck = new DeckState { HandInstanceIds = [Prepared] }
-        };
+        var run = new RunState { PlayerEntityId = "player" };
 
-        Assert.Equal([Prepared], CardZonePlaySource.CardsForActor(run, "player"));
-        Assert.Equal([Prepared], CardZonePlaySource.CardsForActor(run, "enemy"));
+        Assert.Empty(CardZonePlaySource.CardsForActor(run, "player"));
+        Assert.Empty(CardZonePlaySource.CardsForActor(run, "enemy"));
     }
 
     private static CardInstanceState Card(Guid id, string owner) => new()

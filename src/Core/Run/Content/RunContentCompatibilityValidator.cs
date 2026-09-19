@@ -18,7 +18,7 @@ public static class RunContentCompatibilityValidator
         ArgumentNullException.ThrowIfNull(runtime);
         var compiler = new CardContentCompiler();
         var effectiveCards = new EffectiveCardResolver();
-        foreach (var instance in run.Deck.CardInstances.Values
+        foreach (var instance in run.Deck.Topology.Instances.Values
                      .OrderBy(card => card.CardInstanceId))
         {
             var compiled = compiler.Compile(instance.DefinitionId, runtime);
@@ -81,7 +81,7 @@ public static class RunContentCompatibilityValidator
     }
 
     public static bool RequiresRuntime(RunState run) =>
-        run.Deck.CardInstances.Count > 0 ||
+        run.Deck.Topology.Instances.Count > 0 ||
         run.ResourceState.Resources.Count > 0 ||
         run.Encounters.Any(encounter => encounter.Combat.GetAllActors()
             .Any(entity => entity.ResourceState.Resources.Count > 0));

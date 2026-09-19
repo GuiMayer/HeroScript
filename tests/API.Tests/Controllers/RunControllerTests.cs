@@ -306,11 +306,7 @@ public sealed class RunControllerTests
                     }
                 }
             },
-            Deck = new DeckState
-            {
-                DrawPile = new List<string> { "c" },
-                Hand = new List<string> { "a", "b" }
-            }
+            Deck = new DeckState()
         };
     }
 }

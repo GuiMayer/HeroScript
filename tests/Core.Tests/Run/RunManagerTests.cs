@@ -125,8 +125,8 @@ public sealed class RunManagerTests
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
         Assert.Equal(first.Value.RunId, second.Value.RunId);
-        Assert.Equal(first.Value.Deck.DrawPile, second.Value.Deck.DrawPile);
-        Assert.Equal(first.Value.Deck.Hand, second.Value.Deck.Hand);
+        Assert.Equal(first.Value.Deck.GetZoneDefinitionIds("draw", "$run"), second.Value.Deck.GetZoneDefinitionIds("draw", "$run"));
+        Assert.Equal(first.Value.Deck.GetZoneDefinitionIds("hand", "$run"), second.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
         Assert.Equal(first.Value.Determinism, second.Value.Determinism);
         Assert.Equal(CanonicalJson.ComputeHash(first.Value), CanonicalJson.ComputeHash(second.Value));
     }
@@ -222,8 +222,8 @@ public sealed class RunManagerTests
         Assert.Equal("test", result.Value.ConfigName);
         Assert.Equal("hero", result.Value.PlayerEntityId);
         Assert.Equal(25, result.Value.ResourceState.Current("gold"));
-        Assert.Equal(new[] { "strike", "defend" }, result.Value.Deck.Hand);
-        Assert.Equal(new[] { "zap" }, result.Value.Deck.DrawPile);
+        Assert.Equal(new[] { "strike", "defend" }, result.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
+        Assert.Equal(new[] { "zap" }, result.Value.Deck.GetZoneDefinitionIds("draw", "$run"));
         Assert.Equal("start", result.Value.CurrentNodeId);
         Assert.Equal(2, result.Value.Map.Nodes.Count);
         Assert.Equal(new[] { "start" }, result.Value.Map.VisitedNodeIds);
@@ -445,7 +445,7 @@ public sealed class RunManagerTests
         Assert.True(selection.IsSuccess, selection.IsFailure ? selection.Error : null);
         Assert.True(pick.IsSuccess, pick.IsFailure ? pick.Error : null);
         Assert.True(pick.Value.Completed);
-        Assert.Contains("zap", run.Deck.DiscardPile);
+        Assert.Contains("zap", run.Deck.GetZoneDefinitionIds("discard", "$run"));
     }
 
     [Fact]
@@ -505,14 +505,14 @@ public sealed class RunManagerTests
         var manager = CreateManager();
         var run = StartZoneRun(manager).Value;
         var selection = manager.CreateCardSelection(run.RunId, "basic_reward").Value;
-        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        var originalDiscard = run.Deck.GetZoneDefinitionIds("discard", "$run").ToArray();
 
         var pick = manager.PickCards(run.RunId, selection.SelectionInstanceId, new[] { "missing_card" });
 
         Assert.True(pick.IsFailure);
         Assert.False(selection.Completed);
         Assert.Empty(selection.PickedCardIds);
-        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Equal(originalDiscard, run.Deck.GetZoneDefinitionIds("discard", "$run"));
     }
 
     [Fact]
@@ -546,7 +546,7 @@ public sealed class RunManagerTests
         Assert.True(item.IsSuccess, item.IsFailure ? item.Error : null);
         Assert.True(item.Value.Purchased);
         Assert.Equal(15, run.ResourceState.Current("gold"));
-        Assert.Contains("zap", run.Deck.DiscardPile);
+        Assert.Contains("zap", run.Deck.GetZoneDefinitionIds("discard", "$run"));
     }
 
     [Fact]
@@ -560,13 +560,13 @@ public sealed class RunManagerTests
             run.ResourceState.Current("gold"),
             ResourceEffectOperation.SUBTRACT).Value;
         var shop = manager.CreateShop(run.RunId, "basic_shop").Value;
-        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        var originalDiscard = run.Deck.GetZoneDefinitionIds("discard", "$run").ToArray();
 
         var item = manager.BuyShopItem(run.RunId, shop.ShopInstanceId, "buy_zap");
 
         Assert.True(item.IsFailure);
         Assert.Equal(0, run.ResourceState.Current("gold"));
-        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Equal(originalDiscard, run.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.False(shop.Items.Single(i => i.ItemId == "buy_zap").Purchased);
     }
 
@@ -671,7 +671,7 @@ public sealed class RunManagerTests
         Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
         Assert.True(option.Value.Applied);
         Assert.Equal(20, run.ResourceState.Current("gold"));
-        Assert.Contains("heal", run.Deck.DiscardPile);
+        Assert.Contains("heal", run.Deck.GetZoneDefinitionIds("discard", "$run"));
     }
 
     [Fact]
@@ -697,7 +697,7 @@ public sealed class RunManagerTests
         Assert.True(option.IsSuccess, option.IsFailure ? option.Error : null);
         Assert.True(option.Value.Applied);
         Assert.Equal(1, run.ResourceState.Current("power_points"));
-        Assert.Contains("fireball", run.Deck.DiscardPile);
+        Assert.Contains("fireball", run.Deck.GetZoneDefinitionIds("discard", "$run"));
         var modifier = Assert.Single(run.Modifiers);
         Assert.Equal("flat_power_bonus", modifier.ModifierId);
         Assert.Equal($"run:{run.RunId}", modifier.OwnerId);
@@ -716,7 +716,7 @@ public sealed class RunManagerTests
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
         var originalGold = run.ResourceState.Current("gold");
         var originalPowerPoints = run.ResourceState.Current("power_points");
-        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        var originalDiscard = run.Deck.GetZoneDefinitionIds("discard", "$run").ToArray();
         var preparation = manager.CreatePreparation(run.RunId, "basic_preparation").Value;
 
         var option = manager.ApplyPreparationOption(run.RunId, preparation.PreparationInstanceId, "train_spell");
@@ -724,7 +724,7 @@ public sealed class RunManagerTests
         Assert.True(option.IsFailure);
         Assert.Equal(originalGold, run.ResourceState.Current("gold"));
         Assert.Equal(originalPowerPoints, run.ResourceState.Current("power_points"));
-        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Equal(originalDiscard, run.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "train_spell").Applied);
     }
@@ -739,7 +739,7 @@ public sealed class RunManagerTests
             run.RunId, "power_points", 2, ResourceEffectOperation.ADD).Value;
         var originalGold = run.ResourceState.Current("gold");
         var originalPowerPoints = run.ResourceState.Current("power_points");
-        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        var originalDiscard = run.Deck.GetZoneDefinitionIds("discard", "$run").ToArray();
         modifierManager
             .Setup(m => m.Get("flat_power_bonus", It.IsAny<string>(), It.IsAny<string?>()))
             .Returns(Result<ScriptModifierDefinition>.Failure("modifier rejected"));
@@ -751,7 +751,7 @@ public sealed class RunManagerTests
         Assert.Equal("modifier rejected", option.Error);
         Assert.Equal(originalGold, run.ResourceState.Current("gold"));
         Assert.Equal(originalPowerPoints, run.ResourceState.Current("power_points"));
-        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Equal(originalDiscard, run.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "train_spell").Applied);
         Assert.Empty(preparation.Options.Single(o => o.OptionId == "train_spell").AppliedModifierInstanceIds);
@@ -767,7 +767,7 @@ public sealed class RunManagerTests
             run.RunId, "power_points", 3, ResourceEffectOperation.ADD).Value;
         var originalGold = run.ResourceState.Current("gold");
         var originalPowerPoints = run.ResourceState.Current("power_points");
-        var originalDiscard = run.Deck.DiscardPile.ToArray();
+        var originalDiscard = run.Deck.GetZoneDefinitionIds("discard", "$run").ToArray();
         modifierManager
             .Setup(m => m.Get("flat_power_bonus", It.IsAny<string>(), It.IsAny<string?>()))
             .Returns(Result<ScriptModifierDefinition>.Success(new ScriptModifierDefinition
@@ -786,7 +786,7 @@ public sealed class RunManagerTests
         Assert.Equal("modifier missing", option.Error);
         Assert.Equal(originalGold, run.ResourceState.Current("gold"));
         Assert.Equal(originalPowerPoints, run.ResourceState.Current("power_points"));
-        Assert.Equal(originalDiscard, run.Deck.DiscardPile);
+        Assert.Equal(originalDiscard, run.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.Empty(preparation.AppliedOptionIds);
         Assert.False(preparation.Options.Single(o => o.OptionId == "double_train").Applied);
         Assert.Empty(manager.GetRun(run.RunId).Value.Modifiers);

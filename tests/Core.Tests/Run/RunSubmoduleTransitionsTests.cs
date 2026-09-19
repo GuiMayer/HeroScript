@@ -38,9 +38,9 @@ public sealed class RunSubmoduleTransitionsTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         Assert.False(state.CardSelections[0].Completed);
         Assert.Empty(state.CardSelections[0].PickedCardIds);
-        Assert.Empty(state.Deck.DiscardPile);
+        Assert.Empty(state.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.True(result.Value.Value.Completed);
-        Assert.Equal(new[] { "fireball" }, result.Value.State.Deck.DiscardPile);
+        Assert.Equal(new[] { "fireball" }, result.Value.State.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.Equal(state.Determinism.Step + 1, result.Value.State.Determinism.Step);
     }
 
@@ -81,11 +81,11 @@ public sealed class RunSubmoduleTransitionsTests
 
         Assert.True(failure.IsFailure);
         Assert.False(state.Shops[0].Items[0].Purchased);
-        Assert.Empty(state.Deck.DiscardPile);
+        Assert.Empty(state.Deck.GetZoneDefinitionIds("discard", "$run"));
         Assert.True(success.IsSuccess, success.IsFailure ? success.Error : null);
         Assert.True(success.Value.Value.Purchased);
         Assert.Equal(0, success.Value.State.ResourceState.Current("gold"));
-        Assert.Equal(new[] { "zap" }, success.Value.State.Deck.DiscardPile);
+        Assert.Equal(new[] { "zap" }, success.Value.State.Deck.GetZoneDefinitionIds("discard", "$run"));
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class RunSubmoduleTransitionsTests
         Assert.False(state.Preparations[0].Options[0].Applied);
         Assert.True(committed.Value.Value.Applied);
         Assert.Equal(0, committed.Value.State.ResourceState.Current("power_points"));
-        Assert.Equal(new[] { "fireball" }, committed.Value.State.Deck.DiscardPile);
+        Assert.Equal(new[] { "fireball" }, committed.Value.State.Deck.GetZoneDefinitionIds("discard", "$run"));
         // One deterministic identity is allocated for the modifier and another
         // for the newly acquired card instance.
         Assert.Equal(2UL, committed.Value.State.Determinism.IdSequence);

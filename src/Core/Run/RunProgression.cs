@@ -600,7 +600,7 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
                 new { cardInstanceId = "guid", upgradeId = "string" },
                 new
                 {
-                    cardInstanceIds = run.Deck.CardInstances.Keys.Order().ToArray(),
+                    cardInstanceIds = run.Deck.Topology.Instances.Keys.Order().ToArray(),
                     upgradeIds = node.Activity.Parameters.TryGetValue("upgradeIds", out var upgradeIds)
                         ? upgradeIds
                         : JsonSerializer.SerializeToElement(Array.Empty<string>())

@@ -101,15 +101,8 @@ public sealed class RunBranchTransitionsTests
             Sequence = 4,
             Lineage = RunLineage.Root(runId),
             ResourceState = TestDataBuilders.RunResources() with { OwnerId = $"run:{runId}" },
-            Deck = new DeckState
-            {
-                CardInstances = new Dictionary<Guid, CardInstanceState>
-                {
-                    [cardId] = new() { CardInstanceId = cardId, DefinitionId = "strike" }
-                },
-                HandInstanceIds = [cardId],
-                CollectionInstanceIds = [cardId]
-            },
+            Deck = TestCardZones.WithInstance("cards",
+                new CardInstanceState { CardInstanceId = cardId, DefinitionId = "strike" }),
             Relics =
             [
                 new RunRelicState
@@ -166,7 +159,7 @@ public sealed class RunBranchTransitionsTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         var branch = result.Value;
         Assert.Equal($"run:{branch.RunId}", branch.ResourceState.OwnerId);
-        Assert.Equal(cardId, Assert.Single(branch.Deck.CardInstances).Key);
+        Assert.Equal(cardId, Assert.Single(branch.Deck.Topology.Instances).Key);
         Assert.Equal(relicId, Assert.Single(branch.Relics).RelicInstanceId);
         Assert.Equal(branch.RunId.ToString(), branch.Relics[0].Owner.Id);
         Assert.Equal(modifierId, Assert.Single(branch.Modifiers).InstanceId);

@@ -256,9 +256,9 @@ public sealed class CombatFlowPlannerTests
         Assert.True(first.Value.Steps.Count >= 3);
         Assert.Equal("enemy", first.Value.Combat.ActivationState!.ActiveActorId);
         Assert.False(first.Value.Combat.ActivationState.WaitingForInput);
-        Assert.Equal(["retain", "future"], first.Value.Deck.Hand);
-        Assert.Equal(["strike"], first.Value.Deck.DiscardPile);
-        Assert.Equal(["strike", "retain"], run.Deck.Hand);
+        Assert.Equal(["retain", "future"], first.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
+        Assert.Equal(["strike"], first.Value.Deck.GetZoneDefinitionIds("discard", "$run"));
+        Assert.Equal(["strike", "retain"], run.Deck.GetZoneDefinitionIds("hand", "$run"));
     }
 
     [Fact]
@@ -302,9 +302,9 @@ public sealed class CombatFlowPlannerTests
             TurnPolicy());
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
-        Assert.Equal(["retain"], result.Value.Deck.Hand);
-        Assert.Equal(["strike"], result.Value.Deck.DiscardPile);
-        Assert.Equal(["ethereal"], result.Value.Deck.ExhaustPile);
+        Assert.Equal(["retain"], result.Value.Deck.GetZoneDefinitionIds("hand", "$run"));
+        Assert.Equal(["strike"], result.Value.Deck.GetZoneDefinitionIds("discard", "$run"));
+        Assert.Equal(["ethereal"], result.Value.Deck.GetZoneDefinitionIds("exhaust", "$run"));
     }
 
     private static CardZoneSystemDefinition LifecycleZones() => new()

@@ -120,7 +120,7 @@ public sealed class CardInspectionServiceTests
         Assert.Equal("compiled", first.Value.CompiledContainer.Fingerprint);
         Assert.Equal("plus", Assert.Single(first.Value.AppliedUpgrades).UpgradeId);
         Assert.True(first.Value.IsPlayable);
-        Assert.Equal("hand", first.Value.Zone);
+        Assert.Equal("playable", first.Value.Zone);
         Assert.NotNull(first.Value.ContextSources);
         Assert.Single(first.Value.ContextSources!.Relics);
         Assert.Single(first.Value.ContextSources.Modifiers);
@@ -196,18 +196,13 @@ public sealed class CardInspectionServiceTests
         return new RunState
         {
             RunId = Guid.Parse("40000000-0000-8000-8000-000000000001"),
+            PlayerEntityId = "hero",
             ModeId = "sandbox",
             ConfigName = "default",
             ActiveEncounterId = CombatId,
             Encounters = [new RunEncounterState { Combat = combat }],
-            Deck = new DeckState
-            {
-                CardInstances = new Dictionary<Guid, CardInstanceState>
-                {
-                    [CardId] = new() { CardInstanceId = CardId, DefinitionId = "strike" }
-                },
-                HandInstanceIds = [CardId]
-            },
+            Deck = TestCardZones.WithInstance("playable",
+                new CardInstanceState { CardInstanceId = CardId, DefinitionId = "strike" }),
             Relics =
             [
                 new RunRelicState
@@ -226,6 +221,7 @@ public sealed class CardInspectionServiceTests
             ],
             ResolvedMode = new ResolvedGameMode
             {
+                CardZoneSystem = TestCardZones.Graph(["playable"], "playable"),
                 CapabilityPolicy = new CapabilityPolicyDefinition
                 {
                     CardInspectionDetail = detail

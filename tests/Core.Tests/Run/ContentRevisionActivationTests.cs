@@ -186,34 +186,27 @@ public sealed class ContentRevisionActivationTests
         var cardId = Guid.Parse("10000000-0000-8000-8000-000000000001");
         var state = CreateState(revisionA) with
         {
-            Deck = new DeckState
+            Deck = TestCardZones.WithInstance("cards", new CardInstanceState
             {
-                CardInstances = new Dictionary<Guid, CardInstanceState>
-                {
-                    [cardId] = new()
+                CardInstanceId = cardId,
+                DefinitionId = "strike",
+                Upgrades =
+                [
+                    new CardUpgradeState
                     {
-                        CardInstanceId = cardId,
-                        DefinitionId = "strike",
-                        Upgrades =
+                        UpgradeId = "old-upgrade",
+                        Patches =
                         [
-                            new CardUpgradeState
+                            new CardEffectNumericPatchDefinition
                             {
-                                UpgradeId = "old-upgrade",
-                                Patches =
-                                [
-                                    new CardEffectNumericPatchDefinition
-                                    {
-                                        ComponentId = "effect.old",
-                                        Attribute = CardEffectNumericAttribute.FlatValue,
-                                        Value = 2
-                                    }
-                                ]
+                                ComponentId = "effect.old",
+                                Attribute = CardEffectNumericAttribute.FlatValue,
+                                Value = 2
                             }
                         ]
                     }
-                },
-                HandInstanceIds = [cardId]
-            }
+                ]
+            })
         };
         state = manager.HydrateForReplay(state).Value;
 

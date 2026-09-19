@@ -137,7 +137,7 @@ public sealed class CardZonePackagedGraphFlowTests
         Assert.True(started.IsSuccess, started.IsFailure ? started.Error : null);
         Assert.Single(started.Value.NewlyPlayableDefinitionIds);
         Assert.Equal("prepare.next", Assert.Single(started.Value.CardZoneSteps).FlowId);
-        Assert.Empty(started.Value.Deck.HandInstanceIds);
+        Assert.Empty(started.Value.Deck.GetZoneInstanceIds("hand", "$run"));
         var prepared = Assert.Single(started.Value.Deck.Topology.GetZone("prepared", "hero")!.InstanceIds);
         var successor = run with { Deck = started.Value.Deck, Determinism = started.Value.Context };
         var spent = CardZoneRunFlowDispatcher.ResolveCard(executor, successor, successor.Deck,

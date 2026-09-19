@@ -15,120 +15,6 @@ namespace Core.Tests.Run;
 [Trait("Category", "Unit")]
 public class RunModelsTests
 {
-    // ==================== DECK STATE TESTS ====================
-    
-    [Fact]
-    public void DeckState_DefaultConstruction_InitializesEmptyCollections()
-    {
-        // Arrange & Act
-        var deckState = new DeckState();
-        
-        // Assert
-        Assert.Empty(deckState.DrawPile);
-        Assert.Empty(deckState.Hand);
-        Assert.Empty(deckState.DiscardPile);
-        Assert.Empty(deckState.ExhaustPile);
-    }
-    
-    [Fact]
-    public void DeckState_FullConstruction_SetsAllPiles()
-    {
-        // Arrange & Act
-        var deckState = new DeckState
-        {
-            DrawPile = new List<string> { "card1", "card2", "card3" },
-            Hand = new List<string> { "card4", "card5" },
-            DiscardPile = new List<string> { "card6" },
-            ExhaustPile = new List<string> { "card7" }
-        };
-        
-        // Assert
-        Assert.Equal(3, deckState.DrawPile.Count);
-        Assert.Equal(2, deckState.Hand.Count);
-        Assert.Single(deckState.DiscardPile);
-        Assert.Single(deckState.ExhaustPile);
-    }
-    
-    [Fact]
-    public void DeckState_IsRecord_SupportsWithExpression()
-    {
-        // Arrange
-        var original = new DeckState
-        {
-            DrawPile = new List<string> { "card1", "card2" },
-            Hand = new List<string> { "card3" }
-        };
-        
-        // Act
-        var modified = original with 
-        { 
-            Hand = new List<string> { "card3", "card4" } 
-        };
-        
-        // Assert
-        Assert.Equal(2, original.DrawPile.Count);
-        Assert.Single(original.Hand);
-        Assert.Equal(2, modified.DrawPile.Count);
-        Assert.Equal(2, modified.Hand.Count);
-    }
-    
-    [Fact]
-    public void DeckState_DrawPile_CanContainMultipleCards()
-    {
-        // Arrange & Act
-        var deckState = new DeckState
-        {
-            DrawPile = new List<string> 
-            { 
-                "strike", "defend", "bash", "strike", "defend" 
-            }
-        };
-        
-        // Assert
-        Assert.Equal(5, deckState.DrawPile.Count);
-        Assert.Equal("strike", deckState.DrawPile[0]);
-        Assert.Equal("bash", deckState.DrawPile[2]);
-    }
-    
-    [Fact]
-    public void DeckState_Hand_RepresentsActiveCards()
-    {
-        // Arrange & Act
-        var deckState = new DeckState
-        {
-            Hand = new List<string> { "card1", "card2", "card3", "card4", "card5" }
-        };
-        
-        // Assert
-        Assert.Equal(5, deckState.Hand.Count);
-    }
-    
-    [Fact]
-    public void DeckState_DiscardPile_AccumulatesPlayedCards()
-    {
-        // Arrange & Act
-        var deckState = new DeckState
-        {
-            DiscardPile = new List<string> { "played1", "played2", "played3" }
-        };
-        
-        // Assert
-        Assert.Equal(3, deckState.DiscardPile.Count);
-    }
-    
-    [Fact]
-    public void DeckState_ExhaustPile_StoresExhaustedCards()
-    {
-        // Arrange & Act
-        var deckState = new DeckState
-        {
-            ExhaustPile = new List<string> { "exhausted1", "exhausted2" }
-        };
-        
-        // Assert
-        Assert.Equal(2, deckState.ExhaustPile.Count);
-    }
-    
     // ==================== RUN STATE TESTS ====================
     
     [Fact]
@@ -168,7 +54,7 @@ public class RunModelsTests
     {
         // Arrange
         var runId = Guid.NewGuid();
-        var deckState = new DeckState { Hand = new List<string> { "card1" } };
+        var deckState = TestCardZones.FromDefinitions(("cards", new[] { "card1" }));
         
         // Act
         var runState = new RunState
@@ -195,7 +81,7 @@ public class RunModelsTests
         Assert.Equal(150, runState.ResourceState.Current("credits"));
         Assert.Equal(3, runState.ResourceState.Current("insight"));
         Assert.Equal("node_boss", runState.CurrentNodeId);
-        Assert.Single(runState.Deck.Hand);
+        Assert.Single(runState.Deck.GetZoneInstanceIds("cards", TestCardZones.RunOwner));
         Assert.Single(runState.Metadata);
     }
     
@@ -515,34 +401,6 @@ public class RunModelsTests
     // ==================== REALISTIC SCENARIOS ====================
     
     [Fact]
-    public void DeckState_CombatScenario_TypicalCardFlow()
-    {
-        // Arrange - Start of combat
-        var startDeck = new DeckState
-        {
-            DrawPile = new List<string> 
-            { 
-                "strike", "defend", "bash", "strike", "defend",
-                "strike", "defend", "strike", "defend", "bash"
-            },
-            Hand = new List<string>(),
-            DiscardPile = new List<string>(),
-            ExhaustPile = new List<string>()
-        };
-        
-        // Act - Draw 5 cards
-        var afterDraw = startDeck with
-        {
-            DrawPile = startDeck.DrawPile.Skip(5).ToList(),
-            Hand = startDeck.DrawPile.Take(5).ToList()
-        };
-        
-        // Assert
-        Assert.Equal(5, afterDraw.DrawPile.Count);
-        Assert.Equal(5, afterDraw.Hand.Count);
-    }
-    
-    [Fact]
     public void RunState_ProgressionScenario_UsesGenericResources()
     {
         // Arrange - Start of run
@@ -656,26 +514,4 @@ public class RunModelsTests
         Assert.Equal(3, fork.NextNodeIds.Count);
     }
     
-    [Fact]
-    public void DeckState_ExhaustScenario_PermanentRemoval()
-    {
-        // Arrange - Deck with exhaust mechanic
-        var deckState = new DeckState
-        {
-            Hand = new List<string> { "strike", "defend", "finisher", "bash" },
-            ExhaustPile = new List<string>()
-        };
-        
-        // Act - Play finisher (exhausts on use)
-        var afterExhaust = deckState with
-        {
-            Hand = new List<string> { "strike", "defend", "bash" },
-            ExhaustPile = new List<string> { "finisher" }
-        };
-        
-        // Assert
-        Assert.Equal(3, afterExhaust.Hand.Count);
-        Assert.Single(afterExhaust.ExhaustPile);
-        Assert.Contains("finisher", afterExhaust.ExhaustPile);
-    }
 }
