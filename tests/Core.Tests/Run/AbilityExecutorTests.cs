@@ -34,6 +34,7 @@ public sealed class AbilityExecutorTests
         Assert.Equal("test_ability", action.PowerId);
         Assert.Equal("enemy", action.TargetId);
         Assert.Equal(result.Value.Applications, action.Applications);
+        Assert.Empty(result.Value.Evaluation.CardZoneResolutionFlowId);
     }
 
     [Fact]

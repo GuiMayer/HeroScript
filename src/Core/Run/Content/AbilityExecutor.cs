@@ -184,12 +184,6 @@ public sealed class AbilityExecutor : IAbilityExecutor
                 ComponentId = "ability.cost",
                 Order = 10,
                 Costs = definition.Costs
-            },
-            new CardDispositionComponentDefinition
-            {
-                ComponentId = "ability.disposition",
-                Order = 90,
-                CardZoneResolutionFlowId = "ability.no-card-resolution"
             }
         };
         if (definition.RequiresTarget)

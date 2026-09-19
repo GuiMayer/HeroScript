@@ -132,9 +132,6 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             return Result<CardPlayEvaluation>.Failure($"Actor not found: {request.ActorId}");
 
         var disposition = card.SingleOrDefault<CardDispositionComponentDefinition>();
-        if (disposition == null)
-            return Result<CardPlayEvaluation>.Failure(
-                $"Card {card.DefinitionId} requires one disposition component");
         var failures = ImmutableArray.CreateBuilder<string>();
         var constraints = Core.StatusEffects.StatusActionConstraints.Evaluate(combat, actor,
             card.Tags.Append("action").ToHashSet(StringComparer.Ordinal), _formulas, request.ContentRevision);
@@ -240,7 +237,7 @@ public sealed class CardPlayEvaluator : ICardPlayEvaluator
             AffordableCostOptionIds = affordableOptions.OrderBy(id => id, StringComparer.Ordinal).ToArray(),
             LegalTargetIds = targets.Value.LegalTargetIds,
             ResolvedTargetIds = targets.Value.ResolvedTargetIds,
-            CardZoneResolutionFlowId = disposition.CardZoneResolutionFlowId,
+            CardZoneResolutionFlowId = disposition?.CardZoneResolutionFlowId ?? string.Empty,
             FailureReasons = failureArray
         });
     }
