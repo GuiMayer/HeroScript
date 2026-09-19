@@ -6,6 +6,7 @@ using Core.Infrastructure.Persistence;
 using Core.Logging;
 using Core.Run;
 using Core.Run.Branching;
+using Core.Combat.Models;
 using Xunit;
 
 namespace Core.Tests.Persistence;
@@ -29,6 +30,40 @@ public sealed class FileRunCommitStoreTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal(CanonicalJson.ComputeHash(first), CanonicalJson.ComputeHash(loaded));
         Assert.Equal(1, (await restarted.LoadLatestStateAsync(runId))!.Sequence);
+    }
+
+    [Fact]
+    public async Task Append_RoundTripsLifecycleBoundarySetInCanonicalOrder()
+    {
+        var runId = Guid.NewGuid();
+        var original = CreateCommit(runId, 1, null, 10);
+        var combat = new CombatState
+        {
+            CombatId = Guid.NewGuid(),
+            CompletedLifecycleBoundaries = ImmutableSortedSet.Create(
+                StringComparer.Ordinal,
+                "CombatEnd",
+                "CombatStart")
+        };
+        var state = original.StateAfter with
+        {
+            Encounters = [new RunEncounterState { NodeId = "combat", Combat = combat }]
+        };
+        var commit = original with
+        {
+            StateAfter = state,
+            StateHash = CanonicalJson.ComputeHash(state)
+        };
+        await usingScope(async store => await store.AppendAsync(commit));
+
+        using var restarted = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var loaded = await restarted.LoadCommitAsync(runId, 1);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(commit.StateHash, CanonicalJson.ComputeHash(loaded.StateAfter));
+        Assert.Equal(
+            new[] { "CombatEnd", "CombatStart" },
+            loaded.StateAfter.Encounters[0].Combat.CompletedLifecycleBoundaries);
     }
 
     [Fact]

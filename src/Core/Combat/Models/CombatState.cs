@@ -15,6 +15,8 @@ public sealed record CombatState
         ImmutableSortedDictionary<string, CombatActorState>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableList<CombatAction> _actionHistory = [];
     private ImmutableArray<string> _actorOrder = [];
+    private ImmutableSortedSet<string> _completedLifecycleBoundaries =
+        ImmutableSortedSet<string>.Empty.WithComparer(StringComparer.Ordinal);
 
     public Guid CombatId { get; init; } = Guid.Empty;
     public Guid? RunId { get; init; }
@@ -24,7 +26,12 @@ public sealed record CombatState
     public int CurrentTurn { get; init; } = 1;
     public CombatStatus Status { get; init; } = CombatStatus.ACTIVE;
     public CombatRelationshipPolicy Relationships { get; init; } = new();
-    public ImmutableHashSet<string> CompletedLifecycleBoundaries { get; init; } = ImmutableHashSet<string>.Empty;
+    public ImmutableSortedSet<string> CompletedLifecycleBoundaries
+    {
+        get => _completedLifecycleBoundaries;
+        init => _completedLifecycleBoundaries = value?.ToImmutableSortedSet(StringComparer.Ordinal)
+            ?? ImmutableSortedSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
     public ImmutableArray<CombatSide> Sides { get; init; } = [];
     public IReadOnlyDictionary<string, CombatActorState> Actors
     {
