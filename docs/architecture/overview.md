@@ -23,7 +23,7 @@ Godot / cliente
 
 ## Fonte de verdade
 
-`RunState` é o agregado autoritativo. Combate, deck, recursos de run, cartas,
+`RunState` é o agregado autoritativo. Combate, topologia de zonas, recursos de run, cartas,
 relíquias e modifiers pertencem ao snapshot da run. Serviços podem coordenar uma
 transição, mas não armazenam estado de gameplay paralelo.
 
@@ -36,7 +36,7 @@ Cada comando aceito:
 5. persiste um `RunCommit` atômico;
 6. só então publica o novo estado e eventos de observação.
 
-Falha em qualquer ponto anterior ao commit mantém estado, deck e RNG originais.
+Falha em qualquer ponto anterior ao commit mantém estado, topologia e RNG originais.
 
 ## Camadas
 

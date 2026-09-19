@@ -230,8 +230,9 @@ Fluxos também podem usar `selection.targetZoneCount` ou
 `selection.targetZoneCountFormula`. Nesse caso, a engine seleciona somente a
 quantidade ausente para a zona de destino alcançar a ocupação configurada. Isso
 permite preparar qualquer zona no começo da run ou do encontro sem codificar o
-conceito de “mão” no executor; o conteúdo padrão usa a variável genérica
-`initialPlayableCardCount`.
+conceito de “mão” no executor. O começo da run pode receber a variável
+`initialPlayableCardCount`; demais fronteiras usam valores e fórmulas declarados
+no próprio fluxo publicado.
 
 As projeções específicas `/deck` e `/hand` não fazem parte do contrato: clientes
 devem consumir `/card-zones` ou o campo `cardZones` do estado da run. Assim um

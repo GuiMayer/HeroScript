@@ -66,10 +66,10 @@ The main modules have narrow responsibilities:
 
 | Module | Responsibility |
 | --- | --- |
-| Run transitions | Deck, economy, rewards, shop and preparation state changes |
+| Run transitions | Card-zone topology, economy, rewards, shop and preparation state changes |
 | Combat command handler | Compose legal-action evaluation and pure state reduction for every controller |
 | Automatic flow driver | Reuse the command handler until player or player-priority input is required |
-| Combat boundary executor | Order configured phase, deck, resource, status and relic lifecycles and emit frames |
+| Combat boundary executor | Order configured phase, card-zone, resource, status and relic lifecycles and emit frames |
 | Combat outcome resolver | Derive outcome from sides, controllers and configured resource thresholds |
 | Combat flow planner | Resolve the pinned policy graph and compose boundary results with intents |
 | Effect handlers | Adapt a typed effect to combat, status, run or metadata behavior |

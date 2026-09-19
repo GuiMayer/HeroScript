@@ -10,7 +10,7 @@
 - Runs e cenários recebem `startingCards`; a entrada não presume que essas
   instâncias formarão um deck, pois o grafo decide a zona inicial.
 - Fronteiras autoradas publicam `CardZonesTransitionedEvent`, com os passos e o
-  hash da topologia. `CardDrawnEvent` fica restrito ao executor legado sem grafo.
+  hash da topologia. Não existe executor ou evento legado específico de pilha.
 - Os comandos específicos `DRAW_CARDS`, `DISCARD_CARDS`, `MOVE_CARDS`,
   `ADD_CARDS_TO_HAND` e `SHUFFLE_DISCARD` não são mais publicados pelo codec.
 - O `RunManager` não oferece mais mutações diretas de mão, compra, descarte ou
@@ -28,6 +28,12 @@
 - Toda run agora exige `modeId` e um sistema de zonas válido. A inicialização
   fixa de deck/mão foi removida, assim como os eventos órfãos específicos de
   compra, descarte, adição ao deck e alteração de deck.
+- A resolução de uma carta declara somente `cardZoneResolutionFlowId`; destino
+  fixo não faz parte do componente, da avaliação, da timeline ou do commit.
+- Início/fim de encontro e ativação executam exclusivamente triggers do grafo.
+  A política paralela `deckCycle` e o motor `DeckTransitions` foram removidos.
+- O snapshot persistido contém somente a topologia genérica e suas instâncias;
+  não expõe projeções internas de mão, compra, descarte ou exílio.
 
 ## v1 — 2026-09-15
 

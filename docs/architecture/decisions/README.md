@@ -12,7 +12,8 @@ sistema, e não convenções locais de cada módulo.
 | [0004](0004-immutable-actor-model.md) | atores imutáveis e component-driven |
 | [0005](0005-executable-combat-flow.md) | fluxo de combate executável |
 | [0006](0006-operational-telemetry.md) | telemetria não autoritativa |
+| [0007](0007-migration-baseline.md) | baseline de migração sem compatibilidade legada |
+| [0008](0008-purpose-free-card-zones.md) | zonas de cartas sem finalidade embutida |
 
 O plano de migração correspondente está em
 [`docs/plans/REMAINING_CORE_SYSTEMS_CONSOLIDATION_PLAN.md`](../../plans/REMAINING_CORE_SYSTEMS_CONSOLIDATION_PLAN.md).
-
