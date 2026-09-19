@@ -67,7 +67,8 @@ public sealed class CombatSandboxController : BaseApiController
                 launched.Value.ScenarioHash,
                 launched.Value.Duplicate,
                 run = launched.Value.Run,
-                combat = launched.Value.Combat
+                combat = launched.Value.Combat,
+                resolution = launched.Value.Resolution
             })
             : ApiProblem(
                 StatusCodes.Status422UnprocessableEntity,

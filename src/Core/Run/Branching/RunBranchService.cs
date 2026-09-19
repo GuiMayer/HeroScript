@@ -378,7 +378,6 @@ public static class RunBranchTransitions
             Modifiers = source.Modifiers
                 .Select(modifier => RebaseModifier(modifier, source.RunId, allocated.Value))
                 .ToImmutableArray(),
-            CombatResolutions = ImmutableDictionary<Guid, CombatResolutionRecord>.Empty,
             Determinism = branchContext.AdvanceStep()
         });
     }

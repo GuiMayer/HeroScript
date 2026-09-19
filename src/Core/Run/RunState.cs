@@ -11,8 +11,6 @@ namespace Core.Run;
 
 public sealed record RunState
 {
-    private ImmutableDictionary<Guid, CombatResolutionRecord> _combatResolutions =
-        ImmutableDictionary<Guid, CombatResolutionRecord>.Empty;
     private ImmutableList<string> _completedActivityNodeIds = [];
     public Guid RunId { get; init; }
     public int Sequence { get; init; }
@@ -59,12 +57,6 @@ public sealed record RunState
     }
     public ImmutableArray<RunRelicState> Relics { get; init; } = [];
     public ImmutableArray<ScriptModifierInstance> Modifiers { get; init; } = [];
-    public IReadOnlyDictionary<Guid, CombatResolutionRecord> CombatResolutions
-    {
-        get => _combatResolutions;
-        init => _combatResolutions = value?.ToImmutableDictionary()
-            ?? ImmutableDictionary<Guid, CombatResolutionRecord>.Empty;
-    }
     public ImmutableDictionary<string, JsonElement> Metadata { get; init; } =
         ImmutableDictionary<string, JsonElement>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
     public ContentManifest? ContentManifest { get; init; }
@@ -82,8 +74,5 @@ public sealed record RunState
     {
         return Encounters.FirstOrDefault(encounter => encounter.Combat.CombatId == combatId);
     }
-
-    public CombatResolutionRecord? GetCombatResolution(Guid commandId) =>
-        _combatResolutions.TryGetValue(commandId, out var resolution) ? resolution : null;
 
 }

@@ -335,7 +335,9 @@ public sealed class RunManagerTests
             Assert.Equal(3, committed.Value.GetActiveEncounter()!.Combat.CurrentTurn);
             Assert.Equal("persistent-effect", Assert.Single(committed.Value.Modifiers).Definition.ModifierId);
             Assert.Empty(attached.Modifiers);
-            var resolution = committed.Value.GetCombatResolution(rootCommand.CommandId);
+            var commits = await repository.LoadCommitsAsync(run.RunId);
+            var transition = commits[^1];
+            var resolution = Core.Run.Projections.CombatResolutionProjection.FromCommit(transition);
             Assert.NotNull(resolution);
             Assert.Equal(AnimationFrameMode.FullSnapshots, resolution!.Mode);
             Assert.Equal(2, resolution.Frames.Count);
@@ -350,8 +352,6 @@ public sealed class RunManagerTests
             Assert.Empty(resolution.Frames[1].EffectSteps);
             Assert.Equal("activation.ended", Assert.Single(resolution.Frames[0].CardZoneSteps).FlowId);
             Assert.Empty(resolution.Frames[1].CardZoneSteps);
-            var commits = await repository.LoadCommitsAsync(run.RunId);
-            var transition = commits[^1];
             Assert.Equal(rootCommand.CommandId, transition.RootCommand.CommandId);
             Assert.Equal("COMBAT_ACTION", transition.RootCommand.Type);
             Assert.Equal(2, transition.Frames.Count);

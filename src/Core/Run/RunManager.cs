@@ -1310,12 +1310,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     stateBeforeInitialization ?? combatState,
                     commandIdentity,
                     [(candidate, normalizedStep)]);
-                candidate = candidate with
-                {
-                    CombatResolutions = candidate.CombatResolutions
-                        .ToImmutableDictionary()
-                        .SetItem(commandIdentity.CommandId, combatResolution)
-                };
             }
             return Persist(
                 candidate,
@@ -1414,16 +1408,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
         CombatResolutionRecord? combatResolution = null;
         if (rootCommand != null)
-        {
             combatResolution = CreateCombatResolutionRecord(state, previousCombat, rootCommand, candidates);
-            var final = candidates[^1];
-            candidates[^1] = (final.State with
-            {
-                CombatResolutions = final.State.CombatResolutions
-                    .ToImmutableDictionary()
-                    .SetItem(rootCommand.CommandId, combatResolution)
-            }, final.Step);
-        }
 
         return PersistBatch(state, candidates, rootCommand, rootPayload, combatResolution);
     }

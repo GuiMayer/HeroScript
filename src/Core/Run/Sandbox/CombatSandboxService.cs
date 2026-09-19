@@ -2,6 +2,7 @@ using Core.Abstractions.Persistence;
 using Core.Combat;
 using Core.Common;
 using Core.Determinism;
+using Core.Run.Projections;
 using System.Text.Json;
 
 namespace Core.Run.Sandbox;
@@ -10,6 +11,7 @@ public sealed record SandboxCombatLaunch
 {
     public RunState Run { get; init; } = new();
     public Core.Combat.Models.CombatState Combat { get; init; } = new();
+    public CombatResolutionRecord? Resolution { get; init; }
     public string ScenarioHash { get; init; } = string.Empty;
     public bool Duplicate { get; init; }
 }
@@ -68,6 +70,7 @@ public sealed class CombatSandboxService : ICombatSandboxService
             {
                 Run = duplicate,
                 Combat = encounter.Combat,
+                Resolution = FindLatestResolution(duplicate.RunId),
                 ScenarioHash = compiled.Value.ScenarioHash,
                 Duplicate = true
             });
@@ -100,6 +103,7 @@ public sealed class CombatSandboxService : ICombatSandboxService
         {
             Run = encounterResult.Value.Receipt.State,
             Combat = encounterResult.Value.CombatState,
+            Resolution = encounterResult.Value.Receipt.CombatResolution,
             ScenarioHash = compiled.Value.ScenarioHash
         });
     }
@@ -135,5 +139,19 @@ public sealed class CombatSandboxService : ICombatSandboxService
             // lookup is unavailable.
         }
         return null;
+    }
+
+    private CombatResolutionRecord? FindLatestResolution(Guid runId)
+    {
+        try
+        {
+            return _repository.LoadCommitsAsync(runId).GetAwaiter().GetResult()
+                .Select(CombatResolutionProjection.FromCommit)
+                .LastOrDefault(resolution => resolution != null);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

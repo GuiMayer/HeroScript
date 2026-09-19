@@ -294,10 +294,8 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.True(launch.StatusCode == HttpStatusCode.OK, launched.GetRawText());
         var runId = launched.GetProperty("run").GetProperty("runId").GetGuid();
         var combatId = launched.GetProperty("combat").GetProperty("combatId").GetGuid();
-        var initialResolutionProperty = Assert.Single(
-            launched.GetProperty("run").GetProperty("combatResolutions").EnumerateObject());
-        var initialCommandId = Guid.Parse(initialResolutionProperty.Name);
-        var initialResolution = initialResolutionProperty.Value;
+        var initialResolution = launched.GetProperty("resolution");
+        var initialCommandId = initialResolution.GetProperty("commandId").GetGuid();
         Assert.Equal(combatId, initialResolution.GetProperty("combatId").GetGuid());
         Assert.Equal(64, initialResolution.GetProperty("resolutionFingerprint").GetString()!.Length);
         Assert.Equal(
@@ -1257,8 +1255,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.True(launchResponse.StatusCode == HttpStatusCode.OK, launch.GetRawText());
         var runId = launch.GetProperty("run").GetProperty("runId").GetGuid();
         var combatId = launch.GetProperty("combat").GetProperty("combatId").GetGuid();
-        var initialResolution = Assert.Single(
-            launch.GetProperty("run").GetProperty("combatResolutions").EnumerateObject()).Value;
+        var initialResolution = launch.GetProperty("resolution");
 
         using var snapshotResponse = await client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var snapshot = await snapshotResponse.Content.ReadFromJsonAsync<JsonElement>();

@@ -140,10 +140,6 @@ public sealed class RunBranchTransitionsTests
                     }
                 }
             ],
-            CombatResolutions = new Dictionary<Guid, CombatResolutionRecord>
-            {
-                [Guid.NewGuid()] = new()
-            },
             Determinism = DeterministicContext.Create(456, "content-v1")
         };
         var command = new RunBranchStartCommand(
@@ -169,8 +165,6 @@ public sealed class RunBranchTransitionsTests
         Assert.Equal(branch.RunId, branch.Preparations[0].RunId);
         Assert.Equal(branch.RunId, branch.GetActiveEncounter()!.Combat.RunId);
         Assert.Equal(branch.RunId, branch.GetActiveEncounter()!.Combat.ActivationState!.RunId);
-        Assert.Empty(branch.CombatResolutions);
-        Assert.Single(source.CombatResolutions);
     }
 
     private static CombatActorState CreateHero() => new()
