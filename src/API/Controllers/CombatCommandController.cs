@@ -66,7 +66,11 @@ public sealed class CombatCommandController : BaseApiController
                 receipt,
                 new
                 {
-                    run = receipt.State,
+                    // The run aggregate is available from GET /runs/{id} and
+                    // was the largest duplicate in every combat response.
+                    // Keep only the concurrency token needed by advanced
+                    // clients plus the combat/read-model and animation data.
+                    runStep = receipt.State.Determinism.Step,
                     combat = encounter == null ? null : CombatStateResponse.From(encounter.Combat),
                     resolution = receipt.CombatResolution
                 },

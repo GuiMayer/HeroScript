@@ -887,8 +887,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
             {
                 commandId = Guid.NewGuid(),
                 expectedSequence = action.GetProperty("sequence").GetInt32(),
-                expectedStep = action.GetProperty("state").GetProperty("run")
-                    .GetProperty("determinism").GetProperty("step").GetUInt64(),
+                expectedStep = action.GetProperty("state").GetProperty("runStep").GetUInt64(),
                 type = RunCommandTypes.RestoreHeadFromHistory,
                 payload = new { sourceSequence }
             });
@@ -896,8 +895,7 @@ public sealed class CombatSandboxIntegrationTests : IClassFixture<TestWebApplica
         Assert.True(restoreResponse.StatusCode == HttpStatusCode.OK, restored.GetRawText());
         Assert.Equal(action.GetProperty("sequence").GetInt32() + 1, restored.GetProperty("sequence").GetInt32());
         Assert.True(restored.GetProperty("step").GetUInt64() >
-                    action.GetProperty("state").GetProperty("run")
-                        .GetProperty("determinism").GetProperty("step").GetUInt64());
+                    action.GetProperty("state").GetProperty("runStep").GetUInt64());
 
         using var restoredSnapshotResponse = await _client.GetAsync($"/api/v1/sandbox/runs/{runId}/snapshot");
         var restoredSnapshot = await restoredSnapshotResponse.Content.ReadFromJsonAsync<JsonElement>();
