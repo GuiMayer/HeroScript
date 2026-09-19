@@ -87,6 +87,24 @@ public sealed class RunSessionCoordinatorTests
         Assert.Equal(1, store.AppendCount);
     }
 
+    [Fact]
+    public async Task NewCommands_IndexDurableReceiptsOnlyOncePerRun()
+    {
+        var state = CreateState(Guid.NewGuid(), 66);
+        var queries = new TestQueries(state);
+        var store = new TestCommitStore();
+        var coordinator = CreateCoordinator(queries, store);
+
+        var first = await coordinator.ExecuteAsync(state.RunId, Command(state, Guid.NewGuid(), 1));
+        Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
+        var current = queries.GetRun(state.RunId).Value;
+        var second = await coordinator.ExecuteAsync(current.RunId, Command(current, Guid.NewGuid(), 2));
+
+        Assert.True(second.IsSuccess, second.IsFailure ? second.Error : null);
+        Assert.Equal(1, store.LoadCommitsCount);
+        Assert.Equal(2, store.AppendCount);
+    }
+
     private static RunSessionCoordinator CreateCoordinator(TestQueries queries, TestCommitStore store)
     {
         var descriptor = new GameplayCommandDescriptor(
@@ -174,10 +192,12 @@ public sealed class RunSessionCoordinatorTests
         private int _activeAppends;
         private int _maximumConcurrentAppends;
         private int _appendCount;
+        private int _loadCommitsCount;
 
         public bool FailAppend { get; init; }
         public int MaximumConcurrentAppends => Volatile.Read(ref _maximumConcurrentAppends);
         public int AppendCount => Volatile.Read(ref _appendCount);
+        public int LoadCommitsCount => Volatile.Read(ref _loadCommitsCount);
 
         public async Task<RunCommitAppendResult> AppendAsync(
             RunCommit commit,
@@ -209,11 +229,14 @@ public sealed class RunSessionCoordinatorTests
             Task.FromResult(Snapshot().SingleOrDefault(commit =>
                 commit.RunId == runId && commit.Sequence == sequence));
 
-        public Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(Guid runId, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<RunCommit>>(Snapshot()
+        public Task<IReadOnlyList<RunCommit>> LoadCommitsAsync(Guid runId, CancellationToken ct = default)
+        {
+            Interlocked.Increment(ref _loadCommitsCount);
+            return Task.FromResult<IReadOnlyList<RunCommit>>(Snapshot()
                 .Where(commit => commit.RunId == runId)
                 .OrderBy(commit => commit.Sequence)
                 .ToArray());
+        }
 
         public async Task<RunState?> LoadStateAsync(Guid runId, int sequence, CancellationToken ct = default) =>
             (await LoadCommitAsync(runId, sequence, ct))?.StateAfter;
