@@ -1,0 +1,142 @@
+{
+  "enemy_poison_spit": {
+    "actionId": "enemy_poison_spit",
+    "displayName": "Poison Spit",
+    "description": "Deal 3 damage and apply 2 Poison.",
+    "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [
+      {
+        "effectId": "enemy_poison_spit.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "flatValue": 3,
+        "targetResource": "health",
+        "tags": ["damage", "poison", "enemy", "attack"]
+      },
+      {
+        "effectId": "enemy_poison_spit.poison",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "poison",
+        "statusStacks": 2,
+        "tags": ["status", "poison", "debuff", "enemy"]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["attack", "poison", "enemy"]
+  },
+  "enemy_arcane_lock": {
+    "actionId": "enemy_arcane_lock",
+    "displayName": "Arcane Lock",
+    "description": "Damage Mana and prevent spell actions for one activation.",
+    "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [
+      {
+        "effectId": "enemy_arcane_lock.mana",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "flatValue": 2,
+        "targetResource": "mana",
+        "tags": ["damage", "magic", "spell", "resource-drain", "enemy"]
+      },
+      {
+        "effectId": "enemy_arcane_lock.silence",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "silenced",
+        "statusStacks": 1,
+        "statusDuration": 1,
+        "tags": ["status", "control", "debuff", "enemy"]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["magic", "control", "enemy"]
+  },
+  "enemy_draining_touch": {
+    "actionId": "enemy_draining_touch",
+    "displayName": "Draining Touch",
+    "description": "Deal 5 damage and restore 5 health to the caster.",
+    "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [
+      {
+        "effectId": "enemy_draining_touch.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "flatValue": 5,
+        "targetResource": "health",
+        "tags": ["damage", "magic", "drain", "enemy"]
+      },
+      {
+        "effectId": "enemy_draining_touch.heal",
+        "type": "HEAL",
+        "target": "SELF",
+        "flatValue": 5,
+        "targetResource": "health",
+        "tags": ["heal", "magic", "drain", "enemy"]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["attack", "magic", "drain", "enemy"]
+  },
+  "enemy_bulwark": {
+    "actionId": "enemy_bulwark",
+    "displayName": "Obsidian Bulwark",
+    "description": "Gain 9 Block and become Fortified.",
+    "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [
+      {
+        "effectId": "enemy_bulwark.block",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 9,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": ["defense", "block", "enemy"]
+      },
+      {
+        "effectId": "enemy_bulwark.fortified",
+        "type": "APPLY_STATUS",
+        "target": "SELF",
+        "statusId": "fortified",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "tags": ["status", "buff", "defense", "enemy"]
+      }
+    ],
+    "requiresTarget": false,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["defense", "enemy"]
+  },
+  "enemy_crushing_blow": {
+    "actionId": "enemy_crushing_blow",
+    "displayName": "Crushing Blow",
+    "description": "Deal 12 physical damage.",
+    "actionType": "POWER",
+    "costs": { "costs": [] },
+    "effects": [
+      {
+        "effectId": "enemy_crushing_blow.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "flatValue": 12,
+        "targetResource": "health",
+        "tags": ["damage", "physical", "heavy", "attack", "enemy"]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": ["attack", "heavy", "enemy"]
+  }
+}

@@ -26,7 +26,15 @@
         "enabled": true,
         "autoEndAfterAction": true,
         "publishIntents": true,
-        "decisionIds": ["enemy_basic_attack", "enemy_end_turn"],
+        "decisionIds": [
+          "enemy_bulwark",
+          "enemy_arcane_lock",
+          "enemy_poison_spit",
+          "enemy_draining_touch",
+          "enemy_crushing_blow",
+          "enemy_basic_attack",
+          "enemy_end_turn"
+        ],
         "intent": {
           "refresh": "RecomputeOnPublish",
           "whenInvalid": "Recompute"

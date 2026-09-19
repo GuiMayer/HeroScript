@@ -2,7 +2,7 @@
   "basic_shop": {
     "shopId": "basic_shop",
     "cardPoolId": "basic_rewards",
-    "offerCount": 3,
+    "offerCount": 5,
     "pricing": {
       "baseMultiplier": 1.0,
       "rarityMultipliers": {
@@ -13,7 +13,9 @@
       },
       "tagMultipliers": {
         "starter": 0.75,
-        "fire": 1.1
+        "fire": 1.1,
+        "rare": 1.2,
+        "choice": 1.15
       }
     },
     "reroll": {
@@ -22,7 +24,10 @@
     },
     "items": [
       { "itemId": "buy_fireball", "cardId": "fireball", "costs": [{ "resourceId": "gold", "amount": 25 }] },
-      { "itemId": "buy_heal", "cardId": "heal", "costs": [{ "resourceId": "gold", "amount": 20 }] }
+      { "itemId": "buy_heal", "cardId": "heal", "costs": [{ "resourceId": "gold", "amount": 20 }] },
+      { "itemId": "buy_venom_cut", "cardId": "venom_cut", "costs": [{ "resourceId": "gold", "amount": 18 }] },
+      { "itemId": "buy_tactical_recall", "cardId": "tactical_recall", "costs": [{ "resourceId": "gold", "amount": 18 }] },
+      { "itemId": "buy_prismatic_burst", "cardId": "prismatic_burst", "costs": [{ "resourceId": "gold", "amount": 45 }] }
     ],
     "metadata": {
       "description": "Loja basica para validar compras data-driven no loop inicial de run."

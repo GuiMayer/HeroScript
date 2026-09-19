@@ -4,7 +4,7 @@
     "pickCount": 1,
     "offerCount": 3,
     "cardPoolId": "basic_rewards",
-    "cardPool": ["basic_attack", "defend", "fireball", "heal"],
+    "cardPool": [],
     "reroll": {
       "freeRerolls": 1,
       "baseCosts": [{ "resourceId": "gold", "amount": 10 }],

@@ -1,6 +1,14 @@
 {
   "all_enemies": {
     "enemyPoolId": "all_enemies",
-    "entityDefinitionIds": ["enemy_goblin", "enemy_orc_warrior", "spire_wisp", "spire_sentinel"]
+    "entityDefinitionIds": [
+      "enemy_goblin",
+      "enemy_orc_warrior",
+      "spire_wisp",
+      "spire_venomling",
+      "spire_hexer",
+      "spire_sentinel",
+      "spire_bulwark"
+    ]
   }
 }

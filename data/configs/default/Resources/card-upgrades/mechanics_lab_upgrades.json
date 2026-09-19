@@ -1,0 +1,44 @@
+{
+  "venom_edge": {
+    "upgradeId": "venom_edge",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["venom_cut"],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "effect.damage",
+        "attribute": "FlatValue",
+        "operation": "Add",
+        "value": 3
+      }
+    ]
+  },
+  "amplified_chain": {
+    "upgradeId": "amplified_chain",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["chain_lightning"],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "effect.damage-all",
+        "attribute": "FlatValue",
+        "operation": "Add",
+        "value": 3
+      }
+    ]
+  },
+  "reinforced_guard": {
+    "upgradeId": "reinforced_guard",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["defend", "fading_guard"],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "effect.block",
+        "attribute": "FlatValue",
+        "operation": "Add",
+        "value": 4
+      }
+    ]
+  }
+}

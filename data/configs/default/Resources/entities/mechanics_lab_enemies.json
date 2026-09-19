@@ -1,0 +1,80 @@
+{
+  "spire_venomling": {
+    "definitionId": "spire_venomling",
+    "displayName": "Venomling",
+    "description": "A fragile opponent that pressures the player with stacking damage over time.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 24, "max": 24 },
+          "block": { "current": 0, "max": 999 },
+          "mana": { "current": 0, "max": 0 }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": { "strength": 1, "dexterity": 5, "intelligence": 2 }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_poison_spit"]
+      }
+    ]
+  },
+  "spire_hexer": {
+    "definitionId": "spire_hexer",
+    "displayName": "Cinder Hexer",
+    "description": "Attacks a non-health resource, disables spells, then drains health when Mana is empty.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 38, "max": 38 },
+          "block": { "current": 0, "max": 999 },
+          "mana": { "current": 6, "max": 6 }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": { "strength": 1, "dexterity": 2, "intelligence": 6 }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_arcane_lock", "enemy_draining_touch"]
+      }
+    ]
+  },
+  "spire_bulwark": {
+    "definitionId": "spire_bulwark",
+    "displayName": "Living Bulwark",
+    "description": "A boss that changes from heavy attacks to layered mitigation below half health.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": { "current": 74, "max": 74 },
+          "block": { "current": 0, "max": 999 },
+          "mana": { "current": 0, "max": 0 }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": { "strength": 6, "dexterity": 1, "intelligence": 1 }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": ["enemy_bulwark", "enemy_crushing_blow"]
+      }
+    ]
+  }
+}

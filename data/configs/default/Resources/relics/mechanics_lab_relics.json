@@ -1,0 +1,47 @@
+{
+  "mana_prism": {
+    "relicId": "mana_prism",
+    "stackLimit": 1,
+    "triggers": [
+      {
+        "triggerId": "mana_prism.combat-start",
+        "boundary": "CombatStart",
+        "effects": [
+          {
+            "effectId": "mana_prism.maximum",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "flatValue": 2,
+            "targetResource": "mana",
+            "resourceField": "Maximum",
+            "operation": "ADD",
+            "tags": ["resource", "mana", "maximum"]
+          },
+          {
+            "effectId": "mana_prism.restore",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "flatValue": 2,
+            "targetResource": "mana",
+            "operation": "ADD",
+            "tags": ["resource", "mana"]
+          }
+        ]
+      }
+    ]
+  },
+  "venom_lens": {
+    "relicId": "venom_lens",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "venom_lens.poison-increased",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.25,
+        "requiredTags": ["poison", "damage"]
+      }
+    ]
+  }
+}

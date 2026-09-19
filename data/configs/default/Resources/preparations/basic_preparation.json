@@ -10,6 +10,16 @@
         "applyModifiers": [
           { "ownerId": "run", "modifierId": "flat_power_bonus", "stacks": 1, "duration": -1, "sourceId": "train_spell" }
         ]
+      },
+      {
+        "optionId": "prepare_antidote",
+        "costs": [{ "resourceId": "gold", "amount": 12 }],
+        "grantedCardIds": ["cleanse"]
+      },
+      {
+        "optionId": "study_venom",
+        "costs": [{ "resourceId": "power_points", "amount": 1 }],
+        "grantedCardIds": ["venom_cut"]
       }
     ],
     "metadata": {

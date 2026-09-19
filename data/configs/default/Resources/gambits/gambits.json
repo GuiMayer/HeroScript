@@ -23,6 +23,106 @@
     },
     "tags": ["enemy", "default", "attack"]
   },
+  "enemy_poison_spit": {
+    "gambitId": "enemy_poison_spit",
+    "displayName": "Poison Spit",
+    "description": "Use the poison attack against the first legal enemy.",
+    "priority": 130,
+    "predicates": [{ "expression": "1" }],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "enemy_poison_spit",
+      "targetSelector": { "strategy": "FirstOrdinal", "relationship": "Enemy" }
+    },
+    "intent": {
+      "displayName": "Venomous assault",
+      "description": "This actor intends to deal damage and apply Poison.",
+      "telegraphType": "DebuffAttack",
+      "tags": ["attack", "poison", "debuff"]
+    },
+    "tags": ["enemy", "attack", "poison"]
+  },
+  "enemy_arcane_lock": {
+    "gambitId": "enemy_arcane_lock",
+    "displayName": "Arcane Lock",
+    "description": "Drain Mana while the target still has Mana.",
+    "priority": 160,
+    "predicates": [
+      { "expression": "target_resource_mana_current", "minimum": 0.01 }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "enemy_arcane_lock",
+      "targetSelector": { "strategy": "FirstOrdinal", "relationship": "Enemy" }
+    },
+    "intent": {
+      "displayName": "Arcane lock",
+      "description": "This actor intends to damage Mana and silence spells.",
+      "telegraphType": "ResourceAttack",
+      "tags": ["magic", "control", "resource-drain"]
+    },
+    "tags": ["enemy", "magic", "control"]
+  },
+  "enemy_draining_touch": {
+    "gambitId": "enemy_draining_touch",
+    "displayName": "Draining Touch",
+    "description": "Fallback life-drain attack after the target's Mana is depleted.",
+    "priority": 120,
+    "predicates": [{ "expression": "1" }],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "enemy_draining_touch",
+      "targetSelector": { "strategy": "FirstOrdinal", "relationship": "Enemy" }
+    },
+    "intent": {
+      "displayName": "Draining touch",
+      "description": "This actor intends to deal damage and restore its own health.",
+      "telegraphType": "DrainAttack",
+      "tags": ["attack", "magic", "drain"]
+    },
+    "tags": ["enemy", "attack", "drain"]
+  },
+  "enemy_bulwark": {
+    "gambitId": "enemy_bulwark",
+    "displayName": "Obsidian Bulwark",
+    "description": "Defend when wounded and currently without Block.",
+    "priority": 200,
+    "predicates": [
+      { "expression": "actor_resource_health_percent", "maximum": 0.55 },
+      { "expression": "actor_resource_block_current", "maximum": 0 }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "enemy_bulwark",
+      "targetSelector": { "strategy": "Self" }
+    },
+    "intent": {
+      "displayName": "Raising bulwark",
+      "description": "This actor intends to gain Block and damage resistance.",
+      "telegraphType": "Defend",
+      "tags": ["defense", "block", "buff"]
+    },
+    "tags": ["enemy", "defense"]
+  },
+  "enemy_crushing_blow": {
+    "gambitId": "enemy_crushing_blow",
+    "displayName": "Crushing Blow",
+    "description": "Use the heavy attack when no defensive rule takes priority.",
+    "priority": 110,
+    "predicates": [{ "expression": "1" }],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "enemy_crushing_blow",
+      "targetSelector": { "strategy": "FirstOrdinal", "relationship": "Enemy" }
+    },
+    "intent": {
+      "displayName": "Crushing blow",
+      "description": "This actor intends to deal heavy physical damage.",
+      "telegraphType": "HeavyAttack",
+      "tags": ["attack", "physical", "heavy"]
+    },
+    "tags": ["enemy", "attack", "heavy"]
+  },
   "enemy_end_turn": {
     "gambitId": "enemy_end_turn",
     "displayName": "Enemy End Turn",

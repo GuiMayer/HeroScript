@@ -11,13 +11,15 @@
     "startingCards": [
       "basic_attack",
       "defend",
-      "basic_attack",
-      "defend",
-      "fireball",
-      "basic_attack",
+      "venom_cut",
+      "fading_guard",
+      "chain_lightning",
       "arcane_bolt",
-      "defend",
-      "heal"
+      "tactical_recall",
+      "expose_weakness",
+      "prismatic_burst",
+      "cleanse",
+      "execution"
     ],
     "mapNodes": [
       {
@@ -113,9 +115,107 @@
         "nodeId": "forge",
         "activity": {
           "type": "CardUpgrade",
-          "parameters": { "upgradeIds": ["sharpened_edge"] }
+          "parameters": {
+            "upgradeIds": [
+              "sharpened_edge",
+              "venom_edge",
+              "amplified_chain",
+              "reinforced_guard"
+            ]
+          }
         },
         "completionPolicy": "Optional",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["prism"]
+      },
+      {
+        "nodeId": "prism",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "mana_prism",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["swarm"]
+      },
+      {
+        "nodeId": "swarm",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "spire_adept",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "wisp",
+                "definitionId": "spire_wisp",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              },
+              {
+                "instanceId": "venomling",
+                "definitionId": "spire_venomling",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [
+          {
+            "effectId": "swarm.reward.power",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "power_points",
+            "operation": "ADD",
+            "flatValue": 2
+          }
+        ],
+        "nextNodeIds": ["lens"]
+      },
+      {
+        "nodeId": "lens",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "venom_lens",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["hexer"]
+      },
+      {
+        "nodeId": "hexer",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "spire_adept",
+                "sideId": "player",
+                "controllerBinding": { "kind": "Player" }
+              },
+              {
+                "instanceId": "hexer",
+                "definitionId": "spire_hexer",
+                "sideId": "opposition",
+                "controllerBinding": { "kind": "AI", "policyId": "gambit" }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
         "entryEffects": [],
         "exitEffects": [],
         "nextNodeIds": ["summit"]
@@ -133,8 +233,8 @@
                 "controllerBinding": { "kind": "Player" }
               },
               {
-                "instanceId": "sentinel",
-                "definitionId": "spire_sentinel",
+                "instanceId": "bulwark",
+                "definitionId": "spire_bulwark",
                 "sideId": "opposition",
                 "controllerBinding": { "kind": "AI", "policyId": "gambit" }
               }
