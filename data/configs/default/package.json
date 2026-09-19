@@ -27,6 +27,7 @@
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/card-zone-systems/spire_zones.json", "kind": "card-zone-systems", "artifactPath": "card-zone-systems/spire_zones.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/card-zone-systems/cooldown_zones.json", "kind": "card-zone-systems", "artifactPath": "card-zone-systems/cooldown_zones.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/cards/card_catalog.json", "kind": "cards", "artifactPath": "cards/card_catalog.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/cards/mechanics_lab.json", "kind": "cards", "artifactPath": "cards/mechanics_lab.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/combat-rules/fixed_action_combat.json", "kind": "combat-rules", "artifactPath": "combat-rules/fixed_action_combat.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/combat-rules/priority_stack_combat.json", "kind": "combat-rules", "artifactPath": "combat-rules/priority_stack_combat.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/combat-rules/standard_combat.json", "kind": "combat-rules", "artifactPath": "combat-rules/standard_combat.json" },

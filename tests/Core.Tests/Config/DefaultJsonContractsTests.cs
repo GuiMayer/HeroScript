@@ -28,7 +28,7 @@ public class DefaultJsonContractsTests
     [Fact]
     public void CardCatalog_AllCardsOwnStableComponentContainers()
     {
-        var cards = LoadResource("cards", "card_catalog.json");
+        var cards = LoadResources("cards");
 
         Assert.NotEmpty(cards);
         foreach (var (cardId, card) in cards)
@@ -47,7 +47,7 @@ public class DefaultJsonContractsTests
     [Fact]
     public void CardPools_ExplicitCardsReferenceCatalogCards()
     {
-        var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var cards = LoadResources("cards").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var pools = LoadResource("card-pools", "basic_rewards.json");
 
         Assert.NotEmpty(pools);
@@ -64,7 +64,7 @@ public class DefaultJsonContractsTests
     [Fact]
     public void RunDefinition_ReferencesExistingDeckCards()
     {
-        var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var cards = LoadResources("cards").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var runs = LoadResource("runs", "default_run.json");
 
         Assert.NotEmpty(runs);
@@ -78,7 +78,7 @@ public class DefaultJsonContractsTests
     [Fact]
     public void RewardShopPreparation_ReferenceExistingPoolsCardsAndModifiers()
     {
-        var cards = LoadResource("cards", "card_catalog.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var cards = LoadResources("cards").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var pools = LoadResource("card-pools", "basic_rewards.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var modifiers = LoadResource("modifiers", "script_modifiers.json").Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -159,6 +159,19 @@ public class DefaultJsonContractsTests
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         return document.RootElement.EnumerateObject()
             .ToDictionary(property => property.Name, property => property.Value.Clone(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static Dictionary<string, JsonElement> LoadResources(string directory)
+    {
+        var resources = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in Directory.GetFiles(Path.Combine(ResourcesRoot, directory), "*.json")
+                     .OrderBy(path => path, StringComparer.Ordinal))
+        {
+            foreach (var (id, definition) in LoadResource(directory, Path.GetFileName(file)))
+                Assert.True(resources.TryAdd(id, definition), $"Duplicate {directory} definition: {id}");
+        }
+
+        return resources;
     }
 
     private static string LoadSingleResourceId(string directory, string fileName, string idPropertyName)

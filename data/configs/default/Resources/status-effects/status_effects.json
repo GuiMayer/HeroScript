@@ -95,6 +95,93 @@
     ],
     "Tags": ["debuff", "damage"]
   },
+  "vulnerable": {
+    "StatusId": "vulnerable",
+    "DisplayName": "Vulnerable",
+    "Description": "Takes 50% increased damage",
+    "DefaultDuration": 2,
+    "DefaultStacks": 1,
+    "MaxStacks": 1,
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 20,
+    "Influences": [
+      {
+        "InfluenceId": "vulnerable.damage-taken",
+        "Scope": "Target",
+        "Channel": "effect_amount",
+        "Bucket": "increased",
+        "Value": 0.5,
+        "RequiredTags": ["damage"]
+      }
+    ],
+    "Tags": ["debuff", "damage"]
+  },
+  "regeneration": {
+    "StatusId": "regeneration",
+    "DisplayName": "Regeneration",
+    "Description": "Restores health at the end of each activation",
+    "DefaultDuration": 3,
+    "DefaultStacks": 1,
+    "MaxStacks": 10,
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 10,
+    "Triggers": [
+      {
+        "TriggerId": "regeneration.tick",
+        "Boundary": "EndActivation",
+        "Effects": [
+          {
+            "EffectId": "regeneration.restore",
+            "Type": "HEAL",
+            "Target": "SELF",
+            "FormulaValue": "stacks * 2",
+            "TargetResource": "health",
+            "Tags": ["heal", "regeneration", "hot"]
+          }
+        ]
+      }
+    ],
+    "Tags": ["buff", "heal", "hot"]
+  },
+  "fortified": {
+    "StatusId": "fortified",
+    "DisplayName": "Fortified",
+    "Description": "Takes 25% less damage",
+    "DefaultDuration": 2,
+    "DefaultStacks": 1,
+    "MaxStacks": 1,
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 15,
+    "Influences": [
+      {
+        "InfluenceId": "fortified.damage-taken",
+        "Scope": "Target",
+        "Channel": "effect_amount",
+        "Bucket": "increased",
+        "Value": -0.25,
+        "RequiredTags": ["damage"]
+      }
+    ],
+    "Tags": ["buff", "defense"]
+  },
+  "silenced": {
+    "StatusId": "silenced",
+    "DisplayName": "Silenced",
+    "Description": "Cannot play actions tagged as spells",
+    "ActionConstraints": [
+      {
+        "ConstraintId": "cannot-cast",
+        "RequiredActionTags": ["spell"],
+        "Reason": "Cannot cast spells while silenced"
+      }
+    ],
+    "DefaultDuration": 1,
+    "DefaultStacks": 1,
+    "MaxStacks": 1,
+    "DurationTickBoundary": "EndActivation",
+    "Priority": 30,
+    "Tags": ["debuff", "control"]
+  },
   "stunned": {
     "StatusId": "stunned",
     "DisplayName": "Stunned",

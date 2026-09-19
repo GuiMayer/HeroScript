@@ -1,0 +1,654 @@
+{
+  "venom_cut": {
+    "cardId": "venom_cut",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 16 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["attack", "physical", "poison", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "venom_cut.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "flatValue": 4,
+          "targetResource": "health",
+          "tags": ["damage", "physical", "attack", "poison"]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.poison",
+        "order": 30,
+        "effect": {
+          "effectId": "venom_cut.poison",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "poison",
+          "statusStacks": 3,
+          "tags": ["status", "poison", "debuff"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.enemy",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "battle_focus": {
+    "cardId": "battle_focus",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 28 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["power", "buff", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.strength",
+        "order": 20,
+        "effect": {
+          "effectId": "battle_focus.strength",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "strength",
+          "statusStacks": 1,
+          "tags": ["status", "buff", "power"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.consume",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "expose_weakness": {
+    "cardId": "expose_weakness",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 17 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["attack", "debuff", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "expose_weakness.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "flatValue": 3,
+          "targetResource": "health",
+          "tags": ["damage", "physical", "attack"]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.vulnerable",
+        "order": 30,
+        "effect": {
+          "effectId": "expose_weakness.vulnerable",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "vulnerable",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "tags": ["status", "debuff"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.enemy",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "chain_lightning": {
+    "cardId": "chain_lightning",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 30 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["attack", "magic", "lightning", "area", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.mana",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "mana", "amount": 2 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage-all",
+        "order": 20,
+        "effect": {
+          "effectId": "chain_lightning.damage-all",
+          "type": "DAMAGE",
+          "target": "ALL_ENEMIES",
+          "flatValue": 5,
+          "targetResource": "health",
+          "tags": ["damage", "magic", "spell", "lightning", "area"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.all-enemies",
+        "order": 80,
+        "target": "ALL_ENEMIES",
+        "minimumTargets": 0,
+        "maximumTargets": 0
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "execution": {
+    "cardId": "execution",
+    "rarity": "Rare",
+    "basePrices": [{ "resourceId": "gold", "amount": 48 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 3 }],
+    "tags": ["attack", "finisher", "conditional", "rare"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] }
+      },
+      {
+        "type": "condition",
+        "componentId": "condition.wounded-target",
+        "order": 15,
+        "expression": "0.51 - target.resources.health.percent",
+        "failureReason": "Target must be at or below half health"
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "execution.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "flatValue": 16,
+          "targetResource": "health",
+          "tags": ["damage", "physical", "attack", "finisher"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.enemy",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "tactical_recall": {
+    "cardId": "tactical_recall",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 15 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["skill", "draw", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.draw",
+        "order": 20,
+        "effect": {
+          "effectId": "tactical_recall.draw",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.draw",
+          "cardCount": 2,
+          "tags": ["cards", "draw", "utility"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "conjure_spark": {
+    "cardId": "conjure_spark",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 26 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["skill", "magic", "creation", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.create",
+        "order": 20,
+        "effect": {
+          "effectId": "conjure_spark.create",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.create-in-hand",
+          "cardDefinitionId": "arcane_bolt",
+          "cardCount": 1,
+          "tags": ["cards", "creation", "magic"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.consume",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "fading_guard": {
+    "cardId": "fading_guard",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 14 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["skill", "defense", "ethereal", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.block",
+        "order": 20,
+        "effect": {
+          "effectId": "fading_guard.block",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "flatValue": 9,
+          "targetResource": "block",
+          "operation": "ADD",
+          "tags": ["defense", "block"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "equilibrium": {
+    "cardId": "equilibrium",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 24 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["skill", "defense", "retain", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.block",
+        "order": 20,
+        "effect": {
+          "effectId": "equilibrium.block",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "flatValue": 13,
+          "targetResource": "block",
+          "operation": "ADD",
+          "tags": ["defense", "block"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "piercing_ray": {
+    "cardId": "piercing_ray",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 29 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["attack", "magic", "piercing", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.mana",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "mana", "amount": 2 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "piercing_ray.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "flatValue": 8,
+          "targetResource": "health",
+          "tags": ["damage", "magic", "spell", "piercing"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.enemy",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "cleanse": {
+    "cardId": "cleanse",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 16 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["skill", "utility", "dispel", "common"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.dispel",
+        "order": 20,
+        "effect": {
+          "effectId": "cleanse.dispel",
+          "type": "DISPEL_STATUS",
+          "target": "SELF",
+          "dispel": {
+            "requiredTags": ["debuff"],
+            "maximumInstances": 2,
+            "order": "HighestPriorityFirst"
+          },
+          "tags": ["status", "dispel", "utility"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "prismatic_burst": {
+    "cardId": "prismatic_burst",
+    "rarity": "Rare",
+    "basePrices": [{ "resourceId": "gold", "amount": 42 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 3 }],
+    "tags": ["attack", "magic", "choice", "rare"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.choice",
+        "order": 10,
+        "costs": {
+          "costs": [],
+          "alternativeCosts": [
+            {
+              "optionId": "energy",
+              "description": "Spend 2 energy",
+              "costs": [{ "resourceId": "energy", "amount": 2 }]
+            },
+            {
+              "optionId": "mana",
+              "description": "Spend 3 mana",
+              "costs": [{ "resourceId": "mana", "amount": 3 }]
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "prismatic_burst.damage",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "flatValue": 11,
+          "targetResource": "health",
+          "tags": ["damage", "magic", "spell", "choice"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.enemy",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "cull_weakest": {
+    "cardId": "cull_weakest",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 25 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["attack", "automatic-target", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.damage",
+        "order": 20,
+        "effect": {
+          "effectId": "cull_weakest.damage",
+          "type": "DAMAGE",
+          "target": "LOWEST_RESOURCE_ENEMY",
+          "selectionResourceId": "health",
+          "flatValue": 7,
+          "targetResource": "health",
+          "tags": ["damage", "physical", "attack", "automatic-target"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.lowest-health",
+        "order": 80,
+        "target": "LOWEST_RESOURCE_ENEMY",
+        "selectionResourceId": "health",
+        "minimumTargets": 0,
+        "maximumTargets": 0
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "renewal": {
+    "cardId": "renewal",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 24 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["skill", "heal", "status", "uncommon"],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost.energy",
+        "order": 10,
+        "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] }
+      },
+      {
+        "type": "effect",
+        "componentId": "effect.regeneration",
+        "order": 20,
+        "effect": {
+          "effectId": "renewal.regeneration",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "regeneration",
+          "statusStacks": 2,
+          "statusDuration": 3,
+          "tags": ["status", "buff", "heal"]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting.self",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition.default",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  }
+}
