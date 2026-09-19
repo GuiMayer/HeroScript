@@ -26,7 +26,7 @@ public static class RunReplayVerifier
 
         foreach (var commit in ordered)
         {
-            var state = commit.StateAfter;
+            var state = commit.RequireState();
             var hash = CanonicalJson.ComputeHash(state);
 
             try

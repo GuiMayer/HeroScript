@@ -117,7 +117,7 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
         return new RunProjectionEvent
         {
             EventId = DeterministicId.Create(
-                commit.StateAfter.Determinism.Seed,
+                commit.RequireState().Determinism.Seed,
                 checked((ulong)entry.Sequence),
                 $"run-event:{fact.FactIndex}"),
             Sequence = entry.Sequence,
@@ -129,13 +129,13 @@ public sealed class RunEventProjectionReader : IRunEventProjectionReader
             CombatId = fact.CombatId,
             CommandId = entry.CommandId,
             CorrelationId = entry.CommandId ?? DeterministicId.Create(
-                commit.StateAfter.Determinism.Seed,
+                commit.RequireState().Determinism.Seed,
                 checked((ulong)entry.Sequence),
                 $"run-correlation:{entry.CommandType}"),
             Timestamp = entry.LogicalTimestamp,
-            ConfigName = commit.StateAfter.ConfigName,
-            ContentRevision = commit.StateAfter.Determinism.ContentRevision,
-            Seed = commit.StateAfter.Determinism.Seed,
+            ConfigName = commit.RequireState().ConfigName,
+            ContentRevision = commit.RequireState().Determinism.ContentRevision,
+            Seed = commit.RequireState().Determinism.Seed,
             ExpectedSequence = entry.ExpectedSequence,
             ExpectedStep = entry.ExpectedStep,
             CommandPayloadHash = entry.CommandPayloadHash,

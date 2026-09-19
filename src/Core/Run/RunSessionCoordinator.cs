@@ -223,7 +223,7 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
             Frames = frames,
             Facts = facts
         };
-        var prepared = PreparedRunCommit.CreateVerified(commit, stateHash);
+        var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, plan.PreviousState);
 
         if (_store is IPreparedRunCommitStore preparedStore)
             await preparedStore.AppendPreparedAsync(prepared, cancellationToken).ConfigureAwait(false);
@@ -233,7 +233,7 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
         // Publication is deliberately after the durable append. If append
         // fails, neither the live aggregate nor the receipt cache changes.
         _publish(stateAfter);
-        var receipt = CreateReceipt(prepared.Commit, duplicate: false);
+        var receipt = CreateReceipt(prepared.Commit, duplicate: false, stateAfter);
         _receipts[(stateAfter.RunId, identity.CommandId)] = receipt;
         return Result<RunCommandReceipt>.Success(receipt);
     }
@@ -280,7 +280,10 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
         }
     }
 
-    private static RunCommandReceipt CreateReceipt(RunCommit commit, bool duplicate)
+    private static RunCommandReceipt CreateReceipt(
+        RunCommit commit,
+        bool duplicate,
+        RunState? liveState = null)
     {
         var entry = commit.ToJournalEntry();
         return new RunCommandReceipt
@@ -291,7 +294,8 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
             Step = entry.Step,
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
-            State = commit.StateAfter,
+            State = liveState ?? commit.StateAfter
+                ?? throw new InvalidOperationException("Materialized run state is required for a receipt"),
             CombatResolution = Projections.CombatResolutionProjection.FromCommit(commit),
             JournalEntry = entry,
             Frames = commit.Frames,

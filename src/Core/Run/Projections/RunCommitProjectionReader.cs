@@ -80,9 +80,9 @@ public sealed class RunCommitProjectionReader : IRunCommitProjectionReader
         CancellationToken cancellationToken = default)
     {
         ValidateCursor(afterSequence, limit);
-        var matches = new List<RunCommit>(limit);
+        var matches = new List<RunCommit>(System.Math.Min(limit, 128));
         var cursor = afterSequence;
-        var batchSize = System.Math.Max(32, limit);
+        var batchSize = System.Math.Max(32, System.Math.Min(limit, 256));
         while (matches.Count < limit)
         {
             var batch = await _commits.LoadCommitsAsync(

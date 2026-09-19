@@ -69,12 +69,17 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             {
                 var existingBytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
                 var existingByteHash = Convert.ToHexString(SHA256.HashData(existingBytes));
-                var existing = DeserializeValidated(existingBytes, existingByteHash);
+                var existingEnvelope = DeserializeEnvelope(existingBytes, existingByteHash);
                 if (!string.Equals(existingByteHash, prepared.ByteHash, StringComparison.Ordinal))
                 {
                     throw new InvalidOperationException(
                         $"Run commit sequence collision: {commit.RunId}/{commit.Sequence}");
                 }
+                var existing = await LoadCommitUnsafeAsync(
+                    existingEnvelope.RunId,
+                    existingEnvelope.Sequence,
+                    ct).ConfigureAwait(false)
+                    ?? throw new InvalidDataException($"Existing run commit is unreadable: {path}");
                 await WriteCommandIndexBestEffortAsync(existing, ct).ConfigureAwait(false);
                 return new RunCommitAppendResult(existing, true);
             }
@@ -158,23 +163,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         try
         {
             var sequences = ListSequencesUnsafe(runId);
-            var commits = new List<RunCommit>(sequences.Count);
-            RunCommit? previous = null;
-            foreach (var sequence in sequences)
-            {
-                var commit = await LoadCommitUnsafeAsync(runId, sequence, ct).ConfigureAwait(false)
-                    ?? throw new InvalidDataException($"Run commit disappeared while reading: {runId}/{sequence}");
-                if (previous != null && !string.Equals(
-                        previous.StateHash,
-                        commit.PreviousStateHash,
-                        StringComparison.Ordinal))
-                {
-                    throw new InvalidDataException($"Broken run commit hash chain at sequence {sequence}");
-                }
-                commits.Add(commit);
-                previous = commit;
-            }
-            return commits;
+            return await LoadMaterializedRangeUnsafeAsync(runId, sequences, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -204,25 +193,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             if (sequences.Length == 0)
                 return [];
 
-            RunCommit? previous = sequences[0] > 1
-                ? await LoadCommitUnsafeAsync(runId, sequences[0] - 1, ct).ConfigureAwait(false)
-                : null;
-            var commits = new List<RunCommit>(sequences.Length);
-            foreach (var sequence in sequences)
-            {
-                var commit = await LoadCommitUnsafeAsync(runId, sequence, ct).ConfigureAwait(false)
-                    ?? throw new InvalidDataException($"Run commit disappeared while reading: {runId}/{sequence}");
-                if (previous != null && !string.Equals(
-                        previous.StateHash,
-                        commit.PreviousStateHash,
-                        StringComparison.Ordinal))
-                {
-                    throw new InvalidDataException($"Broken run commit hash chain at sequence {sequence}");
-                }
-                commits.Add(commit);
-                previous = commit;
-            }
-            return commits;
+            return await LoadMaterializedRangeUnsafeAsync(runId, sequences, ct).ConfigureAwait(false);
         }
         finally
         {
@@ -267,7 +238,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                 ValidatedCommitIdentity? identity = null;
                 if (_validatedBytes == null || !_validatedBytes.TryGetValue(fingerprint, out identity))
                 {
-                    var commit = DeserializeValidated(bytes, fingerprint);
+                    var commit = DeserializeEnvelope(bytes, fingerprint);
                     identity = ValidatedCommitIdentity.From(commit);
                 }
                 if (identity!.RunId != runId || identity.Sequence != sequence)
@@ -347,8 +318,8 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         if (!Directory.Exists(_storePath))
             return Task.FromResult<IReadOnlyList<Guid>>([]);
         IReadOnlyList<Guid> ids = Directory.GetDirectories(_storePath)
+            .Where(IsCurrentSchemaRunDirectory)
             .Select(Path.GetFileName)
-            .Where(name => Guid.TryParse(name, out _))
             .Select(name => Guid.Parse(name!))
             .OrderBy(id => id)
             .ToArray();
@@ -399,7 +370,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             var path = GetCommitPath(runId, sequence);
             var bytes = await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
             var byteHash = Convert.ToHexString(SHA256.HashData(bytes));
-            var commit = DeserializeValidated(bytes, byteHash);
+            var commit = DeserializeEnvelope(bytes, byteHash);
             cursor = new AppendCursor(commit.Sequence, commit.StateHash, byteHash);
         }
 
@@ -412,6 +383,76 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         int sequence,
         CancellationToken ct)
     {
+        if (!File.Exists(GetCommitPath(runId, sequence)))
+            return null;
+        var checkpointSequence = sequence;
+        RunCommit? checkpoint = null;
+        while (checkpointSequence > 0)
+        {
+            var candidate = await LoadEnvelopeUnsafeAsync(runId, checkpointSequence, ct)
+                .ConfigureAwait(false)
+                ?? throw new InvalidDataException(
+                    $"Run commit disappeared while reading: {runId}/{checkpointSequence}");
+            if (candidate.StorageKind == RunCommitStorageKind.Checkpoint)
+            {
+                checkpoint = candidate;
+                break;
+            }
+            checkpointSequence--;
+        }
+        if (checkpoint?.StateAfter == null)
+            throw new InvalidDataException($"Run checkpoint not found before sequence {sequence}");
+
+        var current = checkpoint;
+        for (var currentSequence = checkpointSequence + 1; currentSequence <= sequence; currentSequence++)
+        {
+            var envelope = await LoadEnvelopeUnsafeAsync(runId, currentSequence, ct)
+                .ConfigureAwait(false)
+                ?? throw new InvalidDataException(
+                    $"Run commit disappeared while reading: {runId}/{currentSequence}");
+            current = MaterializeDelta(current, envelope);
+        }
+        return current;
+    }
+
+    private async Task<IReadOnlyList<RunCommit>> LoadMaterializedRangeUnsafeAsync(
+        Guid runId,
+        IReadOnlyList<int> sequences,
+        CancellationToken ct)
+    {
+        if (sequences.Count == 0)
+            return [];
+        RunCommit? previous = sequences[0] == 1
+            ? null
+            : await LoadCommitUnsafeAsync(runId, sequences[0] - 1, ct).ConfigureAwait(false);
+        var commits = new List<RunCommit>(sequences.Count);
+        foreach (var sequence in sequences)
+        {
+            var envelope = await LoadEnvelopeUnsafeAsync(runId, sequence, ct).ConfigureAwait(false)
+                ?? throw new InvalidDataException($"Run commit disappeared while reading: {runId}/{sequence}");
+            if (previous != null && !string.Equals(
+                    previous.StateHash,
+                    envelope.PreviousStateHash,
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidDataException($"Broken run commit hash chain at sequence {sequence}");
+            }
+            var materialized = envelope.StorageKind == RunCommitStorageKind.Checkpoint
+                ? ValidateCheckpoint(envelope)
+                : previous == null
+                    ? throw new InvalidDataException($"Delta run commit has no previous state: {runId}/{sequence}")
+                    : MaterializeDelta(previous, envelope);
+            commits.Add(materialized);
+            previous = materialized;
+        }
+        return commits;
+    }
+
+    private async Task<RunCommit?> LoadEnvelopeUnsafeAsync(
+        Guid runId,
+        int sequence,
+        CancellationToken ct)
+    {
         var path = GetCommitPath(runId, sequence);
         if (!File.Exists(path))
             return null;
@@ -419,10 +460,10 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         var fingerprint = _validatedBytes == null
             ? null
             : Convert.ToHexString(SHA256.HashData(bytes));
-        return DeserializeValidated(bytes, fingerprint);
+        return DeserializeEnvelope(bytes, fingerprint);
     }
 
-    private RunCommit DeserializeValidated(byte[] bytes, string? fingerprint)
+    private RunCommit DeserializeEnvelope(byte[] bytes, string? fingerprint)
     {
         // Cache only validation of exact bytes, never deserialized objects.
         // Changed bytes cannot reuse validation, even if file metadata matches.
@@ -430,11 +471,33 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             ?? throw new InvalidDataException("Run commit is empty");
         if (_validatedBytes == null || fingerprint == null || !_validatedBytes.TryGetValue(fingerprint, out _))
         {
-            commit.Validate();
+            commit.ValidateEnvelope();
+            if (commit.StorageKind == RunCommitStorageKind.Checkpoint)
+                commit.Validate();
             if (fingerprint != null)
                 _validatedBytes?.Set(fingerprint, ValidatedCommitIdentity.From(commit));
         }
         return commit;
+    }
+
+    private static RunCommit ValidateCheckpoint(RunCommit checkpoint)
+    {
+        checkpoint.Validate();
+        return checkpoint;
+    }
+
+    private static RunCommit MaterializeDelta(RunCommit previous, RunCommit delta)
+    {
+        if (previous.StateAfter == null)
+            throw new InvalidDataException($"Previous run state is unavailable: {previous.RunId}/{previous.Sequence}");
+        if (!string.Equals(previous.StateHash, delta.PreviousStateHash, StringComparison.Ordinal))
+            throw new InvalidDataException($"Broken run commit hash chain at sequence {delta.Sequence}");
+        if (delta.StorageKind != RunCommitStorageKind.Delta || delta.StateAfter != null)
+            throw new InvalidDataException($"Expected a delta run commit at sequence {delta.Sequence}");
+        var state = RunStateDelta.Apply(previous.StateAfter, delta.StateDelta);
+        var materialized = delta with { StateAfter = state };
+        materialized.Validate();
+        return materialized;
     }
 
     private IReadOnlyList<int> ListSequencesUnsafe(Guid runId)
@@ -448,6 +511,33 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
             .Select(name => int.Parse(name!))
             .OrderBy(sequence => sequence)
             .ToArray();
+    }
+
+    private static bool IsCurrentSchemaRunDirectory(string directory)
+    {
+        if (!Guid.TryParse(Path.GetFileName(directory), out _))
+            return false;
+        var commitDirectory = Path.Combine(directory, "commits");
+        if (!Directory.Exists(commitDirectory))
+            return false;
+        var latest = Directory.GetFiles(commitDirectory, "*.json")
+            .OrderByDescending(Path.GetFileNameWithoutExtension, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (latest == null)
+            return false;
+        try
+        {
+            using var stream = File.OpenRead(latest);
+            using var document = JsonDocument.Parse(stream);
+            return document.RootElement.TryGetProperty("SchemaVersion", out var schema) &&
+                   schema.GetInt32() == RunCommit.CurrentSchemaVersion;
+        }
+        catch
+        {
+            // Corrupt current-schema runs remain addressable by id and fail
+            // authoritatively when read. Discovery only ignores unreadable roots.
+            return false;
+        }
     }
 
     private string GetRunDirectory(Guid runId) => Path.Combine(_storePath, runId.ToString("D"));

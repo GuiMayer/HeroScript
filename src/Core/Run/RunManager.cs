@@ -2238,7 +2238,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };
-            var prepared = PreparedRunCommit.CreateVerified(commit, stateHash);
+            var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, previous);
 
             if (_repository is IPreparedRunCommitStore preparedStore)
                 preparedStore.AppendPreparedAsync(prepared).GetAwaiter().GetResult();
@@ -2247,7 +2247,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
             _runs[state.RunId] = state;
             _commandReceipts[(state.RunId, effectiveIdentity.CommandId)] =
-                CreateReceipt(prepared.Commit, duplicate: false);
+                CreateReceipt(prepared.Commit, duplicate: false, snapshot);
             return Result<RunState>.Success(state);
         }
         catch (Exception exception)
@@ -2332,7 +2332,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Frames = frames,
                 Facts = RunCommitFacts.FromFrames(frames)
             };
-            var prepared = PreparedRunCommit.CreateVerified(commit, stateHash);
+            var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, previous);
 
             if (_repository is IPreparedRunCommitStore preparedStore)
                 preparedStore.AppendPreparedAsync(prepared).GetAwaiter().GetResult();
@@ -2341,7 +2341,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
             _runs[previous.RunId] = finalState;
             _commandReceipts[(previous.RunId, identity.CommandId)] =
-                CreateReceipt(prepared.Commit, duplicate: false);
+                CreateReceipt(prepared.Commit, duplicate: false, finalState);
             return Result<RunState>.Success(finalState);
         }
         catch (Exception exception)
@@ -2353,7 +2353,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         }
     }
 
-    private static RunCommandReceipt CreateReceipt(RunCommit commit, bool duplicate)
+    private static RunCommandReceipt CreateReceipt(
+        RunCommit commit,
+        bool duplicate,
+        RunState? liveState = null)
     {
         var entry = commit.ToJournalEntry();
         return new RunCommandReceipt
@@ -2364,7 +2367,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             Step = entry.Step,
             PreviousStateHash = entry.PreviousStateHash,
             StateHash = entry.StateHash,
-            State = commit.StateAfter,
+            State = liveState ?? commit.StateAfter
+                ?? throw new InvalidOperationException("Materialized run state is required for a receipt"),
             CombatResolution = Projections.CombatResolutionProjection.FromCommit(commit),
             JournalEntry = entry,
             Frames = commit.Frames,

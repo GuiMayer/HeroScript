@@ -93,10 +93,11 @@ public sealed record RunCommitFact
 /// </summary>
 public sealed record RunCommit
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     private ImmutableArray<RunCommitFrame> _frames = [];
     private ImmutableArray<RunCommitFact> _facts = [];
+    private ImmutableArray<RunStatePatchOperation> _stateDelta = [];
 
     public int SchemaVersion { get; init; } = CurrentSchemaVersion;
     public string EngineVersion { get; init; } = DeterministicContext.CurrentEngineVersion;
@@ -109,7 +110,8 @@ public sealed record RunCommit
     public ulong BeforeStep { get; init; }
     public ulong AfterStep { get; init; }
     public DateTime LogicalTimestamp { get; init; } = DateTime.UnixEpoch;
-    public RunState StateAfter { get; init; } = null!;
+    public RunCommitStorageKind StorageKind { get; init; } = RunCommitStorageKind.Checkpoint;
+    public RunState? StateAfter { get; init; }
     public RunLineage? Lineage { get; init; }
     public RunCommitCombatResolution? CombatResolution { get; init; }
 
@@ -125,34 +127,66 @@ public sealed record RunCommit
         init => _facts = value?.ToImmutableArray() ?? [];
     }
 
+    public IReadOnlyList<RunStatePatchOperation> StateDelta
+    {
+        get => _stateDelta;
+        init => _stateDelta = value?.ToImmutableArray() ?? [];
+    }
+
     public void Validate(string? computedStateHash = null)
+    {
+        ValidateEnvelope();
+        if (StateAfter == null)
+            throw new InvalidOperationException("Run commit must be materialized before state validation");
+
+        if (StateAfter.RunId != RunId || StateAfter.Sequence != Sequence)
+            throw new InvalidOperationException("Run commit state identity does not match its sequence");
+        if (StateAfter.Determinism.Step != AfterStep)
+            throw new InvalidOperationException("Run commit deterministic step range is invalid");
+        var actualStateHash = computedStateHash ?? CanonicalJson.ComputeHash(StateAfter);
+        if (!string.Equals(actualStateHash, StateHash, StringComparison.Ordinal))
+            throw new InvalidOperationException("Run commit stateHash does not match stateAfter");
+        if (Sequence == 1 && StateAfter.Lineage != Lineage)
+            throw new InvalidOperationException("Initial commit lineage differs from state lineage");
+    }
+
+    public RunState RequireState() => StateAfter
+        ?? throw new InvalidOperationException(
+            $"Run commit state is not materialized: {RunId}/{Sequence}");
+
+    public void ValidateEnvelope()
     {
         if (SchemaVersion != CurrentSchemaVersion)
             throw new InvalidOperationException($"Unsupported run commit schema: {SchemaVersion}");
         if (!string.Equals(EngineVersion, DeterministicContext.CurrentEngineVersion, StringComparison.Ordinal))
             throw new InvalidOperationException($"Unsupported run commit engine: {EngineVersion}");
-        if (RunId == Guid.Empty || StateAfter == null || RootCommand == null)
-            throw new InvalidOperationException("Run commit identity, command and state are required");
-        if (Sequence < 1 || StateAfter.RunId != RunId || StateAfter.Sequence != Sequence)
-            throw new InvalidOperationException("Run commit state identity does not match its sequence");
+        if (RunId == Guid.Empty || RootCommand == null)
+            throw new InvalidOperationException("Run commit identity and command are required");
+        if (Sequence < 1)
+            throw new InvalidOperationException("Run commit sequence must be positive");
         if (RootCommand.CommandId == Guid.Empty || string.IsNullOrWhiteSpace(RootCommand.Type))
             throw new InvalidOperationException("Run commit root command is invalid");
-        if (AfterStep < BeforeStep || StateAfter.Determinism.Step != AfterStep)
+        if (AfterStep < BeforeStep)
             throw new InvalidOperationException("Run commit deterministic step range is invalid");
         if (Sequence > 1 && string.IsNullOrWhiteSpace(PreviousStateHash))
             throw new InvalidOperationException("Non-initial run commit requires previousStateHash");
-        var actualStateHash = computedStateHash ?? CanonicalJson.ComputeHash(StateAfter);
-        if (!string.Equals(actualStateHash, StateHash, StringComparison.Ordinal))
-            throw new InvalidOperationException("Run commit stateHash does not match stateAfter");
+        if (string.IsNullOrWhiteSpace(StateHash))
+            throw new InvalidOperationException("Run commit stateHash is required");
+        if (StorageKind == RunCommitStorageKind.Checkpoint && StateAfter == null)
+            throw new InvalidOperationException("Checkpoint run commit requires stateAfter");
+        if (StorageKind == RunCommitStorageKind.Checkpoint && _stateDelta.Length != 0)
+            throw new InvalidOperationException("Checkpoint run commit cannot contain a state delta");
+        if (StorageKind == RunCommitStorageKind.Delta && StateAfter == null && _stateDelta.Length == 0)
+            throw new InvalidOperationException("Delta run commit requires state changes");
         if (Sequence == 1)
         {
+            if (StorageKind != RunCommitStorageKind.Checkpoint)
+                throw new InvalidOperationException("Initial run commit must be a checkpoint");
             if (Lineage == null)
                 throw new InvalidOperationException("Initial run commit requires lineage");
             var lineageValidation = Lineage.Validate(RunId);
             if (lineageValidation.IsFailure)
                 throw new InvalidOperationException(lineageValidation.Error);
-            if (StateAfter.Lineage != Lineage)
-                throw new InvalidOperationException("Initial commit lineage differs from state lineage");
         }
         else if (Lineage != null)
         {
@@ -223,20 +257,28 @@ public sealed record RunCommit
     };
 }
 
+public enum RunCommitStorageKind
+{
+    Checkpoint,
+    Delta
+}
+
 /// <summary>
 /// Immutable serialized form used by the append path. Preparing once keeps
 /// validation, hashing and persistence on the same canonical bytes.
 /// </summary>
 public sealed class PreparedRunCommit
 {
-    private PreparedRunCommit(RunCommit commit, byte[] bytes, string byteHash)
+    private PreparedRunCommit(RunCommit commit, RunState liveState, byte[] bytes, string byteHash)
     {
         Commit = commit;
+        LiveState = liveState;
         Bytes = bytes;
         ByteHash = byteHash;
     }
 
     public RunCommit Commit { get; }
+    public RunState LiveState { get; }
     public ReadOnlyMemory<byte> Bytes { get; }
     public string ByteHash { get; }
 
@@ -249,15 +291,52 @@ public sealed class PreparedRunCommit
 
     public static PreparedRunCommit CreateVerified(RunCommit commit, string computedStateHash)
     {
+        return CreateVerified(commit, computedStateHash, previousState: null);
+    }
+
+    public static PreparedRunCommit CreateVerified(
+        RunCommit commit,
+        string computedStateHash,
+        RunState? previousState)
+    {
         ArgumentNullException.ThrowIfNull(commit);
         ArgumentException.ThrowIfNullOrWhiteSpace(computedStateHash);
+        var liveState = commit.StateAfter
+            ?? throw new InvalidOperationException("Preparing a run commit requires its live state");
         commit.Validate(computedStateHash);
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(commit, RunCommitJson.Options);
+        var checkpoint = previousState == null || RunCommitCheckpointPolicy.ShouldCheckpoint(commit);
+        var persisted = checkpoint
+            ? commit with
+            {
+                StorageKind = RunCommitStorageKind.Checkpoint,
+                StateDelta = []
+            }
+            : commit with
+            {
+                StorageKind = RunCommitStorageKind.Delta,
+                StateAfter = null,
+                StateDelta = RunStateDelta.Create(previousState!, liveState).Operations
+            };
+        persisted.ValidateEnvelope();
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(persisted, RunCommitJson.Options);
         return new PreparedRunCommit(
-            commit,
+            persisted,
+            liveState,
             bytes,
             Convert.ToHexString(SHA256.HashData(bytes)));
     }
+}
+
+public static class RunCommitCheckpointPolicy
+{
+    public const int Interval = 25;
+
+    public static bool ShouldCheckpoint(RunCommit commit) =>
+        commit.Sequence == 1 ||
+        commit.Sequence % Interval == 0 ||
+        string.Equals(commit.RootCommand.Type, RunCommandTypes.StartEncounter, StringComparison.Ordinal) ||
+        string.Equals(commit.RootCommand.Type, RunCommandTypes.ResolveCombat, StringComparison.Ordinal) ||
+        string.Equals(commit.RootCommand.Type, RunCommandTypes.AbandonRun, StringComparison.Ordinal);
 }
 
 public static class RunCommitJson

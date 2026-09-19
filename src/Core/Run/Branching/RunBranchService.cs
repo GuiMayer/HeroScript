@@ -94,7 +94,7 @@ public sealed class RunBranchService : IRunBranchService
             .ConfigureAwait(false);
         if (sourceCommit == null)
             return Result<RunState>.Failure($"Run commit not found: {parentRunId}/{sourceSequence}");
-        var source = sourceCommit.StateAfter;
+        var source = sourceCommit.RequireState();
         var policy = ValidateBranchPolicy(source);
         if (policy.IsFailure)
             return Result<RunState>.Failure(policy.Error);

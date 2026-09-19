@@ -119,6 +119,44 @@ public sealed class FileRunCommitStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task DeltaCommit_OmitsFullStateAndReconstructsItAcrossRestart()
+    {
+        var runId = Guid.NewGuid();
+        var first = CreateCommit(runId, 1, null, 1);
+        var second = CreateCommit(runId, 2, first.StateHash, 2);
+        using (var store = new FileRunCommitStore(_directory, NullLogger.Instance))
+        {
+            await store.AppendAsync(first);
+            var prepared = PreparedRunCommit.CreateVerified(
+                second,
+                second.StateHash,
+                first.StateAfter!);
+            Assert.Equal(RunCommitStorageKind.Delta, prepared.Commit.StorageKind);
+            Assert.Null(prepared.Commit.StateAfter);
+            Assert.NotEmpty(prepared.Commit.StateDelta);
+            await store.AppendPreparedAsync(prepared);
+        }
+
+        var path = Path.Combine(
+            _directory,
+            runId.ToString("D"),
+            "commits",
+            "00000002.json");
+        using (var document = JsonDocument.Parse(await File.ReadAllBytesAsync(path)))
+        {
+            Assert.Equal("Delta", document.RootElement.GetProperty("StorageKind").GetString());
+            Assert.False(document.RootElement.TryGetProperty("StateAfter", out _));
+            Assert.True(document.RootElement.GetProperty("StateDelta").GetArrayLength() > 0);
+        }
+
+        using var restarted = new FileRunCommitStore(_directory, NullLogger.Instance);
+        var loaded = await restarted.LoadCommitAsync(runId, 2);
+        Assert.NotNull(loaded?.StateAfter);
+        Assert.Equal(second.StateHash, CanonicalJson.ComputeHash(loaded!.StateAfter));
+        Assert.Equal(2, (await restarted.LoadLatestStateAsync(runId))!.Sequence);
+    }
+
+    [Fact]
     public async Task Append_DifferentCommitAtSameSequenceFails()
     {
         using var store = new FileRunCommitStore(_directory, NullLogger.Instance);

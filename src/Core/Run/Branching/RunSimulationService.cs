@@ -238,7 +238,7 @@ public sealed class RunSimulationService : IRunSimulationService
                 CommandIndex = index,
                 CommandType = item.RootCommand.Type,
                 RunSequence = item.Sequence,
-                CombatStep = item.StateAfter.GetActiveEncounter()?.Combat.Determinism.Step,
+                CombatStep = item.RequireState().GetActiveEncounter()?.Combat.Determinism.Step,
                 StateHash = item.StateHash
             })
             .ToArray();
