@@ -107,11 +107,13 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                              FileMode.CreateNew,
                              FileAccess.Write,
                              FileShare.None,
-                             4096,
-                             FileOptions.Asynchronous | FileOptions.WriteThrough))
+                             64 * 1024,
+                             FileOptions.Asynchronous))
             {
                 await stream.WriteAsync(prepared.Bytes, ct).ConfigureAwait(false);
-                await stream.FlushAsync(ct).ConfigureAwait(false);
+                // One durable flush is enough. FlushAsync followed by Flush(true)
+                // issued two flushes for every gameplay command and amplified
+                // storage latency without increasing the durability guarantee.
                 stream.Flush(flushToDisk: true);
             }
             File.Move(temporaryPath, path, overwrite: false);
@@ -123,7 +125,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
                 prepared.ByteHash,
                 ValidatedCommitIdentity.From(commit));
             await WriteCommandIndexBestEffortAsync(commit, ct).ConfigureAwait(false);
-            _logger.LogInformation($"Run commit {commit.Sequence} appended for run {commit.RunId}");
+            _logger.LogDebug($"Run commit {commit.Sequence} appended for run {commit.RunId}");
             return new RunCommitAppendResult(commit, false);
         }
         catch
