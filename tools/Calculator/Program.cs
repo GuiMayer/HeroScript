@@ -255,7 +255,7 @@ namespace Calculator
                             break;
 
                         case "build":
-                            if (expr == null)
+                            if (expr == null || !initialValue.HasValue)
                             {
                                 Console.WriteLine("Error: Use 'start <value>' first");
                                 break;

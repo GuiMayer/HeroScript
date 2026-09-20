@@ -18,7 +18,6 @@ public class Result<T>
     /// <summary>
     /// Indicates whether the operation was successful.
     /// </summary>
-    [MemberNotNullWhen(true, nameof(_value))]
     [MemberNotNullWhen(false, nameof(_error))]
     public bool IsSuccess { get; }
 
@@ -36,7 +35,7 @@ public class Result<T>
         {
             if (IsFailure)
                 throw new InvalidOperationException($"Cannot access Value of a failed result. Error: {_error}");
-            return _value;
+            return _value!;
         }
     }
 
@@ -49,7 +48,7 @@ public class Result<T>
         {
             if (IsSuccess)
                 throw new InvalidOperationException("Cannot access Error of a successful result.");
-            return _error;
+            return _error!;
         }
     }
 
@@ -95,7 +94,7 @@ public class Result<T>
     public Result<T> OnSuccess(Action<T> action)
     {
         if (IsSuccess)
-            action(_value);
+            action(_value!);
         return this;
     }
 
@@ -105,7 +104,7 @@ public class Result<T>
     public Result<T> OnFailure(Action<string> action)
     {
         if (IsFailure)
-            action(_error);
+            action(_error!);
         return this;
     }
 
@@ -115,11 +114,13 @@ public class Result<T>
     public Result<TNew> Map<TNew>(Func<T, TNew> mapper)
     {
         if (IsFailure)
-            return Result<TNew>.Failure(_error, _exception);
+            return _exception == null
+                ? Result<TNew>.Failure(_error!)
+                : Result<TNew>.Failure(_error!, _exception);
         
         try
         {
-            return Result<TNew>.Success(mapper(_value));
+            return Result<TNew>.Success(mapper(_value!));
         }
         catch (Exception ex)
         {
@@ -133,11 +134,13 @@ public class Result<T>
     public Result<TNew> Bind<TNew>(Func<T, Result<TNew>> binder)
     {
         if (IsFailure)
-            return Result<TNew>.Failure(_error, _exception);
+            return _exception == null
+                ? Result<TNew>.Failure(_error!)
+                : Result<TNew>.Failure(_error!, _exception);
         
         try
         {
-            return binder(_value);
+            return binder(_value!);
         }
         catch (Exception ex)
         {
@@ -148,19 +151,19 @@ public class Result<T>
     /// <summary>
     /// Returns the value if successful, otherwise returns the provided default value.
     /// </summary>
-    public T ValueOr(T defaultValue) => IsSuccess ? _value : defaultValue;
+    public T ValueOr(T defaultValue) => IsSuccess ? _value! : defaultValue;
 
     /// <summary>
     /// Returns the value if successful, otherwise computes and returns a default value.
     /// </summary>
-    public T ValueOr(Func<T> defaultValueProvider) => IsSuccess ? _value : defaultValueProvider();
+    public T ValueOr(Func<T> defaultValueProvider) => IsSuccess ? _value! : defaultValueProvider();
 
     /// <summary>
     /// Matches the result to one of two functions based on success or failure.
     /// </summary>
     public TResult Match<TResult>(Func<T, TResult> onSuccess, Func<string, TResult> onFailure)
     {
-        return IsSuccess ? onSuccess(_value) : onFailure(_error);
+        return IsSuccess ? onSuccess(_value!) : onFailure(_error!);
     }
 
     /// <summary>
@@ -195,7 +198,7 @@ public class Result
         {
             if (IsSuccess)
                 throw new InvalidOperationException("Cannot access Error of a successful result.");
-            return _error;
+            return _error!;
         }
     }
 
@@ -224,14 +227,16 @@ public class Result
     public Result OnFailure(Action<string> action)
     {
         if (IsFailure)
-            action(_error);
+            action(_error!);
         return this;
     }
 
     public Result<T> Map<T>(Func<T> mapper)
     {
         if (IsFailure)
-            return Result<T>.Failure(_error, _exception);
+            return _exception == null
+                ? Result<T>.Failure(_error!)
+                : Result<T>.Failure(_error!, _exception);
         
         try
         {
@@ -245,7 +250,7 @@ public class Result
 
     public TResult Match<TResult>(Func<TResult> onSuccess, Func<string, TResult> onFailure)
     {
-        return IsSuccess ? onSuccess() : onFailure(_error);
+        return IsSuccess ? onSuccess() : onFailure(_error!);
     }
 
     public override string ToString()

@@ -173,6 +173,28 @@ namespace Core.Tests.Delta
             Assert.True(result.Errors.Count > 0);
         }
 
+        [Theory]
+        [InlineData("effects[-1]")]
+        [InlineData("effects[abc]")]
+        [InlineData("effects[0")]
+        [InlineData("params..value")]
+        [InlineData("params.")]
+        [InlineData("[0]")]
+        [InlineData("$params.value")]
+        public void DeltaValidator_FieldDelete_RejectsInvalidTargetPath(string targetPath)
+        {
+            var delta = new DeltaDefinition
+            {
+                Operation = DeltaOperationType.FIELD_DELETE,
+                TargetPath = targetPath
+            };
+
+            var result = DeltaValidator.Validate("TEST", delta, strictMode: true);
+
+            Assert.False(result.IsValid);
+            Assert.Contains(result.Errors, error => error.Contains("Target path", StringComparison.Ordinal));
+        }
+
         [Fact]
         public void DeltaValidator_MergeDeep_RequiresData()
         {

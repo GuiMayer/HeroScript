@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Core.Logging;
 
 namespace Core.Config.Delta
@@ -364,78 +365,21 @@ namespace Core.Config.Delta
             if (baseValue.Value.ValueKind != JsonValueKind.Object)
                 throw new InvalidOperationException($"FIELD_DELETE requires base to be an object, got {baseValue.Value.ValueKind}");
 
-            // Parse target path (formato simples: "field" ou "nested.field")
-            var pathParts = delta.TargetPath.Split('.');
+            if (!DeltaTargetPath.TryParse(delta.TargetPath, out var segments, out var pathError))
+                throw new InvalidOperationException(pathError);
 
-            // Converter base para dicionário mutável
-            var json = baseValue.Value.GetRawText();
-            var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
-
-            if (dict == null)
-                throw new InvalidOperationException("Failed to deserialize base value");
-
-            // Navegar até o campo alvo
-            if (pathParts.Length == 1)
+            var root = JsonNode.Parse(baseValue.Value.GetRawText())
+                ?? throw new InvalidOperationException("Failed to deserialize base value");
+            if (!DeltaTargetPath.TryDelete(root, segments, out var deleteError))
             {
-                // Campo top-level
-                if (!dict.Remove(pathParts[0]))
-                {
-                    var msg = $"Field '{delta.TargetPath}' not found";
-                    if (strictMode)
-                        throw new KeyNotFoundException(msg);
-                    
-                    logger.LogWarning($"Field '{delta.TargetPath}' not found in '{resourceId}', ignoring operation");
-                    return baseValue.Value;
-                }
-            }
-            else
-            {
-                // Campo nested (implementação simples para v1)
-                // TODO: Suportar JSONPath completo (technical debt)
-                var current = dict;
-                
-                for (int i = 0; i < pathParts.Length - 1; i++)
-                {
-                    if (!current.TryGetValue(pathParts[i], out var nextElement))
-                    {
-                        var msg = $"Path '{string.Join(".", pathParts.Take(i + 1))}' not found";
-                        if (strictMode)
-                            throw new KeyNotFoundException(msg);
-                        
-                        logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
-                        return baseValue.Value;
-                    }
+                if (strictMode)
+                    throw new KeyNotFoundException(deleteError);
 
-                    if (nextElement.ValueKind != JsonValueKind.Object)
-                    {
-                        var msg = $"Path '{string.Join(".", pathParts.Take(i + 1))}' is not an object";
-                        if (strictMode)
-                            throw new InvalidOperationException(msg);
-                        
-                        logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
-                        return baseValue.Value;
-                    }
-
-                    var nextJson = nextElement.GetRawText();
-                    current = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(nextJson)!;
-                }
-
-                // Remover campo final
-                var finalField = pathParts[^1];
-                if (!current.Remove(finalField))
-                {
-                    var msg = $"Field '{delta.TargetPath}' not found";
-                    if (strictMode)
-                        throw new KeyNotFoundException(msg);
-                    
-                    logger.LogWarning($"{msg} in '{resourceId}', ignoring operation");
-                    return baseValue.Value;
-                }
+                logger.LogWarning($"{deleteError} in '{resourceId}', ignoring operation");
+                return baseValue.Value;
             }
 
-            // Converter de volta para JsonElement
-            var resultJson = JsonSerializer.Serialize(dict);
-            return JsonDocument.Parse(resultJson).RootElement.Clone();
+            return JsonSerializer.SerializeToElement(root);
         }
     }
 }

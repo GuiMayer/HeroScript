@@ -318,10 +318,6 @@ namespace Core.Tests
         [Fact]
         public void ApplyDelta_FieldDelete_RemovesNestedField()
         {
-            // Note: This test documents current behavior where nested field deletion
-            // via TargetPath may not be fully implemented. Skipping for now.
-            // TODO: Implement proper nested field deletion in DeltaMerger
-            
             var baseElement = JsonDocument.Parse("{\"a\": 1, \"params\": {\"x\": 10, \"y\": 20}}").RootElement;
             var delta = new DeltaDefinition
             {
@@ -330,9 +326,44 @@ namespace Core.Tests
             };
 
             var result = DeltaMerger.ApplyDelta(baseElement, delta, "TEST_RESOURCE", strictMode: false);
-            
-            // For now, just verify the operation doesn't crash
+            var expected = JsonDocument.Parse("{\"a\": 1, \"params\": {\"y\": 20}}").RootElement;
+
             Assert.True(result.HasValue);
+            Assert.True(JsonEquals(expected, result.Value));
+        }
+
+        [Fact]
+        public void ApplyDelta_FieldDelete_RemovesNestedArrayField()
+        {
+            var baseElement = JsonDocument.Parse("{\"effects\": [{\"type\": \"DAMAGE\", \"amount\": 5}, {\"type\": \"DRAW\", \"amount\": 2}]}").RootElement;
+            var delta = new DeltaDefinition
+            {
+                Operation = DeltaOperationType.FIELD_DELETE,
+                TargetPath = "effects[1].amount"
+            };
+
+            var result = DeltaMerger.ApplyDelta(baseElement, delta, "TEST_RESOURCE", strictMode: true);
+            var expected = JsonDocument.Parse("{\"effects\": [{\"type\": \"DAMAGE\", \"amount\": 5}, {\"type\": \"DRAW\"}]}").RootElement;
+
+            Assert.True(result.HasValue);
+            Assert.True(JsonEquals(expected, result.Value));
+        }
+
+        [Fact]
+        public void ApplyDelta_FieldDelete_RemovesArrayItem()
+        {
+            var baseElement = JsonDocument.Parse("{\"effects\": [\"DAMAGE\", \"DRAW\", \"HEAL\"]}").RootElement;
+            var delta = new DeltaDefinition
+            {
+                Operation = DeltaOperationType.FIELD_DELETE,
+                TargetPath = "effects[1]"
+            };
+
+            var result = DeltaMerger.ApplyDelta(baseElement, delta, "TEST_RESOURCE", strictMode: true);
+            var expected = JsonDocument.Parse("{\"effects\": [\"DAMAGE\", \"HEAL\"]}").RootElement;
+
+            Assert.True(result.HasValue);
+            Assert.True(JsonEquals(expected, result.Value));
         }
 
         [Fact]

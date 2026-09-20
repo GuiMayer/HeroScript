@@ -62,8 +62,8 @@ namespace Core.Config.Delta
 
         /// <summary>
         /// Remove um campo específico do recurso.
-        /// Requer campo $target especificando o caminho do campo (ex: "params.SCALING_VALUE").
-        /// NOTA: JSONPath completo não implementado na v1 (technical debt).
+        /// Requer campo $target especificando uma propriedade ou item de array
+        /// (ex: "params.SCALING_VALUE" ou "effects[1]").
         /// </summary>
         FIELD_DELETE
     }

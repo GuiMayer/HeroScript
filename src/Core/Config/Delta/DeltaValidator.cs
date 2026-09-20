@@ -212,14 +212,12 @@ namespace Core.Config.Delta
                 result.IsValid = false;
             }
 
-            // Validar formato do path (simples: "field" ou "nested.field")
             if (!string.IsNullOrWhiteSpace(delta.TargetPath))
             {
-                // TODO: Implementar validação de JSONPath quando suportado (technical debt)
-                // Por enquanto, apenas avisar sobre limitações
-                if (delta.TargetPath.Contains('[') || delta.TargetPath.Contains(']'))
+                if (!DeltaTargetPath.TryParse(delta.TargetPath, out _, out var pathError))
                 {
-                    result.AddWarning($"[{resourceId}] Array indexing in $target not supported in v1 (technical debt)");
+                    result.AddError($"[{resourceId}] {pathError}");
+                    result.IsValid = false;
                 }
             }
 

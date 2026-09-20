@@ -65,7 +65,7 @@ public sealed class FileRunCommitStoreTests : IDisposable
                 "CombatEnd",
                 "CombatStart")
         };
-        var state = original.StateAfter with
+        var state = original.RequireState() with
         {
             Encounters = [new RunEncounterState { NodeId = "combat", Combat = combat }]
         };
@@ -80,10 +80,11 @@ public sealed class FileRunCommitStoreTests : IDisposable
         var loaded = await restarted.LoadCommitAsync(runId, 1);
 
         Assert.NotNull(loaded);
-        Assert.Equal(commit.StateHash, CanonicalJson.ComputeHash(loaded.StateAfter));
+        var loadedState = loaded.RequireState();
+        Assert.Equal(commit.StateHash, CanonicalJson.ComputeHash(loadedState));
         Assert.Equal(
             new[] { "CombatEnd", "CombatStart" },
-            loaded.StateAfter.Encounters[0].Combat.CompletedLifecycleBoundaries);
+            loadedState.Encounters[0].Combat.CompletedLifecycleBoundaries);
     }
 
     [Fact]

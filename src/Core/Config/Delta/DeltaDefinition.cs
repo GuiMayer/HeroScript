@@ -20,8 +20,8 @@ namespace Core.Config.Delta
 
         /// <summary>
         /// Caminho do campo alvo para operações específicas.
-        /// Formato: "field" ou "nested.field" (JSONPath completo não implementado na v1).
-        /// Usado por: FIELD_DELETE, operações de array em campos nested.
+        /// Formato: "field", "nested.field", "items[1]" ou "items[1].field".
+        /// Usado por FIELD_DELETE.
         /// </summary>
         [JsonPropertyName("$target")]
         public string? TargetPath { get; set; }

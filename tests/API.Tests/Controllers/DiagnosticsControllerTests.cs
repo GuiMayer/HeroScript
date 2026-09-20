@@ -178,10 +178,9 @@ public class DiagnosticsControllerTests
         _registry.Register(cache1);
         _registry.Register(cache2);
 
-        var result = _controller.GetCacheStatistics() as OkObjectResult;
-        var response = result.Value as CacheStatisticsResponse;
+        var result = Assert.IsType<OkObjectResult>(_controller.GetCacheStatistics());
+        var response = Assert.IsType<CacheStatisticsResponse>(result.Value);
 
-        Assert.NotNull(response);
         Assert.True(response.AverageHitRate > 0.58 && response.AverageHitRate < 0.59);
     }
 

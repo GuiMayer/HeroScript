@@ -87,7 +87,7 @@ public sealed class RunManagerTests
             var tampered = commits.ToArray();
             tampered[^1] = tampered[^1] with
             {
-                StateAfter = SetResource(tampered[^1].StateAfter, "gold", 999)
+                StateAfter = SetResource(tampered[^1].RequireState(), "gold", 999)
             };
             Assert.False(RunReplayVerifier.Verify(tampered).IsValid);
         }
