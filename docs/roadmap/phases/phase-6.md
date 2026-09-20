@@ -1,7 +1,12 @@
 # Fase 6 - Modos Especiais
 
-**Status:** 📋 Planejado  
+**Status:** 🟡 Seed, modos e daily challenge implementados; modos adicionais permanecem extensões
 **Dependências:** Fase 3 (Run), Fase 5 (Save, MetaProgression)
+
+> Os nomes de serviço e endpoints abaixo são o desenho original. Hoje seeds
+> fazem parte de `RunStartOptions`, modos são recursos JSON resolvidos por
+> `GameModeResolver`, e desafios diários são expostos por
+> `DailyChallengeController`/`DailyChallengeService`.
 
 ---
 
@@ -171,9 +176,9 @@ Custom modes modificam regras base:
 - ✅ ContentLoader (Fase 4)
 - ✅ SaveManager (Fase 5)
 - ✅ MetaProgressionSystem (Fase 5)
-- ⏳ SeedGenerator (implementar)
-- ⏳ ModeManager (implementar)
-- ⏳ DailyChallengeSystem (implementar)
+- ✅ Seeds explícitas e RNG determinístico em `RunManager`/`DeterministicContext`
+- ✅ Modos revisionados em `GameModeResolver`
+- ✅ Desafios diários e leaderboard em `DailyChallengeService`
 
 ### Ordem de Implementação
 

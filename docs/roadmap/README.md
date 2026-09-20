@@ -1,6 +1,6 @@
 # Roadmap atual
 
-**Atualizado em:** 2026-09-11
+**Atualizado em:** 2026-09-20
 
 O núcleo de combate determinístico já possui run persistida, atores genéricos,
 conteúdo versionado, cartas/componentes, recursos universais, efeitos,
@@ -17,6 +17,18 @@ replay e branches. A REST v1 é a única autoridade acessível por clientes.
 | Run/progressão | fluxo canônico implementado | conteúdo jogável e balanceamento |
 | Timeline e theorycraft | histórico e branches implementados | navegador visual completo |
 | Dashboard | adiado | fora do caminho crítico atual |
+
+## Backlog arquitetural explícito
+
+| Pendência | Quando se torna necessária | Estado atual |
+| --- | --- | --- |
+| Ownership e autorização por ator/controlador | Antes de multiplayer ou API multi-cliente | single-player usa a mesma fronteira actor-agnostic, sem política de posse externa |
+| Resolução automática do fim de encounter | Quando um modo precisar dispensar confirmação do cliente | `ManualAck` é a única estratégia aceita; `Automatic` permanece reservado |
+| Telemetria e tooling matemático avançado | Para profiling/autoria especializada | validação, trace e tempo total existem; evento, breakpoints e profiling por operação não |
+
+Essas são extensões deliberadas, não falhas do protótipo atual. Checklists
+operacionais e documentos em `roadmap/phases` não devem ser interpretados como
+uma segunda lista de tarefas.
 
 ## Ordem restante
 

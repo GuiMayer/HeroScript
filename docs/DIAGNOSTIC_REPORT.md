@@ -1,7 +1,12 @@
 # Diagnostic Report - Integration Tests Timeout
 
 **Date:** 2026-07-05  
-**Status:** IDENTIFIED - NOT RESOLVED
+**Status:** RESOLVED — verified again on 2026-09-20
+
+> Historical postmortem. This report records a failure observed on 2026-07-05;
+> it is not an active incident or backlog. Run startup, persistence and the
+> integration suites named below now execute through the canonical v1 command
+> boundary.
 
 ## Problem Summary
 
@@ -42,7 +47,7 @@ The `RunManager.StartRun` method is blocking indefinitely. Possible causes:
    - Transaction that never commits
    - Initialization that waits for external resources
 
-## Recommended Fixes (NOT IMPLEMENTED)
+## Historical Recommendations (superseded)
 
 ### Fix 1: Add Timeout to RunManager Operations
 ```csharp
@@ -84,7 +89,7 @@ rg "\.Result\b|\.Wait\(\)" --type cs src/Core/Run/
 
 ## Impact
 
-**All integration tests are blocked** until this is resolved:
+At the time of the incident, the following integration suites were blocked:
 - ✗ RoguelikeGameFlowTests (8 tests)
 - ✗ AutoBattlerGameFlowTests (6 tests)
 - ✗ TacticalRpgGameFlowTests (6 tests)
@@ -94,21 +99,26 @@ rg "\.Result\b|\.Wait\(\)" --type cs src/Core/Run/
 
 **Total: 38 integration tests blocked**
 
-## Workaround
+## Historical Workaround
 
 For now, proceed with:
 1. Implementing missing endpoints (auto-play)
 2. Creating comprehensive API documentation
 3. Setting up validation infrastructure
 
-Integration tests can be fixed in a separate session focused on:
+The original investigation proposed a separate session focused on:
 - Core business logic debugging
 - Configuration setup
 - Async/sync review
 
-## Next Steps
+## Resolution Verification
 
-1. Commit diagnostic findings
-2. Proceed with Phases 1, 2, 4, 5 (documentation and missing endpoints)
-3. Schedule separate debugging session for Phase 3 resolution
-4. Consider adding timeout middleware to all endpoints as safety measure
+On 2026-09-20, all six integration flow suites listed in this report plus
+`CombatSandboxIntegrationTests` were executed together: 57 tests passed, with
+zero failures and zero skipped tests. The durable `FileRunCommitStore`, pinned
+content revisions and explicit run commands replaced the initialization path
+described by the original hypotheses.
+
+Timeouts remain a test-runner concern, but adding an arbitrary timeout inside
+deterministic domain operations is no longer considered the fix for this
+incident.

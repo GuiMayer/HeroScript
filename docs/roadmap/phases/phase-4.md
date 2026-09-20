@@ -1,7 +1,12 @@
 # Fase 4 - Conteúdo MVP
 
-**Status:** ⏳ Bloqueada pela Fase 3 — Aguardando Map System e Event System  
+**Status:** ✅ Base de conteúdo implementada pelo runtime revisionado
 **Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers), Fase 3 (Run, Shop, Map, Events)
+
+> Este documento preserva o inventário e os nomes planejados originalmente.
+> A implementação atual usa `ContentRuntime`, `ContentPublicationService` e
+> `ContentGraphValidator`; endpoints separados por substantivo foram substituídos
+> pela API genérica de conteúdo revisionado.
 
 ---
 
@@ -318,8 +323,8 @@ Inimigos participam do combate:
 - ✅ ScriptModifierSystem (Fase 2)
 - ✅ GambitEngine (Fase 2)
 - ✅ RunManager (Fase 3)
-- ⏳ ContentLoader (implementar)
-- ⏳ ComboValidator (implementar)
+- ✅ Carregamento/publicação: `ContentRuntime` + `ContentPublicationService`
+- ✅ Validação de grafo e componentes: `ContentGraphValidator` + `GameplayContentValidator`
 
 ### Ordem de Implementação
 

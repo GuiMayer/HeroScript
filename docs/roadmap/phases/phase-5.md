@@ -1,7 +1,12 @@
 # Fase 5 - Persistência
 
-**Status:** 📋 Planejado  
+**Status:** 🟡 Implementação canônica disponível; expansões de metaprogressão continuam opcionais
 **Dependências:** Fase 3 (Run), Fase 4 (Content)
+
+> O desenho abaixo antecede o journal imutável. Não existe uma operação manual
+> `save`: cada comando aceito é persistido atomicamente por `FileRunCommitStore`,
+> e uma run é retomada pelo seu `runId`. Histórico, estatísticas, unlocks e
+> achievements são projeções de perfil, não uma segunda fonte de verdade.
 
 ---
 
@@ -202,9 +207,9 @@ Histórico de eventos é exportável:
 - ✅ RunManager (Fase 3)
 - ✅ ContentLoader (Fase 4)
 - ✅ EventBus (Fase 1)
-- ⏳ SaveManager (implementar)
-- ⏳ MetaProgressionSystem (implementar)
-- ⏳ FeatSystem (implementar)
+- ✅ Persistência automática: `FileRunCommitStore` e checkpoints de run
+- ✅ Metaprogressão de leitura: `PlayerProfileProjectionReader`
+- 📌 Backlog opcional: regras autorais adicionais para concessão de unlocks/achievements
 
 ### Ordem de Implementação
 

@@ -113,10 +113,10 @@ Sistema de custos alternativos para ações (implementado como parte do Combat).
 - [alternative-costs.md](../alternative-costs.md) - Documentação completa do sistema
 - [alternative-costs-examples.json](../examples/alternative-costs-examples.json) - Exemplos de uso
 
-**Integração Pendente:**
-- ⏳ Validação de costOptionId contra definições de ação (aguardando ActionManager completo)
-- ⏳ Aplicação automática de custos em ExecutePower (aguardando ActionManager)
-- ⏳ Endpoint /cost-options retornando dados reais (aguardando ActionManager)
+**Integração atual:**
+- ✅ `costOptionId` é validado pelo `CardPlayEvaluator` contra os componentes de custo revisionados.
+- ✅ Custos são aplicados atomicamente pelo fluxo canônico de `PLAY_CARD`/ability.
+- ✅ Opções acessíveis são projetadas nas avaliações e ações legais; o endpoint placeholder `/cost-options` foi substituído, não deixado pendente.
 
 ### 3. Damage API ✅
 

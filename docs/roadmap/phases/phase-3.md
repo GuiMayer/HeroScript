@@ -1,29 +1,17 @@
 # Fase 3 - Loop de Run
 
-**Status:** 🔴 BLOQUEADA — Map Navigation System e Event System ausentes (blockers absolutos)
+**Status:** ✅ Implementada pela arquitetura canônica de runs
 **Dependências:** Fase 1 (Combat), Fase 2 (Status, Modifiers, Gambits)
 
 ---
 
-## ⚠️ BLOCKERS CRÍTICOS
+## Blockers resolvidos
 
-**Esta fase está completamente bloqueada por dois sistemas não implementados:**
-
-### 1. Map Navigation System (0% implementado) - BLOCKER ABSOLUTO
-- **Problema:** Sem sistema de progressão entre nós (combate → loja → evento → boss)
-- **Impacto:** Impossível criar loop de run jogável
-- **Estado atual:** `RunManager` tem `CurrentNodeId` mas sem lógica de navegação/geração de mapa
-- **Necessário:** `MapManager`, geração de grafo de nós, lógica de avanço
-- **Estimativa:** 1 semana de implementação
-
-### 2. Event System (0% implementado) - BLOCKER ABSOLUTO
-- **Problema:** Eventos narrativos/escolha não existem
-- **Impacto:** Runs sem variação, apenas combates repetitivos
-- **Estado atual:** Nenhum código implementado
-- **Necessário:** `EventManager`, `EventDefinition` JSON, sistema de escolhas
-- **Estimativa:** 3 dias de implementação
-
-**Nenhum progresso adicional na Fase 3 é viável até que estes sistemas sejam implementados.**
+O diagnóstico inicial desta fase antecede a arquitetura atual. Navegação vive em
+`RunMapState`/`RunMapTransitions`, atividades narrativas usam handlers de run e
+diálogos revisionados, e toda mutação passa pelo journal de comandos e pelo
+`RunCommitStore`. As seções de planejamento abaixo são preservadas como contexto
+histórico; não constituem um backlog ativo de endpoints legados.
 
 ---
 
@@ -43,7 +31,7 @@ A Fase 3 implementa o loop completo de uma run roguelike: gerenciamento de runs,
 - Recompensas, lojas e preparacao agora usam catalogo/pools data-driven: `cards/card_catalog.json`, `card-pools/{poolId}.json`, `card-selections/{selectionId}.json`, `shops/{shopId}.json` e `preparations/{preparationId}.json`.
 - Modificadores concedidos em preparacao podem pertencer a `run:{runId}` e sao aplicados no combate via `CombatRunCoordinator` + `ScriptModifierManager.GetPipelineModifiers` antes da carta ser executada.
 - Operacoes compostas de run agora passam por fronteira transacional no `RunManager`: compra, reroll, pick, decompose e preparacao restauram o estado em falha; modifiers externos aplicados durante preparacao sao removidos se uma etapa posterior falhar.
-- Ownership/autorização de controle por ator fica como TODO futuro, antes de multiplayer ou API multi-cliente.
+- Ownership/autorização de controle por ator permanece no backlog canônico, antes de multiplayer ou API multi-cliente.
 
 ## APIs Planejadas
 
@@ -241,8 +229,8 @@ Preparação permite customização:
 - ✅ Catalogo de cartas, pools por raridade/tags, reroll/decompose de recompensas, pricing/reroll de loja e grants reais de modifiers em preparacao
 - ✅ Modificadores de run aplicados em acoes de carta via `CombatRunCoordinator` e `CombatActionCommand.RunModifiers`
 - ✅ Primeira fatia de transacoes/rollback para operacoes compostas de run implementada no `RunManager`
-- ⏳ Refinamentos de turnos por entidade, refinamentos transacionais futuros e conteúdo MVP ampliado
-- 🧭 TODO futuro: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente
+- 📌 Backlog: refinamentos adicionais de conteúdo e modos podem ser adicionados pelo runtime revisionado.
+- 🧭 Backlog canônico: ownership/autorizacao por ator antes de multiplayer ou controle remoto multi-cliente.
 
 ### Ordem de Implementação
 
@@ -269,7 +257,7 @@ Preparação permite customização:
     - `GET /api/events?afterSequence=...` e `GET /api/combat/{combatId}/events` fornecem polling incremental
     - `GET /api/events/stream` e `GET /api/combat/{combatId}/events/stream` fornecem base SSE
 
-4. **TODO Futuro: Ownership/Autorizacao por Ator**
+4. **Backlog: Ownership/Autorizacao por Ator**
    - Definir `controllerId`/`playerId`/`source` para comandos externos
    - Mapear quais atores cada controlador pode comandar
    - Separar fontes `PLAYER_INPUT`, `AI`, `SYSTEM` e `SCRIPT` sem criar caminhos diferentes no combate

@@ -274,7 +274,7 @@ Response: {
 2. **Usar polling incremental** via `/api/events?afterSequence=...` ou `/api/combat/{combatId}/events`; SSE já existe como base em `/events/stream`.
 3. **Usar refinamentos de Run implementados**: catalogo de cartas, pools por raridade/tags, reroll/decompose, shop pricing/reroll, preparation modifiers e rollback transacional das operacoes compostas.
 4. **Próximo refinamento:** conteúdo MVP ampliado, regras avançadas de ativacao e refinamentos transacionais futuros para persistencia.
-5. **TODO futuro:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
+5. **Backlog canônico:** modelar ownership/autorizacao por ator antes de multiplayer/API multi-cliente; nao e bloqueador para single player.
 
 ### Para Fase 4 (Conteúdo MVP)
 
@@ -297,7 +297,7 @@ Todas as soluções propostas devem:
 - **Consumir metadados backend** de `card-selection`, `shop` e `preparation`; o frontend nao calcula raridade, preco, custo de reroll, PP de decompose ou efeito de modifier.
 - **Tratar falhas como atomicas** para operacoes compostas de Run: compra, reroll, pick, decompose e preparation retornam erro sem deixar gold/PP/deck/modifiers parcialmente aplicados.
 
-### TODO Futuro: Ownership/Autorizacao
+### Backlog: Ownership/Autorizacao
 
 Ownership/autorizacao nao e prioridade para single player local. Deve ser implementado antes de multiplayer, API multi-cliente ou controle remoto real.
 

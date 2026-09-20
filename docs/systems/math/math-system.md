@@ -760,16 +760,18 @@ public float CalculateDamage(string formulaName, float input)
 
 ## Roadmap Futuro
 
-### Planejado para Fase 2
+### Estado atual e backlog de tooling
 
-- [ ] **EventBus integration** - Publicar eventos quando fórmulas são avaliadas
-- [ ] **Formula validation tool** - Validar fórmulas JSON antes de carregar
-- [ ] **Formula debugger** - Step-by-step execution com breakpoints
-- [ ] **Formula profiler** - Medir performance de cada operação
+- [ ] **EventBus integration** - Publicar telemetria quando fórmulas são avaliadas; o tipo de evento existe, mas ainda não possui publisher no motor matemático.
+- [x] **Formula validation** - `FormulaDefinitionValidator` valida o JSON durante a validação/publicação de conteúdo.
+- [x] **Execution trace** - A simulação de fórmulas retorna os passos resolvidos.
+- [ ] **Breakpoint debugger** - Pausar e inspecionar a execução passo a passo.
+- [x] **Request timing** - A simulação informa o tempo total de execução.
+- [ ] **Per-operation profiler** - Medir separadamente o custo de cada operação.
 
-### Planejado para Fase 4
+### Ferramentas futuras
 
-- [ ] **Visual formula editor** - Editor gráfico no dashboard web
+- [ ] **Visual formula editor** - Editor gráfico futuro; o dashboard está fora do escopo atual
 - [ ] **Formula templates** - Templates prontos para casos comuns
 - [ ] **Formula testing framework** - Testes automatizados de fórmulas
 - [ ] **Formula documentation generator** - Gerar docs a partir de JSON
