@@ -43,6 +43,17 @@ func _run() -> void:
 	check(initial_activity.presenter.route().size() == session.run.map.nodes.size(), "all engine map nodes are represented")
 	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(initial_activity).is_empty(), "activity text remains readable")
 	check(not is_instance_valid(initial_activity.find_child("AbandonRunButton", true, false)), "activity screen does not expose run abandonment")
+	var initial_route_scroll: ScrollContainer = initial_activity.find_child("RouteScroll", true, false)
+	initial_route_scroll.scroll_vertical = 120
+	await settle()
+	var route_scroll_before_refresh := initial_route_scroll.scroll_vertical
+	router.show_activity()
+	await settle()
+	check(router.host.get_child(0) == initial_activity, "journey refresh preserves the activity screen")
+	check(initial_activity.find_child("RouteScroll", true, false).scroll_vertical == route_scroll_before_refresh,
+		"journey refresh preserves the map scroll position")
+	check(initial_activity.choice_buttons.all(func(button): return not button.has_method("configure") or not button.animate_entry),
+		"journey refresh does not replay offer-card entrance animations")
 	prefs.fullscreen = false
 	prefs.set_resolution(Vector2i(1280, 720), false)
 	prefs.text_scale = 1.2

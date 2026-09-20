@@ -1,6 +1,6 @@
 # HeroScript Documentation
 
-**Última atualização:** 2026-09-06
+**Última atualização:** 2026-09-20
 **Versão:** 1.0.0
 
 ---
@@ -69,15 +69,19 @@
 
 - **[Roadmap Overview](roadmap/README.md)** - Visão geral do roadmap técnico
 
-### Phases
+### Registros históricos de fases
 
-- [Phase 0](roadmap/phases/phase-0.md) - ✅ Fundação (Config, Math, Resources)
-- [Phase 1](roadmap/phases/phase-1.md) - ✅ EventBus e Combate Básico
-- [Phase 2](roadmap/phases/phase-2.md) - 📋 Camadas de Combate (Status, Modifiers, Gambits)
-- [Phase 3](roadmap/phases/phase-3.md) - 📋 Loop de Run (Run, CardSelection, Shop)
-- [Phase 4](roadmap/phases/phase-4.md) - 📋 Conteúdo MVP (Races, Powers, Companions, Enemies)
-- [Phase 5](roadmap/phases/phase-5.md) - 📋 Persistência (Save/Load, MetaProgression)
-- [Phase 6](roadmap/phases/phase-6.md) - 📋 Modos Especiais (Seed, Daily, Custom)
+Os arquivos abaixo preservam a sequência original de implementação; seus
+marcadores internos não representam o estado atual. Use o
+[roadmap atual](roadmap/README.md) para decisões e pendências vigentes.
+
+- [Phase 0](roadmap/phases/phase-0.md) - Fundação (Config, Math, Resources)
+- [Phase 1](roadmap/phases/phase-1.md) - EventBus e Combate Básico
+- [Phase 2](roadmap/phases/phase-2.md) - Camadas de Combate
+- [Phase 3](roadmap/phases/phase-3.md) - Loop de Run
+- [Phase 4](roadmap/phases/phase-4.md) - Conteúdo MVP
+- [Phase 5](roadmap/phases/phase-5.md) - Persistência
+- [Phase 6](roadmap/phases/phase-6.md) - Modos Especiais
 
 ### Analysis
 

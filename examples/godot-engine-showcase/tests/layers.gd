@@ -199,7 +199,9 @@ func _run() -> void:
 	session.invalidate()
 	transport.release_read.emit()
 	check(session.run.is_empty() and not session.synchronized and not session.busy, "late response cannot republish invalidated session")
-	var choices := Choices.build({}, [{"type": "UPGRADE_CARD", "validPayload": {"upgradeIds": ["a", "b"], "cardInstanceIds": ["x"]}}])
+	var choices := Choices.build({}, [{"type": "UPGRADE_CARD", "validPayload": {"options": [
+		{"cardInstanceId": "x", "cardDefinitionId": "strike", "upgradeId": "a"},
+		{"cardInstanceId": "x", "cardDefinitionId": "strike", "upgradeId": "b"}]}}])
 	check(choices.size() == 2, "progression maps all advertised upgrade choices")
 	var forced := Choices.only_forced_advance([
 		{"type": "ABANDON_RUN", "payload": {}}, {"type": "ADVANCE_NODE", "payload": {"targetNodeId": "next"}}])

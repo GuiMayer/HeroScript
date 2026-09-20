@@ -40,12 +40,23 @@
 - Real-engine UI tests verify history loading, frame playback isolation, creating a playable branch and switching back to the unchanged origin. Offline tests cover sparse pagination and aggregate normalization.
 - Final visual checks include English combat, high contrast/large text and Portuguese timeline. Target controls precede scrollable actor detail so they remain easy to reach.
 
-All five stages preserve the engine as the only authority for gameplay. API/engine code did not require changes for this interaction work; existing canonical projections supplied the necessary data.
+## Stage 6 — stable snapshot rendering
+
+- Combat and Journey retain their screen identity while their context remains active. Accepted commands refresh the current snapshot without clearing the navigation host.
+- Screen refresh is synchronous from the renderer's point of view: typography and contrast are applied before drawing, and stale asynchronous card-inspection responses are rejected by render generation.
+- Existing cards do not replay their entrance animation. Card enrichment applies text scale before replacing a visible subtree.
+- Contextual combat controls reserve stable layout slots. The empty-hand state has a readable horizontal minimum instead of collapsing to one character per line.
+- Journey refresh preserves route/action scroll positions and does not replay offer-card animations. Actual context transitions still replace the screen.
+- Regressions assert persistent screen identity, stable footer geometry, preserved scroll, stable 120% card fonts and the absence of vertical text.
+
+All six stages preserve the engine as the only authority for gameplay. API/engine code did not require changes for this interaction work; existing canonical projections supplied the necessary data.
 
 ## Final validation
 
 - Godot offline layer tests: passed, including concurrency/recovery, defensive copies, timeline normalization, localization and remapping.
-- Real-engine UI smoke: passed, including physical Tab, simulated controller navigation, legal card play, frame/pause isolation and branch round-trip.
-- Full campaign smoke: passed all seven activities and all three sandbox modes. Forty command requests measured median 1,620 ms and maximum 4,451 ms on this machine; this is not a claim that engine latency was optimized by the UI changes.
+- Real-engine UI smoke: passed, including physical Tab, simulated controller navigation, persistent combat refresh, stable controls, legal card play, frame/pause isolation and branch round-trip.
+- Full campaign polish run: passed progression, rewards, shop purchase, preparation, upgrades, combats, automatic travel, final replay, history and pause abandonment with persistent Journey refresh.
+- Layout matrix: passed at 1280×720, 1440×900 and 2560×1080 in English/Portuguese with text scales 1.0 and 1.2. The offline resolution suite additionally covers 1920×1080, 2560×1440, 3440×1440 and 3840×2160.
 - Smoke launcher now rejects Godot script errors even when Godot exits with code zero.
-- Manual hardware gamepad validation and testing additional window sizes remain recommended before distributing the demo.
+- Current latency measurements live in the performance document instead of being duplicated here.
+- Manual hardware gamepad validation remains recommended before distributing the demo.

@@ -15,18 +15,20 @@ and the [art replacement contract](assets/ART_SLOTS.md).
 - The main menu exposes immutable journey history. Replay walks persisted commands and resulting states without activating or mutating the selected run; hash verification remains a separate action.
 - Signed block cleanup in JSON and a more varied opening hand, without a Godot gameplay exception.
 - Longer communication allowance for whole-run replay verification; interactive commands retain their normal timeout.
+- Persistent Combat/Journey screens refresh authoritative snapshots without clearing the navigation host. Existing cards do not replay entry animations, Journey scroll is retained and contextual combat controls reserve stable geometry.
+- Empty hands render a centered localized state with a readable minimum width. Async card inspection applies the configured text scale before the enriched subtree can be drawn.
 
 ## Evidence
 
 | Check | Result |
 |---|---|
-| Core suite | 1,085 passed |
-| API suite | 157 passed |
+| Core/API suites | Presentation-only changes do not alter their contracts; run `dotnet test HeroScript.slnx -c Release` for the current totals |
 | Block lifetime integration regression | Defense absorbs the enemy hit, leftover capacity clears at the owner's next activation, replay verifies |
-| Offline client layers | Passed |
-| Real-engine UI smoke | Passed, including targeting, pause, controller focus, historical state and branch activation |
+| Offline client layers | Passed, including the canonical structured upgrade-choice fixture |
+| Real-engine UI smoke | Passed, including persistent combat identity, stable footer geometry, targeting, pause, controller focus, historical state and branch activation |
 | Gameplay layout | 1280×720, 1440×900 and 2560×1080; English/Portuguese; text scales 1.0 and 1.2 |
-| Real campaign | Completed all seven activities, including a shop purchase and confirmation check; semantic replay valid |
+| Resolution regression | Empty-hand layout and async card enrichment preserve readable horizontal text and 120% font scale |
+| Real campaign | Completed progression, rewards, shop purchase, preparation, upgrades and combats; Journey identity/scroll preserved and semantic replay valid |
 | Visual checks | Rendered combat, rewards, shop, camp and forge; inspected combat in regular and high-contrast/expanded-text layouts |
 
 The renderer may fit a requested window to the available desktop. The headless layout checks apply the exact requested dimensions; visual captures retain the same aspect ratio.
@@ -37,6 +39,7 @@ From the demo directory, with an API running at the chosen address:
 
 ```powershell
 godot --headless --path . --script res://tests/layers.gd
+godot --headless --path . --script res://tests/resolutions.gd -- --layout-smoke
 godot --headless --path . -- --ui-smoke --api-url=http://127.0.0.1:5271
 godot --headless --path . --script res://tests/gameplay_polish.gd -- --api-url=http://127.0.0.1:5271
 ```

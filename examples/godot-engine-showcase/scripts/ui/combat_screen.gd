@@ -22,21 +22,47 @@ var selection_label: Label
 var frame_delay := 0.0
 var submitting := false
 var reconnect_button: Button
+var selection_actions: HBoxContainer
+var animate_card_entry := true
+var render_epoch := 0
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	if not Playback.frame_presented.is_connected(_on_frame):
+		Playback.frame_presented.connect(_on_frame)
+	_render(data, true)
+
+func refresh_state(data: Dictionary) -> void:
+	_render(data, false)
+
+func _render(data: Dictionary, play_entry_animation: bool) -> void:
+	render_epoch += 1
 	presentation = data
+	animate_card_entry = play_entry_animation
+	selected_target = ""
+	selected_card = ""
+	submitting = false
+	frame_delay = 0.0
+	actor_portraits.clear()
+	target_buttons.clear()
+	card_buttons.clear()
+	action_buttons.clear()
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
 	zone_presenter = CardZonePresenter.new(GameSession.card_zones, I18n)
 	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions,
 		I18n, presentation, GameSession.card_zones)
-	Playback.frame_presented.connect(_on_frame)
 	add_theme_constant_override("separation", 8)
 	_build_header()
 	_build_battlefield()
 	_build_hand()
 	_build_footer()
+	# Apply font and contrast preferences before this snapshot can be drawn. The
+	# deferred focus pass must never be responsible for a visible relayout.
+	AppTheme.apply_view_preferences(self)
 	_update_controls()
-	call_deferred("_load_inspection")
+	_load_inspection.call_deferred(render_epoch)
 
 func _exit_tree() -> void:
 	if Playback.frame_presented.is_connected(_on_frame):
@@ -63,8 +89,12 @@ func _build_header() -> void:
 
 func _build_battlefield() -> void:
 	var stage := PanelContainer.new()
+	stage.name = "Battlefield"
 	stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stage.custom_minimum_size.y = 348
+	# The choice row below is permanently reserved to keep the layout stable.
+	# Give that space back at the compact design height; the battlefield still
+	# expands normally on larger viewports.
+	stage.custom_minimum_size.y = 296
 	stage.add_theme_stylebox_override("panel", AppTheme.box(Color("#121423"), 12))
 	stage.clip_contents = true
 	var backdrop := preload("res://scripts/ui/art_slot.gd").new()
@@ -143,7 +173,7 @@ func _build_hand() -> void:
 	for card_view in playable_cards:
 		var card := _card_instance(str(card_view.get("cardInstanceId", "")))
 		if not card.is_empty(): hand_row.add_child(_card_button(card))
-	if playable_cards.is_empty(): hand_row.add_child(AppTheme.muted(I18n.text("No playable cards.")))
+	if playable_cards.is_empty(): hand_row.add_child(_empty_hand_state())
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 8)
@@ -156,10 +186,30 @@ func _build_hand() -> void:
 	section.add_child(scroller)
 	add_child(section)
 
+func _empty_hand_state() -> Control:
+	# A horizontally scrolling container sizes children from their minimum width.
+	# An auto-wrapped label has an almost-zero horizontal minimum and can collapse
+	# to one character per line, making the whole combat screen excessively tall.
+	var state := CenterContainer.new()
+	state.name = "EmptyHandState"
+	state.custom_minimum_size = Vector2(320, 180)
+	state.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	state.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var message := AppTheme.muted(I18n.text("Your hand is empty."), 15, 280)
+	message.name = "EmptyHandMessage"
+	message.autowrap_mode = TextServer.AUTOWRAP_OFF
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	message.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	state.add_child(message)
+	return state
+
 func _card_button(card: Dictionary) -> Button:
 	var instance_id := str(card.get("cardInstanceId", ""))
 	var candidate := _candidate_for_card(instance_id)
 	var value := CardView.new()
+	value.animate_entry = animate_card_entry
 	value.toggle_mode = true
 	value.configure(presenter.card_view_model(instance_id))
 	if not candidate.is_empty() and not card_buttons.values().any(func(card_view): return card_view.has_meta("initial_focus")):
@@ -181,42 +231,61 @@ func _build_footer() -> void:
 	choices = VBoxContainer.new()
 	# Alternate costs/multi-target candidates stay explicit and can scroll independently.
 	var alternatives := ScrollContainer.new()
-	alternatives.custom_minimum_size.y = 0
+	alternatives.name = "CandidateChoicesSlot"
+	# Candidate choices are contextual, but their row is structural. Reserving
+	# it prevents the battlefield and hand from jumping when targeting changes.
+	alternatives.custom_minimum_size.y = 52
 	alternatives.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	alternatives.add_child(choices)
 	add_child(alternatives)
-	choices.child_order_changed.connect(func(): alternatives.custom_minimum_size.y = 52 if choices.get_child_count() > 0 else 0)
 	var row := HBoxContainer.new()
+	row.name = "TurnControls"
 	selection_label = AppTheme.caption("", 13, 120)
 	selection_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(selection_label)
 	queue_label = AppTheme.caption("", 13, 90)
 	queue_label.add_theme_color_override("font_color", AppTheme.TEAL)
 	row.add_child(queue_label)
+	var context_slot := CenterContainer.new()
+	context_slot.name = "ContextActionSlot"
+	context_slot.custom_minimum_size = Vector2(292, 44)
 	next_frame_button = _button(I18n.text("NEXT ANIMATION  [%s]") % Preferences.action_label("confirm_action"), _next_frame, 180)
-	row.add_child(next_frame_button)
+	context_slot.add_child(next_frame_button)
+	selection_actions = HBoxContainer.new()
+	selection_actions.add_theme_constant_override("separation", 6)
 	var cancel := _button(I18n.text("CANCEL SELECTION"), _cancel_selection, 145)
 	cancel.set_meta("selection_only", true)
 	action_buttons.append(cancel)
-	row.add_child(cancel)
+	selection_actions.add_child(cancel)
 	var inspect := _button(I18n.text("INSPECT CARD"), _inspect_card, 130)
 	inspect.set_meta("selection_only", true)
 	action_buttons.append(inspect)
-	row.add_child(inspect)
+	selection_actions.add_child(inspect)
+	context_slot.add_child(selection_actions)
+	row.add_child(context_slot)
+	var system_slot := CenterContainer.new()
+	system_slot.name = "SystemActionSlot"
+	system_slot.custom_minimum_size = Vector2(150, 44)
 	var pass_candidate := _system_candidate(["PASS", "PASS_PRIORITY"])
 	if not pass_candidate.is_empty():
 		var pass_label := "PASS PRIORITY" if str(pass_candidate.command.get("actionType", "")) == "PASS_PRIORITY" else "PASS"
 		var pass_button := _button(I18n.text(pass_label), func(): _execute_system(pass_candidate), 150)
 		action_buttons.append(pass_button)
-		row.add_child(pass_button)
+		system_slot.add_child(pass_button)
+	row.add_child(system_slot)
 	var end := _button(I18n.text("END TURN  [%s]") % Preferences.action_label("end_turn"), _end_turn, 195)
+	end.name = "EndTurnButton"
 	end.add_theme_stylebox_override("normal", AppTheme.box(Color("#705033"), 10, AppTheme.GOLD, 2))
 	end.set_meta("requires_end", true)
 	action_buttons.append(end)
 	row.add_child(end)
+	var reconnect_slot := CenterContainer.new()
+	reconnect_slot.name = "ReconnectSlot"
+	reconnect_slot.custom_minimum_size = Vector2(130, 44)
 	reconnect_button = _button(I18n.text("RECONNECT"), _reconnect, 130)
-	row.add_child(reconnect_button)
+	reconnect_slot.add_child(reconnect_button)
+	row.add_child(reconnect_slot)
 	add_child(row)
 
 func _input(event: InputEvent) -> void:
@@ -419,6 +488,7 @@ func _update_controls() -> void:
 	queue_label.text = _queue_text() if _has_frames() else ""
 	queue_label.tooltip_text = queue_label.text
 	next_frame_button.visible = _has_frames()
+	selection_actions.visible = not selected_card.is_empty() and not _has_frames()
 	selection_label.text = I18n.text("PROCESSING…") if GameSession.busy or submitting else (
 		I18n.text("Choose a highlighted target.") if not selected_card.is_empty() else "")
 	selection_label.tooltip_text = selection_label.text
@@ -428,8 +498,8 @@ func _update_controls() -> void:
 		card.modulate = Color.WHITE if not _candidates(id).is_empty() else Color("#a99cab")
 		card.select_card(id == selected_card)
 	for button in action_buttons:
-		if button.has_meta("selection_only"): button.visible = not selected_card.is_empty()
-		button.disabled = locked or (button.has_meta("requires_end") and _system_candidate(["END_TURN"]).is_empty())
+		button.disabled = locked or (button.has_meta("selection_only") and selected_card.is_empty()) or \
+			(button.has_meta("requires_end") and _system_candidate(["END_TURN"]).is_empty())
 	for id in target_buttons:
 		var allowed := not selected_card.is_empty() and _candidates(selected_card).any(func(candidate): return id in _targets(candidate))
 		target_buttons[id].disabled = locked or not allowed
@@ -473,7 +543,7 @@ func _reconnect() -> void:
 func _cost_text(candidate: Dictionary) -> String:
 	return presenter._cost_text(candidate)
 
-func _load_inspection() -> void:
+func _load_inspection(ticket: int) -> void:
 	var representative_targets: Array = []
 	for candidate in GameSession.legal_actions:
 		var targets: Array = presenter._targets(candidate)
@@ -481,7 +551,7 @@ func _load_inspection() -> void:
 			representative_targets = [targets[0]]
 			break
 	var response := await GameSession.inspect_hand(representative_targets)
-	if not is_inside_tree() or not response.ok:
+	if not is_inside_tree() or ticket != render_epoch or not response.ok:
 		return
 	presenter.accept_evaluations(response.data.get("cards", []))
 	for id in card_buttons:

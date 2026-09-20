@@ -50,10 +50,25 @@ variam; o orçamento ponta a ponta pertence ao smoke test Release.
 
 ## Resultado
 
-A demo possui português/inglês em runtime, seleção de carta e alvo sem recriar
-a tela, custos e prévias canônicas, animações simples e controles da fila de
-apresentação. A campanha completa, os três sandboxes e os testes de interação
-passaram. Nenhuma dessas preferências altera a run ou suas regras.
+A demo possui português/inglês em runtime, Combat/Journey persistentes durante
+refresh do mesmo contexto, custos e prévias canônicas, animações simples e
+controles da fila de apresentação. A campanha completa, os três sandboxes e os
+testes de interação passaram. Nenhuma dessas preferências altera a run ou suas
+regras.
+
+### Atualização de estabilidade visual — 2026-09-20
+
+O cliente deixou de remover e recriar `CombatScreen` e `ActivityScreen` após
+cada comando aceito. As telas conservam sua identidade e renderizam o novo
+snapshot de forma síncrona, já com preferências tipográficas aplicadas. Cartas
+remanescentes/ofertas não repetem animação de entrada, respostas assíncronas de
+inspeção usam geração de render, o Journey mantém scroll e os controles
+contextuais do combate reservam geometria. O estado de mão vazia possui largura
+mínima explícita.
+
+Essas mudanças não mantêm estado de gameplay em nodes: presenters são recriados
+sobre cópias defensivas do snapshot autoritativo. Transições de contexto ainda
+substituem a tela normalmente.
 
 Foi reduzido o trabalho de busca de recibos no armazenamento em arquivos.
 Isso não torna todos os comandos instantâneos: o teste completo ainda mediu
@@ -145,8 +160,9 @@ de telemetria pode excluir chamadas iniciais de testes mais longos.
 - `content.json` associa IDs estáveis a nomes de apresentação por idioma.
 - Menu, configurações, combate, atividades, sandbox, timeline e códice usam
   a camada de localização; números de resources não são truncados para inteiros.
-- Preferência de idioma é local e persistida; trocar idioma reconstrói a UI,
-  não a run nem a definição de conteúdo.
+- Preferência de idioma é local e persistida; trocar idioma atualiza a UI —
+  preservando Combat/Journey quando possível —, não a run nem a definição de
+  conteúdo.
 - JSON bruto, IDs e erros técnicos vindos da API permanecem canônicos. Conteúdo
   de mods sem tradução usa o nome fornecido ou o ID formatado; não existe
   tradução automática arbitrária de conteúdo.
@@ -175,21 +191,26 @@ assets, código ou sistemas desses jogos.
    snapshot final e reproduz os registros recebidos. A animação não reexecuta
    efeitos e não é um estado intermediário autoritativo.
 
-Correções importantes: seleção de alvo não recria a tela; os frames são lidos
-de `receipt.state.resolution`; encerrar turno exige candidato legal; a UI não
-escolhe implicitamente entre alternativas de custo; botões principais ficam
-dentro do viewport no layout padrão.
+Correções importantes: seleção e comandos aceitos não recriam a tela do mesmo
+contexto; os frames são lidos de `receipt.state.resolution`; encerrar turno
+exige candidato legal; a UI não escolhe implicitamente entre alternativas de
+custo; botões principais ficam dentro do viewport e fontes não mudam durante o
+enriquecimento assíncrono de cartas.
 
 ## Validação executada
 
-- .NET Release: **1.073 Core + 155 API**, todos aprovados.
+- Suites .NET Release aprovadas na entrega de desempenho; execute `dotnet test
+  HeroScript.slnx -c Release` para os totais atuais, que não são duplicados neste
+  documento histórico.
 - Cache: mudança de bytes mantendo tamanho/mtime, objetos independentes,
   capacidades 0/1/256, append após busca negativa, evicção e restart.
 - Godot campanha: sete atividades, relíquia, recompensa, loja, preparação,
   upgrade, três sandboxes, timeline, branches, simulação e replay; zero falhas.
 - Godot UI: paridade dos catálogos/placeholders, troca de idioma em runtime,
   seleção/alvo, custos, envio real, frames, pause, bloqueio de input e replay;
-  zero falhas. Trocar idioma e selecionar cartas preservam os bytes da run.
+  zero falhas. Combat/Journey preservam identidade, geometria/scroll e escala de
+  fonte durante refresh. Trocar idioma e selecionar cartas preservam os bytes da
+  run.
 - Capturas de combate em português e inglês revisadas visualmente.
 
 Comandos de reprodução, na raiz:

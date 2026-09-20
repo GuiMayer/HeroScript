@@ -11,7 +11,7 @@ replay e branches. A REST v1 é a única autoridade acessível por clientes.
 
 | Área | Estado | Próxima prova |
 | --- | --- | --- |
-| Sandbox de combate | pronto para protótipo Godot | validar UX do loop carta/priority/frame |
+| Sandbox de combate | validado pela demo Godot | ampliar conteúdo e validar hardware de input |
 | Determinismo e imutabilidade | cobertos por commits, hashes e replay | matriz final multi-runtime |
 | Conteúdo e mods data-only | packages/settings/revisões implementados | mais packages reais e tooling de autoria |
 | Run/progressão | fluxo canônico implementado | conteúdo jogável e balanceamento |
@@ -35,12 +35,11 @@ uma segunda lista de tarefas.
 1. Concluir a verificação arquitetural final: remover resíduos não alcançáveis,
    executar o cenário dourado em processos novos e testar restauração após
    restart/corrupção controlada.
-2. Usar o cliente Godot de exemplo para validar o loop core: escolher ação
-   legal, reproduzir receipt, passar prioridade e trocar branch.
-3. Ampliar conteúdo de demonstração sem introduzir regras na camada visual.
-4. Criar ferramentas de autoria de package/setting e diagnóstico de
+2. Ampliar conteúdo de demonstração e testes manuais de UX/hardware sem
+   introduzir regras na camada visual.
+3. Criar ferramentas de autoria de package/setting e diagnóstico de
    proveniência.
-5. Retomar dashboard apenas quando o contrato REST estiver consolidado pelo uso
+4. Retomar dashboard apenas quando o contrato REST estiver consolidado pelo uso
    real do protótipo.
 
 ## Fontes de verdade

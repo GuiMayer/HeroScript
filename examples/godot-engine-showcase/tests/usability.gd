@@ -91,8 +91,13 @@ func _run() -> void:
 		inspected_draw_cards.all(func(card): return not str(card.get("cardInstanceId", "")).is_empty()),
 		"pile inspector uses canonical instance identities")
 	check(candidate.has("costs"), "costs come from the canonical legal action")
+	var end_turn_button: Button = screen.find_child("EndTurnButton", true, false)
+	var end_turn_position := end_turn_button.global_position
 	screen._choose_card(card_id)
+	await get_tree().process_frame
 	check(screen.selected_card == card_id and router.host.get_child(0) == screen, "selection keeps the current combat screen")
+	check(end_turn_button.global_position.is_equal_approx(end_turn_position),
+		"contextual combat controls preserve footer geometry")
 	var targets: Array = screen._targets(candidate)
 	if not targets.is_empty():
 		check(not screen.target_buttons[targets[0]].disabled, "legal target highlighted")
@@ -104,6 +109,7 @@ func _run() -> void:
 	check(JSON.stringify(GameSession.run).sha256_text() == hash_before, "language change preserves run bytes")
 	screen = router.host.get_child(0)
 	screen._choose_card(card_id)
+	var sequence_before_card := int(GameSession.run.sequence)
 	if targets.is_empty():
 		screen._offer_candidates([candidate])
 	else:
@@ -111,10 +117,11 @@ func _run() -> void:
 	# Wait for the actual REST transaction and acceptance animation.
 	for _attempt in 600:
 		await get_tree().create_timer(.025).timeout
-		if router.host.get_child(0) != screen:
+		if int(GameSession.run.sequence) > sequence_before_card and not screen.submitting:
 			break
-	check(router.host.get_child(0) != screen, "card input submits and refreshes the screen")
-	screen = router.host.get_child(0)
+	check(router.host.get_child(0) == screen, "card input refreshes the persistent combat screen")
+	check(screen.card_buttons.values().all(func(card): return not card.animate_entry),
+		"snapshot refresh does not replay every card entrance animation")
 	check(not Playback.frames.is_empty(), "receipt exposes actual animation frames")
 	check(Playback.index == 0, "manual animation mode waits for the player")
 	check(screen._locked(), "new commands blocked until animations finish")

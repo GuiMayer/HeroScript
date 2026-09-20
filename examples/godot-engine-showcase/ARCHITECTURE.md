@@ -64,6 +64,36 @@ Nenhuma preferência gráfica deve entrar em um envelope de jogo. No fluxo
 atual, a UI exibe o snapshot final autoritativo e anima os frames recebidos;
 não simula estados intermediários por conta própria.
 
+## Ciclo de vida das telas e snapshots
+
+Atualizar o snapshot não significa reconstruir a navegação. Enquanto o contexto
+permanece o mesmo, `ui/main.gd` conserva a instância de `CombatScreen` ou
+`ActivityScreen` e chama `refresh_state(presentation)`. A tela cria um presenter
+novo sobre cópias defensivas do snapshot atual e troca sua composição
+sincronamente, sem um frame intermediário vazio. A troca de instância fica
+reservada para uma transição real de contexto.
+
+Regras de implementação:
+
+- identidade de tela, foco semântico e posições de scroll pertencem à UI, não à
+  run;
+- animação de entrada é executada somente quando o componente entra no contexto,
+  não em todo refresh;
+- áreas contextuais reservam geometria para que visibilidade não desloque
+  controles estáveis;
+- preferências visuais são aplicadas ao subtree novo antes de ele ser desenhado;
+- leituras assíncronas carregam um `render_epoch`; respostas de uma geração
+  anterior são descartadas;
+- `CardView.configure()` termina com o subtree já escalado, inclusive quando a
+  inspeção REST acrescenta raridade, buffs, upgrades ou fontes contextuais;
+- uma carta removida, um recurso alterado ou a mudança de atividade podem mover
+  conteúdo por consequência do novo snapshot; elementos não afetados não devem
+  piscar ou repetir animações.
+
+Esse ciclo continua passivo: persistir uma tela não transforma nodes em estado
+autoritativo. A cada refresh, os valores renderizados vêm novamente de
+`GameSession`/presenters.
+
 `CombatPresenter` recebe snapshot e tradutor por injeção. `ActorPanel` e
 `ResourceView` servem tanto ao combate atual quanto à inspeção histórica.
 `TimelinePresenter` mantém paginação e metadados; o gateway normaliza a forma
@@ -120,6 +150,9 @@ para `en`. Trocar idioma não modifica conteúdo publicado, snapshots ou receipt
 - Teste de UI com REST real: carta/alvo, idiomas, pause, frames e replay.
 - Campanha completa, sandboxes, timeline, branches e simulações pelo mesmo
   serviço de aplicação usado nas telas.
+- Regressões de ciclo visual: identidade persistente de Combat/Journey,
+  geometria contextual, scroll do mapa, fonte após inspeção e animação de entrada
+  somente no primeiro render.
 
 O teste estático de fronteiras impede dependências de HTTP na UI e dependências
 visuais na sessão/gateway. Ele complementa os testes funcionais; não substitui

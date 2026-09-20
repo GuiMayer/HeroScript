@@ -43,7 +43,7 @@ curl http://localhost:5260/api/v1/health/live
 - **Core systems:** combate, cartas, resources, efeitos, status, relíquias, IA, turnos, prioridade e stack
 - **Progressão:** mapa, encontros, recompensas, loja, preparação, upgrades e persistência de runs
 - **Ferramentas determinísticas:** timeline, branches, simulação sem commit e verificação de replay
-- **Validação atual:** 1.073 testes Core e 155 testes da API aprovados
+- **Validação atual:** suites Core/API, testes de camada Godot, UI smoke e campanha completa; execute os comandos abaixo para os totais da revisão atual
 - **Integração:** comandos e read models de run/combate são expostos pelo contrato único `/api/v1`
 - **Demo Godot:** campanha completa e três sandboxes de regras consumindo somente a REST API; português/inglês, prévias canônicas e animações de cartas
 
@@ -69,8 +69,8 @@ HeroScript/
 │   ├── Core.CLI/             # CLI de debug e testes
 │   └── Calculator/           # Calculadora de debug
 ├── tests/                    # Testes automatizados
-│   ├── Core.Tests/           # Testes do Core (1.306 testes)
-│   ├── API.Tests/            # Testes automatizados da API (219 testes)
+│   ├── Core.Tests/           # Testes do Core
+│   ├── API.Tests/            # Testes automatizados da API
 │   └── heroscript.runsettings # Configuração de timeout para testes
 ├── .github/workflows/        # CI/CD pipeline
 │   └── ci.yml                # GitHub Actions
@@ -79,32 +79,24 @@ HeroScript/
 
 ## Estado Atual
 
-**Última atualização:** 2026-08-16
-**Fase atual:** estabilização técnica da Fase 3; Map System e Event System continuam bloqueadores para o MVP jogável.
+**Última atualização:** 2026-09-20
+**Fase atual:** engine determinística integrada a uma demo Godot jogável; o
+trabalho restante concentra-se em conteúdo, autoria, validação de produção e
+polimento, não em completar o loop estrutural da run.
 
-- **Core.Tests:** 1.306 testes aprovados na última validação completa
-- **API.Tests:** 219 testes aprovados na última validação completa
-- **Fase 0:** Config, Math e Resources implementados
-- **Fase 1:** EventBus, Combat, Damage Pipeline, TurnPhase e TurnOrder implementados
-- **Fase 2:** Status Effects, Script Modifiers, Gambit Engine e Effect Engine estabilizados
-- **Fase 3:** Primeira fatia implementada
-  - ✅ RunState e DeckState como núcleo
-  - ✅ RunManager com persistência automática
-  - ✅ Run API (start, state, deck, hand, draw, discard, shuffle)
-  - ✅ CardSelection API (start, pick, reroll, decompose)
-  - ✅ Shop API (start, buy, reroll, sell)
-  - ✅ Preparation API (start, apply-modifier)
-  - ✅ CombatRunCoordinator (integração combate ↔ deck/hand)
-  - ❌ **Map navigation (BLOCKER)** - Sistema não implementado, bloqueia progressão
-  - ❌ **Event nodes (BLOCKER)** - Eventos narrativos ausentes, bloqueia variação
-  - ⏳ Rest nodes, boss encounters (após blockers)
-- **Hardening concluído (Jun/2026):**
-  - ✅ Event publishing (observabilidade de lifecycle)
-  - ✅ API Key middleware (segurança em endpoints admin)
-  - ✅ Logging estruturado + Correlation IDs
-  - ✅ Persistência de eventos (JsonFileEventStore)
-  - ✅ Persistência de run state (JsonFileRunStateRepository)
-  - ✅ Estabilidade de testes + CI pipeline
+- Configuração, matemática, resources, efeitos, status, relíquias, modifiers,
+  IA, turnos, prioridade/stack e zonas genéricas de cartas usam o runtime
+  canônico.
+- Runs persistem commits imutáveis com hashes, deltas/checkpoints, replay,
+  timeline, branches e verificação semântica.
+- Mapa, encontros, diálogos, recompensas, loja, preparação, upgrades e
+  encerramento formam uma campanha completa configurada por JSON.
+- A API pública usa somente `/api/v1`; clientes não dependem de aliases legados.
+- O showcase Godot mantém engine/UI separadas, suporta português/inglês,
+  múltiplas resoluções, controles remapeáveis, histórico/replay e atualização
+  visual estável por snapshot.
+- Reações/pilha permanecem reservadas e desabilitadas; dashboard continua fora
+  da validação atual. Consulte o [roadmap vigente](docs/roadmap/README.md).
 
 ## Componentes
 
@@ -175,13 +167,13 @@ Calculadora simples para testar expressões matemáticas.
 
 Projetos de testes automatizados usando xUnit.
 
-**Core.Tests (1.073 testes):**
+**Core.Tests:**
 - Testes do MathEngine
 - Testes do ConfigManager
 - Testes do ResourceLoader
 - Testes de todos os sistemas Core
 
-**API.Tests (155 testes):**
+**API.Tests:**
 - Testes unitários de controllers (mocks)
 - Testes de integração com TestServer
 - Categorização via `[Trait("Category", "Unit|Integration")]`

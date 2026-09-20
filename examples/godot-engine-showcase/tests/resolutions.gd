@@ -18,11 +18,46 @@ func _run() -> void:
 	var i18n = root.get_node("I18n")
 	var original_size: Vector2i = prefs.window_resolution
 	var original_fullscreen: bool = prefs.fullscreen
+	var original_scale: float = prefs.text_scale
 	var original_locale: String = i18n.locale
 	var router = load("res://main.tscn").instantiate()
 	root.add_child(router)
 	await settle()
 	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(router.host).is_empty(), "main menu has no vertical text")
+	var empty_hand_host := HBoxContainer.new()
+	empty_hand_host.size = Vector2(1280, 284)
+	var combat_screen = load("res://scripts/ui/combat_screen.gd").new()
+	var empty_hand_state: Control = combat_screen._empty_hand_state()
+	combat_screen.free()
+	empty_hand_host.add_child(empty_hand_state)
+	root.add_child(empty_hand_host)
+	await settle()
+	var empty_hand_message: Label = empty_hand_state.find_child("EmptyHandMessage", true, false)
+	check(empty_hand_state.get_combined_minimum_size().x >= 320,
+		"empty hand keeps a readable horizontal minimum")
+	check(empty_hand_message.get_line_count() == 1 and empty_hand_message.size.x >= 280,
+		"empty hand message never collapses into vertical text")
+	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(empty_hand_host).is_empty(),
+		"empty hand passes the vertical-text regression check")
+	empty_hand_host.free()
+	prefs.text_scale = 1.2
+	var card = load("res://scripts/ui/card_view.gd").new()
+	card.animate_entry = false
+	var card_model := {"definitionId": "font-regression", "tone": "skill", "name": "Stable type",
+		"cardType": "SKILL", "rarity": "", "effects": ["Stable effect"], "costs": [],
+		"availability": "SELECT TO PLAY", "changeBadges": [], "artPlaceholder": true}
+	card.configure(card_model)
+	root.add_child(card)
+	await settle()
+	var initial_font_size: int = card.find_child("CardName", true, false).get_theme_font_size("font_size")
+	card_model["rarity"] = "RARE"
+	card.configure(card_model)
+	await settle()
+	var enriched_font_size: int = card.find_child("CardName", true, false).get_theme_font_size("font_size")
+	check(initial_font_size == roundi(17 * prefs.text_scale) and enriched_font_size == initial_font_size,
+		"asynchronous card enrichment preserves scaled font sizes")
+	card.free()
+	prefs.text_scale = original_scale
 	prefs.fullscreen = false
 	check(prefs.resolution_options().has(Vector2i(2560, 1080)), "ultrawide preset is available")
 	check(not prefs.set_resolution(Vector2i(-1, 0), false), "invalid resolution is rejected")
@@ -57,6 +92,7 @@ func _run() -> void:
 	check(not selector.disabled and prefs.window_resolution == Vector2i(2560, 1080), "leaving fullscreen retains windowed selection")
 	prefs.window_resolution = original_size
 	prefs.fullscreen = original_fullscreen
+	prefs.text_scale = original_scale
 	prefs.save()
 	i18n.set_locale(original_locale)
 	router.queue_free()

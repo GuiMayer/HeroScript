@@ -182,6 +182,11 @@ func open_game() -> void:
 		show_activity()
 
 func show_activity() -> void:
+	if current_screen == "activity" and host.get_child_count() == 1:
+		var existing = host.get_child(0)
+		if existing.has_method("refresh_state"):
+			existing.refresh_state(presentation)
+			return
 	current_screen = "activity"
 	_clear_host()
 	var screen = ActivityScreen.new()
@@ -189,6 +194,11 @@ func show_activity() -> void:
 	host.add_child(screen)
 
 func show_combat() -> void:
+	if current_screen == "combat" and host.get_child_count() == 1:
+		var existing = host.get_child(0)
+		if existing.has_method("refresh_state"):
+			existing.refresh_state(presentation)
+			return
 	current_screen = "combat"
 	_clear_host()
 	var screen = CombatScreen.new()

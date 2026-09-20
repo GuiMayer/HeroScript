@@ -4,6 +4,7 @@ extends Button
 var motion: Tween
 var chosen := false
 var model: Dictionary = {}
+var animate_entry := true
 
 func configure(data: Dictionary) -> void:
 	model = data.duplicate(true)
@@ -94,6 +95,11 @@ func configure(data: Dictionary) -> void:
 		var sources: Array = badge.get("sources", [])
 		tooltip.append(str(badge.get("label", "")) + (": " + ", ".join(sources) if not sources.is_empty() else ""))
 	tooltip_text = "\n".join(tooltip.filter(func(line): return not line.is_empty()))
+	# Inspection can enrich a visible card after the REST response arrives. Theme
+	# the replacement subtree before configure returns so no frame is drawn with
+	# the unscaled base fonts.
+	for child in get_children():
+		AppTheme.apply_view_preferences(child)
 
 func _cost_zone(data: Dictionary) -> Control:
 	var zone := HBoxContainer.new()
@@ -176,7 +182,7 @@ func _ready() -> void:
 	mouse_exited.connect(func(): _emphasize(chosen))
 	focus_entered.connect(func(): _emphasize(true))
 	focus_exited.connect(func(): _emphasize(chosen))
-	if not Preferences.reduced_motion:
+	if animate_entry and not Preferences.reduced_motion:
 		modulate.a = 0.0
 		scale = Vector2(.92, .92)
 		motion = create_tween().set_parallel()

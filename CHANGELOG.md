@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+#### Stable Godot snapshot rendering (2026-09-20)
+
+- Combat and Journey retain their screen identity while refreshing the same
+  authoritative context; actual navigation transitions still replace screens.
+- Existing cards no longer replay entrance animations after every command.
+- Journey refresh preserves route/action scroll positions, and contextual
+  combat controls reserve stable layout geometry.
+- Visual preferences are applied before a refreshed subtree is drawn; async
+  card enrichment preserves text scale and rejects stale render generations.
+- Client integration documentation now distinguishes snapshot reconciliation
+  from rebuilding the complete visual tree.
+
 ### Fixed
+
+- Empty combat hands render a centered localized message instead of collapsing
+  into vertical one-character lines.
+- Updated the Godot layer regression to use the canonical structured
+  `UPGRADE_CARD.validPayload.options` contract instead of the removed parallel
+  legacy lists.
 
 #### Stability hardening (2026-08-16)
 
@@ -21,7 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known limitations
 
-- Legacy API integration scenarios still use contracts and fixture content that differ from the current engine. They now execute instead of hanging, but need reconciliation before they can be considered a release gate.
+- Reaction/stack content remains reserved and disabled.
+- The dashboard is intentionally outside the current validation scope.
 
 ### Analysis
 

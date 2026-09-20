@@ -61,6 +61,23 @@ recorrem ao inglês. Os nomes de conteúdo também priorizam o fallback inglês.
 A apresentação exibe o snapshot final autoritativo e anima as aplicações dos
 frames recebidos; ela não executa novamente as regras nem altera a timeline.
 
+### Atualização visual estável
+
+`CombatScreen` e `ActivityScreen` permanecem montados enquanto o usuário
+continua no mesmo contexto. Depois de um comando aceito, a sessão publica o novo
+snapshot e a tela atualiza seus componentes de forma atômica; recriar a tela
+inteira não faz parte do refresh normal. Transições reais — por exemplo,
+Journey → Combat, Combat → Journey ou abrir a Timeline — continuam trocando de
+tela.
+
+Essa política evita que controles estáveis pisquem, percam foco ou mudem de
+posição sem necessidade. Cartas já existentes não repetem a animação de entrada,
+as áreas contextuais do rodapé preservam sua geometria, o Journey conserva o
+scroll do mapa/lista de ações e resultados assíncronos de inspeção só são
+aplicados à geração visual que os solicitou. Preferências de fonte/contraste são
+aplicadas antes do próximo frame; enriquecer uma carta não altera
+temporariamente sua tipografia.
+
 ## O que a demo cobre
 
 - campanha configurada por JSON com encontro, relíquia, recompensa de carta, loja, preparação, upgrade e chefe;
@@ -71,7 +88,9 @@ frames recebidos; ela não executa novamente as regras nem altera a timeline.
 - códice que lê o conteúdo publicado da engine pela REST API;
 - menu principal, continuar run persistida, pause, áudio, tela cheia e remapeamento de controles;
 - português/inglês, entrada/seleção/uso de cartas animados, alvos destacados,
-  prévias e contadores de pilhas.
+  prévias e contadores de pilhas;
+- telas persistentes no combate e Journey, estado vazio legível e layout estável
+  durante seleção, comandos e enriquecimento assíncrono das cartas.
 
 ## Fronteira de arquitetura
 
@@ -147,7 +166,8 @@ a resolução escolhida é restaurada, ajustada à área disponível se necessá
 O layout expande com a proporção da tela sem deformar os elementos, seguindo
 o [suporte a múltiplas resoluções da Godot](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html).
 
-Teste offline de resoluções, menu, proporção e persistência:
+Teste offline de resoluções, menu, proporção, mão vazia, escala tipográfica
+durante enriquecimento assíncrono e persistência:
 
 ```powershell
 godot --headless --path . --script res://tests/resolutions.gd -- --layout-smoke

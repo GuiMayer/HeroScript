@@ -7,16 +7,34 @@ var presenter
 var choice_buttons: Array[Button] = []
 var verifying := false
 var auto_advancing := false
+var animate_card_entry := true
+var render_epoch := 0
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	_render(data, true)
+
+func refresh_state(data: Dictionary) -> void:
+	_render(data, false)
+
+func _render(data: Dictionary, play_entry_animation: bool) -> void:
+	var previous_route_scroll := _scroll_value("RouteScroll")
+	var previous_action_scroll := _scroll_value("ActionScroll")
+	render_epoch += 1
 	presentation = data
+	animate_card_entry = play_entry_animation
+	auto_advancing = false
+	choice_buttons.clear()
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
 	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(GameSession.run, GameSession.activity_choices(), data, I18n)
 	add_theme_constant_override("separation", 16)
 	_build_header()
 	var lifecycle := str(GameSession.run.get("lifecycle", "Active"))
 	if lifecycle.to_lower() != "active":
 		_build_ending(lifecycle)
+		AppTheme.apply_view_preferences(self)
 		return
 	var columns := HBoxContainer.new()
 	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -33,12 +51,30 @@ func setup(owner, data: Dictionary) -> void:
 	action_panel.add_theme_constant_override("separation", 14)
 	_build_actions()
 	var scroll := ScrollContainer.new()
+	scroll.name = "ActionScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(action_panel)
 	workspace.add_child(scroll)
 	columns.add_child(workspace)
-	call_deferred("_maybe_auto_advance")
+	# Finish the new snapshot before it can be drawn. This prevents the deferred
+	# focus pass from changing typography or minimum sizes on a visible frame.
+	AppTheme.apply_view_preferences(self)
+	_restore_scroll.call_deferred(render_epoch, previous_route_scroll, previous_action_scroll)
+	_maybe_auto_advance.call_deferred(render_epoch)
+
+func _scroll_value(name: String) -> int:
+	var scroll := find_child(name, true, false)
+	return scroll.scroll_vertical if scroll is ScrollContainer else 0
+
+func _restore_scroll(ticket: int, route_value: int, action_value: int) -> void:
+	if ticket != render_epoch or not is_inside_tree(): return
+	var route := find_child("RouteScroll", true, false)
+	var actions := find_child("ActionScroll", true, false)
+	# Container bounds settle at the end of the frame; defer the values once more
+	# so Godot does not clamp a valid previous position against an old zero range.
+	if route is ScrollContainer: route.set_deferred("scroll_vertical", route_value)
+	if actions is ScrollContainer: actions.set_deferred("scroll_vertical", action_value)
 
 func _build_header() -> void:
 	var header := VBoxContainer.new()
@@ -88,6 +124,7 @@ func _build_map() -> Control:
 	route.setup(presenter.route())
 	route.travel_requested.connect(_execute)
 	var scroll := ScrollContainer.new()
+	scroll.name = "RouteScroll"
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.add_child(route)
@@ -156,6 +193,7 @@ func _build_actions() -> void:
 			secondary.add_child(button)
 		elif str(model.category) == "cards":
 			var card := CardView.new()
+			card.animate_entry = animate_card_entry
 			model["availability"] = label
 			if str(model.cost).is_empty(): model["cost"] = I18n.text("DECK CHOICE")
 			card.configure(model)
@@ -225,8 +263,9 @@ func _execute(choice: Dictionary) -> void:
 			GameAudio.reward()
 		router.open_game()
 
-func _maybe_auto_advance() -> void:
-	if auto_advancing or not is_inside_tree() or router.current_screen != "activity" or GameSession.busy or get_tree().paused:
+func _maybe_auto_advance(ticket := -1) -> void:
+	if (ticket >= 0 and ticket != render_epoch) or auto_advancing or not is_inside_tree() or \
+		router.current_screen != "activity" or GameSession.busy or get_tree().paused:
 		return
 	var choice: Dictionary = preload("res://scripts/application/activity_choices.gd").only_forced_advance(GameSession.activity_choices())
 	if choice.is_empty(): return
@@ -237,7 +276,7 @@ func _maybe_auto_advance() -> void:
 	if not is_inside_tree(): return
 	auto_advancing = false
 	if accepted: router.open_game()
-	else:
+	elif ticket < 0 or ticket == render_epoch:
 		for button in choice_buttons: button.disabled = false
 
 func _verify() -> void:

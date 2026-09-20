@@ -45,3 +45,29 @@ animações, nunca como fonte de verdade.
 O servidor pode ser executado localmente como processo separado durante o
 desenvolvimento. Não coloque chave `X-Admin-Key` em um cliente distribuído;
 endpoints administrativos não participam do loop de jogo.
+
+### Atualizar sem reconstruir a interface
+
+“Atualizar a tela” significa reconciliar o novo read model, não destruir toda a
+árvore visual após cada comando. Preserve a instância da tela enquanto run,
+combate ou atividade permanecem no mesmo contexto e atualize componentes por
+identidade estável (`runId`, `combatId`, `instanceId`, `cardInstanceId` e IDs de
+zona). Troque de tela somente quando o contexto realmente mudar.
+
+Boas práticas para clientes visuais:
+
+- mantenha snapshot autoritativo e estado efêmero da UI separados; seleção,
+  foco, scroll e cursor de animação nunca entram no comando;
+- construa o próximo estado visual de forma atômica, aplicando tema, escala de
+  texto e acessibilidade antes do frame ser desenhado;
+- anime entrada apenas para entidades realmente novas; refresh não deve repetir
+  todas as animações;
+- reserve espaço para controles contextuais ou anime explicitamente o relayout,
+  evitando que botões estáveis saltem quando outro aparece;
+- associe toda leitura assíncrona à sequência/hash observados ou a uma geração
+  local de renderização e descarte respostas obsoletas;
+- depois de timeout ou falha de refresh, bloqueie input até ressincronizar em vez
+  de continuar sobre uma projeção antiga.
+
+O showcase em `examples/godot-engine-showcase` implementa essa política em
+`CombatScreen.refresh_state()` e `ActivityScreen.refresh_state()`.
