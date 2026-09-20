@@ -1,524 +1,235 @@
-# HeroScript Engine
+# HeroScript
 
-**Headless card roguelike engine with REST API architecture**
+Engine headless e data-driven para jogos de cartas e roguelikes, com regras
+autoritativas expostas por uma API REST.
 
-HeroScript é uma engine headless para jogos de cartas roguelike exposta através de uma **REST API**. Game clients (Unity, Godot, Web) consomem a engine via HTTP, permitindo hot-reload, ferramentas web, e arquitetura modular data-driven.
+HeroScript recebe comandos, executa as regras de forma determinística e devolve
+snapshots, comandos legais, traces e frames de apresentação. O cliente — Godot,
+Unity, web ou outro — cuida somente de input, interface, áudio e animações.
 
-## 🚀 Quick Start
+> **Estado:** pré-produção, com engine funcional e uma campanha demonstrativa
+> jogável em Godot. O projeto prova o loop completo e a arquitetura, mas ainda
+> não representa um jogo final com conteúdo, balanceamento e arte de produção.
 
-### Start the API Server
+## Comece pela demo jogável
 
-```bash
-# Option A: Docker (recommended)
-docker-compose up -d
-# API available at http://localhost:5260
+A demonstração **Ember Archive** é a forma mais direta de conhecer o projeto.
+Ela percorre mapa, encontros, combate, recompensas, loja, preparação, upgrades,
+chefe, histórico e replay usando a HeroScript exclusivamente pela API REST.
 
-# Option B: Local development
-cd src/API
-dotnet run
-# API available at http://localhost:5260
+### Requisitos
+
+- [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) — a versão
+  selecionada pelo repositório é `10.0.301`;
+- [Godot 4.7](https://godotengine.org/) disponível como `godot` no `PATH`;
+- PowerShell para o launcher incluído no projeto.
+
+No PowerShell, a partir da raiz do repositório:
+
+```powershell
+cd .\examples\godot-engine-showcase
+.\Start-Demo.ps1
 ```
 
-### Verify API is Running
+O launcher compila e inicia a API em `http://127.0.0.1:5271`, usa persistência
+isolada em `.runtime/`, abre a Godot e encerra o processo da API ao sair.
 
-```bash
-curl http://localhost:5260/api/v1/health/live
+Para validar a integração sem abrir uma janela:
+
+```powershell
+.\Start-Demo.ps1 -Headless
 ```
 
-### Integration Guides
+Para executar o fluxo automatizado de UI e gameplay:
 
-- **[Playable Godot Showcase](examples/godot-engine-showcase/README.md)** - Execute a campanha e os laboratórios data-driven
-- **[Unity/Godot/Web Integration](docs/CLIENT_INTEGRATION.md)** - Consume API from game clients
-- **[Production Deployment](docs/PRODUCTION.md)** - Deploy API to production
-- **[API v1 Guide](docs/api/README.md)** - Contrato público e exemplos
-
-**Performance:** depende do comando e do tamanho do histórico. Consulte as
-[medições e otimizações da demo](docs/roadmap/ENGINE_PERFORMANCE_AND_DEMO_UX.md).
-
-## 🎯 Status do MVP
-
-**Última análise:** 2026-09-11
-
-### Engine e demo jogável
-- **Core systems:** combate, cartas, resources, efeitos, status, relíquias, IA, turnos, prioridade e stack
-- **Progressão:** mapa, encontros, recompensas, loja, preparação, upgrades e persistência de runs
-- **Ferramentas determinísticas:** timeline, branches, simulação sem commit e verificação de replay
-- **Validação atual:** suites Core/API, testes de camada Godot, UI smoke e campanha completa; execute os comandos abaixo para os totais da revisão atual
-- **Integração:** comandos e read models de run/combate são expostos pelo contrato único `/api/v1`
-- **Demo Godot:** campanha completa e três sandboxes de regras consumindo somente a REST API; português/inglês, prévias canônicas e animações de cartas
-
-### Escopo atual
-
-O showcase é uma prova funcional de arquitetura, não um jogo final: conteúdo,
-balanceamento, narrativa, arte e polimento ainda pertencem à produção de cada
-*setting*. As regras executáveis e o estado autoritativo permanecem na engine;
-a Godot cuida de apresentação, áudio e input.
-
-## Estrutura do Projeto
-
-```
-HeroScript/
-├── src/                      # Código de produção
-│   ├── Core/                 # Biblioteca principal (DLL embarcável)
-│   │   ├── Abstractions/     # Interfaces e contratos (IEventStore, IRunStateRepository, etc.)
-│   │   └── Infrastructure/   # Implementações (JsonFileEventStore, JsonFileRunStateRepository)
-│   ├── API/                  # REST API para exposição do Core
-│   │   └── Middleware/       # AdminKeyMiddleware, CorrelationIdMiddleware
-│   └── Mods/                 # Sistema de mods (futuro)
-├── tools/                    # Ferramentas de desenvolvimento (opcionais)
-│   ├── Core.CLI/             # CLI de debug e testes
-│   └── Calculator/           # Calculadora de debug
-├── tests/                    # Testes automatizados
-│   ├── Core.Tests/           # Testes do Core
-│   ├── API.Tests/            # Testes automatizados da API
-│   └── heroscript.runsettings # Configuração de timeout para testes
-├── .github/workflows/        # CI/CD pipeline
-│   └── ci.yml                # GitHub Actions
-└── docs/                     # Documentação técnica
+```powershell
+.\Start-Demo.ps1 -UiSmoke -Port 5272
 ```
 
-## Estado Atual
+Consulte o [guia completo da demo](examples/godot-engine-showcase/README.md)
+para controles, idiomas, resoluções, laboratórios e testes visuais.
 
-**Última atualização:** 2026-09-20
-**Fase atual:** engine determinística integrada a uma demo Godot jogável; o
-trabalho restante concentra-se em conteúdo, autoria, validação de produção e
-polimento, não em completar o loop estrutural da run.
+## Executar somente a API
 
-- Configuração, matemática, resources, efeitos, status, relíquias, modifiers,
-  IA, turnos, prioridade/stack e zonas genéricas de cartas usam o runtime
-  canônico.
-- Runs persistem commits imutáveis com hashes, deltas/checkpoints, replay,
-  timeline, branches e verificação semântica.
-- Mapa, encontros, diálogos, recompensas, loja, preparação, upgrades e
-  encerramento formam uma campanha completa configurada por JSON.
-- A API pública usa somente `/api/v1`; clientes não dependem de aliases legados.
-- O showcase Godot mantém engine/UI separadas, suporta português/inglês,
-  múltiplas resoluções, controles remapeáveis, histórico/replay e atualização
-  visual estável por snapshot.
-- Reações/pilha permanecem reservadas e desabilitadas; dashboard continua fora
-  da validação atual. Consulte o [roadmap vigente](docs/roadmap/README.md).
-
-## Componentes
-
-### Core (Biblioteca)
-
-O Core é o coração da engine - uma biblioteca .NET que pode ser embarcada em qualquer projeto. Contém:
-
-- **MathEngine**: Sistema de fórmulas matemáticas serializadas (JSON)
-- **ConfigManager**: Sistema de configuração com herança delta
-- **ResourceLoader**: Carregamento de recursos data-driven
-- **CombatSystem**: Execução de combate baseada em ações e efeitos data-driven
-- **EffectResolver**: Aplicação central de efeitos para contextos de combate/run
-- **StatusEffectManager**: Buffs, debuffs, DoT/HoT e modificadores de pipeline
-- **ScriptModifierManager**: Modificadores de comportamento carregados de JSON
-- **GambitEngine**: Decisões de IA/companions por regras JSON
-
-**Output**: `Core.dll` - biblioteca embarcável
-
-### API (REST API)
-
-Camada de exposição HTTP do Core, permitindo consumo via REST API.
-
-- Swagger UI disponível em desenvolvimento
-- Endpoints para ações, combate, efeitos, status, modifiers, gambits, recursos, entidades, eventos, config e matemática
-- CORS configurado para desenvolvimento
-
-**Output**: `API.dll` - aplicação web ASP.NET Core
-
-### Core.Abstractions (Contratos)
-
-Camada de abstração com interfaces e tipos compartilhados:
-
-- **IEventStore**: Contrato para persistência de eventos
-- **IRunStateRepository**: Contrato para snapshots de run
-- **ISnapshotStore**: Contrato para snapshots genéricos (futuro)
-- **Typed Identifiers**: `RunId`, `CombatId`, `EntityId` para type safety
-- **ICorrelatedEvent**: Interface para eventos com correlation tracking
-
-**Output**: `Core.Abstractions.dll` - biblioteca de contratos
-
-### Core.Infrastructure (Implementações)
-
-Implementações concretas de infraestrutura:
-
-- **JsonFileEventStore**: Persistência de eventos em `.jsonl`
-- **JsonFileRunStateRepository**: Persistência de run state em JSON
-- **LoggerAdapter**: Adapter de `ILogger` ASP.NET Core para `Core.Logging.ILogger`
-
-**Output**: `Core.Infrastructure.dll` - biblioteca de infraestrutura
-
-### Core.CLI (Debug Tool)
-
-Ferramenta de linha de comando para debug e testes do Core.
-
-- Execução de testes integrados
-- Listagem de configurações disponíveis
-- Carregamento de configs específicas
-
-**Output**: `Core.CLI.exe` - executável de console
-
-### Calculator (Debug Tool)
-
-Calculadora simples para testar expressões matemáticas.
-
-**Output**: `Calculator.exe` - executável de console
-
-### Core.Tests e API.Tests (Testes)
-
-Projetos de testes automatizados usando xUnit.
-
-**Core.Tests:**
-- Testes do MathEngine
-- Testes do ConfigManager
-- Testes do ResourceLoader
-- Testes de todos os sistemas Core
-
-**API.Tests:**
-- Testes unitários de controllers (mocks)
-- Testes de integração com TestServer
-- Categorização via `[Trait("Category", "Unit|Integration")]`
-
-## Segurança
-
-### API Key Middleware
-
-Endpoints administrativos são protegidos por `AdminKeyMiddleware` que requer o header `X-Admin-Key`.
-
-**Configuração:**
-
-Via `appsettings.json`:
-```json
-{
-  "Admin": {
-    "ApiKey": "your-secret-key-here"
-  }
-}
+```powershell
+dotnet run --project .\src\API\API.csproj --launch-profile http
 ```
 
-Ou via variável de ambiente (recomendado para produção):
-```bash
-export HERESCRIPT_ADMIN_KEY="your-secret-key-here"
-```
+Com o ambiente de desenvolvimento ativo:
 
-**Uso:**
-```bash
-curl -X POST http://localhost:5260/api/v1/actions/reload \
-  -H "X-Admin-Key: your-secret-key-here"
-```
+| Recurso | Endereço |
+| --- | --- |
+| Liveness | `http://localhost:5260/api/v1/health/live` |
+| Readiness | `http://localhost:5260/api/v1/health/ready` |
+| OpenAPI | `http://localhost:5260/openapi/v1.json` |
+| Documentação interativa | `http://localhost:5260/docs/api` |
 
-**Endpoints Protegidos:**
-- `POST /api/v1/actions/reload`
-- `POST /api/v1/admin/content/reload`
-- `POST /api/v1/admin/config/load`
-- `POST /api/v1/modifiers/reload`
-- `POST /api/v1/gambits/reload`
+O contrato versionado também fica no repositório em
+[`openapi/heroscript-v1.json`](openapi/heroscript-v1.json). Para iniciar uma run
+por HTTP, siga o [quickstart da API](docs/api/getting-started.md).
 
-⚠️ **Produção:** Configure uma chave forte antes de deploy. Não commite chaves em `appsettings.json`.
+## Princípios do projeto
 
-**Documentação completa:** [docs/security.md](docs/security.md)
-
----
-
-## Persistência
-
-HeroScript suporta persistência em disco para restart-safety e auditoria.
-
-**Configuração:**
-
-```json
-{
-  "Persistence": {
-    "EventStorePath": "data/events/",
-    "RunStatePath": "data/runs/"
-  }
-}
-```
-
-**Componentes:**
-
-- **JsonFileEventStore**: Eventos em formato `.jsonl` (append-only, auditoria completa)
-- **JsonFileRunStateRepository**: Run state em `{runId}.json` (write atômico, auto-load)
-
-**Restart Safety:** Após reiniciar o processo, `GET /api/v1/runs/{runId}` retorna o estado anterior. Use o journal e os eventos duráveis da run para recuperação.
-
-**Documentação completa:** [docs/persistence.md](docs/persistence.md)
-
----
-
-## Observabilidade
-
-### Correlation IDs
-
-Todos os requests recebem um `X-Correlation-ID` único (gerado automaticamente ou fornecido pelo cliente). Este ID é incluído em todos os logs do request para facilitar troubleshooting.
-
-**Response Header:**
-```
-X-Correlation-ID: 3fa85f64-5717-4562-b3fc-2c963f66afa6
-```
-
-### Logging Estruturado
-
-HeroScript usa `ILogger` com templates estruturados (indexáveis por log aggregators):
-
-```csharp
-// ✅ Estruturado
-_logger.LogInformation("Effect {EffectId} resolved for {EntityId}", effectId, entityId);
-
-// ❌ Não estruturado
-_logger.LogInformation($"Effect {effectId} resolved for {entityId}");
-```
-
-**Níveis:** `Debug` (path resolution), `Information` (lifecycle events), `Warning` (fallbacks), `Error` (exceptions)
-
-**Documentação completa:** [docs/observability.md](docs/observability.md)
-
----
-
-## Architecture
-
-HeroScript uses a **REST API architecture** where game clients consume the engine over HTTP:
-
-```
-Game Client (Unity/Godot/Web)
-    ↓ HTTP (5-8ms localhost)
-API Layer (ASP.NET Core)
-    ↓ In-process calls
-Core Engine (C# .NET)
-    ↓ File I/O
-Data (JSON configs, events, runs)
-```
-
-**Benefits:**
-- **Hot-reload**: Update game configs without restarting clients
-- **Multi-client**: Share engine across Unity + Godot + Web tools
-- **Web tools**: Build dashboards, editors, simulators
-- **Testing**: Run 10k+ simulations via Python scripts
-- **Future-proof**: Easy path to multiplayer/cloud
-
-**Performance:** 5-8ms latency on localhost (imperceptible for turn-based games)
-
----
-
-## Client Integration
-
-See **[CLIENT_INTEGRATION.md](docs/CLIENT_INTEGRATION.md)** for complete integration guides:
-
-### Unity (C#)
-```csharp
-// UnityWebRequest example
-StartCoroutine(client.StartCombat(
-    new CombatStartRequest { 
-        heroEntityId = "knight", 
-        enemyEntityIds = new[] { "goblin" } 
-    },
-    OnCombatStarted,
-    OnError
-));
-```
-
-### Godot (GDScript)
-```gdscript
-# HTTPRequest example
-var combat = await client.start_combat("knight", ["goblin"])
-print("Combat started: ", combat["combatId"])
-```
-
-### Web (TypeScript)
-```typescript
-// Fetch API example
-const combat = await heroScriptClient.startCombat({
-  heroEntityId: 'knight',
-  enemyEntityIds: ['goblin']
-});
-```
-
-### Python (Simulations)
-```python
-# Requests library for headless testing
-client = HeroScriptClient()
-combat = client.start_combat("knight", ["goblin"])
-```
-
----
-
-## Hot-Reload Workflow
-
-Hot reload recompila o setting inteiro e publica uma nova revisão imutável; ele
-nunca altera silenciosamente uma run ativa. No ambiente de desenvolvimento:
-
-1. Edite os packages em `data/configs/default`.
-2. Valide com `POST /api/v1/admin/settings/default/validate`.
-3. Publique com `POST /api/v1/admin/content/reload`, corpo
-   `{ "settingId": "default" }` e `X-Admin-Key`.
-4. Para migrar uma run permitida, consulte primeiro
-   `GET /api/v1/runs/{runId}/content/activation-preview?targetRevision={revision}` e depois envie
-   `ACTIVATE_CONTENT_REVISION` como comando versionado.
-
-Perfis operacionais e políticas do game mode são limites independentes. Consulte
-`GET /api/v1/runs/{runId}/capabilities` antes de exibir ferramentas. O fluxo
-completo está em
-[`docs/content/hot-reload-and-tool-profiles.md`](docs/content/hot-reload-and-tool-profiles.md).
-
-## Build e Testes
-
-### Build Local
-
-```bash
-# Build solution completa
-dotnet build HeroScript.slnx
-
-# Build Core library
-dotnet build src/Core/Core.csproj
-
-# Build API
-dotnet build src/API/API.csproj
-
-# Build CLI (opcional)
-dotnet build tools/Core.CLI/Core.CLI.csproj
-```
-
-### Testes
-
-```bash
-# Todos os testes
-dotnet test
-
-# Apenas Core
-dotnet test tests/Core.Tests/Core.Tests.csproj
-
-# Apenas API - testes unitários
-dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Unit"
-
-# Apenas API - testes de integração
-dotnet test tests/API.Tests/API.Tests.csproj --filter "Category=Integration"
-```
-
-### CI/CD
-
-Pipeline GitHub Actions em `.github/workflows/ci.yml`:
-
-```yaml
-jobs:
-  test:
-    steps:
-      - Build solution
-      - Core Tests
-      - API Unit Tests - filtro Category=Unit
-      - API Integration Tests - filtro Category=Integration, timeout 5min
-```
-
-Pipeline executa em:
-- Push para `main`
-- Pull requests
-
-**Configuração de timeout:** `tests/heroscript.runsettings` define 30s por teste, 5min por sessão.
+- **Engine autoritativa:** clientes não calculam custo, dano, alvos, turno, IA
+  ou progressão.
+- **Determinismo:** seed, RNG, IDs, relógio lógico, revisão de conteúdo e versão
+  da engine fazem parte do contexto reproduzível.
+- **Estado imutável:** um comando aceito produz um commit atômico, com sequência
+  e hash canônico. Falhas não publicam estado parcial.
+- **Dados como conteúdo:** cartas, atores, resources, efeitos, status, relíquias,
+  IA, fases, modos e progressão são compostos por JSON validado.
+- **Sistemas genéricos:** dano é uma alteração de resource; efeitos e influências
+  usam o mesmo processador independentemente de sua origem.
+- **Conteúdo versionado:** cada run fixa uma revisão publicada. Hot reload cria
+  outra revisão e a ativação em uma run existente precisa ser explícita.
+- **API única:** clientes usam somente `/api/v1`; não há contrato legado mantido
+  nesta fase do projeto.
 
 ## Arquitetura
 
-O projeto segue a arquitetura descrita em [`docs/architecture/overview.md`](docs/architecture/overview.md):
+```text
+Arquivos JSON
+    │ compilar, validar e publicar
+    ▼
+Revisão imutável de conteúdo
+    │
+Cliente ── comando REST ──> API v1 ──> coordenador de run/combate
+                                                │
+                                      transições e cálculos
+                                                │
+                                      commit atômico da run
+                                                │
+Cliente <── snapshot + ações legais + frames + traces
+```
 
-- **Headless**: Core é completamente independente de UI
-- **Data-driven**: Regras e fórmulas são dados (JSON), não código
-- **Journal autoritativo**: commits de run para recuperação/replay; EventBus somente para telemetria
-- **Modular**: Configurações podem ser trocadas em runtime
+`RunState` é o agregado autoritativo. Combate, recursos, cartas, zonas, relíquias
+e modifiers pertencem ao snapshot da run; serviços coordenam transições, mas não
+mantêm uma segunda cópia de estado de gameplay.
+
+Cada comando é versionado e idempotente. O journal sustenta recuperação,
+timeline, branches e replay semântico. Eventos operacionais servem para
+observação e não substituem o estado autoritativo.
+
+Leituras recomendadas:
+
+- [Visão geral da arquitetura](docs/architecture/overview.md)
+- [Runs determinísticas e imutáveis](docs/architecture/deterministic-runs.md)
+- [Integração de clientes](docs/CLIENT_INTEGRATION.md)
+- [Contrato da API v1](docs/api/README.md)
+- [Packages, settings e autoria de conteúdo](docs/content/packages-and-settings.md)
+
+## O que está implementado
+
+| Área | Capacidades disponíveis |
+| --- | --- |
+| Run | journal, snapshots, commits imutáveis, persistência, retomada e idempotência |
+| Combate | atores, fases, ativações, IA/intents, cartas, custos, alvos e comandos legais |
+| Regras | effects, resources genéricos, cálculos por buckets, status, relíquias e modifiers |
+| Cartas | componentes, upgrades, influências, custos alternativos e zonas configuráveis |
+| Progressão | mapa, encounters, diálogos, recompensas, loja, preparação e encerramento |
+| Conteúdo | packages/settings JSON, validação, revisões, publicação e ativação explícita |
+| Ferramentas | timeline por comando, branches, simulação sem commit, traces e replay semântico |
+| Cliente Godot | campanha, sandboxes, localização, áudio, controles, resoluções e histórico |
+
+Prioridade/stack e políticas avançadas dependem do modo que as habilita. Reações
+continuam fora da campanha padrão. Multiplayer em rede, economia permanente,
+tooling completo de mods e o dashboard não fazem parte do escopo validado atual.
+Veja o [roadmap vigente](docs/roadmap/README.md) para as extensões deliberadas.
+
+## Conteúdo data-driven
+
+O setting de referência está em [`data/configs/default`](data/configs/default).
+Ele contém definições de cartas, resources, entidades, efeitos, fórmulas,
+pipelines, gambits, fases, modos, lojas, diálogos, progressão, timeline e replay.
+
+O ciclo de autoria é:
+
+1. editar um package/setting JSON;
+2. validar o candidato;
+3. publicar uma revisão imutável;
+4. iniciar uma run fixada nessa revisão;
+5. quando permitido pelo modo, pré-visualizar e ativar explicitamente uma nova
+   revisão em uma run de desenvolvimento.
+
+Os detalhes e endpoints ficam no guia de
+[hot reload e perfis de ferramenta](docs/content/hot-reload-and-tool-profiles.md).
+
+## Estrutura do repositório
+
+```text
+HeroScript/
+├── src/
+│   ├── Core/                       # Domínio, aplicação e infraestrutura da engine
+│   ├── API/                        # API REST ASP.NET Core e contrato HTTP
+│   └── Mods/                       # Placeholder para extensões futuras
+├── data/configs/default/           # Setting JSON de referência
+├── examples/godot-engine-showcase/ # Demo jogável Ember Archive
+├── tests/
+│   ├── Core.Tests/                 # Regras, determinismo e persistência
+│   └── API.Tests/                  # Contrato, controllers e integração HTTP
+├── openapi/                        # Contrato v1 versionado
+├── docs/                           # Arquitetura, sistemas, API e roadmap
+└── tools/                          # CLI, calculadora e benchmarks auxiliares
+```
+
+`src/Mods` ainda não é um sistema de plugins executáveis. A extensibilidade
+disponível hoje é feita por packages/settings data-only e revisões de conteúdo.
+
+## Build e testes
+
+O mesmo recorte executado pela integração contínua pode ser reproduzido assim:
+
+```powershell
+dotnet build .\HeroScript.slnx --configuration Release
+
+dotnet test .\tests\Core.Tests\Core.Tests.csproj `
+  --no-build --configuration Release
+
+dotnet test .\tests\API.Tests\API.Tests.csproj `
+  --filter "Category=Unit" --no-build --configuration Release
+
+dotnet test .\tests\API.Tests\API.Tests.csproj `
+  --filter "Category=Contract" --no-build --configuration Release
+
+dotnet test .\tests\API.Tests\API.Tests.csproj `
+  --filter "Category=Integration" --no-build --configuration Release
+```
+
+Encerre uma API que esteja usando a saída `Release` antes de recompilar essa
+mesma saída; no Windows, o processo em execução mantém os assemblies bloqueados.
+
+Os totais não são registrados manualmente no README porque mudam com frequência.
+O resultado atual deve ser obtido executando as suítes. Testes específicos da
+Godot estão documentados no [README da demo](examples/godot-engine-showcase/README.md).
+
+## Segurança, persistência e operação
+
+Endpoints administrativos exigem `X-Admin-Key` quando a administração está
+habilitada. Nunca exponha essa chave ao cliente do jogo. Runs e conteúdo podem
+ser persistidos em disco; correlation IDs, erros estruturados e telemetria
+operacional auxiliam diagnóstico.
+
+- [Autenticação e fronteiras administrativas](docs/api/authentication.md)
+- [Persistência](docs/persistence.md)
+- [Observabilidade](docs/observability.md)
+- [Deploy de produção](docs/PRODUCTION.md)
 
 ## Documentação
 
-### API REST
+| Quero... | Documento |
+| --- | --- |
+| Entender os conceitos e encontrar todos os guias | [Índice da documentação](docs/README.md) |
+| Integrar Godot, Unity, web ou automação | [Integração de clientes](docs/CLIENT_INTEGRATION.md) |
+| Implementar o fluxo REST | [API v1](docs/api/README.md) |
+| Entender combate e cálculos | [Sistema de combate](docs/systems/combat/combat-system.md) |
+| Criar conteúdo JSON | [Packages e settings](docs/content/packages-and-settings.md) |
+| Usar timeline, replay e branches | [Timeline](docs/architecture/timeline-system.md) |
+| Consultar prioridades e pendências reais | [Roadmap atual](docs/roadmap/README.md) |
+| Acompanhar mudanças | [Changelog](CHANGELOG.md) |
 
-A API REST expõe funcionalidades do Core exclusivamente sob `/api/v1`.
-
-**Documentação Completa:**
-- [API v1](docs/api/README.md) - Referência dos endpoints e fluxos públicos
-- OpenAPI em `http://localhost:5260/openapi/v1.json` e UI em `http://localhost:5260/docs/api` durante o desenvolvimento
-
-**APIs Disponíveis:**
-- **Runtime** (`/api/v1/runs`, `/api/v1/combats`) - Runs, comandos e read models autoritativos
-- **Conteúdo** (`/api/v1/content`) - Revisões e catálogos imutáveis
-- **Operação** (`/api/v1/health/*`, `/api/v1/capabilities`) - Saúde e capacidades
-- **Administração e simulação** (`/api/v1/admin/*`, `/api/v1/simulations/*`) - Ferramentas fora do loop de jogo
-
-**Roadmap:**
-- [API Roadmap](docs/roadmap/README.md) - Roadmap completo da API (6 fases)
-- [API Conventions](docs/roadmap/analysis/api-conventions.md) - Convenções e padrões da API
-- [Event Integration](docs/roadmap/analysis/event-integration.md) - Integração com EventBus
-- [Frontend Integration Gaps](docs/roadmap/analysis/frontend-integration-gaps.md) - Lacunas para protótipo visual
-
-### Sistemas Core
-
-- [Config System](docs/systems/config/config-system.md) - Sistema de configuração com herança delta
-- [Math System](docs/systems/math/math-system.md) - Sistema matemático
-- [EventBus System](docs/systems/events/eventbus-system.md) - Sistema pub/sub e histórico de eventos
-- [Effect System](docs/systems/effects/effect-system.md) - Sistema de efeitos
-- [Damage Pipeline](docs/systems/damage/damage-pipeline.md) - Pipeline de dano configurável
-
-### Infraestrutura
-
-- [Security](docs/security.md) - Segurança da API (AdminKeyMiddleware)
-- [Persistence](docs/persistence.md) - Persistência de eventos e run state
-- [Observability](docs/observability.md) - Logging estruturado e Correlation IDs
-
-## Roadmap
-
-### Estado das Fases
-
-| Fase | Status | Descrição |
-|------|--------|-----------|
-| **Fase 0** | ✅ Implementado | Fundação (Config, Math, Resources) |
-| **Fase 1** | ✅ Implementado | EventBus, Combate Básico, TurnPhase System |
-| **Fase 2** | ✅ Estabilizado | Camadas de Combate (Status, Modifiers, Gambits) |
-| **Fase 3** | 🚧 Em implementação | Loop de Run (primeira fatia concluída) |
-| **Fase 4** | 📋 Planejado | Conteúdo MVP (Races, Powers, Companions, Enemies) |
-| **Fase 5** | 📋 Planejado | Meta-progressão e Save/Load |
-| **Fase 6** | 📋 Planejado | Modos Especiais (Seed, Daily, Custom) |
-
-### Fase 3 - Detalhamento
-
-**Implementado:**
-- ✅ `RunState` e `DeckState` como núcleo
-- ✅ `RunManager` com persistência automática
-- ✅ `RunController` (start, state, deck, hand, draw, discard, shuffle)
-- ✅ `CardSelectionController` (start, pick, reroll, decompose)
-- ✅ `ShopController` (start, buy, reroll, sell)
-- ✅ `PreparationController` (start, apply-modifier)
-- ✅ `CombatRunCoordinator` (integração combate ↔ deck/hand, consumo real de cartas)
-- ✅ Operações compostas com rollback transacional
-
-**Próximos passos:**
-- ⏳ Map generation e navigation
-- ⏳ Node system (advance to next node)
-- ⏳ Event nodes
-- ⏳ Rest nodes (cura, remoção de cartas)
-
-### Hardening de Produção (Jun/2026)
-
-O projeto passou por 6 trilhas de hardening:
-
-1. **✅ Event Publishing**: EventBus publica eventos de lifecycle (`CombatStartedEvent`, `StatusAppliedEvent`, etc.)
-2. **✅ API Security**: `AdminKeyMiddleware` protege endpoints administrativos
-3. **✅ Logging & Observability**: `Console.WriteLine` eliminado, `CorrelationIdMiddleware`, templates estruturados
-4. **✅ Event Persistence**: `JsonFileEventStore` com append-only `.jsonl`
-5. **✅ Run State Persistence**: `JsonFileRunStateRepository` com write atômico
-6. **✅ Test Stability**: `FindProjectRoot()` corrigido, categorização de testes, CI pipeline
-
-**Commits:**
-```bash
-git log --oneline -6
-# 9162814 test(api): improve test stability and CI readiness
-# 38ecae9 feat(persistence): add JsonFile event store and run state repository
-# c1ab29f feat(logging): eliminate Console.WriteLine, add correlation id middleware
-# b22655b feat(api): secure admin endpoints with api key middleware
-# c15d05f feat(core): publish lifecycle events across managers
-# b1e7d6a feat(core): add Core.Abstractions layer with typed identifiers
-```
-
-Para o roadmap completo de hardening, consulte [docs/roadmap/trilhas.md](docs/roadmap/trilhas.md).
-
-**Próximos passos recomendados:**
-- Completar Fase 3: Map generation, node navigation, event/rest nodes
-- Conteúdo MVP (Fase 4): Definir races, powers iniciais, companions e enemies
-- Iteração visual: Frontend prototype consumindo a API REST
+Documentos em `docs/roadmap/phases/` preservam o histórico de implementação e
+não representam o estado atual do projeto.
 
 ## Licença
 
-[A definir]
+Ainda não há uma licença de distribuição definida para o repositório.
