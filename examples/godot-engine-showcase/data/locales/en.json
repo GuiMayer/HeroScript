@@ -221,6 +221,11 @@
   "Wandering Merchant": "Wandering Merchant",
   "Campfire": "Campfire",
   "Ancient Forge": "Ancient Forge",
+  "Prismatic Shrine": "Prismatic Shrine",
+  "Infested Gallery": "Infested Gallery",
+  "Venom Lens": "Venom Lens",
+  "Cinder Archive": "Cinder Archive",
+  "Living Bulwark": "Living Bulwark",
   "Obsidian Sentinel": "Obsidian Sentinel",
   "Encounter": "Encounter",
   "Relic": "Relic",
@@ -310,5 +315,7 @@
   "Ability": "Ability",
   "GameMode": "GameMode",
   "Rule": "Rule",
-  "SIMULATE CURRENT STATE": "SIMULATE CURRENT STATE"
+  "SIMULATE CURRENT STATE": "SIMULATE CURRENT STATE",
+  "Window resolution": "Window resolution",
+  "Fullscreen uses the monitor's native resolution. Larger windows are fitted to the available desktop.": "Fullscreen uses the monitor's native resolution. Larger windows are fitted to the available desktop."
 }

@@ -221,6 +221,11 @@
   "Wandering Merchant": "Mercador Errante",
   "Campfire": "Fogueira",
   "Ancient Forge": "Forja Antiga",
+  "Prismatic Shrine": "Santuário Prismático",
+  "Infested Gallery": "Galeria Infestada",
+  "Venom Lens": "Lente de Peçonha",
+  "Cinder Archive": "Arquivo das Cinzas",
+  "Living Bulwark": "Baluarte Vivo",
   "Obsidian Sentinel": "Sentinela de Obsidiana",
   "Encounter": "Encontro",
   "Relic": "Relíquia",
@@ -310,5 +315,7 @@
   "Ability": "Habilidade",
   "GameMode": "Modo de jogo",
   "Rule": "Regra",
-  "SIMULATE CURRENT STATE": "SIMULAR ESTADO ATUAL"
+  "SIMULATE CURRENT STATE": "SIMULAR ESTADO ATUAL",
+  "Window resolution": "Resolução da janela",
+  "Fullscreen uses the monitor's native resolution. Larger windows are fitted to the available desktop.": "A tela cheia usa a resolução nativa do monitor. Janelas maiores são ajustadas à área disponível da tela."
 }

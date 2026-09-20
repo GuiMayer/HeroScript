@@ -10,6 +10,7 @@ const BLOOD := Color("#ce5269")
 const NIGHT := Color("#111323")
 const PANEL := Color("#202236")
 const PANEL_LIGHT := Color("#2d2d43")
+const MIN_READABLE_TEXT_WIDTH := 112.0
 
 static func build(high_contrast := false) -> Theme:
 	var result := Theme.new()
@@ -78,12 +79,33 @@ static func title(text: String, size := 34, color := INK) -> Label:
 	label.add_theme_color_override("font_color", color)
 	return label
 
-static func muted(text: String, size := 15) -> Label:
+static func muted(text: String, size := 15, min_width := 0.0) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", MUTED)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if min_width > 0:
+		label.custom_minimum_size.x = min_width
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return label
+
+static func caption(text: String, size := 15, min_width := 0) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", MUTED)
+	label.custom_minimum_size.x = min_width
+	label.clip_text = true
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	return label
+
+static func wrap(label: Label, min_width := MIN_READABLE_TEXT_WIDTH) -> Label:
+	label.clip_text = false
+	label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size.x = maxf(label.custom_minimum_size.x, min_width)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return label
 
 static func button(text: String, min_width := 0) -> Button:

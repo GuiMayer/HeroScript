@@ -81,7 +81,15 @@ func _run() -> void:
 	if inspection.ok:
 		screen.presenter.accept_evaluations(inspection.data.get("cards", []))
 		check(not screen.presenter.inspection_data(card_id).is_empty(), "version-matched evaluation reaches the presenter")
-	check(screen.presenter.pile_cards("drawPileInstanceIds").size() == GameSession.run.deck.drawPileInstanceIds.size(), "pile inspector uses canonical instance identities")
+	var published_draw_cards: Array = []
+	for zone in GameSession.card_zones.get("zones", []):
+		if str(zone.get("zoneId", "")) == "drawPileInstanceIds":
+			published_draw_cards = zone.get("cards", []).duplicate(true)
+			break
+	var inspected_draw_cards: Array = screen.presenter.pile_cards("drawPileInstanceIds")
+	check(inspected_draw_cards.size() == published_draw_cards.size() and
+		inspected_draw_cards.all(func(card): return not str(card.get("cardInstanceId", "")).is_empty()),
+		"pile inspector uses canonical instance identities")
 	check(candidate.has("costs"), "costs come from the canonical legal action")
 	screen._choose_card(card_id)
 	check(screen.selected_card == card_id and router.host.get_child(0) == screen, "selection keeps the current combat screen")
@@ -139,8 +147,8 @@ func _run() -> void:
 	check(int(GameSession.run.sequence) == sequence_before, "presentation does not issue extra commands")
 	var verification := await GameSession.verify()
 	check(verification.ok and bool(verification.data.get("isValid", false)), "replay valid after localized interactive input")
-	var original_run: String = GameSession.run.runId
-	var original_bytes := JSON.stringify(GameSession.run)
+	var campaign_run: String = GameSession.run.runId
+	var campaign_bytes := JSON.stringify(GameSession.run)
 	var live_cursor := Playback.index
 	router.show_timeline()
 	var timeline = router.host.get_child(0)
@@ -148,25 +156,66 @@ func _run() -> void:
 		await get_tree().create_timer(.025).timeout
 		if not timeline.entries.is_empty(): break
 	check(not timeline.entries.is_empty(), "timeline loads real paginated commands")
+	check(not timeline.history_allowed and not timeline.fork_allowed and not timeline.branch_read_allowed,
+		"campaign exposes a visible timeline without sandbox inspection tools")
+	check(not timeline.branch_button.visible and not timeline.branch_key.visible and not timeline.tree_view.visible,
+		"campaign hides branch controls instead of presenting unusable actions")
 	if not timeline.entries.is_empty():
 		await timeline._select(0)
-		check(timeline.history_view.actor_panels.size() == GameSession.combat.actors.size(), "historical aggregate is projected into reusable actor views")
+		check(timeline.history_view.presenter == null and timeline.playback.total == 0,
+			"campaign timeline does not fetch historical state when inspection is disabled")
+	check(GameSession.run.runId == campaign_run and JSON.stringify(GameSession.run) == campaign_bytes and Playback.index == live_cursor,
+		"campaign timeline remains a read-only command summary")
+
+	var presentation_file := FileAccess.open("res://data/presentation.json", FileAccess.READ)
+	var presentation: Dictionary = JSON.parse_string(presentation_file.get_as_text())
+	presentation_file.close()
+	check(await GameSession.start_sandbox("combat_sandbox", presentation.default_scenario, seed + 701),
+		"start sandbox for historical inspection and branching")
+	var sandbox_candidate: Dictionary = {}
+	for item in GameSession.legal_actions:
+		if str(item.get("source", "")) == "Card":
+			sandbox_candidate = item
+			break
+	if sandbox_candidate.is_empty():
+		check(false, "find sandbox card for a resolution-bearing timeline command")
+	else:
+		check(await GameSession.submit_candidate(sandbox_candidate),
+			"submit sandbox card through the canonical command boundary")
+	var original_run: String = GameSession.run.runId
+	var original_bytes := JSON.stringify(GameSession.run)
+	var sandbox_live_cursor := Playback.index
+	router.show_timeline()
+	timeline = router.host.get_child(0)
+	for _attempt in 400:
+		await get_tree().create_timer(.025).timeout
+		if not timeline.entries.is_empty(): break
+	check(timeline.history_allowed and timeline.fork_allowed and timeline.branch_read_allowed,
+		"sandbox exposes historical inspection and branch tools")
+	if not timeline.entries.is_empty():
+		await timeline._select(0)
+		check(timeline.history_view.actor_panels.size() == GameSession.combat.actors.size(),
+			"historical aggregate is projected into reusable actor views")
 		await timeline._select(timeline.entries.size() - 1)
 		check(timeline.playback.total > 0, "historical command exposes canonical resolution frames")
 		timeline._next_frame()
-		check(Playback.index == live_cursor and JSON.stringify(GameSession.run) == original_bytes, "historical playback does not change live cursor or run")
-		timeline.branch_key.text = "ui-branch"
+		check(Playback.index == sandbox_live_cursor and JSON.stringify(GameSession.run) == original_bytes,
+			"historical playback does not change live cursor or run")
+		timeline.branch_key.text = "ui-branch-%s" % seed
 		await timeline._branch()
-		check(GameSession.run.runId != original_run and router.current_screen == "combat", "branch button activates a separate playable run")
+		check(GameSession.run.runId != original_run and router.current_screen == "combat",
+			"branch button activates a separate playable run")
 		router.show_timeline()
 		timeline = router.host.get_child(0)
 		await timeline._load_tree()
 		var origin: TreeItem = timeline.tree_view.get_root()
-		check(origin != null and str(origin.get_metadata(0)) == original_run and origin.get_child_count() > 0, "branch tree retains the real origin and descendants")
+		check(origin != null and str(origin.get_metadata(0)) == original_run and origin.get_child_count() > 0,
+			"branch tree retains the real origin and descendants")
 		if origin:
 			origin.select(0)
 			await timeline._activate_selected()
-			check(GameSession.run.runId == original_run and JSON.stringify(GameSession.run) == original_bytes, "existing branch activation restores the original unchanged run")
+			check(GameSession.run.runId == original_run and JSON.stringify(GameSession.run) == original_bytes,
+				"existing branch activation restores the original unchanged run")
 	router.back_to_menu()
 	finish()
 

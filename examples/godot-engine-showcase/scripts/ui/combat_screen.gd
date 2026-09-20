@@ -108,19 +108,32 @@ func _build_hand() -> void:
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", 4)
 	var heading := HBoxContainer.new()
-	heading.add_child(AppTheme.title(zone_presenter.playable_label(), 17, AppTheme.GOLD))
-	hint_label = AppTheme.muted(I18n.text("Select a card, then choose a highlighted target."), 13)
+	heading.add_theme_constant_override("separation", 10)
+	var hand_title := AppTheme.title(zone_presenter.playable_label(), 17, AppTheme.GOLD)
+	hand_title.custom_minimum_size.x = 96
+	heading.add_child(hand_title)
+	hint_label = AppTheme.caption(I18n.text("Select a card, then choose a highlighted target."), 13, 260)
 	hint_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	heading.add_child(hint_label)
+	var zones_scroll := ScrollContainer.new()
+	zones_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	zones_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	zones_scroll.custom_minimum_size = Vector2(438, 40)
+	var zones := HBoxContainer.new()
+	zones.add_theme_constant_override("separation", 6)
 	for zone in zone_presenter.auxiliary_zones():
 		var zone_id := str(zone.get("zoneId", ""))
 		var label: String = zone_presenter.zone_label(zone)
 		var pile := _button("%s · %s" % [label, int(zone.get("count", 0))],
 			func(): _inspect_pile(label, zone_id))
 		pile.add_theme_font_size_override("font_size", 13)
-		pile.custom_minimum_size.y = 32
-		heading.add_child(pile)
+		pile.custom_minimum_size = Vector2(136, 34)
+		pile.clip_text = true
+		pile.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		pile.tooltip_text = "%s · %s" % [label, int(zone.get("count", 0))]
+		zones.add_child(pile)
+	zones_scroll.add_child(zones)
+	heading.add_child(zones_scroll)
 	section.add_child(heading)
 	hand_row = HBoxContainer.new()
 	hand_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -175,11 +188,10 @@ func _build_footer() -> void:
 	add_child(alternatives)
 	choices.child_order_changed.connect(func(): alternatives.custom_minimum_size.y = 52 if choices.get_child_count() > 0 else 0)
 	var row := HBoxContainer.new()
-	selection_label = AppTheme.muted("", 13)
+	selection_label = AppTheme.caption("", 13, 120)
 	selection_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	selection_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.add_child(selection_label)
-	queue_label = AppTheme.muted("", 13)
+	queue_label = AppTheme.caption("", 13, 90)
 	queue_label.add_theme_color_override("font_color", AppTheme.TEAL)
 	row.add_child(queue_label)
 	next_frame_button = _button(I18n.text("NEXT ANIMATION  [%s]") % Preferences.action_label("confirm_action"), _next_frame, 180)
@@ -405,9 +417,11 @@ func _update_controls() -> void:
 	var locked := _locked()
 	reconnect_button.visible = not GameSession.synchronized
 	queue_label.text = _queue_text() if _has_frames() else ""
+	queue_label.tooltip_text = queue_label.text
 	next_frame_button.visible = _has_frames()
 	selection_label.text = I18n.text("PROCESSING…") if GameSession.busy or submitting else (
 		I18n.text("Choose a highlighted target.") if not selected_card.is_empty() else "")
+	selection_label.tooltip_text = selection_label.text
 	for id in card_buttons:
 		var card: CardView = card_buttons[id]
 		card.disabled = locked

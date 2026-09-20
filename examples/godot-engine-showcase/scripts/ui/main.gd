@@ -36,7 +36,7 @@ func _ready() -> void:
 	host.add_theme_constant_override("margin_right", 48)
 	host.add_theme_constant_override("margin_bottom", 24)
 	add_child(host)
-	host.child_entered_tree.connect(func(child): _prepare_focus.call_deferred(child))
+	host.child_entered_tree.connect(_queue_focus_preparation)
 	toast = Label.new()
 	toast.visible = false
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -51,6 +51,8 @@ func _ready() -> void:
 	Preferences.changed.connect(_apply_preferences)
 	I18n.locale_changed.connect(_on_locale_changed)
 	_show_main_menu()
+	resized.connect(_refresh_layout_navigation)
+	if "--layout-smoke" in OS.get_cmdline_user_args(): return
 	if "--ui-smoke" in OS.get_cmdline_user_args():
 		add_child(preload("res://tests/usability.gd").new())
 		return
@@ -275,7 +277,7 @@ func toggle_pause() -> void:
 		content.add_child(abandon_button)
 	content.add_child(_button(I18n.text("MAIN MENU"), _pause_menu, 360))
 	center.add_child(AppTheme.panel(content))
-	_prepare_focus.call_deferred(pause_layer)
+	_queue_focus_preparation(pause_layer)
 
 func _pause_settings() -> void:
 	toggle_pause()
@@ -350,10 +352,21 @@ func _rebuild_localized_screen() -> void:
 		"activity": show_activity()
 		"menu": _show_main_menu()
 
-func _prepare_focus(screen: Control) -> void:
+func _queue_focus_preparation(screen: Node) -> void:
+	_prepare_focus.call_deferred(weakref(screen))
+
+func _prepare_focus(reference: WeakRef) -> void:
+	var screen = reference.get_ref()
+	if not is_instance_valid(screen) or not screen is Control: return
 	await get_tree().process_frame
 	if not is_instance_valid(screen) or not screen.is_inside_tree(): return
 	AppTheme.apply_view_preferences(screen)
 	await get_tree().process_frame
 	if is_instance_valid(screen) and screen.is_inside_tree():
 		preload("res://scripts/ui/focus_navigation.gd").wire(screen, true)
+
+func _refresh_layout_navigation() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree(): return
+	var scope: Control = pause_layer if is_instance_valid(pause_layer) else host
+	preload("res://scripts/ui/focus_navigation.gd").wire(scope)

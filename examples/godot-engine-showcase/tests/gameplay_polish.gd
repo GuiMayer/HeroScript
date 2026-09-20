@@ -41,7 +41,22 @@ func _run() -> void:
 	await settle()
 	var initial_activity = router.host.get_child(0)
 	check(initial_activity.presenter.route().size() == session.run.map.nodes.size(), "all engine map nodes are represented")
+	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(initial_activity).is_empty(), "activity text remains readable")
 	check(not is_instance_valid(initial_activity.find_child("AbandonRunButton", true, false)), "activity screen does not expose run abandonment")
+	prefs.fullscreen = false
+	prefs.set_resolution(Vector2i(1280, 720), false)
+	prefs.text_scale = 1.2
+	prefs.save()
+	translator.set_locale("pt_BR")
+	router.show_activity()
+	await settle()
+	var accessible_activity = router.host.get_child(0)
+	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(accessible_activity).is_empty(),
+		"Portuguese activity text remains readable at 1280x720 and 120% scale")
+	await capture("journey-1280-pt_BR-accessible")
+	prefs.text_scale = 1.0
+	prefs.save()
+	translator.set_locale("en")
 	router.toggle_pause()
 	await settle()
 	var abandon_button: Button = router.pause_layer.find_child("AbandonRunButton", true, false)
@@ -79,6 +94,7 @@ func _run() -> void:
 					inspection_checked = true
 				var label := "%s %s scale=%s" % [resolution, language, scale]
 				check(screen.get_global_rect().end.y <= router.size.y + 1, "combat fits: " + label)
+				check(preload("res://tests/layout_inspector.gd").vertical_text_issues(screen).is_empty(), "combat has no vertical text: " + label)
 				var costs_visible := true
 				var rules_fit := true
 				for button in screen.action_buttons:
@@ -127,6 +143,7 @@ func _run() -> void:
 		if not visited.has(state_key):
 			visited[state_key] = true
 			check(activity.get_global_rect().end.x <= router.size.x + 1, "activity fits: " + state_key)
+			check(preload("res://tests/layout_inspector.gd").vertical_text_issues(activity).is_empty(), "activity has no vertical text: " + state_key)
 			await capture("activity-" + state_key.replace(":", "-"))
 		var choice: Dictionary = driver.choose_progression_command()
 		# Exercise shop price presentation and one purchase, unlike the older campaign smoke.

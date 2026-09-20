@@ -15,7 +15,7 @@ func setup(owner, data: Dictionary) -> void:
 	var header := HBoxContainer.new()
 	var titles := VBoxContainer.new()
 	titles.add_child(AppTheme.title(I18n.text("RULES LAB"), 34))
-	titles.add_child(AppTheme.muted(I18n.text("Keep your cards and scenario, change the game mode and explore a different play style.")))
+	titles.add_child(AppTheme.muted(I18n.text("Keep your cards and scenario, change the game mode and explore a different play style."), 15, 360))
 	header.add_child(titles)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL

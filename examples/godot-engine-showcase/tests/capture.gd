@@ -3,6 +3,8 @@ extends SceneTree
 var _original_last_run := ""
 var _original_scale := 1.0
 var _original_contrast := false
+var _original_resolution := Vector2i.ZERO
+var _original_fullscreen := false
 
 func _init() -> void:
 	call_deferred("_capture")
@@ -11,6 +13,14 @@ func _capture() -> void:
 	_original_last_run = str(root.get_node("Preferences").last_run_id)
 	_original_scale = root.get_node("Preferences").text_scale
 	_original_contrast = root.get_node("Preferences").high_contrast
+	_original_resolution = root.get_node("Preferences").window_resolution
+	_original_fullscreen = root.get_node("Preferences").fullscreen
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--capture-resolution="):
+			var dimensions := argument.trim_prefix("--capture-resolution=").split("x")
+			if dimensions.size() == 2:
+				root.get_node("Preferences").fullscreen = false
+				root.get_node("Preferences").set_resolution(Vector2i(int(dimensions[0]), int(dimensions[1])), false)
 	if "--capture-accessibility" in OS.get_cmdline_user_args():
 		root.get_node("Preferences").text_scale = 1.2
 		root.get_node("Preferences").high_contrast = true
@@ -60,6 +70,8 @@ func _finish(code: int) -> void:
 	root.get_node("Preferences").last_run_id = _original_last_run
 	root.get_node("Preferences").text_scale = _original_scale
 	root.get_node("Preferences").high_contrast = _original_contrast
+	root.get_node("Preferences").window_resolution = _original_resolution
+	root.get_node("Preferences").fullscreen = _original_fullscreen
 	root.get_node("Preferences").save()
 	root.get_node("GameAudio").shutdown()
 	create_timer(.15).timeout.connect(func(): process_frame.connect(

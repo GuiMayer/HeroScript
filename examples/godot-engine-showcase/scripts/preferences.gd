@@ -16,6 +16,13 @@ const DEFAULT_BUTTONS := {"pause_game": JOY_BUTTON_START, "end_turn": JOY_BUTTON
 const RESERVED_KEYS := [KEY_ENTER, KEY_KP_ENTER, KEY_TAB, KEY_SPACE, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]
 const RESERVED_BUTTONS := [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]
 var text_scale := 1.0
+const DEFAULT_RESOLUTION := Vector2i(1280, 800)
+const RESOLUTIONS := [Vector2i(1280, 720), Vector2i(1280, 800), Vector2i(1366, 768),
+	Vector2i(1440, 900), Vector2i(1600, 900), Vector2i(1920, 1080), Vector2i(1920, 1200),
+	Vector2i(2560, 1080), Vector2i(2560, 1440), Vector2i(3440, 1440), Vector2i(3840, 2160)]
+var window_resolution := DEFAULT_RESOLUTION
+var _applied_resolution := Vector2i.ZERO
+var _applied_fullscreen = null
 
 var master_volume := 0.80
 var music_volume := 0.42
@@ -60,6 +67,9 @@ func load_settings() -> void:
 	reduced_motion = bool(config.get_value("game", "reduced_motion", reduced_motion))
 	auto_animations = bool(config.get_value("game", "auto_animations", auto_animations))
 	fullscreen = bool(config.get_value("video", "fullscreen", fullscreen))
+	window_resolution = Vector2i(int(config.get_value("video", "width", DEFAULT_RESOLUTION.x)),
+		int(config.get_value("video", "height", DEFAULT_RESOLUTION.y)))
+	if not valid_resolution(window_resolution): window_resolution = DEFAULT_RESOLUTION
 	high_contrast = bool(config.get_value("video", "high_contrast", high_contrast))
 	api_url = str(config.get_value("network", "api_url", api_url))
 	last_run_id = str(config.get_value("session", "last_run_id", last_run_id))
@@ -80,6 +90,8 @@ func save() -> void:
 	config.set_value("game", "reduced_motion", reduced_motion)
 	config.set_value("game", "auto_animations", auto_animations)
 	config.set_value("video", "fullscreen", fullscreen)
+	config.set_value("video", "width", window_resolution.x)
+	config.set_value("video", "height", window_resolution.y)
 	config.set_value("video", "high_contrast", high_contrast)
 	config.set_value("network", "api_url", _saved_api_url if _api_override else api_url)
 	config.set_value("session", "last_run_id", last_run_id)
@@ -93,8 +105,47 @@ func save() -> void:
 	changed.emit()
 
 func apply_window() -> void:
-	DisplayServer.window_set_mode(
-		DisplayServer.WINDOW_MODE_FULLSCREEN if fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+	# Audio/input saves must not reset a manually resized or maximized window.
+	if _applied_fullscreen == fullscreen and _applied_resolution == window_resolution: return
+	_applied_fullscreen = fullscreen
+	_applied_resolution = window_resolution
+	var window := get_tree().root
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	window.content_scale_size = Vector2i(1440, 900)
+	window.min_size = Vector2i(960, 540)
+	window.mode = Window.MODE_FULLSCREEN if fullscreen else Window.MODE_WINDOWED
+	if not fullscreen:
+		var requested := window_resolution
+		if DisplayServer.get_name() != "headless":
+			var area := DisplayServer.screen_get_usable_rect(window.current_screen)
+			requested = fit_window(requested, area.size - Vector2i(32, 64))
+			window.size = requested
+			window.position = area.position + (area.size - requested) / 2
+		else:
+			window.size = requested
+
+static func valid_resolution(value: Vector2i) -> bool:
+	return value.x >= 960 and value.y >= 540 and value.x <= 7680 and value.y <= 4320
+
+static func fit_window(requested: Vector2i, available: Vector2i) -> Vector2i:
+	var ratio := minf(1.0, minf(float(available.x) / requested.x, float(available.y) / requested.y))
+	return Vector2i(Vector2(requested) * maxf(ratio, .1))
+
+func resolution_options() -> Array:
+	var options := RESOLUTIONS.duplicate()
+	var native := DisplayServer.screen_get_size() if DisplayServer.get_name() != "headless" else Vector2i.ZERO
+	for value in [native, window_resolution]:
+		if valid_resolution(value) and value not in options: options.append(value)
+	options.sort_custom(func(a, b): return a.x < b.x or (a.x == b.x and a.y < b.y))
+	return options
+
+func set_resolution(value: Vector2i, persist := true) -> bool:
+	if not valid_resolution(value): return false
+	window_resolution = value
+	if persist: save()
+	else: apply_window()
+	return true
 
 func apply_audio() -> void:
 	var bus := AudioServer.get_bus_index("Master")

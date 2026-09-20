@@ -14,7 +14,7 @@ func setup(owner) -> void:
 	var header := HBoxContainer.new()
 	var titles := VBoxContainer.new()
 	titles.add_child(AppTheme.title(I18n.text("ENGINE CODEX"), 34))
-	titles.add_child(AppTheme.muted(I18n.text("Browse the published content used by the game.")))
+	titles.add_child(AppTheme.muted(I18n.text("Browse the published content used by the game."), 15, 280))
 	header.add_child(titles)
 	var push := Control.new()
 	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL

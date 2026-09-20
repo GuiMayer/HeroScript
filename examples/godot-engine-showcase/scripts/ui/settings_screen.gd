@@ -5,6 +5,7 @@ var close_action: Callable
 var capture_action := ""
 var capture_button: Button
 var binding_buttons := {}
+var resolution_selector: OptionButton
 
 func setup(owner, on_close: Callable) -> void:
 	router = owner
@@ -52,9 +53,26 @@ func _audio_panel() -> Control:
 		func(v): Preferences.animation_speed = maxf(.25, v * 2.0)))
 	var fullscreen := CheckButton.new()
 	fullscreen.text = I18n.text("Fullscreen")
+	fullscreen.name = "FullscreenToggle"
 	fullscreen.button_pressed = Preferences.fullscreen
-	fullscreen.toggled.connect(func(value): Preferences.fullscreen = value; Preferences.save())
+	fullscreen.toggled.connect(func(value):
+		Preferences.fullscreen = value
+		Preferences.save()
+		resolution_selector.disabled = value)
 	content.add_child(fullscreen)
+	content.add_child(AppTheme.muted(I18n.text("Window resolution")))
+	resolution_selector = OptionButton.new()
+	resolution_selector.name = "ResolutionSelector"
+	var resolutions := Preferences.resolution_options()
+	for resolution in resolutions:
+		resolution_selector.add_item("%s × %s" % [resolution.x, resolution.y])
+		resolution_selector.set_item_metadata(resolution_selector.item_count - 1, resolution)
+	resolution_selector.select(resolutions.find(Preferences.window_resolution))
+	resolution_selector.disabled = Preferences.fullscreen
+	resolution_selector.item_selected.connect(func(index):
+		Preferences.set_resolution(resolution_selector.get_item_metadata(index)))
+	content.add_child(resolution_selector)
+	content.add_child(AppTheme.muted(I18n.text("Fullscreen uses the monitor's native resolution. Larger windows are fitted to the available desktop.")))
 	content.add_child(_slider(I18n.text("Text size"), (Preferences.text_scale - .9) / .3,
 		func(v): Preferences.text_scale = .9 + v * .3))
 	var contrast := CheckButton.new()

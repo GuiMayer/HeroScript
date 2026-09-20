@@ -6,8 +6,7 @@ var choice_buttons: Array[Button] = []
 func setup(model: Dictionary) -> void:
 	name = "DialoguePanel"
 	add_theme_constant_override("separation", 16)
-	var heading := AppTheme.title(str(model.title), 28, AppTheme.GOLD)
-	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var heading := AppTheme.wrap(AppTheme.title(str(model.title), 28, AppTheme.GOLD), 180)
 	add_child(heading)
 	var speech := HBoxContainer.new()
 	speech.add_theme_constant_override("separation", 20)
@@ -18,12 +17,10 @@ func setup(model: Dictionary) -> void:
 	var words := VBoxContainer.new()
 	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	words.add_theme_constant_override("separation", 12)
-	var speaker := AppTheme.title(str(model.speaker), 20, AppTheme.EMBER)
-	speaker.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var speaker := AppTheme.wrap(AppTheme.title(str(model.speaker), 20, AppTheme.EMBER), 160)
 	words.add_child(speaker)
-	var text := AppTheme.title(str(model.text), 21)
+	var text := AppTheme.wrap(AppTheme.title(str(model.text), 21), 220)
 	text.name = "DialogueText"
-	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.add_child(text)
 	speech.add_child(words)
 	add_child(AppTheme.panel(speech))

@@ -41,36 +41,43 @@ func setup(owner, data: Dictionary) -> void:
 	call_deferred("_maybe_auto_advance")
 
 func _build_header() -> void:
+	var header := VBoxContainer.new()
+	header.add_theme_constant_override("separation", 8)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	var title_box := VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_box.add_child(AppTheme.title(I18n.text("THE EMBER PATH"), 30))
 	title_box.tooltip_text = "Seed: %s · Sequence: %s" % [GameSession.run.get("seed", 0), GameSession.run.get("sequence", 0)]
-	title_box.add_child(AppTheme.muted(I18n.text("Build your deck. Choose your path."), 14))
+	title_box.add_child(AppTheme.muted(I18n.text("Build your deck. Choose your path."), 14, 240))
 	row.add_child(title_box)
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(push)
+	row.add_child(_button(I18n.text("VERIFY REPLAY"), _verify, 185))
+	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
+	header.add_child(row)
+	var badges := HFlowContainer.new()
+	badges.alignment = FlowContainer.ALIGNMENT_END
+	badges.add_theme_constant_override("h_separation", 16)
+	badges.add_theme_constant_override("v_separation", 6)
 	for resource_id in GameSession.run.get("resources", {}):
 		var resource = GameSession.run.get("resources", {}).get(resource_id, {})
 		var badge := Label.new()
 		badge.text = "%s %s" % [I18n.number(float(resource.get("current", 0))), I18n.content_name(resource_id)]
 		badge.add_theme_color_override("font_color", AppTheme.GOLD)
 		badge.add_theme_font_size_override("font_size", 15)
-		row.add_child(badge)
+		badges.add_child(badge)
 	if not GameSession.run.get("relics", []).is_empty():
 		var relic_badge := Label.new()
 		relic_badge.text = "⬢  %s" % GameSession.run.get("relics", []).size()
 		relic_badge.add_theme_color_override("font_color", AppTheme.EMBER)
-		row.add_child(relic_badge)
+		badges.add_child(relic_badge)
 	if not GameSession.run.get("modifiers", []).is_empty():
 		var modifier_badge := Label.new()
 		modifier_badge.text = "△  %s" % GameSession.run.get("modifiers", []).size()
 		modifier_badge.add_theme_color_override("font_color", AppTheme.TEAL)
-		row.add_child(modifier_badge)
-	row.add_child(_button(I18n.text("VERIFY REPLAY"), _verify, 185))
-	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
-	add_child(row)
+		badges.add_child(modifier_badge)
+	if badges.get_child_count() > 0: header.add_child(badges)
+	else: badges.free()
+	add_child(header)
 
 func _build_map() -> Control:
 	var column := VBoxContainer.new()
@@ -100,8 +107,7 @@ func _activity_summary(node: Dictionary) -> Control:
 	content.alignment = BoxContainer.ALIGNMENT_CENTER
 	content.add_theme_constant_override("separation", 12)
 	content.add_child(AppTheme.muted(I18n.content_name(kind).to_upper(), 13))
-	var title := AppTheme.title(presenter.node_name(str(node.get("nodeId", ""))), 30, AppTheme.GOLD)
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var title := AppTheme.wrap(AppTheme.title(presenter.node_name(str(node.get("nodeId", ""))), 30, AppTheme.GOLD), 180)
 	content.add_child(title)
 	var description: String = {
 		"Encounter": I18n.text("Study the enemy's intent. Balance offense and defense."),
@@ -165,8 +171,7 @@ func _build_actions() -> void:
 			art.custom_minimum_size.y = 100
 			column.add_child(art)
 			if not str(choice.get("subjectId", "")).is_empty():
-				var title := AppTheme.title(str(model.name), 19)
-				title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				var title := AppTheme.wrap(AppTheme.title(str(model.name), 19), 180)
 				column.add_child(title)
 			if not str(model.cost).is_empty(): column.add_child(AppTheme.title(str(model.cost), 17, AppTheme.GOLD))
 			var button := _button(label, func(): _confirm_choice(choice, model, label))

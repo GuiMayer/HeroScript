@@ -146,6 +146,22 @@
 	"pt_BR": "Treinar",
 	"en": "Train"
   },
+  "pack_supplies": {
+	"pt_BR": "Preparar suprimentos",
+	"en": "Pack supplies"
+  },
+  "train_spell": {
+	"pt_BR": "Treinar feitiço",
+	"en": "Train spell"
+  },
+  "prepare_antidote": {
+	"pt_BR": "Preparar antídoto",
+	"en": "Prepare antidote"
+  },
+  "study_venom": {
+	"pt_BR": "Estudar veneno",
+	"en": "Study venom"
+  },
   "buy_attack": {
 	"pt_BR": "Golpe",
 	"en": "Strike"

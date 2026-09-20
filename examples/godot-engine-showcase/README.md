@@ -138,4 +138,19 @@ selecionado; para experimentar outro passado, primeiro ative uma branch dele.
 Configurações incluem tamanho de texto, contraste, movimento reduzido e
 restauração dos controles. Veja [etapas e verificações](UX_IMPLEMENTATION.md).
 
+### Resoluções
+
+Em **Configurações → Resolução da janela**, escolha presets de 1280×720 até
+3840×2160, incluindo **2560×1080** e 3440×1440 ultrawide. A escolha é salva.
+Em tela cheia, usa-se a resolução nativa do monitor; ao voltar ao modo janela,
+a resolução escolhida é restaurada, ajustada à área disponível se necessário.
+O layout expande com a proporção da tela sem deformar os elementos, seguindo
+o [suporte a múltiplas resoluções da Godot](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html).
+
+Teste offline de resoluções, menu, proporção e persistência:
+
+```powershell
+godot --headless --path . --script res://tests/resolutions.gd -- --layout-smoke
+```
+
 Veja o [diagnóstico de desempenho e decisões de UX](../../docs/roadmap/ENGINE_PERFORMANCE_AND_DEMO_UX.md).
