@@ -226,7 +226,8 @@ func _choice_label(choice: Dictionary, model: Dictionary) -> String:
 	var templates := {
 		"ADVANCE_NODE": "TRAVEL TO %s", "PICK_CARD_REWARD": "CHOOSE  •  %s",
 		"DECOMPOSE_CARD_REWARD": "DISMANTLE  •  %s", "BUY_SHOP_ITEM": "BUY  •  %s",
-		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s"
+		"APPLY_PREPARATION_OPTION": "PREPARE  •  %s", "UPGRADE_CARD": "UPGRADE  •  %s",
+		"REMOVE_CARD_TRANSFORMATION": "REMOVE  •  %s", "REPLACE_CARD_TRANSFORMATION": "REPLACE  •  %s"
 	}
 	var type := str(choice.type)
 	if templates.has(type): return I18n.text(templates[type]) % str(model.name)
@@ -237,12 +238,24 @@ func _choice_label(choice: Dictionary, model: Dictionary) -> String:
 
 func _confirm_choice(choice: Dictionary, model: Dictionary, label: String) -> void:
 	if GameSession.busy: return
-	if str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "UPGRADE_CARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
+	var transformation := str(choice.type) in ["UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION"]
+	if not transformation and str(choice.type) not in ["BUY_SHOP_ITEM", "DECOMPOSE_CARD_REWARD", "REROLL_SHOP", "REROLL_CARD_REWARD"]:
 		_execute(choice)
 		return
 	var dialog := ConfirmationDialog.new()
 	dialog.title = I18n.text("Confirm choice")
 	dialog.dialog_text = label + ("\n" + str(model.cost) if not str(model.cost).is_empty() else "")
+	if transformation:
+		var assessment := await GameSession.preview_transformation(choice)
+		if not is_inside_tree():
+			dialog.free()
+			return
+		if assessment.is_empty():
+			dialog.free()
+			router.show_toast(I18n.text("Detailed inspection is unavailable."))
+			return
+		dialog.dialog_text += "\n\n" + presenter.transformation_text(assessment)
+		dialog.get_ok_button().disabled = not bool(assessment.get("isCompatible", false))
 	dialog.ok_button_text = I18n.text("CONFIRM")
 	dialog.cancel_button_text = I18n.text("CANCEL")
 	dialog.confirmed.connect(func(): _execute(choice))

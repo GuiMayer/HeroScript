@@ -377,12 +377,14 @@ func _next_frame() -> void:
 
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	detail_label.text = "%s %s/%s  •  %s" % [I18n.text("Animations"), index + 1, total, I18n.content_name(str(frame.get("transitionType", "")))]
+	var flashed: Array[String] = []
 	for application in frame.get("applications", []):
 		detail_label.text += "\n" + presenter.application_text(application, true)
 		var target := str(application.get("targetEntityId", ""))
 		if actor_portraits.has(target):
-			if not Preferences.reduced_motion:
+			if not Preferences.reduced_motion and target not in flashed:
 				actor_portraits[target].flash_hit()
+				flashed.append(target)
 			_float_application(application, actor_portraits[target])
 	GameAudio.hit()
 
@@ -545,7 +547,9 @@ func _cost_text(candidate: Dictionary) -> String:
 
 func _load_inspection(ticket: int) -> void:
 	var representative_targets: Array = []
+	if not selected_target.is_empty(): representative_targets = [selected_target]
 	for candidate in GameSession.legal_actions:
+		if not representative_targets.is_empty(): break
 		var targets: Array = presenter._targets(candidate)
 		if not targets.is_empty():
 			representative_targets = [targets[0]]

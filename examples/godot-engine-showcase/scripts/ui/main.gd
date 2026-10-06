@@ -78,6 +78,13 @@ func _load_presentation() -> void:
 		var value = JSON.parse_string(file.get_as_text())
 		file.close()
 		if value is Dictionary:
+			var core_file := "res://data/volatile_core_presentation.json"
+			if FileAccess.file_exists(core_file):
+				var core = JSON.parse_string(FileAccess.get_file_as_string(core_file))
+				if core is Dictionary:
+					for category in core:
+						if not value.has(category): value[category] = {}
+						value[category].merge(core[category], true)
 			presentation = I18n.presentation(value)
 
 func _probe_engine() -> void:

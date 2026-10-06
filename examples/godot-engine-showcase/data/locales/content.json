@@ -1,4 +1,76 @@
 {
+  "core_strike": {
+	"en": "Volatile Strike",
+	"pt_BR": "Golpe volátil"
+  },
+  "core_guard": {
+	"en": "Ward",
+	"pt_BR": "Proteção"
+  },
+  "core_heal": {
+	"en": "Renewal",
+	"pt_BR": "Renovação"
+  },
+  "core_charge_card": {
+	"en": "Prepare Charge",
+	"pt_BR": "Preparar carga"
+  },
+  "core_release": {
+	"en": "Release",
+	"pt_BR": "Liberação"
+  },
+  "core_recover": {
+	"en": "Recover",
+	"pt_BR": "Recuperação"
+  },
+  "core_empower_card": {
+	"en": "Empower",
+	"pt_BR": "Fortalecer"
+  },
+  "core_ember": {
+	"en": "Ember affinity",
+	"pt_BR": "Afinidade de brasa"
+  },
+  "core_frost": {
+	"en": "Frost affinity",
+	"pt_BR": "Afinidade de gelo"
+  },
+  "core_multihit": {
+	"en": "Multiple impacts",
+	"pt_BR": "Múltiplos impactos"
+  },
+  "core_cascade": {
+	"en": "Causal cascade",
+	"pt_BR": "Cascata causal"
+  },
+  "core_sharpen": {
+	"en": "Sharpen",
+	"pt_BR": "Afiar"
+  },
+  "core_charge": {
+	"en": "Charge",
+	"pt_BR": "Carga"
+  },
+  "core_overcharge": {
+	"en": "Overcharge",
+	"pt_BR": "Sobrecarga"
+  },
+  "core_adept": {
+	"en": "Crucible Adept",
+	"pt_BR": "Adepto do cadinho"
+  },
+  "core_spark": {
+	"en": "Spark",
+	"pt_BR": "Faísca"
+  },
+  "core_echo": {
+	"en": "Echo",
+	"pt_BR": "Eco"
+  },
+  "core_prime": {
+	"en": "Prime",
+	"pt_BR": "Primordial"
+  },
   "keeper": { "en": "The Keeper", "pt_BR": "A Guardiã" },
   "return": { "en": "A familiar face", "pt_BR": "Um rosto conhecido" },
   "Dialogue": { "en": "Conversation", "pt_BR": "Conversa" },

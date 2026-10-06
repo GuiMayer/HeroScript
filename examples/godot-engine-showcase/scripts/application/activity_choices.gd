@@ -26,13 +26,16 @@ static func build(run: Dictionary, commands: Array) -> Array:
 					payload[instance_key] = valid.get(instance_key)
 					payload["itemId" if shop else "optionId"] = id
 					choices.append(_choice(type, payload, str(id), "content"))
-			"UPGRADE_CARD":
+			"UPGRADE_CARD", "REMOVE_CARD_TRANSFORMATION", "REPLACE_CARD_TRANSFORMATION":
 				for option in valid.get("options", []):
 					var card_id = option.get("cardInstanceId")
 					var upgrade_id = option.get("upgradeId")
 					var definition := str(option.get("cardDefinitionId", card_id))
 					var choice := _choice(type, {"cardInstanceId": card_id, "upgradeId": upgrade_id}, definition, "card")
 					choice["variantId"] = upgrade_id
+					if option.get("targetTransformationId") != null:
+						choice.payload["transformationId"] = option.targetTransformationId
+					choice["costs"] = option.get("costs", []).duplicate(true)
 					choices.append(choice)
 			"REROLL_CARD_REWARD":
 				choices.append(_choice(type, {"selectionInstanceId": valid.get("selectionInstanceId"), "lockedCardIds": []}, "", "", true))

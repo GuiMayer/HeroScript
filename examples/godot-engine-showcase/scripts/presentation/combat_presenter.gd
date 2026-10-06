@@ -135,6 +135,7 @@ func card_view_model(instance_id: String) -> Dictionary:
 		"cost": _i18n.text("UNAVAILABLE") if candidate.is_empty() else "",
 		"availability": _i18n.text("SELECT TO PLAY") if not candidate.is_empty() else _i18n.text("INSPECT FOR DETAILS"),
 		"changeBadges": changes,
+		"inspectionText": inspection_text(instance_id) if not inspection.is_empty() else "",
 		"alternativeCostCount": _candidates(instance_id).size(),
 		"artPlaceholder": true
 	}
@@ -292,6 +293,19 @@ func inspection_text(id: String) -> String:
 		lines.append(_i18n.text("Detailed inspection is unavailable."))
 	else:
 		lines.append(_i18n.text("Upgrades: %s") % data.get("appliedUpgrades", []).size())
+		lines.append(_i18n.text("Base components"))
+		for component in data.get("effectiveBase", {}).get("components", []):
+			if component.get("effect") is Dictionary:
+				var effect: Dictionary = component.effect
+				lines.append("%s · %s · ×%s" % [str(component.get("componentId", "")), _i18n.content_name(str(effect.get("effectType", "effect"))), effect.get("repeat", 1)])
+				for parameter in effect.get("parameters", []):
+					lines.append("%s: %s" % [str(parameter.get("parameterId", "")), parameter.get("flatValue", "—")])
+		for proc in data.get("procs", []):
+			lines.append(_i18n.text("Condensed proc" if proc.get("isCondensation", false) else "Proc") + " · " + _i18n.text("Impacts: %s") % proc.get("impactIds", []).size())
+			for consumed in proc.get("consumedStacks", []):
+				lines.append(_i18n.text("Consumed stacks: %s → %s") % [consumed.get("previousStacks", 0), consumed.get("currentStacks", 0)])
+			for hop in proc.get("continuations", []):
+				lines.append("%s → %s" % [_actor_name(str(hop.get("fromEntityId", ""))), _actor_name(str(hop.get("toEntityId", "")))])
 		var context: Dictionary = data.get("contextSources", {}) if data.get("contextSources") is Dictionary else {}
 		for upgrade in data.get("appliedUpgrades", []):
 			lines.append(_i18n.content_name(str(upgrade.get("upgradeId", ""))))

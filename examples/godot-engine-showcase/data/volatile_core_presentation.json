@@ -1,0 +1,62 @@
+{
+  "cards": {
+    "core_strike": {
+      "name": "Volatile Strike",
+      "text": "Divide one scaled budget across its impacts.",
+      "tone": "attack"
+    },
+    "core_guard": {
+      "name": "Ward",
+      "text": "Increase the configured protection resource.",
+      "tone": "skill"
+    },
+    "core_heal": {
+      "name": "Renewal",
+      "text": "Recover a resource through the configured pipeline.",
+      "tone": "skill"
+    },
+    "core_charge_card": {
+      "name": "Prepare Charge",
+      "text": "Capture potency and accumulate two charge stacks.",
+      "tone": "skill"
+    },
+    "core_release": {
+      "name": "Release",
+      "text": "Consume eligible charge stacks in one offensive proc.",
+      "tone": "attack"
+    },
+    "core_recover": {
+      "name": "Recover",
+      "text": "Consume eligible charge stacks in one recovery proc.",
+      "tone": "skill"
+    },
+    "core_empower_card": {
+      "name": "Empower",
+      "text": "Consume charge stacks to create a temporary scaling modifier.",
+      "tone": "skill"
+    }
+  },
+  "nodes": {
+    "core_arrival": {
+      "name": "The Crucible"
+    },
+    "core_reward": {
+      "name": "Shape the Deck"
+    },
+    "core_forge": {
+      "name": "Affinity Forge"
+    },
+    "core_trial": {
+      "name": "Dual Trial"
+    },
+    "core_training": {
+      "name": "Attribute Training"
+    },
+    "core_reforge": {
+      "name": "Reforge"
+    },
+    "core_final": {
+      "name": "Final Trial"
+    }
+  }
+}

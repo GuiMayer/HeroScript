@@ -10,6 +10,13 @@
   "categories": {
     "portraits": { "ember_keeper": "actor_adept" },
     "cards": {
+      "core_strike": "core_strike",
+      "core_guard": "core_guard",
+      "core_heal": "core_heal",
+      "core_charge_card": "core_charge_card",
+      "core_release": "core_release",
+      "core_recover": "core_recover",
+      "core_empower_card": "core_empower_card",
       "basic_attack": "card_strike",
       "defend": "card_defend",
       "fireball": "card_fire",
@@ -39,6 +46,13 @@
     }
   },
   "slots": {
+    "core_strike": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_guard": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_heal": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_charge_card": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_release": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_recover": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_empower_card": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
     "card_unknown": {
       "path": "res://assets/placeholders/card.svg",
       "fit": "contain",

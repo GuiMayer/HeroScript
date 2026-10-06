@@ -251,3 +251,12 @@ com escopo do snapshot e agrupamento de procs/consumos/continuações. Controlle
 delegam ao planner; GET não executa mutations nem revela cartas de zonas ocultas.
 OpenAPI e guia REST atualizados. Core: 1.518 testes; API: 184 testes aprovados.
 O gate integrado de preview/execução do setting continua na etapa 14.
+# Etapa 13 — apresentação Godot
+
+Concluída: escolha de Apply/Remove/Replace mantém IDs e custos publicados;
+confirmação consulta before/after; tooltip apresenta parâmetros, consumo e saltos;
+um proc condensado tem uma ativação visual, preservando todos os registros.
+Manifesto tem slots individuais `core_*`, nomes PT/EN e fallback inglês.
+Godot layers, volatile_core, resolutions, smoke, UI smoke e gameplay polish:
+zero falhas. Layout cobre mão vazia e até 3840×2160, incluindo 2560×1080.
+Verificação visual humana e balanceamento são gates separados.

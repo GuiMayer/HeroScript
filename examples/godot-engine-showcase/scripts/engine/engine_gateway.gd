@@ -118,6 +118,12 @@ func inspect_hand(combat_id: String, actor_id: String, target_ids := []) -> Dict
 		path += "&targetIds=%s" % str(target_id).uri_encode()
 	return await _transport.request(HTTPClient.METHOD_GET, path)
 
+func transformation_preview(run_id: String, card_id: String, operation: String, upgrade_id := "", transformation_id = null) -> Dictionary:
+	var path := "/api/v1/runs/%s/cards/%s/transformation-preview?operation=%s" % [run_id.uri_encode(), card_id.uri_encode(), operation.uri_encode()]
+	if not upgrade_id.is_empty(): path += "&upgradeId=" + upgrade_id.uri_encode()
+	if transformation_id != null: path += "&transformationId=" + str(transformation_id).uri_encode()
+	return await _transport.request(HTTPClient.METHOD_GET, path)
+
 func historical_state(combat_id: String, sequence: int) -> Dictionary:
 	var response: Dictionary = await _transport.request(HTTPClient.METHOD_GET,
 		"/api/v1/combats/%s/timeline/%s/state" % [combat_id.uri_encode(), sequence])

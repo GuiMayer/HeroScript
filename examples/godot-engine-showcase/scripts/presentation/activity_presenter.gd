@@ -40,6 +40,9 @@ func offer(choice: Dictionary) -> Dictionary:
 	var definition := subject
 	var costs: Array = []
 	var has_cost := false
+	if choice.has("costs"):
+		costs = choice.costs.duplicate(true)
+		has_cost = true
 	if type == "BUY_SHOP_ITEM":
 		for shop in _run.get("shops", []):
 			if str(shop.get("shopInstanceId", "")) != str(choice.payload.get("shopInstanceId", "")): continue
@@ -74,3 +77,21 @@ func offer(choice: Dictionary) -> Dictionary:
 		"summary": summary, "category": "cards" if is_card else "activities",
 		"cost": (_i18n.text("Free") if costs.is_empty() else " + ".join(price)) if has_cost else "",
 		"choice": choice.duplicate(true)}
+
+func transformation_text(assessment: Dictionary) -> String:
+	var lines: Array[String] = []
+	if not bool(assessment.get("isCompatible", false)):
+		for diagnostic in assessment.get("diagnostics", []):
+			lines.append(str(diagnostic.get("message", diagnostic)))
+		return "\n".join(lines)
+	for side in ["before", "after"]:
+		var card: Dictionary = assessment.get(side, {}) if assessment.get(side) is Dictionary else {}
+		lines.append(_i18n.text("Before" if side == "before" else "After"))
+		lines.append(", ".join(card.get("tags", [])))
+		for component in card.get("components", []):
+			if component.get("effect") is Dictionary:
+				var effect: Dictionary = component.effect
+				lines.append("%s · %s · ×%s" % [str(component.get("componentId", "")), _i18n.content_name(str(effect.get("effectType", "effect"))), effect.get("repeat", 1)])
+				for parameter in effect.get("parameters", []):
+					lines.append("%s: %s" % [str(parameter.get("parameterId", "")), parameter.get("flatValue", "—")])
+	return "\n".join(lines)
