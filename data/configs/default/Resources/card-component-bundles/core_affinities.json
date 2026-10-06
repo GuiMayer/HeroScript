@@ -1,0 +1,27 @@
+{
+  "core.ember.attack": {
+    "bundleId": "core.ember.attack",
+    "components": [{
+      "type": "effect", "componentId": "residual", "order": 10,
+      "effect": {
+        "effectId": "core.ember.scorch", "type": "APPLY_STATUS", "target": "TARGET",
+        "statusId": "burning", "statusStacks": 1, "statusDuration": 3,
+        "tags": ["fire", "residual"],
+        "targetLoss": { "policy": "Skip" },
+        "metadata": { "nameKey": "effect.ember.scorch", "artKey": "placeholder.ember.scorch" }
+      }
+    }]
+  },
+  "core.ember.heal": {
+    "bundleId": "core.ember.heal",
+    "components": [{
+      "type": "effect", "componentId": "residual", "order": 10,
+      "effect": {
+        "effectId": "core.ember.afterglow", "type": "APPLY_STATUS", "target": "SELF",
+        "statusId": "regeneration", "statusStacks": 1, "statusDuration": 3,
+        "tags": ["fire", "residual", "heal"],
+        "metadata": { "nameKey": "effect.ember.afterglow", "artKey": "placeholder.ember.afterglow" }
+      }
+    }]
+  }
+}

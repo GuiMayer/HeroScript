@@ -19,6 +19,8 @@ public sealed record EffectiveCardDefinition
     public string DefinitionId { get; init; } = string.Empty;
     public string DefinitionFingerprint { get; init; } = string.Empty;
     public ImmutableArray<string> Tags { get; init; } = [];
+    public ImmutableArray<CardCompositionApplicationTrace> CompositionTrace { get; init; } = [];
+    public ImmutableArray<string> Capabilities => CardCompositionGrammar.Capabilities(Components);
     public IReadOnlyList<CardUpgradeState> AppliedUpgrades
     {
         get => _appliedUpgrades;
@@ -61,6 +63,7 @@ internal sealed record EffectiveCardFingerprintPayload(
     ImmutableArray<CardUpgradeState> TransformationLedger,
     ImmutableArray<CardUpgradeState> AppliedUpgrades,
     ImmutableArray<CardUpgradeApplicationTrace> UpgradeTrace,
+    ImmutableArray<CardCompositionApplicationTrace> CompositionTrace,
     ImmutableArray<CardComponentDefinition> Components)
 {
     public string ComputeFingerprint() => CanonicalJson.ComputeHash(this);

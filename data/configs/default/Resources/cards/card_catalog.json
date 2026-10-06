@@ -5,6 +5,7 @@
     "basePrices": [{ "resourceId": "gold", "amount": 10 }],
     "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
     "tags": ["attack", "common", "starter"],
+    "transformationSlots": [{ "slotId": "affinity", "capacity": 1, "allowedCategories": ["Affinity"] }],
     "components": [
       {
         "type": "cost",
@@ -148,6 +149,7 @@
     "basePrices": [{ "resourceId": "gold", "amount": 18 }],
     "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
     "tags": ["heal", "utility", "common"],
+    "transformationSlots": [{ "slotId": "affinity", "capacity": 1, "allowedCategories": ["Affinity"] }],
     "components": [
       {
         "type": "cost",

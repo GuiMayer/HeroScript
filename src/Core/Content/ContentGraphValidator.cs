@@ -469,7 +469,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             }
             if (bundle.Value.BundleId != id)
                 errors.Add($"card-component-bundles/{id}: bundle definition identity mismatch");
-            var closed = CardBundleCompiler.Expand(bundle.Value, "publication");
+            var closed = CardBundleCompiler.ValidateTemplate(bundle.Value);
             if (closed.IsFailure) errors.Add($"card-component-bundles/{id}: {closed.Error}");
             foreach (var value in FindStringProperties(definition, "resourceId", "targetResource"))
                 Require(runtime, errors, "card-component-bundles", id, value, "resources");
@@ -786,7 +786,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             {
                 var upgrade = definition.Deserialize<CardUpgradeDefinition>(CreateJsonOptions());
                 if (upgrade == null || upgrade.UpgradeId != id || upgrade.MaxApplications < 1 ||
-                    !Enum.IsDefined(upgrade.Category) || upgrade.Patches.Count == 0)
+                    !Enum.IsDefined(upgrade.Category) || upgrade.Patches.Count == 0 && upgrade.CompositionRules.Count == 0)
                 {
                     errors.Add($"card-upgrades/{id} is invalid");
                     continue;
@@ -808,8 +808,13 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                         errors.Add($"card-upgrades/{id}: {compiled.Error}");
                         continue;
                     }
-                    var validation = resolver.ValidateUpgrade(compiled.Value, sealedUpgrade.Value);
-                    if (validation.IsFailure)
+                    var diagnostics = new List<CardCompositionDiagnostic>();
+                    var validation = resolver.ValidateUpgrade(compiled.Value, sealedUpgrade.Value, diagnostics);
+                    // Conditional requirements may become satisfiable through another permanent transformation.
+                    // Templates/references are validated independently; execution always validates the full candidate.
+                    var ineligible = diagnostics.Count > 0 && diagnostics.All(item => item.Code is
+                        "missing_tag" or "excluded_tag" or "missing_capability" or "excluded_capability" or "no_matching_rule");
+                    if (validation.IsFailure && !ineligible)
                         errors.Add($"card-upgrades/{id}: {validation.Error}");
                 }
             }

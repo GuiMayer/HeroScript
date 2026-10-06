@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Core.Tests.Content;
 
-public sealed class ContentGraphValidatorTests
+public sealed partial class ContentGraphValidatorTests
 {
     [Fact]
     public void Validate_RejectsMissingUpgradeBundleEvenWithoutEligibleCards()

@@ -37,7 +37,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 4 — Payloads e consumo | Concluída | Core 1.226 / API 181, sem falhas; 28 regressões novas na 4b, além das 13 da 4a. |
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
 | 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
-| 7 — Afinidades/modificadores | Pendente | |
+| 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
 | 8 — Multi-hit | Pendente | |
 | 9 — Salto por abate | Pendente | |
 | 10 — Atributos persistentes | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 7: gramática data-driven de afinidades e modificadores comportamentais. Relacionar tags/ações a componentes, requisitos/exclusões e capacidades, ordem/escopo nos boundaries executáveis e explicações estruturadas de incompatibilidade. A etapa 6 está concluída; conteúdo demonstrativo, preview especializado e UI Godot continuam nas etapas posteriores.
+Etapa 8: multi-hit com orçamento e distribuição explícitos, incluindo conservação de magnitude, restos de rounding/stacks, cálculo de origem uma vez e fatores/settlements por impacto. Não confundir repeats tradicionais com repartição de orçamento; implementar scopes por ação/impacto apenas nos boundaries reais. Etapas 6/7 concluídas; oportunidades da jornada, preview especializado e UI Godot continuam nas etapas posteriores.
 
 ## Etapa 4b — payloads e lotes
 
@@ -160,3 +160,18 @@ Etapa 7: gramática data-driven de afinidades e modificadores comportamentais. R
 - Contrato atualizado: [permanent-transformations.md](../systems/cards/permanent-transformations.md); gateway/discovery em [runs-and-combat.md](../api/runs-and-combat.md).
 - Etapa 6a: commit `a298adc`.
 - Verificação final da 6b: Core 1.325 aprovados (1m28s), API 183 aprovados (34s), nenhuma falha. Consulta `/available-commands` calcula e enriquece ofertas a partir do mesmo snapshot capturado, sem reler a run no meio da projeção.
+
+## Etapa 7 — gramática de afinidades/comportamentos
+
+- `requirements` e `compositionRules` nos upgrades existentes; predicados Required/ExcludedTags/Capabilities e seleção de efeitos raiz por tipo, identidade e tags. Nenhum registry de elementos nem branch de fogo/veneno no processador.
+- Todas as entradas ativas aplicam seus patches primeiro. Requisitos e seleção usam a base estrutural final, já incluindo upgrades numéricos posteriores. Efeitos gerados não retroalimentam a seleção; fontes contextuais permanecem na bucket pipeline.
+- Regras se fecham com bundles do runtime fixado; snapshots imutáveis entram no ledger. Definição autoral não fechada é rejeitada na transição. Remover/substituir reconstrói a carta e elimina contribuições antigas; remoção que quebra requisitos de outra entrada falha.
+- Ordem ativa do ledger, depois priority/ruleId, depois order/componentId. BeforeSequence/AfterImpact/AfterSequence são lowering para raízes/filhos comuns. BeforeImpact/OncePerProc são reservados e rejeitados até existir uma fronteira executável correta, sem fallback silencioso.
+- Bundles podem declarar effectComponentParameters para bindings externos de base permanente. `$anchor` aponta para o componente estrutural selecionado; IDs explícitos também são aceitos. Bindings finais usam a carta efetiva e não quantidades já escaladas. Parâmetros ausentes/extras ou âncora ambígua falham.
+- Capabilities, compositionTrace e fingerprints da base efetiva expõem origem/âncoras/membros. `CardTransformationPlanner.Assess` fornece diagnóstico estruturado e IDs modificados usando o mesmo planner, sem mutação/RNG. Endpoint especializado e UI permanecem nas etapas 12/13; a inspeção existente já inclui o trace em effectiveBase.
+- Publicação verifica templates/referências mesmo condicionais/inativos; pré-requisitos que outra transformação pode satisfazer não obrigam toda carta base a ser elegível. Candidato final sempre passa pelos compilers/validators comuns.
+- Limites 32 regras/transformação, 64 membros/bundle de regra, 256 expansões/carta, 64 símbolos/lista; orçamento agregado de 4.096 nós de efeitos, inclusive filhos. Colisões, duplicatas, contradições, overflow e scopes não executáveis falham sem truncamento.
+- Pacote base registra `core.ember.affinity`: basic_attack recebe burning no alvo (Skip após derrota); heal recebe regeneration no próprio ator. Slot affinity de capacidade 1, stacks 1/duração 3, custos intactos. Intensidade inicial usa os status atuais, não scaling proporcional implícito. Oportunidades da jornada não foram alteradas nesta etapa.
+- 39 regressões Core novas. Pipeline configurada real verifica base melhorada + scaling do residual; executor comum verifica chance/repeats/scopes. Dez execuções, snapshots serializados, gateway/store reais com reinício/retry/dez replays semânticos e branch isolada. Testes de publicação e setting default comprovam os mapeamentos dano/cura.
+- Verificação: Core 1.364 aprovados (1m26s), API 183 aprovados (35s), nenhuma falha. Engine version 15; saves e referência legada preservados. Sem alteração/teste visual Godot e sem push. Alterações preexistentes continuam fora do commit.
+- Contrato: [composition-grammar.md](../systems/cards/composition-grammar.md). Etapa 6b: commit `270d8dd`.

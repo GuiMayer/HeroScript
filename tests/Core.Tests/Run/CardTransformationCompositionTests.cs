@@ -23,7 +23,7 @@ using Xunit;
 
 namespace Core.Tests.Run;
 
-public sealed class CardTransformationCompositionTests
+public sealed partial class CardTransformationCompositionTests
 {
     private const string Revision = "revision-b";
     private static readonly Guid CardId = Guid.Parse("10000000-0000-8000-8000-000000000006");
@@ -315,13 +315,17 @@ public sealed class CardTransformationCompositionTests
         Assert.True(manager.GetCardTransformationOptions(run.RunId, CardId).IsFailure);
     }
 
-    [Fact]
-    public async Task DurableGateway_RestartSemanticReplayAndBranchIsolationPreserveAllCommands()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DurableGateway_RestartSemanticReplayAndBranchIsolationPreserveAllCommands(bool grammar)
     {
         var directory = Path.Combine(Path.GetTempPath(), "heroscript-transformation-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var content = Runtime([BundleUpgrade("pulse", CardComponentPatchOperation.Add, "pulse"), Numeric("plus", 2)], Bundle(3));
+            var first = grammar ? GrammarUpgrade(Rule()) with { UpgradeId = "pulse" }
+                : BundleUpgrade("pulse", CardComponentPatchOperation.Add, "pulse");
+            var content = Runtime([first, Numeric("plus", 2)], Bundle(3));
             var factory = Factory(content);
             var parent = State();
             var branchCommand = new RunBranchStartCommand(parent.RunId, parent.Sequence, "transformed", CanonicalJson.ComputeHash(parent));
@@ -337,6 +341,12 @@ public sealed class CardTransformationCompositionTests
                 var applied = live.Gateway.Execute(branch.RunId, Envelope(branch, RunCommandTypes.UpgradeCard, new CardUpgradeCommand(CardId, "pulse"), 10));
                 Assert.True(applied.IsSuccess, applied.IsFailure ? applied.Error : null);
                 var state = applied.Value.Receipt.State;
+                if (grammar)
+                {
+                    var effective = Resolve(state.Deck.Topology.GetCard(CardId)!, content);
+                    Assert.Single(effective.CompositionTrace);
+                    Assert.Single(effective.All<CardEffectComponentDefinition>()[0].Effect.ChainedEffects!);
+                }
                 var replaced = live.Gateway.Execute(branch.RunId, Envelope(state, RunCommandTypes.ReplaceCardTransformation, new CardTransformationReplaceCommand(CardId, 1, "plus"), 11));
                 Assert.True(replaced.IsSuccess, replaced.IsFailure ? replaced.Error : null);
                 state = replaced.Value.Receipt.State;

@@ -38,6 +38,8 @@ public static class CardInstanceUpgradeTransitions
             return Result<CardInstanceState>.Failure($"Active transformation not found: {target}");
         if (definition != null)
         {
+            if (definition.CompositionRules.Count != definition.ClosedCompositionRules.Length)
+                return Result<CardInstanceState>.Failure("Composition rules must be sealed from pinned content before entering the ledger");
             if (string.IsNullOrWhiteSpace(definition.UpgradeId) || definition.MaxApplications < 1 ||
                 !Enum.IsDefined(definition.Category))
                 return Result<CardInstanceState>.Failure("Invalid card upgrade id, category or application limit");
@@ -61,6 +63,8 @@ public static class CardInstanceUpgradeTransitions
             SlotId = definition?.SlotId ?? (definition == null
                 ? projection.Value.Single(item => item.TransformationId == target).SlotId : null),
             ContentRevision = contentRevision,
+            Requirements = definition?.Requirements ?? new(),
+            CompositionRules = definition?.ClosedCompositionRules ?? [],
             Patches = definition?.Patches ?? []
         };
         return Result<CardInstanceState>.Success(instance with { Upgrades = instance.UpgradeItems.Add(entry) });

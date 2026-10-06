@@ -48,19 +48,41 @@ public static class CardBundleCompiler
         (char.IsAsciiLetter(value[0]) || value[0] == '_') &&
         value.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
 
+    public static Result ValidateTemplate(CardComponentBundleDefinition bundle)
+    {
+        if (string.IsNullOrWhiteSpace(bundle.BundleId) || bundle.Components.Count == 0 ||
+            !CardCompositionGrammar.ValidSymbols(bundle.EffectComponentParameters) ||
+            bundle.EffectComponentParameters.Any(parameter => !SafeNamespace(parameter)) ||
+            bundle.Components.Any(component => component == null || string.IsNullOrWhiteSpace(component.ComponentId) || component.ComponentId.StartsWith('$')) ||
+            bundle.Components.Select(component => component.ComponentId).Distinct(StringComparer.Ordinal).Count() != bundle.Components.Count)
+            return Result.Failure("Invalid bundle identity, parameters or members");
+        // Numeric placeholders validate template references only; they are never persisted or executed.
+        var placeholders = bundle.EffectComponentParameters.Select(parameter => new CardEffectComponentDefinition
+        {
+            ComponentId = "$" + parameter,
+            Effect = new() { Type = EffectType.MODIFY_RESOURCE, TargetResource = "template", FlatValue = 0 }
+        });
+        var validated = new CardContentCompiler().Compile(new CardContentDefinition
+            { CardId = bundle.BundleId, Components = bundle.Components.Concat(placeholders).ToImmutableArray() });
+        return validated.IsFailure ? Result.Failure(validated.Error) : Result.Success();
+    }
+
     public static Result<ImmutableArray<CardComponentDefinition>> Expand(
-        CardComponentBundleDefinition bundle, string scope)
+        CardComponentBundleDefinition bundle, string scope, IReadOnlyDictionary<string, string>? effectBindings = null)
     {
         if (!SafeNamespace(scope) || string.IsNullOrWhiteSpace(bundle.BundleId) || bundle.Components.Count == 0 ||
             bundle.Components.Any(component => component == null || string.IsNullOrWhiteSpace(component.ComponentId)) ||
             bundle.Components.Select(component => component.ComponentId).Distinct(StringComparer.Ordinal).Count() != bundle.Components.Count)
             return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid bundle identity, namespace or members");
-        // Validate before traversing child effects, including bounded expansion and null payloads.
-        var validated = new CardContentCompiler().Compile(new CardContentDefinition
-            { CardId = bundle.BundleId, Components = bundle.Components });
+        var validated = ValidateTemplate(bundle);
         if (validated.IsFailure) return Result<ImmutableArray<CardComponentDefinition>>.Failure(validated.Error);
+        effectBindings ??= ImmutableDictionary<string, string>.Empty;
+        if (!bundle.EffectComponentParameters.Order(StringComparer.Ordinal).SequenceEqual(effectBindings.Keys.Order(StringComparer.Ordinal)) ||
+            effectBindings.Values.Any(string.IsNullOrWhiteSpace))
+            return Result<ImmutableArray<CardComponentDefinition>>.Failure("Bundle effect bindings do not match declared parameters");
         var ids = bundle.Components.ToDictionary(component => component.ComponentId,
             component => $"{scope}.{component.ComponentId}", StringComparer.Ordinal);
+        foreach (var parameter in effectBindings) ids.Add("$" + parameter.Key, parameter.Value);
         var effects = bundle.Components.OfType<CardEffectComponentDefinition>().Select(component => component.Effect)
             .Concat(bundle.Components.OfType<CardTriggerComponentDefinition>().SelectMany(component => component.Effects));
         var aliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -127,7 +149,7 @@ public static class CardBundleCompiler
                 Operation = reference.Operation, Components = members
             });
         }
-        return Result<CardUpgradeDefinition>.Success(definition with { Patches = patches.ToImmutable() });
+        return CardCompositionGrammar.Seal(definition with { Patches = patches.ToImmutable() }, runtime);
     }
 
     public static Result ValidateSlots(IReadOnlyList<CardTransformationSlotDefinition> slots)

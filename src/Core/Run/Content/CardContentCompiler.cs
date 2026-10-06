@@ -164,6 +164,8 @@ public sealed class CardContentCompiler : ICardContentCompiler
     {
         if (string.IsNullOrWhiteSpace(component.ComponentId))
             return Result.Failure($"Card {cardId} contains a component without componentId");
+        if (!CardCompositionGrammar.ValidSymbols(component.CapabilityIds))
+            return Result.Failure($"Card {cardId} contains invalid capability IDs");
 
         return component switch
         {

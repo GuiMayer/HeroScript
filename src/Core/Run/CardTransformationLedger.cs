@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Core.Common;
+using Core.Run.Content;
 
 namespace Core.Run;
 
@@ -39,7 +40,8 @@ public static class CardTransformationLedger
                 return Result<ImmutableArray<CardUpgradeState>>.Failure($"Active transformation not found: {entry.TargetTransformationId}");
             if (entry.Operation == CardTransformationOperation.Remove)
             {
-                if (entry.Patches.Count != 0 || !string.IsNullOrEmpty(entry.UpgradeId) || entry.Category != active[index].Category ||
+                if (entry.Patches.Count != 0 || entry.CompositionRules.Count != 0 || !CardCompositionGrammar.IsEmpty(entry.Requirements) ||
+                    !string.IsNullOrEmpty(entry.UpgradeId) || entry.Category != active[index].Category ||
                     entry.SlotId != active[index].SlotId)
                     return Result<ImmutableArray<CardUpgradeState>>.Failure("Removal cannot contain patches or an upgradeId");
                 active.RemoveAt(index);

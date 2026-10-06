@@ -26,7 +26,10 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
 {
     public Result<EffectiveCardDefinition> Resolve(
         CompiledCardDefinition definition,
-        CardInstanceState instance)
+        CardInstanceState instance) => Resolve(definition, instance, null);
+
+    public Result<EffectiveCardDefinition> Resolve(CompiledCardDefinition definition, CardInstanceState instance,
+        ICollection<CardCompositionDiagnostic>? diagnostics)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(instance);
@@ -114,6 +117,25 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         if (recompiled.IsFailure) return Result<EffectiveCardDefinition>.Failure(recompiled.Error);
         components = recompiled.Value.Components.ToImmutableArray();
         tags = recompiled.Value.Tags.ToImmutableArray();
+        var composition = CardCompositionGrammar.Compose(tags, components, active.Value);
+        foreach (var diagnostic in composition.Diagnostics) diagnostics?.Add(diagnostic);
+        if (!composition.Diagnostics.IsEmpty)
+            return Result<EffectiveCardDefinition>.Failure(string.Join("; ", composition.Diagnostics.Select(item => item.Message)));
+        if (!composition.Trace.IsEmpty)
+        {
+            var lowered = new CardContentCompiler().Compile(new CardContentDefinition
+            {
+                CardId = definition.CardId, Rarity = definition.Rarity,
+                BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,
+                Tags = tags, Components = composition.Components, TransformationSlots = definition.TransformationSlots
+            });
+            if (lowered.IsFailure)
+            {
+                diagnostics?.Add(new("invalid_composition", lowered.Error));
+                return Result<EffectiveCardDefinition>.Failure(lowered.Error);
+            }
+            components = lowered.Value.Components.ToImmutableArray();
+        }
         var upgrades = active.Value;
         var payload = new EffectiveCardFingerprintPayload(
             instance.CardInstanceId,
@@ -123,6 +145,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             instance.Upgrades.ToImmutableArray(),
             upgrades,
             upgradeTrace.ToImmutable(),
+            composition.Trace,
             components);
         string fingerprint;
         try { fingerprint = payload.ComputeFingerprint(); }
@@ -138,6 +161,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             AppliedUpgrades = upgrades,
             TransformationLedger = instance.Upgrades,
             UpgradeTrace = upgradeTrace.ToImmutable(),
+            CompositionTrace = composition.Trace,
             Components = components,
             Fingerprint = fingerprint
         });
@@ -145,7 +169,10 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
 
     public Result ValidateUpgrade(
         CompiledCardDefinition definition,
-        CardUpgradeDefinition upgrade)
+        CardUpgradeDefinition upgrade) => ValidateUpgrade(definition, upgrade, null);
+
+    public Result ValidateUpgrade(CompiledCardDefinition definition, CardUpgradeDefinition upgrade,
+        ICollection<CardCompositionDiagnostic>? diagnostics)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(upgrade);
@@ -155,7 +182,9 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             return Result.Failure($"Upgrade {upgrade.UpgradeId} maxApplications must be positive");
         if (!upgrade.AppliesTo(definition.CardId))
             return Result.Failure($"Upgrade {upgrade.UpgradeId} does not apply to {definition.CardId}");
-        if (upgrade.Patches.Count == 0)
+        if (upgrade.CompositionRules.Count != upgrade.ClosedCompositionRules.Length)
+            return Result.Failure("Composition rules must be sealed from pinned content before validation");
+        if (upgrade.Patches.Count == 0 && upgrade.ClosedCompositionRules.IsEmpty)
             return Result.Failure($"Upgrade {upgrade.UpgradeId} requires at least one typed patch");
         if (!Enum.IsDefined(upgrade.Category))
             return Result.Failure($"Upgrade {upgrade.UpgradeId} has an invalid category");
@@ -170,11 +199,12 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
                 {
                     TransformationId = 1, ContentRevision = "validation", Category = upgrade.Category, SlotId = upgrade.SlotId,
                     UpgradeId = upgrade.UpgradeId,
-                    Patches = upgrade.Patches
+                    Patches = upgrade.Patches, Requirements = upgrade.Requirements,
+                    CompositionRules = upgrade.ClosedCompositionRules
                 }
             ]
         };
-        var resolved = Resolve(definition, instance);
+        var resolved = Resolve(definition, instance, diagnostics);
         return resolved.IsFailure ? Result.Failure(resolved.Error) : Result.Success();
     }
 

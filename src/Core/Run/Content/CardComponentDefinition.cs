@@ -19,8 +19,14 @@ namespace Core.Run.Content;
 [JsonDerivedType(typeof(CardInfluenceComponentDefinition), "influence")]
 public abstract record CardComponentDefinition
 {
+    private ImmutableArray<string> _capabilityIds = [];
     public string ComponentId { get; init; } = string.Empty;
     public int Order { get; init; }
+    public IReadOnlyList<string> CapabilityIds
+    {
+        get => _capabilityIds;
+        init => _capabilityIds = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record CardCostComponentDefinition : CardComponentDefinition
@@ -90,8 +96,14 @@ public sealed record CardInfluenceComponentDefinition : CardComponentDefinition
 public sealed record CardComponentBundleDefinition
 {
     private ImmutableArray<CardComponentDefinition> _components = [];
+    private ImmutableArray<string> _effectComponentParameters = [];
 
     public string BundleId { get; init; } = string.Empty;
+    public IReadOnlyList<string> EffectComponentParameters
+    {
+        get => _effectComponentParameters;
+        init => _effectComponentParameters = value?.ToImmutableArray() ?? [];
+    }
     public IReadOnlyList<CardComponentDefinition> Components
     {
         get => _components;

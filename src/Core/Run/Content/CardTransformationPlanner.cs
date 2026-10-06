@@ -1,12 +1,17 @@
 using System.Collections.Immutable;
 using Core.Common;
 using Core.Content;
+using Core.Determinism;
 
 namespace Core.Run.Content;
 
 public sealed record CardTransformationOption(Guid CardInstanceId, string CardDefinitionId,
     CardTransformationOperation Operation, ulong? TargetTransformationId, string? UpgradeId,
     CardTransformationCategory Category, string? SlotId);
+
+public sealed record CardTransformationAssessment(Guid RunId, Guid CardInstanceId, string ContentRevision,
+    int ExpectedSequence, ulong ExpectedStep, bool IsCompatible, ImmutableArray<CardCompositionDiagnostic> Diagnostics,
+    ImmutableArray<string> ChangedComponentIds, ImmutableArray<CardCompositionApplicationTrace> CompositionTrace);
 
 public static class CardTransformationAccess
 {
@@ -61,13 +66,17 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
     {
         var authored = runtime.GetDefinition<CardUpgradeDefinition>("card-upgrades", key);
         if (authored.IsFailure) return authored;
-        if (authored.Value.UpgradeId != key || authored.Value.Patches.Count == 0)
+        if (authored.Value.UpgradeId != key || authored.Value.Patches.Count == 0 && authored.Value.CompositionRules.Count == 0)
             return Result<CardUpgradeDefinition>.Failure("Invalid upgrade identity or empty patches");
         return CardBundleCompiler.Seal(authored.Value, runtime);
     });
 
     public Result<CardInstanceState> Plan(RunState run, Guid cardInstanceId,
         CardTransformationOperation operation, ulong? targetTransformationId = null, string? upgradeId = null)
+        => PlanCore(run, cardInstanceId, operation, targetTransformationId, upgradeId, null);
+
+    private Result<CardInstanceState> PlanCore(RunState run, Guid cardInstanceId, CardTransformationOperation operation,
+        ulong? targetTransformationId, string? upgradeId, ICollection<CardCompositionDiagnostic>? diagnostics)
     {
         var access = CardTransformationAccess.Validate(run, operation, upgradeId);
         if (access.IsFailure) return Result<CardInstanceState>.Failure(access.Error);
@@ -97,11 +106,50 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
         if (transition.IsFailure) return transition;
         var compiled = _cards.GetOrAdd(card.DefinitionId, id => new CardContentCompiler().Compile(id, runtime));
         if (compiled.IsFailure) return Result<CardInstanceState>.Failure(compiled.Error);
-        var effective = new EffectiveCardResolver().Resolve(compiled.Value, transition.Value);
+        var effective = new EffectiveCardResolver().Resolve(compiled.Value, transition.Value, diagnostics);
         if (effective.IsFailure) return Result<CardInstanceState>.Failure(effective.Error);
         var references = GameplayContentValidator.ValidateCardContainer(runtime,
             $"card-instances/{card.CardInstanceId}", effective.Value.Components);
         return references.IsFailure ? Result<CardInstanceState>.Failure(references.Error) : transition;
+    }
+
+    /// <summary>Read-only assessment using exactly the same planner as executable discovery/commands.</summary>
+    public CardTransformationAssessment Assess(RunState run, Guid cardInstanceId, CardTransformationOperation operation,
+        ulong? targetTransformationId = null, string? upgradeId = null)
+    {
+        var diagnostics = new List<CardCompositionDiagnostic>();
+        var planned = PlanCore(run, cardInstanceId, operation, targetTransformationId, upgradeId, diagnostics);
+        if (planned.IsFailure)
+        {
+            if (diagnostics.Count == 0) diagnostics.Add(new("transformation_invalid", planned.Error));
+            return new(run.RunId, cardInstanceId, run.Determinism.ContentRevision, run.Sequence, run.Determinism.Step,
+                false, diagnostics.ToImmutableArray(), [], []);
+        }
+        var compiled = _cards[planned.Value.DefinitionId].Value;
+        var resolver = new EffectiveCardResolver();
+        var before = resolver.Resolve(compiled, run.Deck.Topology.Instances[cardInstanceId]);
+        var after = resolver.Resolve(compiled, planned.Value).Value;
+        if (before.IsFailure)
+            return new(run.RunId, cardInstanceId, run.Determinism.ContentRevision, run.Sequence, run.Determinism.Step,
+                false, [new("invalid_current_composition", before.Error)], [], []);
+        var changed = before.Value.Components.Concat(after.Components).Select(component => component.ComponentId)
+            .Distinct(StringComparer.Ordinal).Where(id =>
+            {
+                var oldComponent = before.Value.Components.FirstOrDefault(component => component.ComponentId == id);
+                var newComponent = after.Components.FirstOrDefault(component => component.ComponentId == id);
+                return oldComponent == null || newComponent == null ||
+                    CanonicalJson.ComputeHash<CardComponentDefinition>(oldComponent) != CanonicalJson.ComputeHash<CardComponentDefinition>(newComponent);
+            }).Concat(after.CompositionTrace.SelectMany(item => item.ComponentIds)
+                .Except(before.Value.CompositionTrace.SelectMany(item => item.ComponentIds), StringComparer.Ordinal))
+            .Concat(before.Value.CompositionTrace.SelectMany(item => item.ComponentIds)
+                .Except(after.CompositionTrace.SelectMany(item => item.ComponentIds), StringComparer.Ordinal))
+            .Concat(before.Value.CompositionTrace.Concat(after.CompositionTrace).Select(item => item.AnchorComponentId)
+                .OfType<string>().Distinct(StringComparer.Ordinal).Where(id =>
+                    CanonicalJson.ComputeHash(before.Value.CompositionTrace.Where(item => item.AnchorComponentId == id).ToArray()) !=
+                    CanonicalJson.ComputeHash(after.CompositionTrace.Where(item => item.AnchorComponentId == id).ToArray())))
+            .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToImmutableArray();
+        return new(run.RunId, cardInstanceId, run.Determinism.ContentRevision, run.Sequence, run.Determinism.Step,
+            true, [], changed, after.CompositionTrace);
     }
 
     public Result<IReadOnlyList<CardTransformationOption>> Options(RunState run, Guid? cardInstanceId = null)

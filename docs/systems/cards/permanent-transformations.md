@@ -155,6 +155,6 @@ O compiler de cenários utiliza a mesma transição de upgrade e conserva a orde
 
 As coleções são defensivamente copiadas. Forks e cópias da mesma definição compartilham somente dados imutáveis; transformar uma instância não altera outra. Round-trip de JSON preserva histórico, tipos dos patches e hashes.
 
-A engine version passou de 12 para 13 na 6a e para 14 na 6b. Saves anteriores permanecem no disco e são rejeitados por incompatibilidade de versão; não há migração silenciosa nem exclusão de saves.
+A engine version passou de 12 para 13 na 6a, para 14 na 6b e para 15 na etapa 7. Saves anteriores permanecem no disco e são rejeitados por incompatibilidade de versão; não há migração silenciosa nem exclusão de saves.
 
-Regressões da 6b exercitam o gateway de produção com store em disco, reinício, retry idempotente, branch independente e dez reexecuções semânticas dos comandos Apply/Replace/Remove, comparando hashes e frames. Não foi alterada nem validada visualmente a UI Godot nesta etapa. Requisitos/exclusões e limites da gramática de afinidades/comportamentos pertencem à etapa 7.
+Regressões exercitam o gateway de produção com store em disco, reinício, retry idempotente, branch independente e dez reexecuções semânticas dos comandos Apply/Replace/Remove, comparando hashes e frames, também com regras de composição fechadas. Não foi alterada nem validada visualmente a UI Godot nestas etapas. Requisitos/exclusões, templates parametrizados, limites e scopes estão documentados no contrato executável de [gramática de composição](composition-grammar.md).
