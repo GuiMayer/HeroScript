@@ -1,6 +1,6 @@
 # Leitura e consumo de stacks acumulados
 
-Primitivas da etapa 4 do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN.md), versão 11 da engine. Ainda não representam a operação completa de condensação: a receita e sua ativação transacional pertencem à etapa 5.
+Primitivas da etapa 4 do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN.md), introduzidas na versão 11. A versão 12 integra estas bases às [receitas de condensação](condensation-recipes.md).
 
 ## Autoridade e autorização
 
@@ -12,7 +12,7 @@ Status e modifier declaram `consumption.allowedRecipeIds`. A lista vazia não au
 { "consumption": { "allowedRecipeIds": ["restoration_proc"] } }
 ```
 
-Neste estágio, IDs identificam autorizações do contrato de consumo; o catálogo revisionado de receitas e sua validação cruzada serão integrados na etapa 5. Não existe um novo comando REST de consumo direto nem uma carta de condensação executável apenas com esse campo.
+Na versão 12, IDs referenciam o catálogo revisionado `condensation-recipes`, com validação cruzada. Esse campo apenas autoriza consumo; uma carta ainda precisa solicitar o efeito CONDENSE_STACKS referenciando uma receita. Não existe comando REST de consumo direto.
 
 ## Captura e seleção
 
@@ -82,4 +82,4 @@ Capturas, avaliações e agregações aparecem em `payloadCalculations` dos step
 
 Grants diretos de preparação sem contexto de efeito não podem materializar payloads: uma definição que exige captura sem um lote válido é rejeitada. Para capturar uma base de gameplay, use APPLY_MODIFIER no fluxo canônico com origem explícita.
 
-A etapa 5 permanece pendente: selecionar/consumir/ativar por receita em uma única transação ainda não está exposto como efeito executável. A referência legada permanece intocada.
+A etapa 5 integra seleção, consumo e ativação em uma transação pelo efeito CONDENSE_STACKS. Veja [condensation-recipes.md](condensation-recipes.md) para políticas, inputs e limites. A referência legada permanece intocada.

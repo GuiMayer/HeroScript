@@ -10,7 +10,7 @@ public static class EffectDefinitionValidator
         EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE or
         EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS or
         EffectType.CARD_ZONE_FLOW or
-        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER;
+        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER or EffectType.CONDENSE_STACKS;
 
     public static ImmutableArray<string> Validate(IEnumerable<EffectDefinition> effects,
         Action<EffectDefinition, string>? inspect = null)
@@ -39,6 +39,15 @@ public static class EffectDefinitionValidator
                 if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
             }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
+            if (effect.Type == EffectType.CONDENSE_STACKS)
+            {
+                if (string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) Error("condensation requires condensationRecipeId");
+                if (effect.Target is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES || effect.Repeat != 1 ||
+                    !effect.Parameters.IsEmpty || effect.FlatValue != null || !string.IsNullOrWhiteSpace(effect.FormulaValue) ||
+                    effect.ChainedEffects is { Count: > 0 })
+                    Error("condensation is one activation; numeric inputs and child effects belong to its recipe");
+            }
+            else if (effect.CondensationRecipeId != null) Error("condensationRecipeId requires CONDENSE_STACKS");
             if (!Enum.IsDefined(effect.Target)) Error("invalid target policy");
             if (effect.TargetLoss == null || !Enum.IsDefined(effect.TargetLoss.Policy))
                 Error("invalid target loss policy");

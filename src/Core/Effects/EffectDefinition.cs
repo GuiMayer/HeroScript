@@ -42,6 +42,7 @@ public record EffectDefinition
     public string? OutputId { get; init; }
     public ImmutableArray<EffectNumericParameterDefinition> Parameters { get; init; } = [];
     public ImmutableArray<StackPayloadBinding> PayloadBindings { get; init; } = [];
+    public string? CondensationRecipeId { get; init; }
     
     /// <summary>
     /// Tipo do efeito

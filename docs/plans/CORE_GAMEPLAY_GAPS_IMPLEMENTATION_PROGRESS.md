@@ -35,7 +35,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 2 — Contexto e fatos | Concluída | Core 1.162 / API 181, sem falhas; 9 regressões novas. |
 | 3 — Parâmetros e cálculo | Concluída | Core 1.185 / API 181, sem falhas; 23 regressões novas. |
 | 4 — Payloads e consumo | Concluída | Core 1.226 / API 181, sem falhas; 28 regressões novas na 4b, além das 13 da 4a. |
-| 5 — Condensação | Pendente | |
+| 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
 | 6 — Transformações | Pendente | |
 | 7 — Afinidades/modificadores | Pendente | |
 | 8 — Multi-hit | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 5: integrar seleção, avaliação, consumo e ativação por receita em um único proc/transação. As bases da etapa 4 estão implementadas, mas ainda não existe um efeito de condensação executável.
+Etapa 6: transformações estruturais de cartas, preservando identidade e reconstruindo a composição a partir do ledger de alterações. As etapas 0–5 estão implementadas; conteúdo demonstrativo, preview especializado e UI Godot continuam nas etapas posteriores.
 
 ## Etapa 4b — payloads e lotes
 
@@ -113,3 +113,19 @@ Etapa 5: integrar seleção, avaliação, consumo e ativação por receita em um
 - Versão da engine: 11. Sem exclusão de saves nem alteração de LEGACY_GAME_DESIGN_CONCEPTS.md. Grants de preparação sem contexto de captura não inventam payloads; são rejeitados se a definição exige um lote.
 - Contrato atualizado: [accumulated-stacks.md](../systems/effects/accumulated-stacks.md).
 - Etapa 4a: commit 3a20dfa. Condensação por receita permanece na etapa 5.
+
+## Etapa 5 — condensação em um proc
+
+- Efeito CONDENSE_STACKS com condensationRecipeId; catálogo revisionado condensation-recipes registrado no mecanismo comum de conteúdo, sem endpoint paralelo nem nova store.
+- Uma seleção autorizada de status/modifiers gera inputs StackCount/Payload e consumo integral. Efeitos comuns de recurso, cartas, status e modifiers recebem os inputs através de inputQuantityId condensation.<parameterId> e da bucket pipeline normal.
+- Scope OncePerAction por recipeId reserva a primeira tentativa. Repetições de uma ação não reconsomem stacks, inclusive novos stacks emitidos pela própria receita. Ativação solicitante tem um alvo/repeat 1; componentes e alvos emitidos pertencem ao mesmo procId, com impactos distintos.
+- Seleção ActionStart/Current e bindings de owner TargetEntity/SourceEntity/Run/Explicit/Any. Captura inicial não se expande; conflito Fail/Skip não troca silenciosamente os snapshots.
+- EvaluationTiming BeforeConsumption/AfterConsumption governa payloads dinâmicos e leituras numéricas dos efeitos emitidos. Mutações continuam no candidato vivo e settlements validam a capacidade real.
+- EmptySelection Skip/Fail e ZeroApplication Consume/Fail. Chance falsa não consome; perda de alvo segue a política comum. Consumo/exaustão/hooks têm contratos explícitos iniciais AllSelectedStacks/RemoveInstance/None, sem interpretar dispel/expiração/derrota.
+- Seleção, inputs e fatos de consumo aparecem em applications/steps/frames existentes. Último componente que falha descarta todos os candidatos, inclusive zonas, recursos, novos stacks e RNG.
+- Publicação valida referências de autorização/receitas, definições selecionadas, schemas/perfis/unidades e bindings. Recursão de condensação em receitas é rejeitada mesmo em filhos nunca executados. Limites permanecem 32/256/4.096; agregação de lotes é limitada antes da expansão.
+- StackCount usa unidade stacks e contagem inteira exata limitada a 16.777.216. Payloads preservam unidade, revisão e receipts; misturas incompatíveis falham. O modo inicial não implementa conversão de unidades heterogêneas nem potencial periódico restante automático.
+- 29 regressões novas: cura/dano/recurso arbitrário, cartas/status/modifiers, stores/instâncias múltiplas, proc único/impactos distintos, chance/empty/conflict/zero, perda de alvo, Snapshot atual/inicial, influências antes/depois, limitação de expansão, rollback e dez execuções/round-trip.
+- Versão da engine: 12. Saves preservados, versões incompatíveis rejeitadas. Demo/conteúdo/preview especializados não foram anunciados como concluídos.
+- Contrato e JSON executável: [condensation-recipes.md](../systems/effects/condensation-recipes.md).
+- Etapa 4b: commit 2fd4f7c.

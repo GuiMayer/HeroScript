@@ -100,9 +100,20 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (request.Variables.Keys.Any(key => key.StartsWith("results.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("parent.", StringComparison.OrdinalIgnoreCase)))
             return Result<EffectBatchResult>.Failure("Execution result namespaces cannot be supplied by the caller");
-        var definitionErrors = EffectDefinitionValidator.Validate(
-            request.PrefixCommands.Select(command => command.Definition).Concat(
-                (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects)));
+        var rootEffects = request.PrefixCommands.Select(command => command.Definition).Concat(
+            (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects)).ToArray();
+        var recipes = new Dictionary<string, CondensationRecipeDefinition>(StringComparer.Ordinal);
+        var referenceErrors = new List<string>();
+        var definitionErrors = EffectDefinitionValidator.Validate(rootEffects, (effect, _) =>
+        {
+            if (effect.Type != EffectType.CONDENSE_STACKS || string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) return;
+            var resolved = ResolveRecipe(effect.CondensationRecipeId, request);
+            if (resolved.IsFailure) referenceErrors.Add(resolved.Error);
+            else recipes[effect.CondensationRecipeId] = resolved.Value;
+        });
+        if (referenceErrors.Count > 0) return Result<EffectBatchResult>.Failure(string.Join("; ", referenceErrors));
+        definitionErrors = definitionErrors.AddRange(EffectDefinitionValidator.Validate(rootEffects.Concat(
+            recipes.OrderBy(pair => pair.Key, StringComparer.Ordinal).SelectMany(pair => pair.Value.Effects))));
         if (!definitionErrors.IsEmpty)
             return Result<EffectBatchResult>.Failure(string.Join("; ", definitionErrors));
 
@@ -114,6 +125,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
         var work = 0;
+        var attemptedRecipes = new Dictionary<string, EffectExecutionIdentity>(StringComparer.Ordinal);
+        var activeQuantities = request.Quantities;
+        (CombatState Combat, RunState? Run)? numericSnapshot = null;
         foreach (var prefix in request.PrefixCommands)
         {
             if (++work > EffectExecutionLimits.MaximumSteps)
@@ -160,7 +174,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         });
 
         Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection,
-            string? parentProcId, EffectApplicationRecord? parentApplication)
+            string? parentProcId, EffectApplicationRecord? parentApplication, string? forcedProcId = null,
+            string? forcedParentProcId = null)
         {
             if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
                 return Result.Failure("Effect execution limit exceeded");
@@ -168,6 +183,24 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 return Result.Failure($"Effect {path} repeat is outside execution limits");
             if (!float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1 || !Enum.IsDefined(effect.ChanceScope))
                 return Result.Failure($"Effect {path} has an invalid chance policy");
+            if (effect.Type == EffectType.CONDENSE_STACKS)
+            {
+                if (attemptedRecipes.TryGetValue(effect.CondensationRecipeId!, out var previous))
+                {
+                    steps.Add(new()
+                    {
+                        Index = steps.Count, EffectInstanceId = $"{path}:once", Identity = previous with
+                        { ImpactId = CanonicalJson.ComputeHash(new { previous.ProcId, path, reason = "already_attempted" }) },
+                        Applied = false, SkipReason = "already_attempted", ContentRevision = request.ContentRevision,
+                        Provenance = request.Provenance, StateBeforeHash = CanonicalJson.ComputeHash(current),
+                        StateAfterHash = CanonicalJson.ComputeHash(current), RunBeforeHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun),
+                        RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
+                    });
+                    return Result.Success();
+                }
+                attemptedRecipes.Add(effect.CondensationRecipeId!, EffectResultContext.Identity(executionId, activeTriggerId,
+                    path, 0, selection.FirstOrDefault() ?? request.OwnerEntityId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId));
+            }
             for (var repeat = 0; repeat < effect.Repeat; repeat++)
             {
                 var beforeSelection = CanonicalJson.ComputeHash(current);
@@ -177,12 +210,18 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 foreach (var lostId in targets.Value.LostTargetIds)
                 {
                     if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                    var lostIdentity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat,
+                        lostId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId);
+                    if (forcedProcId != null) lostIdentity = lostIdentity with
+                    {
+                        ProcId = forcedProcId, ParentProcId = forcedParentProcId,
+                        ImpactId = CanonicalJson.ComputeHash(new { forcedProcId, path, repeat, lostId, reason = "lost" })
+                    };
                     steps.Add(new()
                     {
                         Index = steps.Count,
                         EffectInstanceId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{lostId}:lost",
-                        Identity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat,
-                            lostId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId),
+                        Identity = lostIdentity,
                         TargetEntityId = lostId, RepeatIndex = repeat, Applied = false,
                         SkipReason = targets.Value.StopRepeat ? "repeat_stopped" : "target_defeated",
                         TargetLossPolicy = effect.TargetLoss.Policy,
@@ -196,6 +235,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 }
                 if (targets.Value.StopRepeat) break;
                 if (targets.Value.TargetIds.IsEmpty) continue;
+                if (effect.Type == EffectType.CONDENSE_STACKS && targets.Value.TargetIds.Length != 1)
+                    return Result.Failure("Condensation requires one activation target; configure additional targets in the recipe effects");
                 var beforeChance = CanonicalJson.ComputeHash(current);
                 double? effectRoll = null;
                 var effectPass = effect.ChanceScope != EffectChanceScope.PerEffect || DrawChance(effect.Chance, out effectRoll);
@@ -206,6 +247,11 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     var id = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}";
                     var identity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat, targetId,
                         parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId);
+                    if (forcedProcId != null) identity = identity with
+                    {
+                        ProcId = forcedProcId, ParentProcId = forcedParentProcId,
+                        ImpactId = CanonicalJson.ComputeHash(new { forcedProcId, path, repeat, targetId })
+                    };
                     var before = targetIndex == 0
                         ? targets.Value.LostTargetIds.IsEmpty ? beforeSelection : beforeChance
                         : CanonicalJson.ComputeHash(current);
@@ -246,9 +292,47 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     ImmutableArray<EffectApplicationRecord> appliedRecords = [];
                     ImmutableArray<ResolvedEffectNumericParameter> resolvedParameters = [];
                     ImmutableArray<CalculationResult> payloadCalculations = [];
-                    if (applies)
+                    CondensationOutcome? condensation = null;
+                    string? condensationSkip = null;
+                    (CombatState Combat, RunState? Run) preConsumption = (current, currentRun);
+                    if (applies && effect.Type == EffectType.CONDENSE_STACKS)
                     {
-                        var value = ResolveValue(request with { Combat = current, Run = currentRun }, effect, targetId, variables,
+                        var resolver = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences, _allowUnconfiguredCalculations);
+                        var engine = _calculations ?? new CalculationEngine(_formulas);
+                        var plan = new CondensationPlanner(engine, new StackPayloadResolver(resolver, engine)).Plan(
+                            request with { Combat = current, Run = currentRun }, request.Combat, request.Run,
+                            recipes[effect.CondensationRecipeId!], targetId, identity.ProcId);
+                        if (plan.IsFailure) return Result.Failure(plan.Error);
+                        work += plan.Value.Work;
+                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                        condensation = plan.Value.Outcome;
+                        condensationSkip = plan.Value.SkipReason;
+                        applies = condensation != null;
+                        current = plan.Value.Combat;
+                        currentRun = plan.Value.Run;
+                        payloadCalculations = plan.Value.Calculations;
+                        calculations.AddRange(payloadCalculations);
+                        if (applies)
+                        {
+                            appliedRecords = [new() { EffectInstanceId = id, EffectType = effect.Type, TargetEntityId = targetId,
+                                Identity = identity, Condensation = condensation, StackChanges = plan.Value.Changes,
+                                Provenance = request.Provenance with { ComponentId = activeTriggerId } }];
+                            records.AddRange(appliedRecords);
+                            var accumulated = resultContext.Add(appliedRecords);
+                            if (accumulated.IsFailure) return Result.Failure(accumulated.Error);
+                            resultContext = accumulated.Value;
+                        }
+                    }
+                    else if (applies)
+                    {
+                        var numericRequest = request with { Combat = numericSnapshot?.Combat ?? current,
+                            Run = numericSnapshot?.Run ?? currentRun, Quantities = activeQuantities };
+                        var numericVariables = numericSnapshot == null ? variables : BuildVariables(numericRequest, numericRequest.Combat, targetId);
+                        if (numericSnapshot != null)
+                            foreach (var pair in variables.Where(pair => pair.Key.StartsWith("results.", StringComparison.Ordinal) ||
+                                pair.Key.StartsWith("parent.", StringComparison.Ordinal) || pair.Key is "repeat_index" or "target_index"))
+                                numericVariables[pair.Key] = pair.Value;
+                        var value = ResolveValue(numericRequest, effect, targetId, numericVariables,
                             $"{path}:{repeat}:{targetId}", activeTriggerId);
                         if (value.IsFailure) return Result.Failure(value.Error);
                         calculation = value.Value.Calculation;
@@ -258,9 +342,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                         var status = ResolveAppliedStatus(effect, request.ContentRevision, request.Run?.ConfigName);
                         if (status.IsFailure) return Result.Failure(status.Error);
-                        var payload = CapturePayload(request with { Combat = current, Run = currentRun,
-                            Provenance = request.Provenance with { ComponentId = activeTriggerId } }, value.Value.Definition,
-                            status.Value, targetId, identity.ImpactId, variables);
+                        var payload = CapturePayload(numericRequest with
+                            { Provenance = request.Provenance with { ComponentId = activeTriggerId } }, value.Value.Definition,
+                            status.Value, targetId, identity.ImpactId, numericVariables);
                         if (payload.IsFailure) return Result.Failure(payload.Error);
                         payloadCalculations = payloadCalculations.AddRange(payload.Value.Calculations);
                         work += payload.Value.Lot?.Parameters.Count ?? 0;
@@ -308,21 +392,49 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         Identity = identity,
                         RepeatIndex = repeat, TargetIndex = targetIndex, Applied = applies,
                         Retargeted = targets.Value.Retargeted,
-                        SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
+                        SkipReason = applies ? null : condensationSkip ?? (!tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition"),
                         ChanceRoll = roll, ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
                         Calculation = calculation, Parameters = resolvedParameters, PayloadCalculations = payloadCalculations,
+                        Condensation = condensation,
                         Applications = appliedRecords,
                         StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current),
                         RunBeforeHash = runBefore, RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
                     if (!applies) continue;
+                    if (condensation != null)
+                    {
+                        var recipe = recipes[effect.CondensationRecipeId!];
+                        var previousQuantities = activeQuantities;
+                        var previousSnapshot = numericSnapshot;
+                        var previousTriggerId = activeTriggerId;
+                        activeQuantities = activeQuantities.SetItems(condensation.Inputs);
+                        var consumedState = current;
+                        var consumedRun = currentRun;
+                        // Selection and influences are independent policies. BeforeConsumption freezes
+                        // numeric reads to the pre-consumption world; mutations still use the live candidate.
+                        numericSnapshot = recipe.EvaluationTiming == CondensationEvaluationTiming.BeforeConsumption ? preConsumption : null;
+                        for (var recipeIndex = 0; recipeIndex < recipe.Effects.Length; recipeIndex++)
+                        {
+                            activeTriggerId = $"recipe:{recipe.RecipeId}:{recipeIndex}";
+                            var activated = ExecuteEffect(recipe.Effects[recipeIndex], $"{path}.recipe.{recipeIndex}", depth + 1,
+                                [targetId], identity.ProcId, appliedRecords[0], identity.ProcId, identity.ParentProcId);
+                            if (activated.IsFailure) return activated;
+                        }
+                        activeQuantities = previousQuantities;
+                        numericSnapshot = previousSnapshot;
+                        activeTriggerId = previousTriggerId;
+                        if (recipe.ZeroApplication == CondensationZeroPolicy.Fail &&
+                            CanonicalJson.ComputeHash(current with { Determinism = consumedState.Determinism }) == CanonicalJson.ComputeHash(consumedState) &&
+                            (consumedRun == null || CanonicalJson.ComputeHash(currentRun! with { Determinism = consumedRun.Determinism }) == CanonicalJson.ComputeHash(consumedRun)))
+                            return Result.Failure("Condensation activation applied no state change");
+                    }
                     foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index)))
                     {
                         var parentRecord = appliedRecords.LastOrDefault(record => record.CalculationInfluenceId == null &&
                             record.TargetEntityId == targetId);
                         var childResult = ExecuteEffect(child, $"{path}:{repeat}:{targetIndex}.chain.{childIndex}", depth + 1,
-                            [targetId], identity.ProcId, parentRecord);
+                            [targetId], identity.ProcId, parentRecord, forcedProcId, forcedParentProcId);
                         if (childResult.IsFailure) return childResult;
                     }
                 }
@@ -340,6 +452,17 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             roll = draw.Value;
             return draw.Value < chance;
         }
+    }
+
+    private Result<CondensationRecipeDefinition> ResolveRecipe(string recipeId, EffectTriggerExecutionRequest request)
+    {
+        if (_contentRuntimes == null) return Result<CondensationRecipeDefinition>.Failure("Pinned condensation runtime is unavailable");
+        var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run?.ConfigName);
+        if (runtime.IsFailure) return Result<CondensationRecipeDefinition>.Failure(runtime.Error);
+        var recipe = runtime.Value.GetDefinition<CondensationRecipeDefinition>("condensation-recipes", recipeId);
+        if (recipe.IsFailure) return recipe;
+        var valid = CondensationRecipeValidator.Validate(recipe.Value);
+        return valid.IsFailure ? Result<CondensationRecipeDefinition>.Failure(valid.Error) : recipe;
     }
 
     private Result<StatusEffectDefinition?> ResolveAppliedStatus(

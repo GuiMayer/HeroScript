@@ -46,7 +46,8 @@ public enum EffectType
     CARD_ZONE_FLOW,
 
     APPLY_MODIFIER,
-    REMOVE_MODIFIER
+    REMOVE_MODIFIER,
+    CONDENSE_STACKS
 }
 
 /// <summary>

@@ -101,6 +101,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<StatusEffectDefinition>("status-effects", (path, item) =>
         {
             if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
+            else foreach (var recipeId in item.Consumption.AllowedRecipeIds) Reference(path, "condensation-recipes", recipeId, required: true);
             Payloads(path, item.PayloadParameters, item.PayloadReapply);
             InstancePolicies(path, item.DefaultStacks, item.MaxStacks, item.DefaultDuration, item.Stacking, item.DurationReapply);
             if (!Enum.IsDefined(item.DurationTickBoundary)) Error(path, "invalid durationTickBoundary");
@@ -119,10 +120,52 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<ScriptModifierDefinition>("modifiers", (path, item) =>
         {
             if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
+            else foreach (var recipeId in item.Consumption.AllowedRecipeIds) Reference(path, "condensation-recipes", recipeId, required: true);
             Payloads(path, item.PayloadParameters, item.PayloadReapply);
             InstancePolicies(path, item.DefaultStacks, item.MaxStacks, item.DefaultDuration, item.Stacking, item.DurationReapply);
             if (!Enum.IsDefined(item.DurationBoundary)) Error(path, "invalid modifier durationBoundary");
             Influences(path, item.Influences);
+        });
+        Visit<CondensationRecipeDefinition>("condensation-recipes", (path, item) =>
+        {
+            var valid = CondensationRecipeValidator.Validate(item);
+            if (valid.IsFailure) Error(path, valid.Error);
+            foreach (var id in item.Selection.DefinitionIds)
+            {
+                var found = (item.Selection.Stores.IsEmpty || item.Selection.Stores.Contains(EffectStackStore.Status)) &&
+                    runtime.GetDefinition<StatusEffectDefinition>("status-effects", id).IsSuccess ||
+                    (item.Selection.Stores.IsEmpty || item.Selection.Stores.Contains(EffectStackStore.Modifier)) &&
+                    runtime.GetDefinition<ScriptModifierDefinition>("modifiers", id).IsSuccess;
+                if (!found) Error(path, $"unknown selected stack definition: {id}");
+            }
+            foreach (var aggregate in item.Aggregates.Where(aggregate => aggregate.Kind == CondensationAggregateKind.Payload))
+            {
+                var selectedSchemas = new List<ImmutableArray<StackPayloadParameterDefinition>>();
+                foreach (var id in item.Selection.DefinitionIds)
+                {
+                    if (item.Selection.Stores.IsEmpty || item.Selection.Stores.Contains(EffectStackStore.Status))
+                    {
+                        var status = runtime.GetDefinition<StatusEffectDefinition>("status-effects", id);
+                        if (status.IsSuccess) selectedSchemas.Add(status.Value.PayloadParameters);
+                    }
+                    if (item.Selection.Stores.IsEmpty || item.Selection.Stores.Contains(EffectStackStore.Modifier))
+                    {
+                        var modifier = runtime.GetDefinition<ScriptModifierDefinition>("modifiers", id);
+                        if (modifier.IsSuccess) selectedSchemas.Add(modifier.Value.PayloadParameters);
+                    }
+                }
+                if (selectedSchemas.Any(schema => !schema.Any(parameter => parameter.ParameterId == aggregate.PayloadParameterId)))
+                    Error(path, "selected definition does not provide the required payload parameter");
+                var units = selectedSchemas.SelectMany(schema => schema.Where(parameter => parameter.ParameterId == aggregate.PayloadParameterId))
+                    .Select(parameter => parameter.Numeric.UnitId).Distinct(StringComparer.Ordinal).ToArray();
+                if (units.Length > 1) Error(path, "payload units cannot be implicitly combined");
+                if (units.Length == 1) EffectDefinitionValidator.Validate(item.Effects, (effect, _) =>
+                {
+                    if (effect.Parameters.Any(parameter => parameter.InputQuantityId == $"condensation.{aggregate.ParameterId}" && parameter.UnitId != units[0]))
+                        Error(path, "recipe effect and payload input have incompatible units");
+                });
+            }
+            Effects(path, item.Effects);
         });
     }
 
@@ -192,6 +235,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             Reference(address, "modifiers", effect.ModifierId);
             Reference(address, "cards", effect.CardDefinitionId);
             Reference(address, "calculation-pipelines", effect.CalculationPipelineId);
+            Reference(address, "condensation-recipes", effect.CondensationRecipeId);
             if (effect.CalculationPipelineId is { Length: > 0 } pipelineId)
             {
                 var pipeline = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", pipelineId);

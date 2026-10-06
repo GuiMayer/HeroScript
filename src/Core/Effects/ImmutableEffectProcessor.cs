@@ -68,6 +68,7 @@ public sealed record EffectApplicationRecord
     public string EffectInstanceId { get; init; } = string.Empty;
     public EffectExecutionIdentity? Identity { get; init; }
     public EffectResourceOutcome? ResourceOutcome { get; init; }
+    public CondensationOutcome? Condensation { get; init; }
     public ImmutableArray<EffectStackChange> StackChanges { get; init; } = [];
     public EffectType EffectType { get; init; }
     public string TargetEntityId { get; init; } = string.Empty;

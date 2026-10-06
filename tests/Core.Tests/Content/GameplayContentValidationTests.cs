@@ -14,6 +14,34 @@ namespace Core.Tests.Content;
 
 public sealed class GameplayContentValidationTests
 {
+    [Fact]
+    public void RevisionedCondensationRecipePublishesWithTypedReferences()
+    {
+        var recipe = CondensationTests.Recipe(CondensationTests.CountResource()) with
+        { Selection = new() { Stores = [EffectStackStore.Status], DefinitionIds = ["charges"] } };
+        var result = Validate(("resources", "focus", new Core.Resources.ResourceDefinition { ResourceId = "focus", DisplayName = "Focus" }),
+            ("calculation-pipelines", "counts", new CalculationPipelineDefinition
+            { PipelineId = "counts", Channel = "counts", UnitId = "stacks", Stages = [new() { StageId = "count_application" }],
+                Buckets = [new() { BucketId = "identity", StageId = "count_application" }] }),
+            ("status-effects", "charges", new StatusEffectDefinition { StatusId = "charges", Consumption = new() { AllowedRecipeIds = ["test"] } }),
+            ("condensation-recipes", "test", recipe),
+            ("actions", "condense", new ActionDefinition { ActionId = "condense", Effects = [CondensationTests.Condense()] }));
+        Assert.True(result.IsValid, string.Join("; ", result.Errors));
+    }
+
+    [Fact]
+    public void PublicationRejectsDanglingAuthorizationRecursiveRecipesAndUnknownSelection()
+    {
+        var recipe = CondensationTests.Recipe(CondensationTests.Condense()) with
+        { Selection = new() { DefinitionIds = ["missing"] } };
+        var result = Validate(("status-effects", "charges", new StatusEffectDefinition
+        { StatusId = "charges", Consumption = new() { AllowedRecipeIds = ["unknown"] } }),
+            ("condensation-recipes", "test", recipe));
+        Assert.Contains(result.Errors, error => error.Contains("condensation-recipes/unknown"));
+        Assert.Contains(result.Errors, error => error.Contains("recursively"));
+        Assert.Contains(result.Errors, error => error.Contains("unknown selected stack definition"));
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, false)]

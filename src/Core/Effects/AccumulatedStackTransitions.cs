@@ -59,12 +59,7 @@ public static class AccumulatedStackTransitions
         AccumulatedStackSelection selection)
     {
         if (string.IsNullOrWhiteSpace(recipeId)) return Result<StackConsumptionPlan>.Failure("Consumption requires a recipe ID");
-        if (selection.MaximumInstances is < 1 or > EffectExecutionLimits.MaximumSteps ||
-            selection.Stores.Any(store => !Enum.IsDefined(store)) ||
-            selection.DefinitionIds.Concat(selection.RequiredTags).Concat(selection.ExcludedTags).Any(string.IsNullOrWhiteSpace) ||
-            selection.SourceEntityId != null && string.IsNullOrWhiteSpace(selection.SourceEntityId) ||
-            selection.Owner is { } owner && (!Enum.IsDefined(owner.Kind) ||
-                owner.Kind != GameplayOwnerKind.Global && string.IsNullOrWhiteSpace(owner.Id)))
+        if (ValidateSelection(selection).IsFailure)
             return Result<StackConsumptionPlan>.Failure("Invalid accumulated stack selection");
         var candidates = ReadEligible(combat, run, recipeId);
         if (candidates.IsFailure) return Result<StackConsumptionPlan>.Failure(candidates.Error);
@@ -81,6 +76,15 @@ public static class AccumulatedStackTransitions
             return Result<StackConsumptionPlan>.Failure("Stack selection exceeds its limit; selection was not truncated");
         return Result<StackConsumptionPlan>.Success(new() { RecipeId = recipeId, Sources = selected });
     }
+
+    public static Result ValidateSelection(AccumulatedStackSelection selection) =>
+        selection.MaximumInstances is < 1 or > EffectExecutionLimits.MaximumSteps ||
+            selection.Stores.Any(store => !Enum.IsDefined(store)) ||
+            selection.DefinitionIds.Concat(selection.RequiredTags).Concat(selection.ExcludedTags).Any(string.IsNullOrWhiteSpace) ||
+            selection.SourceEntityId != null && string.IsNullOrWhiteSpace(selection.SourceEntityId) ||
+            selection.Owner is { } owner && (!Enum.IsDefined(owner.Kind) ||
+                owner.Kind != GameplayOwnerKind.Global && string.IsNullOrWhiteSpace(owner.Id))
+            ? Result.Failure("Invalid accumulated stack selection") : Result.Success();
 
     public static Result<StackConsumptionResult> Consume(CombatState combat, RunState? run, StackConsumptionPlan plan)
     {

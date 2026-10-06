@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Calculations;
+using Core.CardZones;
 using Core.Combat.Flow;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
@@ -283,7 +284,8 @@ public sealed class StackPayloadTests
 
     internal static (EffectTriggerExecutor Executor, RunState Run) Fixture(StackParameterEvaluation evaluation = StackParameterEvaluation.Snapshot,
         StackMissingSourcePolicy missing = StackMissingSourcePolicy.Fail, StackReapplyPolicy stacking = StackReapplyPolicy.Add,
-        StackPayloadReapplyPolicy payloadPolicy = StackPayloadReapplyPolicy.PreserveLots, int maximum = 99, bool withTrigger = false)
+        StackPayloadReapplyPolicy payloadPolicy = StackPayloadReapplyPolicy.PreserveLots, int maximum = 99, bool withTrigger = false,
+        CondensationRecipeDefinition? recipe = null, bool stackInfluence = false, bool targetStackInfluence = false)
     {
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
         formulas.Setup(item => item.Evaluate(It.IsAny<string>(), It.IsAny<Dictionary<string, float>>(), It.IsAny<float>()))
@@ -310,6 +312,11 @@ public sealed class StackPayloadTests
             ["modifiers/test.json"] = JsonSerializer.SerializeToElement(new Dictionary<string, ScriptModifierDefinition> { ["charges"] = new()
             { ModifierId = "charges", PayloadParameters = parameters, Consumption = new() { AllowedRecipeIds = ["test"] } } })
         };
+        if (recipe != null) artifacts["condensation-recipes/test.json"] = JsonSerializer.SerializeToElement(
+            new Dictionary<string, CondensationRecipeDefinition> { [recipe.RecipeId] = recipe });
+        artifacts["calculation-pipelines/test.json"] = JsonSerializer.SerializeToElement(new Dictionary<string, CalculationPipelineDefinition>
+        { ["payload"] = pipeline, ["counts"] = new() { PipelineId = "counts", Channel = "counts", UnitId = "stacks",
+            Stages = [new() { StageId = "count_application" }], Buckets = [new() { BucketId = "identity", StageId = "count_application" }] } });
         var runtime = ContentRuntime.Create(new()
         {
             Manifest = new() { Revision = "revision", ConfigName = "default", Artifacts = artifacts.Select(item => new ContentArtifactManifest
@@ -321,10 +328,26 @@ public sealed class StackPayloadTests
         var influences = new Mock<ICalculationInfluenceProvider>();
         influences.Setup(item => item.Collect(It.IsAny<CalculationSourceContext>())).Returns((CalculationSourceContext context) =>
             Result<IReadOnlyList<CalculationInfluence>>.Success([new()
-            { InfluenceId = "source", SourceId = context.Actor!.InstanceId, Channel = "magnitude", Bucket = "boost", Value = context.Actor.GetResource("focus")!.Current }]));
+            { InfluenceId = "source", SourceId = context.Actor!.InstanceId, Channel = "magnitude", Bucket = "boost",
+                Value = context.Actor.GetResource("focus")!.Current + (stackInfluence ? context.Combat!.StatusEffects.GetValueOrDefault(context.Target!.InstanceId, []).Sum(status => status.Stacks) : 0) },
+                new() { InfluenceId = "target", SourceId = context.Target!.InstanceId, Channel = "magnitude", Bucket = "defense",
+                    Value = targetStackInfluence ? context.Combat!.StatusEffects.GetValueOrDefault(context.Target.InstanceId, []).Sum(status => status.Stacks) : 0 }]));
+        var zones = new CardZoneSystemDefinition
+        {
+            CardZoneSystemId = "payload-zones", Zones = [new() { ZoneId = "reserve", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered },
+                new() { ZoneId = "active", OwnerScope = CardZoneOwnerScope.RunOwner, Ordering = CardZoneOrdering.Ordered }],
+            Flows = [new() { FlowId = "draw", AllowedInvocations = [CardZoneFlowInvocation.Effect], Steps = [new()
+            { StepId = "move", Operation = CardZoneOperation.Move, SourceZoneId = "reserve", TargetZoneId = "active",
+                SourceOwner = CardZoneOwnerBinding.RunOwner, TargetOwner = CardZoneOwnerBinding.RunOwner,
+                Selection = new() { Strategy = CardZoneSelectionStrategy.First, CountFormula = "requestedCount" } }] }]
+        };
+        var topology = CardZoneBootstrapper.Create(CardZoneSystemCompiler.Compile(zones).Value, new()
+        { RunOwnerId = "$run", Batches = [new() { ZoneId = "reserve", OwnerId = "$run", DefinitionIds = ["a", "b", "c", "d"] }] },
+            DeterministicContext.Create(1, "revision")).Value;
         var run = new RunState
-        { PlayerEntityId = "hero", Determinism = DeterministicContext.Create(1, "revision"),
-            ResolvedMode = new() { Definition = new() { CalculationPipelineIds = ["payload"] } } };
-        return (new(formulas.Object, new ImmutableEffectProcessor(), runtimes.Object, new CalculationEngine(formulas.Object), influences.Object), run);
+        { PlayerEntityId = "hero", Determinism = topology.Context, Deck = new() { Topology = topology.State },
+            ResolvedMode = new() { Definition = new() { CalculationPipelineIds = ["payload", "counts"] }, CardZoneSystem = zones } };
+        return (new(formulas.Object, new ImmutableEffectProcessor(), runtimes.Object, new CalculationEngine(formulas.Object), influences.Object,
+            cardZoneFlows: new CardZoneFlowExecutor(new CardZoneRuntimeRuleEvaluator(formulas.Object, Mock.Of<ICardZoneCardMetadataResolver>()))), run);
     }
 }

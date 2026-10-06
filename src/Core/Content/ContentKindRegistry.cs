@@ -6,6 +6,7 @@ using Core.Combat.Models;
 using Core.Combat.Modifiers;
 using Core.Combat.TurnPhase;
 using Core.Common;
+using Core.Effects;
 using Core.Entity.Definitions;
 using Core.Resources;
 using Core.Run;
@@ -139,6 +140,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("card-zone-systems", "card-zone-systems", typeof(Core.CardZones.CardZoneSystemDefinition), "cardZoneSystemId"),
         new("cards", "cards", typeof(CardContentDefinition), "cardId"),
         new("combat-rules", "combat-rules", typeof(CombatRulesDefinition), "combatRulesId"),
+        new("condensation-recipes", "condensation-recipes", typeof(CondensationRecipeDefinition), "recipeId"),
         new("companions", "companions", typeof(JsonElement)),
         new("content-binding-policies", "content-binding-policies", typeof(ContentBindingPolicyDefinition), "contentBindingPolicyId"),
         new("daily-challenges", "daily-challenges", typeof(DailyChallengeDefinition), "challengeId"),

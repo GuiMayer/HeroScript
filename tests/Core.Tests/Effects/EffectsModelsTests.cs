@@ -8,7 +8,7 @@ namespace Core.Tests.Effects;
 public sealed class EffectsModelsTests
 {
     [Fact]
-    public void EffectTypeContainsOnlyExecutablePrimitives()
+    public void EffectTypeContainsOnlyExecutableOperations()
     {
         Assert.Equal(
             new[]
@@ -21,7 +21,8 @@ public sealed class EffectsModelsTests
                 EffectType.DISPEL_STATUS,
                 EffectType.CARD_ZONE_FLOW,
                 EffectType.APPLY_MODIFIER,
-                EffectType.REMOVE_MODIFIER
+                EffectType.REMOVE_MODIFIER,
+                EffectType.CONDENSE_STACKS
             },
             Enum.GetValues<EffectType>());
     }
