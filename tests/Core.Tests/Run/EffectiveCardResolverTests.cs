@@ -51,7 +51,7 @@ public sealed class EffectiveCardResolverTests
             Upgrades =
             [
                 Upgrade("add", CardNumericPatchOperation.Add, 2),
-                Upgrade("multiply", CardNumericPatchOperation.Multiply, 2)
+                Upgrade("multiply", CardNumericPatchOperation.Multiply, 2) with { TransformationId = 2 }
             ]
         };
 
@@ -165,7 +165,7 @@ public sealed class EffectiveCardResolverTests
     {
         CardInstanceId = Guid.Parse("10000000-0000-8000-8000-000000000001"),
         DefinitionId = "strike",
-        Upgrades = [new CardUpgradeState { UpgradeId = "sharpened", Patches = [patch] }]
+        Upgrades = [new CardUpgradeState { TransformationId = 1, ContentRevision = "content", UpgradeId = "sharpened", Patches = [patch] }]
     };
 
     private static CardUpgradeState Upgrade(
@@ -174,6 +174,7 @@ public sealed class EffectiveCardResolverTests
         float value) => new()
     {
         UpgradeId = id,
+        TransformationId = 1, ContentRevision = "content",
         Patches =
         [
             new CardEffectNumericPatchDefinition

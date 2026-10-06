@@ -8,12 +8,22 @@ using Core.Math;
 using Core.Run;
 using Core.Run.Content;
 using Core.StatusEffects;
+using Core.Common;
+using Core.CardZones;
 
 namespace Core.Content;
 
 /// <summary>Validates executable components, not merely the JSON shape or existence of their containers.</summary>
 internal sealed class GameplayContentValidator(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
 {
+    internal static Result ValidateCardContainer(ContentRuntime runtime, string path,
+        IReadOnlyList<CardComponentDefinition> components)
+    {
+        var errors = ImmutableArray.CreateBuilder<string>();
+        new GameplayContentValidator(runtime, errors).Components(path, components);
+        return errors.Count == 0 ? Result.Success() : Result.Failure(string.Join("; ", errors));
+    }
+
     public void Validate()
     {
         Visit<FormulaDefinition>("formulas", (path, item) =>
@@ -98,6 +108,9 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         });
         Visit<CardContentDefinition>("cards", (path, item) => Components(path, item.Components));
         Visit<CardComponentBundleDefinition>("card-component-bundles", (path, item) => Components(path, item.Components));
+        Visit<CardUpgradeDefinition>("card-upgrades", (path, item) =>
+            Components(path, item.Patches.OfType<CardComponentPatchDefinition>()
+                .Where(patch => patch.Component != null).Select(patch => patch.Component!).ToArray()));
         Visit<StatusEffectDefinition>("status-effects", (path, item) =>
         {
             if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
@@ -202,6 +215,17 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             var address = $"{path}/components/{component.ComponentId}";
             switch (component)
             {
+                case CardCostComponentDefinition cost:
+                    if (cost.Costs == null) { Error(address, "cost payload cannot be null"); break; }
+                    var alternatives = cost.Costs.AlternativeCosts.Where(option => option != null).ToArray();
+                    if (alternatives.Length != cost.Costs.AlternativeCosts.Count) Error(address, "alternative option cannot be null");
+                    foreach (var resource in cost.Costs.Costs.Concat(alternatives.SelectMany(option => option.Costs)))
+                    {
+                        if (resource == null) { Error(address, "resource cost cannot be null"); continue; }
+                        Reference(address, "resources", resource.ResourceId, required: true);
+                        Formula(address, resource.Formula);
+                    }
+                    break;
                 case CardEffectComponentDefinition effect: Effects(address, [effect.Effect]); break;
                 case CardConditionComponentDefinition condition: Formula(address, condition.Expression, required: true); break;
                 case CardInfluenceComponentDefinition influence:
@@ -219,6 +243,12 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 case CardDispositionComponentDefinition disposition:
                     if (string.IsNullOrWhiteSpace(disposition.CardZoneResolutionFlowId))
                         Error(address, "card disposition requires cardZoneResolutionFlowId");
+                    else if (!runtime.GetDefinitions("card-zone-systems").Keys
+                        .Select(id => runtime.GetDefinition<CardZoneSystemDefinition>("card-zone-systems", id))
+                        .Where(item => item.IsSuccess).SelectMany(item => item.Value.Flows)
+                        .Any(flow => flow.FlowId == disposition.CardZoneResolutionFlowId &&
+                            flow.AllowedInvocations.Contains(CardZoneFlowInvocation.CardResolution)))
+                        Error(address, $"missing card-resolution zone flow {disposition.CardZoneResolutionFlowId}");
                     break;
             }
         }

@@ -11,6 +11,7 @@ public sealed record EffectiveCardDefinition
 {
     private ImmutableArray<CardComponentDefinition> _components = [];
     private ImmutableArray<CardUpgradeState> _appliedUpgrades = [];
+    private ImmutableArray<CardUpgradeState> _transformationLedger = [];
     private ImmutableArray<CardUpgradeApplicationTrace> _upgradeTrace = [];
 
     public Guid CardInstanceId { get; init; }
@@ -21,6 +22,11 @@ public sealed record EffectiveCardDefinition
     {
         get => _appliedUpgrades;
         init => _appliedUpgrades = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardUpgradeState> TransformationLedger
+    {
+        get => _transformationLedger;
+        init => _transformationLedger = value?.ToImmutableArray() ?? [];
     }
     public IReadOnlyList<CardUpgradeApplicationTrace> UpgradeTrace
     {
@@ -45,6 +51,8 @@ internal sealed record EffectiveCardFingerprintPayload(
     Guid CardInstanceId,
     string DefinitionId,
     string DefinitionFingerprint,
+    ImmutableArray<string> Tags,
+    ImmutableArray<CardUpgradeState> TransformationLedger,
     ImmutableArray<CardUpgradeState> AppliedUpgrades,
     ImmutableArray<CardUpgradeApplicationTrace> UpgradeTrace,
     ImmutableArray<CardComponentDefinition> Components)
@@ -55,6 +63,8 @@ internal sealed record EffectiveCardFingerprintPayload(
 /// <summary>Auditable permanent base transformation. It is never reapplied as a contextual influence.</summary>
 public sealed record CardUpgradeApplicationTrace
 {
+    public ulong TransformationId { get; init; }
+    public CardTransformationCategory Category { get; init; }
     public string UpgradeId { get; init; } = string.Empty;
     public string ComponentId { get; init; } = string.Empty;
     public string Attribute { get; init; } = string.Empty;

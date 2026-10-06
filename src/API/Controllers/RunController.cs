@@ -247,9 +247,7 @@ public sealed class RunController : BaseApiController
 
         var options = _cardUpgrades.GetAll(result.Value.ConfigName)
             .Where(definition => definition.AppliesTo(card.DefinitionId))
-            .Where(definition => card.Upgrades.Count(upgrade =>
-                string.Equals(upgrade.UpgradeId, definition.UpgradeId, StringComparison.Ordinal))
-                < Math.Max(1, definition.MaxApplications))
+            .Where(definition => CardTransformationLedger.Count(card, definition.UpgradeId) < definition.MaxApplications)
             .OrderBy(definition => definition.UpgradeId, StringComparer.Ordinal)
             .ToArray();
         return Ok(new
@@ -362,7 +360,8 @@ public sealed class RunController : BaseApiController
         {
             card.CardInstanceId,
             card.DefinitionId,
-            card.Upgrades,
+            upgrades = CardTransformationLedger.Project(card.Upgrades).Value,
+            transformationLedger = card.Upgrades,
             zone,
             zoneIndex = view?.OrderVisible == true ? index : -1
         };

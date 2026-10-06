@@ -2,6 +2,8 @@ using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
+using Core.Determinism;
+using System.Text.Json;
 
 namespace Core.Run.Content;
 
@@ -34,49 +36,86 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
                 $"Card instance definition mismatch: {instance.DefinitionId} != {definition.CardId}");
         }
 
+        var active = CardTransformationLedger.Project(instance.Upgrades);
+        if (active.IsFailure) return Result<EffectiveCardDefinition>.Failure(active.Error);
         var components = definition.Components.ToImmutableArray();
+        var tags = definition.Tags.ToImmutableArray();
         var upgradeTrace = ImmutableArray.CreateBuilder<CardUpgradeApplicationTrace>();
-        foreach (var upgrade in instance.Upgrades)
+        foreach (var upgrade in active.Value)
         {
             foreach (var patch in upgrade.Patches)
             {
+                if (patch == null) return Result<EffectiveCardDefinition>.Failure("Transformation patch cannot be null");
+                if (patch is CardTagsPatchDefinition tagPatch)
+                {
+                    var changedTags = PatchTags(tags, tagPatch);
+                    if (changedTags.IsFailure)
+                        return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: {changedTags.Error}");
+                    upgradeTrace.Add(new()
+                    {
+                        UpgradeId = upgrade.UpgradeId, TransformationId = upgrade.TransformationId,
+                        Category = upgrade.Category, Attribute = "Tags",
+                        PreviousChoice = string.Join(",", tags), CurrentChoice = string.Join(",", changedTags.Value)
+                    });
+                    tags = changedTags.Value;
+                    continue;
+                }
                 Result<ImmutableArray<CardComponentDefinition>> applied;
                 try { applied = ApplyPatch(components, patch); }
                 catch (OverflowException)
-                { return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: integer overflow in patch {patch.ComponentId}"); }
+                { return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: numeric overflow in patch {patch.ComponentId}"); }
                 if (applied.IsFailure)
                 {
                     return Result<EffectiveCardDefinition>.Failure(
                         $"Upgrade {upgrade.UpgradeId}: {applied.Error}");
                 }
-                var before = components.First(item => string.Equals(item.ComponentId, patch.ComponentId, StringComparison.Ordinal));
+                var before = components.FirstOrDefault(item => string.Equals(item.ComponentId, patch.ComponentId, StringComparison.Ordinal));
                 components = applied.Value;
-                var after = components.First(item => string.Equals(item.ComponentId, patch.ComponentId, StringComparison.Ordinal));
-                upgradeTrace.Add(CreateTrace(upgrade.UpgradeId, patch, before, after));
+                var after = components.FirstOrDefault(item => string.Equals(item.ComponentId, patch.ComponentId, StringComparison.Ordinal));
+                try { upgradeTrace.Add(CreateTrace(upgrade, patch, before, after)); }
+                catch (Exception exception) when (exception is ArgumentException or JsonException or NotSupportedException)
+                {
+                    return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: invalid component snapshot: {exception.Message}");
+                }
             }
         }
 
-        var validation = ValidateEffectiveComponents(components);
-        if (validation.IsFailure)
-            return Result<EffectiveCardDefinition>.Failure(validation.Error);
-        var upgrades = instance.Upgrades.ToImmutableArray();
+        // Use the same closed-container compiler as authored cards. Structural
+        // mutations cannot bypass binding, alias, trigger or singleton checks.
+        var recompiled = new CardContentCompiler().Compile(new CardContentDefinition
+        {
+            CardId = definition.CardId, Rarity = definition.Rarity,
+            BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,
+            Tags = tags, Components = components
+        });
+        if (recompiled.IsFailure) return Result<EffectiveCardDefinition>.Failure(recompiled.Error);
+        components = recompiled.Value.Components.ToImmutableArray();
+        tags = recompiled.Value.Tags.ToImmutableArray();
+        var upgrades = active.Value;
         var payload = new EffectiveCardFingerprintPayload(
             instance.CardInstanceId,
             instance.DefinitionId,
             definition.Fingerprint,
+            tags,
+            instance.Upgrades.ToImmutableArray(),
             upgrades,
             upgradeTrace.ToImmutable(),
             components);
+        string fingerprint;
+        try { fingerprint = payload.ComputeFingerprint(); }
+        catch (Exception exception) when (exception is ArgumentException or JsonException or NotSupportedException)
+        { return Result<EffectiveCardDefinition>.Failure($"Invalid transformation ledger snapshot: {exception.Message}"); }
         return Result<EffectiveCardDefinition>.Success(new EffectiveCardDefinition
         {
             CardInstanceId = instance.CardInstanceId,
             DefinitionId = instance.DefinitionId,
             DefinitionFingerprint = definition.Fingerprint,
-            Tags = definition.Tags.ToImmutableArray(),
+            Tags = tags,
             AppliedUpgrades = upgrades,
+            TransformationLedger = instance.Upgrades,
             UpgradeTrace = upgradeTrace.ToImmutable(),
             Components = components,
-            Fingerprint = payload.ComputeFingerprint()
+            Fingerprint = fingerprint
         });
     }
 
@@ -94,6 +133,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             return Result.Failure($"Upgrade {upgrade.UpgradeId} does not apply to {definition.CardId}");
         if (upgrade.Patches.Count == 0)
             return Result.Failure($"Upgrade {upgrade.UpgradeId} requires at least one typed patch");
+        if (!Enum.IsDefined(upgrade.Category))
+            return Result.Failure($"Upgrade {upgrade.UpgradeId} has an invalid category");
 
         var instance = new CardInstanceState
         {
@@ -103,6 +144,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             [
                 new CardUpgradeState
                 {
+                    TransformationId = 1, ContentRevision = "validation", Category = upgrade.Category,
                     UpgradeId = upgrade.UpgradeId,
                     Patches = upgrade.Patches
                 }
@@ -118,9 +160,12 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
     {
         if (string.IsNullOrWhiteSpace(patch.ComponentId))
             return Result<ImmutableArray<CardComponentDefinition>>.Failure("Patch componentId is required");
+        if (patch is CardComponentPatchDefinition structural)
+            return PatchComponent(components, structural);
         var validPolicy = patch switch
         {
             CardEffectNumericPatchDefinition effect => Enum.IsDefined(effect.Attribute) && Enum.IsDefined(effect.Operation) && float.IsFinite(effect.Value),
+            CardEffectParameterNumericPatchDefinition parameter => Enum.IsDefined(parameter.Parameter) && Enum.IsDefined(parameter.Operation) && float.IsFinite(parameter.Value),
             CardCostAmountPatchDefinition cost => Enum.IsDefined(cost.Operation) && float.IsFinite(cost.Value),
             CardInfluenceNumericPatchDefinition influence => Enum.IsDefined(influence.Operation) && float.IsFinite(influence.Value),
             CardTargetingNumericPatchDefinition targeting => Enum.IsDefined(targeting.Attribute) && Enum.IsDefined(targeting.Operation),
@@ -147,6 +192,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         var transformed = patch switch
         {
             CardEffectNumericPatchDefinition effect => PatchEffect(components[index], effect),
+            CardEffectParameterNumericPatchDefinition parameter => PatchParameter(components[index], parameter),
             CardCostAmountPatchDefinition cost => PatchCost(components[index], cost),
             CardInfluenceNumericPatchDefinition influence => PatchInfluence(components[index], influence),
             CardTargetingNumericPatchDefinition targeting => PatchTargeting(components[index], targeting),
@@ -167,6 +213,17 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         if (component is not CardEffectComponentDefinition effectComponent)
             return WrongType(component, "effect");
         var effect = effectComponent.Effect;
+        if (effect == null || effect.Parameters.Any(item => item == null))
+            return Result<CardComponentDefinition>.Failure("Effect or parameter cannot be null");
+        var overridden = patch.Attribute switch
+        {
+            CardEffectNumericAttribute.FlatValue => EffectNumericParameter.Amount,
+            CardEffectNumericAttribute.StatusStacks => EffectNumericParameter.StatusStacks,
+            CardEffectNumericAttribute.StatusDuration => EffectNumericParameter.StatusDuration,
+            _ => (EffectNumericParameter?)null
+        };
+        if (overridden != null && effect.Parameters.Any(item => item.Parameter == overridden))
+            return Result<CardComponentDefinition>.Failure("Use effect_parameter_numeric to patch an overridden parameter base");
         effect = patch.Attribute switch
         {
             CardEffectNumericAttribute.FlatValue => effect with
@@ -200,6 +257,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
     {
         if (component is not CardCostComponentDefinition costComponent)
             return WrongType(component, "cost");
+        if (costComponent.Costs == null || costComponent.Costs.Costs.Any(cost => cost == null))
+            return Result<CardComponentDefinition>.Failure("Cost payload cannot be null");
         if (string.IsNullOrWhiteSpace(patch.ResourceId))
             return Result<CardComponentDefinition>.Failure("Cost patch resourceId is required");
         var matches = costComponent.Costs.Costs.Count(cost =>
@@ -264,49 +323,37 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
                 })
             : WrongType(component, "disposition");
 
-    private static Result ValidateEffectiveComponents(
-        ImmutableArray<CardComponentDefinition> components)
-    {
-        foreach (var cost in components.OfType<CardCostComponentDefinition>()
-                     .SelectMany(component => component.Costs.Costs))
-        {
-            if (cost.Amount < 0 || float.IsNaN(cost.Amount) || float.IsInfinity(cost.Amount))
-                return Result.Failure($"Effective cost {cost.ResourceId} is invalid: {cost.Amount}");
-        }
-        foreach (var effect in components.OfType<CardEffectComponentDefinition>()
-                     .Select(component => component.Effect))
-        {
-            if (effect.FlatValue is { } value && (float.IsNaN(value) || float.IsInfinity(value)))
-                return Result.Failure("Effective effect flatValue must be finite");
-            if (effect.Chance is < 0 or > 1)
-                return Result.Failure($"Effective effect chance is invalid: {effect.Chance}");
-            if (effect.Repeat < 1)
-                return Result.Failure($"Effective effect repeat is invalid: {effect.Repeat}");
-        }
-        foreach (var targeting in components.OfType<CardTargetingComponentDefinition>())
-        {
-            if (targeting.MinimumTargets < 0 || targeting.MaximumTargets < targeting.MinimumTargets)
-                return Result.Failure($"Effective targeting {targeting.ComponentId} is invalid");
-        }
-        var effects = EffectDefinitionValidator.Validate(components.OfType<CardEffectComponentDefinition>().Select(item => item.Effect));
-        if (!effects.IsEmpty) return Result.Failure(string.Join("; ", effects));
-        if (components.OfType<CardInfluenceComponentDefinition>().Any(item => item.Value is { } value && !float.IsFinite(value)))
-            return Result.Failure("Effective influence value must be finite");
-        return Result.Success();
-    }
-
     private static Result<CardComponentDefinition> WrongType(
         CardComponentDefinition component,
         string expected) =>
         Result<CardComponentDefinition>.Failure(
             $"Component {component.ComponentId} is {component.GetType().Name}, expected {expected}");
 
-    private static CardUpgradeApplicationTrace CreateTrace(string upgradeId, CardUpgradePatchDefinition patch,
-        CardComponentDefinition before, CardComponentDefinition after)
+    private static CardUpgradeApplicationTrace CreateTrace(CardUpgradeState upgrade, CardUpgradePatchDefinition patch,
+        CardComponentDefinition? before, CardComponentDefinition? after)
     {
-        var trace = new CardUpgradeApplicationTrace { UpgradeId = upgradeId, ComponentId = patch.ComponentId };
+        var trace = new CardUpgradeApplicationTrace
+        {
+            UpgradeId = upgrade.UpgradeId, ComponentId = patch.ComponentId,
+            TransformationId = upgrade.TransformationId, Category = upgrade.Category
+        };
+        if (patch is CardComponentPatchDefinition structural)
+            return trace with
+            {
+                Attribute = $"Component.{structural.Operation}",
+                PreviousChoice = before == null ? null : CanonicalJson.ComputeHash<CardComponentDefinition>(before),
+                CurrentChoice = after == null ? null : CanonicalJson.ComputeHash<CardComponentDefinition>(after)
+            };
+        ArgumentNullException.ThrowIfNull(before);
+        ArgumentNullException.ThrowIfNull(after);
         return patch switch
         {
+            CardEffectParameterNumericPatchDefinition parameter => trace with
+            {
+                Attribute = $"{parameter.Parameter}.FlatValue", Operation = parameter.Operation,
+                PreviousValue = ((CardEffectComponentDefinition)before!).Effect.Parameters.Single(item => item.Parameter == parameter.Parameter).FlatValue ?? 0,
+                CurrentValue = ((CardEffectComponentDefinition)after!).Effect.Parameters.Single(item => item.Parameter == parameter.Parameter).FlatValue
+            },
             CardEffectNumericPatchDefinition numeric => trace with
             {
                 Attribute = numeric.Attribute.ToString(), Operation = numeric.Operation,
@@ -343,9 +390,63 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         };
     }
 
+    private static Result<ImmutableArray<string>> PatchTags(ImmutableArray<string> tags, CardTagsPatchDefinition patch)
+    {
+        if (!string.IsNullOrEmpty(patch.ComponentId) || patch.Add.Count + patch.Remove.Count == 0 ||
+            patch.Add.Concat(patch.Remove).Any(string.IsNullOrWhiteSpace) ||
+            patch.Add.Concat(patch.Remove).Distinct(StringComparer.Ordinal).Count() != patch.Add.Count + patch.Remove.Count)
+            return Result<ImmutableArray<string>>.Failure("Tag changes require nonempty, unique, disjoint tags and no componentId");
+        if (patch.Remove.Any(tag => !tags.Contains(tag, StringComparer.Ordinal)) ||
+            patch.Add.Any(tag => tags.Contains(tag, StringComparer.Ordinal)))
+            return Result<ImmutableArray<string>>.Failure("Tag change conflicts with the current composition");
+        return Result<ImmutableArray<string>>.Success(tags.Where(tag => !patch.Remove.Contains(tag, StringComparer.Ordinal))
+            .Concat(patch.Add).OrderBy(tag => tag, StringComparer.Ordinal).ToImmutableArray());
+    }
+
+    private static Result<ImmutableArray<CardComponentDefinition>> PatchComponent(
+        ImmutableArray<CardComponentDefinition> components, CardComponentPatchDefinition patch)
+    {
+        if (!Enum.IsDefined(patch.Operation) ||
+            (patch.Operation == CardComponentPatchOperation.Remove ? patch.Component != null :
+                patch.Component == null || patch.Component.ComponentId != patch.ComponentId))
+            return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid structural component operation or identity");
+        var existing = components.FirstOrDefault(item => item.ComponentId == patch.ComponentId);
+        if (patch.Operation == CardComponentPatchOperation.Add)
+            return existing != null
+                ? Result<ImmutableArray<CardComponentDefinition>>.Failure($"Component id collision: {patch.ComponentId}")
+                : Result<ImmutableArray<CardComponentDefinition>>.Success(components.Add(patch.Component!));
+        if (existing == null)
+            return Result<ImmutableArray<CardComponentDefinition>>.Failure($"Component not found: {patch.ComponentId}");
+        return Result<ImmutableArray<CardComponentDefinition>>.Success(patch.Operation == CardComponentPatchOperation.Remove
+            ? components.Remove(existing) : components.SetItem(components.IndexOf(existing), patch.Component!));
+    }
+
+    private static Result<CardComponentDefinition> PatchParameter(CardComponentDefinition component,
+        CardEffectParameterNumericPatchDefinition patch)
+    {
+        if (component is not CardEffectComponentDefinition effect) return WrongType(component, "effect");
+        if (effect.Effect == null || effect.Effect.Parameters.Any(item => item == null))
+            return Result<CardComponentDefinition>.Failure("Effect or parameter cannot be null");
+        var matches = effect.Effect.Parameters.Where(item => item.Parameter == patch.Parameter).ToArray();
+        if (matches.Length != 1) return Result<CardComponentDefinition>.Failure("Numeric parameter must exist exactly once");
+        var parameter = matches[0];
+        if (parameter == null || parameter.InputQuantityId != null)
+            return Result<CardComponentDefinition>.Failure("Parameter base must exist and cannot be an input quantity");
+        var value = Apply(parameter.FlatValue ?? 0, patch.Operation, patch.Value);
+        if (!float.IsFinite(value)) return Result<CardComponentDefinition>.Failure("Parameter base must be finite");
+        return Result<CardComponentDefinition>.Success(effect with
+        {
+            Effect = effect.Effect with
+            {
+                Parameters = effect.Effect.Parameters.Select(item => item.Parameter == patch.Parameter
+                    ? item with { FlatValue = value } : item).ToImmutableArray()
+            }
+        });
+    }
+
     private static float? EffectValue(EffectDefinition effect, CardEffectNumericAttribute attribute) => attribute switch
     {
-        CardEffectNumericAttribute.FlatValue => effect.FlatValue,
+        CardEffectNumericAttribute.FlatValue => effect.FlatValue ?? 0,
         CardEffectNumericAttribute.Chance => effect.Chance,
         CardEffectNumericAttribute.Repeat => effect.Repeat,
         CardEffectNumericAttribute.StatusStacks => effect.StatusStacks,
@@ -356,13 +457,18 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
     private static float Apply(
         float current,
         CardNumericPatchOperation operation,
-        float value) => operation switch
+        float value)
+    {
+        var result = operation switch
         {
             CardNumericPatchOperation.Add => current + value,
             CardNumericPatchOperation.Multiply => current * value,
             CardNumericPatchOperation.Set => value,
             _ => current
         };
+        if (!float.IsFinite(result)) throw new OverflowException("Non-finite permanent base");
+        return result;
+    }
 
     private static int ApplyInteger(
         int current,

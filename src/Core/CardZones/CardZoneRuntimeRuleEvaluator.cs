@@ -100,7 +100,7 @@ public sealed class CardZoneRuntimeRuleEvaluator : ICardZoneRuleEvaluator
             !string.IsNullOrWhiteSpace(selection.Condition))
         {
             var variables = context.Variables.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
-            variables["cardUpgradeCount"] = instance.Upgrades.Count;
+            variables["cardUpgradeCount"] = CardTransformationLedger.Count(instance);
             return EvaluateCondition(selection.Condition, context with { Variables = variables });
         }
         return Result<bool>.Failure($"Unsupported card-zone predicate: {selection.Strategy}");

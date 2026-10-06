@@ -132,15 +132,17 @@ public sealed class CalculationResolver(
         float amount, string? parameterAttribute)
     {
         var traces = new List<CalculationBaseTrace>();
-        if (parameterAttribute == null && context.Card != null && !string.IsNullOrWhiteSpace(context.ComponentId))
+        if (context.Card != null && !string.IsNullOrWhiteSpace(context.ComponentId))
         {
-            var upgrades = context.Card.UpgradeTrace.Where(item => item.ComponentId == context.ComponentId &&
-                item.Attribute == CardEffectNumericAttribute.FlatValue.ToString()).ToArray();
+            var attribute = parameterAttribute == null ? "FlatValue" : $"{parameterAttribute}.FlatValue";
+            var componentTrace = context.Card.UpgradeTrace.Where(item => item.ComponentId == context.ComponentId).ToArray();
+            var lastStructural = Array.FindLastIndex(componentTrace, item => item.Attribute.StartsWith("Component.", StringComparison.Ordinal));
+            var upgrades = componentTrace.Skip(lastStructural + 1).Where(item => item.Attribute == attribute).ToArray();
             var original = upgrades.FirstOrDefault()?.PreviousValue ?? effect.FlatValue;
             traces.Add(new()
             {
                 SourceKind = CalculationSourceKind.Card, SourceId = context.Card.DefinitionId,
-                ComponentId = context.ComponentId, Attribute = "FlatValue", Operation = "Base", Output = original
+                ComponentId = context.ComponentId, Attribute = attribute, Operation = "Base", Output = original
             });
             traces.AddRange(upgrades.Select(item => new CalculationBaseTrace
             {

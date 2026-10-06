@@ -40,7 +40,7 @@ public sealed class CardZoneRuntimeRuleEvaluatorTests
         {
             CardInstanceId = Guid.NewGuid(),
             DefinitionId = "fireball",
-            Upgrades = [new CardUpgradeState { UpgradeId = "fireball-plus" }]
+            Upgrades = [new CardUpgradeState { TransformationId = 1, ContentRevision = "content", UpgradeId = "fireball-plus" }]
         };
         var context = new CardZoneFlowContext { ContentRevision = "revision-a" };
 

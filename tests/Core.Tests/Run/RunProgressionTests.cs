@@ -285,7 +285,7 @@ public sealed class RunProgressionTests
                     new CardZoneCardCreation
                     {
                         DefinitionId = "strike",
-                        Upgrades = [new CardUpgradeState { UpgradeId = "sharp" }]
+                        Upgrades = [new CardUpgradeState { TransformationId = 1, ContentRevision = "content", UpgradeId = "sharp" }]
                     },
                     new CardZoneCardCreation { DefinitionId = "guard" }
                 ]

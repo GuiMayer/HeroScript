@@ -100,6 +100,11 @@ public static class CardZoneTopologyValidator
                 string.IsNullOrWhiteSpace(pair.Value.DefinitionId) ||
                 string.IsNullOrWhiteSpace(pair.Value.OwnerId)))
             return Result.Failure("Card-zone topology contains an invalid card instance");
+        foreach (var card in state.InstanceItems.Values)
+        {
+            var ledger = CardTransformationLedger.Project(card.Upgrades);
+            if (ledger.IsFailure) return Result.Failure($"Card {card.CardInstanceId}: {ledger.Error}");
+        }
 
         var memberships = state.ZoneItems.Values.SelectMany(zone => zone.Items).ToArray();
         if (memberships.Distinct().Count() != memberships.Length)

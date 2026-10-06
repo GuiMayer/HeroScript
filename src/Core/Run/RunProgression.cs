@@ -636,10 +636,7 @@ public static class CardUpgradeCommandOptions
             .ThenBy(card => card.CardInstanceId)
             .SelectMany(card => upgrades
                 .Where(upgrade => upgrade.AppliesTo(card.DefinitionId))
-                .Where(upgrade => card.Upgrades.Count(applied => string.Equals(
-                    applied.UpgradeId,
-                    upgrade.UpgradeId,
-                    StringComparison.Ordinal)) < System.Math.Max(1, upgrade.MaxApplications))
+                .Where(upgrade => CardTransformationLedger.Count(card, upgrade.UpgradeId) < upgrade.MaxApplications)
                 .Select(upgrade => new CardUpgradeCommandOption(
                     card.CardInstanceId,
                     card.DefinitionId,

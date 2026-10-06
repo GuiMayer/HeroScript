@@ -33,7 +33,7 @@ public sealed class CardInspectionServiceTests
             CardId = "strike",
             Fingerprint = "compiled"
         };
-        var upgrade = new CardUpgradeState { UpgradeId = "plus" };
+        var upgrade = new CardUpgradeState { TransformationId = 1, ContentRevision = "content", UpgradeId = "plus" };
         var effective = new EffectiveCardDefinition
         {
             CardInstanceId = CardId,

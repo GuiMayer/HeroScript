@@ -228,6 +228,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure(runResources.Error);
         state = state with { ResourceState = runResources.Value };
 
+        if (_contentRuntimes != null)
+        {
+            var runtime = _contentRuntimes.Resolve(contentRevision!, options.ConfigName);
+            if (runtime.IsFailure) return Result<RunState>.Failure(runtime.Error);
+            var cards = RunContentCompatibilityValidator.ValidateForActivation(state, runtime.Value);
+            if (cards.IsFailure) return Result<RunState>.Failure(cards.Error);
+        }
+
         state = state with
         {
             Determinism = state.Determinism.AdvanceStep()
@@ -882,6 +890,16 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             run.Determinism);
         if (transition.IsFailure)
             return Result.Failure(transition.Error);
+        var upgradedCard = transition.Value.State.GetCard(request.CardInstanceId)!;
+        var runtime = _contentRuntimes!.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var compiledCard = new CardContentCompiler().Compile(upgradedCard.DefinitionId, runtime.Value);
+        if (compiledCard.IsFailure) return Result.Failure(compiledCard.Error);
+        var effectiveCard = new EffectiveCardResolver().Resolve(compiledCard.Value, upgradedCard);
+        if (effectiveCard.IsFailure) return Result.Failure(effectiveCard.Error);
+        var references = GameplayContentValidator.ValidateCardContainer(runtime.Value,
+            $"card-instances/{upgradedCard.CardInstanceId}", effectiveCard.Value.Components);
+        if (references.IsFailure) return references;
         var candidate = run with
         {
             Deck = new DeckState { Topology = transition.Value.State },
@@ -1585,10 +1603,6 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
     private Result ValidateLoadedRunCompatibility(RunState state)
     {
-        var topology = CardZoneTopologyValidator.Validate(state.Deck.Topology);
-        if (topology.IsFailure)
-            return topology;
-
         if (!string.Equals(
                 state.Determinism.EngineVersion,
                 DeterministicContext.CurrentEngineVersion,
@@ -1598,6 +1612,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 $"Engine version unavailable for run {state.RunId}: " +
                 $"{state.Determinism.EngineVersion}");
         }
+
+        var topology = CardZoneTopologyValidator.Validate(state.Deck.Topology);
+        if (topology.IsFailure)
+            return topology;
 
         if (_contentManifestProvider == null)
             return Result.Success();

@@ -4,12 +4,53 @@ using Core.Combat.Models;
 using Core.Combat.TurnPhase;
 using Core.Content;
 using Core.Effects;
+using Core.Run;
+using Core.Run.Content;
 using Xunit;
 
 namespace Core.Tests.Content;
 
 public sealed class ContentGraphValidatorTests
 {
+    [Theory]
+    [InlineData(EffectType.DAMAGE, "resources")]
+    [InlineData(EffectType.APPLY_STATUS, "status-effects")]
+    [InlineData(EffectType.CONDENSE_STACKS, "condensation-recipes")]
+    public void Validate_RejectsMissingReferencesInsideStructuralUpgrades(EffectType type, string referencedKind)
+    {
+        var effect = new EffectDefinition
+        {
+            Type = type,
+            FlatValue = type == EffectType.DAMAGE ? 2 : null,
+            TargetResource = type == EffectType.DAMAGE ? "missing" : null,
+            StatusId = type == EffectType.APPLY_STATUS ? "missing" : null,
+            CondensationRecipeId = type == EffectType.CONDENSE_STACKS ? "missing" : null
+        };
+        var bundle = Bundle(
+            ("cards", "cards/catalog.json", new Dictionary<string, object>
+            {
+                ["strike"] = new CardContentDefinition { CardId = "strike", Components =
+                    [new CardTargetingComponentDefinition { ComponentId = "targets" }] }
+            }),
+            ("card-upgrades", "card-upgrades/catalog.json", new Dictionary<string, object>
+            {
+                ["gain"] = new CardUpgradeDefinition
+                {
+                    UpgradeId = "gain", CardDefinitionIds = ["strike"], Patches =
+                    [new CardComponentPatchDefinition
+                    {
+                        ComponentId = "extra", Operation = CardComponentPatchOperation.Add,
+                        Component = new CardEffectComponentDefinition { ComponentId = "extra", Effect = effect }
+                    }]
+                }
+            }));
+
+        var result = new ContentGraphValidator().Validate(bundle);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("card-upgrades/gain", StringComparison.Ordinal) &&
+            error.Contains(referencedKind, StringComparison.Ordinal));
+    }
+
     [Fact]
     public void Validate_RejectsMissingComponentBundleReference()
     {

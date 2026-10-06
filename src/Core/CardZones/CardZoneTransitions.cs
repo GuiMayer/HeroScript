@@ -275,7 +275,7 @@ public static class CardZoneTransitions
         if (valid.IsFailure) return Result<CardZoneTransition>.Failure(valid.Error);
         if (!state.InstanceItems.TryGetValue(cardInstanceId, out var instance))
             return Result<CardZoneTransition>.Failure($"Card instance not found: {cardInstanceId}");
-        var upgraded = CardInstanceUpgradeTransitions.Apply(instance, definition);
+        var upgraded = CardInstanceUpgradeTransitions.Apply(instance, definition, context.ContentRevision);
         if (upgraded.IsFailure) return Result<CardZoneTransition>.Failure(upgraded.Error);
         var next = state with
         {

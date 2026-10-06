@@ -36,7 +36,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 3 — Parâmetros e cálculo | Concluída | Core 1.185 / API 181, sem falhas; 23 regressões novas. |
 | 4 — Payloads e consumo | Concluída | Core 1.226 / API 181, sem falhas; 28 regressões novas na 4b, além das 13 da 4a. |
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
-| 6 — Transformações | Pendente | |
+| 6 — Transformações | Em andamento — 6a implementada | Core 1.298 / API 181, sem falhas; 43 regressões novas. 6b pendente. |
 | 7 — Afinidades/modificadores | Pendente | |
 | 8 — Multi-hit | Pendente | |
 | 9 — Salto por abate | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 6: transformações estruturais de cartas, preservando identidade e reconstruindo a composição a partir do ledger de alterações. As etapas 0–5 estão implementadas; conteúdo demonstrativo, preview especializado e UI Godot continuam nas etapas posteriores.
+Etapa 6b: completar bundles/namespace e slots, integrar seleção/remoção/substituição de transformações nos comandos canônicos e verificar persistência/replay/branches. A etapa 6a estabeleceu o ledger e os patches estruturais; a etapa 6 não está concluída. Conteúdo demonstrativo, preview especializado e UI Godot continuam nas etapas posteriores.
 
 ## Etapa 4b — payloads e lotes
 
@@ -129,3 +129,18 @@ Etapa 6: transformações estruturais de cartas, preservando identidade e recons
 - Versão da engine: 12. Saves preservados, versões incompatíveis rejeitadas. Demo/conteúdo/preview especializados não foram anunciados como concluídos.
 - Contrato e JSON executável: [condensation-recipes.md](../systems/effects/condensation-recipes.md).
 - Etapa 4b: commit 2fd4f7c.
+
+## Etapa 6a — ledger e operações sobre a composição
+
+- Upgrades evoluíram para um ledger único com identidade crescente por carta, operação Apply/Remove/Replace, referência à transformação selecionada, categoria e revisão. Nenhuma store autoritativa paralela.
+- Removals/replacements internos derivam a sequência ativa e reconstruem a composição. Replacement conserva a posição de aplicação; IDs removidos não são reutilizados. Limite técnico de 1.024 entradas, com falha sem truncamento.
+- Patches tipados de tags, componentes Add/Remove/Replace e base flat de parâmetros numéricos. Campos numéricos antigos não podem concorrer com overrides tipados. Quantidade de input não é reinterpretada como uma nova base.
+- Compiler comum valida a composição final, incluindo bindings em triggers, aliases, singletons, custos e políticas. Componente Replace substitui explicitamente todo o payload; não há merge automático nem promessa de conservar um valor que o próprio patch sobrescreveu.
+- Aplicação atual UPGRADE_CARD já aceita patches estruturais publicados e valida o candidato antes de persistir. Início de run, cenários e hot reload também validam composição/referências revisionadas; o compiler de cenários usa a transição comum e preserva a ordem autoral.
+- Contadores e ofertas derivam somente transformações ativas. Zonas/deck/sandbox/inspeção distinguem upgrades ativos do transformationLedger histórico. Base traces da pipeline incluem upgrades dos parâmetros e não atribuem uma base substituída a contribuições sobrescritas.
+- Fingerprint efetivo inclui tags e histórico completo, além da definição, identidade, sequência ativa e componentes. Nenhum cache somente por cardId foi adicionado.
+- Engine version 13; saves preservados e versões incompatíveis rejeitadas. Referência legada intocada.
+- Esta entrega não conclui a etapa 6: bundles com namespace, slots e comandos REST Remove/Replace, discovery e suas regressões de persistência/replay/branches continuam pendentes na 6b. Transições internas de remoção/substituição são apenas candidatos; não habilitam mutações externas diretas.
+- Contrato e JSON: [permanent-transformations.md](../systems/cards/permanent-transformations.md).
+- Etapa 5: commit 6ce4078.
+- Verificação final da 6a: Core 1.298 testes aprovados (1m29s), API 181 aprovados (35s), nenhuma falha. 43 regressões novas: 40 de transformações/transações/cálculo/projeções/versão e 3 de publicação de referências estruturais. Custos alternativos e payloads nulos foram incluídos na validação comum. Nenhuma validação visual Godot foi anunciada nesta entrega.

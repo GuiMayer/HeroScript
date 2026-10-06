@@ -195,6 +195,7 @@ public sealed class ContentRevisionActivationTests
                     new CardUpgradeState
                     {
                         UpgradeId = "old-upgrade",
+                        TransformationId = 1, ContentRevision = revisionA,
                         Patches =
                         [
                             new CardEffectNumericPatchDefinition

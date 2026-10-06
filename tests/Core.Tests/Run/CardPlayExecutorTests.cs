@@ -87,6 +87,7 @@ public sealed class CardPlayExecutorTests
         var runtime = Runtime(card, pipeline);
         var run = Run(instanceId, new CardUpgradeState
         {
+            TransformationId = 1, ContentRevision = "content",
             UpgradeId = "empowered",
             Patches =
             [

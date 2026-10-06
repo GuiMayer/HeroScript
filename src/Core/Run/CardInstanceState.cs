@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Text.Json.Serialization;
 using Core.CardZones;
 using Core.Run.Content;
 
@@ -39,6 +40,12 @@ public sealed record CardUpgradeState
     private ImmutableArray<CardUpgradePatchDefinition> _patches = [];
 
     public string UpgradeId { get; init; } = string.Empty;
+    /// <summary>Monotonic identity scoped to CardInstanceId; never reused after removal.</summary>
+    public ulong TransformationId { get; init; }
+    public CardTransformationOperation Operation { get; init; } = CardTransformationOperation.Apply;
+    public ulong? TargetTransformationId { get; init; }
+    public CardTransformationCategory Category { get; init; } = CardTransformationCategory.Base;
+    public string ContentRevision { get; init; } = string.Empty;
 
     public IReadOnlyList<CardUpgradePatchDefinition> Patches
     {
@@ -54,6 +61,7 @@ public sealed record CardUpgradeDefinition
 
     public string UpgradeId { get; init; } = string.Empty;
     public int MaxApplications { get; init; } = 1;
+    public CardTransformationCategory Category { get; init; } = CardTransformationCategory.Base;
 
     public IReadOnlyList<string> CardDefinitionIds
     {
@@ -70,3 +78,9 @@ public sealed record CardUpgradeDefinition
     public bool AppliesTo(string definitionId) =>
         _cardDefinitionIds.IsEmpty || _cardDefinitionIds.Contains(definitionId, StringComparer.Ordinal);
 }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CardTransformationOperation { Apply, Remove, Replace }
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum CardTransformationCategory { Base, Affinity, Behavior }

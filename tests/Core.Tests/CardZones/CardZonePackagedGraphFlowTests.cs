@@ -23,7 +23,7 @@ public sealed class CardZonePackagedGraphFlowTests
         };
         var starting = new RunStartingCard[]
         {
-            new() { DefinitionId = "spark", Upgrades = [new CardUpgradeState { UpgradeId = "boost" }] },
+            new() { DefinitionId = "spark", Upgrades = [new CardUpgradeState { TransformationId = 1, ContentRevision = "content", UpgradeId = "boost" }] },
             new() { DefinitionId = "guard" },
             new() { DefinitionId = "spark" },
             new() { DefinitionId = "heal" }

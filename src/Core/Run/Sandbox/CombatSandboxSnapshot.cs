@@ -94,6 +94,7 @@ public sealed record SandboxResourceSnapshot(float Current, float Maximum, float
 public sealed record SandboxCardSnapshot
 {
     private ImmutableArray<CardUpgradeState> _upgrades = [];
+    private ImmutableArray<CardUpgradeState> _transformationLedger = [];
 
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
@@ -104,6 +105,11 @@ public sealed record SandboxCardSnapshot
     {
         get => _upgrades;
         init => _upgrades = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardUpgradeState> TransformationLedger
+    {
+        get => _transformationLedger;
+        init => _transformationLedger = value?.ToImmutableArray() ?? [];
     }
 }
 
@@ -215,7 +221,8 @@ public sealed class CombatSandboxSnapshotService : ICombatSandboxSnapshotService
                 PlayableIndex = index,
                 ZoneId = address.ZoneId,
                 ZoneOwnerId = address.OwnerId,
-                Upgrades = instance.Upgrades
+                Upgrades = CardTransformationLedger.Project(instance.Upgrades).Value,
+                TransformationLedger = instance.Upgrades
             });
         }
         return cards;

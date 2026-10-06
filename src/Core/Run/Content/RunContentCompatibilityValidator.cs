@@ -33,6 +33,9 @@ public static class RunContentCompatibilityValidator
                 return Result.Failure(
                     $"Card instance {instance.CardInstanceId} cannot activate target content: {effective.Error}");
             }
+            var references = GameplayContentValidator.ValidateCardContainer(runtime,
+                $"card-instances/{instance.CardInstanceId}", effective.Value.Components);
+            if (references.IsFailure) return references;
         }
         return Result.Success();
     }

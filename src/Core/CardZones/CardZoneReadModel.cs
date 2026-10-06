@@ -30,7 +30,8 @@ public sealed record CardZoneCardView(
     Guid CardInstanceId,
     string DefinitionId,
     IReadOnlyList<CardUpgradeState> Upgrades,
-    CardInstanceLifetimeDefinition Lifetime);
+    CardInstanceLifetimeDefinition Lifetime,
+    IReadOnlyList<CardUpgradeState> TransformationLedger);
 
 /// <summary>Read-only client projection; game content defines zone meaning.</summary>
 public static class CardZoneReadModel
@@ -66,8 +67,7 @@ public static class CardZoneReadModel
                 var cards = contentsVisible
                     ? ids.Select(id => run.Deck.GetCard(id) ?? throw new InvalidOperationException(
                             $"Card zone references an unknown instance: {id}"))
-                        .Select(card => new CardZoneCardView(card.CardInstanceId,
-                            card.DefinitionId, card.Upgrades, card.Lifetime))
+                        .Select(MapCard)
                         .ToImmutableArray()
                     : [];
                 return new CardZoneView(zone.Address.ZoneId, zone.Address.OwnerId,
@@ -81,5 +81,12 @@ public static class CardZoneReadModel
             .ToImmutableArray();
         return new CardZoneSnapshot(run.RunId, run.Sequence, run.Determinism.Step,
             CanonicalJson.ComputeHash(run.Deck.Topology), views);
+    }
+
+    private static CardZoneCardView MapCard(CardInstanceState card)
+    {
+        var active = CardTransformationLedger.Project(card.Upgrades);
+        if (active.IsFailure) throw new InvalidOperationException(active.Error);
+        return new(card.CardInstanceId, card.DefinitionId, active.Value, card.Lifetime, card.Upgrades);
     }
 }

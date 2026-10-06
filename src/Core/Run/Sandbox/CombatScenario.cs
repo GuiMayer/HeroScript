@@ -224,8 +224,9 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 configName);
             if (definition.IsFailure)
                 return Result<CompiledCombatScenario>.Failure(definition.Error);
-            var resolvedUpgrades = new List<CardUpgradeState>();
-            foreach (var upgradeId in card.UpgradeIds.OrderBy(id => id, StringComparer.Ordinal))
+            var upgradedCard = new CardInstanceState { DefinitionId = definition.Value.CardId };
+            // Authored sequence is domain data; sorting it changes patch semantics.
+            foreach (var upgradeId in card.UpgradeIds)
             {
                 var upgrade = GetContent<CardUpgradeDefinition>(
                     "card-upgrades",
@@ -234,16 +235,20 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                     configName);
                 if (upgrade.IsFailure)
                     return Result<CompiledCombatScenario>.Failure(upgrade.Error);
-                if (!upgrade.Value.AppliesTo(card.DefinitionId))
-                    return Result<CompiledCombatScenario>.Failure(
-                        $"Upgrade '{upgradeId}' does not apply to card '{card.DefinitionId}'");
-                resolvedUpgrades.Add(new CardUpgradeState
-                {
-                    UpgradeId = upgrade.Value.UpgradeId,
-                    Patches = upgrade.Value.Patches
-                });
+                var applied = CardInstanceUpgradeTransitions.Apply(upgradedCard, upgrade.Value, manifest.Value.Revision);
+                if (applied.IsFailure) return Result<CompiledCombatScenario>.Failure(applied.Error);
+                upgradedCard = applied.Value;
             }
-            startingCards.Add(new RunStartingCard { DefinitionId = definition.Value.CardId, Upgrades = resolvedUpgrades });
+            var runtime = _contentRuntimes.Resolve(manifest.Value.Revision, configName);
+            if (runtime.IsFailure) return Result<CompiledCombatScenario>.Failure(runtime.Error);
+            var compiled = new CardContentCompiler().Compile(card.DefinitionId, runtime.Value);
+            if (compiled.IsFailure) return Result<CompiledCombatScenario>.Failure(compiled.Error);
+            var effective = new EffectiveCardResolver().Resolve(compiled.Value, upgradedCard);
+            if (effective.IsFailure) return Result<CompiledCombatScenario>.Failure(effective.Error);
+            var references = GameplayContentValidator.ValidateCardContainer(runtime.Value,
+                $"scenario/cards/{card.DefinitionId}", effective.Value.Components);
+            if (references.IsFailure) return Result<CompiledCombatScenario>.Failure(references.Error);
+            startingCards.Add(new RunStartingCard { DefinitionId = definition.Value.CardId, Upgrades = upgradedCard.Upgrades });
         }
 
         var allowedAiActors = ResolveAllowedEnemies(

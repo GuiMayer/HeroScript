@@ -3,6 +3,7 @@ using Core.Common;
 using Core.Content;
 using Core.Determinism;
 using Core.Effects;
+using Core.Combat.Models;
 
 namespace Core.Run.Content;
 
@@ -55,6 +56,9 @@ public sealed class CardContentCompiler : ICardContentCompiler
         ArgumentNullException.ThrowIfNull(card);
         if (string.IsNullOrWhiteSpace(card.CardId))
             return Result<CompiledCardDefinition>.Failure("CardId is required");
+        if (card.Tags.Any(string.IsNullOrWhiteSpace) ||
+            card.Tags.Distinct(StringComparer.Ordinal).Count() != card.Tags.Count)
+            return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} tags must be nonempty and unique");
 
         bundles ??= ImmutableDictionary<string, CardComponentBundleDefinition>.Empty;
         var expanded = new List<CardComponentDefinition>();
@@ -68,6 +72,8 @@ public sealed class CardContentCompiler : ICardContentCompiler
             expanded.AddRange(bundle.Components);
         }
         expanded.AddRange(card.Components);
+        if (expanded.Any(component => component == null))
+            return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} contains a null component");
 
         var duplicate = expanded
             .Where(component => !string.IsNullOrWhiteSpace(component.ComponentId))
@@ -143,14 +149,13 @@ public sealed class CardContentCompiler : ICardContentCompiler
 
         return component switch
         {
-            CardCostComponentDefinition cost when cost.Costs.Costs.Any(item =>
-                string.IsNullOrWhiteSpace(item.ResourceId) || item.Amount < 0) =>
-                Result.Failure($"Card {cardId} component {component.ComponentId} contains an invalid cost"),
+            CardCostComponentDefinition cost => ValidateCosts(cardId, cost),
             CardEffectComponentDefinition effect => ValidateEffect(cardId, component.ComponentId, effect.Effect),
             CardConditionComponentDefinition condition when string.IsNullOrWhiteSpace(condition.Expression) =>
                 Result.Failure($"Card {cardId} condition {component.ComponentId} requires expression"),
             CardTargetingComponentDefinition targeting when targeting.MinimumTargets < 0 ||
-                                                           targeting.MaximumTargets < targeting.MinimumTargets =>
+                                                           targeting.MaximumTargets < targeting.MinimumTargets ||
+                                                           !Enum.IsDefined(targeting.Target) =>
                 Result.Failure($"Card {cardId} targeting {component.ComponentId} has an invalid target range"),
             CardTargetingComponentDefinition targeting when
                 targeting.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
@@ -162,7 +167,8 @@ public sealed class CardContentCompiler : ICardContentCompiler
             CardTriggerComponentDefinition trigger when string.IsNullOrWhiteSpace(trigger.Boundary) =>
                 Result.Failure($"Card {cardId} trigger {component.ComponentId} requires boundary"),
             CardInfluenceComponentDefinition influence when string.IsNullOrWhiteSpace(influence.Channel) ||
-                                                               string.IsNullOrWhiteSpace(influence.Bucket) =>
+                                                               string.IsNullOrWhiteSpace(influence.Bucket) ||
+                                                               influence.Value is { } value && !float.IsFinite(value) =>
                 Result.Failure($"Card {cardId} influence {component.ComponentId} requires channel and bucket"),
             _ => Result.Success()
         };
@@ -173,6 +179,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
         string componentId,
         EffectDefinition effect)
     {
+        if (effect == null) return Result.Failure($"Card {cardId} effect component {componentId} cannot have a null effect");
         if (effect.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE &&
             string.IsNullOrWhiteSpace(effect.TargetResource))
         {
@@ -185,6 +192,17 @@ public sealed class CardContentCompiler : ICardContentCompiler
             return Result.Failure(
                 $"Card {cardId} effect component {componentId} requires selectionResourceId");
         }
+        return Result.Success();
+    }
+
+    private static Result ValidateCosts(string cardId, CardCostComponentDefinition component)
+    {
+        var costs = component.Costs;
+        if (costs == null || costs.AlternativeCosts.Any(option => option == null || string.IsNullOrWhiteSpace(option.OptionId)) ||
+            costs.AlternativeCosts.Select(option => option.OptionId).Distinct(StringComparer.Ordinal).Count() != costs.AlternativeCosts.Count ||
+            costs.Costs.Concat(costs.AlternativeCosts.SelectMany(option => option.Costs)).Any(item =>
+                item == null || string.IsNullOrWhiteSpace(item.ResourceId) || !float.IsFinite(item.Amount) || item.Amount < 0))
+            return Result.Failure($"Card {cardId} component {component.ComponentId} contains an invalid cost or alternative option");
         return Result.Success();
     }
 

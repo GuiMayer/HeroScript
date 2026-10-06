@@ -70,7 +70,7 @@ public sealed class CardZoneBootstrapperTests
     public void Create_PreservesPreconfiguredCardUpgradesWithoutMutatingInput()
     {
         var system = Compile(Zone("slot", CardZoneOwnerScope.RunOwner, CardZoneOrdering.Ordered));
-        var upgrades = new List<CardUpgradeState> { new() { UpgradeId = "boost-one" } };
+        var upgrades = new List<CardUpgradeState> { new() { TransformationId = 1, ContentRevision = "content", UpgradeId = "boost-one" } };
         var plan = new CardZoneBootstrapPlan
         {
             RunOwnerId = "run-a",
