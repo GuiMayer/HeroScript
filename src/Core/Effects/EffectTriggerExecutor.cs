@@ -241,18 +241,21 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     var applies = tagsPass && condition.Value && chancePass;
                     CalculationResult? calculation = null;
                     ImmutableArray<EffectApplicationRecord> appliedRecords = [];
+                    ImmutableArray<ResolvedEffectNumericParameter> resolvedParameters = [];
                     if (applies)
                     {
                         var value = ResolveValue(request with { Combat = current, Run = currentRun }, effect, targetId, variables,
                             $"{path}:{repeat}:{targetId}", activeTriggerId);
                         if (value.IsFailure) return Result.Failure(value.Error);
                         calculation = value.Value.Calculation;
+                        resolvedParameters = value.Value.Parameters;
                         var status = ResolveAppliedStatus(effect, request.ContentRevision);
                         if (status.IsFailure) return Result.Failure(status.Error);
                         var command = new ResolvedEffectCommand
                         {
-                            EffectInstanceId = id, Definition = effect, SourceEntityId = request.SourceEntityId,
+                            EffectInstanceId = id, Definition = value.Value.Definition, SourceEntityId = request.SourceEntityId,
                             Identity = identity,
+                            Parameters = resolvedParameters,
                             TargetEntityIds = [targetId], ResolvedValue = value.Value.Value,
                             Calculation = value.Value.Calculation, Settlements = value.Value.Settlements,
                             StatusDefinition = status.Value,
@@ -280,6 +283,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         if (accumulated.IsFailure) return Result.Failure(accumulated.Error);
                         resultContext = accumulated.Value;
                         if (calculation != null) calculations.Add(calculation);
+                        calculations.AddRange(resolvedParameters.Where(parameter => parameter.Parameter != EffectNumericParameter.Amount)
+                            .Select(parameter => parameter.Calculation));
                     }
                     steps.Add(new()
                     {
@@ -290,7 +295,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
                         ChanceRoll = roll, ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
-                        Calculation = calculation, Applications = appliedRecords,
+                        Calculation = calculation, Parameters = resolvedParameters, Applications = appliedRecords,
                         StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current),
                         RunBeforeHash = runBefore, RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
@@ -352,18 +357,34 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             Target = request.Combat.GetActor(targetId), Variables = variables,
             Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
         };
-        var resolved = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences,
-                _allowUnconfiguredCalculations)
-            .Resolve(effect, $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}", context);
+        var resolver = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences,
+            _allowUnconfiguredCalculations);
+        var calculationId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}";
+        var parameters = ImmutableArray.CreateBuilder<ResolvedEffectNumericParameter>();
+        var bound = effect;
+        ResolvedEffectAmount? amountOverride = null;
+        foreach (var definition in effect.Parameters.OrderBy(parameter => parameter.Parameter))
+        {
+            var result = resolver.ResolveParameter(effect, definition, $"{calculationId}:{definition.Parameter}", context);
+            if (result.IsFailure) return Result<ResolvedAmount>.Failure(result.Error);
+            var parameter = new ResolvedEffectNumericParameter { Parameter = definition.Parameter, Calculation = result.Value.Calculation! };
+            var binding = EffectNumericParameters.Bind(bound, parameter);
+            if (binding.IsFailure) return Result<ResolvedAmount>.Failure(binding.Error);
+            bound = binding.Value;
+            parameters.Add(parameter);
+            if (definition.Parameter == EffectNumericParameter.Amount) amountOverride = result.Value;
+        }
+        var resolved = amountOverride == null ? resolver.Resolve(effect, calculationId, context)
+            : Result<ResolvedEffectAmount>.Success(amountOverride);
         if (resolved.IsFailure) return Result<ResolvedAmount>.Failure(resolved.Error);
         if (resolved.Value.Calculation == null || resolved.Value.Pipeline == null)
-            return Result<ResolvedAmount>.Success(new(resolved.Value.Value, null, []));
+            return Result<ResolvedAmount>.Success(new(resolved.Value.Value, null, [], bound, parameters.ToImmutable()));
         var planned = _settlements.Plan(resolved.Value.Calculation, resolved.Value.Pipeline,
             context with { Tags = CalculationResolver.NormalizeTags(effect, context.Tags), Pipeline = resolved.Value.Pipeline });
         return planned.IsFailure
             ? Result<ResolvedAmount>.Failure(planned.Error)
             : Result<ResolvedAmount>.Success(new(resolved.Value.Value, resolved.Value.Calculation,
-                planned.Value.ToImmutableArray()));
+                planned.Value.ToImmutableArray(), bound, parameters.ToImmutable()));
     }
 
     private Result<bool> EvaluateCondition(
@@ -401,5 +422,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
     private sealed record ResolvedAmount(
         float Value,
         CalculationResult? Calculation,
-        ImmutableArray<ResolvedCalculationSettlement> Settlements);
+        ImmutableArray<ResolvedCalculationSettlement> Settlements,
+        EffectDefinition Definition,
+        ImmutableArray<ResolvedEffectNumericParameter> Parameters);
 }

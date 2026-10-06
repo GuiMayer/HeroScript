@@ -197,6 +197,17 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (effect.Dispel != null)
                 foreach (var statusId in effect.Dispel.StatusIds) Reference(address, "status-effects", statusId, required: true);
             Formula(address, effect.FormulaValue);
+            foreach (var parameter in effect.Parameters)
+            {
+                Formula(address, parameter.FormulaValue);
+                Reference(address, "calculation-pipelines", parameter.PipelineId);
+                if (parameter.PipelineId is not { Length: > 0 } parameterPipelineId) continue;
+                var parameterPipeline = runtime.GetDefinition<Core.Calculations.CalculationPipelineDefinition>("calculation-pipelines", parameterPipelineId);
+                if (parameterPipeline.IsSuccess && (parameterPipeline.Value.Channel != parameter.Channel ||
+                    parameterPipeline.Value.UnitId != parameter.UnitId ||
+                    parameter.StageIds.Any(stageId => !parameterPipeline.Value.Stages.Any(stage => stage.StageId == stageId))))
+                    Error(address, "Numeric parameter has incompatible pipeline channel, unit or stages");
+            }
             Formula(address, effect.Condition);
         }).Select(error => $"{path}/{error}"));
     }

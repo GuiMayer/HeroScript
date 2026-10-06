@@ -72,6 +72,7 @@ public enum CalculationEntityScope
 public sealed record CalculationBucketDefinition
 {
     public string BucketId { get; init; } = string.Empty;
+    public string? StageId { get; init; }
     public int Order { get; init; }
     public CalculationBucketOperation Operation { get; init; } = CalculationBucketOperation.Add;
     public CalculationRounding Rounding { get; init; }
@@ -90,6 +91,8 @@ public sealed record CalculationPipelineDefinition
 
     public string PipelineId { get; init; } = string.Empty;
     public string Channel { get; init; } = string.Empty;
+    public string UnitId { get; init; } = "scalar";
+    public ImmutableArray<CalculationStageDefinition> Stages { get; init; } = [];
     public IReadOnlyList<CalculationBucketDefinition> Buckets
     {
         get => _buckets;
@@ -136,6 +139,13 @@ public sealed record CalculationRequest
     public string ContentRevision { get; init; } = string.Empty;
     public string Channel { get; init; } = string.Empty;
     public float BaseValue { get; init; }
+    public string UnitId { get; init; } = "scalar";
+    public CalculationQuantity? InputQuantity { get; init; }
+    public ImmutableArray<string> StageIds { get; init; } = [];
+    public ImmutableSortedDictionary<string, string> StageContextIds { get; init; } =
+        ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
+    public CalculationValuePolicy ValuePolicy { get; init; } = new();
+    public bool CaptureOnly { get; init; }
     public IReadOnlyList<CalculationInfluence> Influences
     {
         get => _influences;
@@ -179,6 +189,7 @@ public sealed record CalculationBucketTrace
     private ImmutableArray<CalculationContributionTrace> _contributions = [];
 
     public string BucketId { get; init; } = string.Empty;
+    public string? StageId { get; init; }
     public int Order { get; init; }
     public CalculationBucketOperation Operation { get; init; }
     public string? Formula { get; init; }
@@ -204,6 +215,13 @@ public sealed record CalculationResult
     public string Channel { get; init; } = string.Empty;
     public float BaseValue { get; init; }
     public float Value { get; init; }
+    public float UnconvertedValue { get; init; }
+    public double Remainder { get; init; }
+    public CalculationValuePolicy ValuePolicy { get; init; } = new();
+    public bool CaptureOnly { get; init; }
+    public CalculationQuantity Quantity { get; init; } = new();
+    public ImmutableSortedDictionary<string, float> Checkpoints { get; init; } =
+        ImmutableSortedDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
     public IReadOnlyList<CalculationBaseTrace> BaseTrace
     {
         get => _baseTrace;
@@ -237,11 +255,21 @@ public sealed record CalculationSourceContext
     public CombatActorState? Actor { get; init; }
     public CombatActorState? Target { get; init; }
     public CalculationPipelineDefinition? Pipeline { get; init; }
+    public ImmutableArray<string> StageIds { get; init; } = [];
+    public CalculationQuantity? InputQuantity { get; init; }
+    public bool CaptureOnly { get; init; }
     public IReadOnlySet<string> Tags
     {
         get => _tags;
         init => _tags = value?.ToImmutableHashSet(StringComparer.Ordinal)
             ?? ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
+    internal bool SelectsInfluence(string channel, string bucketId)
+    {
+        if (Pipeline == null) return true;
+        if (channel != Pipeline.Channel) return false;
+        var bucket = Pipeline.Buckets.FirstOrDefault(item => item.BucketId == bucketId);
+        return StageIds.IsEmpty || bucket == null || StageIds.Contains(bucket.StageId!, StringComparer.Ordinal);
     }
     public IReadOnlyDictionary<string, float> Variables
     {
@@ -352,6 +380,12 @@ internal sealed record CalculationFingerprintPayload(
     string Channel,
     float BaseValue,
     float Value,
+    float UnconvertedValue,
+    CalculationValuePolicy ValuePolicy,
+    bool CaptureOnly,
+    CalculationQuantity? InputQuantity,
+    CalculationQuantity Quantity,
+    ImmutableSortedDictionary<string, float> Checkpoints,
     ImmutableArray<string> Tags,
     ImmutableSortedDictionary<string, float> Variables,
     ImmutableArray<CalculationBaseTrace> BaseTrace,

@@ -28,6 +28,7 @@ public static class ContextualInfluencePolicies
         foreach (var definition in definitions.OrderByDescending(item => item.Priority)
                      .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
         {
+            if (!context.SelectsInfluence(definition.Channel, definition.Bucket)) continue;
             var invalid = Validate(definition);
             if (invalid != null) return Result<IReadOnlyList<CalculationInfluence>>.Failure(invalid);
             if (!definition.RequiredTags.All(context.Tags.Contains) || definition.ExcludedTags.Any(context.Tags.Contains))

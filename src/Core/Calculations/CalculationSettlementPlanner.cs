@@ -46,9 +46,12 @@ public sealed class CalculationSettlementPlanner : ICalculationSettlementPlanner
             return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Failure(
                 "Calculation result does not match settlement pipeline");
 
+        if (calculation.CaptureOnly)
+            return Result<IReadOnlyList<ResolvedCalculationSettlement>>.Success([]);
+
         var result = ImmutableArray.CreateBuilder<ResolvedCalculationSettlement>();
         foreach (var binding in pipeline.ResourceInfluenceBindings
-                     .Where(item => item.Settlement != null)
+                     .Where(item => item.Settlement != null && calculation.Buckets.Any(bucket => bucket.BucketId == item.Bucket))
                      .OrderByDescending(item => item.Priority)
                      .ThenBy(item => item.BindingId, StringComparer.Ordinal))
         {

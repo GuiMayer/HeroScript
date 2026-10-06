@@ -67,6 +67,7 @@ public sealed class CardComponentInfluenceProvider : ICalculationInfluenceProvid
         var result = ImmutableArray.CreateBuilder<CalculationInfluence>();
         foreach (var component in context.Card.All<CardInfluenceComponentDefinition>())
         {
+            if (!context.SelectsInfluence(component.Channel, component.Bucket)) continue;
             if (!component.RequiredTags.All(context.Tags.Contains) || component.ExcludedTags.Any(context.Tags.Contains))
                 continue;
             if (component.Value.HasValue == !string.IsNullOrWhiteSpace(component.Formula))
@@ -146,6 +147,7 @@ public sealed class EntityResourceInfluenceProvider : ICalculationInfluenceProvi
         foreach (var binding in (context.Pipeline?.ResourceInfluenceBindings ?? [])
                      .OrderBy(item => item.BindingId, StringComparer.Ordinal))
         {
+            if (!context.SelectsInfluence(binding.Channel, binding.Bucket)) continue;
             if (string.IsNullOrWhiteSpace(binding.BindingId) ||
                 string.IsNullOrWhiteSpace(binding.ResourceId) ||
                 string.IsNullOrWhiteSpace(binding.Channel) ||
@@ -208,6 +210,7 @@ public sealed class EntityStatInfluenceProvider : ICalculationInfluenceProvider
         foreach (var binding in (context.Pipeline?.StatInfluenceBindings ?? [])
                      .OrderBy(item => item.BindingId, StringComparer.Ordinal))
         {
+            if (!context.SelectsInfluence(binding.Channel, binding.Bucket)) continue;
             if (!binding.RequiredTags.All(context.Tags.Contains) || binding.ExcludedTags.Any(context.Tags.Contains))
                 continue;
             var entity = binding.Scope == CalculationEntityScope.Actor ? context.Actor : context.Target;
@@ -268,6 +271,7 @@ public sealed class RunModifierInfluenceProvider : ICalculationInfluenceProvider
                          .OrderByDescending(item => item.Priority)
                          .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
             {
+                if (!context.SelectsInfluence(definition.Channel, definition.Bucket)) continue;
                 var validation = Validate(definition);
                 if (validation != null)
                     return Result<IReadOnlyList<CalculationInfluence>>.Failure(
@@ -372,6 +376,7 @@ public sealed class StatusCalculationInfluenceProvider : ICalculationInfluencePr
                              .OrderByDescending(item => item.Priority)
                              .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
                 {
+                    if (!context.SelectsInfluence(definition.Channel, definition.Bucket)) continue;
                     var scoped = definition.Scope == CalculationEntityScope.Actor
                         ? context.Actor
                         : context.Target;
@@ -448,6 +453,7 @@ public sealed class RelicCalculationInfluenceProvider : ICalculationInfluencePro
                          .OrderByDescending(item => item.Priority)
                          .ThenBy(item => item.InfluenceId, StringComparer.Ordinal))
             {
+                if (!context.SelectsInfluence(definition.Channel, definition.Bucket)) continue;
                 var scoped = definition.Scope == CalculationEntityScope.Actor
                     ? context.Actor
                     : context.Target;

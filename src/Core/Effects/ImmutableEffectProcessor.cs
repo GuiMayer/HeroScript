@@ -50,6 +50,7 @@ public sealed record ResolvedEffectCommand
         init => _targetEntityIds = value?.ToImmutableArray() ?? [];
     }
     public float ResolvedValue { get; init; }
+    public ImmutableArray<ResolvedEffectNumericParameter> Parameters { get; init; } = [];
     public CalculationResult? Calculation { get; init; }
     public IReadOnlyList<ResolvedCalculationSettlement> Settlements
     {

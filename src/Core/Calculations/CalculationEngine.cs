@@ -28,11 +28,11 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
         if (validation.IsFailure)
             return Result<CalculationResult>.Failure(validation.Error);
 
-        var current = request.BaseValue;
+        var current = request.InputQuantity?.Value ?? request.BaseValue;
+        var inputValue = current;
+        var checkpoints = ImmutableSortedDictionary.CreateBuilder<string, float>(StringComparer.Ordinal);
         var traces = ImmutableArray.CreateBuilder<CalculationBucketTrace>();
-        foreach (var bucket in pipeline.Buckets
-                     .OrderBy(item => item.Order)
-                     .ThenBy(item => item.BucketId, StringComparer.Ordinal))
+        foreach (var bucket in SelectedBuckets(request.StageIds, pipeline))
         {
             var influences = request.Influences
                 .Where(item => string.Equals(item.Bucket, bucket.BucketId, StringComparison.Ordinal))
@@ -60,6 +60,7 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
             traces.Add(new CalculationBucketTrace
             {
                 BucketId = bucket.BucketId,
+                StageId = bucket.StageId,
                 Order = bucket.Order,
                 Operation = bucket.Operation,
                 Formula = bucket.Formula,
@@ -68,22 +69,54 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
                 OutputBeforeBounds = beforeBounds,
                 Output = current
             });
+            if (bucket.StageId is { } stageId) checkpoints[stageId] = current;
         }
 
+        var unconverted = current;
+        if (request.ValuePolicy.Minimum is { } lower) current = MathF.Max(current, lower);
+        if (request.ValuePolicy.Maximum is { } upper) current = MathF.Min(current, upper);
+        current = ApplyRounding(current, request.ValuePolicy.Rounding, request.ValuePolicy.MidpointRounding);
+        if (!float.IsFinite(current) || request.ValuePolicy.RequireInteger && current != MathF.Truncate(current) ||
+            request.ValuePolicy.Sign == CalculationSignPolicy.NonNegative && current < 0 ||
+            request.ValuePolicy.Sign == CalculationSignPolicy.Positive && current <= 0 ||
+            request.ValuePolicy.Minimum is { } minimumValue && current < minimumValue ||
+            request.ValuePolicy.Maximum is { } maximumValue && current > maximumValue)
+            return Result<CalculationResult>.Failure("Calculation result violates its numeric conversion policy");
         var traceArray = traces.ToImmutable();
         var pipelineFingerprint = CanonicalJson.ComputeHash(pipeline);
+        var incorporated = request.InputQuantity?.IncorporatedStages ?? [];
+        foreach (var stage in pipeline.Stages.Where(stage => checkpoints.ContainsKey(stage.StageId)))
+            incorporated = incorporated.Add(new()
+            {
+                PipelineId = pipeline.PipelineId, PipelineFingerprint = pipelineFingerprint,
+                StageId = stage.StageId, Scope = stage.Scope,
+                ContextId = stage.Scope == CalculationStageScope.Shared ? string.Empty : request.StageContextIds[stage.StageId]
+            });
+        var quantity = new CalculationQuantity
+        {
+            Value = current, UnitId = request.UnitId, ContentRevision = request.ContentRevision,
+            IncorporatedStages = incorporated
+        };
+        var checkpointValues = checkpoints.ToImmutable();
         var payload = new CalculationFingerprintPayload(
             request.CalculationId,
             request.ContentRevision,
             pipeline.PipelineId,
             pipelineFingerprint,
             request.Channel,
-            request.BaseValue,
+            inputValue,
             current,
+            unconverted,
+            request.ValuePolicy,
+            request.CaptureOnly,
+            request.InputQuantity,
+            quantity,
+            checkpointValues,
             request.Tags.OrderBy(item => item, StringComparer.Ordinal).ToImmutableArray(),
             request.Variables.ToImmutableSortedDictionary(StringComparer.Ordinal),
             request.BaseTrace.ToImmutableArray(),
             traceArray);
+        var fingerprint = payload.Compute();
         return Result<CalculationResult>.Success(new CalculationResult
         {
             CalculationId = request.CalculationId,
@@ -91,13 +124,19 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
             PipelineId = pipeline.PipelineId,
             PipelineFingerprint = pipelineFingerprint,
             Channel = request.Channel,
-            BaseValue = request.BaseValue,
+            BaseValue = inputValue,
             Value = current,
+            UnconvertedValue = unconverted,
+            Remainder = (double)unconverted - current,
+            ValuePolicy = request.ValuePolicy,
+            CaptureOnly = request.CaptureOnly,
+            Quantity = quantity with { CalculationFingerprint = fingerprint },
+            Checkpoints = checkpointValues,
             BaseTrace = request.BaseTrace,
             Buckets = traceArray,
             Tags = request.Tags.OrderBy(item => item, StringComparer.Ordinal).ToImmutableArray(),
             Variables = request.Variables.ToImmutableSortedDictionary(StringComparer.Ordinal),
-            Fingerprint = payload.Compute()
+            Fingerprint = fingerprint
         });
     }
 
@@ -108,6 +147,25 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
             return Result.Failure("PipelineId is required");
         if (string.IsNullOrWhiteSpace(pipeline.Channel))
             return Result.Failure($"Pipeline {pipeline.PipelineId} requires a channel");
+        if (string.IsNullOrWhiteSpace(pipeline.UnitId)) return Result.Failure("Pipeline requires a unitId");
+        if (pipeline.Stages.Any(stage => string.IsNullOrWhiteSpace(stage.StageId) || !Enum.IsDefined(stage.Scope)) ||
+            pipeline.Stages.Select(stage => stage.StageId).Distinct(StringComparer.Ordinal).Count() != pipeline.Stages.Length)
+            return Result.Failure("Pipeline stages require unique IDs and valid scopes");
+        if (pipeline.Stages.IsEmpty && pipeline.Buckets.Any(bucket => bucket.StageId != null) ||
+            !pipeline.Stages.IsEmpty && pipeline.Buckets.Any(bucket =>
+                !pipeline.Stages.Any(stage => stage.StageId == bucket.StageId)))
+            return Result.Failure("Every bucket in a staged pipeline must belong to a declared stage");
+        var stageGroups = pipeline.Buckets.OrderBy(bucket => bucket.Order).GroupBy(bucket => bucket.StageId);
+        foreach (var group in stageGroups.Where(group => group.Key != null))
+        {
+            var ordered = pipeline.Buckets.OrderBy(bucket => bucket.Order).ToArray();
+            var positions = ordered.Select((bucket, index) => (bucket, index))
+                .Where(item => item.bucket.StageId == group.Key).Select(item => item.index).ToArray();
+            if (positions[^1] - positions[0] + 1 != positions.Length)
+                return Result.Failure($"Stage {group.Key} must have contiguous buckets");
+        }
+        if (pipeline.Stages.Any(stage => !pipeline.Buckets.Any(bucket => bucket.StageId == stage.StageId)))
+            return Result.Failure("Declared calculation stage has no buckets");
         if (pipeline.Buckets.Count == 0)
             return Result.Failure($"Pipeline {pipeline.PipelineId} has no buckets");
         if (pipeline.Buckets.Any(bucket => string.IsNullOrWhiteSpace(bucket.BucketId)))
@@ -207,7 +265,49 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
                 $"Calculation channel {request.Channel} does not match pipeline channel {pipeline.Channel}");
         if (!IsFinite(request.BaseValue))
             return Result.Failure("Calculation base value must be finite");
-        var buckets = pipeline.Buckets.Select(bucket => bucket.BucketId).ToHashSet(StringComparer.Ordinal);
+        if (request.UnitId != pipeline.UnitId) return Result.Failure("Calculation unit does not match pipeline unit");
+        var conversion = CalculationValuePolicy.Validate(request.ValuePolicy);
+        if (conversion.IsFailure) return conversion;
+        if (request.StageIds.Distinct(StringComparer.Ordinal).Count() != request.StageIds.Length ||
+            request.StageIds.Any(id => !pipeline.Stages.Any(stage => stage.StageId == id)))
+            return Result.Failure("Calculation selects unknown or duplicate stages");
+        var selectedBuckets = SelectedBuckets(request.StageIds, pipeline);
+        var selectedStageIds = selectedBuckets.Select(bucket => bucket.StageId).Where(id => id != null).ToHashSet();
+        foreach (var stage in pipeline.Stages.Where(stage => selectedStageIds.Contains(stage.StageId)))
+            if (stage.Scope != CalculationStageScope.Shared &&
+                (!request.StageContextIds.TryGetValue(stage.StageId, out var contextId) || string.IsNullOrWhiteSpace(contextId)))
+                return Result.Failure($"Stage {stage.StageId} requires a scoped context ID");
+        if (request.InputQuantity is { } quantity)
+        {
+            if (!float.IsFinite(quantity.Value) || quantity.UnitId != request.UnitId ||
+                quantity.ContentRevision != request.ContentRevision || string.IsNullOrWhiteSpace(quantity.CalculationFingerprint))
+                return Result.Failure("Transported quantity has incompatible unit, revision or numeric provenance");
+            if (pipeline.Stages.IsEmpty || quantity.IncorporatedStages.IsEmpty)
+                return Result.Failure("Transported quantities require explicitly staged pipelines");
+            if (quantity.IncorporatedStages.Select(receipt => (receipt.StageId, receipt.Scope, receipt.ContextId)).Distinct().Count() !=
+                quantity.IncorporatedStages.Length)
+                return Result.Failure("Transported quantity has duplicate incorporated stages");
+            foreach (var receipt in quantity.IncorporatedStages)
+            {
+                if (!Enum.IsDefined(receipt.Scope) || string.IsNullOrWhiteSpace(receipt.StageId) ||
+                    string.IsNullOrWhiteSpace(receipt.PipelineId) || string.IsNullOrWhiteSpace(receipt.PipelineFingerprint) ||
+                    receipt.Scope != CalculationStageScope.Shared && string.IsNullOrWhiteSpace(receipt.ContextId))
+                    return Result.Failure("Transported quantity has an invalid stage receipt");
+                if (receipt.PipelineId == pipeline.PipelineId && receipt.PipelineFingerprint != CanonicalJson.ComputeHash(pipeline))
+                    return Result.Failure("Transported quantity refers to a different pipeline definition");
+                var stage = pipeline.Stages.FirstOrDefault(stage => stage.StageId == receipt.StageId);
+                if (stage == null)
+                {
+                    if (receipt.PipelineId == pipeline.PipelineId) return Result.Failure("Invalid incorporated stage");
+                    continue;
+                }
+                if (stage.Scope != receipt.Scope) return Result.Failure("Incorporated stage has incompatible scope");
+                if (selectedStageIds.Contains(stage.StageId) &&
+                    (stage.Scope == CalculationStageScope.Shared || request.StageContextIds[stage.StageId] == receipt.ContextId))
+                    return Result.Failure($"Stage {stage.StageId} was already incorporated for this context");
+            }
+        }
+        var buckets = selectedBuckets.Select(bucket => bucket.BucketId).ToHashSet(StringComparer.Ordinal);
         if (request.Tags.Any(string.IsNullOrWhiteSpace))
             return Result.Failure("Calculation tags cannot contain an empty value");
         if (request.Variables.Any(item => string.IsNullOrWhiteSpace(item.Key) || !IsFinite(item.Value)))
@@ -239,7 +339,7 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
             if (formulas == null)
                 return Result<BucketEvaluation>.Failure($"Formula bucket {bucket.BucketId} requires a formula evaluator");
             var variables = request.Variables.ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
-            variables["calculation.base"] = request.BaseValue;
+            variables["calculation.base"] = request.InputQuantity?.Value ?? request.BaseValue;
             variables["bucket.input"] = current;
             variables["bucket.contributions.count"] = influences.Length;
             variables["bucket.contributions.sum"] = influences.Sum(item => item.Value);
@@ -348,6 +448,11 @@ public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null)
     };
 
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+
+    internal static CalculationBucketDefinition[] SelectedBuckets(
+        ImmutableArray<string> stageIds, CalculationPipelineDefinition pipeline) => pipeline.Buckets
+        .Where(bucket => stageIds.IsEmpty || stageIds.Contains(bucket.StageId!, StringComparer.Ordinal))
+        .OrderBy(bucket => bucket.Order).ThenBy(bucket => bucket.BucketId, StringComparer.Ordinal).ToArray();
 
     private sealed record BucketEvaluation(
         float Value,

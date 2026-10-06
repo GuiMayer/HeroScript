@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Content;
@@ -17,6 +18,8 @@ public sealed record ResolvedEffectAmount(
 public interface ICalculationResolver
 {
     Result<ResolvedEffectAmount> Resolve(EffectDefinition effect, string calculationId, CalculationSourceContext context);
+    Result<ResolvedEffectAmount> ResolveParameter(EffectDefinition owner, EffectNumericParameterDefinition parameter,
+        string calculationId, CalculationSourceContext context);
 }
 
 /// <summary>One numerical entry point for all effect origins, including preview and replay.</summary>
@@ -28,9 +31,30 @@ public sealed class CalculationResolver(
     bool allowUnconfiguredCalculations = false) : ICalculationResolver
 {
     public Result<ResolvedEffectAmount> Resolve(EffectDefinition effect, string calculationId, CalculationSourceContext context)
+        => ResolveNumeric(effect, calculationId, context, "scalar", new());
+
+    public Result<ResolvedEffectAmount> ResolveParameter(EffectDefinition owner,
+        EffectNumericParameterDefinition parameter, string calculationId, CalculationSourceContext context)
     {
-        if (effect.Type is not (EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE))
+        var numericEffect = owner with
+        {
+            FlatValue = parameter.FlatValue, FormulaValue = parameter.FormulaValue,
+            CalculationChannel = parameter.Channel, CalculationPipelineId = parameter.PipelineId
+        };
+        return ResolveNumeric(numericEffect, calculationId, context with
+        {
+            StageIds = parameter.StageIds,
+            CaptureOnly = context.CaptureOnly || parameter.Parameter != EffectNumericParameter.Amount
+        }, parameter.UnitId, parameter.Conversion, parameter.Parameter.ToString());
+    }
+
+    private Result<ResolvedEffectAmount> ResolveNumeric(EffectDefinition effect, string calculationId,
+        CalculationSourceContext context, string unitId, CalculationValuePolicy policy, string? parameterAttribute = null)
+    {
+        if (parameterAttribute == null && effect.Type is not (EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE))
             return Result<ResolvedEffectAmount>.Success(new(0, null));
+        if (context.InputQuantity != null && (effect.FlatValue != null || !string.IsNullOrWhiteSpace(effect.FormulaValue)))
+            return Result<ResolvedEffectAmount>.Failure("Transported quantity cannot coexist with a recalculated base");
         var amount = effect.FlatValue ?? 0;
         float? formulaAmount = null;
         if (!string.IsNullOrWhiteSpace(effect.FormulaValue))
@@ -56,6 +80,7 @@ public sealed class CalculationResolver(
             {
                 PipelineId = "__unconfigured_test_identity__",
                 Channel = effect.CalculationChannel,
+                UnitId = unitId,
                 Buckets = [new() { BucketId = "identity", Order = 0, Operation = CalculationBucketOperation.Add }]
             };
         }
@@ -70,6 +95,10 @@ public sealed class CalculationResolver(
             pipeline = resolvedPipeline.Value;
         }
         var tags = NormalizeTags(effect, context.Tags);
+        var pipelineValidation = CalculationEngine.ValidateDefinition(pipeline);
+        if (pipelineValidation.IsFailure) return Result<ResolvedEffectAmount>.Failure(pipelineValidation.Error);
+        if (context.StageIds.Any(id => !pipeline.Stages.Any(stage => stage.StageId == id)))
+            return Result<ResolvedEffectAmount>.Failure("Unknown calculation stage selection");
         var calculationContext = context with { Pipeline = pipeline, Tags = tags };
         var collected = influences?.Collect(calculationContext)
             ?? Result<IReadOnlyList<CalculationInfluence>>.Success([]);
@@ -77,9 +106,16 @@ public sealed class CalculationResolver(
         var calculated = (engine ?? new CalculationEngine(formulas)).Calculate(new CalculationRequest
         {
             CalculationId = calculationId, ContentRevision = context.ContentRevision,
-            Channel = effect.CalculationChannel, BaseValue = amount,
-            BaseTrace = BuildBaseTrace(effect, context, formulaAmount, amount),
-            Influences = collected.Value.Where(item => item.Channel == effect.CalculationChannel).ToArray(),
+            Channel = effect.CalculationChannel, BaseValue = amount, UnitId = unitId,
+            StageIds = context.StageIds, InputQuantity = context.InputQuantity,
+            ValuePolicy = policy, CaptureOnly = context.CaptureOnly,
+            StageContextIds = pipeline.Stages.Where(stage => stage.Scope != CalculationStageScope.Shared)
+                .ToImmutableSortedDictionary(stage => stage.StageId, stage =>
+                    stage.Scope == CalculationStageScope.Actor ? context.Actor?.InstanceId ?? string.Empty : context.Target?.InstanceId ?? string.Empty,
+                    StringComparer.Ordinal),
+            BaseTrace = BuildBaseTrace(effect, context, formulaAmount, amount, parameterAttribute),
+            Influences = collected.Value.Where(item => item.Channel == effect.CalculationChannel &&
+                calculationContext.SelectsInfluence(item.Channel, item.Bucket)).ToArray(),
             Tags = tags,
             Variables = context.Variables
         }, pipeline);
@@ -93,10 +129,10 @@ public sealed class CalculationResolver(
         EffectDefinition effect,
         CalculationSourceContext context,
         float? formulaAmount,
-        float amount)
+        float amount, string? parameterAttribute)
     {
         var traces = new List<CalculationBaseTrace>();
-        if (context.Card != null && !string.IsNullOrWhiteSpace(context.ComponentId))
+        if (parameterAttribute == null && context.Card != null && !string.IsNullOrWhiteSpace(context.ComponentId))
         {
             var upgrades = context.Card.UpgradeTrace.Where(item => item.ComponentId == context.ComponentId &&
                 item.Attribute == CardEffectNumericAttribute.FlatValue.ToString()).ToArray();
@@ -121,7 +157,7 @@ public sealed class CalculationResolver(
                 SourceKind = CalculationSourceKind.Effect,
                 SourceId = effect.EffectId,
                 ComponentId = context.ComponentId ?? string.Empty,
-                Attribute = "FlatValue",
+                Attribute = parameterAttribute ?? "FlatValue",
                 Operation = "Base",
                 Output = effect.FlatValue
             });
@@ -133,7 +169,7 @@ public sealed class CalculationResolver(
                 SourceKind = CalculationSourceKind.Effect,
                 SourceId = effect.EffectId,
                 ComponentId = context.ComponentId ?? string.Empty,
-                Attribute = "FormulaValue",
+                Attribute = parameterAttribute == null ? "FormulaValue" : $"{parameterAttribute}.FormulaValue",
                 Operation = "Add",
                 Input = amount - formulaAmount.Value,
                 Output = amount
@@ -158,8 +194,11 @@ public sealed class CalculationResolver(
             EffectType.HEAL => ResourceEffectOperation.ADD,
             _ => effect.Operation
         };
-        tags.Add($"resource.{operation.ToString().ToLowerInvariant()}");
-        tags.Add($"resource.field.{effect.ResourceField.ToString().ToLowerInvariant()}");
+        if (effect.Type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE)
+        {
+            tags.Add($"resource.{operation.ToString().ToLowerInvariant()}");
+            tags.Add($"resource.field.{effect.ResourceField.ToString().ToLowerInvariant()}");
+        }
         return tags;
     }
 

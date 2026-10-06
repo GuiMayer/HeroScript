@@ -33,7 +33,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 0 — Baseline e contratos | Concluída | Core 1.135 / API 181; Godot layers aprovado; GDD sincronizado. |
 | 1 — Alvo derrotado | Concluída | Core 1.153 / API 181, sem falhas; 18 regressões novas. |
 | 2 — Contexto e fatos | Concluída | Core 1.162 / API 181, sem falhas; 9 regressões novas. |
-| 3 — Parâmetros e cálculo | Pendente | |
+| 3 — Parâmetros e cálculo | Concluída | Core 1.185 / API 181, sem falhas; 23 regressões novas. |
 | 4 — Payloads e consumo | Pendente | |
 | 5 — Condensação | Pendente | |
 | 6 — Transformações | Pendente | |
@@ -66,3 +66,21 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 - IDs e fatos acompanham applications/steps/frames e são serializáveis; dez execuções idênticas produzem os mesmos hashes. A ação de carta/ability expõe seu `effectExecutionId`.
 - Versão da engine: 8. Nenhum save anterior foi removido.
 - Etapa 1: commit `bf482ef`.
+
+## Etapa 3 — contrato executável
+
+- `EffectDefinition.parameters`: overrides tipados de Amount, StatusStacks/Duration, ModifierStacks/Duration e CardCount. Fórmulas e influências passam pelo resolver/pipeline comum, sem matemática no reducer ou na carta.
+- Conversão explícita: rounding, midpoint, sinal, limites e inteiro exato. Overflow, contagem zero/inválida, seleção de IDs incompatível e campos concorrentes falham a transação.
+- Pipelines e pedidos declaram `unitId`; pipelines podem organizar buckets em `stages` com scopes Shared/Actor/Target. Não existe conversão implícita entre unidades nem ordem universal imposta à composição.
+- Quantidades transportáveis preservam revisão, fingerprint e receipts de estágios já incorporados. Repetir um estágio semântico no mesmo contexto falha inclusive entre perfis diferentes; um novo alvo pode usar seu próprio contexto de defesa.
+- Resultados registram checkpoints, valor antes da conversão e resto com sinal. Nenhuma distribuição automática ou targeting fica dentro da matemática.
+- `captureOnly` separa cálculo de consumo. Contagens/durações não produzem settlements; capturas de magnitude também não gastam a defesa usada no trace. Providers não avaliam fórmulas/bindings de canais/estágios omitidos.
+- Traces dos parâmetros são serializáveis em steps/cálculos; publicação valida referências, canais, unidades e stages explícitos.
+- Matemática de delta de atributos é suportada por unidade/política numérica; a mutação persistente de atributos permanece na etapa 10, não foi anunciada como operação de efeito disponível.
+- Versão da engine: 9. Sem alteração da referência legada ou remoção de saves.
+- Contrato e exemplos: [effect-calculation-profiles.md](../systems/math/effect-calculation-profiles.md).
+- Etapa 2: commit `8ada56d`.
+
+## Próxima etapa
+
+Etapa 4: persistir payloads Snapshot/Dynamic em lotes dentro das instâncias existentes de status/modifier e oferecer leitura/consumo imutável genérico. Condensação continua pendente até essas bases e a etapa 5 serem verificadas; não há operação de condensação anunciada como executável nesta entrega.

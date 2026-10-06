@@ -62,6 +62,29 @@ public static class EffectDefinitionValidator
                 break;
             }
             if (effect.FlatValue is { } value && !float.IsFinite(value)) Error("flatValue must be finite");
+            if (effect.Parameters.Select(parameter => parameter.Parameter).Distinct().Count() != effect.Parameters.Length)
+                Error("numeric parameter overrides must be unique");
+            foreach (var parameter in effect.Parameters)
+            {
+                if (!EffectNumericParameters.Supports(effect.Type, parameter.Parameter)) Error("unsupported numeric parameter for effect type");
+                if (string.IsNullOrWhiteSpace(parameter.UnitId) || string.IsNullOrWhiteSpace(parameter.Channel))
+                    Error("numeric parameter requires channel and unitId");
+                if (parameter.FlatValue is { } number && !float.IsFinite(number)) Error("numeric parameter must be finite");
+                if (parameter.FlatValue == null && string.IsNullOrWhiteSpace(parameter.FormulaValue)) Error("numeric parameter requires a value");
+                var conversion = Core.Calculations.CalculationValuePolicy.Validate(parameter.Conversion);
+                if (conversion.IsFailure) Error(conversion.Error);
+                if (parameter.Parameter != EffectNumericParameter.Amount && !parameter.Conversion.RequireInteger)
+                    Error("count/duration parameter must require integer conversion");
+                if (parameter.Parameter == EffectNumericParameter.Amount && (effect.FlatValue != null || !string.IsNullOrWhiteSpace(effect.FormulaValue)))
+                    Error("amount parameter cannot coexist with flatValue/formulaValue");
+                if (parameter.Parameter == EffectNumericParameter.StatusStacks && effect.StatusStacks != null ||
+                    parameter.Parameter == EffectNumericParameter.StatusDuration && effect.StatusDuration != null ||
+                    parameter.Parameter == EffectNumericParameter.ModifierStacks && effect.ModifierStacks != null ||
+                    parameter.Parameter == EffectNumericParameter.ModifierDuration && effect.ModifierDuration != null)
+                    Error("numeric parameter cannot coexist with a literal override of the same field");
+                if (parameter.StageIds.Any(string.IsNullOrWhiteSpace) || parameter.StageIds.Distinct(StringComparer.Ordinal).Count() != parameter.StageIds.Length)
+                    Error("numeric parameter stage IDs must be unique nonempty values");
+            }
             if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && effect.FlatValue < 0)
                 Error("resource aliases require a non-negative amount");
             if (effect.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
@@ -88,7 +111,8 @@ public static class EffectDefinitionValidator
                 if (effect.CardCount is < 1 or > EffectExecutionLimits.MaximumSteps) Error("invalid cardCount");
                 if (effect.CardInstanceIds.Any(id => id == Guid.Empty) || effect.CardInstanceIds.Distinct().Count() != effect.CardInstanceIds.Length)
                     Error("cardInstanceIds must be unique nonempty ids");
-                if (!effect.CardInstanceIds.IsEmpty && effect.CardInstanceIds.Length != effect.CardCount) Error("cardInstanceIds must match cardCount");
+                if (!effect.CardInstanceIds.IsEmpty && !effect.Parameters.Any(parameter => parameter.Parameter == EffectNumericParameter.CardCount) &&
+                    effect.CardInstanceIds.Length != effect.CardCount) Error("cardInstanceIds must match cardCount");
             }
             if (effect.Type == EffectType.CARD_ZONE_FLOW && string.IsNullOrWhiteSpace(effect.CardZoneFlowId))
                 Error("CARD_ZONE_FLOW requires cardZoneFlowId");
