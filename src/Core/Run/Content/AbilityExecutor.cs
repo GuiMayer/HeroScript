@@ -143,6 +143,7 @@ public sealed class AbilityExecutor : IAbilityExecutor
             new CombatAction
             {
                 Turn = request.Combat.CurrentTurn,
+                EffectExecutionId = executed.Value.ExecutionId,
                 ActorId = request.ActorId,
                 ActionType = definition.Value.ActionType,
                 PowerId = definition.Value.ActionType == ActionType.BASIC_ATTACK

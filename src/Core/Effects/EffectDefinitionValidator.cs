@@ -16,6 +16,7 @@ public static class EffectDefinitionValidator
         Action<EffectDefinition, string>? inspect = null)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
+        var outputIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pending = new Stack<(EffectDefinition Effect, string Path, int Depth, long Multiplier)>();
         foreach (var (effect, index) in effects.Select((effect, index) => (effect, index)).Reverse())
             pending.Push((effect, $"effects[{index}]", 0, 1));
@@ -30,6 +31,13 @@ public static class EffectDefinitionValidator
             }
             if (effect == null) { errors.Add($"{path}: effect cannot be null"); continue; }
             void Error(string message) => errors.Add($"{path}: {message}");
+            if (effect.OutputId is { } outputId)
+            {
+                if (outputId.Length == 0 || !(char.IsAsciiLetter(outputId[0]) || outputId[0] == '_') ||
+                    outputId.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_'))
+                    Error("outputId must be a formula-safe identifier");
+                if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
+            }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
             if (!Enum.IsDefined(effect.Target)) Error("invalid target policy");
             if (effect.TargetLoss == null || !Enum.IsDefined(effect.TargetLoss.Policy))

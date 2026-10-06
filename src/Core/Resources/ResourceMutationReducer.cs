@@ -32,7 +32,8 @@ public sealed record ResourceMutationRecord(
     ResourceValueField Field,
     ResourceMutationOperation Operation,
     float PreviousValue,
-    float CurrentValue);
+    float CurrentValue,
+    float RequestedValue);
 
 public sealed record ResourceMutationBatchResult(
     IReadOnlyDictionary<string, ResourcePool> Resources,
@@ -106,7 +107,7 @@ public sealed class ResourceMutationReducer : IResourceMutationReducer
                 mutation.Field,
                 mutation.Operation,
                 previous,
-                Read(applied.Value, mutation.Field)));
+                Read(applied.Value, mutation.Field), next));
         }
 
         return Result<ResourceMutationBatchResult>.Success(new ResourceMutationBatchResult(

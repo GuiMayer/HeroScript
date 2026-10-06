@@ -85,6 +85,10 @@ public sealed class CardContentCompiler : ICardContentCompiler
             if (validation.IsFailure)
                 return Result<CompiledCardDefinition>.Failure(validation.Error);
         }
+        var actionErrors = EffectDefinitionValidator.Validate(expanded.OfType<CardEffectComponentDefinition>()
+            .Select(component => component.Effect));
+        if (!actionErrors.IsEmpty)
+            return Result<CompiledCardDefinition>.Failure($"Card {card.CardId}: {string.Join("; ", actionErrors)}");
         if (expanded.OfType<CardTargetingComponentDefinition>().Count() > 1)
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} contains multiple targeting components");
         if (expanded.OfType<CardDispositionComponentDefinition>().Count() > 1)

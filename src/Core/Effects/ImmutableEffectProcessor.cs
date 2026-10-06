@@ -41,6 +41,7 @@ public sealed record ResolvedEffectCommand
     private ImmutableArray<ResolvedCalculationSettlement> _settlements = [];
 
     public string EffectInstanceId { get; init; } = string.Empty;
+    public EffectExecutionIdentity? Identity { get; init; }
     public EffectDefinition Definition { get; init; } = new();
     public string SourceEntityId { get; init; } = string.Empty;
     public IReadOnlyList<string> TargetEntityIds
@@ -63,6 +64,9 @@ public sealed record ResolvedEffectCommand
 public sealed record EffectApplicationRecord
 {
     public string EffectInstanceId { get; init; } = string.Empty;
+    public EffectExecutionIdentity? Identity { get; init; }
+    public EffectResourceOutcome? ResourceOutcome { get; init; }
+    public ImmutableArray<EffectStackChange> StackChanges { get; init; } = [];
     public EffectType EffectType { get; init; }
     public string TargetEntityId { get; init; } = string.Empty;
     public string? ResourceId { get; init; }
@@ -78,7 +82,13 @@ public sealed record EffectApplicationRecord
     public Guid? ModifierInstanceId { get; init; }
     public string? ModifierId { get; init; }
     public ImmutableArray<Guid> RemovedModifierInstanceIds { get; init; } = [];
-    public ImmutableArray<ModifierStackApplicationRecord> ModifierStackChanges { get; init; } = [];
+    /// <summary>Modifier-specific view derived from canonical stack facts, not a writable ledger.</summary>
+    public ImmutableArray<ModifierStackApplicationRecord> ModifierStackChanges => StackChanges
+        .Where(change => change.Store == EffectStackStore.Modifier).Select(change => new ModifierStackApplicationRecord
+        {
+            ModifierInstanceId = change.InstanceId, ModifierId = change.DefinitionId,
+            PreviousStacks = change.PreviousStacks, CurrentStacks = change.CurrentStacks, Removed = change.Removed
+        }).ToImmutableArray();
     public string? CalculationId { get; init; }
     public string? CalculationFingerprint { get; init; }
     public string? CalculationInfluenceId { get; init; }
@@ -96,6 +106,7 @@ public sealed record ModifierStackApplicationRecord
 
 public sealed record EffectBatchResult
 {
+    public string ExecutionId { get; init; } = string.Empty;
     private ImmutableArray<EffectApplicationRecord> _records = [];
     private ImmutableArray<CalculationResult> _calculations = [];
 
@@ -233,11 +244,14 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         if (reduced.IsFailure)
             return Result<EffectTargetApplication>.Failure(reduced.Error);
         var record = reduced.Value.Records[0];
+        var updated = state.ReplaceActor(target.WithResourceState(reduced.Value.State));
         return Result<EffectTargetApplication>.Success(new(
-            state.ReplaceActor(target.WithResourceState(reduced.Value.State)),
+            updated,
             new EffectApplicationRecord
             {
                 EffectInstanceId = effect.EffectInstanceId,
+                Identity = effect.Identity,
+                ResourceOutcome = ResourceOutcome(target, updated.GetActor(target.InstanceId)!, record),
                 EffectType = effect.Definition.Type,
                 TargetEntityId = target.InstanceId,
                 ResourceId = settlement.ResourceId,
@@ -333,6 +347,8 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 EffectType = effect.Definition.Type,
                 TargetEntityId = target.InstanceId,
                 ResourceId = resourceId,
+                Identity = effect.Identity,
+                ResourceOutcome = ResourceOutcome(target, updated.GetActor(target.InstanceId)!, reduced.Value.Records[0]),
                 ResourceField = reduced.Value.Records[0].Field,
                 ResourceOperation = reduced.Value.Records[0].Operation,
                 PreviousValue = reduced.Value.Records[0].PreviousValue,
@@ -419,6 +435,15 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 TargetEntityId = target.InstanceId,
                 StatusId = statusId,
                 StatusInstanceId = applied.InstanceId,
+                Identity = effect.Identity,
+                StackChanges = [new()
+                {
+                    Store = EffectStackStore.Status, InstanceId = applied.InstanceId, DefinitionId = statusId,
+                    Owner = new() { Kind = GameplayOwnerKind.Entity, Id = target.InstanceId },
+                    PreviousStacks = index >= 0 ? state.StatusEffects[target.InstanceId][index].Stacks : 0,
+                    CurrentStacks = applied.Stacks,
+                    Reason = index >= 0 ? EffectStackChangeReason.Reapply : EffectStackChangeReason.Apply
+                }],
                 Provenance = effect.Provenance
             }));
     }
@@ -450,6 +475,14 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             _ => candidates.OrderBy(status => status.InstanceId)
         };
         var removed = ordered.Take(filter.MaximumInstances).Select(status => status.InstanceId).ToImmutableArray();
+        var changes = removed.Select(id => statuses.Single(status => status.InstanceId == id))
+            .Select(status => new EffectStackChange
+            {
+                Store = EffectStackStore.Status, InstanceId = status.InstanceId, DefinitionId = status.StatusId,
+                Owner = new() { Kind = GameplayOwnerKind.Entity, Id = target.InstanceId },
+                PreviousStacks = status.Stacks, CurrentStacks = 0,
+                Reason = removeAll ? EffectStackChangeReason.Dispel : EffectStackChangeReason.Remove
+            }).ToImmutableArray();
         statuses = statuses.Where(status => !removed.Contains(status.InstanceId)).ToImmutableArray();
         var updatedStatuses = statuses.IsEmpty
             ? state.StatusEffects.Remove(target.InstanceId)
@@ -463,9 +496,21 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 TargetEntityId = target.InstanceId,
                 StatusId = removeAll ? "*" : statusId,
                 RemovedStatusInstanceIds = removed,
+                Identity = effect.Identity,
+                StackChanges = changes,
                 Provenance = effect.Provenance
             }));
     }
+
+    private static EffectResourceOutcome ResourceOutcome(CombatActorState before, CombatActorState after,
+        ResourceMutationRecord record) => new()
+    {
+        RequestedValue = record.RequestedValue,
+        PreviousValue = record.PreviousValue, CurrentValue = record.CurrentValue,
+        OwnerDefeatedBefore = !before.IsAlive, OwnerDefeatedAfter = !after.IsAlive,
+        ThresholdFacts = after.ResourceState.Resources.Values.OrderBy(pool => pool.ResourceId, StringComparer.Ordinal)
+            .Select(ResourceThresholdEvaluator.Resolve).Where(fact => fact != null).Cast<ResourceThresholdFact>().ToImmutableArray()
+    };
 
     private static int FindStatus(
         ImmutableArray<StatusEffectInstance> statuses,

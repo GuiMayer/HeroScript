@@ -37,6 +37,9 @@ public record EffectDefinition
     /// ID único do efeito (gerado automaticamente se não fornecido)
     /// </summary>
     public string EffectId { get; init; } = string.Empty;
+
+    /// <summary>Optional unique formula-safe alias for typed outputs within an action.</summary>
+    public string? OutputId { get; init; }
     
     /// <summary>
     /// Tipo do efeito

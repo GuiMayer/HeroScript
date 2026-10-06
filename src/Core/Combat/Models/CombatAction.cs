@@ -13,6 +13,7 @@ public record CombatAction
     private ImmutableArray<EffectApplicationRecord> _applications = [];
 
     public Guid ActionId { get; init; } = Guid.Empty;
+    public string EffectExecutionId { get; init; } = string.Empty;
     public DateTime Timestamp { get; init; } = DateTime.UnixEpoch;
     public int Turn { get; init; }
     public string ActorId { get; init; } = string.Empty;

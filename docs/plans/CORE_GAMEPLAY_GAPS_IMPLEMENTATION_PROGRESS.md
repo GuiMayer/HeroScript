@@ -32,7 +32,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | --- | --- | --- |
 | 0 — Baseline e contratos | Concluída | Core 1.135 / API 181; Godot layers aprovado; GDD sincronizado. |
 | 1 — Alvo derrotado | Concluída | Core 1.153 / API 181, sem falhas; 18 regressões novas. |
-| 2 — Contexto e fatos | Pendente | |
+| 2 — Contexto e fatos | Concluída | Core 1.162 / API 181, sem falhas; 9 regressões novas. |
 | 3 — Parâmetros e cálculo | Pendente | |
 | 4 — Payloads e consumo | Pendente | |
 | 5 — Condensação | Pendente | |
@@ -55,3 +55,14 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 - Fireball, Venom Cut, Vulnerable e ações inimigas de dano + status declaram Skip para o efeito de status. Conteúdo dos settings pendentes anteriores não foi editado.
 - Versão da engine: 7. Saves anteriores são preservados no disco e rejeitados quando incompatíveis, sem conversão silenciosa.
 - Baseline da etapa 0: commit `ea4513f`.
+
+## Etapa 2 — contrato executável
+
+- Contexto derivado e imutável por execução; IDs determinísticos de execução, proc e impacto. Filhos registram o proc e impacto exatos do pai. Repetições têm procs distintos; alvos de um mesmo proc têm impactos distintos.
+- `outputId` é um alias único e seguro para fórmulas, validado inclusive entre componentes da carta. `results.<alias>.target.last/total` e `parent.*` expõem fatos da execução, não logs. Namespaces reservados não aceitam valores forjados pelo chamador.
+- Mudanças de recurso registram valor solicitado antes do clamp, anterior, atual, deltas solicitados/aplicados/limitados com sinal, políticas de threshold resolvidas e causalidade de derrota. Nenhuma interpretação do nome do recurso.
+- Aplicação/reaplicação/remoção/dispel de status e modificadores produzem fatos de stacks tipados, com instância, definição, owner e contagem anterior/atual. A visão específica de modificadores é derivada desses fatos, sem ledger concorrente.
+- Resultados secundários de settlements não contaminam o alias do recurso primário. Referências desconhecidas, colisões de alias e valores não finitos falham atomicamente.
+- IDs e fatos acompanham applications/steps/frames e são serializáveis; dez execuções idênticas produzem os mesmos hashes. A ação de carta/ability expõe seu `effectExecutionId`.
+- Versão da engine: 8. Nenhum save anterior foi removido.
+- Etapa 1: commit `bf482ef`.

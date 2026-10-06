@@ -14,6 +14,13 @@ public sealed record RunEffectApplication(RunState Run, EffectApplicationRecord 
 /// <summary>Run-owned primitives. No repository, event bus, or mutable manager is consulted.</summary>
 public static class RunEffectReducer
 {
+    private static EffectStackChange StackChange(ModifierStackApplicationRecord change, EffectStackChangeReason reason,
+        GameplayOwner owner) => new()
+    {
+        Store = EffectStackStore.Modifier, InstanceId = change.ModifierInstanceId, DefinitionId = change.ModifierId,
+        PreviousStacks = change.PreviousStacks, CurrentStacks = change.CurrentStacks, Reason = reason, Owner = owner
+    };
+
     public static bool Supports(EffectType type) => type is EffectType.CARD_ZONE_FLOW or
         EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER;
 
@@ -25,7 +32,7 @@ public static class RunEffectReducer
         var record = new EffectApplicationRecord
         {
             EffectInstanceId = command.EffectInstanceId, EffectType = effect.Type,
-            TargetEntityId = targetId, Provenance = command.Provenance
+            TargetEntityId = targetId, Provenance = command.Provenance, Identity = command.Identity
         };
         if (effect.Type is EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER)
         {
@@ -60,7 +67,7 @@ public static class RunEffectReducer
                         ModifierId = effect.ModifierId,
                         RemovedModifierInstanceIds = changes.Where(item => item.Removed)
                             .Select(item => item.ModifierInstanceId).ToImmutableArray(),
-                        ModifierStackChanges = changes
+                        StackChanges = changes.Select(change => StackChange(change, EffectStackChangeReason.Remove, owner)).ToImmutableArray()
                     }));
                 }
                 var removals = removed.Select(item => new ModifierStackApplicationRecord
@@ -76,7 +83,7 @@ public static class RunEffectReducer
                 {
                     ModifierId = effect.ModifierId,
                     RemovedModifierInstanceIds = removals.Select(item => item.ModifierInstanceId).ToImmutableArray(),
-                    ModifierStackChanges = removals
+                    StackChanges = removals.Select(change => StackChange(change, EffectStackChangeReason.Remove, owner)).ToImmutableArray()
                 }));
             }
             if (runtimes == null) return Result<RunEffectApplication>.Failure("Pinned modifier runtime is unavailable");
@@ -95,12 +102,13 @@ public static class RunEffectReducer
                     {
                         ModifierId = effect.ModifierId,
                         ModifierInstanceId = applied.Value.Instance.InstanceId,
-                        ModifierStackChanges = [new()
+                        StackChanges = [new()
                         {
-                            ModifierInstanceId = applied.Value.Instance.InstanceId,
-                            ModifierId = applied.Value.Instance.ModifierId,
-                            PreviousStacks = previousStacks,
-                            CurrentStacks = applied.Value.Instance.Stacks
+                            Store = EffectStackStore.Modifier, InstanceId = applied.Value.Instance.InstanceId,
+                            DefinitionId = effect.ModifierId, PreviousStacks = previousStacks,
+                            Owner = applied.Value.Instance.Owner,
+                            CurrentStacks = applied.Value.Instance.Stacks,
+                            Reason = previousStacks > 0 ? EffectStackChangeReason.Reapply : EffectStackChangeReason.Apply
                         }]
                     }));
         }

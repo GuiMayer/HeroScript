@@ -92,29 +92,47 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             return Result<EffectBatchResult>.Failure("TriggerId is required");
         if (request.Combat.GetActor(request.OwnerEntityId) == null)
             return Result<EffectBatchResult>.Failure($"Trigger owner not found: {request.OwnerEntityId}");
+        if (request.Variables.Values.Any(value => !float.IsFinite(value)))
+            return Result<EffectBatchResult>.Failure("Execution variables must be finite");
+        if (request.Variables.Keys.Any(key => key.StartsWith("results.", StringComparison.OrdinalIgnoreCase) ||
+            key.StartsWith("parent.", StringComparison.OrdinalIgnoreCase)))
+            return Result<EffectBatchResult>.Failure("Execution result namespaces cannot be supplied by the caller");
         var definitionErrors = EffectDefinitionValidator.Validate(
-            (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects));
+            request.PrefixCommands.Select(command => command.Definition).Concat(
+                (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects)));
         if (!definitionErrors.IsEmpty)
             return Result<EffectBatchResult>.Failure(string.Join("; ", definitionErrors));
 
         var current = request.Combat;
         var currentRun = request.Run;
+        var executionId = EffectResultContext.ExecutionId(request);
+        var resultContext = new EffectResultContext();
         var records = ImmutableArray.CreateBuilder<EffectApplicationRecord>();
         var calculations = ImmutableArray.CreateBuilder<CalculationResult>();
         var steps = ImmutableArray.CreateBuilder<EffectExecutionStep>();
         var work = 0;
-        foreach (var command in request.PrefixCommands)
+        foreach (var prefix in request.PrefixCommands)
         {
             if (++work > EffectExecutionLimits.MaximumSteps)
                 return Result<EffectBatchResult>.Failure("Effect execution limit exceeded");
             var before = CanonicalJson.ComputeHash(current);
+            var command = prefix with
+            {
+                Identity = EffectResultContext.Identity(executionId, prefix.Provenance.ComponentId ?? "prefix",
+                    $"prefix:{steps.Count}", 0, prefix.TargetEntityIds.FirstOrDefault() ?? string.Empty, null,
+                    prefix.Definition.OutputId)
+            };
             var applied = _effects.Apply(current, [command]);
             if (applied.IsFailure) return Result<EffectBatchResult>.Failure(applied.Error);
             current = applied.Value.State;
             records.AddRange(applied.Value.Records);
+            var accumulated = resultContext.Add(applied.Value.Records);
+            if (accumulated.IsFailure) return Result<EffectBatchResult>.Failure(accumulated.Error);
+            resultContext = accumulated.Value;
             steps.Add(new()
             {
                 Index = steps.Count, EffectInstanceId = command.EffectInstanceId,
+                Identity = command.Identity,
                 TargetEntityId = command.TargetEntityIds.FirstOrDefault() ?? string.Empty,
                 Applied = true, ContentRevision = request.ContentRevision, Provenance = command.Provenance,
                 Applications = applied.Value.Records.ToImmutableArray(),
@@ -127,18 +145,19 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             activeTriggerId = component.TriggerId;
             foreach (var (effect, index) in component.Effects.Select((item, index) => (item, index)))
             {
-                var executed = ExecuteEffect(effect, $"{component.TriggerId}:{index}", 0, request.SelectedTargetEntityIds);
+                var executed = ExecuteEffect(effect, $"{component.TriggerId}:{index}", 0, request.SelectedTargetEntityIds, null, null);
                 if (executed.IsFailure) return Result<EffectBatchResult>.Failure(executed.Error);
             }
         }
         return Result<EffectBatchResult>.Success(new()
         {
-            State = current, Run = currentRun, Records = records.ToImmutable(),
+            ExecutionId = executionId, State = current, Run = currentRun, Records = records.ToImmutable(),
             Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable(),
             Fingerprint = CanonicalJson.ComputeHash(new { state = current, steps = steps.ToImmutable(), run = currentRun })
         });
 
-        Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection)
+        Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection,
+            string? parentProcId, EffectApplicationRecord? parentApplication)
         {
             if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
                 return Result.Failure("Effect execution limit exceeded");
@@ -159,6 +178,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     {
                         Index = steps.Count,
                         EffectInstanceId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{lostId}:lost",
+                        Identity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat,
+                            lostId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId),
                         TargetEntityId = lostId, RepeatIndex = repeat, Applied = false,
                         SkipReason = targets.Value.StopRepeat ? "repeat_stopped" : "target_defeated",
                         TargetLossPolicy = effect.TargetLoss.Policy,
@@ -180,11 +201,32 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                     var targetId = targets.Value.TargetIds[targetIndex];
                     var id = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}";
+                    var identity = EffectResultContext.Identity(executionId, activeTriggerId, path, repeat, targetId,
+                        parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId);
                     var before = targetIndex == 0
                         ? targets.Value.LostTargetIds.IsEmpty ? beforeSelection : beforeChance
                         : CanonicalJson.ComputeHash(current);
                     var runBefore = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun);
                     var variables = BuildVariables(request with { Run = currentRun }, current, targetId);
+                    resultContext.AddVariables(variables, targetId);
+                    if (parentApplication?.ResourceOutcome is { } parentOutcome)
+                    {
+                        var values = new Dictionary<string, double>
+                        {
+                            ["parent.requested_change"] = parentOutcome.RequestedChange,
+                            ["parent.applied_change"] = parentOutcome.AppliedChange,
+                            ["parent.limited_change"] = parentOutcome.LimitedChange,
+                            ["parent.caused_defeat"] = parentOutcome.CausedDefeat ? 1 : 0
+                        };
+                        foreach (var (key, number) in values)
+                        {
+                            if (!float.IsFinite((float)number)) return Result.Failure($"Result fact {key} exceeds formula range");
+                            variables[key] = (float)number;
+                        }
+                    }
+                    if (parentApplication != null)
+                        variables["parent.stack_delta"] = parentApplication.StackChanges.Sum(change =>
+                            (float)change.CurrentStacks - change.PreviousStacks);
                     variables["repeat_index"] = repeat;
                     variables["target_index"] = targetIndex;
                     IReadOnlySet<string> tags = request.Tags.Count == 0 ? effect.Tags.ToHashSet(StringComparer.Ordinal) : request.Tags;
@@ -210,6 +252,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         var command = new ResolvedEffectCommand
                         {
                             EffectInstanceId = id, Definition = effect, SourceEntityId = request.SourceEntityId,
+                            Identity = identity,
                             TargetEntityIds = [targetId], ResolvedValue = value.Value.Value,
                             Calculation = value.Value.Calculation, Settlements = value.Value.Settlements,
                             StatusDefinition = status.Value,
@@ -233,11 +276,15 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             appliedRecords = applied.Value.Records.ToImmutableArray();
                         }
                         records.AddRange(appliedRecords);
+                        var accumulated = resultContext.Add(appliedRecords);
+                        if (accumulated.IsFailure) return Result.Failure(accumulated.Error);
+                        resultContext = accumulated.Value;
                         if (calculation != null) calculations.Add(calculation);
                     }
                     steps.Add(new()
                     {
                         Index = steps.Count, EffectInstanceId = id, TargetEntityId = targetId,
+                        Identity = identity,
                         RepeatIndex = repeat, TargetIndex = targetIndex, Applied = applies,
                         Retargeted = targets.Value.Retargeted,
                         SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
@@ -250,7 +297,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     if (!applies) continue;
                     foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index)))
                     {
-                        var childResult = ExecuteEffect(child, $"{path}:{repeat}:{targetIndex}.chain.{childIndex}", depth + 1, [targetId]);
+                        var parentRecord = appliedRecords.LastOrDefault(record => record.CalculationInfluenceId == null &&
+                            record.TargetEntityId == targetId);
+                        var childResult = ExecuteEffect(child, $"{path}:{repeat}:{targetIndex}.chain.{childIndex}", depth + 1,
+                            [targetId], identity.ProcId, parentRecord);
                         if (childResult.IsFailure) return childResult;
                     }
                 }

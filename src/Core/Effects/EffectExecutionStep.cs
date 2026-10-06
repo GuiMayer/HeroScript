@@ -8,6 +8,7 @@ public sealed record EffectExecutionStep
 {
     public int Index { get; init; }
     public string EffectInstanceId { get; init; } = string.Empty;
+    public EffectExecutionIdentity? Identity { get; init; }
     public string TargetEntityId { get; init; } = string.Empty;
     public int RepeatIndex { get; init; }
     public int TargetIndex { get; init; }

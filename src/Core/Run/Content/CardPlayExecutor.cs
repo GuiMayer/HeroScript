@@ -159,6 +159,7 @@ public sealed class CardPlayExecutor : ICardPlayExecutor
             new CombatAction
             {
                 Turn = request.Combat.CurrentTurn,
+                EffectExecutionId = applied.Value.ExecutionId,
                 ActorId = request.ActorId,
                 ActionType = ActionType.PLAY_CARD,
                 CardInstanceId = request.CardInstanceId,
