@@ -26,6 +26,8 @@ public interface IRunCreationService
 public interface IRunManager : IRunQueryService, IRunCreationService
 {
     Result<IReadOnlyList<Core.Run.Content.CardTransformationOption>> GetCardTransformationOptions(Guid runId, Guid? cardInstanceId = null);
+    Result<Core.Run.Content.CardTransformationAssessment> AssessCardTransformation(Guid runId, Guid cardInstanceId,
+        CardTransformationOperation operation, ulong? transformationId = null, string? upgradeId = null);
 }
 
 /// <summary>

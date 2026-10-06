@@ -244,3 +244,10 @@ Etapa 9: continuação causal por abate e transporte de excedente pelo caminho n
 - Seis testes do package/composição/execução/condensação/isolamento e um de affordability/discovery. Jornada REST/reinício/replay/forks/benchmark e UI serão gates posteriores, sem afirmar que o cliente já apresenta as novas mecânicas.
 - Guia: [volatile-core-setting.md](../content/volatile-core-setting.md).
 - Verificação: Core 1.518 aprovados (20s), API 183 (1m25s), nenhuma falha. O stage 12 amplia consultas/preview e o stage 13 apresenta os contratos na Godot.
+# Etapa 12 — contratos de apresentação
+
+Concluída: assessment de transformação antes/depois, custos e versão; evaluations
+com escopo do snapshot e agrupamento de procs/consumos/continuações. Controllers
+delegam ao planner; GET não executa mutations nem revela cartas de zonas ocultas.
+OpenAPI e guia REST atualizados. Core: 1.518 testes; API: 184 testes aprovados.
+O gate integrado de preview/execução do setting continua na etapa 14.

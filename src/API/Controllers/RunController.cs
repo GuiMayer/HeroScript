@@ -246,6 +246,16 @@ public sealed class RunController : BaseApiController
         });
     }
 
+    [HttpGet("/api/v1/runs/{runId:guid}/cards/{cardInstanceId:guid}/transformation-preview")]
+    public IActionResult PreviewTransformation(Guid runId, Guid cardInstanceId,
+        [FromQuery] CardTransformationOperation operation = CardTransformationOperation.Apply,
+        [FromQuery] ulong? transformationId = null, [FromQuery] string? upgradeId = null)
+    {
+        var result = _runManager.AssessCardTransformation(runId, cardInstanceId, operation, transformationId, upgradeId);
+        return result.IsSuccess ? Ok(result.Value) :
+            ApiBadRequest(ApiErrorCodes.InvalidOperation, "Transformation preview unavailable", result.Error);
+    }
+
     private static object MapRun(RunState run)
     {
         return new
@@ -254,6 +264,7 @@ public sealed class RunController : BaseApiController
             run.ConfigName,
             run.SettingId,
             run.PlayerEntityId,
+            run.PlayerEntity,
             run.ModeId,
             run.ResolvedMode,
             run.ChallengeId,

@@ -16,6 +16,24 @@
     { "name": "Sandbox" }
   ],
   "paths": {
+    "/api/v1/runs/{runId}/cards/{cardInstanceId}/transformation-preview": {
+      "get": {
+        "tags": ["Runs"],
+        "operationId": "previewCardTransformation",
+        "x-heroscript-stability": "stable",
+        "parameters": [
+          { "$ref": "#/components/parameters/RunId" },
+          { "name": "cardInstanceId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "operation", "in": "query", "schema": { "type": "string", "enum": ["Apply", "Remove", "Replace"], "default": "Apply" } },
+          { "name": "transformationId", "in": "query", "schema": { "type": "integer", "format": "uint64" } },
+          { "name": "upgradeId", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Read-only assessment including compatibility, before/after, costs and captured version. Incompatibility is an assessment, not a mutation.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CardTransformationAssessment" } } } },
+          "400": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/api/v1/health/live": {
       "get": {
         "tags": ["System"],
@@ -1177,11 +1195,40 @@
           }
         }
       },
+      "CardTransformationAssessment": {
+        "type": "object",
+        "properties": {
+          "runId": { "type": "string", "format": "uuid" },
+          "cardInstanceId": { "type": "string", "format": "uuid" },
+          "contentRevision": { "type": "string" },
+          "expectedSequence": { "type": "integer" },
+          "expectedStep": { "type": "integer", "format": "uint64" },
+          "isCompatible": { "type": "boolean" },
+          "diagnostics": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "before": { "type": "object", "nullable": true, "additionalProperties": true },
+          "after": { "type": "object", "nullable": true, "additionalProperties": true },
+          "costs": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
+      "CardProcPreview": {
+        "type": "object",
+        "properties": {
+          "procId": { "type": "string" },
+          "parentProcId": { "type": "string", "nullable": true },
+          "isCondensation": { "type": "boolean" },
+          "impactIds": { "type": "array", "items": { "type": "string" } },
+          "targetEntityIds": { "type": "array", "items": { "type": "string" } },
+          "consumedStacks": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+          "continuations": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
       "CardInspectionResult": {
         "type": "object",
         "required": ["version", "detail", "zone", "isInPlayableZone", "isPlayable", "baseContainer", "compiledContainer", "appliedUpgrades", "effectiveBase", "evaluation", "calculations", "previewSteps", "previewApplications", "disposition", "resolutionFingerprint"],
         "properties": {
           "version": { "type": "object", "description": "Run, combat, engine and content-revision coordinates used by this projection", "additionalProperties": true },
+          "previewScope": { "type": "object", "description": "Exact only for the captured snapshot, target IDs and cost option; dependsOnRandomInputs does not mean nondeterministic. GET never consumes RNG.", "additionalProperties": true },
+          "procs": { "type": "array", "items": { "$ref": "#/components/schemas/CardProcPreview" } },
           "detail": { "type": "string", "enum": ["Resolved", "Full"] },
           "zone": { "type": "string", "description": "Authored card-zone identifier containing this instance." },
           "isInPlayableZone": { "type": "boolean" },

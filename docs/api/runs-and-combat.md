@@ -267,3 +267,17 @@ Use os seguintes recursos depois de reconectar ou para suporte:
 O journal é a fonte de auditoria; eventos servem como projeção. Uma verificação
 de replay reexecuta comandos usando seed, versão da engine e conteúdo fixado,
 comparando hashes em vez de confiar no estado enviado pelo cliente.
+# Core volátil: consultas de apresentação
+
+`GET /api/v1/runs/{runId}/cards/{cardInstanceId}/transformation-preview` aceita
+`operation=Apply|Remove|Replace`, `upgradeId` e, quando necessário, `transformationId`.
+Retorna compatibilidade, diagnósticos, custos e containers efetivos `before`/`after`,
+com revisão, sequência e step capturados. Consultar não compra a transformação.
+A mutation continua no gateway de comandos, com controle de versão e idempotência.
+
+As evaluations de combate incluem `previewScope` e `procs`. O escopo captura hashes
+do snapshot, alvos e opção de custo. Sorteios previstos continuam determinísticos;
+`dependsOnRandomInputs` significa que a previsão não deve ser reutilizada após
+qualquer alteração do contexto. GET não avança RNG. `procs` agrupa impactos,
+consumo de stacks e continuações gerados pelo executor canônico; não é outra
+autoridade de gameplay. Zonas ocultas não autorizam inspeção de suas cartas.

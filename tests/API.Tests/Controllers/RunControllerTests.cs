@@ -28,6 +28,23 @@ public sealed class RunControllerTests
     }
 
     [Fact]
+    public void PreviewTransformation_DelegatesCapturedAssessmentWithoutMutation()
+    {
+        var runId = Guid.NewGuid();
+        var cardId = Guid.NewGuid();
+        var assessment = new CardTransformationAssessment(runId, cardId, "pinned", 4, 9,
+            false, [], [], []);
+        _runManager.Setup(manager => manager.AssessCardTransformation(runId, cardId,
+                CardTransformationOperation.Replace, 7UL, "ice"))
+            .Returns(Result<CardTransformationAssessment>.Success(assessment));
+        var response = Assert.IsType<OkObjectResult>(_controller.PreviewTransformation(
+            runId, cardId, CardTransformationOperation.Replace, 7, "ice"));
+        Assert.Same(assessment, response.Value);
+        _runManager.VerifyAll();
+        _runManager.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public void GetCardUpgradeOptions_DelegatesRulesToPinnedCoreQuery()
     {
         var id = Guid.NewGuid();

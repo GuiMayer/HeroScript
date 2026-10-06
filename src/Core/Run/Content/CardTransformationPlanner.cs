@@ -16,7 +16,12 @@ public sealed record CardTransformationOption(Guid CardInstanceId, string CardDe
 
 public sealed record CardTransformationAssessment(Guid RunId, Guid CardInstanceId, string ContentRevision,
     int ExpectedSequence, ulong ExpectedStep, bool IsCompatible, ImmutableArray<CardCompositionDiagnostic> Diagnostics,
-    ImmutableArray<string> ChangedComponentIds, ImmutableArray<CardCompositionApplicationTrace> CompositionTrace);
+    ImmutableArray<string> ChangedComponentIds, ImmutableArray<CardCompositionApplicationTrace> CompositionTrace)
+{
+    public EffectiveCardDefinition? Before { get; init; }
+    public EffectiveCardDefinition? After { get; init; }
+    public ImmutableArray<ResourceAmount> Costs { get; init; } = [];
+}
 
 public static class CardTransformationAccess
 {
@@ -179,7 +184,9 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
                     CanonicalJson.ComputeHash(after.CompositionTrace.Where(item => item.AnchorComponentId == id).ToArray())))
             .Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal).ToImmutableArray();
         return new(run.RunId, cardInstanceId, run.Determinism.ContentRevision, run.Sequence, run.Determinism.Step,
-            true, [], changed, after.CompositionTrace);
+            true, [], changed, after.CompositionTrace) { Before = before.Value, After = after,
+            Costs = run.Map.Nodes.FirstOrDefault(node => node.NodeId == run.CurrentNodeId)?.Activity is { Type: RunActivityType.CardUpgrade } activity
+                ? CardTransformationAccess.ReadCosts(activity).Value : [] };
     }
 
     public Result<IReadOnlyList<CardTransformationOption>> Options(RunState run, Guid? cardInstanceId = null)

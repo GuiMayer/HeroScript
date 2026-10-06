@@ -460,6 +460,20 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         return GetCardTransformationOptions(run.Value, cardInstanceId);
     }
 
+    public Result<CardTransformationAssessment> AssessCardTransformation(Guid runId, Guid cardInstanceId,
+        CardTransformationOperation operation, ulong? transformationId = null, string? upgradeId = null)
+    {
+        var run = GetRun(runId);
+        if (run.IsFailure) return Result<CardTransformationAssessment>.Failure(run.Error);
+        if (!CardZoneReadModel.Project(run.Value).Zones.SelectMany(zone => zone.Cards).Any(card => card.CardInstanceId == cardInstanceId))
+            return Result<CardTransformationAssessment>.Failure("Card instance is not visible in this snapshot");
+        if (_contentRuntimes == null) return Result<CardTransformationAssessment>.Failure("Pinned content runtime is unavailable");
+        var runtime = _contentRuntimes.Resolve(run.Value.Determinism.ContentRevision, run.Value.ConfigName);
+        return runtime.IsFailure ? Result<CardTransformationAssessment>.Failure(runtime.Error) :
+            Result<CardTransformationAssessment>.Success(new CardTransformationPlanner(runtime.Value).Assess(run.Value, cardInstanceId,
+                operation, transformationId, upgradeId));
+    }
+
     private Result<IReadOnlyList<CardTransformationOption>> GetCardTransformationOptions(RunState run, Guid? cardInstanceId)
     {
         if (_contentRuntimes == null) return Result<IReadOnlyList<CardTransformationOption>>.Failure("Pinned content runtime is not configured");

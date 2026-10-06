@@ -126,6 +126,15 @@ public sealed class CardInspectionServiceTests
         Assert.Single(first.Value.ContextSources.Modifiers);
         Assert.Single(first.Value.ContextSources.Statuses["hero"]);
         Assert.Equal("enemy", Assert.Single(first.Value.ContextSources.CandidateTargets).InstanceId);
+        Assert.True(first.Value.PreviewScope.HasExecutablePreview);
+        Assert.False(first.Value.PreviewScope.DependsOnRandomInputs);
+        Assert.Equal("enemy", Assert.Single(first.Value.PreviewScope.SelectedTargetIds));
+        Assert.Equal(CanonicalJson.ComputeHash(run), first.Value.PreviewScope.SnapshotHash);
+        Assert.Equal(first.Value.PreviewScope, second.Value.PreviewScope with
+        {
+            SelectedTargetIds = first.Value.PreviewScope.SelectedTargetIds
+        });
+        Assert.Empty(first.Value.Procs);
         legal.Verify(service => service.Evaluate(
             run, It.IsAny<CombatState>(), It.IsAny<CombatActionCommand>(), CombatCommandOrigin.PlayerInput),
             Times.Exactly(2));

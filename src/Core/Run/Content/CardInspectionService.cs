@@ -95,6 +95,8 @@ public sealed record CardInspectionResult
     private ImmutableArray<EffectExecutionStep> _previewSteps = [];
 
     public CardInspectionVersion Version { get; init; } = new();
+    public CardPreviewScope PreviewScope { get; init; } = new();
+    public ImmutableArray<CardProcPreview> Procs { get; init; } = [];
     public InspectionDetailLevel Detail { get; init; }
     public string Zone { get; init; } = string.Empty;
     public bool IsInPlayableZone { get; init; }
@@ -213,6 +215,9 @@ public sealed class CardInspectionService : ICardInspectionService
         detail = (InspectionDetailLevel)System.Math.Min((int)detail, (int)request.MaximumDetail);
         if (detail == InspectionDetailLevel.Disabled)
             return Result<CardInspectionResult>.Failure("Card inspection is disabled by the game mode");
+        if (!CardZoneReadModel.Project(run).Zones.SelectMany(zone => zone.Cards)
+                .Any(card => card.CardInstanceId == request.CardInstanceId))
+            return Result<CardInspectionResult>.Failure("Card is not visible under the current zone policy");
         var instance = run.Deck.GetCard(request.CardInstanceId);
         if (instance == null)
             return Result<CardInspectionResult>.Failure($"Card instance not found: {request.CardInstanceId}");
@@ -301,6 +306,11 @@ public sealed class CardInspectionService : ICardInspectionService
                 EngineVersion = run.Determinism.EngineVersion
             },
             Detail = detail,
+            PreviewScope = new() { HasExecutablePreview = preview != null,
+                DependsOnRandomInputs = preview?.Steps.Any(step => step.ChanceRoll != null || step.RandomInputs.Any(input => input.Roll != null)) == true,
+                SelectedTargetIds = request.SelectedTargetIds.ToImmutableArray(), CostOptionId = request.CostOptionId,
+                SnapshotHash = CanonicalJson.ComputeHash(run), CombatSnapshotHash = CanonicalJson.ComputeHash(combat) },
+            Procs = CardProcPreviewProjector.Project(preview?.Steps ?? []),
             Zone = ResolveZone(run.Deck, request.CardInstanceId),
             IsInPlayableZone = isInPlayableZone,
             IsPlayable = isInPlayableZone && resolvedEvaluation.IsLegal,
