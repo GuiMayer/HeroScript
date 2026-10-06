@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using Core.Effects;
+
 namespace Core.Combat.Modifiers;
 
 /// <summary>
@@ -13,6 +16,7 @@ public record ScriptModifierInstance
     public string ContentRevision { get; init; } = string.Empty;
     public string? SourceId { get; init; }
     public int Stacks { get; init; } = 1;
+    public ImmutableArray<StackPayloadLot> PayloadLots { get; init; } = [];
     public int Duration { get; init; } = -1;
     public bool IsActive { get; init; } = true;
 }

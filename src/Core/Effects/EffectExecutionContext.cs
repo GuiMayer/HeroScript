@@ -111,6 +111,7 @@ internal sealed record EffectResultContext
         request.Trigger, request.Components, request.PrefixCommands,
         request.Provenance, request.ContentRevision, request.OwnerEntityId, request.SourceEntityId,
         request.Variables, request.Tags, card = request.Card?.Fingerprint,
+        request.StackPayloadLots, request.Quantities,
         targets = request.SelectedTargetEntityIds
     });
 

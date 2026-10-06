@@ -16,6 +16,8 @@ public record ScriptModifierDefinition
 
     public string ModifierId { get; init; } = string.Empty;
     public StackConsumptionPolicy Consumption { get; init; } = new();
+    public ImmutableArray<StackPayloadParameterDefinition> PayloadParameters { get; init; } = [];
+    public StackPayloadReapplyPolicy PayloadReapply { get; init; }
     public string DisplayName { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public int DefaultStacks { get; init; } = 1;

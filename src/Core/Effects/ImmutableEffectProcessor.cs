@@ -58,6 +58,7 @@ public sealed record ResolvedEffectCommand
         init => _settlements = value?.ToImmutableArray() ?? [];
     }
     public StatusEffectDefinition? StatusDefinition { get; init; }
+    public StackPayloadLot? PayloadLot { get; init; }
     public string? ContentRevision { get; init; }
     public EffectProvenance Provenance { get; init; } = new();
 }
@@ -395,8 +396,12 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 definition.DefaultDuration, definition.DurationReapply);
             if (mergedStacks.IsFailure || mergedDuration.IsFailure)
                 return Result<EffectTargetApplication>.Failure($"Status {statusId} reapplication failed");
+            var payload = StackPayloadPolicies.Merge(existing.PayloadLots, existing.Stacks, effect.PayloadLot,
+                mergedStacks.Value, definition.Stacking, definition.PayloadReapply, definition.PayloadParameters);
+            if (payload.IsFailure) return Result<EffectTargetApplication>.Failure(payload.Error);
             applied = existing with
             {
+                PayloadLots = payload.Value,
                 Stacks = mergedStacks.Value,
                 Duration = mergedDuration.Value
             };
@@ -404,6 +409,9 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
         }
         else
         {
+            var payload = StackPayloadPolicies.Merge([], 0, effect.PayloadLot, validatedStacks.Value,
+                definition.Stacking, definition.PayloadReapply, definition.PayloadParameters);
+            if (payload.IsFailure) return Result<EffectTargetApplication>.Failure(payload.Error);
             var allocated = context.AllocateId($"status:{target.InstanceId}:{statusId}");
             context = allocated.Context;
             applied = new StatusEffectInstance
@@ -415,6 +423,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
                 SourceId = effect.SourceEntityId,
                 ContentRevision = effect.ContentRevision ?? state.Determinism.ContentRevision,
                 Stacks = validatedStacks.Value,
+                PayloadLots = payload.Value,
                 Duration = incomingDuration,
                 AppliedAt = context.LogicalTimestamp.UtcDateTime,
                 TurnApplied = state.CurrentTurn,

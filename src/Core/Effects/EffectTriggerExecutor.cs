@@ -29,6 +29,9 @@ public sealed record EffectTriggerExecutionRequest
     public ImmutableHashSet<string> Tags { get; init; } = ImmutableHashSet<string>.Empty;
     public ImmutableArray<ResolvedEffectCommand> PrefixCommands { get; init; } = [];
     public ImmutableArray<EffectTriggerDefinition> Components { get; init; } = [];
+    public ImmutableArray<StackPayloadLot> StackPayloadLots { get; init; } = [];
+    public ImmutableSortedDictionary<string, CalculationQuantity> Quantities { get; init; } =
+        ImmutableSortedDictionary<string, CalculationQuantity>.Empty.WithComparers(StringComparer.Ordinal);
     public IReadOnlyList<string> SelectedTargetEntityIds
     {
         get => _selectedTargetEntityIds;
@@ -242,6 +245,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     CalculationResult? calculation = null;
                     ImmutableArray<EffectApplicationRecord> appliedRecords = [];
                     ImmutableArray<ResolvedEffectNumericParameter> resolvedParameters = [];
+                    ImmutableArray<CalculationResult> payloadCalculations = [];
                     if (applies)
                     {
                         var value = ResolveValue(request with { Combat = current, Run = currentRun }, effect, targetId, variables,
@@ -249,8 +253,18 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         if (value.IsFailure) return Result.Failure(value.Error);
                         calculation = value.Value.Calculation;
                         resolvedParameters = value.Value.Parameters;
-                        var status = ResolveAppliedStatus(effect, request.ContentRevision);
+                        payloadCalculations = value.Value.PayloadCalculations;
+                        work += value.Value.PayloadWork;
+                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                        var status = ResolveAppliedStatus(effect, request.ContentRevision, request.Run?.ConfigName);
                         if (status.IsFailure) return Result.Failure(status.Error);
+                        var payload = CapturePayload(request with { Combat = current, Run = currentRun,
+                            Provenance = request.Provenance with { ComponentId = activeTriggerId } }, value.Value.Definition,
+                            status.Value, targetId, identity.ImpactId, variables);
+                        if (payload.IsFailure) return Result.Failure(payload.Error);
+                        payloadCalculations = payloadCalculations.AddRange(payload.Value.Calculations);
+                        work += payload.Value.Lot?.Parameters.Count ?? 0;
+                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                         var command = new ResolvedEffectCommand
                         {
                             EffectInstanceId = id, Definition = value.Value.Definition, SourceEntityId = request.SourceEntityId,
@@ -259,6 +273,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             TargetEntityIds = [targetId], ResolvedValue = value.Value.Value,
                             Calculation = value.Value.Calculation, Settlements = value.Value.Settlements,
                             StatusDefinition = status.Value,
+                            PayloadLot = payload.Value.Lot,
                             ContentRevision = request.ContentRevision,
                             Provenance = request.Provenance with { ComponentId = activeTriggerId }
                         };
@@ -285,6 +300,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         if (calculation != null) calculations.Add(calculation);
                         calculations.AddRange(resolvedParameters.Where(parameter => parameter.Parameter != EffectNumericParameter.Amount)
                             .Select(parameter => parameter.Calculation));
+                        calculations.AddRange(payloadCalculations);
                     }
                     steps.Add(new()
                     {
@@ -295,7 +311,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
                         ChanceRoll = roll, ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
-                        Calculation = calculation, Parameters = resolvedParameters, Applications = appliedRecords,
+                        Calculation = calculation, Parameters = resolvedParameters, PayloadCalculations = payloadCalculations,
+                        Applications = appliedRecords,
                         StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current),
                         RunBeforeHash = runBefore, RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
@@ -327,7 +344,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
     private Result<StatusEffectDefinition?> ResolveAppliedStatus(
         EffectDefinition effect,
-        string revision)
+        string revision, string? configName)
     {
         if (effect.Type != EffectType.APPLY_STATUS)
             return Result<StatusEffectDefinition?>.Success(null);
@@ -336,13 +353,51 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (_contentRuntimes == null || string.IsNullOrWhiteSpace(revision))
             return Result<StatusEffectDefinition?>.Failure(
                 $"Trigger cannot resolve applied status {effect.StatusId} without pinned content");
-        var runtime = _contentRuntimes.Resolve(revision);
+        var runtime = _contentRuntimes.Resolve(revision, configName);
         if (runtime.IsFailure)
             return Result<StatusEffectDefinition?>.Failure(runtime.Error);
         var definition = runtime.Value.GetDefinition<StatusEffectDefinition>("status-effects", effect.StatusId);
         return definition.IsFailure
             ? Result<StatusEffectDefinition?>.Failure(definition.Error)
             : Result<StatusEffectDefinition?>.Success(definition.Value);
+    }
+
+    private Result<StackPayloadCapture> CapturePayload(EffectTriggerExecutionRequest request, EffectDefinition effect,
+        StatusEffectDefinition? status, string targetId, string impactId, IReadOnlyDictionary<string, float> variables)
+    {
+        var definitions = status?.PayloadParameters ?? [];
+        var policy = status?.PayloadReapply ?? StackPayloadReapplyPolicy.PreserveLots;
+        var stacks = effect.StatusStacks ?? status?.DefaultStacks ?? 1;
+        if (effect.Type == EffectType.APPLY_MODIFIER)
+        {
+            if (_contentRuntimes == null) return Result<StackPayloadCapture>.Failure("Pinned modifier runtime is unavailable");
+            var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run?.ConfigName);
+            if (runtime.IsFailure) return Result<StackPayloadCapture>.Failure(runtime.Error);
+            var modifier = runtime.Value.GetDefinition<Core.Combat.Modifiers.ScriptModifierDefinition>("modifiers", effect.ModifierId!);
+            if (modifier.IsFailure) return Result<StackPayloadCapture>.Failure(modifier.Error);
+            definitions = modifier.Value.PayloadParameters;
+            policy = modifier.Value.PayloadReapply;
+            stacks = effect.ModifierStacks ?? modifier.Value.DefaultStacks;
+        }
+        if (!definitions.IsEmpty)
+        {
+            if (_contentRuntimes == null || request.Run?.ResolvedMode == null)
+                return Result<StackPayloadCapture>.Failure("Payload application requires a configured pinned runtime");
+            var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
+            if (runtime.IsFailure) return Result<StackPayloadCapture>.Failure(runtime.Error);
+            foreach (var parameter in definitions)
+            {
+                var pipeline = CalculationResolver.ResolvePipeline(effect with
+                { CalculationChannel = parameter.Numeric.Channel, CalculationPipelineId = parameter.Numeric.PipelineId }, request.Run, runtime.Value);
+                if (pipeline.IsFailure) return Result<StackPayloadCapture>.Failure(pipeline.Error);
+                if (pipeline.Value.Stages.IsEmpty || pipeline.Value.UnitId != parameter.Numeric.UnitId ||
+                    parameter.Numeric.StageIds.Any(id => !pipeline.Value.Stages.Any(stage => stage.StageId == id)))
+                    return Result<StackPayloadCapture>.Failure("Payload application requires a compatible staged profile");
+            }
+        }
+        var resolver = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences, _allowUnconfiguredCalculations);
+        return new StackPayloadResolver(resolver, _calculations ?? new CalculationEngine(_formulas))
+            .Capture(request, effect, definitions, policy, targetId, stacks, impactId, variables);
     }
 
     private Result<ResolvedAmount> ResolveValue(
@@ -361,30 +416,55 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             _allowUnconfiguredCalculations);
         var calculationId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{calculationSuffix}";
         var parameters = ImmutableArray.CreateBuilder<ResolvedEffectNumericParameter>();
+        var payloadTraces = ImmutableArray.CreateBuilder<CalculationResult>();
+        var payloadWork = 0;
         var bound = effect;
         ResolvedEffectAmount? amountOverride = null;
         foreach (var definition in effect.Parameters.OrderBy(parameter => parameter.Parameter))
         {
-            var result = resolver.ResolveParameter(effect, definition, $"{calculationId}:{definition.Parameter}", context);
+            var parameterContext = context;
+            if (definition.InputQuantityId is { } inputId)
+            {
+                CalculationQuantity quantity;
+                if (inputId.StartsWith("payload.", StringComparison.Ordinal))
+                {
+                    payloadWork += request.StackPayloadLots.Length + 1;
+                    if (payloadWork > EffectExecutionLimits.MaximumSteps) return Result<ResolvedAmount>.Failure("Payload execution limit exceeded");
+                    var evaluated = new StackPayloadResolver(resolver, _calculations ?? new CalculationEngine(_formulas))
+                        .Evaluate(request, targetId, inputId[8..], $"{calculationId}:input:{definition.Parameter}");
+                    if (evaluated.IsFailure) return Result<ResolvedAmount>.Failure(evaluated.Error);
+                    quantity = evaluated.Value.Quantity;
+                    payloadTraces.AddRange(evaluated.Value.Calculations);
+                }
+                else if (!request.Quantities.TryGetValue(inputId, out quantity!))
+                    return Result<ResolvedAmount>.Failure($"Unknown input quantity: {inputId}");
+                parameterContext = context with { InputQuantity = quantity };
+            }
+            var result = resolver.ResolveParameter(effect, definition, $"{calculationId}:{definition.Parameter}", parameterContext);
             if (result.IsFailure) return Result<ResolvedAmount>.Failure(result.Error);
             var parameter = new ResolvedEffectNumericParameter { Parameter = definition.Parameter, Calculation = result.Value.Calculation! };
             var binding = EffectNumericParameters.Bind(bound, parameter);
             if (binding.IsFailure) return Result<ResolvedAmount>.Failure(binding.Error);
             bound = binding.Value;
             parameters.Add(parameter);
-            if (definition.Parameter == EffectNumericParameter.Amount) amountOverride = result.Value;
+            if (definition.Parameter == EffectNumericParameter.Amount)
+            {
+                amountOverride = result.Value;
+                context = parameterContext;
+            }
         }
         var resolved = amountOverride == null ? resolver.Resolve(effect, calculationId, context)
             : Result<ResolvedEffectAmount>.Success(amountOverride);
         if (resolved.IsFailure) return Result<ResolvedAmount>.Failure(resolved.Error);
         if (resolved.Value.Calculation == null || resolved.Value.Pipeline == null)
-            return Result<ResolvedAmount>.Success(new(resolved.Value.Value, null, [], bound, parameters.ToImmutable()));
+            return Result<ResolvedAmount>.Success(new(resolved.Value.Value, null, [], bound, parameters.ToImmutable(),
+                payloadTraces.ToImmutable(), payloadWork));
         var planned = _settlements.Plan(resolved.Value.Calculation, resolved.Value.Pipeline,
             context with { Tags = CalculationResolver.NormalizeTags(effect, context.Tags), Pipeline = resolved.Value.Pipeline });
         return planned.IsFailure
             ? Result<ResolvedAmount>.Failure(planned.Error)
             : Result<ResolvedAmount>.Success(new(resolved.Value.Value, resolved.Value.Calculation,
-                planned.Value.ToImmutableArray(), bound, parameters.ToImmutable()));
+                planned.Value.ToImmutableArray(), bound, parameters.ToImmutable(), payloadTraces.ToImmutable(), payloadWork));
     }
 
     private Result<bool> EvaluateCondition(
@@ -424,5 +504,6 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         CalculationResult? Calculation,
         ImmutableArray<ResolvedCalculationSettlement> Settlements,
         EffectDefinition Definition,
-        ImmutableArray<ResolvedEffectNumericParameter> Parameters);
+        ImmutableArray<ResolvedEffectNumericParameter> Parameters,
+        ImmutableArray<CalculationResult> PayloadCalculations, int PayloadWork);
 }

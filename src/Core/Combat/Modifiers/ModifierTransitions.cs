@@ -16,7 +16,7 @@ public static class ModifierTransitions
 {
     public static Result<ModifierTransition> Apply(RunState run, ScriptModifierDefinition definition,
         GameplayOwner owner, string? sourceId, int? stacks = null, int? duration = null, Guid? allocatedId = null,
-        string? contentRevision = null)
+        string? contentRevision = null, StackPayloadLot? payloadLot = null)
     {
         var revision = contentRevision ?? run.Determinism.ContentRevision;
         if (string.IsNullOrWhiteSpace(definition.ModifierId) || !Enum.IsDefined(owner.Kind) ||
@@ -37,16 +37,22 @@ public static class ModifierTransitions
             var merged = InstancePolicies.Stacks(existing.Stacks, count, definition.MaxStacks, definition.Stacking);
             var timed = InstancePolicies.Duration(existing.Duration, remaining, definition.DefaultDuration, definition.DurationReapply);
             if (merged.IsFailure || timed.IsFailure) return Result<ModifierTransition>.Failure("Modifier reapplication failed");
-            var updated = existing with { Stacks = merged.Value, Duration = timed.Value };
+            var payload = StackPayloadPolicies.Merge(existing.PayloadLots, existing.Stacks, payloadLot, merged.Value,
+                definition.Stacking, definition.PayloadReapply, definition.PayloadParameters);
+            if (payload.IsFailure) return Result<ModifierTransition>.Failure(payload.Error);
+            var updated = existing with { Stacks = merged.Value, Duration = timed.Value, PayloadLots = payload.Value };
             return Result<ModifierTransition>.Success(new(run with { Modifiers = run.Modifiers.Replace(existing, updated) }, updated));
         }
+        var initialPayload = StackPayloadPolicies.Merge([], 0, payloadLot, validated.Value,
+            definition.Stacking, definition.PayloadReapply, definition.PayloadParameters);
+        if (initialPayload.IsFailure) return Result<ModifierTransition>.Failure(initialPayload.Error);
         var allocation = run.Determinism.AllocateId($"modifier:{owner.Kind}:{owner.Id}:{definition.ModifierId}");
         var instance = new ScriptModifierInstance
         {
             InstanceId = allocatedId ?? allocation.Value, ModifierId = definition.ModifierId, Definition = definition,
             Owner = owner, OwnerId = owner.Kind == GameplayOwnerKind.Run ? $"run:{owner.Id}" : owner.Id,
             ContentRevision = revision, SourceId = sourceId,
-            Stacks = validated.Value, Duration = remaining
+            Stacks = validated.Value, Duration = remaining, PayloadLots = initialPayload.Value
         };
         return Result<ModifierTransition>.Success(new(run with
         {

@@ -14,6 +14,7 @@ public sealed record EffectNumericParameterDefinition
     public EffectNumericParameter Parameter { get; init; }
     public float? FlatValue { get; init; }
     public string? FormulaValue { get; init; }
+    public string? InputQuantityId { get; init; }
     public string Channel { get; init; } = string.Empty;
     public string? PipelineId { get; init; }
     public string UnitId { get; init; } = string.Empty;

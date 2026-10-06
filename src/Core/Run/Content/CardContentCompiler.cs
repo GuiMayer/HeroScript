@@ -85,8 +85,25 @@ public sealed class CardContentCompiler : ICardContentCompiler
             if (validation.IsFailure)
                 return Result<CompiledCardDefinition>.Failure(validation.Error);
         }
+        var bindingErrors = new List<string>();
+        void InspectBindings(EffectDefinition effect, string path)
+            {
+                foreach (var binding in effect.PayloadBindings.Where(binding => binding.CardEffectComponentId != null))
+                {
+                    var referenced = expanded.OfType<CardEffectComponentDefinition>()
+                        .SingleOrDefault(item => item.ComponentId == binding.CardEffectComponentId);
+                    var amount = referenced?.Effect.Parameters.SingleOrDefault(item => item.Parameter == EffectNumericParameter.Amount);
+                    if (referenced == null || amount?.InputQuantityId != null ||
+                        (amount?.FlatValue ?? referenced.Effect.FlatValue) == null &&
+                        string.IsNullOrWhiteSpace(amount?.FormulaValue ?? referenced.Effect.FormulaValue))
+                        bindingErrors.Add($"{path}: payload binding requires a numeric effective card component: {binding.CardEffectComponentId}");
+                }
+            }
         var actionErrors = EffectDefinitionValidator.Validate(expanded.OfType<CardEffectComponentDefinition>()
-            .Select(component => component.Effect));
+            .Select(component => component.Effect), InspectBindings);
+        foreach (var trigger in expanded.OfType<CardTriggerComponentDefinition>())
+            actionErrors = actionErrors.AddRange(EffectDefinitionValidator.Validate(trigger.Effects, InspectBindings));
+        if (bindingErrors.Count > 0) return Result<CompiledCardDefinition>.Failure(string.Join("; ", bindingErrors));
         if (!actionErrors.IsEmpty)
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId}: {string.Join("; ", actionErrors)}");
         if (expanded.OfType<CardTargetingComponentDefinition>().Count() > 1)

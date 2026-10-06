@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Combat.Models;
 using Core.Combat.Modifiers;
+using Core.Calculations;
 using Core.Content;
 using Core.Effects;
 using Core.Math;
@@ -13,6 +14,35 @@ namespace Core.Tests.Content;
 
 public sealed class GameplayContentValidationTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void PayloadPublicationRequiresStagedProfileAndCompatibleUnit(bool staged, bool matchingUnit)
+    {
+        var result = Validate(("calculation-pipelines", "payload", new CalculationPipelineDefinition
+        { PipelineId = "payload", Channel = "magnitude", Stages = staged ? [new() { StageId = "source" }] : [],
+            Buckets = [new() { BucketId = "base", StageId = staged ? "source" : null }] }),
+            ("status-effects", "charges", new StatusEffectDefinition { StatusId = "charges", PayloadParameters = [new()
+            { ParameterId = "potency", Numeric = new() { Parameter = EffectNumericParameter.Amount, FlatValue = 3,
+                Channel = "magnitude", PipelineId = "payload", UnitId = matchingUnit ? "scalar" : "cards" } }] }));
+        Assert.Equal(staged && matchingUnit, result.IsValid);
+        if (!result.IsValid) Assert.Contains(result.Errors, error => error.Contains("staged calculation profile"));
+    }
+
+    [Fact]
+    public void DynamicPayloadRejectsHistoricalVariablesAndUnknownBindingsAtPublication()
+    {
+        var result = Validate(("modifiers", "charges", new ScriptModifierDefinition { ModifierId = "charges", PayloadParameters = [new()
+        { ParameterId = "potency", Evaluation = StackParameterEvaluation.Dynamic, Numeric = new()
+        { Parameter = EffectNumericParameter.Amount, FormulaValue = "results.hit.target.last.applied_change",
+            Channel = "magnitude", PipelineId = "payload", UnitId = "scalar" } }] }),
+            ("actions", "apply", new ActionDefinition { ActionId = "apply", Effects = [new()
+            { Type = EffectType.APPLY_MODIFIER, ModifierId = "charges", PayloadBindings = [new() { ParameterId = "missing", FlatValue = 1 }] }] }));
+        Assert.Contains(result.Errors, error => error.Contains("Invalid payload parameter"));
+        Assert.Contains(result.Errors, error => error.Contains("unknown parameter"));
+    }
+
     [Fact]
     public void UnsupportedChildIsRejectedEvenWhenParentNeverExecutes()
     {

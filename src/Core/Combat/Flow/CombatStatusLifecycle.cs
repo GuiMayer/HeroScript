@@ -98,6 +98,7 @@ public sealed class CombatStatusLifecycle : ICombatStatusLifecycle
                         OwnerEntityId = status.TargetId,
                         SourceEntityId = status.SourceId ?? status.TargetId,
                         ContentRevision = status.ContentRevision ?? current.Determinism.ContentRevision,
+                        StackPayloadLots = liveStatus.PayloadLots,
                         Variables = new Dictionary<string, float>(StringComparer.Ordinal)
                         {
                             ["stacks"] = liveStatus.Stacks,

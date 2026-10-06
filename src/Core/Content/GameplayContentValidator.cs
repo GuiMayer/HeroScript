@@ -101,6 +101,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<StatusEffectDefinition>("status-effects", (path, item) =>
         {
             if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
+            Payloads(path, item.PayloadParameters, item.PayloadReapply);
             InstancePolicies(path, item.DefaultStacks, item.MaxStacks, item.DefaultDuration, item.Stacking, item.DurationReapply);
             if (!Enum.IsDefined(item.DurationTickBoundary)) Error(path, "invalid durationTickBoundary");
             Triggers(path, item.Triggers, relic: false);
@@ -118,6 +119,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<ScriptModifierDefinition>("modifiers", (path, item) =>
         {
             if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
+            Payloads(path, item.PayloadParameters, item.PayloadReapply);
             InstancePolicies(path, item.DefaultStacks, item.MaxStacks, item.DefaultDuration, item.Stacking, item.DurationReapply);
             if (!Enum.IsDefined(item.DurationBoundary)) Error(path, "invalid modifier durationBoundary");
             Influences(path, item.Influences);
@@ -199,6 +201,25 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             if (effect.Dispel != null)
                 foreach (var statusId in effect.Dispel.StatusIds) Reference(address, "status-effects", statusId, required: true);
             Formula(address, effect.FormulaValue);
+            ImmutableArray<StackPayloadParameterDefinition> payloadDefinitions = [];
+            if (effect.Type == EffectType.APPLY_STATUS && effect.StatusId is { } appliedStatusId)
+            {
+                var status = runtime.GetDefinition<StatusEffectDefinition>("status-effects", appliedStatusId);
+                if (status.IsSuccess) payloadDefinitions = status.Value.PayloadParameters;
+            }
+            if (effect.Type == EffectType.APPLY_MODIFIER && effect.ModifierId is { } modifierId)
+            {
+                var modifier = runtime.GetDefinition<ScriptModifierDefinition>("modifiers", modifierId);
+                if (modifier.IsSuccess) payloadDefinitions = modifier.Value.PayloadParameters;
+            }
+            foreach (var binding in effect.PayloadBindings)
+            {
+                var schema = payloadDefinitions.SingleOrDefault(item => item.ParameterId == binding.ParameterId);
+                if (schema == null) Error(address, "payload binding references an unknown parameter");
+                if (schema?.Evaluation == StackParameterEvaluation.Dynamic && StackPayloadPolicies.HistoricalFormula(binding.FormulaValue))
+                    Error(address, "dynamic payload cannot depend on historical result variables");
+                Formula(address, binding.FormulaValue);
+            }
             foreach (var parameter in effect.Parameters)
             {
                 Formula(address, parameter.FormulaValue);
@@ -212,6 +233,22 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             }
             Formula(address, effect.Condition);
         }).Select(error => $"{path}/{error}"));
+    }
+
+    private void Payloads(string path, ImmutableArray<StackPayloadParameterDefinition> definitions, StackPayloadReapplyPolicy policy)
+    {
+        var valid = StackPayloadPolicies.ValidateDefinitions(definitions, policy);
+        if (valid.IsFailure) Error(path, valid.Error);
+        foreach (var definition in definitions)
+        {
+            var numeric = definition.Numeric;
+            Formula(path, numeric.FormulaValue);
+            Reference(path, "calculation-pipelines", numeric.PipelineId, required: true);
+            var pipeline = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", numeric.PipelineId ?? "");
+            if (pipeline.IsSuccess && (pipeline.Value.Stages.IsEmpty || pipeline.Value.Channel != numeric.Channel ||
+                pipeline.Value.UnitId != numeric.UnitId || numeric.StageIds.Any(id => !pipeline.Value.Stages.Any(stage => stage.StageId == id))))
+                Error(path, "payload parameter requires a compatible staged calculation profile");
+        }
     }
 
     private void RunBoundaryEffects(string path, IReadOnlyList<EffectDefinition> effects)

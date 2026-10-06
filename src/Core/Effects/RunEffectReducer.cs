@@ -60,7 +60,8 @@ public static class RunEffectReducer
                         CurrentStacks = System.Math.Max(0, item.Stacks - decrement),
                         Removed = item.Stacks <= decrement
                     }).ToImmutableArray();
-                    var remaining = run.Modifiers.Select(item => removed.Contains(item) ? item with { Stacks = item.Stacks - decrement } : item)
+                    var remaining = run.Modifiers.Select(item => removed.Contains(item) ? item with
+                        { Stacks = item.Stacks - decrement, PayloadLots = StackPayloadPolicies.RemoveOldest(item.PayloadLots, decrement) } : item)
                         .Where(item => item.Stacks > 0).ToImmutableArray();
                     return Result<RunEffectApplication>.Success(new(run with { Modifiers = remaining }, record with
                     {
@@ -92,7 +93,7 @@ public static class RunEffectReducer
             var definition = runtime.Value.GetDefinition<ScriptModifierDefinition>("modifiers", effect.ModifierId);
             if (definition.IsFailure) return Result<RunEffectApplication>.Failure(definition.Error);
             var applied = ModifierTransitions.Apply(run, definition.Value, owner, command.SourceEntityId,
-                effect.ModifierStacks, effect.ModifierDuration, contentRevision: revision);
+                effect.ModifierStacks, effect.ModifierDuration, contentRevision: revision, payloadLot: command.PayloadLot);
             var previousStacks = applied.IsSuccess
                 ? run.Modifiers.FirstOrDefault(item => item.InstanceId == applied.Value.Instance.InstanceId)?.Stacks ?? 0
                 : 0;

@@ -47,6 +47,7 @@ public record StatusEffectInstance
     /// Número atual de stacks
     /// </summary>
     public int Stacks { get; init; } = 1;
+    public ImmutableArray<Core.Effects.StackPayloadLot> PayloadLots { get; init; } = [];
     
     /// <summary>
     /// Turnos restantes (-1 = permanente)

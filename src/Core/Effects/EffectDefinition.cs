@@ -41,6 +41,7 @@ public record EffectDefinition
     /// <summary>Optional unique formula-safe alias for typed outputs within an action.</summary>
     public string? OutputId { get; init; }
     public ImmutableArray<EffectNumericParameterDefinition> Parameters { get; init; } = [];
+    public ImmutableArray<StackPayloadBinding> PayloadBindings { get; init; } = [];
     
     /// <summary>
     /// Tipo do efeito

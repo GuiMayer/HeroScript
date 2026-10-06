@@ -21,6 +21,7 @@ public sealed record EffectExecutionStep
     public EffectProvenance Provenance { get; init; } = new();
     public CalculationResult? Calculation { get; init; }
     public ImmutableArray<ResolvedEffectNumericParameter> Parameters { get; init; } = [];
+    public ImmutableArray<CalculationResult> PayloadCalculations { get; init; } = [];
     public ImmutableArray<EffectApplicationRecord> Applications { get; init; } = [];
     public string StateBeforeHash { get; init; } = string.Empty;
     public string StateAfterHash { get; init; } = string.Empty;

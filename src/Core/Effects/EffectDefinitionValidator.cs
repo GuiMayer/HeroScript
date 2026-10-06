@@ -70,7 +70,11 @@ public static class EffectDefinitionValidator
                 if (string.IsNullOrWhiteSpace(parameter.UnitId) || string.IsNullOrWhiteSpace(parameter.Channel))
                     Error("numeric parameter requires channel and unitId");
                 if (parameter.FlatValue is { } number && !float.IsFinite(number)) Error("numeric parameter must be finite");
-                if (parameter.FlatValue == null && string.IsNullOrWhiteSpace(parameter.FormulaValue)) Error("numeric parameter requires a value");
+                if (parameter.InputQuantityId == null && parameter.FlatValue == null && string.IsNullOrWhiteSpace(parameter.FormulaValue))
+                    Error("numeric parameter requires a value or inputQuantityId");
+                if (parameter.InputQuantityId != null && (string.IsNullOrWhiteSpace(parameter.InputQuantityId) ||
+                    parameter.FlatValue != null || !string.IsNullOrWhiteSpace(parameter.FormulaValue)))
+                    Error("input quantity cannot coexist with a recalculated base");
                 var conversion = Core.Calculations.CalculationValuePolicy.Validate(parameter.Conversion);
                 if (conversion.IsFailure) Error(conversion.Error);
                 if (parameter.Parameter != EffectNumericParameter.Amount && !parameter.Conversion.RequireInteger)
@@ -85,6 +89,16 @@ public static class EffectDefinitionValidator
                 if (parameter.StageIds.Any(string.IsNullOrWhiteSpace) || parameter.StageIds.Distinct(StringComparer.Ordinal).Count() != parameter.StageIds.Length)
                     Error("numeric parameter stage IDs must be unique nonempty values");
             }
+            if (!effect.PayloadBindings.IsEmpty && effect.Type is not (EffectType.APPLY_STATUS or EffectType.APPLY_MODIFIER))
+                Error("payload bindings require an instance application effect");
+            if (effect.PayloadBindings.Select(binding => binding.ParameterId).Distinct(StringComparer.Ordinal).Count() != effect.PayloadBindings.Length)
+                Error("payload bindings must be unique");
+            foreach (var binding in effect.PayloadBindings)
+                if (!StackPayloadPolicies.SafeId(binding.ParameterId) || binding.FlatValue is { } number && !float.IsFinite(number) ||
+                    binding.CardEffectComponentId != null && (string.IsNullOrWhiteSpace(binding.CardEffectComponentId) ||
+                        binding.FlatValue != null || !string.IsNullOrWhiteSpace(binding.FormulaValue)) ||
+                    binding.CardEffectComponentId == null && binding.FlatValue == null && string.IsNullOrWhiteSpace(binding.FormulaValue))
+                    Error("invalid or ambiguous payload binding");
             if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && effect.FlatValue < 0)
                 Error("resource aliases require a non-negative amount");
             if (effect.Target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&

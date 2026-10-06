@@ -34,7 +34,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 1 — Alvo derrotado | Concluída | Core 1.153 / API 181, sem falhas; 18 regressões novas. |
 | 2 — Contexto e fatos | Concluída | Core 1.162 / API 181, sem falhas; 9 regressões novas. |
 | 3 — Parâmetros e cálculo | Concluída | Core 1.185 / API 181, sem falhas; 23 regressões novas. |
-| 4 — Payloads e consumo | Parcial — 4a | Core 1.198 / API 181, sem falhas; 13 regressões novas. Payloads/lotes pendentes. |
+| 4 — Payloads e consumo | Concluída | Core 1.226 / API 181, sem falhas; 28 regressões novas na 4b, além das 13 da 4a. |
 | 5 — Condensação | Pendente | |
 | 6 — Transformações | Pendente | |
 | 7 — Afinidades/modificadores | Pendente | |
@@ -97,4 +97,19 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 4b: persistir payloads Snapshot/Dynamic em lotes dentro das instâncias existentes de status/modifier e integrar os bindings/capturas numéricas da etapa 3 aos adaptadores da etapa 4a. Condensação continua pendente até essas bases e a etapa 5 serem verificadas; não há operação de condensação anunciada como executável nesta entrega.
+Etapa 5: integrar seleção, avaliação, consumo e ativação por receita em um único proc/transação. As bases da etapa 4 estão implementadas, mas ainda não existe um efeito de condensação executável.
+
+## Etapa 4b — payloads e lotes
+
+- Status/modifier declaram payloadParameters com evaluation Snapshot/Dynamic por parâmetro, perfil/unidade/stages e política de origem ausente. Aplicação exige runtime revisionado e profile compatível habilitado no modo, inclusive para Dynamic.
+- payloadBindings copiam flat/formula ou base do componente da carta efetiva. Intensidade e upgrades não são reconstruídos a partir de uma carta alterada posteriormente.
+- Snapshot guarda quantity capturada sem settlements. Dynamic preserva a base e influências constitutivas da carta, mas reavalia o mundo atual. Não congela atores/run nem aceita resultados históricos como fórmula dinâmica.
+- payloadReapply PreserveLots mantém intensidades distintas; limites acrescentam apenas os stacks aceitos. Replace/ReplaceAll substituem lotes. Duração continua compartilhada pela instância, sob a política existente.
+- Lotes vivem nas stores canônicas. Remoção parcial de modifiers reduz primeiro os lotes mais antigos; expiração e consumo integral removem a instância inteira. Referências de consumo incluem os lotes e os validam por fingerprint completo.
+- inputQuantityId payload.<parameterId> fornece a soma ponderada por stacks aos parâmetros de efeitos comuns. Soma usa a camada numérica; unidade/revisão/stages incompatíveis falham. Nenhuma multiplicação implícita pela duração ou ativação por stack.
+- Capturas, avaliações e agregações aparecem em payloadCalculations e cálculos do batch. Entram nos limites/hashes/identidade. Lifecycle fornece lotes vivos ao executor comum.
+- Limites: 16 parâmetros por definição, 256 lotes por instância, orçamento global de 4.096 passos. Excesso não trunca contribuições.
+- 28 regressões novas: Snapshot/Dynamic, origem ausente/derrotada, upgrades/base efetiva, lotes heterogêneos/caps/replacement, partial removal, lifecycle/expiração, rejeição de scaling repetido/unidades/revisões, publicação/bindings, rollback, dez execuções e round-trip serializado.
+- Versão da engine: 11. Sem exclusão de saves nem alteração de LEGACY_GAME_DESIGN_CONCEPTS.md. Grants de preparação sem contexto de captura não inventam payloads; são rejeitados se a definição exige um lote.
+- Contrato atualizado: [accumulated-stacks.md](../systems/effects/accumulated-stacks.md).
+- Etapa 4a: commit 3a20dfa. Condensação por receita permanece na etapa 5.

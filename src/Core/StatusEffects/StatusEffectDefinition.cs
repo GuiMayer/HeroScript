@@ -23,6 +23,8 @@ public record StatusEffectDefinition
     /// </summary>
     public string StatusId { get; init; } = string.Empty;
     public StackConsumptionPolicy Consumption { get; init; } = new();
+    public ImmutableArray<StackPayloadParameterDefinition> PayloadParameters { get; init; } = [];
+    public StackPayloadReapplyPolicy PayloadReapply { get; init; }
     
     /// <summary>
     /// Nome para exibição

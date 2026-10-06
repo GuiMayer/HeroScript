@@ -40,6 +40,7 @@ public sealed record AccumulatedStackReference
     public string? SourceEntityId { get; init; }
     public ImmutableArray<string> Tags { get; init; } = [];
     public string StateFingerprint { get; init; } = string.Empty;
+    public ImmutableArray<StackPayloadLot> PayloadLots { get; init; } = [];
 }
 
 public sealed record StackConsumptionPlan
@@ -136,7 +137,7 @@ public static class AccumulatedStackTransitions
                 InstanceId = status.InstanceId, DefinitionId = status.StatusId, ContentRevision = status.ContentRevision,
                 Stacks = status.Stacks, Duration = status.Duration, SourceEntityId = status.SourceId,
                 Tags = status.Definition.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToImmutableArray(),
-                StateFingerprint = CanonicalJson.ComputeHash(status)
+                StateFingerprint = CanonicalJson.ComputeHash(status), PayloadLots = status.PayloadLots
             });
         }
         foreach (var modifier in run?.Modifiers.Where(modifier => modifier.IsActive) ?? [])
@@ -153,7 +154,7 @@ public static class AccumulatedStackTransitions
                 DefinitionId = modifier.ModifierId, ContentRevision = modifier.ContentRevision,
                 Stacks = modifier.Stacks, Duration = modifier.Duration, SourceEntityId = modifier.SourceId,
                 Tags = modifier.Definition.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToImmutableArray(),
-                StateFingerprint = CanonicalJson.ComputeHash(modifier)
+                StateFingerprint = CanonicalJson.ComputeHash(modifier), PayloadLots = modifier.PayloadLots
             });
         }
         var items = references.ToImmutable();
