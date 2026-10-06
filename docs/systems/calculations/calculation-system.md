@@ -2,7 +2,7 @@
 
 **Status:** implementado, obrigatório para efeitos numéricos e compartilhado por todas as fontes de gameplay
 
-**Atualizado em:** 2026-09-12
+**Atualizado em:** 2026-10-06
 
 ## Propósito
 
@@ -16,11 +16,13 @@ determinístico, auditável e sem mutação do snapshot.
 | Componente | Responsabilidade |
 | --- | --- |
 | `CalculationResolver` | Resolve fórmula/valor base, pipeline e influências. |
-| `CalculationEngine` | Aplica buckets em ordem estável. |
+| `CalculationEngine` | Aplica buckets em ordem estável e distribui quantidades capturadas sem interpretar gameplay. |
 | `ICalculationInfluenceProvider` | Projeta uma fonte em contribuições comuns. |
 | `CalculationSettlementPlanner` | Converte consumo calculado em mutações posteriores de recursos. |
 | `CalculationResult` | Valor final, base trace, buckets e fingerprint. |
 | `ContextualInfluenceDefinition` | Componente JSON reutilizável por status, relíquias, modo, encontro e modifiers. |
+
+`ICalculationEngine.Distribute` divide um orçamento capturado, conserva seu total e mantém os receipts de stages. O contrato e seus limites estão em [distribuição de quantidades](quantity-distribution.md). É a base numérica da etapa 8a; a ligação automática com multi-hit no executor ainda não está implementada.
 
 ## Pipeline
 

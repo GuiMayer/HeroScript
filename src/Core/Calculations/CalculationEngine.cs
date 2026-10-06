@@ -10,13 +10,15 @@ public interface ICalculationEngine
     Result<CalculationResult> Calculate(
         CalculationRequest request,
         CalculationPipelineDefinition pipeline);
+
+    Result<CalculationDistributionResult> Distribute(CalculationDistributionRequest request);
 }
 
 /// <summary>
 /// Generic deterministic bucket reducer. It has no knowledge of damage,
 /// health, cards, actors or any particular game rule.
 /// </summary>
-public sealed class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null) : ICalculationEngine
+public sealed partial class CalculationEngine(IRuntimeFormulaEvaluator? formulas = null) : ICalculationEngine
 {
     public Result<CalculationResult> Calculate(
         CalculationRequest request,

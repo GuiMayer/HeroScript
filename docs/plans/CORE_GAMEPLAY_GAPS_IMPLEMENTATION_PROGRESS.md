@@ -38,7 +38,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
 | 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
 | 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
-| 8 — Multi-hit | Pendente | |
+| 8 — Multi-hit | Em andamento — base numérica 8a concluída; executor pendente | Core 1.423 / API 183; 59 regressões numéricas novas. |
 | 9 — Salto por abate | Pendente | |
 | 10 — Atributos persistentes | Pendente | |
 | 11 — Oportunidades/conteúdo | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 8: multi-hit com orçamento e distribuição explícitos, incluindo conservação de magnitude, restos de rounding/stacks, cálculo de origem uma vez e fatores/settlements por impacto. Não confundir repeats tradicionais com repartição de orçamento; implementar scopes por ação/impacto apenas nos boundaries reais. Etapas 6/7 concluídas; oportunidades da jornada, preview especializado e UI Godot continuam nas etapas posteriores.
+Etapa 8b: integrar a distribuição numérica da 8a ao executor comum. Publicar política de repeat versus orçamento; capturar origem uma vez; distribuir magnitude e stacks residuais separadamente; registrar contribuições zero; executar stages/settlements por alvo e chance/críticos/triggers nos boundaries reais. Verificar perda de alvo, condensação OncePerAction, rollback e replay. A etapa 8 inteira ainda não está concluída. Oportunidades da jornada, preview especializado e UI Godot continuam nas etapas posteriores.
 
 ## Etapa 4b — payloads e lotes
 
@@ -175,3 +175,15 @@ Etapa 8: multi-hit com orçamento e distribuição explícitos, incluindo conser
 - 39 regressões Core novas. Pipeline configurada real verifica base melhorada + scaling do residual; executor comum verifica chance/repeats/scopes. Dez execuções, snapshots serializados, gateway/store reais com reinício/retry/dez replays semânticos e branch isolada. Testes de publicação e setting default comprovam os mapeamentos dano/cura.
 - Verificação: Core 1.364 aprovados (1m26s), API 183 aprovados (35s), nenhuma falha. Engine version 15; saves e referência legada preservados. Sem alteração/teste visual Godot e sem push. Alterações preexistentes continuam fora do commit.
 - Contrato: [composition-grammar.md](../systems/cards/composition-grammar.md). Etapa 6b: commit `270d8dd`.
+
+## Etapa 8a — distribuição numérica de orçamento
+
+- `ICalculationEngine.Distribute` integra a distribuição à autoridade numérica existente. Não conhece recursos, efeitos ou alvos reais; recebe quantity capturada, política e destinatários opacos. Não executa fórmulas externas, mutações ou settlements.
+- Continuous divide na malha binária do Float32 da entrada, conservando exatamente sua soma em Double. Quantized usa quantum explícito e exige múltiplo exato, parcelas representáveis e até 16.777.216 unidades. Sem rounding/truncamento implícitos.
+- Destinatários ordenam por order e ID ordinal; Earliest/Latest configura o viés do resto. Limite 4.096 destinatários, com falha para excesso/duplicatas/identidades inválidas.
+- Parcelas preservam unidade/revisão/receipts e recebem fingerprints próprios derivados do trace de distribuição. Orçamento já influenciado por alvo exige opt-in; nenhum receipt é apagado para permitir scaling duplicado.
+- Trace registra quantum, unidades, resto, parcelas e total conservado. Pedido/resultado serializam e as coleções são imutáveis. Dez distribuições equivalentes produzem hashes iguais.
+- 59 regressões: 10 em 3 parcelas; bias; zero/negativos/subnormais/extremos; 128 padrões de bits; quantums fracionários; limites; rejeições; ordens; round-trip; proveniência; captura de bônus uma vez e stages restantes por parcela. Composição manual com pipeline/planner/processador reais comprova consumo de defesa 4/1/0 e reduções 0/3/4 para orçamento 12 e defesa 5.
+- Core 1.423 aprovados (1m49s), API 183 aprovados (39s), nenhuma falha. Engine version permanece 15: não houve alteração da execução/estado/hashes existentes. Nenhum conteúdo, save, UI Godot ou alteração preexistente foi incluído.
+- **Pendente 8b:** policy JSON de efeitos, planejamento/executor de impactos, zero stacks como skip, scopes de chance/críticos/triggers, perda/retarget, condensação e verificação transacional/replay. Os testes da 8a não alegam que multi-hit já esteja integrado automaticamente ao gameplay.
+- Contrato: [quantity-distribution.md](../systems/calculations/quantity-distribution.md). Etapa 7: commit `cfc38c7`.
