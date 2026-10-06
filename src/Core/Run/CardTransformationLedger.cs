@@ -24,7 +24,7 @@ public static class CardTransformationLedger
         {
             if (entry == null || entry.TransformationId == 0 || entry.TransformationId <= previous ||
                 !Enum.IsDefined(entry.Operation) || !Enum.IsDefined(entry.Category) ||
-                string.IsNullOrWhiteSpace(entry.ContentRevision))
+                string.IsNullOrWhiteSpace(entry.ContentRevision) || entry.SlotId != null && string.IsNullOrWhiteSpace(entry.SlotId))
                 return Result<ImmutableArray<CardUpgradeState>>.Failure("Invalid card transformation identity, order, category or revision");
             previous = entry.TransformationId;
             if (entry.Operation == CardTransformationOperation.Apply)
@@ -39,7 +39,8 @@ public static class CardTransformationLedger
                 return Result<ImmutableArray<CardUpgradeState>>.Failure($"Active transformation not found: {entry.TargetTransformationId}");
             if (entry.Operation == CardTransformationOperation.Remove)
             {
-                if (entry.Patches.Count != 0 || !string.IsNullOrEmpty(entry.UpgradeId) || entry.Category != active[index].Category)
+                if (entry.Patches.Count != 0 || !string.IsNullOrEmpty(entry.UpgradeId) || entry.Category != active[index].Category ||
+                    entry.SlotId != active[index].SlotId)
                     return Result<ImmutableArray<CardUpgradeState>>.Failure("Removal cannot contain patches or an upgradeId");
                 active.RemoveAt(index);
             }

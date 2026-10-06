@@ -109,6 +109,22 @@ alvo, status, relíquias, modificadores e políticas que podem influenciar a
 carta. `Disabled` bloqueia a projeção. A Godot deve tratar essa resposta como o
 único read model de regras de carta e limitar-se a apresentação e input.
 
+### Transformações permanentes de cartas
+
+Fora do encontro ativo, uma atividade `CardUpgrade` pode oferecer `UPGRADE_CARD`
+e, com opt-in no JSON, `REMOVE_CARD_TRANSFORMATION` e
+`REPLACE_CARD_TRANSFORMATION`. Todos usam o gateway `/runs/{runId}/commands`.
+Remove envia `cardInstanceId`/`transformationId`; Replace também envia `upgradeId`.
+A engine reconstrói e valida a composição inteira antes de persistir.
+
+`GET /runs/{runId}/cards/{cardInstanceId}/upgrade-options` retorna operações
+realmente executáveis na revisão fixada da run, incluindo categoria, slot e
+transformação selecionada. `/available-commands` expõe as mesmas opções por
+tipo de comando. Não consultar um catálogo mutável para inferir compatibilidade.
+O histórico preserva operações removidas/substituídas e é reexecutável em branches.
+Schemas autorais, snapshots de bundle, limites e configuração da atividade estão
+em [Transformações permanentes](../systems/cards/permanent-transformations.md).
+
 ### Ações legais, IA e intents
 
 O endpoint `/legal-actions` devolve candidatos em ordem determinística. Cada

@@ -249,6 +249,8 @@ public static class GameplayCommandDescriptors
         Run<RelicCommand>(RunCommandTypes.AcquireRelic),
         Run<RelicInstanceCommand>(RunCommandTypes.RemoveRelic),
         Run<CardUpgradeCommand>(RunCommandTypes.UpgradeCard),
+        Run<CardTransformationRemoveCommand>(RunCommandTypes.RemoveCardTransformation),
+        Run<CardTransformationReplaceCommand>(RunCommandTypes.ReplaceCardTransformation),
         Run<RestoreHeadFromHistoryCommand>(RunCommandTypes.RestoreHeadFromHistory),
         Run<ContentRevisionCommand>(RunCommandTypes.ActivateContentRevision),
         Run<RunResourceCommand>(RunCommandTypes.ApplyRunResource),
@@ -288,6 +290,8 @@ public sealed record PreparationDefinitionCommand(string PreparationId);
 public sealed record RelicCommand(string RelicId);
 public sealed record RelicInstanceCommand(Guid RelicInstanceId);
 public sealed record CardUpgradeCommand(Guid CardInstanceId, string UpgradeId);
+public sealed record CardTransformationRemoveCommand(Guid CardInstanceId, ulong TransformationId);
+public sealed record CardTransformationReplaceCommand(Guid CardInstanceId, ulong TransformationId, string UpgradeId);
 public sealed record RestoreHeadFromHistoryCommand(int SourceSequence);
 public sealed record ContentRevisionCommand(string Revision);
 public sealed record RunResourceCommand(

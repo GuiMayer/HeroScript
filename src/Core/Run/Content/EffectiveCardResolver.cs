@@ -38,6 +38,8 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
 
         var active = CardTransformationLedger.Project(instance.Upgrades);
         if (active.IsFailure) return Result<EffectiveCardDefinition>.Failure(active.Error);
+        var occupancy = CardBundleCompiler.ValidateOccupancy(definition, active.Value);
+        if (occupancy.IsFailure) return Result<EffectiveCardDefinition>.Failure(occupancy.Error);
         var components = definition.Components.ToImmutableArray();
         var tags = definition.Tags.ToImmutableArray();
         var upgradeTrace = ImmutableArray.CreateBuilder<CardUpgradeApplicationTrace>();
@@ -46,6 +48,27 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             foreach (var patch in upgrade.Patches)
             {
                 if (patch == null) return Result<EffectiveCardDefinition>.Failure("Transformation patch cannot be null");
+                if (patch is CardBundleSnapshotPatchDefinition bundle)
+                {
+                    var bundled = PatchBundle(components, bundle);
+                    if (bundled.IsFailure) return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: {bundled.Error}");
+                    // Structural member traces preserve the ordinary numeric-base provenance contract.
+                    foreach (var id in components.Concat(bundled.Value).Where(item => item.ComponentId.StartsWith(bundle.Namespace + ".", StringComparison.Ordinal))
+                        .Select(item => item.ComponentId).Distinct(StringComparer.Ordinal).OrderBy(id => id, StringComparer.Ordinal))
+                    {
+                        var memberBefore = components.FirstOrDefault(item => item.ComponentId == id);
+                        var memberAfter = bundled.Value.FirstOrDefault(item => item.ComponentId == id);
+                        try { upgradeTrace.Add(CreateTrace(upgrade, new CardComponentPatchDefinition
+                        {
+                            ComponentId = id, Operation = memberBefore == null ? CardComponentPatchOperation.Add :
+                                memberAfter == null ? CardComponentPatchOperation.Remove : CardComponentPatchOperation.Replace
+                        }, memberBefore, memberAfter)); }
+                        catch (Exception exception) when (exception is ArgumentException or JsonException or NotSupportedException)
+                        { return Result<EffectiveCardDefinition>.Failure($"Upgrade {upgrade.UpgradeId}: invalid bundle snapshot: {exception.Message}"); }
+                    }
+                    components = bundled.Value;
+                    continue;
+                }
                 if (patch is CardTagsPatchDefinition tagPatch)
                 {
                     var changedTags = PatchTags(tags, tagPatch);
@@ -86,7 +109,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         {
             CardId = definition.CardId, Rarity = definition.Rarity,
             BasePrices = definition.BasePrices, DecomposeRewards = definition.DecomposeRewards,
-            Tags = tags, Components = components
+            Tags = tags, Components = components, TransformationSlots = definition.TransformationSlots
         });
         if (recompiled.IsFailure) return Result<EffectiveCardDefinition>.Failure(recompiled.Error);
         components = recompiled.Value.Components.ToImmutableArray();
@@ -110,6 +133,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             CardInstanceId = instance.CardInstanceId,
             DefinitionId = instance.DefinitionId,
             DefinitionFingerprint = definition.Fingerprint,
+            TransformationSlots = definition.TransformationSlots,
             Tags = tags,
             AppliedUpgrades = upgrades,
             TransformationLedger = instance.Upgrades,
@@ -144,7 +168,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             [
                 new CardUpgradeState
                 {
-                    TransformationId = 1, ContentRevision = "validation", Category = upgrade.Category,
+                    TransformationId = 1, ContentRevision = "validation", Category = upgrade.Category, SlotId = upgrade.SlotId,
                     UpgradeId = upgrade.UpgradeId,
                     Patches = upgrade.Patches
                 }
@@ -204,6 +228,24 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
             ? Result<ImmutableArray<CardComponentDefinition>>.Failure(transformed.Error)
             : Result<ImmutableArray<CardComponentDefinition>>.Success(
                 components.SetItem(index, transformed.Value));
+    }
+
+    private static Result<ImmutableArray<CardComponentDefinition>> PatchBundle(
+        ImmutableArray<CardComponentDefinition> components, CardBundleSnapshotPatchDefinition patch)
+    {
+        var prefix = patch.Namespace + ".";
+        if (!CardBundleCompiler.SafeNamespace(patch.Namespace) || !string.IsNullOrEmpty(patch.ComponentId) ||
+            !Enum.IsDefined(patch.Operation) || (patch.Operation == CardComponentPatchOperation.Remove
+                ? patch.BundleId != null || patch.Components.Count != 0
+                : string.IsNullOrWhiteSpace(patch.BundleId) || patch.Components.Count == 0 ||
+                  patch.Components.Any(item => item == null || !item.ComponentId.StartsWith(prefix, StringComparison.Ordinal))))
+            return Result<ImmutableArray<CardComponentDefinition>>.Failure("Invalid closed bundle snapshot");
+        var exists = components.Any(item => item.ComponentId.StartsWith(prefix, StringComparison.Ordinal));
+        if (patch.Operation == CardComponentPatchOperation.Add ? exists : !exists)
+            return Result<ImmutableArray<CardComponentDefinition>>.Failure($"Bundle namespace collision or missing namespace: {patch.Namespace}");
+        return Result<ImmutableArray<CardComponentDefinition>>.Success(components
+            .Where(item => !item.ComponentId.StartsWith(prefix, StringComparison.Ordinal))
+            .Concat(patch.Components).ToImmutableArray());
     }
 
     private static Result<CardComponentDefinition> PatchEffect(

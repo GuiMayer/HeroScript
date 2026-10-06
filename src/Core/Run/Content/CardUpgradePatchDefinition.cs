@@ -34,6 +34,8 @@ public enum CardTargetingNumericAttribute
 /// Contextual buffs and scaling never use this contract.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
+[JsonDerivedType(typeof(CardBundlePatchDefinition), "bundle")]
+[JsonDerivedType(typeof(CardBundleSnapshotPatchDefinition), "bundle_snapshot")]
 [JsonDerivedType(typeof(CardEffectNumericPatchDefinition), "effect_numeric")]
 [JsonDerivedType(typeof(CardCostAmountPatchDefinition), "cost_amount")]
 [JsonDerivedType(typeof(CardInfluenceNumericPatchDefinition), "influence_numeric")]

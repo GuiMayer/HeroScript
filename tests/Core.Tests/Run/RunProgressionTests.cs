@@ -261,7 +261,7 @@ public sealed class RunProgressionTests
     }
 
     [Fact]
-    public void CardUpgradeOptions_ExposeOnlyApplicablePairsWithRemainingApplications()
+    public void CardUpgradeCapacity_IsDerivedFromEachCardActiveLedger()
     {
         var system = CardZoneSystemCompiler.Compile(new CardZoneSystemDefinition
         {
@@ -296,24 +296,8 @@ public sealed class RunProgressionTests
             Deck = new DeckState { Topology = topology }
         };
 
-        var options = CardUpgradeCommandOptions.Project(run,
-        [
-            new CardUpgradeDefinition
-            {
-                UpgradeId = "sharp",
-                CardDefinitionIds = ["strike"],
-                MaxApplications = 1
-            },
-            new CardUpgradeDefinition
-            {
-                UpgradeId = "reinforced",
-                CardDefinitionIds = ["guard"]
-            }
-        ]);
-
-        var option = Assert.Single(options);
-        Assert.Equal("guard", option.CardDefinitionId);
-        Assert.Equal("reinforced", option.UpgradeId);
+        Assert.Equal(1, CardTransformationLedger.Count(run.Deck.Topology.Instances.Values.Single(card => card.DefinitionId == "strike"), "sharp"));
+        Assert.Equal(0, CardTransformationLedger.Count(run.Deck.Topology.Instances.Values.Single(card => card.DefinitionId == "guard")));
     }
 
     [Fact]

@@ -224,6 +224,8 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                 configName);
             if (definition.IsFailure)
                 return Result<CompiledCombatScenario>.Failure(definition.Error);
+            var runtime = _contentRuntimes.Resolve(manifest.Value.Revision, configName);
+            if (runtime.IsFailure) return Result<CompiledCombatScenario>.Failure(runtime.Error);
             var upgradedCard = new CardInstanceState { DefinitionId = definition.Value.CardId };
             // Authored sequence is domain data; sorting it changes patch semantics.
             foreach (var upgradeId in card.UpgradeIds)
@@ -235,12 +237,12 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
                     configName);
                 if (upgrade.IsFailure)
                     return Result<CompiledCombatScenario>.Failure(upgrade.Error);
-                var applied = CardInstanceUpgradeTransitions.Apply(upgradedCard, upgrade.Value, manifest.Value.Revision);
+                var sealedUpgrade = CardBundleCompiler.Seal(upgrade.Value, runtime.Value);
+                if (sealedUpgrade.IsFailure) return Result<CompiledCombatScenario>.Failure(sealedUpgrade.Error);
+                var applied = CardInstanceUpgradeTransitions.Apply(upgradedCard, sealedUpgrade.Value, manifest.Value.Revision);
                 if (applied.IsFailure) return Result<CompiledCombatScenario>.Failure(applied.Error);
                 upgradedCard = applied.Value;
             }
-            var runtime = _contentRuntimes.Resolve(manifest.Value.Revision, configName);
-            if (runtime.IsFailure) return Result<CompiledCombatScenario>.Failure(runtime.Error);
             var compiled = new CardContentCompiler().Compile(card.DefinitionId, runtime.Value);
             if (compiled.IsFailure) return Result<CompiledCombatScenario>.Failure(compiled.Error);
             var effective = new EffectiveCardResolver().Resolve(compiled.Value, upgradedCard);
@@ -305,7 +307,7 @@ public sealed class CombatScenarioCompiler : ICombatScenarioCompiler
             ContentRevision = manifest.Value.Revision,
             StartingCards = scenario.StartingCards.Select(card => card with
             {
-                UpgradeIds = card.UpgradeIds.OrderBy(id => id, StringComparer.Ordinal).ToArray()
+                UpgradeIds = card.UpgradeIds.ToArray()
             }).ToArray(),
             Participants = scenario.Participants.ToArray(),
             InitialState = scenario.InitialState with

@@ -12,6 +12,43 @@ namespace Core.Tests.Content;
 
 public sealed class ContentGraphValidatorTests
 {
+    [Fact]
+    public void Validate_RejectsMissingUpgradeBundleEvenWithoutEligibleCards()
+    {
+        var bundle = Bundle(("card-upgrades", "card-upgrades/catalog.json", new Dictionary<string, object>
+        {
+            ["gain"] = new CardUpgradeDefinition { UpgradeId = "gain", Patches =
+                [new CardBundlePatchDefinition { Namespace = "behavior", BundleId = "missing" }] }
+        }));
+        var result = new ContentGraphValidator().Validate(bundle);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("card-upgrades/gain", StringComparison.Ordinal) && error.Contains("missing", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_RejectsAuthoredLedgerBundleSnapshot()
+    {
+        var bundle = Bundle(("card-upgrades", "card-upgrades/catalog.json", new Dictionary<string, object>
+        {
+            ["gain"] = new CardUpgradeDefinition { UpgradeId = "gain", Patches =
+                [new CardBundleSnapshotPatchDefinition { Namespace = "behavior", BundleId = "pulse" }] }
+        }));
+        var result = new ContentGraphValidator().Validate(bundle);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("bundle snapshots", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_RejectsMalformedUnusedBundle()
+    {
+        var bundle = Bundle(("card-component-bundles", "card-component-bundles/catalog.json", new Dictionary<string, object>
+        {
+            ["empty"] = new CardComponentBundleDefinition { BundleId = "empty" }
+        }));
+        var result = new ContentGraphValidator().Validate(bundle);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error => error.Contains("card-component-bundles/empty", StringComparison.Ordinal));
+    }
     [Theory]
     [InlineData(EffectType.DAMAGE, "resources")]
     [InlineData(EffectType.APPLY_STATUS, "status-effects")]
@@ -57,7 +94,7 @@ public sealed class ContentGraphValidatorTests
         var bundle = Bundle(
             ("cards", "cards/catalog.json", new Dictionary<string, object>
             {
-                ["strike"] = new { cardId = "strike", componentBundleIds = new[] { "missing_bundle" } }
+                ["strike"] = new { cardId = "strike", componentBundles = new[] { new { bundleId = "missing_bundle", @namespace = "play" } } }
             }));
 
         var result = new ContentGraphValidator().Validate(bundle);

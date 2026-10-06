@@ -395,7 +395,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 continue;
             }
             var card = parsed.Value;
-            if (card.Components.Count == 0 && card.ComponentBundleIds.Count == 0)
+            if (card.Components.Count == 0 && card.ComponentBundles.Count == 0)
             {
                 errors.Add($"cards/{id} requires at least one component or component bundle");
                 continue;
@@ -467,6 +467,10 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 errors.Add($"card-component-bundles/{id}: {bundle.Error}");
                 continue;
             }
+            if (bundle.Value.BundleId != id)
+                errors.Add($"card-component-bundles/{id}: bundle definition identity mismatch");
+            var closed = CardBundleCompiler.Expand(bundle.Value, "publication");
+            if (closed.IsFailure) errors.Add($"card-component-bundles/{id}: {closed.Error}");
             foreach (var value in FindStringProperties(definition, "resourceId", "targetResource"))
                 Require(runtime, errors, "card-component-bundles", id, value, "resources");
             foreach (var value in FindStringProperties(definition, "statusId"))
@@ -781,9 +785,16 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             try
             {
                 var upgrade = definition.Deserialize<CardUpgradeDefinition>(CreateJsonOptions());
-                if (upgrade == null)
+                if (upgrade == null || upgrade.UpgradeId != id || upgrade.MaxApplications < 1 ||
+                    !Enum.IsDefined(upgrade.Category) || upgrade.Patches.Count == 0)
                 {
                     errors.Add($"card-upgrades/{id} is invalid");
+                    continue;
+                }
+                var sealedUpgrade = CardBundleCompiler.Seal(upgrade, runtime);
+                if (sealedUpgrade.IsFailure)
+                {
+                    errors.Add($"card-upgrades/{id}: {sealedUpgrade.Error}");
                     continue;
                 }
                 var cardIds = upgrade.CardDefinitionIds.Count == 0
@@ -797,7 +808,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                         errors.Add($"card-upgrades/{id}: {compiled.Error}");
                         continue;
                     }
-                    var validation = resolver.ValidateUpgrade(compiled.Value, upgrade);
+                    var validation = resolver.ValidateUpgrade(compiled.Value, sealedUpgrade.Value);
                     if (validation.IsFailure)
                         errors.Add($"card-upgrades/{id}: {validation.Error}");
                 }

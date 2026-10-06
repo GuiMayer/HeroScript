@@ -45,6 +45,7 @@ public sealed record CardUpgradeState
     public CardTransformationOperation Operation { get; init; } = CardTransformationOperation.Apply;
     public ulong? TargetTransformationId { get; init; }
     public CardTransformationCategory Category { get; init; } = CardTransformationCategory.Base;
+    public string? SlotId { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
 
     public IReadOnlyList<CardUpgradePatchDefinition> Patches
@@ -62,6 +63,7 @@ public sealed record CardUpgradeDefinition
     public string UpgradeId { get; init; } = string.Empty;
     public int MaxApplications { get; init; } = 1;
     public CardTransformationCategory Category { get; init; } = CardTransformationCategory.Base;
+    public string? SlotId { get; init; }
 
     public IReadOnlyList<string> CardDefinitionIds
     {

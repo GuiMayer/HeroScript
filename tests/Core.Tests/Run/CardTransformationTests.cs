@@ -159,11 +159,16 @@ public sealed class CardTransformationTests
         Assert.Equal(9, Amount(Resolve(reapplied)));
         Assert.True(CardInstanceUpgradeTransitions.Remove(reapplied, 1, Revision).IsFailure);
 
-        var run = new RunState { Deck = TestCardZones.WithInstance("cards", removed) };
+        var run = new RunState
+        {
+            ConfigName = "test", Determinism = DeterministicContext.Create(42, Revision),
+            ResolvedMode = new() { ProgressionPolicy = new() { AllowOutOfActivityCommands = true } },
+            Deck = TestCardZones.WithInstance("cards", removed)
+        };
         var view = Assert.Single(Assert.Single(CardZoneReadModel.Project(run).Zones).Cards);
         Assert.Empty(view.Upgrades);
         Assert.Equal(2, view.TransformationLedger.Count);
-        var option = Assert.Single(CardUpgradeCommandOptions.Project(run, [definition]));
+        var option = Assert.Single(new CardTransformationPlanner(Runtime(definition)).Options(run).Value);
         Assert.Equal("plus", option.UpgradeId);
     }
 

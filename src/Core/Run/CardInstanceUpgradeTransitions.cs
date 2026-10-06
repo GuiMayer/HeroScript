@@ -58,6 +58,8 @@ public static class CardInstanceUpgradeTransitions
             TargetTransformationId = target,
             UpgradeId = definition?.UpgradeId ?? string.Empty,
             Category = definition?.Category ?? projection.Value.Single(item => item.TransformationId == target).Category,
+            SlotId = definition?.SlotId ?? (definition == null
+                ? projection.Value.Single(item => item.TransformationId == target).SlotId : null),
             ContentRevision = contentRevision,
             Patches = definition?.Patches ?? []
         };

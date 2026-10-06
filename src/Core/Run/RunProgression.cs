@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Core.Combat.Models;
 using Core.Common;
+using Core.Run.Content;
 
 namespace Core.Run;
 
@@ -586,14 +587,33 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
     public override IReadOnlySet<string> CommandTypes { get; } = new HashSet<string>(StringComparer.Ordinal)
     {
         RunCommandTypes.UpgradeCard,
+        RunCommandTypes.RemoveCardTransformation,
+        RunCommandTypes.ReplaceCardTransformation,
         RunCommandTypes.ResolveNode
     };
     protected override bool RequiresDefinition => false;
+    public override Result ValidateCommand(RunState run, RunMapNodeState node, string commandType, object payload) => payload switch
+    {
+        CardUpgradeCommand apply => CardTransformationAccess.Validate(run, CardTransformationOperation.Apply, apply.UpgradeId),
+        CardTransformationRemoveCommand => CardTransformationAccess.Validate(run, CardTransformationOperation.Remove, null),
+        CardTransformationReplaceCommand replace => CardTransformationAccess.Validate(run, CardTransformationOperation.Replace, replace.UpgradeId),
+        _ => base.ValidateCommand(run, node, commandType, payload)
+    };
+    public override Result Validate(RunActivityDefinition activity)
+    {
+        var result = base.Validate(activity);
+        if (result.IsFailure) return result;
+        foreach (var key in new[] { "allowRemoval", "allowReplacement" })
+            if (activity.Parameters.TryGetValue(key, out var value) && value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                return Result.Failure($"Card transformation activity {key} must be a boolean");
+        return Result.Success();
+    }
     public override bool IsComplete(RunState run, RunMapNodeState node) =>
         run.CompletedActivityNodeIds.Contains(node.NodeId, StringComparer.Ordinal);
     public override IReadOnlyList<RunAvailableCommand> GetAvailableCommands(RunState run, RunMapNodeState node)
     {
         if (IsComplete(run, node)) return [Resolve(run, node)];
+        if (run.ActiveEncounterId != null) return [];
         var commands = new List<RunAvailableCommand>
         {
             Command(run, node, RunCommandTypes.UpgradeCard,
@@ -606,41 +626,11 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
                         : JsonSerializer.SerializeToElement(Array.Empty<string>())
                 })
         };
+        if (CardTransformationAccess.Enabled(node, "allowRemoval")) commands.Add(Command(run, node,
+            RunCommandTypes.RemoveCardTransformation, new { cardInstanceId = "guid", transformationId = "uint64" }));
+        if (CardTransformationAccess.Enabled(node, "allowReplacement")) commands.Add(Command(run, node,
+            RunCommandTypes.ReplaceCardTransformation, new { cardInstanceId = "guid", transformationId = "uint64", upgradeId = "string" }));
         if (node.CompletionPolicy == RunActivityCompletionPolicy.Optional) commands.Add(Resolve(run, node));
         return commands;
-    }
-}
-
-public sealed record CardUpgradeCommandOption(
-    Guid CardInstanceId,
-    string CardDefinitionId,
-    string UpgradeId);
-
-/// <summary>
-/// Projects only executable card/upgrade pairs. This keeps discovery and
-/// command execution aligned instead of asking clients to infer content rules.
-/// </summary>
-public static class CardUpgradeCommandOptions
-{
-    public static IReadOnlyList<CardUpgradeCommandOption> Project(
-        RunState run,
-        IEnumerable<CardUpgradeDefinition> definitions)
-    {
-        ArgumentNullException.ThrowIfNull(run);
-        ArgumentNullException.ThrowIfNull(definitions);
-        var upgrades = definitions
-            .OrderBy(definition => definition.UpgradeId, StringComparer.Ordinal)
-            .ToArray();
-        return run.Deck.Topology.Instances.Values
-            .OrderBy(card => card.CreationOrdinal)
-            .ThenBy(card => card.CardInstanceId)
-            .SelectMany(card => upgrades
-                .Where(upgrade => upgrade.AppliesTo(card.DefinitionId))
-                .Where(upgrade => CardTransformationLedger.Count(card, upgrade.UpgradeId) < upgrade.MaxApplications)
-                .Select(upgrade => new CardUpgradeCommandOption(
-                    card.CardInstanceId,
-                    card.DefinitionId,
-                    upgrade.UpgradeId)))
-            .ToArray();
     }
 }

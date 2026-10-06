@@ -4,6 +4,7 @@ using Core.Common;
 using Core.CardZones;
 using Core.Run;
 using Core.Resources;
+using Core.Run.Content;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -24,6 +25,47 @@ public sealed class RunControllerTests
     public RunControllerTests()
     {
         _controller = new RunController(_runManager.Object, _repository.Object, Mock.Of<ILogger<RunController>>());
+    }
+
+    [Fact]
+    public void GetCardUpgradeOptions_DelegatesRulesToPinnedCoreQuery()
+    {
+        var id = Guid.NewGuid();
+        var address = new CardZoneAddress { ZoneId = "deck", OwnerId = "$run" };
+        var run = CreateRun() with { Deck = new() { Topology = new()
+        {
+            Instances = new Dictionary<Guid, CardInstanceState> { [id] = new() { CardInstanceId = id, DefinitionId = "strike" } },
+            Zones = new Dictionary<string, CardZoneState> { [address.Key] = new() { Address = address, InstanceIds = [id] } }
+        } } };
+        var offered = new CardTransformationOption(id, "strike", CardTransformationOperation.Replace, 7, "ice", CardTransformationCategory.Affinity, "affinity");
+        _runManager.Setup(manager => manager.GetRun(run.RunId)).Returns(Result<RunState>.Success(run));
+        _runManager.Setup(manager => manager.GetCardTransformationOptions(run.RunId, id))
+            .Returns(Result<IReadOnlyList<CardTransformationOption>>.Success([offered]));
+        var response = Assert.IsType<OkObjectResult>(_controller.GetCardUpgradeOptions(run.RunId, id));
+        var json = JsonSerializer.SerializeToElement(response.Value, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var option = Assert.Single(json.GetProperty("options").EnumerateArray());
+        Assert.Equal("Replace", option.GetProperty("operation").GetString());
+        Assert.Equal(7UL, option.GetProperty("targetTransformationId").GetUInt64());
+        Assert.Equal("affinity", option.GetProperty("slotId").GetString());
+        _runManager.Verify(manager => manager.GetCardTransformationOptions(run.RunId, id), Times.Once);
+    }
+
+    [Fact]
+    public void GetCardUpgradeOptions_ReportsUnavailablePinnedQueryWithoutCatalogFallback()
+    {
+        var id = Guid.NewGuid();
+        var address = new CardZoneAddress { ZoneId = "deck", OwnerId = "$run" };
+        var run = CreateRun() with { Deck = new() { Topology = new()
+        {
+            Instances = new Dictionary<Guid, CardInstanceState> { [id] = new() { CardInstanceId = id, DefinitionId = "strike" } },
+            Zones = new Dictionary<string, CardZoneState> { [address.Key] = new() { Address = address, InstanceIds = [id] } }
+        } } };
+        _runManager.Setup(manager => manager.GetRun(run.RunId)).Returns(Result<RunState>.Success(run));
+        _runManager.Setup(manager => manager.GetCardTransformationOptions(run.RunId, id))
+            .Returns(Result<IReadOnlyList<CardTransformationOption>>.Failure("Pinned revision unavailable"));
+        var response = Assert.IsType<ObjectResult>(_controller.GetCardUpgradeOptions(run.RunId, id));
+        Assert.Equal(503, response.StatusCode);
+        Assert.Contains("application/problem+json", response.ContentTypes);
     }
 
     [Fact]

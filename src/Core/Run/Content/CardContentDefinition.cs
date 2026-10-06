@@ -16,7 +16,8 @@ public enum CardRarity
 public sealed record CardContentDefinition
 {
     private ImmutableList<string> _tags = [];
-    private ImmutableArray<string> _componentBundleIds = [];
+    private ImmutableArray<CardBundleReference> _componentBundles = [];
+    private ImmutableArray<CardTransformationSlotDefinition> _transformationSlots = [];
     private ImmutableArray<CardComponentDefinition> _components = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
     private ImmutableArray<ResourceAmount> _basePrices = [];
@@ -34,10 +35,15 @@ public sealed record CardContentDefinition
         get => _decomposeRewards;
         init => _decomposeRewards = value?.ToImmutableArray() ?? [];
     }
-    public IReadOnlyList<string> ComponentBundleIds
+    public IReadOnlyList<CardBundleReference> ComponentBundles
     {
-        get => _componentBundleIds;
-        init => _componentBundleIds = value?.ToImmutableArray() ?? [];
+        get => _componentBundles;
+        init => _componentBundles = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardTransformationSlotDefinition> TransformationSlots
+    {
+        get => _transformationSlots;
+        init => _transformationSlots = value?.ToImmutableArray() ?? [];
     }
     public IReadOnlyList<CardComponentDefinition> Components
     {

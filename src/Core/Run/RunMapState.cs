@@ -106,6 +106,8 @@ public static class RunCommandTypes
     public const string AcquireRelic = "ACQUIRE_RELIC";
     public const string RemoveRelic = "REMOVE_RELIC";
     public const string UpgradeCard = "UPGRADE_CARD";
+    public const string RemoveCardTransformation = "REMOVE_CARD_TRANSFORMATION";
+    public const string ReplaceCardTransformation = "REPLACE_CARD_TRANSFORMATION";
     public const string StartRun = "START_RUN";
     public const string CreateBranchFromHistory = "CREATE_BRANCH_FROM_HISTORY";
     public const string RestoreHeadFromHistory = "RESTORE_HEAD_FROM_HISTORY";

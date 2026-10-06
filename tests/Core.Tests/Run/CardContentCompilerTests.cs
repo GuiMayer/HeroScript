@@ -20,7 +20,7 @@ public sealed class CardContentCompilerTests
         {
             CardId = "strike",
             Tags = ["physical", "attack"],
-            ComponentBundleIds = ["standard_play"],
+            ComponentBundles = [new("standard_play", "play")],
             Components =
             [
                 new CardEffectComponentDefinition
@@ -71,7 +71,7 @@ public sealed class CardContentCompilerTests
 
         Assert.True(first.IsSuccess, first.IsFailure ? first.Error : null);
         Assert.Equal(
-            ["cost.energy", "effect.damage", "disposition.default"],
+            ["play.cost.energy", "effect.damage", "play.disposition.default"],
             first.Value.Components.Select(component => component.ComponentId));
         Assert.Equal(
             first.Value.Components.Select(component => component.ComponentId),

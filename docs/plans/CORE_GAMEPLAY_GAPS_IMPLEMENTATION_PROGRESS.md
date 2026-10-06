@@ -36,7 +36,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 3 — Parâmetros e cálculo | Concluída | Core 1.185 / API 181, sem falhas; 23 regressões novas. |
 | 4 — Payloads e consumo | Concluída | Core 1.226 / API 181, sem falhas; 28 regressões novas na 4b, além das 13 da 4a. |
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
-| 6 — Transformações | Em andamento — 6a implementada | Core 1.298 / API 181, sem falhas; 43 regressões novas. 6b pendente. |
+| 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
 | 7 — Afinidades/modificadores | Pendente | |
 | 8 — Multi-hit | Pendente | |
 | 9 — Salto por abate | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 6b: completar bundles/namespace e slots, integrar seleção/remoção/substituição de transformações nos comandos canônicos e verificar persistência/replay/branches. A etapa 6a estabeleceu o ledger e os patches estruturais; a etapa 6 não está concluída. Conteúdo demonstrativo, preview especializado e UI Godot continuam nas etapas posteriores.
+Etapa 7: gramática data-driven de afinidades e modificadores comportamentais. Relacionar tags/ações a componentes, requisitos/exclusões e capacidades, ordem/escopo nos boundaries executáveis e explicações estruturadas de incompatibilidade. A etapa 6 está concluída; conteúdo demonstrativo, preview especializado e UI Godot continuam nas etapas posteriores.
 
 ## Etapa 4b — payloads e lotes
 
@@ -144,3 +144,19 @@ Etapa 6b: completar bundles/namespace e slots, integrar seleção/remoção/subs
 - Contrato e JSON: [permanent-transformations.md](../systems/cards/permanent-transformations.md).
 - Etapa 5: commit 6ce4078.
 - Verificação final da 6a: Core 1.298 testes aprovados (1m29s), API 181 aprovados (35s), nenhuma falha. 43 regressões novas: 40 de transformações/transações/cálculo/projeções/versão e 3 de publicação de referências estruturais. Custos alternativos e payloads nulos foram incluídos na validação comum. Nenhuma validação visual Godot foi anunciada nesta entrega.
+
+## Etapa 6b — bundles, slots e comandos de transformação
+
+- `componentBundles` passa a usar referências `bundleId`/`namespace`; o campo sem namespace foi removido, sem fallback legado. Bundles fechados expandem IDs de componentes, bindings locais, aliases e referências inline a resultados; recursos e definições de efeito não são reinterpretados.
+- Patches autorais `bundle` Add/Remove/Replace são fechados a partir do runtime fixado antes de entrar no ledger. `bundle_snapshot` persiste componentes imutáveis e é rejeitado na publicação autoral. Namespace agrupa IDs pelo prefixo, sem registry/membership autoritativo paralelo. Colisões e dependências perdidas falham.
+- Slots configuráveis na definição da carta: identidade, capacidade, categorias. `slotId` é capturado na transformação. Ocupação deriva do ledger ativo; remoção libera o slot e replacement valida o novo candidato sem duplicar capacidade.
+- Comandos `REMOVE_CARD_TRANSFORMATION`/`REPLACE_CARD_TRANSFORMATION` registrados no codec/gateway/handlers/replay normais, sem rotas de mutação paralelas. Identidade selecionada deve estar ativa. Uma mudança aceita avança apenas o passo transacional; não consome RNG.
+- `CardTransformationPlanner` concentra política, conteúdo fixado, fechamento, transição pura, compilação e referências. A mesma simulação determina discovery. O controller não consulta mais o catálogo mutável nem interpreta limites/patches. Definições são reutilizadas somente dentro do planner vinculado a um runtime; cartas efetivas não são cacheadas por ID.
+- Atividades `CardUpgrade` respeitam a whitelist `upgradeIds`, flags booleanas opt-in `allowRemoval`/`allowReplacement` e conclusão de uma operação. Discovery e execução bloqueiam transformações permanentes com encontro ativo. O modo pode habilitar o opt-in existente de comandos fora de atividade; não há mutação parcial do combate.
+- Publicação valida bundles não utilizados, identidade de catálogo, snapshots forjados, slots e referências; ausência de runtime na consulta falha explicitamente em vez de publicar pares crus. Composição final também rejeita aliases de output que perderam sua origem.
+- Cenários fecham bundles na revisão correta e preservam a ordem autoral também no payload/fingerprint do cenário. Base efetiva/inspeção expõe slots, ledger e traces ordinários por membro de bundle.
+- 27 regressões Core e 2 API novas. Store real em disco + gateway de produção: Apply/Replace/Remove, reinício, retry idempotente e branch isolada. Dez replays semânticos comparam hashes/frames; parent permanece intacto. Testes também cobrem namespaces/aliases/bindings, colisões, capacity/category, ofertas composicionais, whitelist, conclusão, ausência/cross-setting de runtime e rejeição de snapshots autorais.
+- Engine version 14. Saves e a referência legada foram preservados. Alterações preexistentes de multi-setting/Godot não entram no commit desta etapa. Nenhum push ou teste visual foi realizado.
+- Contrato atualizado: [permanent-transformations.md](../systems/cards/permanent-transformations.md); gateway/discovery em [runs-and-combat.md](../api/runs-and-combat.md).
+- Etapa 6a: commit `a298adc`.
+- Verificação final da 6b: Core 1.325 aprovados (1m28s), API 183 aprovados (34s), nenhuma falha. Consulta `/available-commands` calcula e enriquece ofertas a partir do mesmo snapshot capturado, sem reler a run no meio da projeção.

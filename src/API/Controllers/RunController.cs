@@ -15,18 +15,15 @@ public sealed class RunController : BaseApiController
 {
     private readonly IRunManager _runManager;
     private readonly IRunCommitReader _repository;
-    private readonly IResourceCatalog<CardUpgradeDefinition>? _cardUpgrades;
 
     public RunController(
         IRunManager runManager,
         IRunCommitReader repository,
-        ILogger<RunController> logger,
-        IResourceCatalog<CardUpgradeDefinition>? cardUpgrades = null)
+        ILogger<RunController> logger)
         : base(logger)
     {
         _runManager = runManager ?? throw new ArgumentNullException(nameof(runManager));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-        _cardUpgrades = cardUpgrades;
     }
 
     [HttpPost("/api/v1/runs")]
@@ -236,27 +233,16 @@ public sealed class RunController : BaseApiController
         if (!VisibleCardIds(CardZoneReadModel.Project(result.Value)).Contains(cardInstanceId) ||
             !result.Value.Deck.Topology.Instances.TryGetValue(cardInstanceId, out var card))
             return ApiNotFound($"Card instance not found: {cardInstanceId}");
-        if (_cardUpgrades == null)
-        {
-            return ApiProblem(
-                StatusCodes.Status503ServiceUnavailable,
-                API.Contracts.ApiErrorCodes.DependencyUnavailable,
-                "Card upgrade catalog unavailable",
-                "Card upgrade content catalog is not configured");
-        }
-
-        var options = _cardUpgrades.GetAll(result.Value.ConfigName)
-            .Where(definition => definition.AppliesTo(card.DefinitionId))
-            .Where(definition => CardTransformationLedger.Count(card, definition.UpgradeId) < definition.MaxApplications)
-            .OrderBy(definition => definition.UpgradeId, StringComparer.Ordinal)
-            .ToArray();
+        var options = _runManager.GetCardTransformationOptions(runId, cardInstanceId);
+        if (options.IsFailure) return ApiProblem(StatusCodes.Status503ServiceUnavailable,
+            ApiErrorCodes.DependencyUnavailable, "Transformation options unavailable", options.Error);
         return Ok(new
         {
             runId,
             cardInstanceId,
             card.DefinitionId,
             contentRevision = result.Value.Determinism.ContentRevision,
-            options
+            options = options.Value
         });
     }
 

@@ -13,6 +13,7 @@ public sealed record EffectiveCardDefinition
     private ImmutableArray<CardUpgradeState> _appliedUpgrades = [];
     private ImmutableArray<CardUpgradeState> _transformationLedger = [];
     private ImmutableArray<CardUpgradeApplicationTrace> _upgradeTrace = [];
+    private ImmutableArray<CardTransformationSlotDefinition> _transformationSlots = [];
 
     public Guid CardInstanceId { get; init; }
     public string DefinitionId { get; init; } = string.Empty;
@@ -39,6 +40,11 @@ public sealed record EffectiveCardDefinition
         init => _components = value?.ToImmutableArray() ?? [];
     }
     public string Fingerprint { get; init; } = string.Empty;
+    public IReadOnlyList<CardTransformationSlotDefinition> TransformationSlots
+    {
+        get => _transformationSlots;
+        init => _transformationSlots = value?.ToImmutableArray() ?? [];
+    }
 
     public T? SingleOrDefault<T>() where T : CardComponentDefinition =>
         _components.OfType<T>().SingleOrDefault();

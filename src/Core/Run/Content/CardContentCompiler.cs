@@ -61,15 +61,24 @@ public sealed class CardContentCompiler : ICardContentCompiler
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} tags must be nonempty and unique");
 
         bundles ??= ImmutableDictionary<string, CardComponentBundleDefinition>.Empty;
+        var slots = CardBundleCompiler.ValidateSlots(card.TransformationSlots);
+        if (slots.IsFailure) return Result<CompiledCardDefinition>.Failure(slots.Error);
+        if (card.ComponentBundles.Any(reference => reference == null) ||
+            card.ComponentBundles.Select(reference => reference.Namespace).Distinct(StringComparer.Ordinal).Count() != card.ComponentBundles.Count)
+            return Result<CompiledCardDefinition>.Failure("Bundle namespaces must be unique");
         var expanded = new List<CardComponentDefinition>();
-        foreach (var bundleId in card.ComponentBundleIds)
+        foreach (var reference in card.ComponentBundles)
         {
-            if (!bundles.TryGetValue(bundleId, out var bundle))
+            if (string.IsNullOrWhiteSpace(reference.BundleId) || !bundles.TryGetValue(reference.BundleId, out var bundle))
             {
                 return Result<CompiledCardDefinition>.Failure(
-                    $"Card {card.CardId} references missing component bundle {bundleId}");
+                    $"Card {card.CardId} references missing component bundle {reference.BundleId}");
             }
-            expanded.AddRange(bundle.Components);
+            if (bundle.BundleId != reference.BundleId)
+                return Result<CompiledCardDefinition>.Failure("Bundle definition identity mismatch");
+            var members = CardBundleCompiler.Expand(bundle, reference.Namespace);
+            if (members.IsFailure) return Result<CompiledCardDefinition>.Failure(members.Error);
+            expanded.AddRange(members.Value);
         }
         expanded.AddRange(card.Components);
         if (expanded.Any(component => component == null))
@@ -112,6 +121,13 @@ public sealed class CardContentCompiler : ICardContentCompiler
         if (bindingErrors.Count > 0) return Result<CompiledCardDefinition>.Failure(string.Join("; ", bindingErrors));
         if (!actionErrors.IsEmpty)
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId}: {string.Join("; ", actionErrors)}");
+        var references = ValidateResultReferences(expanded.OfType<CardEffectComponentDefinition>().Select(item => item.Effect));
+        if (references.IsFailure) return Result<CompiledCardDefinition>.Failure(references.Error);
+        foreach (var trigger in expanded.OfType<CardTriggerComponentDefinition>())
+        {
+            references = ValidateResultReferences(trigger.Effects);
+            if (references.IsFailure) return Result<CompiledCardDefinition>.Failure(references.Error);
+        }
         if (expanded.OfType<CardTargetingComponentDefinition>().Count() > 1)
             return Result<CompiledCardDefinition>.Failure($"Card {card.CardId} contains multiple targeting components");
         if (expanded.OfType<CardDispositionComponentDefinition>().Count() > 1)
@@ -129,6 +145,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
             card.BasePrices.OrderBy(item => item.ResourceId, StringComparer.Ordinal).ToImmutableArray(),
             card.DecomposeRewards.OrderBy(item => item.ResourceId, StringComparer.Ordinal).ToImmutableArray(),
             card.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToImmutableArray(),
+            card.TransformationSlots.OrderBy(slot => slot.SlotId, StringComparer.Ordinal).ToImmutableArray(),
             ordered);
         return Result<CompiledCardDefinition>.Success(new CompiledCardDefinition
         {
@@ -137,6 +154,7 @@ public sealed class CardContentCompiler : ICardContentCompiler
             BasePrices = payload.BasePrices,
             DecomposeRewards = payload.DecomposeRewards,
             Tags = payload.Tags,
+            TransformationSlots = payload.TransformationSlots,
             Components = payload.Components,
             Fingerprint = CanonicalJson.ComputeHash(payload)
         });
@@ -172,6 +190,26 @@ public sealed class CardContentCompiler : ICardContentCompiler
                 Result.Failure($"Card {cardId} influence {component.ComponentId} requires channel and bucket"),
             _ => Result.Success()
         };
+    }
+
+    private static Result ValidateResultReferences(IEnumerable<EffectDefinition> roots)
+    {
+        // EffectDefinitionValidator already bounded and validated this tree.
+        var all = new List<EffectDefinition>();
+        void Visit(EffectDefinition effect)
+        {
+            all.Add(effect);
+            foreach (var child in effect.ChainedEffects ?? []) Visit(child);
+        }
+        foreach (var effect in roots) Visit(effect);
+        var aliases = all.Where(effect => effect.OutputId != null).Select(effect => effect.OutputId!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var formula in all.SelectMany(effect => new[] { effect.FormulaValue, effect.Condition }
+            .Concat(effect.Parameters.Select(item => item.FormulaValue))
+            .Concat(effect.PayloadBindings.Select(item => item.FormulaValue))).Where(formula => formula != null))
+        foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(formula!,
+            @"(?<![A-Za-z0-9_.])results\.([A-Za-z_][A-Za-z0-9_]*)\.", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            if (!aliases.Contains(match.Groups[1].Value)) return Result.Failure($"Card effect references missing output alias: {match.Groups[1].Value}");
+        return Result.Success();
     }
 
     private static Result ValidateEffect(
@@ -220,5 +258,6 @@ public sealed class CardContentCompiler : ICardContentCompiler
         ImmutableArray<Core.Resources.ResourceAmount> BasePrices,
         ImmutableArray<Core.Resources.ResourceAmount> DecomposeRewards,
         ImmutableArray<string> Tags,
+        ImmutableArray<CardTransformationSlotDefinition> TransformationSlots,
         ImmutableArray<CardComponentDefinition> Components);
 }

@@ -417,53 +417,46 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         if (run.IsFailure)
             return Result<IReadOnlyList<RunAvailableCommand>>.Failure(run.Error);
         var commands = _progression.GetAvailableCommands(run.Value);
-        if (commands.IsFailure || _contentDefinitions == null)
+        if (commands.IsFailure)
             return commands;
-        var upgradeCommand = commands.Value.FirstOrDefault(command =>
-            string.Equals(command.Type, RunCommandTypes.UpgradeCard, StringComparison.Ordinal));
-        if (upgradeCommand == null)
+        if (!commands.Value.Any(command => CardTransformationAccess.IsCommand(command.Type)))
             return commands;
-
-        var upgradeIds = upgradeCommand.ValidPayload.TryGetProperty("upgradeIds", out var configured) &&
-                         configured.ValueKind == JsonValueKind.Array
-            ? configured.EnumerateArray()
-                .Where(item => item.ValueKind == JsonValueKind.String)
-                .Select(item => item.GetString())
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Cast<string>()
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToArray()
-            : [];
-        var definitions = new List<CardUpgradeDefinition>(upgradeIds.Length);
-        foreach (var upgradeId in upgradeIds)
-        {
-            var definition = _contentDefinitions.Resolve<CardUpgradeDefinition>(
-                run.Value,
-                "card-upgrades",
-                upgradeId);
-            if (definition.IsFailure)
-                return Result<IReadOnlyList<RunAvailableCommand>>.Failure(definition.Error);
-            definitions.Add(definition.Value);
-        }
-
-        var options = CardUpgradeCommandOptions.Project(run.Value, definitions);
+        var options = GetCardTransformationOptions(run.Value, null);
+        if (options.IsFailure) return Result<IReadOnlyList<RunAvailableCommand>>.Failure(options.Error);
         var enriched = commands.Value.Select(command =>
-            string.Equals(command.Type, RunCommandTypes.UpgradeCard, StringComparison.Ordinal)
+            CardTransformationAccess.IsCommand(command.Type)
                 ? command with
                 {
                     ValidPayload = JsonSerializer.SerializeToElement(new
                     {
-                        options = options.Select(option => new
+                        options = options.Value.Where(option => CardTransformationAccess.CommandType(option.Operation) == command.Type).Select(option => new
                         {
                             cardInstanceId = option.CardInstanceId,
                             cardDefinitionId = option.CardDefinitionId,
-                            upgradeId = option.UpgradeId
+                            upgradeId = option.UpgradeId,
+                            transformationId = option.TargetTransformationId,
+                            category = option.Category.ToString(),
+                            slotId = option.SlotId
                         }).ToArray()
                     })
                 }
                 : command).ToArray();
         return Result<IReadOnlyList<RunAvailableCommand>>.Success(enriched);
+    }
+
+    public Result<IReadOnlyList<CardTransformationOption>> GetCardTransformationOptions(Guid runId, Guid? cardInstanceId = null)
+    {
+        var run = GetRun(runId);
+        if (run.IsFailure) return Result<IReadOnlyList<CardTransformationOption>>.Failure(run.Error);
+        return GetCardTransformationOptions(run.Value, cardInstanceId);
+    }
+
+    private Result<IReadOnlyList<CardTransformationOption>> GetCardTransformationOptions(RunState run, Guid? cardInstanceId)
+    {
+        if (_contentRuntimes == null) return Result<IReadOnlyList<CardTransformationOption>>.Failure("Pinned content runtime is not configured");
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        return runtime.IsFailure ? Result<IReadOnlyList<CardTransformationOption>>.Failure(runtime.Error)
+            : new CardTransformationPlanner(runtime.Value).Options(run, cardInstanceId);
     }
 
     public Result<RunCommandReceipt?> FindReceipt(Guid runId, Guid commandId)
@@ -610,6 +603,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             RunCommandTypes.AcquireRelic => ExecuteAcquireRelic(runId, payload),
             RunCommandTypes.RemoveRelic => ExecuteRemoveRelic(runId, payload),
             RunCommandTypes.UpgradeCard => ExecuteUpgradeCard(runId, payload),
+            RunCommandTypes.RemoveCardTransformation => ExecuteRemoveCardTransformation(runId, payload),
+            RunCommandTypes.ReplaceCardTransformation => ExecuteReplaceCardTransformation(runId, payload),
             RunCommandTypes.ActivateContentRevision => ExecuteActivateContentRevision(runId, payload),
             RunCommandTypes.ApplyRunResource => ExecuteApplyRunResource(runId, payload),
             RunCommandTypes.InvokeCardZoneFlow => ExecuteInvokeCardZoneFlow(runId, payload),
@@ -862,48 +857,43 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
     private Result ExecuteUpgradeCard(Guid runId, JsonElement payload)
     {
-        if (_contentDefinitions == null)
-            return Result.Failure("Pinned content runtime is not configured");
         var request = DeserializePayload<CardUpgradeCommand>(payload);
+        return ExecuteCardTransformation(runId, payload, request.CardInstanceId,
+            CardTransformationOperation.Apply, null, request.UpgradeId);
+    }
+
+    private Result ExecuteRemoveCardTransformation(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<CardTransformationRemoveCommand>(payload);
+        return ExecuteCardTransformation(runId, payload, request.CardInstanceId,
+            CardTransformationOperation.Remove, request.TransformationId, null);
+    }
+
+    private Result ExecuteReplaceCardTransformation(Guid runId, JsonElement payload)
+    {
+        var request = DeserializePayload<CardTransformationReplaceCommand>(payload);
+        return ExecuteCardTransformation(runId, payload, request.CardInstanceId,
+            CardTransformationOperation.Replace, request.TransformationId, request.UpgradeId);
+    }
+
+    private Result ExecuteCardTransformation(Guid runId, JsonElement payload, Guid cardInstanceId,
+        CardTransformationOperation operation, ulong? target, string? upgradeId)
+    {
+        if (_contentRuntimes == null) return Result.Failure("Pinned content runtime is not configured");
         var run = _runs[runId];
         var currentNode = run.Map.Nodes.FirstOrDefault(node =>
             string.Equals(node.NodeId, run.CurrentNodeId, StringComparison.Ordinal));
-        if (run.ResolvedMode?.ProgressionPolicy.AllowOutOfActivityCommands != true &&
-            (currentNode == null || currentNode.Activity.Type != RunActivityType.CardUpgrade))
-            return Result.Failure("The current map node does not allow card upgrades");
-        if (currentNode != null &&
-            run.Map.ResolvedNodeIds.Contains(currentNode.NodeId, StringComparer.Ordinal))
-            return Result.Failure($"Map node already resolved: {currentNode.NodeId}");
-        var definition = _contentDefinitions.Resolve<CardUpgradeDefinition>(
-            run,
-            "card-upgrades",
-            request.UpgradeId);
-        if (definition.IsFailure)
-            return Result.Failure(definition.Error);
-        if (!string.Equals(definition.Value.UpgradeId, request.UpgradeId, StringComparison.Ordinal))
-            return Result.Failure($"Card upgrade definition identity mismatch: {request.UpgradeId}");
-
-        var transition = CardZoneTransitions.ApplyUpgrade(
-            run.Deck.Topology,
-            request.CardInstanceId,
-            definition.Value,
-            run.Determinism);
-        if (transition.IsFailure)
-            return Result.Failure(transition.Error);
-        var upgradedCard = transition.Value.State.GetCard(request.CardInstanceId)!;
-        var runtime = _contentRuntimes!.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+        var runtime = _contentRuntimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
         if (runtime.IsFailure) return Result.Failure(runtime.Error);
-        var compiledCard = new CardContentCompiler().Compile(upgradedCard.DefinitionId, runtime.Value);
-        if (compiledCard.IsFailure) return Result.Failure(compiledCard.Error);
-        var effectiveCard = new EffectiveCardResolver().Resolve(compiledCard.Value, upgradedCard);
-        if (effectiveCard.IsFailure) return Result.Failure(effectiveCard.Error);
-        var references = GameplayContentValidator.ValidateCardContainer(runtime.Value,
-            $"card-instances/{upgradedCard.CardInstanceId}", effectiveCard.Value.Components);
-        if (references.IsFailure) return references;
+        var planned = new CardTransformationPlanner(runtime.Value).Plan(run, cardInstanceId, operation, target, upgradeId);
+        if (planned.IsFailure) return Result.Failure(planned.Error);
+        var topology = run.Deck.Topology with { Instances = run.Deck.Topology.InstanceItems.SetItem(cardInstanceId, planned.Value) };
+        var valid = CardZoneTopologyValidator.Validate(topology);
+        if (valid.IsFailure) return valid;
         var candidate = run with
         {
-            Deck = new DeckState { Topology = transition.Value.State },
-            Determinism = transition.Value.Context.AdvanceStep(),
+            Deck = new DeckState { Topology = topology },
+            Determinism = run.Determinism.AdvanceStep(),
             CompletedActivityNodeIds = currentNode?.Activity.Type == RunActivityType.CardUpgrade
                 ? run.CompletedActivityNodeIds
                     .Append(currentNode.NodeId)
@@ -914,8 +904,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         };
         return ToResult(Persist(
             candidate,
-            RunCommandTypes.UpgradeCard,
-            new { request.CardInstanceId, request.UpgradeId }));
+            CardTransformationAccess.CommandType(operation), payload));
     }
 
     private Result ExecuteRestoreHeadFromHistory(Guid runId, JsonElement payload)

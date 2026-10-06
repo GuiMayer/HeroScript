@@ -25,6 +25,7 @@ public interface IRunCreationService
 /// </summary>
 public interface IRunManager : IRunQueryService, IRunCreationService
 {
+    Result<IReadOnlyList<Core.Run.Content.CardTransformationOption>> GetCardTransformationOptions(Guid runId, Guid? cardInstanceId = null);
 }
 
 /// <summary>
