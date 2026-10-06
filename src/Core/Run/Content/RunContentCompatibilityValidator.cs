@@ -16,6 +16,12 @@ public static class RunContentCompatibilityValidator
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
+        if (run.PlayerEntity != null)
+        {
+            if (run.PlayerEntity.InstanceId != run.PlayerEntityId) return Result.Failure("Persistent player identity mismatch");
+            var player = PersistentPlayerTransitions.Rebind(run.PlayerEntity, runtime);
+            if (player.IsFailure) return Result.Failure(player.Error);
+        }
         var compiler = new CardContentCompiler();
         var effectiveCards = new EffectiveCardResolver();
         foreach (var instance in run.Deck.Topology.Instances.Values
@@ -78,12 +84,14 @@ public static class RunContentCompatibilityValidator
 
         return Result<RunState>.Success(run with
         {
+            PlayerEntity = run.PlayerEntity == null ? null : PersistentPlayerTransitions.Rebind(run.PlayerEntity, runtime).Value,
             ResourceState = runResources.Value,
             Encounters = encounters.ToImmutableArray()
         });
     }
 
     public static bool RequiresRuntime(RunState run) =>
+        run.PlayerEntity != null ||
         run.Deck.Topology.Instances.Count > 0 ||
         run.ResourceState.Resources.Count > 0 ||
         run.Encounters.Any(encounter => encounter.Combat.GetAllActors()

@@ -343,6 +343,9 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             return Result<CombatInitializationResult>.Failure(
                 "Run has no resolved game mode; canonical combat cannot initialize");
         if (_flowPlanner == null) return Result<CombatInitializationResult>.Failure("Canonical combat flow planner is unavailable");
+        var player = PersistentPlayerTransitions.Materialize(run, combat);
+        if (player.IsFailure) return Result<CombatInitializationResult>.Failure(player.Error);
+        combat = player.Value;
         var initialized = _flowPlanner.InitializeTransaction(run, combat);
         if (initialized.IsFailure) return initialized;
         return initialized;

@@ -21,8 +21,9 @@ public static class RunEffectReducer
         PreviousStacks = change.PreviousStacks, CurrentStacks = change.CurrentStacks, Reason = reason, Owner = owner
     };
 
-    public static bool Supports(EffectType type) => type is EffectType.CARD_ZONE_FLOW or
-        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER;
+    public static bool Supports(EffectDefinition effect) => effect.Type is EffectType.CARD_ZONE_FLOW or
+        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER ||
+        effect.Type == EffectType.MODIFY_ATTRIBUTE && effect.AttributeMutation?.Lifetime == Core.Entity.AttributeLifetime.RunBase;
 
     public static Result<RunEffectApplication> Apply(RunState run, CombatState combat, ResolvedEffectCommand command,
         IContentRuntimeResolver? runtimes, string revision, ICardZoneFlowExecutor? cardZoneFlows = null)
@@ -34,6 +35,16 @@ public static class RunEffectReducer
             EffectInstanceId = command.EffectInstanceId, EffectType = effect.Type,
             TargetEntityId = targetId, Provenance = command.Provenance, Identity = command.Identity
         };
+        if (effect.Type == EffectType.MODIFY_ATTRIBUTE)
+        {
+            if (run.PlayerEntity == null || targetId != run.PlayerEntityId || combat.CombatId != Guid.Empty || run.GetActiveEncounter() != null)
+                return Result<RunEffectApplication>.Failure("Persistent attributes can change only on the captured run player outside an encounter");
+            var changed = Core.Entity.EntityAttributeTransitions.Apply(run.PlayerEntity, effect.AttributeMutation!, command.ResolvedValue);
+            return changed.IsFailure ? Result<RunEffectApplication>.Failure(changed.Error) :
+                Result<RunEffectApplication>.Success(new(run with { PlayerEntity = changed.Value.State }, record with
+                { AttributeOutcome = changed.Value.Outcome, CalculationId = command.Calculation?.CalculationId,
+                    CalculationFingerprint = command.Calculation?.Fingerprint }));
+        }
         if (effect.Type is EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER)
         {
             if (string.IsNullOrWhiteSpace(effect.ModifierId)) return Result<RunEffectApplication>.Failure("Modifier effect requires modifierId");

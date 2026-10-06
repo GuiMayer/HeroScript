@@ -40,6 +40,7 @@ public static class PreparationTransitions
             Options = definition.Options.Select(option => new PreparationOptionState
             {
                 OptionId = option.OptionId,
+                Effects = option.Effects,
                 Costs = option.Costs,
                 GrantedCardIds = option.GrantedCardIds,
                 ApplyModifiers = option.ApplyModifiers.Select(modifier => new PreparationModifierGrantState

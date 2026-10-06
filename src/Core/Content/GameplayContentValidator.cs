@@ -43,6 +43,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         });
         Visit<RunDefinition>("runs", (path, item) =>
         {
+            Reference(path, "entities", item.PlayerDefinitionId);
             var activities = RunActivityRegistry.CreateDefault();
             foreach (var node in item.MapNodes)
             {
@@ -60,6 +61,10 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 RunBoundaryEffects($"{address}/entryEffects", node.EntryEffects);
                 RunBoundaryEffects($"{address}/exitEffects", node.ExitEffects);
             }
+        });
+        Visit<PreparationDefinition>("preparations", (path, item) =>
+        {
+            foreach (var option in item.Options) RunBoundaryEffects($"{path}/options/{option.OptionId}/effects", option.Effects);
         });
         Visit<RunProgressionPolicyDefinition>("run-progression-policies", (path, item) =>
         {
@@ -351,7 +356,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
     private void RunBoundaryEffects(string path, IReadOnlyList<EffectDefinition> effects)
     {
         Effects(path, effects);
-        foreach (var effect in effects)
+        EffectDefinitionValidator.Validate(effects, (effect, location) =>
         {
             if (effect.Chance != 1)
                 Error(path, $"effect '{effect.EffectId}' must have chance 1 at a run boundary");
@@ -359,7 +364,9 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 Error(path, $"effect '{effect.EffectId}' must target the run owner");
             if (effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS)
                 Error(path, $"effect '{effect.EffectId}' does not persist in run state");
-        }
+            if (effect.Type == EffectType.MODIFY_ATTRIBUTE && effect.AttributeMutation?.Lifetime != Core.Entity.AttributeLifetime.RunBase)
+                Error(path, "run boundary attributes require RunBase lifetime");
+        });
     }
 
     private void Encounter(string path, RunActivityDefinition activity)

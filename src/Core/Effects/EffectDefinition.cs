@@ -49,6 +49,7 @@ public record EffectDefinition
     public ImmutableArray<StackPayloadBinding> PayloadBindings { get; init; } = [];
     public string? CondensationRecipeId { get; init; }
     public EffectContinuationDefinition? Continuation { get; init; }
+    public Core.Entity.AttributeMutationDefinition? AttributeMutation { get; init; }
     
     /// <summary>
     /// Tipo do efeito

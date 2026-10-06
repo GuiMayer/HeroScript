@@ -33,7 +33,7 @@ internal static class EffectNumericParameters
 {
     internal static bool Supports(EffectType type, EffectNumericParameter parameter) => parameter switch
     {
-        EffectNumericParameter.Amount => type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE,
+        EffectNumericParameter.Amount => type is EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE or EffectType.MODIFY_ATTRIBUTE,
         EffectNumericParameter.StatusStacks or EffectNumericParameter.StatusDuration => type == EffectType.APPLY_STATUS,
         EffectNumericParameter.ModifierStacks => type is EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER,
         EffectNumericParameter.ModifierDuration => type == EffectType.APPLY_MODIFIER,

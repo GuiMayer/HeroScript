@@ -45,32 +45,31 @@ public sealed class RunActivityEffectExecutor(IEffectTriggerExecutor effects) : 
         if (definitions.Count == 0)
             return Result<RunActivityEffectResult>.Success(new RunActivityEffectResult { State = run });
 
-        var invalid = definitions.FirstOrDefault(effect =>
-            effect.Chance != 1 ||
+        var invalid = false;
+        EffectDefinitionValidator.Validate(definitions, (effect, _) => invalid |= effect.Chance != 1 ||
             effect.Target is not (EffectTarget.SELF or EffectTarget.TARGET) ||
-            effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS);
-        if (invalid != null)
+            effect.Type is EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS ||
+            effect.Type == EffectType.MODIFY_ATTRIBUTE && effect.AttributeMutation?.Lifetime != Core.Entity.AttributeLifetime.RunBase);
+        if (invalid)
         {
             return Result<RunActivityEffectResult>.Failure(
-                $"Run activity effects must be guaranteed, target the run owner, and persist in run state: {invalid.EffectId}");
+                "Run activity effects must be guaranteed, target the run owner, and persist in run state");
         }
 
         var owner = new CombatActorState
         {
             InstanceId = run.PlayerEntityId,
-            DefinitionId = "run-owner",
+            DefinitionId = run.PlayerEntity?.DefinitionId ?? "run-owner",
             ContentRevision = run.Determinism.ContentRevision,
-            Name = run.PlayerEntityId,
+            Name = run.PlayerEntity?.Name ?? run.PlayerEntityId,
             SideId = "run-owner",
             ControllerBinding = new ControllerBinding { Kind = ControllerKind.Player },
-            Components = new Dictionary<string, EntityComponentState>(StringComparer.Ordinal)
-            {
-                ["resources"] = new ResourceEntityComponentState
+            Components = (run.PlayerEntity?.Components ?? ImmutableDictionary<string, EntityComponentState>.Empty)
+                .ToImmutableDictionary(StringComparer.Ordinal).SetItem("resources", new ResourceEntityComponentState
                 {
                     ComponentId = "resources",
                     State = run.ResourceState
-                }
-            }
+                })
         };
         var synthetic = new CombatState
         {

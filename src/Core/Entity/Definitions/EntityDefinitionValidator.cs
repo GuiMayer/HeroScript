@@ -39,6 +39,10 @@ public static class EntityDefinitionValidator
                 case StatEntityComponentDefinition stats when
                     stats.Values.Any(value => string.IsNullOrWhiteSpace(value.Key) || !float.IsFinite(value.Value)):
                     return Result.Failure("Entity stats require non-empty IDs and finite values");
+                case StatEntityComponentDefinition stats:
+                    var rules = EntityAttributeTransitions.Validate(stats.Values, stats.ValueRules);
+                    if (rules.IsFailure) return rules;
+                    break;
                 case InventoryEntityComponentDefinition inventory when inventory.Capacity < -1:
                     return Result.Failure("Entity inventory capacity must be -1 or non-negative");
                 case InventoryEntityComponentDefinition inventory when

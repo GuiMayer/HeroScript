@@ -54,6 +54,7 @@ public sealed record CardInspectionContext
     private ImmutableArray<string> _calculationPipelineIds = [];
 
     public CombatActorState Actor { get; init; } = null!;
+    public EntityState? PersistentActor { get; init; }
     public IReadOnlyList<CombatActorState> CandidateTargets
     {
         get => _candidateTargets;
@@ -339,6 +340,7 @@ public sealed class CardInspectionService : ICardInspectionService
         return new CardInspectionContext
         {
             Actor = actor,
+            PersistentActor = actor.InstanceId == run.PlayerEntityId ? run.PlayerEntity : null,
             CandidateTargets = targetIds
                 .Distinct(StringComparer.Ordinal)
                 .Select(combat.GetActor)

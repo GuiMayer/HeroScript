@@ -232,9 +232,18 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             var runtime = _contentRuntimes.Resolve(contentRevision!, options.ConfigName);
             if (runtime.IsFailure) return Result<RunState>.Failure(runtime.Error);
+            if (definition.PlayerDefinitionId is { } playerDefinitionId)
+            {
+                var player = PersistentPlayerTransitions.Create(state.PlayerEntityId, playerDefinitionId, runtime.Value);
+                if (player.IsFailure) return Result<RunState>.Failure(player.Error);
+                state = state with { PlayerEntity = player.Value };
+            }
             var cards = RunContentCompatibilityValidator.ValidateForActivation(state, runtime.Value);
             if (cards.IsFailure) return Result<RunState>.Failure(cards.Error);
         }
+
+        if (definition.PlayerDefinitionId != null && state.PlayerEntity == null)
+            return Result<RunState>.Failure("Persistent player requires a pinned content runtime");
 
         state = state with
         {
@@ -1960,6 +1969,14 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 _cardZoneFlows);
             if (transition.IsFailure)
                 return Result<PreparationOptionState>.Failure(transition.Error);
+
+            if (!transition.Value.Value.Effects.IsEmpty)
+            {
+                var applied = ApplyActivityBoundary(transition.Value.State, new RunMapNodeState
+                { NodeId = $"preparation:{preparationInstanceId}:{optionId}", EntryEffects = transition.Value.Value.Effects }, RunActivityBoundary.Entry);
+                if (applied.IsFailure) return Result<PreparationOptionState>.Failure(applied.Error);
+                transition = Result<RunStateTransition<PreparationOptionState>>.Success(transition.Value with { State = applied.Value });
+            }
 
             return CommitTransition(
                 transition.Value,

@@ -68,6 +68,7 @@ public sealed record EffectApplicationRecord
     public string EffectInstanceId { get; init; } = string.Empty;
     public EffectExecutionIdentity? Identity { get; init; }
     public EffectResourceOutcome? ResourceOutcome { get; init; }
+    public Core.Entity.AttributeMutationOutcome? AttributeOutcome { get; init; }
     public CondensationOutcome? Condensation { get; init; }
     public ImmutableArray<EffectStackChange> StackChanges { get; init; } = [];
     public EffectType EffectType { get; init; }
@@ -279,6 +280,7 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             return Result<EffectTargetApplication>.Failure($"Effect target not found: {targetId}");
         return effect.Definition.Type switch
         {
+            EffectType.MODIFY_ATTRIBUTE => ApplyAttribute(state, target, effect),
             EffectType.DAMAGE => ApplyResource(
                 state,
                 target,
@@ -300,6 +302,19 @@ public sealed class ImmutableEffectProcessor : IImmutableEffectProcessor
             _ => Result<EffectTargetApplication>.Failure(
                 $"Effect type is not supported by immutable processor: {effect.Definition.Type}")
         };
+    }
+
+    private static Result<EffectTargetApplication> ApplyAttribute(CombatState state, CombatActorState target,
+        ResolvedEffectCommand effect)
+    {
+        if (effect.Definition.AttributeMutation is not { Lifetime: Core.Entity.AttributeLifetime.Encounter } mutation)
+            return Result<EffectTargetApplication>.Failure("Combat attribute mutation requires Encounter lifetime");
+        var changed = Core.Entity.EntityAttributeTransitions.Apply(target, mutation, effect.ResolvedValue);
+        if (changed.IsFailure) return Result<EffectTargetApplication>.Failure(changed.Error);
+        return Result<EffectTargetApplication>.Success(new(state.ReplaceActor(target with { Components = changed.Value.State.Components }), new()
+        { EffectInstanceId = effect.EffectInstanceId, Identity = effect.Identity, EffectType = effect.Definition.Type,
+            TargetEntityId = target.InstanceId, AttributeOutcome = changed.Value.Outcome, Provenance = effect.Provenance,
+            CalculationId = effect.Calculation?.CalculationId, CalculationFingerprint = effect.Calculation?.Fingerprint }));
     }
 
     private Result<EffectTargetApplication> ApplyResource(

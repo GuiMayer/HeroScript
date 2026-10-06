@@ -40,7 +40,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
 | 8 — Multi-hit | Contratos concluídos — 8a/8b1/8b2; gate integrado na etapa 14 | Core 1.478 / API 183; 20 regressões adicionais de sharing/scopes. |
 | 9 — Salto por abate | Contrato concluído; gate integrado na etapa 14 | Core 1.500 / API 183; 22 regressões novas. |
-| 10 — Atributos persistentes | Pendente | |
+| 10 — Atributos persistentes | Contrato concluído; integrado à jornada nas etapas 11/14 | Core 1.511 / API 183; 11 regressões novas. |
 | 11 — Oportunidades/conteúdo | Pendente | |
 | 12 — API/preview | Pendente | |
 | 13 — Godot | Pendente | |
@@ -225,3 +225,13 @@ Etapa 9: continuação causal por abate e transporte de excedente pelo caminho n
 - Policies e perfis validados na publicação/execução, inclusive em filhos dormentes. Pipelines também aceitam os namespaces tipados de random/continuação; não aceitam payload externo forjado.
 - Engine version 18; saves e mudanças preexistentes preservados. Contrato: [causal-continuation.md](../systems/effects/causal-continuation.md).
 - Verificação: Core 1.500 aprovados (12s), API 183 (51s), nenhuma falha. Vinte e duas regressões: transporte 15/10/5, defesa por alvo, origem única, unidade, morte não-health, causalidade de filhos, zero/limites/ausência, políticas, multi-hit, condensação, rollback, publicação dormente, dez execuções e round-trip. Sem afirmação de replay semântico integrado ou teste visual nesta entrega.
+
+## Etapa 10 — base persistente e operações de atributos
+
+- `playerDefinitionId` captura `playerEntity` (identidade/revisão/stats) na run. Entrada de encontro materializa a base antes da inicialização; mudanças Encounter não sobrescrevem RunBase. Recursos/inventário/abilities não recebem autoridades novas.
+- `valueRules` autoriza Add/Multiply/Set por componente/value ID, com bounds finitos. `MODIFY_ATTRIBUTE` usa Amount pelo resolver/pipeline comum, reducer puro e `attributeOutcome`. Lifetime RunBase somente fora do encontro; Encounter somente no ator vivo.
+- Opções publicadas de preparação capturam `effects`; o comando canônico resolve IDs/custos/grants/efeitos e persiste atomicamente. Boundaries validam toda a árvore, não só raízes. Nenhum endpoint de patches arbitrários.
+- Rebase valida schema/valores/novos bounds e conserva investimentos. Inspeção separa persistentActor de actor; provider de stats mantém filtros/IDs configuráveis. Buffs e upgrades da carta permanecem separados.
+- Engine version 19. Regressões incluem operações/limites, snapshot, candidato vivo, vários tags elegíveis, buff expirado, rollback, rebase, round-trip e store real com reinício/retry/dez replays semânticos/fork isolado.
+- Contrato: [persistent-attributes.md](../systems/entities/persistent-attributes.md). Alterações preexistentes continuam fora da entrega; em CombatRunCoordinator somente o hook de materialização pertence à etapa.
+- Verificação final: Core 1.511 aprovados (13s), API 183 (56s), nenhuma falha. Snapshot/hash, progressão e replays usam o store/gateway existentes; não foi adicionado save paralelo.

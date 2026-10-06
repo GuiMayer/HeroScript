@@ -18,6 +18,8 @@ public sealed record RunState : ICanonicalHashMemoizable
     public string ConfigName { get; init; } = "default";
     public string SettingId { get; init; } = "default";
     public string PlayerEntityId { get; init; } = "player";
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Combat.Models.EntityState? PlayerEntity { get; init; }
     public string? ModeId { get; init; }
     public ResolvedGameMode? ResolvedMode { get; init; }
     public string? ChallengeId { get; init; }

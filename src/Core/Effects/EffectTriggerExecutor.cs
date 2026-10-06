@@ -544,7 +544,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 ContentRevision = request.ContentRevision,
                                 Provenance = request.Provenance with { ComponentId = activeTriggerId }
                             };
-                            if (RunEffectReducer.Supports(effect.Type))
+                            if (RunEffectReducer.Supports(effect))
                             {
                                 if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
                                 var appliedRun = RunEffectReducer.Apply(currentRun, current, command,
@@ -552,6 +552,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 if (appliedRun.IsFailure) return Result.Failure(appliedRun.Error);
                                 currentRun = appliedRun.Value.Run;
                                 appliedRecords = [appliedRun.Value.Record];
+                                if (appliedRun.Value.Record.AttributeOutcome != null)
+                                {
+                                    var synchronized = PersistentPlayerTransitions.Materialize(currentRun, current);
+                                    if (synchronized.IsFailure) return Result.Failure(synchronized.Error);
+                                    current = synchronized.Value;
+                                }
                             }
                             else
                             {

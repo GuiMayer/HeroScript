@@ -22,6 +22,8 @@ public sealed record ResourceEntityComponentState : EntityComponentState
 
 public sealed record StatEntityComponentState : EntityComponentState
 {
+    public ImmutableSortedDictionary<string, Core.Entity.AttributeValueRule> ValueRules { get; init; } =
+        ImmutableSortedDictionary<string, Core.Entity.AttributeValueRule>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableDictionary<string, float> _values =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
     public IReadOnlyDictionary<string, float> Values

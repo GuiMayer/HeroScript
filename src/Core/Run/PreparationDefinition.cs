@@ -24,6 +24,7 @@ public sealed record PreparationDefinition
 
 public sealed record PreparationOptionDefinition
 {
+    public ImmutableArray<Core.Effects.EffectDefinition> Effects { get; init; } = [];
     private ImmutableList<string> _grantedCardIds = [];
     private ImmutableList<PreparationModifierGrantDefinition> _applyModifiers = [];
     private ImmutableDictionary<string, object> _metadata = ImmutableDictionary<string, object>.Empty;
@@ -85,6 +86,7 @@ public sealed record PreparationState
 
 public sealed record PreparationOptionState
 {
+    public ImmutableArray<Core.Effects.EffectDefinition> Effects { get; init; } = [];
     private ImmutableList<string> _grantedCardIds = [];
     private ImmutableList<PreparationModifierGrantState> _applyModifiers = [];
     private ImmutableList<Guid> _appliedModifierInstanceIds = [];

@@ -22,7 +22,8 @@ public sealed class EffectsModelsTests
                 EffectType.CARD_ZONE_FLOW,
                 EffectType.APPLY_MODIFIER,
                 EffectType.REMOVE_MODIFIER,
-                EffectType.CONDENSE_STACKS
+                EffectType.CONDENSE_STACKS,
+                EffectType.MODIFY_ATTRIBUTE
             },
             Enum.GetValues<EffectType>());
     }

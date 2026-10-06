@@ -70,7 +70,8 @@ public sealed class EntityMaterializer
             StatEntityComponentDefinition stats => Result<EntityComponentState>.Success(new StatEntityComponentState
             {
                 ComponentId = stats.ComponentId,
-                Values = stats.Values
+                Values = stats.Values,
+                ValueRules = stats.ValueRules
             }),
             InventoryEntityComponentDefinition inventory => Result<EntityComponentState>.Success(new InventoryEntityComponentState
             {

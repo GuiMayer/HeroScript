@@ -70,6 +70,8 @@ public sealed record ResourcePoolDefinition
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record StatEntityComponentDefinition : EntityComponentDefinition
 {
+    public ImmutableSortedDictionary<string, AttributeValueRule> ValueRules { get; init; } =
+        ImmutableSortedDictionary<string, AttributeValueRule>.Empty.WithComparers(StringComparer.Ordinal);
     private ImmutableDictionary<string, float> _values =
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.Ordinal);
     public IReadOnlyDictionary<string, float> Values

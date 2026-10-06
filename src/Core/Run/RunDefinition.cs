@@ -13,6 +13,7 @@ public sealed record RunDefinition
         ImmutableDictionary<string, float>.Empty.WithComparers(StringComparer.OrdinalIgnoreCase);
 
     public string RunId { get; init; } = "default_run";
+    public string? PlayerDefinitionId { get; init; }
     public IReadOnlyDictionary<string, float> StartingResources
     {
         get => _startingResources;

@@ -10,7 +10,7 @@ public static class EffectDefinitionValidator
         EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE or
         EffectType.APPLY_STATUS or EffectType.REMOVE_STATUS or EffectType.DISPEL_STATUS or
         EffectType.CARD_ZONE_FLOW or
-        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER or EffectType.CONDENSE_STACKS;
+        EffectType.APPLY_MODIFIER or EffectType.REMOVE_MODIFIER or EffectType.CONDENSE_STACKS or EffectType.MODIFY_ATTRIBUTE;
 
     public static ImmutableArray<string> Validate(IEnumerable<EffectDefinition> effects,
         Action<EffectDefinition, string>? inspect = null)
@@ -47,6 +47,16 @@ public static class EffectDefinitionValidator
                 if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
             }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
+            if (effect.Type == EffectType.MODIFY_ATTRIBUTE)
+            {
+                if (effect.AttributeMutation is not { } mutation || string.IsNullOrWhiteSpace(mutation.ComponentId) ||
+                    string.IsNullOrWhiteSpace(mutation.ValueId) || !Enum.IsDefined(mutation.Operation) || !Enum.IsDefined(mutation.Lifetime) ||
+                    effect.Parameters.Count(parameter => parameter.Parameter == EffectNumericParameter.Amount) != 1)
+                    Error("attribute mutation requires component/value IDs, lifetime, operation and explicit Amount");
+                if (effect.AttributeMutation?.Lifetime == Core.Entity.AttributeLifetime.RunBase && effect.Target is not (EffectTarget.SELF or EffectTarget.TARGET))
+                    Error("persistent attribute mutation must target the run player");
+            }
+            else if (effect.AttributeMutation != null) Error("attributeMutation requires MODIFY_ATTRIBUTE");
             if (!Enum.IsDefined(effect.ExecutionScope) || !Enum.IsDefined(effect.ChildTiming)) Error("invalid execution scope or child timing");
             if (!SafeGroup(effect.ExecutionGroupId) || !SafeGroup(effect.ChanceGroupId) ||
                 effect.ExecutionGroupId != null && effect.ExecutionScope == EffectExecutionScope.EveryInvocation ||

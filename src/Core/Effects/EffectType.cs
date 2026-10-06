@@ -47,7 +47,8 @@ public enum EffectType
 
     APPLY_MODIFIER,
     REMOVE_MODIFIER,
-    CONDENSE_STACKS
+    CONDENSE_STACKS,
+    MODIFY_ATTRIBUTE
 }
 
 /// <summary>
