@@ -1,0 +1,10 @@
+{
+  "core_enemies": {
+    "enemyPoolId": "core_enemies",
+    "entityDefinitionIds": [
+      "core_spark",
+      "core_echo",
+      "core_prime"
+    ]
+  }
+}

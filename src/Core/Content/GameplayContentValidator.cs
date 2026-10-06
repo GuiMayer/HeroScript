@@ -57,7 +57,11 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 if (node.Activity.Type == RunActivityType.Encounter)
                     Encounter(address, node.Activity);
                 if (node.Activity.Type == RunActivityType.CardUpgrade)
+                {
                     ReferencesParameter(address, node.Activity, "upgradeIds", "card-upgrades", required: true);
+                    var costs = CardTransformationAccess.ReadCosts(node.Activity);
+                    if (costs.IsSuccess) foreach (var cost in costs.Value) Reference(address, "resources", cost.ResourceId, required: true);
+                }
                 RunBoundaryEffects($"{address}/entryEffects", node.EntryEffects);
                 RunBoundaryEffects($"{address}/exitEffects", node.ExitEffects);
             }

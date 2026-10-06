@@ -1,0 +1,259 @@
+{
+  "core_charge": {
+    "statusId": "core_charge",
+    "displayName": "Volatile charge",
+    "description": "Stored potency. Consume all eligible stacks in one proc.",
+    "defaultDuration": -1,
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "core_magnitude",
+          "pipelineId": "core_magnitude",
+          "stageIds": [
+            "core_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "core_burst",
+        "core_restore",
+        "core_empower"
+      ]
+    },
+    "tags": [
+      "core_charge"
+    ]
+  },
+  "core_ember_damage": {
+    "statusId": "core_ember_damage",
+    "displayName": "Scorch",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "core_magnitude",
+          "pipelineId": "core_magnitude",
+          "stageIds": [
+            "core_origin"
+          ]
+        }
+      }
+    ],
+    "tags": [
+      "ember",
+      "residual"
+    ],
+    "triggers": [
+      {
+        "triggerId": "core_ember_damage.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "DAMAGE",
+            "operation": "ADD",
+            "target": "SELF",
+            "targetResource": "health",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "unitId": "points",
+                "channel": "core_magnitude",
+                "pipelineId": "core_magnitude",
+                "stageIds": [
+                  "core_target"
+                ],
+                "inputQuantityId": "payload.potency"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "core_ember_heal": {
+    "statusId": "core_ember_heal",
+    "displayName": "Afterglow",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "core_magnitude",
+          "pipelineId": "core_magnitude",
+          "stageIds": [
+            "core_origin"
+          ]
+        }
+      }
+    ],
+    "tags": [
+      "ember",
+      "residual"
+    ],
+    "triggers": [
+      {
+        "triggerId": "core_ember_heal.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "HEAL",
+            "operation": "ADD",
+            "target": "SELF",
+            "targetResource": "health",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "unitId": "points",
+                "channel": "core_magnitude",
+                "pipelineId": "core_magnitude",
+                "stageIds": [
+                  "core_target"
+                ],
+                "inputQuantityId": "payload.potency"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "core_frost_damage": {
+    "statusId": "core_frost_damage",
+    "displayName": "Siphon",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "core_magnitude",
+          "pipelineId": "core_magnitude",
+          "stageIds": [
+            "core_origin"
+          ]
+        }
+      }
+    ],
+    "tags": [
+      "frost",
+      "residual"
+    ],
+    "triggers": [
+      {
+        "triggerId": "core_frost_damage.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "DAMAGE",
+            "operation": "ADD",
+            "target": "SELF",
+            "targetResource": "mana",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "unitId": "points",
+                "channel": "core_magnitude",
+                "pipelineId": "core_magnitude",
+                "stageIds": [
+                  "core_target"
+                ],
+                "inputQuantityId": "payload.potency"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "core_frost_heal": {
+    "statusId": "core_frost_heal",
+    "displayName": "Crystal veil",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "core_magnitude",
+          "pipelineId": "core_magnitude",
+          "stageIds": [
+            "core_origin"
+          ]
+        }
+      }
+    ],
+    "tags": [
+      "frost",
+      "residual"
+    ],
+    "triggers": [
+      {
+        "triggerId": "core_frost_heal.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "MODIFY_RESOURCE",
+            "operation": "ADD",
+            "target": "SELF",
+            "targetResource": "block",
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "unitId": "points",
+                "channel": "core_magnitude",
+                "pipelineId": "core_magnitude",
+                "stageIds": [
+                  "core_target"
+                ],
+                "inputQuantityId": "payload.potency"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

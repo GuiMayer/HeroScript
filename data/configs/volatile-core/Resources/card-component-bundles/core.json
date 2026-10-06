@@ -1,0 +1,230 @@
+{
+  "core_ember_damage": {
+    "bundleId": "core_ember_damage",
+    "effectComponentParameters": [
+      "base"
+    ],
+    "components": [
+      {
+        "type": "effect",
+        "componentId": "residual",
+        "effect": {
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "statusId": "core_ember_damage",
+          "statusDuration": 2,
+          "parameters": [
+            {
+              "parameter": "StatusStacks",
+              "flatValue": 1,
+              "unitId": "stacks",
+              "channel": "core_counts",
+              "pipelineId": "core_counts",
+              "stageIds": [
+                "core_count_target"
+              ],
+              "conversion": {
+                "requireInteger": true,
+                "minimum": 0
+              },
+              "distribution": {
+                "scope": "ParentSequence",
+                "sourceStageIds": [
+                  "core_count_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "cardEffectComponentId": "$base"
+            }
+          ],
+          "metadata": {
+            "nameKey": "effect.core_ember_damage",
+            "artKey": "placeholder.core_ember_damage"
+          }
+        }
+      }
+    ]
+  },
+  "core_ember_heal": {
+    "bundleId": "core_ember_heal",
+    "effectComponentParameters": [
+      "base"
+    ],
+    "components": [
+      {
+        "type": "effect",
+        "componentId": "residual",
+        "effect": {
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "statusId": "core_ember_heal",
+          "statusDuration": 2,
+          "parameters": [
+            {
+              "parameter": "StatusStacks",
+              "flatValue": 1,
+              "unitId": "stacks",
+              "channel": "core_counts",
+              "pipelineId": "core_counts",
+              "stageIds": [
+                "core_count_target"
+              ],
+              "conversion": {
+                "requireInteger": true,
+                "minimum": 0
+              },
+              "distribution": {
+                "scope": "ParentSequence",
+                "sourceStageIds": [
+                  "core_count_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "cardEffectComponentId": "$base"
+            }
+          ],
+          "metadata": {
+            "nameKey": "effect.core_ember_heal",
+            "artKey": "placeholder.core_ember_heal"
+          }
+        }
+      }
+    ]
+  },
+  "core_frost_damage": {
+    "bundleId": "core_frost_damage",
+    "effectComponentParameters": [
+      "base"
+    ],
+    "components": [
+      {
+        "type": "effect",
+        "componentId": "residual",
+        "effect": {
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "statusId": "core_frost_damage",
+          "statusDuration": 2,
+          "parameters": [
+            {
+              "parameter": "StatusStacks",
+              "flatValue": 1,
+              "unitId": "stacks",
+              "channel": "core_counts",
+              "pipelineId": "core_counts",
+              "stageIds": [
+                "core_count_target"
+              ],
+              "conversion": {
+                "requireInteger": true,
+                "minimum": 0
+              },
+              "distribution": {
+                "scope": "ParentSequence",
+                "sourceStageIds": [
+                  "core_count_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "cardEffectComponentId": "$base"
+            }
+          ],
+          "metadata": {
+            "nameKey": "effect.core_frost_damage",
+            "artKey": "placeholder.core_frost_damage"
+          }
+        }
+      }
+    ]
+  },
+  "core_frost_heal": {
+    "bundleId": "core_frost_heal",
+    "effectComponentParameters": [
+      "base"
+    ],
+    "components": [
+      {
+        "type": "effect",
+        "componentId": "residual",
+        "effect": {
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "statusId": "core_frost_heal",
+          "statusDuration": 2,
+          "parameters": [
+            {
+              "parameter": "StatusStacks",
+              "flatValue": 1,
+              "unitId": "stacks",
+              "channel": "core_counts",
+              "pipelineId": "core_counts",
+              "stageIds": [
+                "core_count_target"
+              ],
+              "conversion": {
+                "requireInteger": true,
+                "minimum": 0
+              },
+              "distribution": {
+                "scope": "ParentSequence",
+                "sourceStageIds": [
+                  "core_count_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "cardEffectComponentId": "$base"
+            }
+          ],
+          "metadata": {
+            "nameKey": "effect.core_frost_heal",
+            "artKey": "placeholder.core_frost_heal"
+          }
+        }
+      }
+    ]
+  }
+}

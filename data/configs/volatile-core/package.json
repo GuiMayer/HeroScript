@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.volatile-core",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [
+    {
+      "packageId": "heroscript.base",
+      "versionRange": "1.0.0"
+    }
+  ],
+  "conflicts": [],
+  "content": [
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/calculation-pipelines/core.json",
+      "kind": "calculation-pipelines",
+      "artifactPath": "calculation-pipelines/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/cards/core.json",
+      "kind": "cards",
+      "artifactPath": "cards/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/entities/core.json",
+      "kind": "entities",
+      "artifactPath": "entities/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-component-bundles/core.json",
+      "kind": "card-component-bundles",
+      "artifactPath": "card-component-bundles/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-upgrades/core.json",
+      "kind": "card-upgrades",
+      "artifactPath": "card-upgrades/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/status-effects/core.json",
+      "kind": "status-effects",
+      "artifactPath": "status-effects/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/condensation-recipes/core.json",
+      "kind": "condensation-recipes",
+      "artifactPath": "condensation-recipes/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/modifiers/core.json",
+      "kind": "modifiers",
+      "artifactPath": "modifiers/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/preparations/core.json",
+      "kind": "preparations",
+      "artifactPath": "preparations/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-pools/core.json",
+      "kind": "card-pools",
+      "artifactPath": "card-pools/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-selections/core.json",
+      "kind": "card-selections",
+      "artifactPath": "card-selections/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/enemy-pools/core.json",
+      "kind": "enemy-pools",
+      "artifactPath": "enemy-pools/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/runs/core.json",
+      "kind": "runs",
+      "artifactPath": "runs/core.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/modes/core.json",
+      "kind": "modes",
+      "artifactPath": "modes/core.json"
+    }
+  ]
+}

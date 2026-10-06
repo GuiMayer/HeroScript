@@ -1,0 +1,168 @@
+{
+  "core_adept": {
+    "definitionId": "core_adept",
+    "displayName": "Volatile adept",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 72,
+            "max": 72
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "mana": {
+            "current": 4,
+            "max": 4
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "attributes",
+        "values": {
+          "power": 2
+        },
+        "valueRules": {
+          "power": {
+            "allowedOperations": [
+              "Add",
+              "Multiply",
+              "Set"
+            ],
+            "minimum": 0,
+            "maximum": 50
+          }
+        }
+      }
+    ]
+  },
+  "core_spark": {
+    "definitionId": "core_spark",
+    "displayName": "Wandering spark",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 18,
+            "max": 18
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "mana": {
+            "current": 4,
+            "max": 4
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 2,
+          "dexterity": 2,
+          "intelligence": 2
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "enemy_basic_attack"
+        ]
+      }
+    ]
+  },
+  "core_echo": {
+    "definitionId": "core_echo",
+    "displayName": "Crystal echo",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 24,
+            "max": 24
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "mana": {
+            "current": 4,
+            "max": 4
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 2,
+          "dexterity": 2,
+          "intelligence": 2
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "enemy_basic_attack"
+        ]
+      }
+    ]
+  },
+  "core_prime": {
+    "definitionId": "core_prime",
+    "displayName": "Crucible guardian",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 56,
+            "max": 56
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          },
+          "mana": {
+            "current": 4,
+            "max": 4
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "strength": 2,
+          "dexterity": 2,
+          "intelligence": 2
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "enemy_basic_attack"
+        ]
+      }
+    ]
+  }
+}

@@ -41,7 +41,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 8 — Multi-hit | Contratos concluídos — 8a/8b1/8b2; gate integrado na etapa 14 | Core 1.478 / API 183; 20 regressões adicionais de sharing/scopes. |
 | 9 — Salto por abate | Contrato concluído; gate integrado na etapa 14 | Core 1.500 / API 183; 22 regressões novas. |
 | 10 — Atributos persistentes | Contrato concluído; integrado à jornada nas etapas 11/14 | Core 1.511 / API 183; 11 regressões novas. |
-| 11 — Oportunidades/conteúdo | Pendente | |
+| 11 — Oportunidades/conteúdo | Contrato e setting concluídos; jornada REST no gate final | Core 1.518 / API 183; 7 regressões novas. |
 | 12 — API/preview | Pendente | |
 | 13 — Godot | Pendente | |
 | 14 — Verificação integrada | Pendente | |
@@ -235,3 +235,12 @@ Etapa 9: continuação causal por abate e transporte de excedente pelo caminho n
 - Engine version 19. Regressões incluem operações/limites, snapshot, candidato vivo, vários tags elegíveis, buff expirado, rollback, rebase, round-trip e store real com reinício/retry/dez replays semânticos/fork isolado.
 - Contrato: [persistent-attributes.md](../systems/entities/persistent-attributes.md). Alterações preexistentes continuam fora da entrega; em CombatRunCoordinator somente o hook de materialização pertence à etapa.
 - Verificação final: Core 1.511 aprovados (13s), API 183 (56s), nenhuma falha. Snapshot/hash, progressão e replays usam o store/gateway existentes; não foi adicionado save paralelo.
+
+## Etapa 11 — setting e oportunidades do core
+
+- Package/setting isolado `volatile-core` / Volatile Crucible; depende da base, não altera default/ascendant. Sete cartas, duas afinidades, upgrade base, multi-hit/cascade combináveis, três encontros, escolhas de aquisição/transformação/preparação.
+- Condensação de potência para dano/cura e contagem para APPLY_MODIFIER; residual snapshot e orçamento ParentSequence explícitos. Power persistente entra no stage de origem somente em cartas elegíveis. Custos publicados e intents/gambits existentes.
+- Patch tipado `effect_continuation` preserva outras partes do efeito. Atividade CardUpgrade aceita custos, consumidos pelo comando e verificados pelo mesmo planner usado em assessment/discovery; opções expõem costs. Não há substituição global do catálogo nem novo manager.
+- Seis testes do package/composição/execução/condensação/isolamento e um de affordability/discovery. Jornada REST/reinício/replay/forks/benchmark e UI serão gates posteriores, sem afirmar que o cliente já apresenta as novas mecânicas.
+- Guia: [volatile-core-setting.md](../content/volatile-core-setting.md).
+- Verificação: Core 1.518 aprovados (20s), API 183 (1m25s), nenhuma falha. O stage 12 amplia consultas/preview e o stage 13 apresenta os contratos na Godot.

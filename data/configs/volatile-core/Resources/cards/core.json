@@ -1,0 +1,600 @@
+{
+  "core_strike": {
+    "cardId": "core_strike",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "core_scale"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_strike",
+      "artKey": "placeholder.core_strike",
+      "displayName": "Volatile strike"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_strike.main",
+          "target": "TARGET",
+          "type": "DAMAGE",
+          "targetResource": "health",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 10,
+              "unitId": "points",
+              "channel": "core_magnitude",
+              "pipelineId": "core_magnitude",
+              "stageIds": [
+                "core_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "core_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health",
+          "tags": [
+            "attack"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "core_heal": {
+    "cardId": "core_heal",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "core_scale"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_heal",
+      "artKey": "placeholder.core_heal",
+      "displayName": "Renewal"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_heal.main",
+          "target": "SELF",
+          "type": "HEAL",
+          "targetResource": "health",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 6,
+              "unitId": "points",
+              "channel": "core_magnitude",
+              "pipelineId": "core_magnitude",
+              "stageIds": [
+                "core_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "core_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "core_guard": {
+    "cardId": "core_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "guard"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_guard",
+      "artKey": "placeholder.core_guard",
+      "displayName": "Ward"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_guard.main",
+          "target": "SELF",
+          "type": "MODIFY_RESOURCE",
+          "operation": "ADD",
+          "targetResource": "block",
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "core_magnitude",
+              "pipelineId": "core_magnitude",
+              "stageIds": [
+                "core_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "core_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "core_charge_card": {
+    "cardId": "core_charge_card",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "core_scale",
+      "prepare"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_charge_card",
+      "artKey": "placeholder.core_charge_card",
+      "displayName": "Prepare charge"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_charge_card.main",
+          "target": "SELF",
+          "type": "APPLY_STATUS",
+          "statusId": "core_charge",
+          "statusStacks": 2,
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 6
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "core_release": {
+    "cardId": "core_release",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "condensation"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_release",
+      "artKey": "placeholder.core_release",
+      "displayName": "Condensed burst"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_release.main",
+          "target": "TARGET",
+          "type": "CONDENSE_STACKS",
+          "condensationRecipeId": "core_burst"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "core_recover": {
+    "cardId": "core_recover",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "condensation"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_recover",
+      "artKey": "placeholder.core_recover",
+      "displayName": "Condensed recovery"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_recover.main",
+          "target": "SELF",
+          "type": "CONDENSE_STACKS",
+          "condensationRecipeId": "core_restore"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "core_empower_card": {
+    "cardId": "core_empower_card",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 15
+      }
+    ],
+    "tags": [
+      "condensation"
+    ],
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "metadata": {
+      "nameKey": "card.core_empower_card",
+      "artKey": "placeholder.core_empower_card",
+      "displayName": "Condensed overcharge"
+    },
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "core_empower_card.main",
+          "target": "SELF",
+          "type": "CONDENSE_STACKS",
+          "condensationRecipeId": "core_empower"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  }
+}

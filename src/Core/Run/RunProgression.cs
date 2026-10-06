@@ -606,6 +606,8 @@ internal sealed class CardUpgradeRunActivityHandler : RunActivityHandlerBase
         foreach (var key in new[] { "allowRemoval", "allowReplacement" })
             if (activity.Parameters.TryGetValue(key, out var value) && value.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
                 return Result.Failure($"Card transformation activity {key} must be a boolean");
+        var costs = CardTransformationAccess.ReadCosts(activity);
+        if (costs.IsFailure) return Result.Failure(costs.Error);
         return Result.Success();
     }
     public override bool IsComplete(RunState run, RunMapNodeState node) =>

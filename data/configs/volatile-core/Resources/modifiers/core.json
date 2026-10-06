@@ -1,0 +1,20 @@
+{
+  "core_overcharge": {
+    "modifierId": "core_overcharge",
+    "displayName": "Overcharge",
+    "defaultDuration": 1,
+    "durationBoundary": "Activation",
+    "maxStacks": 99,
+    "influences": [
+      {
+        "influenceId": "potency",
+        "channel": "core_magnitude",
+        "bucket": "base",
+        "formula": "stacks * 1",
+        "requiredTags": [
+          "core_scale"
+        ]
+      }
+    ]
+  }
+}

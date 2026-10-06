@@ -1,0 +1,109 @@
+{
+  "core_magnitude": {
+    "pipelineId": "core_magnitude",
+    "channel": "core_magnitude",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "core_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "core_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "base",
+        "stageId": "core_origin"
+      },
+      {
+        "bucketId": "defense",
+        "stageId": "core_target",
+        "order": 1,
+        "operation": "ConsumeCapacity"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "block",
+        "scope": "Target",
+        "resourceId": "block",
+        "channel": "core_magnitude",
+        "bucket": "defense",
+        "missingResource": "Ignore",
+        "settlement": {}
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "power",
+        "scope": "Actor",
+        "componentId": "attributes",
+        "valueId": "power",
+        "channel": "core_magnitude",
+        "bucket": "base",
+        "missingValue": "Ignore",
+        "requiredTags": [
+          "core_scale"
+        ]
+      }
+    ]
+  },
+  "core_counts": {
+    "pipelineId": "core_counts",
+    "channel": "core_counts",
+    "unitId": "stacks",
+    "stages": [
+      {
+        "stageId": "core_count_origin",
+        "scope": "Shared"
+      },
+      {
+        "stageId": "core_count_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "base",
+        "stageId": "core_count_origin"
+      },
+      {
+        "bucketId": "target",
+        "stageId": "core_count_target",
+        "order": 1
+      }
+    ]
+  },
+  "core_overflow": {
+    "pipelineId": "core_overflow",
+    "channel": "core_overflow",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "core_remainder",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "remainder",
+        "stageId": "core_remainder",
+        "operation": "Formula",
+        "formula": "continuation.requested_change - continuation.applied_change * -1"
+      }
+    ]
+  },
+  "core_attributes": {
+    "pipelineId": "core_attributes",
+    "channel": "core_attributes",
+    "unitId": "attribute_points",
+    "buckets": [
+      {
+        "bucketId": "base"
+      }
+    ]
+  }
+}

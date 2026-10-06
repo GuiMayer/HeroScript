@@ -39,6 +39,15 @@ internal sealed record EffectContinuationPlan(EffectContinuationTrace Trace, Com
 /// <summary>Orchestrates facts and targeting; all remainder arithmetic belongs to authored pipelines.</summary>
 internal sealed class EffectContinuationPlanner(ICalculationResolver calculations)
 {
+    internal static bool ValidPolicy(EffectContinuationDefinition policy) => policy.MaximumHops is >= 1 and <= 32 &&
+        policy.Selector is EffectTarget.RANDOM_ENEMY or EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
+        (policy.Selector == EffectTarget.RANDOM_ENEMY || !string.IsNullOrWhiteSpace(policy.SelectionResourceId)) &&
+        !string.IsNullOrWhiteSpace(policy.OverflowPipelineId) && !string.IsNullOrWhiteSpace(policy.OverflowChannel) &&
+        !policy.OverflowStageIds.IsEmpty && !policy.ImpactStageIds.IsEmpty &&
+        !policy.OverflowStageIds.Concat(policy.ImpactStageIds).Any(string.IsNullOrWhiteSpace) &&
+        policy.OverflowStageIds.Distinct(StringComparer.Ordinal).Count() == policy.OverflowStageIds.Length &&
+        policy.ImpactStageIds.Distinct(StringComparer.Ordinal).Count() == policy.ImpactStageIds.Length;
+
     public static Result ValidateProfiles(EffectDefinition effect, CalculationPipelineDefinition impact,
         CalculationPipelineDefinition overflow)
     {

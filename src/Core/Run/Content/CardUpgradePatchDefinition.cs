@@ -44,6 +44,7 @@ public enum CardTargetingNumericAttribute
 [JsonDerivedType(typeof(CardTagsPatchDefinition), "tags")]
 [JsonDerivedType(typeof(CardComponentPatchDefinition), "component")]
 [JsonDerivedType(typeof(CardEffectParameterNumericPatchDefinition), "effect_parameter_numeric")]
+[JsonDerivedType(typeof(CardEffectContinuationPatchDefinition), "effect_continuation")]
 public abstract record CardUpgradePatchDefinition
 {
     public string ComponentId { get; init; } = string.Empty;
@@ -113,4 +114,10 @@ public sealed record CardEffectParameterNumericPatchDefinition : CardUpgradePatc
     public EffectNumericParameter Parameter { get; init; }
     public CardNumericPatchOperation Operation { get; init; } = CardNumericPatchOperation.Add;
     public float Value { get; init; }
+}
+
+/// <summary>Changes only transfer policy, preserving the permanent numeric base and other components.</summary>
+public sealed record CardEffectContinuationPatchDefinition : CardUpgradePatchDefinition
+{
+    public EffectContinuationDefinition? Continuation { get; init; }
 }

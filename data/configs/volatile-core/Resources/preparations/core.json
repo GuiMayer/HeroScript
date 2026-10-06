@@ -1,0 +1,55 @@
+{
+  "core_training": {
+    "preparationId": "core_training",
+    "options": [
+      {
+        "optionId": "train_power",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 10
+          }
+        ],
+        "effects": [
+          {
+            "type": "MODIFY_ATTRIBUTE",
+            "target": "SELF",
+            "attributeMutation": {
+              "componentId": "attributes",
+              "valueId": "power",
+              "operation": "Add",
+              "lifetime": "RunBase"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "flatValue": 2,
+                "channel": "core_attributes",
+                "pipelineId": "core_attributes",
+                "unitId": "attribute_points"
+              }
+            ]
+          }
+        ],
+        "metadata": {
+          "nameKey": "option.core_train_power"
+        }
+      },
+      {
+        "optionId": "take_charge",
+        "costs": [
+          {
+            "resourceId": "gold",
+            "amount": 10
+          }
+        ],
+        "grantedCardIds": [
+          "core_charge_card"
+        ],
+        "metadata": {
+          "nameKey": "option.core_take_charge"
+        }
+      }
+    ]
+  }
+}

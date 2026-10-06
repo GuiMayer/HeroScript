@@ -2,12 +2,17 @@ using System.Collections.Immutable;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
+using Core.Resources;
+using System.Text.Json;
 
 namespace Core.Run.Content;
 
 public sealed record CardTransformationOption(Guid CardInstanceId, string CardDefinitionId,
     CardTransformationOperation Operation, ulong? TargetTransformationId, string? UpgradeId,
-    CardTransformationCategory Category, string? SlotId);
+    CardTransformationCategory Category, string? SlotId)
+{
+    public ImmutableArray<ResourceAmount> Costs { get; init; } = [];
+}
 
 public sealed record CardTransformationAssessment(Guid RunId, Guid CardInstanceId, string ContentRevision,
     int ExpectedSequence, ulong ExpectedStep, bool IsCompatible, ImmutableArray<CardCompositionDiagnostic> Diagnostics,
@@ -15,6 +20,29 @@ public sealed record CardTransformationAssessment(Guid RunId, Guid CardInstanceI
 
 public static class CardTransformationAccess
 {
+    public static Result<ImmutableArray<ResourceAmount>> ReadCosts(RunActivityDefinition activity)
+    {
+        if (!activity.Parameters.TryGetValue("costs", out var value)) return Result<ImmutableArray<ResourceAmount>>.Success([]);
+        try
+        {
+            var costs = value.Deserialize<ImmutableArray<ResourceAmount>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (costs.IsDefault || costs.Any(cost => cost == null || string.IsNullOrWhiteSpace(cost.ResourceId) || !float.IsFinite(cost.Amount) || cost.Amount < 0) ||
+                costs.Select(cost => cost.ResourceId).Distinct(StringComparer.OrdinalIgnoreCase).Count() != costs.Length)
+                return Result<ImmutableArray<ResourceAmount>>.Failure("Invalid transformation activity costs");
+            return Result<ImmutableArray<ResourceAmount>>.Success(costs);
+        }
+        catch (JsonException) { return Result<ImmutableArray<ResourceAmount>>.Failure("Invalid transformation activity costs"); }
+    }
+
+    public static Result<ResourceSet> SpendCosts(RunState run)
+    {
+        var node = run.Map.Nodes.FirstOrDefault(node => node.NodeId == run.CurrentNodeId);
+        if (node?.Activity.Type != RunActivityType.CardUpgrade) return Result<ResourceSet>.Success(run.ResourceState);
+        var costs = ReadCosts(node.Activity);
+        if (costs.IsFailure) return Result<ResourceSet>.Failure(costs.Error);
+        var spent = RunResourceTransitions.Spend(run.ResourceState, costs.Value, $"transform:{node.NodeId}:{run.Determinism.Step}");
+        return spent.IsFailure ? Result<ResourceSet>.Failure(spent.Error) : Result<ResourceSet>.Success(spent.Value.State);
+    }
     public static bool IsCommand(string type) => type is RunCommandTypes.UpgradeCard or
         RunCommandTypes.RemoveCardTransformation or RunCommandTypes.ReplaceCardTransformation;
 
@@ -80,6 +108,8 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
     {
         var access = CardTransformationAccess.Validate(run, operation, upgradeId);
         if (access.IsFailure) return Result<CardInstanceState>.Failure(access.Error);
+        var affordability = CardTransformationAccess.SpendCosts(run);
+        if (affordability.IsFailure) return Result<CardInstanceState>.Failure(affordability.Error);
         if (runtime.Manifest.Revision != run.Determinism.ContentRevision ||
             !string.Equals(runtime.Manifest.ConfigName, run.ConfigName, StringComparison.OrdinalIgnoreCase))
             return Result<CardInstanceState>.Failure("Transformation runtime does not belong to this run revision/configuration");
@@ -179,7 +209,9 @@ public sealed class CardTransformationPlanner(ContentRuntime runtime)
                 if (planned.IsFailure) return;
                 var entry = planned.Value.Upgrades.Last();
                 options.Add(new(card.CardInstanceId, card.DefinitionId, operation, target,
-                    definition?.UpgradeId, entry.Category, entry.SlotId));
+                    definition?.UpgradeId, entry.Category, entry.SlotId) { Costs =
+                    run.Map.Nodes.FirstOrDefault(node => node.NodeId == run.CurrentNodeId)?.Activity is { Type: RunActivityType.CardUpgrade } activity
+                        ? CardTransformationAccess.ReadCosts(activity).Value : [] });
             }
             foreach (var definition in definitions) Offer(CardTransformationOperation.Apply, null, definition);
             foreach (var entry in active.Value)

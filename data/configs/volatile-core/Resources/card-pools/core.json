@@ -1,0 +1,14 @@
+{
+  "core_rewards": {
+    "poolId": "core_rewards",
+    "explicitCardIds": [
+      "core_strike",
+      "core_heal",
+      "core_guard",
+      "core_charge_card",
+      "core_release",
+      "core_recover",
+      "core_empower_card"
+    ]
+  }
+}

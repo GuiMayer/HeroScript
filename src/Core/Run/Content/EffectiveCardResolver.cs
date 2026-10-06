@@ -220,6 +220,7 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         {
             CardEffectNumericPatchDefinition effect => Enum.IsDefined(effect.Attribute) && Enum.IsDefined(effect.Operation) && float.IsFinite(effect.Value),
             CardEffectParameterNumericPatchDefinition parameter => Enum.IsDefined(parameter.Parameter) && Enum.IsDefined(parameter.Operation) && float.IsFinite(parameter.Value),
+            CardEffectContinuationPatchDefinition continuation => continuation.Continuation == null || EffectContinuationPlanner.ValidPolicy(continuation.Continuation),
             CardCostAmountPatchDefinition cost => Enum.IsDefined(cost.Operation) && float.IsFinite(cost.Value),
             CardInfluenceNumericPatchDefinition influence => Enum.IsDefined(influence.Operation) && float.IsFinite(influence.Value),
             CardTargetingNumericPatchDefinition targeting => Enum.IsDefined(targeting.Attribute) && Enum.IsDefined(targeting.Operation),
@@ -247,6 +248,9 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         {
             CardEffectNumericPatchDefinition effect => PatchEffect(components[index], effect),
             CardEffectParameterNumericPatchDefinition parameter => PatchParameter(components[index], parameter),
+            CardEffectContinuationPatchDefinition continuation => components[index] is CardEffectComponentDefinition component
+                ? Result<CardComponentDefinition>.Success(component with { Effect = component.Effect with { Continuation = continuation.Continuation } })
+                : Result<CardComponentDefinition>.Failure("Continuation patch requires an effect component"),
             CardCostAmountPatchDefinition cost => PatchCost(components[index], cost),
             CardInfluenceNumericPatchDefinition influence => PatchInfluence(components[index], influence),
             CardTargetingNumericPatchDefinition targeting => PatchTargeting(components[index], targeting),
@@ -420,6 +424,9 @@ public sealed class EffectiveCardResolver : IEffectiveCardResolver
         ArgumentNullException.ThrowIfNull(after);
         return patch switch
         {
+            CardEffectContinuationPatchDefinition => trace with
+            { Attribute = "Continuation", PreviousChoice = CanonicalJson.ComputeHash(((CardEffectComponentDefinition)before).Effect.Continuation),
+                CurrentChoice = CanonicalJson.ComputeHash(((CardEffectComponentDefinition)after).Effect.Continuation) },
             CardEffectParameterNumericPatchDefinition parameter => trace with
             {
                 Attribute = $"{parameter.Parameter}.FlatValue", Operation = parameter.Operation,

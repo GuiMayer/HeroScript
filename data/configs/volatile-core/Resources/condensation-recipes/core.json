@@ -1,0 +1,128 @@
+{
+  "core_burst": {
+    "recipeId": "core_burst",
+    "ownerBinding": "SourceEntity",
+    "selectionTiming": "ActionStart",
+    "evaluationTiming": "AfterConsumption",
+    "emptySelection": "Fail",
+    "selection": {
+      "stores": [
+        "Status"
+      ],
+      "definitionIds": [
+        "core_charge"
+      ]
+    },
+    "aggregates": [
+      {
+        "parameterId": "potency",
+        "kind": "Payload",
+        "payloadParameterId": "potency"
+      }
+    ],
+    "effects": [
+      {
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "unitId": "points",
+            "channel": "core_magnitude",
+            "pipelineId": "core_magnitude",
+            "stageIds": [
+              "core_target"
+            ],
+            "inputQuantityId": "condensation.potency"
+          }
+        ]
+      }
+    ]
+  },
+  "core_restore": {
+    "recipeId": "core_restore",
+    "ownerBinding": "SourceEntity",
+    "selectionTiming": "ActionStart",
+    "evaluationTiming": "AfterConsumption",
+    "emptySelection": "Fail",
+    "selection": {
+      "stores": [
+        "Status"
+      ],
+      "definitionIds": [
+        "core_charge"
+      ]
+    },
+    "aggregates": [
+      {
+        "parameterId": "potency",
+        "kind": "Payload",
+        "payloadParameterId": "potency"
+      }
+    ],
+    "effects": [
+      {
+        "type": "HEAL",
+        "target": "SELF",
+        "targetResource": "health",
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "unitId": "points",
+            "channel": "core_magnitude",
+            "pipelineId": "core_magnitude",
+            "stageIds": [
+              "core_target"
+            ],
+            "inputQuantityId": "condensation.potency"
+          }
+        ]
+      }
+    ]
+  },
+  "core_empower": {
+    "recipeId": "core_empower",
+    "ownerBinding": "SourceEntity",
+    "selectionTiming": "ActionStart",
+    "emptySelection": "Fail",
+    "selection": {
+      "stores": [
+        "Status"
+      ],
+      "definitionIds": [
+        "core_charge"
+      ]
+    },
+    "aggregates": [
+      {
+        "parameterId": "count",
+        "kind": "StackCount"
+      }
+    ],
+    "effects": [
+      {
+        "type": "APPLY_MODIFIER",
+        "target": "SELF",
+        "modifierId": "core_overcharge",
+        "parameters": [
+          {
+            "parameter": "ModifierStacks",
+            "inputQuantityId": "condensation.count",
+            "unitId": "stacks",
+            "channel": "core_counts",
+            "pipelineId": "core_counts",
+            "stageIds": [
+              "core_count_origin",
+              "core_count_target"
+            ],
+            "conversion": {
+              "requireInteger": true,
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

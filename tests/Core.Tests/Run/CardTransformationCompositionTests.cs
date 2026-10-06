@@ -123,6 +123,29 @@ public sealed partial class CardTransformationCompositionTests
         Assert.Equal(hash, CanonicalJson.ComputeHash(run));
     }
 
+    [Fact]
+    public void PaidTransformationUsesTheSameAffordabilityPolicyForAssessmentAndDiscovery()
+    {
+        var runtime = Runtime([Numeric("plus", 2)]);
+        var run = State() with { CurrentNodeId = "forge", Map = new() { Nodes = [new()
+            { NodeId = "forge", Activity = new() { Type = RunActivityType.CardUpgrade, Parameters = new Dictionary<string, JsonElement>
+                { ["upgradeIds"] = JsonSerializer.SerializeToElement(new[] { "plus" }), ["costs"] = JsonSerializer.SerializeToElement(new[]
+                    { new ResourceAmount { ResourceId = "health", Amount = 10 } }) } } }] },
+            ResourceState = new() { OwnerId = "run", Resources = new Dictionary<string, ResourcePool> { ["health"] = ResourcePool.Materialize(
+                new ResourceDefinition { ResourceId = "health", DisplayName = "Health" }, 10, 20) } } };
+        var planner = new CardTransformationPlanner(runtime);
+        var hash = CanonicalJson.ComputeHash(run);
+        Assert.True(planner.Assess(run, CardId, CardTransformationOperation.Apply, upgradeId: "plus").IsCompatible);
+        Assert.Equal(10, Assert.Single(planner.Options(run).Value).Costs[0].Amount);
+        Assert.Equal(0, CardTransformationAccess.SpendCosts(run).Value.Get("health")!.Current);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(run));
+        var poor = run with { ResourceState = run.ResourceState.Apply([new() { MutationId = "setup", ResourceId = "health", Value = 0,
+            Operation = ResourceMutationOperation.Set }]).Value.State };
+        Assert.False(planner.Assess(poor, CardId, CardTransformationOperation.Apply, upgradeId: "plus").IsCompatible);
+        Assert.Empty(planner.Options(poor).Value);
+        Assert.True(planner.Plan(poor, CardId, CardTransformationOperation.Apply, upgradeId: "plus").IsFailure);
+    }
+
     [Theory]
     [InlineData(0, CardTransformationCategory.Behavior, "behavior")]
     [InlineData(1, CardTransformationCategory.Affinity, "behavior")]

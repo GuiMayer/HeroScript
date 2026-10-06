@@ -1,0 +1,17 @@
+{
+  "core_reward": {
+    "selectionId": "core_reward",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "core_rewards",
+    "reroll": {
+      "freeRerolls": 1,
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 5
+        }
+      ]
+    }
+  }
+}

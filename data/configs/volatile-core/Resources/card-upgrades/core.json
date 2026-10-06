@@ -1,0 +1,164 @@
+{
+  "core_ember": {
+    "upgradeId": "core_ember",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "core_strike",
+      "core_heal"
+    ],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "ember"
+        ]
+      }
+    ],
+    "compositionRules": [
+      {
+        "ruleId": "core_ember_damage",
+        "namespace": "core_ember_damage",
+        "bundleId": "core_ember_damage",
+        "scope": "AfterImpact",
+        "selector": {
+          "effectTypes": [
+            "DAMAGE"
+          ]
+        },
+        "effectBindings": {
+          "base": "$anchor"
+        }
+      },
+      {
+        "ruleId": "core_ember_heal",
+        "namespace": "core_ember_heal",
+        "bundleId": "core_ember_heal",
+        "scope": "AfterImpact",
+        "selector": {
+          "effectTypes": [
+            "HEAL"
+          ]
+        },
+        "effectBindings": {
+          "base": "$anchor"
+        }
+      }
+    ]
+  },
+  "core_frost": {
+    "upgradeId": "core_frost",
+    "category": "Affinity",
+    "slotId": "affinity",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "core_strike",
+      "core_heal"
+    ],
+    "patches": [
+      {
+        "type": "tags",
+        "add": [
+          "frost"
+        ]
+      }
+    ],
+    "compositionRules": [
+      {
+        "ruleId": "core_frost_damage",
+        "namespace": "core_frost_damage",
+        "bundleId": "core_frost_damage",
+        "scope": "AfterImpact",
+        "selector": {
+          "effectTypes": [
+            "DAMAGE"
+          ]
+        },
+        "effectBindings": {
+          "base": "$anchor"
+        }
+      },
+      {
+        "ruleId": "core_frost_heal",
+        "namespace": "core_frost_heal",
+        "bundleId": "core_frost_heal",
+        "scope": "AfterImpact",
+        "selector": {
+          "effectTypes": [
+            "HEAL"
+          ]
+        },
+        "effectBindings": {
+          "base": "$anchor"
+        }
+      }
+    ]
+  },
+  "core_sharpen": {
+    "upgradeId": "core_sharpen",
+    "category": "Base",
+    "maxApplications": 2,
+    "cardDefinitionIds": [
+      "core_strike",
+      "core_heal"
+    ],
+    "patches": [
+      {
+        "type": "effect_parameter_numeric",
+        "componentId": "main",
+        "parameter": "Amount",
+        "operation": "Add",
+        "value": 3
+      }
+    ]
+  },
+  "core_multihit": {
+    "upgradeId": "core_multihit",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "core_strike",
+      "core_heal"
+    ],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "main",
+        "attribute": "Repeat",
+        "operation": "Set",
+        "value": 3
+      }
+    ]
+  },
+  "core_cascade": {
+    "upgradeId": "core_cascade",
+    "category": "Behavior",
+    "slotId": "behavior",
+    "maxApplications": 1,
+    "cardDefinitionIds": [
+      "core_strike"
+    ],
+    "patches": [
+      {
+        "type": "effect_continuation",
+        "componentId": "main",
+        "continuation": {
+          "maximumHops": 3,
+          "selector": "LOWEST_RESOURCE_ENEMY",
+          "selectionResourceId": "health",
+          "overflowPipelineId": "core_overflow",
+          "overflowChannel": "core_overflow",
+          "overflowStageIds": [
+            "core_remainder"
+          ],
+          "impactStageIds": [
+            "core_target"
+          ],
+          "carryChildren": false
+        }
+      }
+    ]
+  }
+}

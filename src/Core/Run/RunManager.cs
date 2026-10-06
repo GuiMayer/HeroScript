@@ -896,12 +896,15 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         if (runtime.IsFailure) return Result.Failure(runtime.Error);
         var planned = new CardTransformationPlanner(runtime.Value).Plan(run, cardInstanceId, operation, target, upgradeId);
         if (planned.IsFailure) return Result.Failure(planned.Error);
+        var spent = CardTransformationAccess.SpendCosts(run);
+        if (spent.IsFailure) return Result.Failure(spent.Error);
         var topology = run.Deck.Topology with { Instances = run.Deck.Topology.InstanceItems.SetItem(cardInstanceId, planned.Value) };
         var valid = CardZoneTopologyValidator.Validate(topology);
         if (valid.IsFailure) return valid;
         var candidate = run with
         {
             Deck = new DeckState { Topology = topology },
+            ResourceState = spent.Value,
             Determinism = run.Determinism.AdvanceStep(),
             CompletedActivityNodeIds = currentNode?.Activity.Type == RunActivityType.CardUpgrade
                 ? run.CompletedActivityNodeIds

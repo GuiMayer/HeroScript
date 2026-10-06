@@ -1,0 +1,214 @@
+{
+  "core_volatile_run": {
+    "runId": "core_volatile_run",
+    "playerDefinitionId": "core_adept",
+    "startingResources": {
+      "gold": 60,
+      "power_points": 0
+    },
+    "initialPlayableCardCount": 5,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "core_strike",
+      "core_strike",
+      "core_guard",
+      "core_charge_card",
+      "core_release",
+      "core_heal",
+      "core_recover",
+      "core_empower_card",
+      "core_charge_card",
+      "core_guard"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "core_arrival",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "core_adept",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "core_spark",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "core_reward"
+        ]
+      },
+      {
+        "nodeId": "core_reward",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "core_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "core_forge"
+        ]
+      },
+      {
+        "nodeId": "core_forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [
+              "core_ember",
+              "core_frost",
+              "core_sharpen",
+              "core_multihit",
+              "core_cascade"
+            ],
+            "costs": [
+              {
+                "resourceId": "gold",
+                "amount": 10
+              }
+            ],
+            "allowRemoval": true,
+            "allowReplacement": true
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "core_trial"
+        ]
+      },
+      {
+        "nodeId": "core_trial",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "core_adept",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "core_spark",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "core_echo",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "core_training"
+        ]
+      },
+      {
+        "nodeId": "core_training",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "core_training",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "core_reforge"
+        ]
+      },
+      {
+        "nodeId": "core_reforge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [
+              "core_ember",
+              "core_frost",
+              "core_sharpen",
+              "core_multihit",
+              "core_cascade"
+            ],
+            "costs": [
+              {
+                "resourceId": "gold",
+                "amount": 10
+              }
+            ],
+            "allowRemoval": true,
+            "allowReplacement": true
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "core_final"
+        ]
+      },
+      {
+        "nodeId": "core_final",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "definitionId": "core_adept",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "enemy_0",
+                "definitionId": "core_echo",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "enemy_1",
+                "definitionId": "core_prime",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": []
+      }
+    ]
+  }
+}

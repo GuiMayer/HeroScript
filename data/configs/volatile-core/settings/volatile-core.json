@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "settingId": "volatile-core",
+  "displayName": "Volatile Crucible",
+  "description": "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.",
+  "launch": {
+    "runDefinitionId": "core_volatile_run",
+    "playerEntityId": "player",
+    "modeId": "core_volatile"
+  },
+  "packages": [
+    {
+      "packageId": "heroscript.volatile-core",
+      "versionRange": "1.0.0"
+    }
+  ]
+}
