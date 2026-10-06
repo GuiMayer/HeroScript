@@ -20,6 +20,7 @@ public sealed record EffectNumericParameterDefinition
     public string UnitId { get; init; } = string.Empty;
     public ImmutableArray<string> StageIds { get; init; } = [];
     public CalculationValuePolicy Conversion { get; init; } = new();
+    public EffectSequenceDistribution? Distribution { get; init; }
 }
 
 public sealed record ResolvedEffectNumericParameter

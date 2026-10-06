@@ -23,6 +23,8 @@ public sealed record EffectExecutionStep
     public ImmutableArray<ResolvedEffectNumericParameter> Parameters { get; init; } = [];
     public ImmutableArray<CalculationResult> PayloadCalculations { get; init; } = [];
     public CondensationOutcome? Condensation { get; init; }
+    public ImmutableArray<EffectSequenceBudget> SequenceBudgets { get; init; } = [];
+    public ImmutableArray<EffectImpactShare> ImpactShares { get; init; } = [];
     public ImmutableArray<EffectApplicationRecord> Applications { get; init; } = [];
     public string StateBeforeHash { get; init; } = string.Empty;
     public string StateAfterHash { get; init; } = string.Empty;

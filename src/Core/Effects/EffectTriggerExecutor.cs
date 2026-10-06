@@ -106,6 +106,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var referenceErrors = new List<string>();
         var definitionErrors = EffectDefinitionValidator.Validate(rootEffects, (effect, _) =>
         {
+            var distribution = ValidateSequenceProfiles(effect, request);
+            if (distribution.IsFailure) referenceErrors.Add(distribution.Error);
             if (effect.Type != EffectType.CONDENSE_STACKS || string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) return;
             var resolved = ResolveRecipe(effect.CondensationRecipeId, request);
             if (resolved.IsFailure) referenceErrors.Add(resolved.Error);
@@ -113,7 +115,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         });
         if (referenceErrors.Count > 0) return Result<EffectBatchResult>.Failure(string.Join("; ", referenceErrors));
         definitionErrors = definitionErrors.AddRange(EffectDefinitionValidator.Validate(rootEffects.Concat(
-            recipes.OrderBy(pair => pair.Key, StringComparer.Ordinal).SelectMany(pair => pair.Value.Effects))));
+            recipes.OrderBy(pair => pair.Key, StringComparer.Ordinal).SelectMany(pair => pair.Value.Effects)), (effect, _) =>
+            {
+                var distribution = ValidateSequenceProfiles(effect, request);
+                if (distribution.IsFailure) referenceErrors.Add(distribution.Error);
+            }));
+        if (referenceErrors.Count > 0) return Result<EffectBatchResult>.Failure(string.Join("; ", referenceErrors));
         if (!definitionErrors.IsEmpty)
             return Result<EffectBatchResult>.Failure(string.Join("; ", definitionErrors));
 
@@ -148,12 +155,16 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             resultContext = accumulated.Value;
             steps.Add(new()
             {
-                Index = steps.Count, EffectInstanceId = command.EffectInstanceId,
+                Index = steps.Count,
+                EffectInstanceId = command.EffectInstanceId,
                 Identity = command.Identity,
                 TargetEntityId = command.TargetEntityIds.FirstOrDefault() ?? string.Empty,
-                Applied = true, ContentRevision = request.ContentRevision, Provenance = command.Provenance,
+                Applied = true,
+                ContentRevision = request.ContentRevision,
+                Provenance = command.Provenance,
                 Applications = applied.Value.Records.ToImmutableArray(),
-                StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current)
+                StateBeforeHash = before,
+                StateAfterHash = CanonicalJson.ComputeHash(current)
             });
         }
         var activeTriggerId = request.Trigger.TriggerId;
@@ -168,8 +179,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         }
         return Result<EffectBatchResult>.Success(new()
         {
-            ExecutionId = executionId, State = current, Run = currentRun, Records = records.ToImmutable(),
-            Calculations = calculations.ToImmutable(), Steps = steps.ToImmutable(),
+            ExecutionId = executionId,
+            State = current,
+            Run = currentRun,
+            Records = records.ToImmutable(),
+            Calculations = calculations.ToImmutable(),
+            Steps = steps.ToImmutable(),
             Fingerprint = CanonicalJson.ComputeHash(new { state = current, steps = steps.ToImmutable(), run = currentRun })
         });
 
@@ -183,17 +198,35 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 return Result.Failure($"Effect {path} repeat is outside execution limits");
             if (!float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1 || !Enum.IsDefined(effect.ChanceScope))
                 return Result.Failure($"Effect {path} has an invalid chance policy");
+            var sequenceRequest = request with
+            {
+                Combat = numericSnapshot?.Combat ?? current,
+                Run = numericSnapshot?.Run ?? currentRun,
+                Quantities = activeQuantities
+            };
+            ImmutableArray<EffectSequenceBudget> sequenceBudgets = [];
+            var budgetReady = false;
+            bool? sequencePass = null;
+            double? sequenceRoll = null;
+            ImmutableArray<EffectImpactShare> Shares(int index) => sequenceBudgets.Select(budget => new EffectImpactShare
+            { Parameter = budget.Parameter, DistributionId = budget.Allocation.DistributionId, Share = budget.Allocation.Shares[index] }).ToImmutableArray();
             if (effect.Type == EffectType.CONDENSE_STACKS)
             {
                 if (attemptedRecipes.TryGetValue(effect.CondensationRecipeId!, out var previous))
                 {
                     steps.Add(new()
                     {
-                        Index = steps.Count, EffectInstanceId = $"{path}:once", Identity = previous with
+                        Index = steps.Count,
+                        EffectInstanceId = $"{path}:once",
+                        Identity = previous with
                         { ImpactId = CanonicalJson.ComputeHash(new { previous.ProcId, path, reason = "already_attempted" }) },
-                        Applied = false, SkipReason = "already_attempted", ContentRevision = request.ContentRevision,
-                        Provenance = request.Provenance, StateBeforeHash = CanonicalJson.ComputeHash(current),
-                        StateAfterHash = CanonicalJson.ComputeHash(current), RunBeforeHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun),
+                        Applied = false,
+                        SkipReason = "already_attempted",
+                        ContentRevision = request.ContentRevision,
+                        Provenance = request.Provenance,
+                        StateBeforeHash = CanonicalJson.ComputeHash(current),
+                        StateAfterHash = CanonicalJson.ComputeHash(current),
+                        RunBeforeHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun),
                         RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
                     return Result.Success();
@@ -214,7 +247,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         lostId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId);
                     if (forcedProcId != null) lostIdentity = lostIdentity with
                     {
-                        ProcId = forcedProcId, ParentProcId = forcedParentProcId,
+                        ProcId = forcedProcId,
+                        ParentProcId = forcedParentProcId,
                         ImpactId = CanonicalJson.ComputeHash(new { forcedProcId, path, repeat, lostId, reason = "lost" })
                     };
                     steps.Add(new()
@@ -222,7 +256,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         Index = steps.Count,
                         EffectInstanceId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{lostId}:lost",
                         Identity = lostIdentity,
-                        TargetEntityId = lostId, RepeatIndex = repeat, Applied = false,
+                        TargetEntityId = lostId,
+                        RepeatIndex = repeat,
+                        Applied = false,
+                        ImpactShares = Shares(repeat),
                         SkipReason = targets.Value.StopRepeat ? "repeat_stopped" : "target_defeated",
                         TargetLossPolicy = effect.TargetLoss.Policy,
                         ContentRevision = request.ContentRevision,
@@ -235,11 +272,19 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 }
                 if (targets.Value.StopRepeat) break;
                 if (targets.Value.TargetIds.IsEmpty) continue;
+                if (effect.Parameters.Any(parameter => parameter.Distribution != null) && targets.Value.TargetIds.Length != 1)
+                    return Result.Failure("Sequence distribution requires exactly one target per impact");
                 if (effect.Type == EffectType.CONDENSE_STACKS && targets.Value.TargetIds.Length != 1)
                     return Result.Failure("Condensation requires one activation target; configure additional targets in the recipe effects");
                 var beforeChance = CanonicalJson.ComputeHash(current);
                 double? effectRoll = null;
                 var effectPass = effect.ChanceScope != EffectChanceScope.PerEffect || DrawChance(effect.Chance, out effectRoll);
+                if (effect.ChanceScope == EffectChanceScope.PerSequence)
+                {
+                    sequencePass ??= DrawChance(effect.Chance, out sequenceRoll);
+                    effectPass = sequencePass.Value;
+                    effectRoll = sequenceRoll;
+                }
                 for (var targetIndex = 0; targetIndex < targets.Value.TargetIds.Length; targetIndex++)
                 {
                     if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
@@ -249,7 +294,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId);
                     if (forcedProcId != null) identity = identity with
                     {
-                        ProcId = forcedProcId, ParentProcId = forcedParentProcId,
+                        ProcId = forcedProcId,
+                        ParentProcId = forcedParentProcId,
                         ImpactId = CanonicalJson.ComputeHash(new { forcedProcId, path, repeat, targetId })
                     };
                     var before = targetIndex == 0
@@ -294,6 +340,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     ImmutableArray<CalculationResult> payloadCalculations = [];
                     CondensationOutcome? condensation = null;
                     string? condensationSkip = null;
+                    ImmutableArray<EffectSequenceBudget> capturedBudgets = [];
                     (CombatState Combat, RunState? Run) preConsumption = (current, currentRun);
                     if (applies && effect.Type == EffectType.CONDENSE_STACKS)
                     {
@@ -325,62 +372,92 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     }
                     else if (applies)
                     {
-                        var numericRequest = request with { Combat = numericSnapshot?.Combat ?? current,
-                            Run = numericSnapshot?.Run ?? currentRun, Quantities = activeQuantities };
+                        if (!budgetReady && effect.Parameters.Any(parameter => parameter.Distribution != null))
+                        {
+                            var planner = new EffectSequenceBudgetPlanner(new CalculationResolver(_formulas, _contentRuntimes,
+                                _calculations, _influences), _calculations!);
+                            var capture = planner.Capture(sequenceRequest, effect, $"{executionId}:{path}", activeTriggerId);
+                            if (capture.IsFailure) return Result.Failure(capture.Error);
+                            sequenceBudgets = capture.Value;
+                            capturedBudgets = sequenceBudgets;
+                            budgetReady = true;
+                            work += sequenceBudgets.Sum(budget => budget.Allocation.Shares.Length + 1);
+                            if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                            calculations.AddRange(sequenceBudgets.Select(budget => budget.Capture));
+                        }
+                        var numericRequest = request with
+                        {
+                            Combat = numericSnapshot?.Combat ?? current,
+                            Run = numericSnapshot?.Run ?? currentRun,
+                            Quantities = activeQuantities
+                        };
                         var numericVariables = numericSnapshot == null ? variables : BuildVariables(numericRequest, numericRequest.Combat, targetId);
                         if (numericSnapshot != null)
                             foreach (var pair in variables.Where(pair => pair.Key.StartsWith("results.", StringComparison.Ordinal) ||
                                 pair.Key.StartsWith("parent.", StringComparison.Ordinal) || pair.Key is "repeat_index" or "target_index"))
                                 numericVariables[pair.Key] = pair.Value;
                         var value = ResolveValue(numericRequest, effect, targetId, numericVariables,
-                            $"{path}:{repeat}:{targetId}", activeTriggerId);
+                            $"{path}:{repeat}:{targetId}", activeTriggerId, Shares(repeat),
+                            request with { Combat = current, Run = currentRun, Quantities = activeQuantities });
                         if (value.IsFailure) return Result.Failure(value.Error);
                         calculation = value.Value.Calculation;
                         resolvedParameters = value.Value.Parameters;
                         payloadCalculations = value.Value.PayloadCalculations;
                         work += value.Value.PayloadWork;
                         if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
-                        var status = ResolveAppliedStatus(effect, request.ContentRevision, request.Run?.ConfigName);
-                        if (status.IsFailure) return Result.Failure(status.Error);
-                        var payload = CapturePayload(numericRequest with
-                            { Provenance = request.Provenance with { ComponentId = activeTriggerId } }, value.Value.Definition,
-                            status.Value, targetId, identity.ImpactId, numericVariables);
-                        if (payload.IsFailure) return Result.Failure(payload.Error);
-                        payloadCalculations = payloadCalculations.AddRange(payload.Value.Calculations);
-                        work += payload.Value.Lot?.Parameters.Count ?? 0;
-                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
-                        var command = new ResolvedEffectCommand
+                        if (value.Value.ZeroContribution)
                         {
-                            EffectInstanceId = id, Definition = value.Value.Definition, SourceEntityId = request.SourceEntityId,
-                            Identity = identity,
-                            Parameters = resolvedParameters,
-                            TargetEntityIds = [targetId], ResolvedValue = value.Value.Value,
-                            Calculation = value.Value.Calculation, Settlements = value.Value.Settlements,
-                            StatusDefinition = status.Value,
-                            PayloadLot = payload.Value.Lot,
-                            ContentRevision = request.ContentRevision,
-                            Provenance = request.Provenance with { ComponentId = activeTriggerId }
-                        };
-                        if (RunEffectReducer.Supports(effect.Type))
-                        {
-                            if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
-                            var appliedRun = RunEffectReducer.Apply(currentRun, current, command,
-                                _contentRuntimes, request.ContentRevision, _cardZoneFlows);
-                            if (appliedRun.IsFailure) return Result.Failure(appliedRun.Error);
-                            currentRun = appliedRun.Value.Run;
-                            appliedRecords = [appliedRun.Value.Record];
+                            applies = false;
+                            condensationSkip = "zero_contribution";
                         }
                         else
                         {
-                            var applied = _effects.Apply(current, [command]);
-                            if (applied.IsFailure) return Result.Failure(applied.Error);
-                            current = applied.Value.State;
-                            appliedRecords = applied.Value.Records.ToImmutableArray();
+                            var status = ResolveAppliedStatus(effect, request.ContentRevision, request.Run?.ConfigName);
+                            if (status.IsFailure) return Result.Failure(status.Error);
+                            var payload = CapturePayload(numericRequest with
+                            { Provenance = request.Provenance with { ComponentId = activeTriggerId } }, value.Value.Definition,
+                                status.Value, targetId, identity.ImpactId, numericVariables);
+                            if (payload.IsFailure) return Result.Failure(payload.Error);
+                            payloadCalculations = payloadCalculations.AddRange(payload.Value.Calculations);
+                            work += payload.Value.Lot?.Parameters.Count ?? 0;
+                            if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                            var command = new ResolvedEffectCommand
+                            {
+                                EffectInstanceId = id,
+                                Definition = value.Value.Definition,
+                                SourceEntityId = request.SourceEntityId,
+                                Identity = identity,
+                                Parameters = resolvedParameters,
+                                TargetEntityIds = [targetId],
+                                ResolvedValue = value.Value.Value,
+                                Calculation = value.Value.Calculation,
+                                Settlements = value.Value.Settlements,
+                                StatusDefinition = status.Value,
+                                PayloadLot = payload.Value.Lot,
+                                ContentRevision = request.ContentRevision,
+                                Provenance = request.Provenance with { ComponentId = activeTriggerId }
+                            };
+                            if (RunEffectReducer.Supports(effect.Type))
+                            {
+                                if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
+                                var appliedRun = RunEffectReducer.Apply(currentRun, current, command,
+                                    _contentRuntimes, request.ContentRevision, _cardZoneFlows);
+                                if (appliedRun.IsFailure) return Result.Failure(appliedRun.Error);
+                                currentRun = appliedRun.Value.Run;
+                                appliedRecords = [appliedRun.Value.Record];
+                            }
+                            else
+                            {
+                                var applied = _effects.Apply(current, [command]);
+                                if (applied.IsFailure) return Result.Failure(applied.Error);
+                                current = applied.Value.State;
+                                appliedRecords = applied.Value.Records.ToImmutableArray();
+                            }
+                            records.AddRange(appliedRecords);
+                            var accumulated = resultContext.Add(appliedRecords);
+                            if (accumulated.IsFailure) return Result.Failure(accumulated.Error);
+                            resultContext = accumulated.Value;
                         }
-                        records.AddRange(appliedRecords);
-                        var accumulated = resultContext.Add(appliedRecords);
-                        if (accumulated.IsFailure) return Result.Failure(accumulated.Error);
-                        resultContext = accumulated.Value;
                         if (calculation != null) calculations.Add(calculation);
                         calculations.AddRange(resolvedParameters.Where(parameter => parameter.Parameter != EffectNumericParameter.Amount)
                             .Select(parameter => parameter.Calculation));
@@ -388,18 +465,29 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     }
                     steps.Add(new()
                     {
-                        Index = steps.Count, EffectInstanceId = id, TargetEntityId = targetId,
+                        Index = steps.Count,
+                        EffectInstanceId = id,
+                        TargetEntityId = targetId,
                         Identity = identity,
-                        RepeatIndex = repeat, TargetIndex = targetIndex, Applied = applies,
+                        RepeatIndex = repeat,
+                        TargetIndex = targetIndex,
+                        Applied = applies,
                         Retargeted = targets.Value.Retargeted,
                         SkipReason = applies ? null : condensationSkip ?? (!tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition"),
-                        ChanceRoll = roll, ContentRevision = request.ContentRevision,
+                        ChanceRoll = roll,
+                        ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
-                        Calculation = calculation, Parameters = resolvedParameters, PayloadCalculations = payloadCalculations,
+                        Calculation = calculation,
+                        Parameters = resolvedParameters,
+                        PayloadCalculations = payloadCalculations,
                         Condensation = condensation,
+                        SequenceBudgets = capturedBudgets,
+                        ImpactShares = Shares(repeat),
                         Applications = appliedRecords,
-                        StateBeforeHash = before, StateAfterHash = CanonicalJson.ComputeHash(current),
-                        RunBeforeHash = runBefore, RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
+                        StateBeforeHash = before,
+                        StateAfterHash = CanonicalJson.ComputeHash(current),
+                        RunBeforeHash = runBefore,
+                        RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
                     });
                     if (!applies) continue;
                     if (condensation != null)
@@ -452,6 +540,25 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             roll = draw.Value;
             return draw.Value < chance;
         }
+    }
+
+    private Result ValidateSequenceProfiles(EffectDefinition effect, EffectTriggerExecutionRequest request)
+    {
+        var parameters = effect.Parameters.Where(parameter => parameter.Distribution != null).ToArray();
+        if (parameters.Length == 0) return Result.Success();
+        if (_contentRuntimes == null || _calculations == null || _influences == null || request.Run?.ResolvedMode == null)
+            return Result.Failure("Sequence distribution requires configured pinned calculation services");
+        var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        foreach (var parameter in parameters)
+        {
+            var pipeline = CalculationResolver.ResolvePipeline(effect with
+            { CalculationChannel = parameter.Channel, CalculationPipelineId = parameter.PipelineId }, request.Run, runtime.Value);
+            if (pipeline.IsFailure) return Result.Failure(pipeline.Error);
+            var valid = EffectSequenceBudgetPlanner.ValidateProfile(parameter, pipeline.Value);
+            if (valid.IsFailure) return valid;
+        }
+        return Result.Success();
     }
 
     private Result<CondensationRecipeDefinition> ResolveRecipe(string recipeId, EffectTriggerExecutionRequest request)
@@ -525,14 +632,19 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
     private Result<ResolvedAmount> ResolveValue(
         EffectTriggerExecutionRequest request, EffectDefinition effect, string targetId,
-        Dictionary<string, float> variables, string calculationSuffix, string componentId)
+        Dictionary<string, float> variables, string calculationSuffix, string componentId,
+        ImmutableArray<EffectImpactShare> shares = default, EffectTriggerExecutionRequest? liveRequest = null)
     {
         var context = new CalculationSourceContext
         {
-            ContentRevision = request.ContentRevision, Run = request.Run, Combat = request.Combat, Card = request.Card,
+            ContentRevision = request.ContentRevision,
+            Run = request.Run,
+            Combat = request.Combat,
+            Card = request.Card,
             ComponentId = componentId,
             Actor = request.Combat.GetActor(request.SourceEntityId) ?? request.Combat.GetActor(request.OwnerEntityId),
-            Target = request.Combat.GetActor(targetId), Variables = variables,
+            Target = request.Combat.GetActor(targetId),
+            Variables = variables,
             Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
         };
         var resolver = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences,
@@ -545,8 +657,30 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         ResolvedEffectAmount? amountOverride = null;
         foreach (var definition in effect.Parameters.OrderBy(parameter => parameter.Parameter))
         {
+            var numericDefinition = definition;
             var parameterContext = context;
-            if (definition.InputQuantityId is { } inputId)
+            if (definition.Distribution != null)
+            {
+                var share = shares.FirstOrDefault(item => item.Parameter == definition.Parameter);
+                if (share == null) return Result<ResolvedAmount>.Failure("Sequence budget share is unavailable");
+                if (share.Share.Quantity.Value == 0 && definition.Parameter != EffectNumericParameter.Amount)
+                    return Result<ResolvedAmount>.Success(new(0, null, [], bound, parameters.ToImmutable(),
+                        payloadTraces.ToImmutable(), payloadWork, true));
+                numericDefinition = definition with { FlatValue = null, FormulaValue = null, InputQuantityId = null, Distribution = null };
+                // Distribution opts into live per-impact defenses/settlements. A condensation
+                // BeforeConsumption snapshot freezes the source capture, not expendable target capacity.
+                var live = liveRequest ?? request;
+                parameterContext = context with
+                {
+                    InputQuantity = share.Share.Quantity,
+                    Combat = live.Combat,
+                    Run = live.Run,
+                    Actor = live.Combat.GetActor(live.SourceEntityId) ?? live.Combat.GetActor(live.OwnerEntityId),
+                    Target = live.Combat.GetActor(targetId),
+                    Variables = BuildVariables(live with { Variables = variables }, live.Combat, targetId)
+                };
+            }
+            else if (definition.InputQuantityId is { } inputId)
             {
                 CalculationQuantity quantity;
                 if (inputId.StartsWith("payload.", StringComparison.Ordinal))
@@ -563,9 +697,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     return Result<ResolvedAmount>.Failure($"Unknown input quantity: {inputId}");
                 parameterContext = context with { InputQuantity = quantity };
             }
-            var result = resolver.ResolveParameter(effect, definition, $"{calculationId}:{definition.Parameter}", parameterContext);
+            var result = resolver.ResolveParameter(effect, numericDefinition, $"{calculationId}:{definition.Parameter}", parameterContext);
             if (result.IsFailure) return Result<ResolvedAmount>.Failure(result.Error);
             var parameter = new ResolvedEffectNumericParameter { Parameter = definition.Parameter, Calculation = result.Value.Calculation! };
+            if (definition.Distribution != null && definition.Parameter != EffectNumericParameter.Amount && result.Value.Value == 0)
+                return Result<ResolvedAmount>.Success(new(0, null, [], bound, parameters.ToImmutable().Add(parameter),
+                    payloadTraces.ToImmutable(), payloadWork, true));
             var binding = EffectNumericParameters.Bind(bound, parameter);
             if (binding.IsFailure) return Result<ResolvedAmount>.Failure(binding.Error);
             bound = binding.Value;
@@ -628,5 +765,5 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         ImmutableArray<ResolvedCalculationSettlement> Settlements,
         EffectDefinition Definition,
         ImmutableArray<ResolvedEffectNumericParameter> Parameters,
-        ImmutableArray<CalculationResult> PayloadCalculations, int PayloadWork);
+        ImmutableArray<CalculationResult> PayloadCalculations, int PayloadWork, bool ZeroContribution = false);
 }

@@ -72,7 +72,7 @@ public static class StackPayloadPolicies
             if (!SafeId(definition.ParameterId) || !Enum.IsDefined(definition.Evaluation) || !Enum.IsDefined(definition.MissingSource) ||
                 numeric.Parameter != EffectNumericParameter.Amount || string.IsNullOrWhiteSpace(numeric.UnitId) ||
                 string.IsNullOrWhiteSpace(numeric.Channel) || string.IsNullOrWhiteSpace(numeric.PipelineId) ||
-                numeric.InputQuantityId != null || numeric.FlatValue == null && string.IsNullOrWhiteSpace(numeric.FormulaValue) ||
+                numeric.InputQuantityId != null || numeric.Distribution != null || numeric.FlatValue == null && string.IsNullOrWhiteSpace(numeric.FormulaValue) ||
                 numeric.FlatValue is { } flat && !float.IsFinite(flat) ||
                 CalculationValuePolicy.Validate(numeric.Conversion).IsFailure ||
                 definition.Evaluation == StackParameterEvaluation.Dynamic && HistoricalFormula(numeric.FormulaValue))

@@ -38,7 +38,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
 | 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
 | 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
-| 8 — Multi-hit | Em andamento — base numérica 8a concluída; executor pendente | Core 1.423 / API 183; 59 regressões numéricas novas. |
+| 8 — Multi-hit | Em andamento — 8a e orçamento por sequência 8b1 concluídos; compartilhamento/scopes pendentes | Core 1.458 / API 183; 59 regressões numéricas e 35 de execução novas. |
 | 9 — Salto por abate | Pendente | |
 | 10 — Atributos persistentes | Pendente | |
 | 11 — Oportunidades/conteúdo | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 8b: integrar a distribuição numérica da 8a ao executor comum. Publicar política de repeat versus orçamento; capturar origem uma vez; distribuir magnitude e stacks residuais separadamente; registrar contribuições zero; executar stages/settlements por alvo e chance/críticos/triggers nos boundaries reais. Verificar perda de alvo, condensação OncePerAction, rollback e replay. A etapa 8 inteira ainda não está concluída. Oportunidades da jornada, preview especializado e UI Godot continuam nas etapas posteriores.
+Etapa 8b2: compartilhar o orçamento de stacks residuais de efeitos filhos entre impactos da sequência pai e completar escopos de ação/proc/impacto para chance, críticos e triggers nos boundaries reais. A 8b1 já integra orçamento por sequência, defesa por impacto, contribuição zero, perda/retarget e condensação ao executor comum. Verificação específica de multi-hit em persistência/reinício/replay/branches continua pendente antes de concluir a etapa 8. Oportunidades da jornada, preview especializado e UI Godot continuam nas etapas posteriores.
 
 ## Etapa 4b — payloads e lotes
 
@@ -187,3 +187,19 @@ Etapa 8b: integrar a distribuição numérica da 8a ao executor comum. Publicar 
 - Core 1.423 aprovados (1m49s), API 183 aprovados (39s), nenhuma falha. Engine version permanece 15: não houve alteração da execução/estado/hashes existentes. Nenhum conteúdo, save, UI Godot ou alteração preexistente foi incluído.
 - **Pendente 8b:** policy JSON de efeitos, planejamento/executor de impactos, zero stacks como skip, scopes de chance/críticos/triggers, perda/retarget, condensação e verificação transacional/replay. Os testes da 8a não alegam que multi-hit já esteja integrado automaticamente ao gameplay.
 - Contrato: [quantity-distribution.md](../systems/calculations/quantity-distribution.md). Etapa 7: commit `cfc38c7`.
+
+## Etapa 8b1 — orçamento por sequência no executor comum
+
+- `parameters[].distribution` opt-in para Amount e stacks aplicados. Sem o campo, repeat continua recalculando o efeito completo. Perfil explícito, stages de origem como prefixo e stages de impacto como sufixo disjunto; validação comum e publicação rejeitam políticas incompatíveis, inclusive em filhos dormentes.
+- `EffectSequenceBudgetPlanner` preserva o snapshot de entrada, captura origem uma vez sem settlements e delega toda aritmética a `ICalculationEngine.Distribute`. Slots por índice de repeat; target e impacto não entram na fórmula da origem. Nenhuma alteração automática da pipeline default.
+- Cada impacto continua pela pipeline com sua quantity/receipts e usa alvo/capacidade vivos. Defesa 5 sobre orçamento 12 em três parcelas consome 4/1/0 e produz reduções 0/3/4. Source bonus não é reaplicado. Stage Actor não pode reaparecer no sufixo.
+- Amount aceita Continuous/Quantized; stacks exigem Quantized quantum 1. Zero stacks gera skip zero_contribution, sem reducer, payload ou filhos; zero após stage de alvo também registra cálculo e pula. Zero Amount conserva o contrato normal de efeitos.
+- PerSequence acrescenta um sorteio por chamada da sequência; PerEffect/PerTarget preservam seus significados. Condições por impacto, slots pulados/perdidos sem redistribuição. Não representa chance global da ação nem implementa críticos/triggers globais.
+- Um alvo por impacto, seleção sem RNG extra para planejamento. Skip/StopRepeat/Retarget existentes conservam autoridade e índice da parcela. Ausência de candidato interrompe; seleção inválida na entrada, grupos e múltiplos targets explícitos falham.
+- Condensação emite impactos distribuídos no mesmo proc e continua OncePerAction. BeforeConsumption controla o snapshot de captura; distribution opt-in usa defesa viva por impacto. Parâmetros não distribuídos preservam a política anterior. Falha posterior descarta recursos, defesa, stacks/modifiers, consumo e RNG.
+- sequenceBudgets expõe captura/alocação uma vez; impactShares referencia parcelas, inclusive em perda/retarget. Traces entram nos hashes/frames existentes e serializam; sem store paralela. Capturas/slots contam no limite global. Resolução direta e payload schemas não ignoram distribution não planejada.
+- 35 regressões novas com runtime fixado e pipeline/providers/settlements/reducers reais: repeats tradicionais, origem imutável, conservação contínua/inteira, bias, zeros, defesa, chance, perda/retarget/ausência, condensação, rollback, publicação/branches dormentes, dez execuções e round-trip de definições/steps.
+- Engine version 16; saves anteriores preservados e incompatíveis rejeitados. Referência legada e alterações preexistentes de settings/Godot continuam intocadas. Nenhum push nem teste visual desta entrega.
+- **Pendente 8b2:** orçamento residual compartilhado entre pai/filhos, scopes globais de chance/críticos/triggers e boundaries reservados. Persistência/reinício/replay/branches específicos de multi-hit no gateway também precisam de regressões; dez execuções no executor não são anunciadas como replay semântico completo. Etapa 8 continua em andamento.
+- Contrato e JSON: [sequence-budgets.md](../systems/effects/sequence-budgets.md). Etapa 8a: commit `769e1da`.
+- Verificação final da 8b1: Core 1.458 aprovados (1m33s), API 183 aprovados (42s), nenhuma falha. Não há teste visual Godot nem replay semântico persistente específico de multi-hit nesta entrega.

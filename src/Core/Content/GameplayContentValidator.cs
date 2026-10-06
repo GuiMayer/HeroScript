@@ -304,6 +304,11 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                     parameterPipeline.Value.UnitId != parameter.UnitId ||
                     parameter.StageIds.Any(stageId => !parameterPipeline.Value.Stages.Any(stage => stage.StageId == stageId))))
                     Error(address, "Numeric parameter has incompatible pipeline channel, unit or stages");
+                if (parameterPipeline.IsSuccess && parameter.Distribution != null)
+                {
+                    var profile = EffectSequenceBudgetPlanner.ValidateProfile(parameter, parameterPipeline.Value);
+                    if (profile.IsFailure) Error(address, profile.Error);
+                }
             }
             Formula(address, effect.Condition);
         }).Select(error => $"{path}/{error}"));

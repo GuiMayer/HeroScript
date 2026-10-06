@@ -36,10 +36,14 @@ public sealed class CalculationResolver(
     public Result<ResolvedEffectAmount> ResolveParameter(EffectDefinition owner,
         EffectNumericParameterDefinition parameter, string calculationId, CalculationSourceContext context)
     {
+        if (parameter.Distribution != null)
+            return Result<ResolvedEffectAmount>.Failure("Sequence distribution must be planned by the effect executor before numeric resolution");
         var numericEffect = owner with
         {
-            FlatValue = parameter.FlatValue, FormulaValue = parameter.FormulaValue,
-            CalculationChannel = parameter.Channel, CalculationPipelineId = parameter.PipelineId
+            FlatValue = parameter.FlatValue,
+            FormulaValue = parameter.FormulaValue,
+            CalculationChannel = parameter.Channel,
+            CalculationPipelineId = parameter.PipelineId
         };
         return ResolveNumeric(numericEffect, calculationId, context with
         {
@@ -105,10 +109,15 @@ public sealed class CalculationResolver(
         if (collected.IsFailure) return Result<ResolvedEffectAmount>.Failure(collected.Error);
         var calculated = (engine ?? new CalculationEngine(formulas)).Calculate(new CalculationRequest
         {
-            CalculationId = calculationId, ContentRevision = context.ContentRevision,
-            Channel = effect.CalculationChannel, BaseValue = amount, UnitId = unitId,
-            StageIds = context.StageIds, InputQuantity = context.InputQuantity,
-            ValuePolicy = policy, CaptureOnly = context.CaptureOnly,
+            CalculationId = calculationId,
+            ContentRevision = context.ContentRevision,
+            Channel = effect.CalculationChannel,
+            BaseValue = amount,
+            UnitId = unitId,
+            StageIds = context.StageIds,
+            InputQuantity = context.InputQuantity,
+            ValuePolicy = policy,
+            CaptureOnly = context.CaptureOnly,
             StageContextIds = pipeline.Stages.Where(stage => stage.Scope != CalculationStageScope.Shared)
                 .ToImmutableSortedDictionary(stage => stage.StageId, stage =>
                     stage.Scope == CalculationStageScope.Actor ? context.Actor?.InstanceId ?? string.Empty : context.Target?.InstanceId ?? string.Empty,
@@ -141,15 +150,22 @@ public sealed class CalculationResolver(
             var original = upgrades.FirstOrDefault()?.PreviousValue ?? effect.FlatValue;
             traces.Add(new()
             {
-                SourceKind = CalculationSourceKind.Card, SourceId = context.Card.DefinitionId,
-                ComponentId = context.ComponentId, Attribute = attribute, Operation = "Base", Output = original
+                SourceKind = CalculationSourceKind.Card,
+                SourceId = context.Card.DefinitionId,
+                ComponentId = context.ComponentId,
+                Attribute = attribute,
+                Operation = "Base",
+                Output = original
             });
             traces.AddRange(upgrades.Select(item => new CalculationBaseTrace
             {
-                SourceKind = CalculationSourceKind.Upgrade, SourceId = item.UpgradeId,
-                ComponentId = item.ComponentId, Attribute = item.Attribute,
+                SourceKind = CalculationSourceKind.Upgrade,
+                SourceId = item.UpgradeId,
+                ComponentId = item.ComponentId,
+                Attribute = item.Attribute,
                 Operation = item.Operation?.ToString() ?? string.Empty,
-                Input = item.PreviousValue, Output = item.CurrentValue
+                Input = item.PreviousValue,
+                Output = item.CurrentValue
             }));
         }
         else if (effect.FlatValue.HasValue)

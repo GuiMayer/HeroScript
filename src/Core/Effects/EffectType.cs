@@ -1,7 +1,7 @@
 namespace Core.Effects;
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
-public enum EffectChanceScope { PerEffect, PerTarget }
+public enum EffectChanceScope { PerEffect, PerTarget, PerSequence }
 
 /// <summary>
 /// Tipos de efeitos que podem ser executados em combate.
@@ -14,33 +14,33 @@ public enum EffectType
     /// Subtrai do recurso explicitamente selecionado pelo efeito.
     /// </summary>
     DAMAGE,
-    
+
     /// <summary>
     /// Adiciona ao recurso explicitamente selecionado pelo efeito.
     /// </summary>
     HEAL,
-    
+
     /// <summary>
     /// Modifica qualquer campo de um recurso com uma operação explícita.
     /// </summary>
     MODIFY_RESOURCE,
-    
+
     // ===== STATUS =====
     /// <summary>
     /// Aplica status (buff/debuff/DoT/HoT)
     /// </summary>
     APPLY_STATUS,
-    
+
     /// <summary>
     /// Remove status específico
     /// </summary>
     REMOVE_STATUS,
-    
+
     /// <summary>
     /// Dispela tipos de status (ex: todos os debuffs)
     /// </summary>
     DISPEL_STATUS,
-    
+
     // ===== CARD ZONES =====
     /// <summary>Executes a configured purpose-free card-zone flow.</summary>
     CARD_ZONE_FLOW,
@@ -59,32 +59,32 @@ public enum EffectTarget
     /// Quem executou a ação
     /// </summary>
     SELF,
-    
+
     /// <summary>
     /// Alvo selecionado
     /// </summary>
     TARGET,
-    
+
     /// <summary>
     /// Todos os inimigos
     /// </summary>
     ALL_ENEMIES,
-    
+
     /// <summary>
     /// Todos os aliados (futuro)
     /// </summary>
     ALL_ALLIES,
-    
+
     /// <summary>
     /// Inimigo aleatório
     /// </summary>
     RANDOM_ENEMY,
-    
+
     /// <summary>
     /// Inimigo com o menor valor no recurso de seleção configurado
     /// </summary>
     LOWEST_RESOURCE_ENEMY,
-    
+
     /// <summary>
     /// Inimigo com o maior valor no recurso de seleção configurado
     /// </summary>

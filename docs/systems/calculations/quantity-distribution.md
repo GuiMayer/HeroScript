@@ -2,7 +2,7 @@
 
 ## Estado atual
 
-A etapa 8a do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN.md) implementa a base numérica para dividir um orçamento. A integração automática com impactos e cartas ainda depende da etapa 8b. Não existe um campo JSON de multi-hit habilitado nos efeitos nem um endpoint de distribuição nesta entrega.
+A etapa 8a do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN.md) implementa a base numérica para dividir um orçamento. A etapa 8b1 já conecta essa base ao executor comum por `parameters[].distribution`, com um alvo por impacto. O contrato e os limites executáveis estão em [orçamentos de sequência](../effects/sequence-budgets.md). Não existe um endpoint separado de distribuição que altere o combate.
 
 `ICalculationEngine.Distribute` recebe uma quantidade já calculada, uma política e destinatários identificados. Retorna parcelas imutáveis e um trace determinístico. Não conhece dano, cura, stacks, recursos, cartas ou alvos reais. Os destinatários são IDs opacos; o executor decidirá a que impactos eles correspondem.
 
@@ -15,7 +15,7 @@ A etapa 8a do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN
 
 Uma base 10 com bônus flat 2 gera um orçamento 12. Em três parcelas iguais, cada uma recebe 4, e não `10/3 + 2`. Reaplicar o estágio da origem sobre uma parcela falha pelo contrato existente de receipts.
 
-Um teste conecta a distribuição à pipeline e ao processador comum: orçamento 12, três parcelas de 4, defesa inicial 5. A defesa consome 4, depois 1, depois 0; os pedidos finais de redução são 0, 3 e 4. Essa composição manual no teste verifica os contratos. Não significa que o executor já faça esse planejamento automaticamente.
+As regressões numéricas e do executor comum verificam orçamento 12, três parcelas de 4 e defesa inicial 5. A defesa consome 4, depois 1, depois 0; os pedidos finais de redução são 0, 3 e 4. O executor já faz esse planejamento automaticamente quando o parâmetro declara distribution e a pipeline compatível está habilitada pelo modo.
 
 ## Políticas
 
@@ -69,12 +69,9 @@ Limites técnicos: 4.096 destinatários e 16.777.216 unidades no modo Quantized.
 
 ## O que falta para concluir a etapa 8
 
-- Definir e publicar a política de multi-hit nos efeitos/componentes, distinguindo repeat tradicional de orçamento distribuído.
-- Planejar slots de impacto, dividir a magnitude após a origem e reavaliar os stages/settlements restantes por alvo.
-- Distribuir stacks residuais separadamente e registrar zero stacks como contribuição ausente, sem tentar aplicar um status inválido.
-- Configurar e executar escopos de chance, críticos e triggers por ação/impacto, sem reinterpretar boundaries reservados como implementados.
-- Aplicar perda de alvo, stop/retarget, ausência de próximo alvo e orçamentos de execução.
-- Comprovar a combinação com condensação OncePerAction, rollback, preview, persistência, replay e branches no gateway completo.
-- Fornecer conteúdo JSON e oportunidades que usem esses contratos. Repeats atuais permanecem iguais até a política estar ligada ao executor.
+- Compartilhar o orçamento de stacks residuais de um filho entre os impactos da sequência pai, sem calcular um novo orçamento para cada chamada do filho.
+- Completar escopos de chance/críticos/triggers por ação/proc/impacto e os boundaries reservados, sem anunciar fallback como implementação.
+- Comprovar preview, persistência, reinício, replay e branches específicos de multi-hit no gateway completo. Condensação OncePerAction e rollback já têm regressões no executor.
+- Fornecer conteúdo JSON publicado e oportunidades que usem esses contratos nas etapas posteriores; nenhum setting foi alterado automaticamente.
 
-Nesta entrega, nenhum setting, efeito, fluxo de combate, save ou UI foi alterado. A engine version permanece 15 porque a operação nova ainda não muda o estado ou os hashes do gameplay existente. A versão deve ser revisada quando a integração de execução for habilitada.
+A 8a manteve engine version 15 porque só acrescentou uma primitiva numérica. A integração 8b1 passa à versão 16 por alterar execução e traces. Nenhum save foi removido e nenhum setting/UI Godot foi convertido automaticamente. A etapa 8 inteira continua em andamento.

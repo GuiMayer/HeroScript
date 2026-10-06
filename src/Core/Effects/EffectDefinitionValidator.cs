@@ -97,6 +97,35 @@ public static class EffectDefinitionValidator
                     Error("numeric parameter cannot coexist with a literal override of the same field");
                 if (parameter.StageIds.Any(string.IsNullOrWhiteSpace) || parameter.StageIds.Distinct(StringComparer.Ordinal).Count() != parameter.StageIds.Length)
                     Error("numeric parameter stage IDs must be unique nonempty values");
+                if (parameter.Distribution is { } distribution)
+                {
+                    if (parameter.Parameter is not (EffectNumericParameter.Amount or EffectNumericParameter.StatusStacks or EffectNumericParameter.ModifierStacks) ||
+                        effect.Type == EffectType.REMOVE_MODIFIER)
+                        Error("sequence distribution supports resource amounts and applied stacks only");
+                    if (string.IsNullOrWhiteSpace(parameter.PipelineId) || distribution.SourceStageIds.IsEmpty || parameter.StageIds.IsEmpty ||
+                        distribution.SourceStageIds.Any(string.IsNullOrWhiteSpace) ||
+                        distribution.SourceStageIds.Distinct(StringComparer.Ordinal).Count() != distribution.SourceStageIds.Length ||
+                        distribution.SourceStageIds.Intersect(parameter.StageIds, StringComparer.Ordinal).Any())
+                        Error("sequence distribution requires an explicit pipeline and disjoint nonempty source/impact stages");
+                    var allocation = distribution.Allocation;
+                    if (allocation == null || !Enum.IsDefined(allocation.Mode) || !Enum.IsDefined(allocation.RemainderAllocation) ||
+                        allocation.AllowTargetScopedInput ||
+                        allocation.Mode == Core.Calculations.CalculationDistributionMode.Continuous && allocation.Quantum != null ||
+                        allocation.Mode == Core.Calculations.CalculationDistributionMode.Quantized &&
+                        (allocation.Quantum is not { } quantum || !float.IsFinite(quantum) || quantum <= 0))
+                        Error("invalid sequence allocation policy; target-scoped source budgets are not supported");
+                    if (parameter.Parameter != EffectNumericParameter.Amount &&
+                        (allocation?.Mode != Core.Calculations.CalculationDistributionMode.Quantized || allocation.Quantum != 1))
+                        Error("distributed stacks require Quantized allocation with quantum 1");
+                    if (effect.Target is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES ||
+                        effect.TargetLoss?.Retarget is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES)
+                        Error("sequence distribution currently requires one target per impact");
+                    if (parameter.InputQuantityId?.StartsWith("payload.", StringComparison.Ordinal) == true ||
+                        parameter.FormulaValue?.Contains("target.", StringComparison.OrdinalIgnoreCase) == true ||
+                        parameter.FormulaValue?.Contains("repeat_index", StringComparison.Ordinal) == true ||
+                        parameter.FormulaValue?.Contains("target_index", StringComparison.Ordinal) == true)
+                        Error("source budget cannot depend on a target, payload owner or impact index");
+                }
             }
             if (!effect.PayloadBindings.IsEmpty && effect.Type is not (EffectType.APPLY_STATUS or EffectType.APPLY_MODIFIER))
                 Error("payload bindings require an instance application effect");
