@@ -17,6 +17,7 @@ public static class EffectDefinitionValidator
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         var outputIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var randomGroups = new Dictionary<string, float>(StringComparer.Ordinal);
         var pending = new Stack<(EffectDefinition Effect, string Path, int Depth, long Multiplier)>();
         foreach (var (effect, index) in effects.Select((effect, index) => (effect, index)).Reverse())
             pending.Push((effect, $"effects[{index}]", 0, 1));
@@ -31,6 +32,13 @@ public static class EffectDefinitionValidator
             }
             if (effect == null) { errors.Add($"{path}: effect cannot be null"); continue; }
             void Error(string message) => errors.Add($"{path}: {message}");
+            bool SafeGroup(string? group) => group == null || group.Length is > 0 and <= 64 &&
+                group.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
+            void CheckGroup(string key, float chance)
+            {
+                if (randomGroups.TryGetValue(key, out var previous) && previous != chance) Error("random group has conflicting probabilities");
+                else randomGroups[key] = chance;
+            }
             if (effect.OutputId is { } outputId)
             {
                 if (outputId.Length == 0 || !(char.IsAsciiLetter(outputId[0]) || outputId[0] == '_') ||
@@ -39,6 +47,20 @@ public static class EffectDefinitionValidator
                 if (!outputIds.Add(outputId)) Error($"duplicate outputId: {outputId}");
             }
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
+            if (!Enum.IsDefined(effect.ExecutionScope) || !Enum.IsDefined(effect.ChildTiming)) Error("invalid execution scope or child timing");
+            if (!SafeGroup(effect.ExecutionGroupId) || !SafeGroup(effect.ChanceGroupId) ||
+                effect.ExecutionGroupId != null && effect.ExecutionScope == EffectExecutionScope.EveryInvocation ||
+                effect.ChanceGroupId != null && effect.ChanceScope is not (EffectChanceScope.PerAction or EffectChanceScope.PerProc))
+                Error("group IDs require a compatible scoped execution or chance policy");
+            if (effect.ChanceGroupId != null) CheckGroup($"chance:{effect.ChanceScope}:{effect.ChanceGroupId}", effect.Chance);
+            if (effect.RandomInputs.Length > 16 || effect.RandomInputs.Select(input => input.InputId).Distinct(StringComparer.Ordinal).Count() != effect.RandomInputs.Length ||
+                effect.RandomInputs.Any(input => string.IsNullOrWhiteSpace(input.InputId) || input.InputId.Length > 64 ||
+                    input.InputId.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_') ||
+                    !Enum.IsDefined(input.Scope) || !float.IsFinite(input.Chance) || input.Chance is < 0 or > 1 ||
+                    !SafeGroup(input.GroupId) || input.GroupId != null && input.Scope == EffectRandomScope.Impact))
+                Error("invalid or duplicate scoped random inputs");
+            foreach (var input in effect.RandomInputs.Where(input => input.GroupId != null))
+                CheckGroup($"input:{input.Scope}:{input.GroupId}", input.Chance);
             if (effect.Type == EffectType.CONDENSE_STACKS)
             {
                 if (string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) Error("condensation requires condensationRecipeId");
@@ -73,6 +95,8 @@ public static class EffectDefinitionValidator
             if (effect.FlatValue is { } value && !float.IsFinite(value)) Error("flatValue must be finite");
             if (effect.Parameters.Select(parameter => parameter.Parameter).Distinct().Count() != effect.Parameters.Length)
                 Error("numeric parameter overrides must be unique");
+            if (effect.Parameters.Where(parameter => parameter.Distribution != null).Select(parameter => parameter.Distribution!.Scope).Distinct().Count() > 1)
+                Error("one effect cannot mix sequence distribution scopes");
             foreach (var parameter in effect.Parameters)
             {
                 if (!EffectNumericParameters.Supports(effect.Type, parameter.Parameter)) Error("unsupported numeric parameter for effect type");
@@ -99,6 +123,8 @@ public static class EffectDefinitionValidator
                     Error("numeric parameter stage IDs must be unique nonempty values");
                 if (parameter.Distribution is { } distribution)
                 {
+                    if (!Enum.IsDefined(distribution.Scope) || distribution.Scope == EffectDistributionScope.ParentSequence && effect.Repeat != 1)
+                        Error("parent sequence distribution requires repeat 1 and a valid scope");
                     if (parameter.Parameter is not (EffectNumericParameter.Amount or EffectNumericParameter.StatusStacks or EffectNumericParameter.ModifierStacks) ||
                         effect.Type == EffectType.REMOVE_MODIFIER)
                         Error("sequence distribution supports resource amounts and applied stacks only");

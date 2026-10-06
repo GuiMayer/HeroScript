@@ -1,12 +1,17 @@
 using System.Collections.Immutable;
 using Core.Calculations;
 using Core.Common;
+using System.Text.Json.Serialization;
 
 namespace Core.Effects;
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum EffectDistributionScope { Sequence, ParentSequence }
 
 /// <summary>Opt-in: Repeat allocates one source budget, rather than recalculating a complete effect.</summary>
 public sealed record EffectSequenceDistribution
 {
+    public EffectDistributionScope Scope { get; init; }
     public ImmutableArray<string> SourceStageIds { get; init; } = [];
     public CalculationDistributionPolicy Allocation { get; init; } = new();
 }
@@ -29,7 +34,7 @@ public sealed record EffectImpactShare
 internal sealed class EffectSequenceBudgetPlanner(ICalculationResolver resolver, ICalculationEngine calculations)
 {
     internal Result<ImmutableArray<EffectSequenceBudget>> Capture(EffectTriggerExecutionRequest request,
-        EffectDefinition effect, string sequenceId, string componentId)
+        EffectDefinition effect, string sequenceId, string componentId, int? impactCount = null)
     {
         var source = request.Combat.GetActor(request.SourceEntityId) ?? request.Combat.GetActor(request.OwnerEntityId)!;
         // A source budget must not accidentally read the first target, nor caller-supplied target variables.
@@ -69,7 +74,7 @@ internal sealed class EffectSequenceBudgetPlanner(ICalculationResolver resolver,
                 UnitId = parameter.UnitId,
                 InputQuantity = captured.Value.Calculation.Quantity,
                 Policy = policy.Allocation,
-                Recipients = Enumerable.Range(0, effect.Repeat).Select(index => new CalculationDistributionRecipient
+                Recipients = Enumerable.Range(0, impactCount ?? effect.Repeat).Select(index => new CalculationDistributionRecipient
                 { RecipientId = $"impact:{index}", Order = index }).ToArray()
             });
             if (allocated.IsFailure) return Result<ImmutableArray<EffectSequenceBudget>>.Failure(allocated.Error);
@@ -96,3 +101,5 @@ internal sealed class EffectSequenceBudgetPlanner(ICalculationResolver resolver,
         return Result.Success();
     }
 }
+
+internal sealed record EffectSequenceFrame(string Id, EffectTriggerExecutionRequest Snapshot, int Count, int Index);

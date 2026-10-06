@@ -343,7 +343,7 @@ public sealed class EffectSequenceBudgetTests
         Assert.Equal(hash, CanonicalJson.ComputeHash(request));
     }
 
-    private static EffectDefinition Damage(float value, int repeat) => new()
+    internal static EffectDefinition Damage(float value, int repeat) => new()
     {
         Type = EffectType.DAMAGE, TargetResource = "focus", Repeat = repeat,
         Parameters = [new() { Parameter = EffectNumericParameter.Amount, FlatValue = value, Channel = "magnitude",
@@ -351,7 +351,7 @@ public sealed class EffectSequenceBudgetTests
             { SourceStageIds = ["origin"], Allocation = new() { Mode = CalculationDistributionMode.Quantized, Quantum = 1 } } }]
     };
 
-    private static EffectDefinition Stacks(EffectNumericParameter parameter, int value, int repeat,
+    internal static EffectDefinition Stacks(EffectNumericParameter parameter, int value, int repeat,
         CalculationRemainderAllocation bias = CalculationRemainderAllocation.Earliest) => new()
     {
         Type = parameter == EffectNumericParameter.StatusStacks ? EffectType.APPLY_STATUS : EffectType.APPLY_MODIFIER,
@@ -393,7 +393,7 @@ public sealed class EffectSequenceBudgetTests
             { Path = item.Key, Kind = item.Key.Split('/')[0], DefinitionCount = item.Value.EnumerateObject().Count() }).ToArray() }, Artifacts = artifacts.ToImmutableDictionary() };
     }
 
-    private static (EffectTriggerExecutor Executor, RunState Run) Fixture(CalculationPipelineDefinition? counts = null,
+    internal static (EffectTriggerExecutor Executor, RunState Run) Fixture(CalculationPipelineDefinition? counts = null,
         CondensationRecipeDefinition? recipe = null)
     {
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
@@ -418,7 +418,7 @@ public sealed class EffectSequenceBudgetTests
             { ResourceId = "shield", DisplayName = "Shield", DefaultMax = amount }, amount, amount))).ToDictionary() } });
     }
 
-    private static CombatState DefeatAtZero(CombatState state, string id, float value)
+    internal static CombatState DefeatAtZero(CombatState state, string id, float value)
     {
         var actor = state.GetActor(id)!;
         var definition = actor.GetResource("focus")!.Definition! with { ThresholdPolicies = [new()

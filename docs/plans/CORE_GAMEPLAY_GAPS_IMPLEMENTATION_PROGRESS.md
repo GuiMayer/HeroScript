@@ -38,7 +38,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
 | 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
 | 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
-| 8 — Multi-hit | Em andamento — 8a e orçamento por sequência 8b1 concluídos; compartilhamento/scopes pendentes | Core 1.458 / API 183; 59 regressões numéricas e 35 de execução novas. |
+| 8 — Multi-hit | Contratos concluídos — 8a/8b1/8b2; gate integrado na etapa 14 | Core 1.478 / API 183; 20 regressões adicionais de sharing/scopes. |
 | 9 — Salto por abate | Pendente | |
 | 10 — Atributos persistentes | Pendente | |
 | 11 — Oportunidades/conteúdo | Pendente | |
@@ -97,7 +97,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 
 ## Próxima etapa
 
-Etapa 8b2: compartilhar o orçamento de stacks residuais de efeitos filhos entre impactos da sequência pai e completar escopos de ação/proc/impacto para chance, críticos e triggers nos boundaries reais. A 8b1 já integra orçamento por sequência, defesa por impacto, contribuição zero, perda/retarget e condensação ao executor comum. Verificação específica de multi-hit em persistência/reinício/replay/branches continua pendente antes de concluir a etapa 8. Oportunidades da jornada, preview especializado e UI Godot continuam nas etapas posteriores.
+Etapa 9: continuação causal por abate e transporte de excedente pelo caminho numérico comum. A 8b2 já implementa orçamento residual compartilhado, scopes de chance/inputs aleatórios/gatilhos e os boundaries reais de BeforeImpact/OncePerProc. A verificação persistente integrada das combinações continua no gate final da etapa 14, sem chamar dez execuções de um executor de replay semântico completo.
 
 ## Etapa 4b — payloads e lotes
 
@@ -203,3 +203,15 @@ Etapa 8b2: compartilhar o orçamento de stacks residuais de efeitos filhos entre
 - **Pendente 8b2:** orçamento residual compartilhado entre pai/filhos, scopes globais de chance/críticos/triggers e boundaries reservados. Persistência/reinício/replay/branches específicos de multi-hit no gateway também precisam de regressões; dez execuções no executor não são anunciadas como replay semântico completo. Etapa 8 continua em andamento.
 - Contrato e JSON: [sequence-budgets.md](../systems/effects/sequence-budgets.md). Etapa 8a: commit `769e1da`.
 - Verificação final da 8b1: Core 1.458 aprovados (1m33s), API 183 aprovados (42s), nenhuma falha. Não há teste visual Godot nem replay semântico persistente específico de multi-hit nesta entrega.
+
+## Etapa 8b2 — residual compartilhado e scopes executáveis
+
+- distribution.scope Sequence/ParentSequence; filho com repeat 1 captura uma vez no snapshot do pai e recebe sua parcela por índice. Irmãos isolados e frames efetivos preservados na árvore; múltiplos alvos por impacto não duplicam slots. Ausência de pai e escopos misturados falham.
+- PerAction/PerProc de chance usam identidade lógica da definição, não caminho expandido de repeat. chanceGroupId compartilha nós explicitamente; probabilidades conflitantes são inválidas.
+- randomInputs com Action/ParentProc/Impact produzem fatos imutáveis e o namespace rolls.<inputId>.success. groupId permite sharing explícito Action/ParentProc. Namespace externo forjado falha. Executor não multiplica dano nem sabe o significado de critical; fórmulas/providers/pipeline usam o input. Captura de orçamento recebe apenas inputs Action.
+- executionScope EveryInvocation/OncePerAction/OncePerParentProc e executionGroupId declaram tentativas, sem ativação implícita. Scope skip e lotes/slots continuam limitados pelo orçamento técnico.
+- childTiming BeforeParentImpact/AfterParentImpact executa no boundary real. Antes do cálculo, variáveis refletem mutações dos filhos; derrota do alvo respeita policy do pai. Traces permanecem encadeados. Zero stacks não ativa filhos anteriores. Composição BeforeImpact/OncePerProc agora fecha para esses contratos comuns; teste antigo de rejeição foi atualizado para scope desconhecido.
+- Engine version 17. Sem mudança automática dos settings, remoção de saves, implementação visual ou push. Mudanças preexistentes permanecem fora da entrega.
+- Testes de budgets compartilhados, irmãos, zeros, scopes, grupos, RNG, source bonus crítico uma vez, snapshots preservados, dez execuções e rollback. Validação integrada de runs/save/load/replay/branches das novas combinações será completada no gate final, após existir o setting demonstrativo.
+- Core: 1.478 aprovados (18s). Auditoria de contratos públicos poda diretórios gerados antes da leitura; não percorre saves `.runtime` como código-fonte. Saves existentes não foram removidos. Teste de loja seleciona oferta que o saldo pode pagar, sem depender da ordem sorteada.
+- API: 183 aprovados (1m06s), nenhuma falha. O gate final continua obrigatório para as combinações novas na jornada real.

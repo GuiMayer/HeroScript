@@ -30,23 +30,24 @@ public sealed partial class CardTransformationCompositionTests
     [InlineData(CardCompositionScope.BeforeSequence)]
     [InlineData(CardCompositionScope.AfterImpact)]
     [InlineData(CardCompositionScope.AfterSequence)]
+    [InlineData(CardCompositionScope.BeforeImpact)]
+    [InlineData(CardCompositionScope.OncePerProc)]
     public void Grammar_LowersOnlyToCommonEffectsAtDeclaredBoundary(CardCompositionScope scope)
     {
         var runtime = Runtime([GrammarUpgrade(Rule(scope: scope))], Bundle(1));
         var effective = Resolve(ApplyGrammar(runtime), runtime);
         var roots = effective.All<CardEffectComponentDefinition>();
-        Assert.Equal(scope == CardCompositionScope.AfterImpact ? 1 : 2, roots.Count);
+        var childScope = scope is CardCompositionScope.AfterImpact or CardCompositionScope.BeforeImpact or CardCompositionScope.OncePerProc;
+        Assert.Equal(childScope ? 1 : 2, roots.Count);
         Assert.Equal(scope, Assert.Single(effective.CompositionTrace).Scope);
-        if (scope == CardCompositionScope.AfterImpact) Assert.Single(roots[0].Effect.ChainedEffects!);
+        if (childScope) Assert.Single(roots[0].Effect.ChainedEffects!);
         else Assert.Equal(scope == CardCompositionScope.BeforeSequence ? 1 : 6, roots[0].Effect.FlatValue);
         Assert.Contains("effect.DAMAGE", effective.Capabilities);
     }
 
     [Theory]
-    [InlineData(CardCompositionScope.BeforeImpact)]
-    [InlineData(CardCompositionScope.OncePerProc)]
     [InlineData((CardCompositionScope)99)]
-    public void Grammar_RejectsUnimplementedOrUnknownScopes(CardCompositionScope scope)
+    public void Grammar_RejectsUnknownScopes(CardCompositionScope scope)
     {
         var upgrade = GrammarUpgrade(Rule(scope: scope));
         Assert.True(CardBundleCompiler.Seal(upgrade, Runtime([upgrade], Bundle(1))).IsFailure);

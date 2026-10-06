@@ -102,7 +102,9 @@ public sealed class GameFlowEdgeCaseTests : GameEngineIntegrationTestBase
         var shopResponse = await Client.OpenShopAsync(runId, "basic_shop");
         var shopInstanceId = GetJsonGuid(shopResponse, "shopInstanceId");
         var items = shopResponse.GetProperty("items");
-        var firstItem = items.EnumerateArray().First();
+        var availableGold = GetRunResource(await Client.GetRunStateAsync(runId), "gold");
+        var firstItem = items.EnumerateArray().First(item =>
+            GetResourceAmount(item, "costs", "gold") <= availableGold);
         await Client.BuyShopItemAsync(runId, shopInstanceId, GetJsonString(firstItem, "itemId"));
 
         while (GetRunResource(await Client.GetRunStateAsync(runId), "gold") >= 10)

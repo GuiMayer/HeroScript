@@ -98,6 +98,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (request.Variables.Values.Any(value => !float.IsFinite(value)))
             return Result<EffectBatchResult>.Failure("Execution variables must be finite");
         if (request.Variables.Keys.Any(key => key.StartsWith("results.", StringComparison.OrdinalIgnoreCase) ||
+            key.StartsWith("rolls.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("parent.", StringComparison.OrdinalIgnoreCase)))
             return Result<EffectBatchResult>.Failure("Execution result namespaces cannot be supplied by the caller");
         var rootEffects = request.PrefixCommands.Select(command => command.Definition).Concat(
@@ -134,6 +135,9 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var work = 0;
         var attemptedRecipes = new Dictionary<string, EffectExecutionIdentity>(StringComparer.Ordinal);
         var activeQuantities = request.Quantities;
+        var sharedBudgets = new Dictionary<string, ImmutableArray<EffectSequenceBudget>>(StringComparer.Ordinal);
+        var scopedRolls = new Dictionary<string, (bool Pass, double? Roll)>(StringComparer.Ordinal);
+        var attemptedEffects = new HashSet<string>(StringComparer.Ordinal);
         (CombatState Combat, RunState? Run)? numericSnapshot = null;
         foreach (var prefix in request.PrefixCommands)
         {
@@ -190,10 +194,25 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
 
         Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection,
             string? parentProcId, EffectApplicationRecord? parentApplication, string? forcedProcId = null,
-            string? forcedParentProcId = null)
+            string? forcedParentProcId = null, EffectSequenceFrame? parentSequence = null, string? budgetKey = null,
+            string? definitionPath = null)
         {
             if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
                 return Result.Failure("Effect execution limit exceeded");
+            definitionPath ??= path;
+            if (effect.ExecutionScope != EffectExecutionScope.EveryInvocation)
+            {
+                if (effect.ExecutionScope == EffectExecutionScope.OncePerParentProc && parentProcId == null)
+                    return Result.Failure("OncePerParentProc requires an enclosing proc");
+                var scopeId = effect.ExecutionScope == EffectExecutionScope.OncePerAction ? executionId : parentProcId!;
+                if (!attemptedEffects.Add($"{scopeId}:{(effect.ExecutionGroupId == null ? definitionPath : "group:" + effect.ExecutionGroupId)}"))
+                {
+                    steps.Add(new() { Index = steps.Count, EffectInstanceId = $"{path}:once", Applied = false,
+                        SkipReason = "scope_already_attempted", ContentRevision = request.ContentRevision, Provenance = request.Provenance,
+                        StateBeforeHash = CanonicalJson.ComputeHash(current), StateAfterHash = CanonicalJson.ComputeHash(current) });
+                    return Result.Success();
+                }
+            }
             if (effect.Repeat < 1 || effect.Repeat > EffectExecutionLimits.MaximumRepeat)
                 return Result.Failure($"Effect {path} repeat is outside execution limits");
             if (!float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1 || !Enum.IsDefined(effect.ChanceScope))
@@ -204,12 +223,21 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 Run = numericSnapshot?.Run ?? currentRun,
                 Quantities = activeQuantities
             };
+            var fromParent = effect.Parameters.Any(parameter => parameter.Distribution?.Scope == EffectDistributionScope.ParentSequence);
+            if (fromParent && parentSequence == null) return Result.Failure("ParentSequence budget requires an enclosing effect sequence");
+            var frameId = fromParent ? budgetKey! : path;
+            var frameCount = fromParent ? parentSequence!.Count : effect.Repeat;
+            var frameSnapshot = fromParent ? parentSequence!.Snapshot : sequenceRequest;
             ImmutableArray<EffectSequenceBudget> sequenceBudgets = [];
             var budgetReady = false;
+            if (fromParent && sharedBudgets.TryGetValue(frameId, out var shared))
+            { sequenceBudgets = shared; budgetReady = true; }
             bool? sequencePass = null;
             double? sequenceRoll = null;
+            var stopSequence = false;
             ImmutableArray<EffectImpactShare> Shares(int index) => sequenceBudgets.Select(budget => new EffectImpactShare
-            { Parameter = budget.Parameter, DistributionId = budget.Allocation.DistributionId, Share = budget.Allocation.Shares[index] }).ToImmutableArray();
+            { Parameter = budget.Parameter, DistributionId = budget.Allocation.DistributionId,
+                Share = budget.Allocation.Shares[fromParent ? parentSequence!.Index : index] }).ToImmutableArray();
             if (effect.Type == EffectType.CONDENSE_STACKS)
             {
                 if (attemptedRecipes.TryGetValue(effect.CondensationRecipeId!, out var previous))
@@ -234,7 +262,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 attemptedRecipes.Add(effect.CondensationRecipeId!, EffectResultContext.Identity(executionId, activeTriggerId,
                     path, 0, selection.FirstOrDefault() ?? request.OwnerEntityId, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId));
             }
-            for (var repeat = 0; repeat < effect.Repeat; repeat++)
+            for (var repeat = 0; repeat < effect.Repeat && !stopSequence; repeat++)
             {
                 var beforeSelection = CanonicalJson.ComputeHash(current);
                 var targets = EffectTargetResolver.Resolve(request.Combat, current, request.OwnerEntityId, selection, effect);
@@ -272,11 +300,15 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 }
                 if (targets.Value.StopRepeat) break;
                 if (targets.Value.TargetIds.IsEmpty) continue;
-                if (effect.Parameters.Any(parameter => parameter.Distribution != null) && targets.Value.TargetIds.Length != 1)
+                if ((effect.Parameters.Any(parameter => parameter.Distribution != null) ||
+                    (effect.ChainedEffects ?? []).Any(child => child.Parameters.Any(parameter =>
+                        parameter.Distribution?.Scope == EffectDistributionScope.ParentSequence))) && targets.Value.TargetIds.Length != 1)
                     return Result.Failure("Sequence distribution requires exactly one target per impact");
                 if (effect.Type == EffectType.CONDENSE_STACKS && targets.Value.TargetIds.Length != 1)
                     return Result.Failure("Condensation requires one activation target; configure additional targets in the recipe effects");
                 var beforeChance = CanonicalJson.ComputeHash(current);
+                var procId = forcedProcId ?? EffectResultContext.Identity(executionId, activeTriggerId, path, repeat,
+                    string.Empty, parentProcId, effect.OutputId, parentApplication?.Identity?.ImpactId).ProcId;
                 double? effectRoll = null;
                 var effectPass = effect.ChanceScope != EffectChanceScope.PerEffect || DrawChance(effect.Chance, out effectRoll);
                 if (effect.ChanceScope == EffectChanceScope.PerSequence)
@@ -284,6 +316,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     sequencePass ??= DrawChance(effect.Chance, out sequenceRoll);
                     effectPass = sequencePass.Value;
                     effectRoll = sequenceRoll;
+                }
+                if (effect.ChanceScope is EffectChanceScope.PerAction or EffectChanceScope.PerProc)
+                {
+                    var chanceKey = effect.ChanceGroupId == null ? definitionPath : "group:" + effect.ChanceGroupId;
+                    var chance = ScopedChance($"chance:{chanceKey}:{(effect.ChanceScope == EffectChanceScope.PerAction ? executionId : parentProcId ?? procId)}", effect.Chance);
+                    effectPass = chance.Pass; effectRoll = chance.Roll;
                 }
                 for (var targetIndex = 0; targetIndex < targets.Value.TargetIds.Length; targetIndex++)
                 {
@@ -334,6 +372,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     if (effectPass && condition.Value && effect.ChanceScope == EffectChanceScope.PerTarget)
                         chancePass = DrawChance(effect.Chance, out roll);
                     var applies = tagsPass && condition.Value && chancePass;
+                    var beforeRetargeted = false;
                     CalculationResult? calculation = null;
                     ImmutableArray<EffectApplicationRecord> appliedRecords = [];
                     ImmutableArray<ResolvedEffectNumericParameter> resolvedParameters = [];
@@ -341,6 +380,22 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     CondensationOutcome? condensation = null;
                     string? condensationSkip = null;
                     ImmutableArray<EffectSequenceBudget> capturedBudgets = [];
+                    var randomInputs = ImmutableArray.CreateBuilder<EffectRandomInputResult>();
+                    if (applies)
+                    {
+                        work += effect.RandomInputs.Length;
+                        if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                        foreach (var input in effect.RandomInputs.OrderBy(input => input.InputId, StringComparer.Ordinal))
+                        {
+                            var scopeId = input.Scope switch { EffectRandomScope.Action => executionId,
+                                EffectRandomScope.ParentProc => parentProcId ?? procId, _ => identity.ImpactId };
+                            var inputKey = input.GroupId == null ? $"{definitionPath}:{input.InputId}" : "group:" + input.GroupId;
+                            var sampled = ScopedChance($"input:{inputKey}:{scopeId}", input.Chance);
+                            var fact = new EffectRandomInputResult { InputId = input.InputId, Scope = input.Scope, ScopeId = scopeId,
+                                Success = sampled.Pass, Roll = sampled.Roll };
+                            randomInputs.Add(fact); variables[$"rolls.{input.InputId}.success"] = sampled.Pass ? 1 : 0;
+                        }
+                    }
                     (CombatState Combat, RunState? Run) preConsumption = (current, currentRun);
                     if (applies && effect.Type == EffectType.CONDENSE_STACKS)
                     {
@@ -376,15 +431,57 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         {
                             var planner = new EffectSequenceBudgetPlanner(new CalculationResolver(_formulas, _contentRuntimes,
                                 _calculations, _influences), _calculations!);
-                            var capture = planner.Capture(sequenceRequest, effect, $"{executionId}:{path}", activeTriggerId);
+                            var captureVariables = frameSnapshot.Variables.ToDictionary(pair => pair.Key, pair => pair.Value);
+                            foreach (var input in randomInputs.Where(input => input.Scope == EffectRandomScope.Action))
+                                captureVariables[$"rolls.{input.InputId}.success"] = input.Success ? 1 : 0;
+                            var capture = planner.Capture(frameSnapshot with { Variables = captureVariables }, effect,
+                                $"{executionId}:{frameId}", activeTriggerId, frameCount);
                             if (capture.IsFailure) return Result.Failure(capture.Error);
                             sequenceBudgets = capture.Value;
                             capturedBudgets = sequenceBudgets;
                             budgetReady = true;
+                            if (fromParent) sharedBudgets.Add(frameId, sequenceBudgets);
                             work += sequenceBudgets.Sum(budget => budget.Allocation.Shares.Length + 1);
                             if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                             calculations.AddRange(sequenceBudgets.Select(budget => budget.Capture));
                         }
+                        var zeroSlot = Shares(repeat).Any(share => share.Parameter != EffectNumericParameter.Amount && share.Share.Quantity.Value == 0);
+                        var childStart = steps.Count;
+                        if (!zeroSlot)
+                        foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index))
+                            .Where(pair => pair.item.ChildTiming == EffectChildTiming.BeforeParentImpact))
+                        {
+                            var beforeChild = ExecuteEffect(child, $"{path}:{repeat}:{targetIndex}.before.{childIndex}", depth + 1,
+                                [targetId], identity.ProcId, null, forcedProcId, forcedParentProcId,
+                                new(frameId, frameSnapshot, frameCount, fromParent ? parentSequence!.Index : repeat),
+                                $"{frameId}.chain.{childIndex}", $"{definitionPath}.chain.{childIndex}");
+                            if (beforeChild.IsFailure) return beforeChild;
+                        }
+                        if (steps.Count > childStart)
+                        {
+                            steps[childStart] = steps[childStart] with { StateBeforeHash = before, RunBeforeHash = runBefore };
+                            before = CanonicalJson.ComputeHash(current);
+                            runBefore = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun);
+                            variables = BuildVariables(request with { Run = currentRun, Variables = variables }, current, targetId);
+                            resultContext.AddVariables(variables, targetId);
+                            if (effect.Target != EffectTarget.SELF && current.GetActor(targetId)?.IsAlive != true)
+                            {
+                                var redirected = EffectTargetResolver.Resolve(request.Combat, current, request.OwnerEntityId, selection, effect);
+                                if (redirected.IsFailure) return Result.Failure(redirected.Error);
+                                current = current with { Determinism = redirected.Value.Context };
+                                stopSequence = redirected.Value.StopRepeat;
+                                if (redirected.Value.TargetIds.IsEmpty)
+                                { applies = false; condensationSkip = stopSequence ? "repeat_stopped" : "target_defeated"; }
+                                else
+                                {
+                                    if (redirected.Value.TargetIds.Length != 1) return Result.Failure("Before-impact retarget requires one target");
+                                    targetId = redirected.Value.TargetIds[0]; beforeRetargeted = true;
+                                    variables = BuildVariables(request with { Run = currentRun, Variables = variables }, current, targetId);
+                                }
+                            }
+                        }
+                        if (applies)
+                        {
                         var numericRequest = request with
                         {
                             Combat = numericSnapshot?.Combat ?? current,
@@ -394,7 +491,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         var numericVariables = numericSnapshot == null ? variables : BuildVariables(numericRequest, numericRequest.Combat, targetId);
                         if (numericSnapshot != null)
                             foreach (var pair in variables.Where(pair => pair.Key.StartsWith("results.", StringComparison.Ordinal) ||
-                                pair.Key.StartsWith("parent.", StringComparison.Ordinal) || pair.Key is "repeat_index" or "target_index"))
+                                pair.Key.StartsWith("parent.", StringComparison.Ordinal) || pair.Key.StartsWith("rolls.", StringComparison.Ordinal) || pair.Key is "repeat_index" or "target_index"))
                                 numericVariables[pair.Key] = pair.Value;
                         var value = ResolveValue(numericRequest, effect, targetId, numericVariables,
                             $"{path}:{repeat}:{targetId}", activeTriggerId, Shares(repeat),
@@ -462,6 +559,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         calculations.AddRange(resolvedParameters.Where(parameter => parameter.Parameter != EffectNumericParameter.Amount)
                             .Select(parameter => parameter.Calculation));
                         calculations.AddRange(payloadCalculations);
+                        }
                     }
                     steps.Add(new()
                     {
@@ -472,9 +570,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         RepeatIndex = repeat,
                         TargetIndex = targetIndex,
                         Applied = applies,
-                        Retargeted = targets.Value.Retargeted,
+                        Retargeted = targets.Value.Retargeted || beforeRetargeted,
                         SkipReason = applies ? null : condensationSkip ?? (!tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition"),
                         ChanceRoll = roll,
+                        RandomInputs = randomInputs.ToImmutable(),
                         ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
                         Calculation = calculation,
@@ -506,7 +605,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         {
                             activeTriggerId = $"recipe:{recipe.RecipeId}:{recipeIndex}";
                             var activated = ExecuteEffect(recipe.Effects[recipeIndex], $"{path}.recipe.{recipeIndex}", depth + 1,
-                                [targetId], identity.ProcId, appliedRecords[0], identity.ProcId, identity.ParentProcId);
+                                [targetId], identity.ProcId, appliedRecords[0], identity.ProcId, identity.ParentProcId,
+                                definitionPath: $"{definitionPath}.recipe.{recipeIndex}");
                             if (activated.IsFailure) return activated;
                         }
                         activeQuantities = previousQuantities;
@@ -517,12 +617,15 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             (consumedRun == null || CanonicalJson.ComputeHash(currentRun! with { Determinism = consumedRun.Determinism }) == CanonicalJson.ComputeHash(consumedRun)))
                             return Result.Failure("Condensation activation applied no state change");
                     }
-                    foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index)))
+                    foreach (var (child, childIndex) in (effect.ChainedEffects ?? []).Select((item, index) => (item, index))
+                        .Where(pair => pair.item.ChildTiming == EffectChildTiming.AfterParentImpact))
                     {
                         var parentRecord = appliedRecords.LastOrDefault(record => record.CalculationInfluenceId == null &&
                             record.TargetEntityId == targetId);
                         var childResult = ExecuteEffect(child, $"{path}:{repeat}:{targetIndex}.chain.{childIndex}", depth + 1,
-                            [targetId], identity.ProcId, parentRecord, forcedProcId, forcedParentProcId);
+                            [targetId], identity.ProcId, parentRecord, forcedProcId, forcedParentProcId,
+                            new(frameId, frameSnapshot, frameCount, fromParent ? parentSequence!.Index : repeat),
+                            $"{frameId}.chain.{childIndex}", $"{definitionPath}.chain.{childIndex}");
                         if (childResult.IsFailure) return childResult;
                     }
                 }
@@ -539,6 +642,13 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             current = current with { Determinism = draw.Context };
             roll = draw.Value;
             return draw.Value < chance;
+        }
+
+        (bool Pass, double? Roll) ScopedChance(string key, float chance)
+        {
+            if (scopedRolls.TryGetValue(key, out var previous)) return previous;
+            var pass = DrawChance(chance, out var roll);
+            var result = (pass, roll); scopedRolls.Add(key, result); return result;
         }
     }
 

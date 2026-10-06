@@ -134,9 +134,7 @@ public static class CardCompositionGrammar
             rule.Selector.EffectTypes.Count > 64 || rule.Selector.EffectTypes.Any(type => !EffectDefinitionValidator.IsExecutable(type)) ||
             rule.Selector.EffectTypes.Distinct().Count() != rule.Selector.EffectTypes.Count ||
             rule.EffectBindings.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || string.IsNullOrWhiteSpace(pair.Value)))
-            return Result.Failure("Invalid composition rule identity, namespace, selector or binding");
-        if (rule.Scope is CardCompositionScope.BeforeImpact or CardCompositionScope.OncePerProc)
-            return Result.Failure($"Composition scope has no executable lowering yet: {rule.Scope}");
+            return Result.Failure("Invalid composition rule identity, namespace, scope, selector or binding");
         return ValidatePredicate(rule.When);
     }
 
@@ -181,9 +179,10 @@ public static class CardCompositionGrammar
                     rule.Selector.RequiredEffectTags.All(tag => component.Effect.Tags.Contains(tag, StringComparer.Ordinal)))
                     .OrderBy(component => component.Order).ThenBy(component => component.ComponentId, StringComparer.Ordinal).ToArray();
                 if (anchors.Length == 0) continue;
-                if (rule.Scope != CardCompositionScope.AfterImpact && anchors.Length != 1 && rule.EffectBindings.Values.Contains("$anchor", StringComparer.Ordinal))
+                var perAnchor = rule.Scope is CardCompositionScope.AfterImpact or CardCompositionScope.BeforeImpact or CardCompositionScope.OncePerProc;
+                if (!perAnchor && anchors.Length != 1 && rule.EffectBindings.Values.Contains("$anchor", StringComparer.Ordinal))
                 { diagnostics.Add(new("ambiguous_anchor", "Sequence-level bindings require exactly one anchor", entry.TransformationId, rule.RuleId)); continue; }
-                var selected = rule.Scope == CardCompositionScope.AfterImpact ? anchors : anchors.Take(1);
+                var selected = perAnchor ? anchors : anchors.Take(1);
                 foreach (var anchor in selected)
                 {
                     if (++count > MaximumMatches) { diagnostics.Add(new("match_limit", "Composition match limit exceeded", entry.TransformationId, rule.RuleId)); break; }
@@ -203,12 +202,14 @@ public static class CardCompositionGrammar
                     { diagnostics.Add(new("component_collision", "Composition component ID collision", entry.TransformationId, rule.RuleId, collision.ComponentId)); continue; }
                     foreach (var member in members) memberIds.Add(member.ComponentId);
                     nodeCount += addedNodes;
-                    if (rule.Scope == CardCompositionScope.AfterImpact)
+                    if (perAnchor)
                     {
                         var index = composed.FindIndex(component => component.ComponentId == anchor.ComponentId);
                         var current = (CardEffectComponentDefinition)composed[index];
                         composed[index] = current with { Effect = current.Effect with
-                            { ChainedEffects = (current.Effect.ChainedEffects ?? []).Concat(members.Cast<CardEffectComponentDefinition>().Select(component => component.Effect)).ToImmutableArray() } };
+                            { ChainedEffects = (current.Effect.ChainedEffects ?? []).Concat(members.Cast<CardEffectComponentDefinition>().Select(component => component.Effect with
+                                { ChildTiming = rule.Scope == CardCompositionScope.BeforeImpact ? EffectChildTiming.BeforeParentImpact : EffectChildTiming.AfterParentImpact,
+                                  ExecutionScope = rule.Scope == CardCompositionScope.OncePerProc ? EffectExecutionScope.OncePerParentProc : component.Effect.ExecutionScope })).ToImmutableArray() } };
                     }
                     else (rule.Scope == CardCompositionScope.BeforeSequence ? before : after).AddRange(members);
                     trace.Add(new(entry.TransformationId, rule.RuleId, snapshot.Bundle.BundleId, rule.Scope,

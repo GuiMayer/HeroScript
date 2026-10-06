@@ -2,11 +2,11 @@
 
 ## Estado atual
 
-A etapa 8b1 conecta a distribuição numérica ao executor comum. Qualquer origem que use esse executor pode declarar um orçamento: carta, status, modifier, ação inimiga ou efeito emitido por condensação. Não existe um processador especial de multi-hit nem um endpoint de matemática que altera o combate.
+As etapas 8b1/8b2 conectam a distribuição numérica ao executor comum. Qualquer origem que use esse executor pode declarar um orçamento: carta, status, modifier, ação inimiga ou efeito emitido por condensação. Não existe um processador especial de multi-hit nem um endpoint de matemática que altera o combate.
 
 Sem `parameters[].distribution`, `repeat` mantém o significado atual: executar novamente o efeito completo, com um novo cálculo. Com esse campo, `repeat` identifica os slots que recebem parcelas de um único orçamento numérico. A opção pertence ao parâmetro; não muda o restante da sequência implicitamente.
 
-Suporte inicial: `Amount` de efeitos de recurso e `StatusStacks`/`ModifierStacks` de aplicações. Duração, remoção de modifiers, quantidade de cartas, distribuição entre vários alvos no mesmo impacto e budgets compartilhados entre pai/filhos ainda não são suportados. Configurações incompatíveis falham, inclusive em filhos que nunca executariam.
+Suporte inicial: `Amount` de efeitos de recurso e `StatusStacks`/`ModifierStacks` de aplicações, incluindo um orçamento compartilhado com os impactos do pai. Duração, remoção de modifiers, quantidade de cartas e distribuição entre vários alvos no mesmo impacto não são suportados. Configurações incompatíveis falham, inclusive em filhos que nunca executariam.
 
 ## Fluxo
 
@@ -98,15 +98,31 @@ Um orçamento de um stack em quatro impactos gera 1/0/0/0 ou 0/0/0/1. Parcela ze
 
 Amount zero continua sendo um efeito numérico válido e segue os reducers comuns. Não é reinterpretado como uma ausência automática de todos os seus efeitos filhos.
 
-Esta opção distribui o parâmetro da própria sequência. Um status encadeado ao ataque não herda o orçamento de stacks da sequência pai: cada chamada de um filho ainda é uma sequência própria. Esse compartilhamento permanece na próxima subetapa.
+`distribution.scope` distingue `Sequence` (padrão) e `ParentSequence`. Em ParentSequence, o filho tem repeat 1, usa o snapshot de entrada do pai e recebe a parcela do índice daquele impacto. Seu orçamento é capturado uma vez para todas as chamadas; irmãos têm budgets independentes. Um stack residual em quatro acertos não é reaplicado quatro vezes. Filho sem essa opção continua sendo uma sequência própria. Root sem pai, escopos misturados no mesmo efeito e pais com múltiplos alvos por impacto falham.
 
 ## Chance, perda de alvo e condensação
 
 - `PerEffect`: comportamento preservado, um sorteio por repetição, compartilhado pelos alvos daquela repetição.
 - `PerTarget`: comportamento preservado, um sorteio por alvo elegível da repetição.
 - `PerSequence`: um sorteio para esta chamada da sequência inteira. Não significa um sorteio global para todos os componentes da ação ou para toda uma árvore de efeitos.
+- `PerAction`: um sorteio por nó lógico na execução do batch, reutilizado entre invocações repetidas de filhos.
+- `PerProc`: um sorteio no proc pai, ou no próprio proc para efeitos raiz.
 
-Condições continuam sendo avaliadas por impacto. Uma chance/condição falsa deixa o slot sem aplicação; não redistribui sua parcela. Filhos continuam executando apenas após um pai aplicado. Ainda não há configuração nova de críticos ou de triggers globais por ação/proc.
+`chanceGroupId` permite compartilhar o sorteio entre nós distintos em PerAction/PerProc; sem grupo, os nós não compartilham aleatoriedade por coincidência de nome. Grupos com probabilidades conflitantes são rejeitados.
+
+Condições continuam sendo avaliadas por impacto. Uma chance/condição falsa deixa o slot sem aplicação; não redistribui sua parcela. `executionScope` distingue EveryInvocation, OncePerAction e OncePerParentProc. O segundo/terceiro reservam a primeira tentativa, inclusive chance falsa; novas invocações registram scope_already_attempted. `executionGroupId` pode agrupar nós distintos. Action é a execução do batch de efeitos, não um estado global entre comandos ou ticks.
+
+`childTiming` distingue AfterParentImpact e BeforeParentImpact. Efeitos anteriores executam depois da elegibilidade e antes do cálculo/aplicação, reconstroem as variáveis vivas e mantêm a cadeia de hashes. Se invalidarem o alvo, aplica-se a política do pai. Parcela zero de stacks não chama esses filhos. A gramática de composição agora fecha BeforeImpact e OncePerProc para esses mesmos contratos, sem executor alternativo.
+
+Críticos são inputs aleatórios explícitos, não multiplicação no executor:
+
+```json
+"randomInputs": [
+  { "inputId": "critical", "scope": "Action", "chance": 0.25, "groupId": "action_critical" }
+]
+```
+
+Os escopos são Action, ParentProc e Impact. `rolls.critical.success` fornece 0/1 à pipeline/fórmula, e randomInputs nos steps registra valor sorteado, sucesso e identidade do escopo. Chance 0/1 não avança RNG. Cada nó tem seu input por padrão; groupId compartilha inputs Action/ParentProc entre nós. O cliente não pode fornecer o namespace rolls. O multiplicador, bucket, filtros e qualquer significado de “critical” são dados do setting. Em um budget distribuído, só inputs Action alimentam a captura; críticos por impacto pertencem aos stages de impacto, sem reaplicar origem.
 
 Cada impacto resolve exatamente um alvo. TARGET com várias seleções, ALL_ENEMIES/ALL_ALLIES e retarget para grupos são rejeitados neste modo. Seletores automáticos de um alvo continuam usando o RNG determinístico normal, sem uma seleção extra para planejar o orçamento.
 
@@ -118,7 +134,7 @@ Condensação conserva OncePerAction por recipeId e o proc único de seus efeito
 
 `sequenceBudgets` registra captura e alocação uma vez, no primeiro step que calcula o orçamento. `impactShares` referencia o orçamento e a parcela nos steps seguintes, inclusive quando o alvo foi perdido. O trace completo da alocação contém também slots que nunca foram aplicados. Um step de perda e um step de retarget podem referenciar o mesmo slot; apenas o segundo o aplica.
 
-Capturas entram uma vez nos cálculos do batch; cálculos de alvo entram por aplicação. Os traces participam dos fingerprints e frames existentes, sem uma nova store persistente. A versão da engine passa a 16; saves anteriores são preservados e rejeitados quando incompatíveis, sem migração ou exclusão automática.
+Capturas entram uma vez nos cálculos do batch; cálculos de alvo entram por aplicação. Os traces participam dos fingerprints e frames existentes, sem uma nova store persistente. A versão da engine é 17 após a 8b2 (16 na 8b1); saves anteriores são preservados e rejeitados quando incompatíveis, sem migração ou exclusão automática.
 
 Profundidade 32, repeat 256 e orçamento global de 4.096 passos continuam valendo. Capturas e slots alocados participam do orçamento. Resolução numérica direta e schemas de payload rejeitam distribution não planejada, em vez de ignorá-la.
 

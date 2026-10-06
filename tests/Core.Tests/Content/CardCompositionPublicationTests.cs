@@ -26,7 +26,7 @@ public sealed partial class ContentGraphValidatorTests
         var result = new ContentGraphValidator().Validate(GrammarBundle(problem));
         Assert.False(result.IsValid);
         Assert.Contains(result.Errors, error => error.Contains(problem == "missing_bundle" ? "missing" : problem == "missing_resource" ? "unknown" :
-            problem == "unsupported_scope" ? "executable lowering" : "execution limit", StringComparison.OrdinalIgnoreCase));
+            problem == "unsupported_scope" ? "scope" : "execution limit", StringComparison.OrdinalIgnoreCase));
     }
 
     private static ContentBundle GrammarBundle(string? problem = null)
@@ -34,7 +34,7 @@ public sealed partial class ContentGraphValidatorTests
         var rule = new CardCompositionRuleDefinition
         {
             RuleId = "arbitrary", Namespace = "arbitrary", BundleId = problem == "missing_bundle" ? "missing" : "pulse",
-            Scope = problem == "unsupported_scope" ? CardCompositionScope.OncePerProc : CardCompositionScope.AfterImpact
+            Scope = problem == "unsupported_scope" ? (CardCompositionScope)999 : CardCompositionScope.AfterImpact
         };
         var upgrade = new CardUpgradeDefinition { UpgradeId = "conditional", Requirements = new() { RequiredCapabilities = ["not-yet-installed"] }, CompositionRules = [rule] };
         var effect = new CardEffectComponentDefinition { ComponentId = "amount", Effect = new()

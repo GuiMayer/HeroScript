@@ -69,8 +69,7 @@ Limites técnicos: 4.096 destinatários e 16.777.216 unidades no modo Quantized.
 
 ## O que falta para concluir a etapa 8
 
-- Compartilhar o orçamento de stacks residuais de um filho entre os impactos da sequência pai, sem calcular um novo orçamento para cada chamada do filho.
-- Completar escopos de chance/críticos/triggers por ação/proc/impacto e os boundaries reservados, sem anunciar fallback como implementação.
+- ParentSequence compartilha budgets de filhos desde a 8b2; chance, inputs de críticos e gatilhos possuem scopes explícitos Action/Proc/Impact. A gramática usa os mesmos boundaries executáveis para BeforeImpact/OncePerProc.
 - Comprovar preview, persistência, reinício, replay e branches específicos de multi-hit no gateway completo. Condensação OncePerAction e rollback já têm regressões no executor.
 - Fornecer conteúdo JSON publicado e oportunidades que usem esses contratos nas etapas posteriores; nenhum setting foi alterado automaticamente.
 

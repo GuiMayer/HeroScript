@@ -1,6 +1,6 @@
 # Gramática de composição de cartas
 
-Contrato executável da etapa 7 do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN.md). Engine version **15**.
+Contrato executável das etapas 7 e 8 do [plano do core](../../plans/CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PLAN.md). Engine version **17**.
 
 ## Uma autoridade, duas camadas
 
@@ -39,9 +39,11 @@ Entradas seguem a ordem ativa do ledger, incluindo a posição preservada por re
 | --- | --- |
 | `BeforeSequence` | Efeitos raiz antes de todos os efeitos estruturais. Uma expansão por regra, não por alvo. |
 | `AfterImpact` | Filhos anexados à âncora, depois dos filhos que ela já possuía. Executam por impacto bem-sucedido do pai, incluindo repeats/alvos, segundo as políticas comuns. |
+| `BeforeImpact` | Filhos com `childTiming: BeforeParentImpact`, antes da resolução numérica do impacto. Leituras posteriores usam o candidato vivo. |
+| `OncePerProc` | Filhos com `executionScope: OncePerParentProc`, depois do impacto; a primeira tentativa reserva o escopo, inclusive quando a chance falha. |
 | `AfterSequence` | Efeitos raiz depois de todos os efeitos estruturais. Uma expansão por regra. |
 
-`BeforeImpact` e `OncePerProc` estão reservados no enum, mas são **rejeitados** na publicação e resolução: ainda não há lowering que preserve esses limites de execução. Não são aliases de `BeforeSequence` ou `AfterImpact`; trabalho posterior deve implementar e testar a fronteira real antes de habilitá-los.
+Esses scopes são lowering para o executor comum, não um segundo executor de cartas. Compartilhamento de orçamento, chance e inputs aleatórios seguem o contrato de [sequence-budgets.md](../effects/sequence-budgets.md).
 
 Um pai pulado por chance/condição não executa seus filhos. Um impacto de mudança zero não é reinterpretado pela gramática: vale a semântica do executor comum. Um efeito de sequência permanece independente da chance do pai e usa suas próprias condições, alvos, chance e repeat. Os alvos dos filhos também são configuração de conteúdo; `AfterImpact` não força `TARGET`. Qualquer falha continua descartando a transação inteira.
 

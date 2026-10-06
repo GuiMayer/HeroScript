@@ -1,7 +1,7 @@
 namespace Core.Effects;
 
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter))]
-public enum EffectChanceScope { PerEffect, PerTarget, PerSequence }
+public enum EffectChanceScope { PerEffect, PerTarget, PerSequence, PerAction, PerProc }
 
 /// <summary>
 /// Tipos de efeitos que podem ser executados em combate.

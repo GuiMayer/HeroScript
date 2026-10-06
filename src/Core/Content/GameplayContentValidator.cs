@@ -444,6 +444,12 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
 
     private bool IsGameplayVariable(string token)
     {
+        if (token.StartsWith("rolls.", StringComparison.Ordinal))
+        {
+            var parts = token.Split('.');
+            return parts.Length == 3 && parts[2] == "success" && parts[1].Length is > 0 and <= 64 &&
+                parts[1].All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
+        }
         if (token is "stacks" or "duration" or "repeat_index" or "target_index") return true;
         if (token is "turn" or "round" or "activation" or "actions_taken" or "phase_order" or
             "command_type" || token.StartsWith("tag_", StringComparison.Ordinal)) return true;

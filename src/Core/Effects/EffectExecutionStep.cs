@@ -17,6 +17,7 @@ public sealed record EffectExecutionStep
     public EffectTargetLossPolicy? TargetLossPolicy { get; init; }
     public bool Retargeted { get; init; }
     public double? ChanceRoll { get; init; }
+    public ImmutableArray<EffectRandomInputResult> RandomInputs { get; init; } = [];
     public string ContentRevision { get; init; } = string.Empty;
     public EffectProvenance Provenance { get; init; } = new();
     public CalculationResult? Calculation { get; init; }

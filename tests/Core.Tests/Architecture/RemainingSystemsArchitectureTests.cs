@@ -182,7 +182,7 @@ public sealed class RemainingSystemsArchitectureTests
             @"/api/combat(?:/|[""'])"
         }.Select(pattern => new Regex(pattern, RegexOptions.CultureInvariant)).ToArray();
         var violations = roots
-            .SelectMany(root => Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            .SelectMany(EnumeratePublicSourceFiles)
             .Where(path => Path.GetExtension(path) is ".cs" or ".json" or ".gd" or ".md")
             .Where(path => !path.Contains(
                 $"{Path.DirectorySeparatorChar}data{Path.DirectorySeparatorChar}",
@@ -342,6 +342,21 @@ public sealed class RemainingSystemsArchitectureTests
                    System.Reflection.BindingFlags.DeclaredOnly)
         .Select(field => field.FieldType)
         .ToArray();
+
+    // Runtime saves are not source contracts. Prune their directories before
+    // traversal: filtering files afterwards still visits every generated journal.
+    private static IEnumerable<string> EnumeratePublicSourceFiles(string root)
+    {
+        foreach (var file in Directory.EnumerateFiles(root))
+            yield return file;
+        foreach (var directory in Directory.EnumerateDirectories(root))
+        {
+            if (Path.GetFileName(directory) is ".runtime" or ".godot" or ".git" or "obj" or "bin" or "data")
+                continue;
+            foreach (var file in EnumeratePublicSourceFiles(directory))
+                yield return file;
+        }
+    }
 
     private static void AssertFieldTypes(Type type, params Type[] expected)
     {
