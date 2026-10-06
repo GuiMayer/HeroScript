@@ -22,6 +22,7 @@ public record StatusEffectDefinition
     /// ID único do status effect
     /// </summary>
     public string StatusId { get; init; } = string.Empty;
+    public StackConsumptionPolicy Consumption { get; init; } = new();
     
     /// <summary>
     /// Nome para exibição

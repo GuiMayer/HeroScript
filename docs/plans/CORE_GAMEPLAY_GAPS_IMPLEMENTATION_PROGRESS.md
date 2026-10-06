@@ -34,7 +34,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 1 — Alvo derrotado | Concluída | Core 1.153 / API 181, sem falhas; 18 regressões novas. |
 | 2 — Contexto e fatos | Concluída | Core 1.162 / API 181, sem falhas; 9 regressões novas. |
 | 3 — Parâmetros e cálculo | Concluída | Core 1.185 / API 181, sem falhas; 23 regressões novas. |
-| 4 — Payloads e consumo | Pendente | |
+| 4 — Payloads e consumo | Parcial — 4a | Core 1.198 / API 181, sem falhas; 13 regressões novas. Payloads/lotes pendentes. |
 | 5 — Condensação | Pendente | |
 | 6 — Transformações | Pendente | |
 | 7 — Afinidades/modificadores | Pendente | |
@@ -81,6 +81,20 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 - Contrato e exemplos: [effect-calculation-profiles.md](../systems/math/effect-calculation-profiles.md).
 - Etapa 2: commit `8ada56d`.
 
+## Etapa 4a — leitura e consumo das stores atuais
+
+- Referências tipadas e seleção configurável de status/modifiers; nenhum novo armazenamento autoritativo.
+- Capacidade opt-in `consumption.allowedRecipeIds`; periodicidade e stacks não autorizam consumo automaticamente.
+- Seleção determinística por store/owner/origem/definição/tags, limitada sem truncamento. Captura preserva fingerprint completo da instância, não apenas contagem.
+- Consumo integral exige snapshot idêntico e ainda elegível. Alterações de duração/revisão/definição, referências duplicadas e segunda tentativa de consumo falham antes de publicar uma mutação.
+- Fatos de consumo usam a razão Consume; não ativam dispel/expiração e não avançam RNG.
+- Regressão comprova que o lifecycle ignora uma instância consumida no mesmo boundary, mesmo quando ela pertence ao snapshot inicial.
+- Planos e fatos serializam; dez capturas/consumos equivalentes produzem a mesma ordem/hash.
+- Versão da engine: 10. Saves existentes foram preservados.
+- Contrato: [accumulated-stacks.md](../systems/effects/accumulated-stacks.md).
+- Etapa 3: commit `e69320e`.
+- Esta subetapa não conclui a etapa 4: payloads Snapshot/Dynamic, bindings e lotes de intensidades permanecem pendentes. Também não introduz um comando REST de consumo nem anuncia condensação executável.
+
 ## Próxima etapa
 
-Etapa 4: persistir payloads Snapshot/Dynamic em lotes dentro das instâncias existentes de status/modifier e oferecer leitura/consumo imutável genérico. Condensação continua pendente até essas bases e a etapa 5 serem verificadas; não há operação de condensação anunciada como executável nesta entrega.
+Etapa 4b: persistir payloads Snapshot/Dynamic em lotes dentro das instâncias existentes de status/modifier e integrar os bindings/capturas numéricas da etapa 3 aos adaptadores da etapa 4a. Condensação continua pendente até essas bases e a etapa 5 serem verificadas; não há operação de condensação anunciada como executável nesta entrega.

@@ -8,7 +8,7 @@ namespace Core.Determinism;
 /// </summary>
 public sealed record DeterministicContext
 {
-    public const string CurrentEngineVersion = "9";
+    public const string CurrentEngineVersion = "10";
 
     public ulong Seed { get; }
     public DeterministicRngState RandomState { get; }

@@ -15,6 +15,7 @@ public record ScriptModifierDefinition
     private ImmutableArray<ContextualInfluenceDefinition> _influences = [];
 
     public string ModifierId { get; init; } = string.Empty;
+    public StackConsumptionPolicy Consumption { get; init; } = new();
     public string DisplayName { get; init; } = string.Empty;
     public string Description { get; init; } = string.Empty;
     public int DefaultStacks { get; init; } = 1;

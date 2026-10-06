@@ -100,6 +100,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<CardComponentBundleDefinition>("card-component-bundles", (path, item) => Components(path, item.Components));
         Visit<StatusEffectDefinition>("status-effects", (path, item) =>
         {
+            if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
             InstancePolicies(path, item.DefaultStacks, item.MaxStacks, item.DefaultDuration, item.Stacking, item.DurationReapply);
             if (!Enum.IsDefined(item.DurationTickBoundary)) Error(path, "invalid durationTickBoundary");
             Triggers(path, item.Triggers, relic: false);
@@ -116,6 +117,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         });
         Visit<ScriptModifierDefinition>("modifiers", (path, item) =>
         {
+            if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");
             InstancePolicies(path, item.DefaultStacks, item.MaxStacks, item.DefaultDuration, item.Stacking, item.DurationReapply);
             if (!Enum.IsDefined(item.DurationBoundary)) Error(path, "invalid modifier durationBoundary");
             Influences(path, item.Influences);
