@@ -98,9 +98,12 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (request.Variables.Values.Any(value => !float.IsFinite(value)))
             return Result<EffectBatchResult>.Failure("Execution variables must be finite");
         if (request.Variables.Keys.Any(key => key.StartsWith("results.", StringComparison.OrdinalIgnoreCase) ||
+            key.StartsWith("continuation.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("rolls.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("parent.", StringComparison.OrdinalIgnoreCase)))
             return Result<EffectBatchResult>.Failure("Execution result namespaces cannot be supplied by the caller");
+        if (request.Quantities.Keys.Any(key => key.StartsWith("continuation.", StringComparison.OrdinalIgnoreCase)))
+            return Result<EffectBatchResult>.Failure("Continuation quantities cannot be supplied by the caller");
         var rootEffects = request.PrefixCommands.Select(command => command.Definition).Concat(
             (request.Components.IsEmpty ? [request.Trigger] : request.Components).SelectMany(item => item.Effects)).ToArray();
         var recipes = new Dictionary<string, CondensationRecipeDefinition>(StringComparer.Ordinal);
@@ -109,6 +112,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         {
             var distribution = ValidateSequenceProfiles(effect, request);
             if (distribution.IsFailure) referenceErrors.Add(distribution.Error);
+            var continuation = ValidateContinuationProfiles(effect, request);
+            if (continuation.IsFailure) referenceErrors.Add(continuation.Error);
             if (effect.Type != EffectType.CONDENSE_STACKS || string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) return;
             var resolved = ResolveRecipe(effect.CondensationRecipeId, request);
             if (resolved.IsFailure) referenceErrors.Add(resolved.Error);
@@ -120,6 +125,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             {
                 var distribution = ValidateSequenceProfiles(effect, request);
                 if (distribution.IsFailure) referenceErrors.Add(distribution.Error);
+                var continuation = ValidateContinuationProfiles(effect, request);
+                if (continuation.IsFailure) referenceErrors.Add(continuation.Error);
             }));
         if (referenceErrors.Count > 0) return Result<EffectBatchResult>.Failure(string.Join("; ", referenceErrors));
         if (!definitionErrors.IsEmpty)
@@ -195,7 +202,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         Result ExecuteEffect(EffectDefinition effect, string path, int depth, IReadOnlyList<string> selection,
             string? parentProcId, EffectApplicationRecord? parentApplication, string? forcedProcId = null,
             string? forcedParentProcId = null, EffectSequenceFrame? parentSequence = null, string? budgetKey = null,
-            string? definitionPath = null)
+            string? definitionPath = null, int continuationHop = 0, ImmutableArray<string> continuationVisited = default,
+            IReadOnlyDictionary<string, float>? inheritedRandomFacts = null)
         {
             if (++work > EffectExecutionLimits.MaximumSteps || depth > EffectExecutionLimits.MaximumDepth)
                 return Result.Failure("Effect execution limit exceeded");
@@ -380,6 +388,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     CondensationOutcome? condensation = null;
                     string? condensationSkip = null;
                     ImmutableArray<EffectSequenceBudget> capturedBudgets = [];
+                    if (inheritedRandomFacts != null)
+                        foreach (var pair in inheritedRandomFacts) variables[pair.Key] = pair.Value;
                     var randomInputs = ImmutableArray.CreateBuilder<EffectRandomInputResult>();
                     if (applies)
                     {
@@ -561,6 +571,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                         calculations.AddRange(payloadCalculations);
                         }
                     }
+                    var completedStepIndex = steps.Count;
                     steps.Add(new()
                     {
                         Index = steps.Count,
@@ -628,6 +639,39 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             $"{frameId}.chain.{childIndex}", $"{definitionPath}.chain.{childIndex}");
                         if (childResult.IsFailure) return childResult;
                     }
+                    if (effect.Continuation != null && calculation != null)
+                    {
+                        var primary = appliedRecords.LastOrDefault(record => record.CalculationInfluenceId == null && record.TargetEntityId == targetId);
+                        if (primary == null) return Result.Failure("Continuation requires an observed primary resource application");
+                        var visited = (continuationVisited.IsDefault ? ImmutableArray<string>.Empty : continuationVisited).Add(targetId);
+                        var beforeContinuation = CanonicalJson.ComputeHash(current);
+                        var planner = new EffectContinuationPlanner(new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences));
+                        var planned = planner.Plan(request with { Combat = current, Run = currentRun }, effect, primary, calculation,
+                            continuationHop + 1, visited, variables, activeTriggerId);
+                        if (planned.IsFailure) return Result.Failure(planned.Error);
+                        steps[completedStepIndex] = steps[completedStepIndex] with { Continuation = planned.Value.Trace };
+                        if (planned.Value.Trace.Overflow is { } overflow) calculations.Add(overflow);
+                        current = planned.Value.Combat;
+                        if (planned.Value.Effect is { } next)
+                        {
+                            var previousQuantities = activeQuantities;
+                            var previousSnapshot = numericSnapshot;
+                            activeQuantities = activeQuantities.SetItem("continuation.budget", planned.Value.Quantity!);
+                            // The transported value already contains its source. Only live next-target stages run.
+                            numericSnapshot = null;
+                            var firstContinuationStep = steps.Count;
+                            var carried = ExecuteEffect(next, $"{path}:{repeat}:{targetIndex}.hop.{continuationHop + 1}", depth + 1,
+                                [planned.Value.Trace.ToEntityId!], identity.ProcId, primary, identity.ProcId, identity.ParentProcId,
+                                definitionPath: definitionPath, continuationHop: continuationHop + 1, continuationVisited: visited,
+                                inheritedRandomFacts: variables.Where(pair => pair.Key.StartsWith("rolls.", StringComparison.Ordinal))
+                                    .ToImmutableDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
+                            activeQuantities = previousQuantities;
+                            numericSnapshot = previousSnapshot;
+                            if (carried.IsFailure) return carried;
+                            if (steps.Count > firstContinuationStep)
+                                steps[firstContinuationStep] = steps[firstContinuationStep] with { StateBeforeHash = beforeContinuation };
+                        }
+                    }
                 }
             }
             return Result.Success();
@@ -650,6 +694,24 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             var pass = DrawChance(chance, out var roll);
             var result = (pass, roll); scopedRolls.Add(key, result); return result;
         }
+    }
+
+    private Result ValidateContinuationProfiles(EffectDefinition effect, EffectTriggerExecutionRequest request)
+    {
+        if (effect.Continuation == null) return Result.Success();
+        if (_contentRuntimes == null || _calculations == null || _influences == null || request.Run?.ResolvedMode == null)
+            return Result.Failure("Continuation requires configured pinned calculation services");
+        var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
+        if (runtime.IsFailure) return Result.Failure(runtime.Error);
+        var amount = effect.Parameters.FirstOrDefault(parameter => parameter.Parameter == EffectNumericParameter.Amount);
+        if (amount == null) return Result.Failure("Continuation requires an Amount parameter");
+        var impact = CalculationResolver.ResolvePipeline(effect with { CalculationChannel = amount.Channel,
+            CalculationPipelineId = amount.PipelineId }, request.Run, runtime.Value);
+        var overflow = CalculationResolver.ResolvePipeline(effect with { CalculationChannel = effect.Continuation.OverflowChannel,
+            CalculationPipelineId = effect.Continuation.OverflowPipelineId }, request.Run, runtime.Value);
+        if (impact.IsFailure) return Result.Failure(impact.Error);
+        if (overflow.IsFailure) return Result.Failure(overflow.Error);
+        return EffectContinuationPlanner.ValidateProfiles(effect, impact.Value, overflow.Value);
     }
 
     private Result ValidateSequenceProfiles(EffectDefinition effect, EffectTriggerExecutionRequest request)

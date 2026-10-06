@@ -956,7 +956,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 {
                     var formula = RuntimeFormulaEvaluator.ValidateSyntax(
                         bucket.Formula ?? string.Empty,
-                        token => token is "calculation.base" or "bucket.input" or
+                        token => EffectInputNamespaces.IsFactVariable(token) || token is "calculation.base" or "bucket.input" or
                             "bucket.contributions.count" or "bucket.contributions.sum" or
                             "bucket.contributions.minimum" or "bucket.contributions.maximum",
                         formulaId => runtime.GetDefinitions("formulas").ContainsKey(formulaId));

@@ -71,6 +71,22 @@ public static class EffectDefinitionValidator
             }
             else if (effect.CondensationRecipeId != null) Error("condensationRecipeId requires CONDENSE_STACKS");
             if (!Enum.IsDefined(effect.Target)) Error("invalid target policy");
+            if (effect.Continuation is { } continuation)
+            {
+                if (effect.Type is not (EffectType.DAMAGE or EffectType.HEAL or EffectType.MODIFY_RESOURCE) ||
+                    effect.ResourceField != Core.Resources.ResourceValueField.Current ||
+                    effect.Parameters.Count(parameter => parameter.Parameter == EffectNumericParameter.Amount) != 1 ||
+                    effect.Target is EffectTarget.ALL_ENEMIES or EffectTarget.ALL_ALLIES)
+                    Error("continuation requires a single-target current-resource impact with an explicit Amount");
+                if (continuation.MaximumHops is < 1 or > 32 ||
+                    continuation.Selector is not (EffectTarget.RANDOM_ENEMY or EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY) ||
+                    continuation.Selector is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY && string.IsNullOrWhiteSpace(continuation.SelectionResourceId) ||
+                    string.IsNullOrWhiteSpace(continuation.OverflowPipelineId) || string.IsNullOrWhiteSpace(continuation.OverflowChannel) ||
+                    continuation.OverflowStageIds.IsEmpty || continuation.ImpactStageIds.IsEmpty ||
+                    continuation.OverflowStageIds.Distinct(StringComparer.Ordinal).Count() != continuation.OverflowStageIds.Length ||
+                    continuation.ImpactStageIds.Distinct(StringComparer.Ordinal).Count() != continuation.ImpactStageIds.Length)
+                    Error("invalid continuation selector, limits or numeric stages");
+            }
             if (effect.TargetLoss == null || !Enum.IsDefined(effect.TargetLoss.Policy))
                 Error("invalid target loss policy");
             else if (effect.TargetLoss.Policy == EffectTargetLossPolicy.Retarget)

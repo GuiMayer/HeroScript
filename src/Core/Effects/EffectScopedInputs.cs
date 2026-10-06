@@ -26,3 +26,15 @@ public sealed record EffectRandomInputResult
     public double? Roll { get; init; }
     public bool Success { get; init; }
 }
+
+internal static class EffectInputNamespaces
+{
+    public static bool IsFactVariable(string token)
+    {
+        if (token is "continuation.requested_change" or "continuation.applied_change" or "continuation.limited_change") return true;
+        if (!token.StartsWith("rolls.", StringComparison.Ordinal)) return false;
+        var parts = token.Split('.');
+        return parts.Length == 3 && parts[2] == "success" && parts[1].Length is > 0 and <= 64 &&
+            parts[1].All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
+    }
+}

@@ -39,7 +39,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
 | 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
 | 8 — Multi-hit | Contratos concluídos — 8a/8b1/8b2; gate integrado na etapa 14 | Core 1.478 / API 183; 20 regressões adicionais de sharing/scopes. |
-| 9 — Salto por abate | Pendente | |
+| 9 — Salto por abate | Contrato concluído; gate integrado na etapa 14 | Core 1.500 / API 183; 22 regressões novas. |
 | 10 — Atributos persistentes | Pendente | |
 | 11 — Oportunidades/conteúdo | Pendente | |
 | 12 — API/preview | Pendente | |
@@ -215,3 +215,13 @@ Etapa 9: continuação causal por abate e transporte de excedente pelo caminho n
 - Testes de budgets compartilhados, irmãos, zeros, scopes, grupos, RNG, source bonus crítico uma vez, snapshots preservados, dez execuções e rollback. Validação integrada de runs/save/load/replay/branches das novas combinações será completada no gate final, após existir o setting demonstrativo.
 - Core: 1.478 aprovados (18s). Auditoria de contratos públicos poda diretórios gerados antes da leitura; não percorre saves `.runtime` como código-fonte. Saves existentes não foram removidos. Teste de loja seleciona oferta que o saldo pode pagar, sem depender da ordem sorteada.
 - API: 183 aprovados (1m06s), nenhuma falha. O gate final continua obrigatório para as combinações novas na jornada real.
+
+## Etapa 9 — continuação causal
+
+- `continuation` no efeito comum; causalidade exige derrota produzida pelo registro primário daquele impacto, qualquer recurso. Hijack de derrota de filhos/settlements não é permitido.
+- `EffectContinuationPlanner` usa pedido numérico canônico e perfil autoral de overflow, com requested/applied/limited facts. Unidade/revisão/receipts preservados; próximos stages exclusivamente Target e nenhuma reaplicação da origem.
+- Selectors comuns, relações, ordenação, exclusão de visitados, limites e RNG determinístico. Chance/condition/inputs Impact/filhos só acompanham conforme flags explícitas. Parcela atual de multi-hit e sua continuação não confundem o tratamento dos repeats restantes.
+- Condensação consome uma vez e somente sua saída autorizada continua no mesmo proc; impactos têm identidade/parentImpactId próprios. Traces completos e motivos de parada na estrutura comum. Qualquer falha posterior descarta todos os candidatos.
+- Policies e perfis validados na publicação/execução, inclusive em filhos dormentes. Pipelines também aceitam os namespaces tipados de random/continuação; não aceitam payload externo forjado.
+- Engine version 18; saves e mudanças preexistentes preservados. Contrato: [causal-continuation.md](../systems/effects/causal-continuation.md).
+- Verificação: Core 1.500 aprovados (12s), API 183 (51s), nenhuma falha. Vinte e duas regressões: transporte 15/10/5, defesa por alvo, origem única, unidade, morte não-health, causalidade de filhos, zero/limites/ausência, políticas, multi-hit, condensação, rollback, publicação dormente, dez execuções e round-trip. Sem afirmação de replay semântico integrado ou teste visual nesta entrega.

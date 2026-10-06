@@ -266,6 +266,24 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             Reference(address, "cards", effect.CardDefinitionId);
             Reference(address, "calculation-pipelines", effect.CalculationPipelineId);
             Reference(address, "condensation-recipes", effect.CondensationRecipeId);
+            if (effect.Continuation is { } continuation)
+            {
+                Reference(address, "resources", continuation.SelectionResourceId);
+                Reference(address, "calculation-pipelines", continuation.OverflowPipelineId, required: true);
+                var amount = effect.Parameters.FirstOrDefault(parameter => parameter.Parameter == EffectNumericParameter.Amount);
+                if (amount?.PipelineId is not { Length: > 0 } impactId)
+                    Error(address, "continuation requires an explicit impact pipeline");
+                else
+                {
+                    var impact = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", impactId);
+                    var overflow = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", continuation.OverflowPipelineId);
+                    if (impact.IsSuccess && overflow.IsSuccess)
+                    {
+                        var valid = EffectContinuationPlanner.ValidateProfiles(effect, impact.Value, overflow.Value);
+                        if (valid.IsFailure) Error(address, valid.Error);
+                    }
+                }
+            }
             if (effect.CalculationPipelineId is { Length: > 0 } pipelineId)
             {
                 var pipeline = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", pipelineId);
@@ -444,12 +462,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
 
     private bool IsGameplayVariable(string token)
     {
-        if (token.StartsWith("rolls.", StringComparison.Ordinal))
-        {
-            var parts = token.Split('.');
-            return parts.Length == 3 && parts[2] == "success" && parts[1].Length is > 0 and <= 64 &&
-                parts[1].All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
-        }
+        if (EffectInputNamespaces.IsFactVariable(token)) return true;
         if (token is "stacks" or "duration" or "repeat_index" or "target_index") return true;
         if (token is "turn" or "round" or "activation" or "actions_taken" or "phase_order" or
             "command_type" || token.StartsWith("tag_", StringComparison.Ordinal)) return true;

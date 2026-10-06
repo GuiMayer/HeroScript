@@ -367,12 +367,12 @@ public sealed class EffectSequenceBudgetTests
         new() { StageId = "count_impact", Scope = CalculationStageScope.Target }], Buckets = [new()
         { BucketId = "count_base", StageId = "count_source" }, new() { BucketId = "count_target", StageId = "count_impact", Order = 1 }] };
 
-    private static Dictionary<string, CalculationPipelineDefinition> Profiles(CalculationPipelineDefinition? counts = null) => new()
+    internal static Dictionary<string, CalculationPipelineDefinition> Profiles(CalculationPipelineDefinition? counts = null) => new()
     { ["scoped"] = CalculationProfileTests.Pipeline() with { ResourceInfluenceBindings = [new()
         { BindingId = "capacity", Channel = "magnitude", Bucket = "capacity", Scope = CalculationEntityScope.Target,
             ResourceId = "shield", MissingResource = MissingResourcePolicy.Ignore, Settlement = new() }] }, ["counts"] = counts ?? Counts() };
 
-    private static ContentBundle Bundle(Dictionary<string, CalculationPipelineDefinition> profiles, EffectDefinition? action = null,
+    internal static ContentBundle Bundle(Dictionary<string, CalculationPipelineDefinition> profiles, EffectDefinition? action = null,
         CondensationRecipeDefinition? recipe = null)
     {
         var artifacts = new Dictionary<string, JsonElement>
@@ -394,20 +394,24 @@ public sealed class EffectSequenceBudgetTests
     }
 
     internal static (EffectTriggerExecutor Executor, RunState Run) Fixture(CalculationPipelineDefinition? counts = null,
-        CondensationRecipeDefinition? recipe = null)
+        CondensationRecipeDefinition? recipe = null, CalculationPipelineDefinition? extraProfile = null,
+        IRuntimeFormulaEvaluator? evaluator = null)
     {
         var formulas = new Mock<IRuntimeFormulaEvaluator>();
         formulas.Setup(item => item.Evaluate(It.IsAny<string>(), It.IsAny<Dictionary<string, float>>(), It.IsAny<float>()))
             .Returns((string expression, Dictionary<string, float> variables, float initial) => variables.TryGetValue(expression, out var value)
                 ? Result<float>.Success(value) : Result<float>.Failure("Unknown variable"));
-        var runtime = ContentRuntime.Create(Bundle(Profiles(counts), recipe: recipe));
+        var profiles = Profiles(counts);
+        if (extraProfile != null) profiles.Add(extraProfile.PipelineId, extraProfile);
+        var runtime = ContentRuntime.Create(Bundle(profiles, recipe: recipe));
         Assert.True(runtime.IsSuccess, runtime.IsFailure ? runtime.Error : null);
         var runtimes = new Mock<IContentRuntimeResolver>();
         runtimes.Setup(item => item.Resolve("revision", It.IsAny<string?>())).Returns(Result<ContentRuntime>.Success(runtime.Value));
-        var influences = new CompositeCalculationInfluenceProvider([new CardComponentInfluenceProvider(formulas.Object), new EntityResourceInfluenceProvider()]);
-        return (new(formulas.Object, new ImmutableEffectProcessor(), runtimes.Object, new CalculationEngine(formulas.Object), influences),
+        var actualFormulas = evaluator ?? formulas.Object;
+        var influences = new CompositeCalculationInfluenceProvider([new CardComponentInfluenceProvider(actualFormulas), new EntityResourceInfluenceProvider()]);
+        return (new(actualFormulas, new ImmutableEffectProcessor(), runtimes.Object, new CalculationEngine(actualFormulas), influences),
             new() { PlayerEntityId = "hero", Determinism = DeterministicContext.Create(123, "revision"),
-                ResolvedMode = new() { Definition = new() { CalculationPipelineIds = ["scoped", "counts"] } } });
+                ResolvedMode = new() { Definition = new() { CalculationPipelineIds = profiles.Keys.ToArray() } } });
     }
 
     private static CombatState Shield(CombatState state, float amount)
