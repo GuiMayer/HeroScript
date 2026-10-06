@@ -192,18 +192,20 @@ Recomendação inicial: repartir a intensidade residual junto com a magnitude pa
 
 ### 8.2. Condensação
 
-Definido pelo autor: um ataque pode provocar dano condensado.
+Definido pelo autor, conforme esclarecimento posterior: condensação usa todos os stacks elegíveis acumulados de uma vez em um único proc. Não é exclusiva de dano ou de efeitos periódicos; pode ativar cura, recuperação de recursos, compra de cartas, aplicação de status ou outro efeito configurado.
 
-Proposta para validação: além de seu efeito principal, a carta consome efeitos residuais ofensivos elegíveis já presentes no alvo e antecipa seu potencial restante como dano imediato.
+Um proc é uma ativação, não um ponto de dano. Condensar oito stacks não significa executar oito vezes o efeito: a configuração converte o agregado em uma ativação. Uma receita pode conter vários componentes, preservando uma única identidade de proc.
 
-- Consome o que converte; o mesmo potencial não continua causando dano depois.
-- Não cria um bônus livre desvinculado dos efeitos que foram preparados.
-- Deve mostrar o que pode ser consumido e o que não pode.
-- A ausência de residual não precisa invalidar o ataque principal; essa é uma proposta, não uma regra herdada do legado.
+- Consome todos os stacks da seleção elegível; os stacks consumidos não continuam ativando depois.
+- Não consome todos os buffs do personagem implicitamente: elegibilidade, dono e fontes são configurados.
+- Não cria um bônus livre desvinculado do acúmulo preparado.
+- Deve mostrar o que será consumido e o efeito resultante.
+- A duração não multiplica o resultado automaticamente. Antecipar o potencial periódico restante é uma receita possível, não a definição universal de condensação.
+- Fontes diferentes só podem ser combinadas quando a configuração declara como convertê-las.
 
-Recomendação inicial: condensar efeitos existentes antes do uso da carta, deixando a consequência nova da afinidade fora dessa conversão. Isso preserva uma sequência de preparação e aproveitamento, em vez de fazer a carta preparar e consumir tudo sozinha.
+Proposta inicial: capturar efeitos existentes no início da ação, deixando os stacks criados por essa mesma ação fora da conversão, e condensar uma vez por uso da carta. A seleção vazia pode pular somente a condensação, sem invalidar o efeito principal. Essas são políticas do primeiro setting, não regras obrigatórias para todo jogo.
 
-Permanecem em aberto a fração convertida e a elegibilidade. A cura residual existe como parte da gramática, mas sua condensação não é necessária para validar o primeiro modificador ofensivo.
+Permanecem em aberto quais acumuladores e conversões são oferecidos ao jogador. A validação deve incluir condensação ofensiva, cura e ao menos um resultado que não seja dano ou cura.
 
 ### 8.3. Salto por abate
 
