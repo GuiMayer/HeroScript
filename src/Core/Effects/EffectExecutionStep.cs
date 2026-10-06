@@ -13,6 +13,8 @@ public sealed record EffectExecutionStep
     public int TargetIndex { get; init; }
     public bool Applied { get; init; }
     public string? SkipReason { get; init; }
+    public EffectTargetLossPolicy? TargetLossPolicy { get; init; }
+    public bool Retargeted { get; init; }
     public double? ChanceRoll { get; init; }
     public string ContentRevision { get; init; } = string.Empty;
     public EffectProvenance Provenance { get; init; } = new();

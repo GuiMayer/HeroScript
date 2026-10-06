@@ -19,6 +19,7 @@
         "type": "APPLY_STATUS",
         "target": "TARGET",
         "statusId": "poison",
+        "targetLoss": { "policy": "Skip" },
         "statusStacks": 2,
         "tags": ["status", "poison", "debuff", "enemy"]
       }
@@ -48,6 +49,7 @@
         "type": "APPLY_STATUS",
         "target": "TARGET",
         "statusId": "silenced",
+        "targetLoss": { "policy": "Skip" },
         "statusStacks": 1,
         "statusDuration": 1,
         "tags": ["status", "control", "debuff", "enemy"]

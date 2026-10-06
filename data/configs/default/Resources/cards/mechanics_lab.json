@@ -33,6 +33,7 @@
           "effectId": "venom_cut.poison",
           "type": "APPLY_STATUS",
           "target": "TARGET",
+          "targetLoss": { "policy": "Skip" },
           "statusId": "poison",
           "statusStacks": 3,
           "tags": ["status", "poison", "debuff"]
@@ -132,6 +133,7 @@
           "type": "APPLY_STATUS",
           "target": "TARGET",
           "statusId": "vulnerable",
+          "targetLoss": { "policy": "Skip" },
           "statusStacks": 1,
           "statusDuration": 2,
           "tags": ["status", "debuff"]

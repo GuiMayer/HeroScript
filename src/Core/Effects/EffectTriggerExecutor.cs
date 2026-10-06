@@ -149,18 +149,40 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             for (var repeat = 0; repeat < effect.Repeat; repeat++)
             {
                 var beforeSelection = CanonicalJson.ComputeHash(current);
-                var targets = ResolveTargets(current, request.OwnerEntityId, selection, effect.Target,
-                    effect.SelectionResourceId, current.Determinism);
+                var targets = EffectTargetResolver.Resolve(request.Combat, current, request.OwnerEntityId, selection, effect);
                 if (targets.IsFailure) return Result.Failure(targets.Error);
                 current = current with { Determinism = targets.Value.Context };
+                foreach (var lostId in targets.Value.LostTargetIds)
+                {
+                    if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
+                    steps.Add(new()
+                    {
+                        Index = steps.Count,
+                        EffectInstanceId = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{lostId}:lost",
+                        TargetEntityId = lostId, RepeatIndex = repeat, Applied = false,
+                        SkipReason = targets.Value.StopRepeat ? "repeat_stopped" : "target_defeated",
+                        TargetLossPolicy = effect.TargetLoss.Policy,
+                        ContentRevision = request.ContentRevision,
+                        Provenance = request.Provenance with { ComponentId = activeTriggerId },
+                        StateBeforeHash = lostId == targets.Value.LostTargetIds[0] ? beforeSelection : CanonicalJson.ComputeHash(current),
+                        StateAfterHash = CanonicalJson.ComputeHash(current),
+                        RunBeforeHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun),
+                        RunAfterHash = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun)
+                    });
+                }
+                if (targets.Value.StopRepeat) break;
+                if (targets.Value.TargetIds.IsEmpty) continue;
+                var beforeChance = CanonicalJson.ComputeHash(current);
                 double? effectRoll = null;
                 var effectPass = effect.ChanceScope != EffectChanceScope.PerEffect || DrawChance(effect.Chance, out effectRoll);
-                for (var targetIndex = 0; targetIndex < targets.Value.TargetIds.Count; targetIndex++)
+                for (var targetIndex = 0; targetIndex < targets.Value.TargetIds.Length; targetIndex++)
                 {
                     if (++work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                     var targetId = targets.Value.TargetIds[targetIndex];
                     var id = $"{request.Provenance.SourceId}:{request.Trigger.TriggerId}:{path}:{repeat}:{targetId}";
-                    var before = targetIndex == 0 ? beforeSelection : CanonicalJson.ComputeHash(current);
+                    var before = targetIndex == 0
+                        ? targets.Value.LostTargetIds.IsEmpty ? beforeSelection : beforeChance
+                        : CanonicalJson.ComputeHash(current);
                     var runBefore = currentRun == null ? null : CanonicalJson.ComputeHash(currentRun);
                     var variables = BuildVariables(request with { Run = currentRun }, current, targetId);
                     variables["repeat_index"] = repeat;
@@ -217,6 +239,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     {
                         Index = steps.Count, EffectInstanceId = id, TargetEntityId = targetId,
                         RepeatIndex = repeat, TargetIndex = targetIndex, Applied = applies,
+                        Retargeted = targets.Value.Retargeted,
                         SkipReason = applies ? null : !tagsPass ? "tags" : !effectPass || !chancePass ? "chance" : "condition",
                         ChanceRoll = roll, ContentRevision = request.ContentRevision,
                         Provenance = request.Provenance with { ComponentId = activeTriggerId },
@@ -324,79 +347,6 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         return GameplayFormulaContext.Build(source, combat.GetActor(targetId),
             combat.GetActor(request.OwnerEntityId)!, request.Run, request.Variables);
     }
-
-    private static void AddResources(
-        IDictionary<string, float> variables,
-        string prefix,
-        CombatActorState entity)
-    {
-        ResourceFormulaVariables.AddOwner(variables, prefix, entity.ResourceState);
-    }
-
-    private static Result<ResolvedTargets> ResolveTargets(
-        CombatState combat,
-        string ownerId,
-        IReadOnlyList<string> selectedTargetIds,
-        EffectTarget target,
-        string? selectionResourceId,
-        DeterministicContext context)
-    {
-        var owner = combat.GetActor(ownerId)!;
-        var candidates = target switch
-        {
-            EffectTarget.SELF => [ownerId],
-            EffectTarget.TARGET => selectedTargetIds
-                    .Distinct(StringComparer.Ordinal)
-                    .ToArray(),
-            EffectTarget.ALL_ENEMIES or EffectTarget.RANDOM_ENEMY or
-                EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY => combat.GetAllActors()
-                .Where(entity => entity.IsAlive && combat.Relationship(owner, entity) == SideRelationship.Enemy)
-                .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
-                .Select(entity => entity.InstanceId)
-                .ToArray(),
-            EffectTarget.ALL_ALLIES => combat.GetAllActors()
-                .Where(entity => entity.IsAlive && combat.Relationship(owner, entity) == SideRelationship.Ally)
-                .OrderBy(entity => entity.InstanceId, StringComparer.Ordinal)
-                .Select(entity => entity.InstanceId)
-                .ToArray(),
-            _ => []
-        };
-        if (candidates.Length == 0)
-            return Result<ResolvedTargets>.Failure($"Trigger target {target} resolved no entities");
-        if (target != EffectTarget.SELF && candidates.Any(id => combat.GetActor(id)?.IsAlive != true))
-            return Result<ResolvedTargets>.Failure("Selection contains an invalid or defeated target");
-        if (target is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY)
-        {
-            if (string.IsNullOrWhiteSpace(selectionResourceId))
-                return Result<ResolvedTargets>.Failure($"Trigger target {target} requires selectionResourceId");
-            var withResource = candidates
-                .Select(combat.GetActor)
-                .Where(entity => entity?.GetResource(selectionResourceId) != null)
-                .Cast<CombatActorState>();
-            var selected = target == EffectTarget.LOWEST_RESOURCE_ENEMY
-                ? withResource.OrderBy(entity => entity.GetResource(selectionResourceId)!.Current)
-                    .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal).FirstOrDefault()
-                : withResource.OrderByDescending(entity => entity.GetResource(selectionResourceId)!.Current)
-                    .ThenBy(entity => entity.InstanceId, StringComparer.Ordinal).FirstOrDefault();
-            return selected == null
-                ? Result<ResolvedTargets>.Failure(
-                    $"No candidate exposes selection resource {selectionResourceId}")
-                : Result<ResolvedTargets>.Success(new([selected.InstanceId], context));
-        }
-        if (target != EffectTarget.RANDOM_ENEMY)
-            return Result<ResolvedTargets>.Success(new(candidates, context));
-        var draw = context.DrawInt32(candidates.Length);
-        return Result<ResolvedTargets>.Success(new([candidates[draw.Value]], draw.Context));
-    }
-
-    private sealed record ExpandedTrigger(
-        CombatState Combat,
-        ImmutableArray<ResolvedEffectCommand> Commands,
-        ImmutableArray<CalculationResult> Calculations);
-
-    private sealed record ResolvedTargets(
-        IReadOnlyList<string> TargetIds,
-        DeterministicContext Context);
 
     private sealed record ResolvedAmount(
         float Value,

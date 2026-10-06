@@ -336,6 +336,41 @@ public sealed class CardPlayExecutorTests
         Assert.Empty(combat.ActionHistory);
     }
 
+    [Fact]
+    public void LethalCardKeepsPaidCostAndSkipsConfiguredFollowupStatus()
+    {
+        var instanceId = Guid.Parse("10000000-0000-8000-8000-000000000010");
+        var runtime = Runtime(Card([
+            new CardCostComponentDefinition { ComponentId = "cost", Order = 10,
+                Costs = new() { Costs = [new() { ResourceId = "energy", Amount = 2 }] } },
+            new CardEffectComponentDefinition { ComponentId = "damage", Order = 20,
+                Effect = new() { Type = EffectType.DAMAGE, TargetResource = "mana", FlatValue = 25 } },
+            new CardEffectComponentDefinition { ComponentId = "burn", Order = 30,
+                Effect = new() { Type = EffectType.APPLY_STATUS, StatusId = "burning",
+                    TargetLoss = new() { Policy = EffectTargetLossPolicy.Skip } } },
+            Targeting(), Disposition()
+        ]), Pipeline());
+        var combat = Combat();
+        var enemy = combat.GetActor("enemy")!;
+        var pool = enemy.GetResource("mana")!;
+        var definition = pool.Definition! with { ThresholdPolicies = [new()
+        {
+            PolicyId = "defeat", Comparison = ResourceThresholdComparison.LessThanOrEqual,
+            ThresholdSource = ResourceThresholdSource.Minimum, Consequence = ResourceThresholdConsequence.DefeatOwner
+        }] };
+        combat = combat.ReplaceActor(enemy.WithResourceState(new() { OwnerId = "enemy", Resources =
+            new Dictionary<string, ResourcePool> { ["mana"] = pool with { Definition = definition } } }));
+        var result = Executor(runtime).Execute(new()
+        { Run = Run(instanceId), Combat = combat, ActorId = "hero", CardInstanceId = instanceId, SelectedTargetIds = ["enemy"] });
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.False(result.Value.Combat.GetActor("enemy")!.IsAlive);
+        Assert.Equal(1, result.Value.Combat.GetActor("hero")!.GetResource("energy")!.Current);
+        Assert.Contains(result.Value.Steps, step => step.SkipReason == "target_defeated");
+        Assert.Single(result.Value.Combat.ActionHistory);
+        Assert.Equal(20, combat.GetActor("enemy")!.GetResource("mana")!.Current);
+        Assert.Equal(3, combat.GetActor("hero")!.GetResource("energy")!.Current);
+    }
+
     private static CardPlayExecutor Executor(ContentRuntime runtime)
     {
         var runtimes = new Mock<IContentRuntimeResolver>();

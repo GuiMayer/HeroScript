@@ -32,6 +32,18 @@ public static class EffectDefinitionValidator
             void Error(string message) => errors.Add($"{path}: {message}");
             if (!IsExecutable(effect.Type)) Error($"effect type {effect.Type} has no executable runtime");
             if (!Enum.IsDefined(effect.Target)) Error("invalid target policy");
+            if (effect.TargetLoss == null || !Enum.IsDefined(effect.TargetLoss.Policy))
+                Error("invalid target loss policy");
+            else if (effect.TargetLoss.Policy == EffectTargetLossPolicy.Retarget)
+            {
+                if (effect.TargetLoss.Retarget is not { } selector || !Enum.IsDefined(selector) ||
+                    selector is EffectTarget.TARGET or EffectTarget.SELF)
+                    Error("retarget requires an automatic target selector");
+                if (effect.TargetLoss.Retarget is EffectTarget.LOWEST_RESOURCE_ENEMY or EffectTarget.HIGHEST_RESOURCE_ENEMY &&
+                    string.IsNullOrWhiteSpace(effect.SelectionResourceId))
+                    Error("ranked retarget requires selectionResourceId");
+            }
+            else if (effect.TargetLoss.Retarget != null) Error("retarget selector requires the Retarget loss policy");
             if (!Enum.IsDefined(effect.ChanceScope) || !float.IsFinite(effect.Chance) || effect.Chance is < 0 or > 1)
                 Error("invalid chance policy");
             if (effect.Repeat is < 1 or > EffectExecutionLimits.MaximumRepeat) Error("repeat is outside execution limits");

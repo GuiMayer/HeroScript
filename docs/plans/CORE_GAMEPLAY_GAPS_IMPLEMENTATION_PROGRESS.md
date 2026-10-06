@@ -31,7 +31,7 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | Etapa | Estado | Verificação |
 | --- | --- | --- |
 | 0 — Baseline e contratos | Concluída | Core 1.135 / API 181; Godot layers aprovado; GDD sincronizado. |
-| 1 — Alvo derrotado | Pendente | |
+| 1 — Alvo derrotado | Concluída | Core 1.153 / API 181, sem falhas; 18 regressões novas. |
 | 2 — Contexto e fatos | Pendente | |
 | 3 — Parâmetros e cálculo | Pendente | |
 | 4 — Payloads e consumo | Pendente | |
@@ -45,3 +45,13 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 12 — API/preview | Pendente | |
 | 13 — Godot | Pendente | |
 | 14 — Verificação integrada | Pendente | |
+
+## Etapa 1 — contrato executável
+
+- `EffectDefinition.targetLoss`: `policy` = `Fail`, `Skip`, `StopRepeat` ou `Retarget`; este último exige `retarget` automático e resource ID para seleção ranqueada.
+- A política aplica-se somente a alvos válidos no snapshot de entrada. Alvo ausente/derrotado na entrada continua falhando, inclusive com Skip/Retarget.
+- `EffectTargetResolver` substitui a seleção interna duplicada; retarget ordena por ID e usa o RNG determinístico para seleção aleatória.
+- Skips/interrupções preservam hashes encadeados nos steps e não sorteiam chance quando não existe alvo ativo. Filhos do efeito pulado não executam.
+- Fireball, Venom Cut, Vulnerable e ações inimigas de dano + status declaram Skip para o efeito de status. Conteúdo dos settings pendentes anteriores não foi editado.
+- Versão da engine: 7. Saves anteriores são preservados no disco e rejeitados quando incompatíveis, sem conversão silenciosa.
+- Baseline da etapa 0: commit `ea4513f`.

@@ -119,6 +119,7 @@
           "effectId": "fireball.burning",
           "type": "APPLY_STATUS",
           "target": "TARGET",
+          "targetLoss": { "policy": "Skip" },
           "statusId": "burning",
           "statusStacks": 2,
           "chance": 1.0,

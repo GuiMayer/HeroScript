@@ -48,6 +48,9 @@ public record EffectDefinition
     /// </summary>
     public EffectTarget Target { get; init; } = EffectTarget.TARGET;
 
+    /// <summary>Policy for targets invalidated during this action; never permits invalid input.</summary>
+    public EffectTargetLossDefinition TargetLoss { get; init; } = new();
+
     /// <summary>
     /// Resource used by resource-ranked automatic targeting. It is independent
     /// from TargetResource, which identifies the resource changed by the effect.
