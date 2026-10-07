@@ -29,7 +29,12 @@ static func wire(root: Control, initial := false) -> void:
 					best = score
 					closest = other
 			node.set(pair[0], node.get_path_to(closest))
+	_wire_hands(root)
 	var focused := root.get_viewport().gui_get_focus_owner()
 	if initial or not is_instance_valid(focused) or (root.is_ancestor_of(focused) and focused not in nodes):
 		var preferred: Array[Control] = nodes.filter(func(node): return node.has_meta("initial_focus"))
 		(preferred[0] if not preferred.is_empty() else nodes[0]).grab_focus()
+
+static func _wire_hands(node: Node) -> void:
+	if node.has_method("wire_focus"): node.wire_focus()
+	for child in node.get_children(): _wire_hands(child)

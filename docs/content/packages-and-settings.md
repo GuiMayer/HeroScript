@@ -5,7 +5,8 @@
 Um **package** é uma coleção versionada e data-only de definições e patches. Um
 **setting** é a receita ordenada de packages que forma um jogo. A compilação
 produz um bundle validado; a publicação produz uma revisão imutável usada por
-runs.
+runs. Um setting jogável também declara metadados de apresentação e um ponto de
+entrada canônico; clientes os descobrem em `GET /api/v1/content/settings`.
 
 ## Estrutura mínima
 
@@ -50,11 +51,23 @@ my-package/
 {
   "schemaVersion": 1,
   "settingId": "my-game",
+  "displayName": "My Game",
+  "description": "A complete rules and content composition.",
+  "launch": {
+    "runDefinitionId": "my_game_run",
+    "playerEntityId": "player",
+    "modeId": "my_game_mode"
+  },
   "packages": [
     { "packageId": "studio.my-game", "versionRange": "1.0.0" }
   ]
 }
 ```
+
+`displayName` e `description` são metadados; não executam regras. `launch`
+identifica a run, o ator lógico do jogador e o game mode usados para criar uma
+nova jornada. Ele é opcional para composições usadas apenas em autoria, mas é
+obrigatório para aparecer no catálogo público de settings jogáveis.
 
 ## Compilação determinística
 
@@ -81,5 +94,9 @@ permite. Runs publicadas permanecem fixas.
 - não leia packages diretamente durante gameplay;
 - teste o setting completo, não apenas cada arquivo isolado;
 - consulte definições via `/api/v1/content/{kind}` com a revisão desejada.
+- faça launchers consumirem `/api/v1/content/settings` em vez de duplicarem IDs
+  de run, ator e modo.
 
-O package base de referência está em `data/configs/default`.
+O package base de referência está em `data/configs/default`; o package composto
+`data/configs/ascendant` mostra como acrescentar um jogo alternativo sem copiar
+o conteúdo compartilhado.

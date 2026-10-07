@@ -1,4 +1,6 @@
 {
+  "card_tag_labels": {"fire": "Fire", "poison": "Poison", "frost": "Frost", "ember": "Ember", "volatile": "Volatile"},
+  "card_flow_labels": {"run.draw": "Draw", "run.discard": "Discard", "run.exhaust": "Exhaust", "card.played.to-discard": "Discard after play", "card.played.to-exhaust": "Exhaust after play"},
   "resource_order": [
     "health",
     "block",
@@ -100,6 +102,36 @@
       "name": "Renewal",
       "text": "Apply a status that restores Health over several activations.",
       "tone": "skill"
+    },
+    "ascendant_strike": {
+      "name": "Calibrated Strike",
+      "text": "A physical attack scaled by additive weapon bonuses.",
+      "tone": "attack"
+    },
+    "ascendant_elemental_burst": {
+      "name": "Elemental Burst",
+      "text": "A spell with elemental scaling and a separate support multiplier.",
+      "tone": "power"
+    },
+    "ascendant_critical_lance": {
+      "name": "Critical Lance",
+      "text": "A physical attack multiplied by critical scaling.",
+      "tone": "attack"
+    },
+    "ascendant_support_cascade": {
+      "name": "Support Cascade",
+      "text": "Hits every enemy through two independent support multipliers.",
+      "tone": "power"
+    },
+    "ascendant_fracture": {
+      "name": "Fracture",
+      "text": "Applies a vulnerability layer before dealing physical damage.",
+      "tone": "attack"
+    },
+    "ascendant_kinetic_guard": {
+      "name": "Kinetic Guard",
+      "text": "Build Block without invoking damage scaling.",
+      "tone": "skill"
     }
   },
   "nodes": {
@@ -157,6 +189,31 @@
       "name": "Living Bulwark",
       "icon": "♛",
       "hint": "Boss"
+    },
+    "calibration": {
+      "name": "Calibration Chamber",
+      "icon": "⚔",
+      "hint": "Scaling trial"
+    },
+    "serration": {
+      "name": "Serration Matrix",
+      "icon": "⬢",
+      "hint": "Additive relic"
+    },
+    "matrix_reward": {
+      "name": "Build Matrix",
+      "icon": "✦",
+      "hint": "Choose a scaling card"
+    },
+    "matrix_forge": {
+      "name": "Mod Foundry",
+      "icon": "⬆",
+      "hint": "Upgrade a scaling layer"
+    },
+    "ascension": {
+      "name": "Ascendant Prime",
+      "icon": "♛",
+      "hint": "Full build trial"
     }
   },
   "sandbox_modes": [

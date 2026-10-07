@@ -35,6 +35,8 @@ da run.
 
 ## API
 
+- `GET /api/v1/content/settings` lista settings jogáveis, suas revisões atuais e
+  os IDs canônicos necessários para iniciar uma run;
 - `GET /api/v1/content/revisions` lista revisões publicadas e a atual do setting;
 - `GET /api/v1/content/revisions/{revision}` retorna o manifest imutável;
 - `GET /api/v1/content/{kind}` e `/{definitionId}` publicam definições de uma

@@ -7,6 +7,22 @@ namespace API.Tests;
 public sealed class ContractDocumentationTests
 {
     [Fact]
+    public void Profiles_RequireExplicitSettingOnEverySurface()
+    {
+        using var document = LoadJson("openapi", "heroscript-v1.json");
+        var root = document.RootElement;
+        var parameter = root.GetProperty("components").GetProperty("parameters").GetProperty("ProfileSetting");
+        Assert.Equal("settingId", parameter.GetProperty("name").GetString());
+        Assert.True(parameter.GetProperty("required").GetBoolean());
+        foreach (var suffix in new[] { "", "/stats", "/unlocks", "/achievements", "/runs" })
+        {
+            var operation = root.GetProperty("paths").GetProperty("/api/v1/profiles/{playerId}" + suffix).GetProperty("get");
+            Assert.Contains(operation.GetProperty("parameters").EnumerateArray(), parameter =>
+                parameter.TryGetProperty("$ref", out var reference) && reference.GetString() == "#/components/parameters/ProfileSetting");
+        }
+    }
+
+    [Fact]
     public void OpenApiContract_DeclaresCriticalDeterministicRoutesAndProblems()
     {
         using var document = LoadJson("openapi", "heroscript-v1.json");
@@ -16,6 +32,7 @@ public sealed class ContractDocumentationTests
         Assert.Equal("v1", root.GetProperty("info").GetProperty("version").GetString());
 
         var paths = root.GetProperty("paths");
+        AssertOperation(paths, "/api/v1/content/settings", "get", "stable");
         AssertOperation(paths, "/api/v1/runs", "post", "stable");
         AssertOperation(paths, "/api/v1/runs/{runId}/commands", "post", "stable");
         AssertOperation(paths, "/api/v1/combats/{combatId}/commands", "post", "stable");

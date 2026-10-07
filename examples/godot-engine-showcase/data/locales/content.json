@@ -245,5 +245,20 @@
   "buy_heal": {
 	"pt_BR": "Centelha Vital",
 	"en": "Vital Spark"
-  }
+  },
+  "ascendant_strike": { "pt_BR": "Golpe Calibrado", "en": "Calibrated Strike" },
+  "ascendant_elemental_burst": { "pt_BR": "Explosão Elemental", "en": "Elemental Burst" },
+  "ascendant_critical_lance": { "pt_BR": "Lança Crítica", "en": "Critical Lance" },
+  "ascendant_support_cascade": { "pt_BR": "Cascata de Suportes", "en": "Support Cascade" },
+  "ascendant_fracture": { "pt_BR": "Fratura", "en": "Fracture" },
+  "ascendant_kinetic_guard": { "pt_BR": "Guarda Cinética", "en": "Kinetic Guard" },
+  "ascendant_operator": { "pt_BR": "Operador da Matriz", "en": "Matrix Operator" },
+  "ascendant_drone": { "pt_BR": "Drone de Calibração", "en": "Calibration Drone" },
+  "ascendant_prime": { "pt_BR": "Prime Ascendente", "en": "Ascendant Prime" },
+  "ascendant_fractured": { "pt_BR": "Fraturado", "en": "Fractured" },
+  "ascendant_serration_matrix": { "pt_BR": "Matriz de Serrilha", "en": "Serration Matrix" },
+  "ascendant_ranked_edge": { "pt_BR": "Fio Graduado", "en": "Ranked Edge" },
+  "ascendant_prime_element": { "pt_BR": "Elemento Primário", "en": "Prime Element" },
+  "ascendant_critical_calibration": { "pt_BR": "Calibração Crítica", "en": "Critical Calibration" },
+  "ascendant_support_link": { "pt_BR": "Vínculo de Suporte", "en": "Support Link" }
 }

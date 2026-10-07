@@ -123,9 +123,11 @@ static func panel(content: Control, color := PANEL) -> PanelContainer:
 
 static func apply_view_preferences(node: Node) -> void:
 	if node is Control:
-		if node.has_theme_font_size_override("font_size"):
-			if not node.has_meta("base_font_size"): node.set_meta("base_font_size", node.get_theme_font_size("font_size"))
-			node.add_theme_font_size_override("font_size", roundi(float(node.get_meta("base_font_size")) * Preferences.text_scale))
+		for font_key in ["font_size", "normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
+			if not node.has_theme_font_size_override(font_key): continue
+			var font_meta: String = "base_" + font_key
+			if not node.has_meta(font_meta): node.set_meta(font_meta, node.get_theme_font_size(font_key))
+			node.add_theme_font_size_override(font_key, roundi(float(node.get_meta(font_meta)) * Preferences.text_scale))
 		for style_name in ["normal", "panel", "hover", "pressed", "disabled"]:
 			if not node.has_theme_stylebox_override(style_name): continue
 			var meta: String = "base_style_" + style_name
@@ -133,7 +135,7 @@ static func apply_view_preferences(node: Node) -> void:
 			var style = node.get_meta(meta).duplicate()
 			if Preferences.high_contrast and style is StyleBoxFlat:
 				style.bg_color = Color("#090b15")
-				style.border_color = Color.WHITE
+				style.border_color = node.get_meta("semantic_border_color", Color.WHITE)
 				style.set_border_width_all(2)
 			node.add_theme_stylebox_override(style_name, style)
 	for child in node.get_children(): apply_view_preferences(child)

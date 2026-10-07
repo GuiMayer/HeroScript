@@ -17,7 +17,9 @@ var _available_commands: Array = []
 var _legal_actions: Array = []
 var _tool_capabilities: Dictionary = {}
 var _card_zones: Dictionary = {}
+var _settings: Array = []
 var tool_profile := "normal"
+var selected_setting_id := "default"
 var run: Dictionary:
 	get: return _run.duplicate(true)
 var combat: Dictionary:
@@ -30,6 +32,14 @@ var tool_capabilities: Array:
 	get: return _tool_capabilities.keys().duplicate()
 var card_zones: Dictionary:
 	get: return _card_zones.duplicate(true)
+var settings: Array:
+	get: return _settings.duplicate(true)
+var selected_setting: Dictionary:
+	get:
+		for item in _settings:
+			if str(item.get("settingId", "")) == selected_setting_id:
+				return item.duplicate(true)
+		return {}
 var _gateway
 var available := false
 var content_revision := ""
@@ -51,23 +61,55 @@ func set_available(value: bool) -> void:
 	available = value
 	availability_changed.emit(value)
 
-func connect_engine() -> bool:
+func connect_engine(preferred_setting_id := "default") -> bool:
 	var ticket := _begin("connecting")
 	if ticket < 0:
 		return false
-	var ok := await _connect(ticket)
+	var ok := await _connect(ticket, preferred_setting_id)
 	_finish(ticket)
 	return ok
 
-func _connect(ticket: int) -> bool:
+func _connect(ticket: int, preferred_setting_id := "default") -> bool:
 	var response: Dictionary = await _gateway.connect_engine()
 	if not _current(ticket):
 		return false
 	if not response.ok:
 		failed.emit(response)
 		return false
-	content_revision = str(response.data.get("currentRevision", ""))
-	return not content_revision.is_empty()
+	_settings = response.data.get("items", []).duplicate(true)
+	if _settings.is_empty():
+		failed.emit({"errorKey": "The engine did not publish any playable settings."})
+		return false
+	var requested := preferred_setting_id
+	if not _has_setting(requested):
+		requested = "default" if _has_setting("default") else str(_settings[0].get("settingId", ""))
+	return _apply_setting(requested, false)
+
+func select_setting(setting_id: String) -> bool:
+	if busy or has_pending_command or not _has_setting(setting_id):
+		return false
+	return _apply_setting(setting_id, true)
+
+func _has_setting(setting_id: String) -> bool:
+	return _settings.any(func(item): return str(item.get("settingId", "")) == setting_id)
+
+func _apply_setting(setting_id: String, clear_active_session: bool) -> bool:
+	for item in _settings:
+		if str(item.get("settingId", "")) != setting_id:
+			continue
+		selected_setting_id = setting_id
+		content_revision = str(item.get("currentRevision", ""))
+		if clear_active_session:
+			_run = {}
+			_combat = {}
+			_card_zones = {}
+			_available_commands = []
+			_legal_actions = []
+			_tool_capabilities = {}
+			synchronized = true
+		changed.emit()
+		return not content_revision.is_empty()
+	return false
 
 func start_campaign(seed: int) -> bool:
 	return await _open_run("campaign", [seed])
@@ -75,8 +117,8 @@ func start_campaign(seed: int) -> bool:
 func start_sandbox(mode_id: String, scenario: Dictionary, seed: int) -> bool:
 	return await _open_run("sandbox", [mode_id, scenario.duplicate(true), seed])
 
-func continue_run(run_id: String) -> bool:
-	return false if run_id.is_empty() else await _open_run("continue", [run_id])
+func continue_run(run_id: String, expected_mode := "") -> bool:
+	return false if run_id.is_empty() else await _open_run("continue", [run_id, expected_mode])
 
 func _open_run(kind: String, args: Array) -> bool:
 	if has_pending_command:
@@ -84,13 +126,13 @@ func _open_run(kind: String, args: Array) -> bool:
 	var ticket := _begin("opening")
 	if ticket < 0:
 		return false
-	if kind != "continue" and content_revision.is_empty() and not await _connect(ticket):
+	if kind != "continue" and content_revision.is_empty() and not await _connect(ticket, selected_setting_id):
 		_finish(ticket)
 		return false
 	var response: Dictionary
 	match kind:
-		"campaign": response = await _gateway.create_campaign(args[0], content_revision)
-		"sandbox": response = await _gateway.create_sandbox(args[0], args[1], args[2], content_revision)
+		"campaign": response = await _gateway.create_campaign(args[0], selected_setting)
+		"sandbox": response = await _gateway.create_sandbox(args[0], args[1], args[2], content_revision, selected_setting_id)
 		_: response = await _gateway.read_run(args[0])
 	if not _current(ticket):
 		return false
@@ -98,12 +140,28 @@ func _open_run(kind: String, args: Array) -> bool:
 		failed.emit(response)
 		_finish(ticket)
 		return false
-	_run = response.data.get("run", response.data).duplicate(true)
+	var opened: Dictionary = response.data.get("run", response.data)
+	if kind == "continue":
+		var launch: Dictionary = selected_setting.get("launch", {})
+		var setting_id := str(opened.get("settingId", opened.get("configName", "")))
+		var valid := str(opened.get("runId", "")) == str(args[0]) and setting_id == selected_setting_id and _has_setting(setting_id) \
+			and str(opened.get("playerEntityId", "")) == str(launch.get("playerEntityId", "player")) \
+			and str(opened.get("lifecycle", "")).to_lower() == "active" \
+			and (str(args[1]).is_empty() or str(opened.get("modeId", "")) == str(args[1]))
+		if not valid:
+			failed.emit({"errorKey": "This journey does not match the selected setting, player or mode, or is no longer active."})
+			_finish(ticket)
+			return false
+	_run = opened.duplicate(true)
+	var opened_setting_id := str(_run.get("settingId", selected_setting_id))
+	if _has_setting(opened_setting_id):
+		selected_setting_id = opened_setting_id
+	content_revision = str(_run.get("contentRevision", content_revision))
 	_combat = {}
 	_card_zones = {}
 	synchronized = false
-	run_opened.emit(str(_run.get("runId", "")))
 	var ok := await _refresh(ticket)
+	if ok: run_opened.emit(str(_run.get("runId", "")))
 	_finish(ticket)
 	return ok
 
@@ -274,6 +332,7 @@ func invalidate() -> void:
 	_tool_capabilities = {}
 	tool_profile = "normal"
 	content_revision = ""
+	_settings = []
 	synchronized = false
 	operation_changed.emit(_operation)
 	changed.emit()
@@ -346,7 +405,62 @@ func verify_run(run_id: String) -> Dictionary:
 	return await _gateway.verify(run_id)
 
 func run_history() -> Dictionary:
-	return await _gateway.run_history("player")
+	var setting := selected_setting_id
+	var player := str(selected_setting.get("launch", {}).get("playerEntityId", "player"))
+	var response: Dictionary = await _gateway.run_history(player, setting)
+	if selected_setting_id != setting:
+		return {"ok": false, "errorKey": "The selected setting changed. Try again."}
+	return response
+
+func find_resume(index, api: String, legacy_id := "") -> Dictionary:
+	# Reading bookmarks/profiles must not activate a run or change settings.
+	var setting := selected_setting_id
+	var launch: Dictionary = selected_setting.get("launch", {})
+	var player := str(launch.get("playerEntityId", "player"))
+	var mode := str(launch.get("modeId", ""))
+	var generation := _generation
+	var ids: Array[String] = []
+	var bookmarked: String = index.candidate(api, player, setting, mode)
+	if bookmarked.is_empty() and index.has_scope(api, player, setting, mode):
+		return {"ok": true, "runId": "", "legacyChecked": false}
+	if not bookmarked.is_empty(): ids.append(bookmarked)
+	if not legacy_id.is_empty() and legacy_id not in ids: ids.append(legacy_id)
+	var legacy_checked := false
+	for id in ids:
+		var response: Dictionary = await _gateway.read_run(id)
+		if generation != _generation or selected_setting_id != setting:
+			return {"ok": false, "errorKey": "The selected setting changed. Try again."}
+		if not response.ok:
+			if int(response.get("status", 0)) != 404: return response
+			index.forget(api, player, setting, mode, id)
+			if index.has_scope(api, player, setting, mode): return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
+			continue
+		var record: Dictionary = response.data
+		if str(record.get("runId", "")) != id:
+			return {"ok": false, "errorKey": "This journey does not match the selected setting, player or mode, or is no longer active."}
+		if id == legacy_id: legacy_checked = true
+		index.remember(api, record) # Import only verified metadata, never the menu's selection.
+		if str(record.get("settingId", record.get("configName", ""))) == setting \
+			and str(record.get("playerEntityId", "")) == player and str(record.get("modeId", "")) == mode \
+			and str(record.get("lifecycle", "")).to_lower() == "active":
+			return {"ok": true, "runId": id, "legacyChecked": legacy_checked}
+		index.forget(api, player, setting, mode, id)
+		if index.has_scope(api, player, setting, mode) and index.candidate(api, player, setting, mode).is_empty():
+			return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
+	var profile: Dictionary = await _gateway.run_history(player, setting)
+	if generation != _generation or selected_setting_id != setting:
+		return {"ok": false, "errorKey": "The selected setting changed. Try again."}
+	if not profile.ok: return profile
+	# Old saves lack a recency bookmark. Prefer the most progressed active matching
+	# journey (the profile's deterministic order); all others remain in history.
+	for record in profile.data.get("items", []):
+		if str(record.get("settingId", record.get("configName", ""))) != setting \
+			or str(record.get("modeId", "")) != mode or str(record.get("lifecycle", "")).to_lower() != "active": continue
+		var metadata: Dictionary = record.duplicate(true)
+		metadata["playerEntityId"] = player
+		index.remember(api, metadata)
+		return {"ok": true, "runId": str(record.get("runId", "")), "legacyChecked": legacy_checked}
+	return {"ok": true, "runId": "", "legacyChecked": legacy_checked}
 
 func replay_timeline(run_id: String, after_sequence := 0, limit := 200) -> Dictionary:
 	if run_id.is_empty():
@@ -370,7 +484,7 @@ func simulate_end_turn() -> Dictionary:
 	return {"ok": false, "errorKey": "No actor is waiting for input to simulate.", "error": "No actor is waiting for input to simulate."}
 
 func content(kind: String, limit := 100) -> Dictionary:
-	return await _gateway.content(kind, content_revision, limit)
+	return await _gateway.content(kind, content_revision, selected_setting_id, limit)
 
 
 func activity_choices() -> Array:

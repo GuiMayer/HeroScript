@@ -1,0 +1,16 @@
+{
+  "ascendant_reward": {
+    "selectionId": "ascendant_reward",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "ascendant_rewards",
+    "cardPool": [],
+    "reroll": {
+      "freeRerolls": 1,
+      "baseCosts": [{ "resourceId": "gold", "amount": 8 }],
+      "costsPerReroll": [{ "resourceId": "gold", "amount": 4 }]
+    },
+    "decompose": { "enabled": true },
+    "metadata": { "description": "Choose another scaling layer for the Ascendant Matrix build." }
+  }
+}

@@ -21,6 +21,8 @@ func setup(owner) -> void:
 	header.add_child(push)
 	header.add_child(_button(I18n.text("BACK"), router.back_to_menu))
 	add_child(header)
+	var setting_name := I18n.text(str(GameSession.selected_setting.get("displayName", GameSession.selected_setting_id)))
+	add_child(AppTheme.title(setting_name, 18, AppTheme.TEAL))
 	add_child(AppTheme.muted(I18n.text("Every journey is an immutable engine record. Inspect, verify or replay it without changing its outcome.")))
 	var body := HSplitContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -70,6 +72,8 @@ func _load() -> void:
 		details.text = I18n.error(response)
 		return
 	entries = response.data.get("items", []).duplicate(true)
+	# Defense in depth for malformed/stale projections: never show another setting.
+	entries = entries.filter(func(record): return str(record.get("settingId", record.get("configName", ""))) == GameSession.selected_setting_id)
 	list.clear()
 	for run in entries:
 		var lifecycle := _lifecycle(str(run.get("lifecycle", "Active")))

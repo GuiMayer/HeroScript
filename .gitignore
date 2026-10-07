@@ -9,6 +9,7 @@
 *.user
 
 # Godot generated state and isolated showcase runtime
+/.runtime/
 examples/godot-engine-showcase/.godot/
 examples/godot-engine-showcase/.runtime/
 examples/godot-engine-showcase/tests/output/

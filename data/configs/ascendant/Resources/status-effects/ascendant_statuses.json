@@ -1,0 +1,23 @@
+{
+  "ascendant_fractured": {
+    "statusId": "ascendant_fractured",
+    "displayName": "Fractured",
+    "description": "Takes 25% more damage in a separate multiplicative bucket.",
+    "defaultDuration": 2,
+    "defaultStacks": 1,
+    "maxStacks": 1,
+    "durationTickBoundary": "EndActivation",
+    "priority": 25,
+    "influences": [
+      {
+        "influenceId": "ascendant_fractured.damage-taken",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "vulnerability",
+        "value": 1.25,
+        "requiredTags": ["damage"]
+      }
+    ],
+    "tags": ["debuff", "damage", "multiplicative"]
+  }
+}

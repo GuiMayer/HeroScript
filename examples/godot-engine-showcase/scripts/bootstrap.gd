@@ -12,6 +12,7 @@ func _ready() -> void:
 	_transport.availability_changed.connect(GameSession.set_available)
 	Preferences.changed.connect(_apply_connection)
 	GameSession.run_opened.connect(_remember_run)
+	GameSession.changed.connect(_remember_progress)
 	GameSession.run_opened.connect(Playback.clear)
 	GameSession.receipt_received.connect(Playback.load_receipt)
 
@@ -26,8 +27,15 @@ func _apply_connection() -> void:
 	_transport.base_url = Preferences.api_url
 
 func _remember_run(run_id: String) -> void:
-	Preferences.last_run_id = run_id
-	Preferences.save()
+	if run_id != str(GameSession.run.get("runId", "")): return
+	var updated: bool = Preferences.resume_index.remember(Preferences.api_url, GameSession.run)
+	updated = updated or Preferences.selected_setting_id != GameSession.selected_setting_id
+	Preferences.selected_setting_id = GameSession.selected_setting_id
+	if updated: Preferences.save_session()
+
+func _remember_progress() -> void:
+	if not GameSession.synchronized or GameSession.run.is_empty(): return
+	if Preferences.resume_index.remember(Preferences.api_url, GameSession.run): Preferences.save_session()
 
 func diagnostics() -> Array:
 	return _transport.timings.duplicate(true)

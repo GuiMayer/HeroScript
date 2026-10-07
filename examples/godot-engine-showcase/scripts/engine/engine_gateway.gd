@@ -10,34 +10,44 @@ func connect_engine() -> Dictionary:
 	var health: Dictionary = await _transport.request(HTTPClient.METHOD_GET, "/api/v1/health/ready")
 	if not health.ok:
 		return health
-	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/content/revisions?configName=default")
+	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/content/settings")
 
-func create_campaign(seed: int, revision: String) -> Dictionary:
+func create_campaign(seed: int, setting: Dictionary) -> Dictionary:
+	var launch: Dictionary = setting.get("launch", {})
+	var setting_id := str(setting.get("settingId", ""))
 	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs", {
-		"schemaVersion": 1, "settingId": "default", "configName": "default",
-		"runDefinitionId": "spire_showcase_run", "playerEntityId": "player",
-		"modeId": "spire_showcase", "contentRevision": revision, "seed": seed
+		"schemaVersion": 1, "settingId": setting_id,
+		"runDefinitionId": str(launch.get("runDefinitionId", "")),
+		"playerEntityId": str(launch.get("playerEntityId", "player")),
+		"modeId": str(launch.get("modeId", "")),
+		"contentRevision": str(setting.get("currentRevision", "")), "seed": seed
 	})
 
-func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: String) -> Dictionary:
+func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: String, setting_id: String) -> Dictionary:
 	var body := scenario.duplicate(true)
 	body.merge({"schemaVersion": 2, "modeId": mode_id, "contentRevision": revision,
 		"seed": seed, "attemptKey": "godot-%s-%s" % [mode_id, _uuid()]}, true)
-	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/sandbox/runs", body)
+	return await _transport.request(HTTPClient.METHOD_POST,
+		"/api/v1/sandbox/runs?configName=%s" % setting_id.uri_encode(), body)
 
 func read_run(run_id: String) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET, "/api/v1/runs/%s" % run_id.uri_encode())
 
-func run_history(player_id := "player") -> Dictionary:
+func run_history(player_id: String, setting_id: String) -> Dictionary:
 	var response: Dictionary = await _transport.request(HTTPClient.METHOD_GET,
-		"/api/v1/profiles/%s" % player_id.uri_encode())
+		"/api/v1/profiles/%s?settingId=%s" % [player_id.uri_encode(), setting_id.uri_encode()])
+	if response.ok and (str(response.data.get("settingId", "")) != setting_id or str(response.data.get("playerId", "")) != player_id):
+		return {"ok": false, "errorKey": "Restart the engine to enable setting-specific profiles."}
 	if response.ok:
 		response.data = {
 			"playerId": response.data.get("playerId", player_id),
+			"settingId": response.data.get("settingId", setting_id),
 			"revision": response.data.get("revision", ""),
 			"totalRuns": response.data.get("totalRuns", 0),
 			"completedRuns": response.data.get("completedRuns", 0),
 			"activeRuns": response.data.get("activeRuns", 0),
+			"unlocks": response.data.get("unlocks", []).duplicate(true),
+			"achievements": response.data.get("achievements", []).duplicate(true),
 			"items": response.data.get("runs", []).duplicate(true)
 		}
 	return response
@@ -94,9 +104,10 @@ func simulate(run_id: String, sequence: int, commands: Array) -> Dictionary:
 		"sourceRunId": run_id, "sourceSequence": sequence, "commands": commands.duplicate(true)
 	})
 
-func content(kind: String, revision: String, limit: int) -> Dictionary:
+func content(kind: String, revision: String, setting_id: String, limit: int) -> Dictionary:
 	return await _transport.request(HTTPClient.METHOD_GET,
-		"/api/v1/content/%s?revision=%s&configName=default&limit=%s" % [kind.uri_encode(), revision.uri_encode(), limit])
+		"/api/v1/content/%s?revision=%s&configName=%s&limit=%s" % [
+			kind.uri_encode(), revision.uri_encode(), setting_id.uri_encode(), limit])
 
 static func candidate_payload(command: Dictionary) -> Dictionary:
 	var payload := {}

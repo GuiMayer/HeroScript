@@ -90,6 +90,8 @@ public sealed class SystemController : ControllerBase
             "content-manifests",
             "run-commits",
             "run-content-revision",
+            "multi-setting-runs",
+            "setting-scoped-profiles",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

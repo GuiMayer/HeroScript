@@ -102,9 +102,24 @@ func _run() -> void:
 						await create_timer(.025).timeout
 					check(screen.card_buttons.values().all(func(card): return not str(card.model.get("rarity", "")).is_empty()),
 						"REST inspection enriches every visible card with engine rarity")
+					check(screen.card_buttons.values().all(func(card): return not card.model.get("effectRows", []).is_empty() and not card.find_child("Rules", true, false).numeric_colors.is_empty()),
+						"real inspection renders typed numeric effects through the shared palette")
+					var published_match := false
+					for card_id in screen.card_buttons:
+						var inspected: Dictionary = screen.presenter.inspection_data(str(card_id))
+						for row in screen.card_buttons[card_id].model.get("effectRows", []):
+							for segment in row.get("segments", []):
+								if not segment.has("value"): continue
+								for step in inspected.get("previewSteps", []):
+									if step.get("calculation") is Dictionary and str(step.get("provenance", {}).get("componentId", "")) == str(row.get("componentId", "")):
+										published_match = published_match or is_equal_approx(float(segment.value), float(step.calculation.value))
+					check(published_match, "displayed amount matches an actual REST preview calculation, not parsed resource deltas")
 					inspection_checked = true
 				var label := "%s %s scale=%s" % [resolution, language, scale]
 				check(screen.get_global_rect().end.y <= router.size.y + 1, "combat fits: " + label)
+				var character_sidebar: PanelContainer = screen.find_child("CharacterSidebar", true, false)
+				check(is_instance_valid(character_sidebar) and character_sidebar.get_global_rect().end.x <= router.size.x + 1,
+					"character panel fits: " + label)
 				check(preload("res://tests/layout_inspector.gd").vertical_text_issues(screen).is_empty(), "combat has no vertical text: " + label)
 				var costs_visible := true
 				var rules_fit := true
@@ -290,8 +305,8 @@ func _projection_tests() -> void:
 	check(card_model.cardType == translator.text("ATTACK") and card_model.rarity == translator.text("UNCOMMON"),
 		"card type and engine rarity have a dedicated presentation line")
 	check(card_model.changeBadges.any(func(item): return item.kind == "upgrade") and
-		card_model.changeBadges.any(func(item): return item.kind == "buff"),
-		"permanent upgrades and contextual buffs remain distinct")
+		card_model.changeBadges.any(func(item): return item.kind == "modified"),
+		"permanent upgrades and contextual changes remain distinct without guessing their benefit")
 	var unavailable_presenter = preload("res://scripts/presentation/combat_presenter.gd").new(card_run, {}, [], translator, appearance)
 	unavailable_presenter.accept_evaluations([{"version": {"runSequence": 7},
 		"evaluation": {"cardInstanceId": "card", "costs": [{"resourceId": "mana", "amount": 3}]},

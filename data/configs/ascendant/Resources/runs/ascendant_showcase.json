@@ -1,0 +1,80 @@
+{
+  "ascendant_showcase_run": {
+    "runId": "ascendant_showcase_run",
+    "startingResources": { "gold": 40, "power_points": 2 },
+    "initialPlayableCardCount": 5,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "ascendant_strike", "ascendant_strike", "ascendant_strike",
+      "ascendant_kinetic_guard", "ascendant_kinetic_guard",
+      "ascendant_elemental_burst", "ascendant_elemental_burst",
+      "ascendant_fracture", "ascendant_critical_lance", "ascendant_support_cascade"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "calibration",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              { "instanceId": "player", "definitionId": "ascendant_operator", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+              { "instanceId": "drone", "definitionId": "ascendant_drone", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [{ "effectId": "calibration.reward", "type": "MODIFY_RESOURCE", "target": "SELF", "targetResource": "gold", "operation": "ADD", "flatValue": 20 }],
+        "nextNodeIds": ["serration"]
+      },
+      {
+        "nodeId": "serration",
+        "activity": { "type": "RelicReward", "definitionId": "ascendant_serration_matrix", "parameters": {} },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["matrix_reward"]
+      },
+      {
+        "nodeId": "matrix_reward",
+        "activity": { "type": "CardSelection", "definitionId": "ascendant_reward", "parameters": {} },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["matrix_forge"]
+      },
+      {
+        "nodeId": "matrix_forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": { "upgradeIds": ["ascendant_ranked_edge", "ascendant_prime_element", "ascendant_critical_calibration", "ascendant_support_link"] }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": ["ascension"]
+      },
+      {
+        "nodeId": "ascension",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              { "instanceId": "player", "definitionId": "ascendant_operator", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+              { "instanceId": "prime", "definitionId": "ascendant_prime", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "entryEffects": [],
+        "exitEffects": [],
+        "nextNodeIds": []
+      }
+    ],
+    "metadata": {
+      "displayName": "Ascendant Matrix",
+      "description": "A short build-crafting campaign demonstrating layered additive and multiplicative scaling."
+    }
+  }
+}

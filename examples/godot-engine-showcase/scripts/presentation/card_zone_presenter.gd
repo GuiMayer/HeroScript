@@ -22,6 +22,13 @@ func playable_label() -> String:
 			labels.append(zone_label(zone))
 	return " / ".join(labels) if not labels.is_empty() else _i18n.text("PLAYABLE CARDS")
 
+func total_cards() -> int:
+	var result := 0
+	for zone in _zones:
+		# Count is authoritative even when a zone deliberately hides its contents.
+		result += maxi(0, int(zone.get("count", 0)))
+	return result
+
 func auxiliary_zones() -> Array:
 	var result: Array = []
 	for zone in _zones:

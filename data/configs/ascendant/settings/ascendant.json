@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "settingId": "ascendant",
+  "displayName": "Ascendant Matrix",
+  "description": "A compact campaign about layered build scaling: added values, increased bonuses, elemental scaling, multiplicative supports and critical hits.",
+  "launch": {
+    "runDefinitionId": "ascendant_showcase_run",
+    "playerEntityId": "player",
+    "modeId": "ascendant_showcase"
+  },
+  "packages": [
+    { "packageId": "heroscript.ascendant", "versionRange": "1.0.0" }
+  ]
+}

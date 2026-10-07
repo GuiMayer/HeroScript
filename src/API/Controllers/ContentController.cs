@@ -1,6 +1,7 @@
 using API.Contracts;
 using Core.Content;
 using Microsoft.AspNetCore.Mvc;
+using Mods;
 
 namespace API.Controllers;
 
@@ -10,13 +11,60 @@ public sealed class ContentController : ControllerBase
 {
     private readonly IContentManifestProvider _manifests;
     private readonly IContentPublicationService _publications;
+    private readonly ISettingCompiler _settings;
 
     public ContentController(
         IContentManifestProvider manifests,
-        IContentPublicationService publications)
+        IContentPublicationService publications,
+        ISettingCompiler settings)
     {
         _manifests = manifests ?? throw new ArgumentNullException(nameof(manifests));
         _publications = publications ?? throw new ArgumentNullException(nameof(publications));
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+    }
+
+    [HttpGet("settings")]
+    public async Task<IActionResult> GetSettings(CancellationToken cancellationToken = default)
+    {
+        var catalog = await _settings.GetCatalogAsync(cancellationToken).ConfigureAwait(false);
+        var errors = catalog.Diagnostics
+            .Where(item => item.Severity == PackageDiagnosticSeverity.Error)
+            .Select(item => item.Message)
+            .ToArray();
+        if (errors.Length > 0)
+            return ContentProblem(StatusCodes.Status503ServiceUnavailable, string.Join("; ", errors));
+
+        var items = catalog.Settings
+            .Select(item => item.Definition)
+            .Where(definition => definition.Launch != null)
+            .Select(definition => new
+            {
+                definition.SettingId,
+                DisplayName = string.IsNullOrWhiteSpace(definition.DisplayName)
+                    ? definition.SettingId
+                    : definition.DisplayName,
+                definition.Description,
+                Launch = new
+                {
+                    definition.Launch!.RunDefinitionId,
+                    definition.Launch.PlayerEntityId,
+                    definition.Launch.ModeId
+                },
+                Manifest = _manifests.GetManifest(definition.SettingId)
+            })
+            .Where(item => item.Manifest.IsSuccess)
+            .OrderBy(item => item.SettingId, StringComparer.Ordinal)
+            .Select(item => new
+            {
+                item.SettingId,
+                item.DisplayName,
+                item.Description,
+                item.Launch,
+                CurrentRevision = item.Manifest.Value.Revision
+            })
+            .ToArray();
+
+        return Ok(new { items });
     }
 
     [HttpGet("revisions")]

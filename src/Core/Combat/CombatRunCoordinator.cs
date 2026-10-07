@@ -90,7 +90,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     runId,
                     node.NodeId,
                     $"run-combat:{runId:N}:{node.NodeId}",
-                    InitialResourceValues: initialResourceValues));
+                    InitialResourceValues: initialResourceValues,
+                    ConfigName: run.ConfigName));
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 
@@ -172,7 +173,8 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
                     runId,
                     node.NodeId,
                     $"run-combat:{runId:N}:{node.NodeId}",
-                    initialStatusEffects));
+                    initialStatusEffects,
+                    ConfigName: run.ConfigName));
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);
 

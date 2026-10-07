@@ -191,6 +191,17 @@
         }
       }
     },
+    "/api/v1/content/settings": {
+      "get": {
+        "tags": ["Content"],
+        "operationId": "listPlayableSettings",
+        "x-heroscript-stability": "stable",
+        "responses": {
+          "200": { "description": "Playable settings with display metadata, immutable current revision and canonical launch entry point" },
+          "503": { "$ref": "#/components/responses/Problem" }
+        }
+      }
+    },
     "/api/v1/content/revisions": {
       "get": {
         "tags": ["Content"],
@@ -231,8 +242,36 @@
         "tags": ["System"],
         "operationId": "getProfileProjection",
         "x-heroscript-stability": "experimental",
-        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }],
-        "responses": { "200": { "description": "Derived immutable player profile projection" } }
+        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }],
+        "responses": { "200": { "description": "Derived immutable player profile for exactly one setting; includes settingId, revision, statistics, unlocks, achievements and setting-labelled runs." }, "400": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/profiles/{playerId}/stats": {
+      "get": {
+        "tags": ["System"], "operationId": "getSettingProfileStats", "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }],
+        "responses": { "200": { "description": "Statistics and revision scoped by playerId and settingId" }, "400": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/profiles/{playerId}/unlocks": {
+      "get": {
+        "tags": ["System"], "operationId": "getSettingProfileUnlocks", "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }],
+        "responses": { "200": { "description": "Unlocks derived only from this setting's immutable runs" }, "400": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/profiles/{playerId}/achievements": {
+      "get": {
+        "tags": ["System"], "operationId": "getSettingProfileAchievements", "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }],
+        "responses": { "200": { "description": "Achievements derived only from this setting's immutable runs" }, "400": { "$ref": "#/components/responses/Problem" } }
+      }
+    },
+    "/api/v1/profiles/{playerId}/runs": {
+      "get": {
+        "tags": ["System"], "operationId": "getSettingProfileRuns", "x-heroscript-stability": "experimental",
+        "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }, { "name": "after", "in": "query", "schema": { "type": "string", "format": "uuid" } }, { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } }],
+        "responses": { "200": { "description": "Setting-filtered run page; cursor is applied after setting/player isolation" }, "400": { "$ref": "#/components/responses/Problem" } }
       }
     },
     "/api/v1/challenges/daily/current": {
@@ -527,6 +566,7 @@
   },
   "components": {
     "parameters": {
+      "ProfileSetting": { "name": "settingId", "in": "query", "required": true, "description": "Permanent progress is isolated by playerId and settingId; no implicit global profile.", "schema": { "type": "string", "minLength": 1 } },
       "RunId": { "name": "runId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
       "CombatId": { "name": "combatId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
     },

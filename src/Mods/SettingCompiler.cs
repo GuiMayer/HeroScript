@@ -3,6 +3,7 @@ using System.Text.Json;
 using Core.Common;
 using Core.Content;
 using Core.Determinism;
+using Core.Run;
 
 namespace Mods;
 
@@ -139,12 +140,38 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
             cancellationToken).ConfigureAwait(false);
         if (compiled.IsFailure)
             return compiled;
+        var launchError = ValidateLaunch(compiled.Value);
+        if (launchError != null)
+            return Result<SettingCompilation>.Failure(launchError);
         return Result<SettingCompilation>.Success(compiled.Value with
         {
             Diagnostics = catalog.Diagnostics
                 .Where(diagnostic => diagnostic.Severity != PackageDiagnosticSeverity.Error)
                 .ToImmutableArray()
         });
+    }
+
+    private string? ValidateLaunch(SettingCompilation compilation)
+    {
+        var launch = compilation.Setting.Launch;
+        if (launch == null)
+            return null;
+        var runtime = ContentRuntime.Create(compilation.Bundle, _kinds);
+        if (runtime.IsFailure)
+            return $"Setting launch graph is invalid: {runtime.Error}";
+        var run = runtime.Value.GetDefinition<RunDefinition>("runs", launch.RunDefinitionId);
+        if (run.IsFailure)
+            return $"Setting launch run was not found: {launch.RunDefinitionId}";
+        var mode = runtime.Value.GetDefinition<GameModeDefinition>("modes", launch.ModeId);
+        if (mode.IsFailure)
+            return $"Setting launch mode was not found: {launch.ModeId}";
+        if (!string.IsNullOrWhiteSpace(mode.Value.RunDefinitionId) &&
+            !string.Equals(mode.Value.RunDefinitionId, launch.RunDefinitionId, StringComparison.Ordinal))
+        {
+            return $"Setting launch mode '{launch.ModeId}' belongs to run " +
+                   $"'{mode.Value.RunDefinitionId}', not '{launch.RunDefinitionId}'";
+        }
+        return null;
     }
 
     private async Task<Result<SettingCompilation>> CompileContentAsync(
@@ -533,6 +560,16 @@ public sealed class SettingCompiler : ISettingCompiler, ISettingBundleCompiler
                 diagnostics.Add(Error("SETTING_SCHEMA_UNSUPPORTED", $"Unsupported setting schema: {setting.Definition.SchemaVersion}", setting.PackageId));
             if (!IsIdentifier(setting.Definition.SettingId))
                 diagnostics.Add(Error("SETTING_ID_INVALID", $"Invalid setting id: {setting.Definition.SettingId}", setting.PackageId));
+            if (setting.Definition.Launch is { } launch &&
+                (!IsIdentifier(launch.RunDefinitionId) ||
+                 !IsIdentifier(launch.PlayerEntityId) ||
+                 !IsIdentifier(launch.ModeId)))
+            {
+                diagnostics.Add(Error(
+                    "SETTING_LAUNCH_INVALID",
+                    $"Invalid launch entry point for setting: {setting.Definition.SettingId}",
+                    setting.PackageId));
+            }
             foreach (var reference in setting.Definition.Packages)
             {
                 if (!IsIdentifier(reference.PackageId) || !SemanticVersionRange.TryParse(reference.VersionRange, out _))

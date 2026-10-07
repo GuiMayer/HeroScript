@@ -8,6 +8,8 @@ var choice_buttons: Array[Button] = []
 var verifying := false
 var auto_advancing := false
 var animate_card_entry := true
+var recovering_actions := false
+var automatic_recovery_attempted := false
 var render_epoch := 0
 
 func setup(owner, data: Dictionary) -> void:
@@ -155,7 +157,8 @@ func _activity_summary(node: Dictionary) -> Control:
 		"CardUpgrade": I18n.text("Upgrade a card to improve its base components.")
 	}.get(kind, I18n.text("Choose your next action."))
 	content.add_child(AppTheme.muted(description, 16))
-	content.add_child(AppTheme.muted(I18n.text("Deck · %s cards") % GameSession.run.get("deck", {}).get("cardInstances", []).size(), 14))
+	var zone_view = preload("res://scripts/presentation/card_zone_presenter.gd").new(GameSession.card_zones, I18n)
+	content.add_child(AppTheme.muted(I18n.text("Deck · %s cards") % zone_view.total_cards(), 14))
 	row.add_child(content)
 	return AppTheme.panel(row)
 
@@ -170,6 +173,13 @@ func _build_actions() -> void:
 		action_panel.add_child(panel)
 	if choices.is_empty():
 		action_panel.add_child(AppTheme.muted(I18n.text("Waiting for the next available action.")))
+		var retry := _button(I18n.text("REFRESH ACTIONS"), _recover_actions)
+		retry.name = "RefreshActionsButton"
+		action_panel.add_child(retry)
+		choice_buttons.append(retry)
+		if not automatic_recovery_attempted:
+			automatic_recovery_attempted = true
+			_recover_actions.call_deferred()
 		return
 	var primary := HFlowContainer.new()
 	primary.add_theme_constant_override("h_separation", 14)
@@ -275,6 +285,22 @@ func _execute(choice: Dictionary) -> void:
 		if str(choice.type) in ["PICK_CARD_REWARD", "BUY_SHOP_ITEM", "APPLY_PREPARATION_OPTION", "UPGRADE_CARD"]:
 			GameAudio.reward()
 		router.open_game()
+
+func _recover_actions() -> void:
+	if recovering_actions or GameSession.busy or not is_inside_tree():
+		return
+	recovering_actions = true
+	for button in choice_buttons:
+		button.disabled = true
+	var accepted := await GameSession.refresh()
+	recovering_actions = false
+	if not is_inside_tree():
+		return
+	if accepted:
+		router.open_game()
+	else:
+		for button in choice_buttons:
+			if is_instance_valid(button): button.disabled = false
 
 func _maybe_auto_advance(ticket := -1) -> void:
 	if (ticket >= 0 and ticket != render_epoch) or auto_advancing or not is_inside_tree() or \

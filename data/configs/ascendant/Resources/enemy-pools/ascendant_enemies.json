@@ -1,0 +1,6 @@
+{
+  "ascendant_enemies": {
+    "enemyPoolId": "ascendant_enemies",
+    "entityDefinitionIds": ["ascendant_drone", "ascendant_prime"]
+  }
+}

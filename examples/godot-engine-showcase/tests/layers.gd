@@ -24,10 +24,15 @@ class FakeTransport extends RefCounted:
 		calls.append({"method": method, "path": path, "body": body.duplicate(true) if body is Dictionary else body})
 		if path.ends_with("/health/ready"):
 			return _ok({})
-		if path.contains("/content/revisions"):
-			return _ok({"currentRevision": "revision-1"})
+		if path.ends_with("/content/settings"):
+			return _ok({"items": [{"settingId": "default", "displayName": "Ember Archive",
+				"description": "Fixture", "currentRevision": "revision-1", "launch": {
+					"runDefinitionId": "spire_showcase_run", "playerEntityId": "player", "modeId": "spire_showcase"}},
+				{"settingId": "ascendant", "displayName": "Ascendant Matrix",
+				"description": "Scaling fixture", "currentRevision": "revision-2", "launch": {
+					"runDefinitionId": "ascendant_showcase_run", "playerEntityId": "player", "modeId": "ascendant_showcase"}}]})
 		if path.contains("/profiles/player"):
-			return _ok({"playerId": "player", "totalRuns": 1, "completedRuns": 1, "activeRuns": 0,
+			return _ok({"playerId": "player", "settingId": "ascendant", "totalRuns": 1, "completedRuns": 1, "activeRuns": 0,
 				"runs": [{"runId": "archived-run", "sequence": 2, "lifecycle": "Completed", "seed": 42}]})
 		if path.contains("/runs/archived-run/timeline"):
 			return _ok({"items": [{"sequence": 1, "commandType": "START_RUN", "frames": [{}]}], "nextCursor": 1})
@@ -124,12 +129,22 @@ func _run() -> void:
 	root.add_child(session)
 	check(session is Node, "application session loads without interface scenes")
 	session.configure(Gateway.new(transport))
+	check(await session.connect_engine("ascendant") and session.selected_setting_id == "ascendant"
+		and session.content_revision == "revision-2", "session selects a complete engine-published setting")
 	check(await session.start_campaign(42), "session can run against injected transport without a UI")
+	var run_start: Dictionary = transport.calls.filter(func(call):
+		return call.method == HTTPClient.METHOD_POST and str(call.path).ends_with("/api/v1/runs"))[0]
+	check(run_start.body.settingId == "ascendant" and not run_start.body.has("configName")
+		and run_start.body.runDefinitionId == "ascendant_showcase_run"
+		and run_start.body.modeId == "ascendant_showcase" and run_start.body.contentRevision == "revision-2",
+		"campaign launch uses the selected setting revision and canonical entry point")
 	var zone_view = CardZones.new(session.card_zones, i18n)
 	check(zone_view.playable_cards().size() == 1 and str(zone_view.playable_cards()[0].definitionId) == "strike",
 		"playable cards come from the authored play rule, not zone names or visual slots")
 	check(zone_view.auxiliary_zones().size() == 1 and zone_view.zone_cards("cooldown").is_empty(),
 		"hidden auxiliary zones expose counts without contents")
+	check(zone_view.total_cards() == 3,
+		"generic zone counts provide the complete card total without legacy deck fields")
 	var tool_flow := {"flowId": "tool.transfer", "allowedInvocations": ["Tool"],
 		"steps": [{"operation": "Move", "sourceZoneId": "prepared", "targetZoneId": "cooldown",
 			"selection": {"strategy": "Explicit"}}]}
@@ -246,7 +261,8 @@ func _run() -> void:
 	binding.physical_keycode = KEY_G
 	check(prefs.remap_event("end_turn", binding, false).is_empty() and prefs.action_key("end_turn") == KEY_G, "keyboard binding can be remapped")
 	var pad := InputEventJoypadButton.new()
-	pad.button_index = JOY_BUTTON_X
+	# X is now the Inspect shortcut. Use a free button to test independent maps.
+	pad.button_index = JOY_BUTTON_RIGHT_STICK
 	check(prefs.remap_event("end_turn", pad, false).is_empty() and prefs.action_key("end_turn") == KEY_G, "controller binding does not erase keyboard binding")
 	pad.button_index = JOY_BUTTON_A
 	check(not prefs.remap_event("end_turn", pad, false).is_empty(), "controller confirm remains reserved for UI")

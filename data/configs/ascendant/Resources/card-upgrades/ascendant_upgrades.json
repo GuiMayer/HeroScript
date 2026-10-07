@@ -1,0 +1,34 @@
+{
+  "ascendant_ranked_edge": {
+    "upgradeId": "ascendant_ranked_edge",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["ascendant_strike"],
+    "patches": [
+      { "type": "effect_numeric", "componentId": "effect.damage", "attribute": "FlatValue", "operation": "Add", "value": 4 }
+    ]
+  },
+  "ascendant_prime_element": {
+    "upgradeId": "ascendant_prime_element",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["ascendant_elemental_burst"],
+    "patches": [
+      { "type": "influence_numeric", "componentId": "influence.elemental.mod", "operation": "Add", "value": 0.35 }
+    ]
+  },
+  "ascendant_critical_calibration": {
+    "upgradeId": "ascendant_critical_calibration",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["ascendant_critical_lance"],
+    "patches": [
+      { "type": "influence_numeric", "componentId": "influence.critical.training", "operation": "Add", "value": 0.25 }
+    ]
+  },
+  "ascendant_support_link": {
+    "upgradeId": "ascendant_support_link",
+    "maxApplications": 1,
+    "cardDefinitionIds": ["ascendant_support_cascade"],
+    "patches": [
+      { "type": "influence_numeric", "componentId": "influence.support.second", "operation": "Add", "value": 0.10 }
+    ]
+  }
+}

@@ -1,5 +1,36 @@
 # Changelog do contrato público
 
+## v1 — 2026-10-07
+
+- Todas as leituras de `/api/v1/profiles/{playerId}` (incluindo `/stats`, `/unlocks`,
+  `/achievements` e `/runs`) exigem `?settingId=...`; ausência ou valor vazio
+  retorna 400. Não existe mais agregação global implícita de progresso.
+- Estatísticas, desbloqueios, conquistas, histórico e hash do perfil são derivados
+  somente das runs imutáveis do jogador naquele setting. As projeções e resumos
+  de runs incluem `settingId`; simulações internas continuam excluídas.
+- A capacidade `setting-scoped-profiles` permite ao launcher identificar hosts
+  anteriores ao novo contrato e usar a build atual.
+- O showcase guarda referências de continuação por servidor/jogador/setting/modo,
+  valida o save antes de ativá-lo e conserva regras/revisões originais. Sandbox
+  não substitui campanha. Perfis globais de hosts antigos são rejeitados, não
+  apresentados como progresso do setting atual.
+
+## v1 — 2026-09-20
+
+- `GET /api/v1/content/settings` publica o catálogo de settings jogáveis. Cada
+  item inclui nome, descrição, revisão imutável atual e o ponto de entrada
+  canônico usado para criar a run.
+- O host publica todos os settings descobertos por padrão; uma implantação pode
+  limitar a inicialização com `Content:StartupSettings`.
+- Definições de setting podem declarar `launch` sem acoplar o cliente a IDs de
+  run, ator ou game mode. Settings de autoria sem `launch` não são anunciados
+  como jogáveis.
+- O showcase Godot permite escolher o setting no menu principal e persiste a
+  preferência. A seleção troca conjuntamente configuração, conteúdo e revisão.
+- Adicionado `ascendant`, um pacote data-driven que compõe a base e demonstra
+  scaling híbrido em buckets: bônus aumentados aditivos, camada elemental,
+  multiplicadores de suporte, crítico, vulnerabilidade e mitigação.
+
 ## v1 — 2026-09-16
 
 - O estado da run expõe `cardZones` em vez da projeção fixa `deck`.

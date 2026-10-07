@@ -63,7 +63,3 @@ confirm_action={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-
-[internationalization]
-
-locale/fallback="en"

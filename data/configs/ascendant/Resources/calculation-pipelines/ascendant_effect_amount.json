@@ -1,0 +1,89 @@
+{
+  "ascendant_effect_amount": {
+    "pipelineId": "ascendant_effect_amount",
+    "channel": "effect_amount",
+    "buckets": [
+      { "bucketId": "flat", "order": 10, "operation": "Add" },
+      { "bucketId": "increased", "order": 20, "operation": "AddPercent" },
+      { "bucketId": "elemental", "order": 30, "operation": "AddPercent" },
+      { "bucketId": "more", "order": 40, "operation": "Multiply" },
+      { "bucketId": "critical", "order": 50, "operation": "Multiply" },
+      { "bucketId": "vulnerability", "order": 60, "operation": "Multiply" },
+      { "bucketId": "mitigation", "order": 70, "operation": "ConsumeCapacity" },
+      {
+        "bucketId": "final",
+        "order": 80,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "actor.weapon-damage.increased",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "scale": 1,
+        "requiredTags": ["damage", "attack"],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "actor.spell-damage.increased",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "scale": 1,
+        "requiredTags": ["damage", "spell"],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "actor.elemental-damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "elemental_damage",
+        "channel": "effect_amount",
+        "bucket": "elemental",
+        "scale": 1,
+        "requiredTags": ["damage", "elemental"],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "actor.critical-multiplier",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "critical_multiplier",
+        "channel": "effect_amount",
+        "bucket": "critical",
+        "scale": 1,
+        "requiredTags": ["damage", "critical"],
+        "missingValue": "Ignore"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "target.block.mitigation",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "scale": 1,
+        "priority": 100,
+        "requiredTags": ["effect.damage"],
+        "excludedTags": ["piercing"],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      }
+    ]
+  }
+}

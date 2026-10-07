@@ -4,6 +4,7 @@ var failures: Array[String] = []
 var original_locale := ""
 var original_auto := true
 var original_last_run := ""
+var original_setting_id := "default"
 
 func _ready() -> void:
 	call_deferred("_run")
@@ -17,7 +18,9 @@ func _run() -> void:
 	original_locale = I18n.locale
 	original_auto = Preferences.auto_animations
 	original_last_run = Preferences.last_run_id
+	original_setting_id = Preferences.selected_setting_id
 	var router := get_parent()
+	GameSession.failed.connect(func(error): print("UI_SMOKE_SERVICE_ERROR ", JSON.stringify(error)))
 	check(I18n.catalogs.en.size() == I18n.catalogs.pt_BR.size(), "locale catalogs contain the same messages")
 	for key in I18n.catalogs.pt_BR:
 		if not I18n.catalogs.en.has(key) or str(I18n.catalogs.en[key]).count("%s") != str(key).count("%s"):
@@ -34,6 +37,16 @@ func _run() -> void:
 	check(_contains_text(router.host, "SETTINGS"), "settings rebuild in English at runtime")
 	var language: OptionButton = router.host.find_child("LanguageSelector", true, false)
 	check(language.get_item_text(language.selected) == "English", "language selector matches the active English locale")
+	var categories: Array[Node] = router.host.find_children("SettingsCategory_*", "Button", true, false)
+	check(categories.size() == 6, "settings exposes clear modern preference categories")
+	var audio_category: Button = router.host.find_child("SettingsCategory_Audio", true, false)
+	audio_category.pressed.emit()
+	await get_tree().process_frame
+	check(is_instance_valid(router.host.find_child("MasterVolumeSlider", true, false)) and
+		str(router.host.find_child("MasterVolumeSliderValue", true, false).text).ends_with("%"),
+		"audio options expose their current values")
+	var general_category: Button = router.host.find_child("SettingsCategory_General", true, false)
+	general_category.pressed.emit()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var initial_focus := get_viewport().gui_get_focus_owner()
@@ -51,6 +64,57 @@ func _run() -> void:
 		check(false, "connect to engine")
 		finish()
 		return
+	router._show_main_menu()
+	await get_tree().process_frame
+	var setting_selector: OptionButton = router.host.find_child("SettingSelector", true, false)
+	check(is_instance_valid(setting_selector) and setting_selector.item_count >= 2,
+		"main menu exposes every playable engine setting")
+	check(range(setting_selector.item_count).any(func(index):
+		return str(setting_selector.get_item_metadata(index)) == "ascendant"),
+		"setting selector includes the alternate configuration and content package")
+	var ascendant_index := -1
+	for index in range(setting_selector.item_count):
+		if str(setting_selector.get_item_metadata(index)) == "ascendant": ascendant_index = index
+	setting_selector.select(ascendant_index)
+	setting_selector.item_selected.emit(ascendant_index)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(GameSession.selected_setting_id == "ascendant" and Preferences.selected_setting_id == "ascendant",
+		"choosing a setting changes the complete session and persists the preference")
+	var ascendant_seed := int(Time.get_unix_time_from_system()) % 90000000 + 200000000
+	check(await GameSession.start_campaign(ascendant_seed), "start alternate-setting campaign")
+	GameSession._available_commands.clear()
+	router.open_game()
+	for attempt in range(80):
+		if not GameSession.command("START_ENCOUNTER").is_empty(): break
+		await get_tree().create_timer(.025).timeout
+	check(not GameSession.command("START_ENCOUNTER").is_empty(),
+		"journey recovers an incomplete local action projection")
+	check(_contains_text(router.host, "ENTER COMBAT"),
+		"alternate-setting journey renders its encounter action")
+	check(_contains_text(router.host, "Deck · 10 cards"),
+		"journey card total comes from generic engine zones")
+	var ascendant_start := GameSession.command("START_ENCOUNTER")
+	check(await GameSession.execute_run_command(
+		"START_ENCOUNTER", ascendant_start.get("validPayload", {})),
+		"alternate-setting encounter resolves content in its own setting")
+	check(not GameSession.combat.is_empty() and GameSession.legal_actions.any(
+		func(candidate): return str(candidate.get("source", "")) == "Card"),
+		"alternate-setting combat publishes playable legal actions")
+	GameSession.select_setting("default")
+	Preferences.selected_setting_id = "default"
+	Preferences.save()
+	router._show_main_menu()
+	await get_tree().process_frame
+	setting_selector = router.host.find_child("SettingSelector", true, false)
+	var default_index := -1
+	for index in range(setting_selector.item_count):
+		if str(setting_selector.get_item_metadata(index)) == "default": default_index = index
+	setting_selector.select(default_index)
+	setting_selector.item_selected.emit(default_index)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	check(GameSession.selected_setting_id == "default", "setting selector can return to the base game")
 	var seed := int(Time.get_unix_time_from_system()) % 90000000 + 300000000
 	if not await GameSession.start_campaign(seed):
 		check(false, "start campaign")
@@ -63,6 +127,28 @@ func _run() -> void:
 	router.show_combat()
 	await get_tree().process_frame
 	var screen = router.host.get_child(0)
+	var character_sidebar: PanelContainer = screen.find_child("CharacterSidebar", true, false)
+	var sidebar_content: ScrollContainer = screen.find_child("CharacterSidebarContent", true, false)
+	check(is_instance_valid(character_sidebar) and is_instance_valid(sidebar_content) and sidebar_content.visible,
+		"combat exposes the expanded character status panel")
+	var player_actor: Dictionary = screen._player_actor()
+	var published_resources: Dictionary = player_actor.get("resources", {}) if player_actor.get("resources", {}) is Dictionary else {}
+	var rendered_resources: Array = screen.find_children("CharacterResource_*", "HBoxContainer", true, false)
+	check(rendered_resources.size() == published_resources.size() and rendered_resources.all(
+		func(view): return published_resources.has(str(view.get_meta("resource_id", "")))),
+		"character panel renders every engine-defined resource without hardcoded resource rules")
+	screen._toggle_character_sidebar()
+	await get_tree().process_frame
+	check(not character_sidebar.visible and screen.character_sidebar_reopen.visible,
+		"character panel collapses to a floating arrow without reserving a column")
+	screen.refresh_state(screen.presentation)
+	await get_tree().process_frame
+	check(not screen.find_child("CharacterSidebarContent", true, false).visible,
+		"character panel preserves its collapsed state across combat snapshots")
+	screen._toggle_character_sidebar()
+	await get_tree().process_frame
+	check(screen.find_child("CharacterSidebarContent", true, false).visible,
+		"character panel can be expanded again")
 	for button in screen.action_buttons:
 		check(button.get_global_rect().end.y <= router.get_global_rect().end.y, "action button remains inside viewport")
 	var candidate: Dictionary = {}
@@ -212,6 +298,7 @@ func _run() -> void:
 		await timeline._branch()
 		check(GameSession.run.runId != original_run and router.current_screen == "combat",
 			"branch button activates a separate playable run")
+		if GameSession.run.runId == original_run: print("BRANCH_DIAGNOSTIC ", router.toast.text)
 		router.show_timeline()
 		timeline = router.host.get_child(0)
 		await timeline._load_tree()
@@ -227,7 +314,7 @@ func _run() -> void:
 	finish()
 
 func _contains_text(node: Node, text: String) -> bool:
-	if node is Label and node.text == text:
+	if (node is Label or node is BaseButton) and node.text == text:
 		return true
 	for child in node.get_children():
 		if _contains_text(child, text):
@@ -238,6 +325,7 @@ func finish() -> void:
 	get_tree().paused = false
 	Preferences.auto_animations = original_auto
 	Preferences.last_run_id = original_last_run
+	Preferences.selected_setting_id = original_setting_id
 	Preferences.save()
 	I18n.set_locale(original_locale)
 	GameAudio.shutdown()

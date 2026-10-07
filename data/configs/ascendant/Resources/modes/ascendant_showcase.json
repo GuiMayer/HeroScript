@@ -1,0 +1,33 @@
+{
+  "ascendant_showcase": {
+    "modeId": "ascendant_showcase",
+    "runDefinitionId": "ascendant_showcase_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "standard_combat",
+    "calculationPipelineIds": ["ascendant_effect_amount", "signed_resource_delta"],
+    "cardPoolIds": ["ascendant_rewards"],
+    "enemyPoolIds": ["ascendant_enemies"],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "standard_progression",
+    "cardZoneSystemId": "spire_zones",
+    "influences": [
+      {
+        "influenceId": "ascendant_showcase.global-increased",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.15,
+        "requiredTags": ["damage"]
+      }
+    ],
+    "rules": {
+      "presentation": "ascendant",
+      "scalingModel": "layered-buildcraft",
+      "difficulty": "showcase"
+    }
+  }
+}

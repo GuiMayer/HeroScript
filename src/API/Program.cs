@@ -230,7 +230,9 @@ var configuredPackageRoots = builder.Configuration
 var packageRoots = configuredPackageRoots.Length > 0
     ? configuredPackageRoots
     : [Path.Combine(AppContext.BaseDirectory, "Resources")];
-var startupSettingId = builder.Configuration.GetValue<string>("Content:StartupSetting") ?? "default";
+var configuredStartupSettingIds = builder.Configuration
+    .GetSection("Content:StartupSettings")
+    .Get<string[]>() ?? [];
 
 builder.Services.AddSingleton<IOperationalEventStore>(sp =>
 {
@@ -560,19 +562,38 @@ builder.Services.AddSwaggerGen(options =>
 var app = builder.Build();
 
 // Shipped content crosses the same compile/validate/publish boundary as mods.
-// Startup never exposes loose files directly to gameplay.
-var startupCompilation = app.Services.GetRequiredService<ISettingCompiler>()
-    .CompileAsync(startupSettingId)
-    .GetAwaiter()
-    .GetResult();
-if (startupCompilation.IsFailure)
-    throw new InvalidOperationException($"Startup setting compilation failed: {startupCompilation.Error}");
-var startupPublication = app.Services.GetRequiredService<IContentPublicationService>()
-    .PublishBundleAsync(startupCompilation.Value.Bundle)
-    .GetAwaiter()
-    .GetResult();
-if (startupPublication.IsFailure)
-    throw new InvalidOperationException($"Startup setting publication failed: {startupPublication.Error}");
+// Every discovered setting is published by default so launchers can switch the
+// complete config+content graph. Production hosts may restrict this explicitly
+// with Content:StartupSettings. Startup never exposes loose files to gameplay.
+var settingCompiler = app.Services.GetRequiredService<ISettingCompiler>();
+var settingCatalog = settingCompiler.GetCatalogAsync().GetAwaiter().GetResult();
+var startupSettingIds = (configuredStartupSettingIds.Length > 0
+        ? configuredStartupSettingIds
+        : settingCatalog.Settings.Select(item => item.Definition.SettingId))
+    .Where(id => !string.IsNullOrWhiteSpace(id))
+    .Distinct(StringComparer.Ordinal)
+    .OrderBy(id => id, StringComparer.Ordinal)
+    .ToArray();
+if (startupSettingIds.Length == 0)
+    throw new InvalidOperationException("No startup settings were discovered or configured");
+
+foreach (var settingId in startupSettingIds)
+{
+    var startupCompilation = settingCompiler
+        .CompileAsync(settingId)
+        .GetAwaiter()
+        .GetResult();
+    if (startupCompilation.IsFailure)
+        throw new InvalidOperationException(
+            $"Startup setting '{settingId}' compilation failed: {startupCompilation.Error}");
+    var startupPublication = app.Services.GetRequiredService<IContentPublicationService>()
+        .PublishBundleAsync(startupCompilation.Value.Bundle)
+        .GetAwaiter()
+        .GetResult();
+    if (startupPublication.IsFailure)
+        throw new InvalidOperationException(
+            $"Startup setting '{settingId}' publication failed: {startupPublication.Error}");
+}
 
 // Cache membership is explicit and complete. The coordinator orders broad
 // invalidations by dependency and preserves revision-addressed runtimes unless

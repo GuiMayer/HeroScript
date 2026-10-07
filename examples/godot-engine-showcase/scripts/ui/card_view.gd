@@ -5,19 +5,32 @@ var motion: Tween
 var chosen := false
 var model: Dictionary = {}
 var animate_entry := true
+var hand_managed := false
+var configuration_count := 0
+var _configuration_key := ""
+@export var visual_style: CardVisualStyle = preload("res://data/default_card_visual_style.tres")
+const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 
 func configure(data: Dictionary) -> void:
+	var presentation_key := JSON.stringify(data) + str(Preferences.text_scale) + str(Preferences.high_contrast) + visual_style.presentation_key()
+	if presentation_key == _configuration_key: return
+	_configuration_key = presentation_key
+	configuration_count += 1
 	model = data.duplicate(true)
 	text = ""
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
-	custom_minimum_size = Vector2(232, 254 + maxf(0, Preferences.text_scale - 1.0) * 60)
+	custom_minimum_size = visual_style.effective_size(Preferences.text_scale)
 	var tone: Color = {"attack": AppTheme.BLOOD, "power": Color("#9a86d8")}.get(str(data.get("tone", "skill")), AppTheme.TEAL)
+	var border: Color = visual_style.rarity_color(str(data.get("rarityId", "")))
+	set_meta("semantic_border_color", border)
+	for key in get_meta_list():
+		if str(key).begins_with("base_style_"): remove_meta(key)
 	for state in ["normal", "disabled", "pressed"]:
-		add_theme_stylebox_override(state, AppTheme.box(tone.darkened(.76), 12, tone if state != "pressed" else AppTheme.GOLD, 2))
-	add_theme_stylebox_override("hover", AppTheme.box(tone.darkened(.62), 12, AppTheme.GOLD, 2))
-	add_theme_stylebox_override("focus", AppTheme.box(Color.TRANSPARENT, 12, AppTheme.GOLD, 3))
+		add_theme_stylebox_override(state, AppTheme.box(tone.darkened(.76 if state != "pressed" else .62), 12, border, 2))
+	add_theme_stylebox_override("hover", AppTheme.box(tone.darkened(.62), 12, border, 2))
+	add_theme_stylebox_override("focus", AppTheme.box(Color.TRANSPARENT, 12, border, 4))
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 12)
@@ -32,11 +45,12 @@ func configure(data: Dictionary) -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(title)
-	header.add_child(_cost_zone(data))
+	if data.get("upgraded", false): header.add_child(AppTheme.title("↑", 15, AppTheme.INK))
 	column.add_child(header)
+	column.add_child(_cost_zone(data))
 	var art_frame := PanelContainer.new()
 	art_frame.name = "Art"
-	art_frame.custom_minimum_size.y = 58 if Preferences.text_scale > 1.1 else 70
+	art_frame.custom_minimum_size.y = visual_style.art_height
 	art_frame.clip_contents = true
 	art_frame.add_theme_stylebox_override("panel", _compact_box(Color("#121421"), tone.darkened(.28), 5, 1))
 	var art := preload("res://scripts/ui/art_slot.gd").new()
@@ -68,21 +82,34 @@ func configure(data: Dictionary) -> void:
 	rarity.visible = not rarity.text.is_empty()
 	type_line.add_child(rarity)
 	column.add_child(type_line)
+	if not data.get("identityTags", []).is_empty():
+		column.add_child(AppTheme.caption(" · ".join(data.identityTags), 11, 160))
+	for requirement in data.get("requirements", []):
+		var requirement_label := AppTheme.caption(I18n.text("Requires: %s") % str(requirement.get("text", "")), 11, 160)
+		requirement_label.add_theme_color_override("font_color", AppTheme.BLOOD if requirement.get("passed") == false else AppTheme.INK)
+		column.add_child(requirement_label)
 	var effects_title := AppTheme.muted(I18n.text("EFFECTS"), 10)
 	effects_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	effects_title.add_theme_color_override("font_color", AppTheme.MUTED.darkened(.05))
 	column.add_child(effects_title)
-	var rules := Label.new()
+	var rules := EffectText.new()
 	rules.name = "Rules"
-	rules.text = "\n".join(data.get("effects", [])) if data.get("effects") is Array else str(data.get("summary", ""))
-	rules.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	rules.max_lines_visible = 3
-	rules.add_theme_font_size_override("font_size", 13)
+	var rows: Array = data.get("effectRows", [])
+	if rows.is_empty(): rows = EffectText.plain_rows(Array(data.get("effects", str(data.get("summary", "")).split("\n"))))
+	rules.configure(rows, visual_style)
+	rules.custom_minimum_size.y = 68
+	rules.scroll_active = false
 	rules.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(rules)
+	if not data.get("behaviors", []).is_empty():
+		column.add_child(AppTheme.caption(" · ".join(data.behaviors), 11, 160))
 	var badges := _change_badges(data.get("changeBadges", []))
 	if badges != null:
 		column.add_child(badges)
+	var more := AppTheme.muted(I18n.text("Full text in details"), 10)
+	more.name = "DetailsHint"
+	more.autowrap_mode = TextServer.AUTOWRAP_OFF
+	column.add_child(more)
 	var availability := AppTheme.muted(str(data.get("availability", "")), 11)
 	availability.autowrap_mode = TextServer.AUTOWRAP_OFF
 	availability.name = "Availability"
@@ -103,12 +130,26 @@ func configure(data: Dictionary) -> void:
 		AppTheme.apply_view_preferences(child)
 
 func _cost_zone(data: Dictionary) -> Control:
-	var zone := HBoxContainer.new()
+	var zone := HFlowContainer.new()
 	zone.name = "Cost"
-	zone.add_theme_constant_override("separation", 3)
+	zone.add_theme_constant_override("h_separation", 3)
+	zone.add_theme_constant_override("v_separation", 3)
+	var options: Array = data.get("costOptions", [])
+	if options.size() > 1:
+		for index in options.size():
+			if index > 0: zone.add_child(AppTheme.title(I18n.text("OR"), 11))
+			for j in options[index].size():
+				if j > 0: zone.add_child(AppTheme.title("+", 11))
+				zone.add_child(_cost_chip(options[index][j]))
+			if options[index].is_empty(): zone.add_child(AppTheme.title("0", 12))
+		return zone
 	var costs: Array = data.get("costs", []) if data.get("costs") is Array else []
-	for cost in costs:
-		zone.add_child(_cost_chip(cost))
+	for index in costs.size():
+		if index > 0: zone.add_child(AppTheme.title("+", 11))
+		zone.add_child(_cost_chip(costs[index]))
+	if not bool(data.get("costsKnown", true)):
+		zone.add_child(AppTheme.title(I18n.text("Alternative cost — inspect"), 11))
+		return zone
 	if costs.is_empty():
 		var fallback := str(data.get("cost", ""))
 		if fallback.is_empty(): fallback = "0"
@@ -139,7 +180,8 @@ func _change_badges(items) -> Control:
 	var row := HFlowContainer.new()
 	row.name = "Changes"
 	row.add_theme_constant_override("h_separation", 4)
-	for item in items:
+	for index in mini(items.size(), visual_style.visible_change_badges):
+		var item: Dictionary = items[index]
 		var kind := str(item.get("kind", "modified"))
 		var color: Color = {
 			"upgrade": Color("#79d58c"), "buff": Color("#62d6bf"),
@@ -153,9 +195,20 @@ func _change_badges(items) -> Control:
 		badge.tooltip_text = ", ".join(item.get("sources", []))
 		badge.add_child(label)
 		row.add_child(badge)
+	if items.size() > visual_style.visible_change_badges:
+		var remaining := AppTheme.muted("+%s" % (items.size() - visual_style.visible_change_badges), 10)
+		remaining.autowrap_mode = TextServer.AUTOWRAP_OFF
+		row.add_child(remaining)
 	return row
 
+func _make_custom_tooltip(for_text: String) -> Object:
+	if for_text.is_empty(): return null
+	var detail := preload("res://scripts/ui/card_details_panel.gd").new()
+	detail.configure(model, visual_style, detail.DisplayMode.TOOLTIP)
+	return detail
+
 func _cost_accessible_text(data: Dictionary) -> String:
+	if not data.get("costsKnown", true): return I18n.text("Alternative cost — inspect")
 	var parts: Array[String] = []
 	for cost in data.get("costs", []):
 		parts.append("%s %s" % [I18n.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
@@ -183,7 +236,7 @@ func _ready() -> void:
 	mouse_exited.connect(func(): _emphasize(chosen))
 	focus_entered.connect(func(): _emphasize(true))
 	focus_exited.connect(func(): _emphasize(chosen))
-	if animate_entry and not Preferences.reduced_motion:
+	if animate_entry and not hand_managed and not Preferences.reduced_motion:
 		modulate.a = 0.0
 		scale = Vector2(.92, .92)
 		motion = create_tween().set_parallel()
@@ -197,6 +250,7 @@ func select_card(value: bool) -> void:
 	if changed: _emphasize(value or is_hovered() or has_focus())
 
 func _emphasize(value: bool) -> void:
+	if hand_managed: return
 	if motion:
 		motion.kill()
 	modulate.a = 1.0
@@ -212,6 +266,9 @@ func fly_to(destination: Vector2, overlay: Node) -> void:
 	if Preferences.reduced_motion:
 		return
 	var ghost := CardView.new()
+	ghost.animate_entry = false
+	ghost.hand_managed = true
+	ghost.visual_style = visual_style
 	ghost.configure(model)
 	ghost.process_mode = Node.PROCESS_MODE_PAUSABLE
 	ghost.text = text

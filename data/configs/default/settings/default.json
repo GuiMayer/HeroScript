@@ -1,6 +1,13 @@
 {
   "schemaVersion": 1,
   "settingId": "default",
+  "displayName": "Ember Archive",
+  "description": "A compact deckbuilder journey focused on cards, resources, statuses and progression.",
+  "launch": {
+    "runDefinitionId": "spire_showcase_run",
+    "playerEntityId": "player",
+    "modeId": "spire_showcase"
+  },
   "packages": [
     {
       "packageId": "heroscript.base",

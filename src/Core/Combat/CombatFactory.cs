@@ -32,11 +32,15 @@ public sealed class CombatFactory : ICombatFactory
         var actors = new List<CombatActorState>(participants.Count);
         foreach (var participant in participants)
         {
-            var definition = _entities.LoadDefinition(participant.DefinitionId, options.ContentRevision);
+            var definition = _entities.LoadDefinition(
+                participant.DefinitionId,
+                options.ContentRevision,
+                options.ConfigName);
             if (definition.IsFailure)
                 return Result<CombatState>.Failure(definition.Error);
             var actor = _materializer.Materialize(definition.Value, participant.InstanceId,
-                options.ContentRevision, participant.SideId, participant.ControllerBinding);
+                options.ContentRevision, participant.SideId, participant.ControllerBinding,
+                options.ConfigName);
             if (actor.IsFailure)
                 return Result<CombatState>.Failure(actor.Error);
             actors.Add(actor.Value);
@@ -106,8 +110,9 @@ public sealed class CombatFactory : ICombatFactory
 
     private static Result ValidateCommon(IEnumerable<string> instanceIds, IEnumerable<string> sideIds, CombatStartOptions? options)
     {
-        if (options == null || !options.Seed.HasValue || string.IsNullOrWhiteSpace(options.ContentRevision))
-            return Result.Failure("Combat seed and contentRevision are required");
+        if (options == null || !options.Seed.HasValue || string.IsNullOrWhiteSpace(options.ContentRevision) ||
+            string.IsNullOrWhiteSpace(options.ConfigName))
+            return Result.Failure("Combat seed, contentRevision and configName are required");
         var ids = instanceIds.ToArray();
         var duplicate = ids.GroupBy(id => id, StringComparer.Ordinal).FirstOrDefault(group => group.Count() > 1);
         if (duplicate != null)

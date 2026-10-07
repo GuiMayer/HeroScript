@@ -67,6 +67,8 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             .ToArray();
         Assert.Contains("run-commits", capabilities);
         Assert.Contains("run-card-zones", capabilities);
+        Assert.Contains("multi-setting-runs", capabilities);
+        Assert.Contains("setting-scoped-profiles", capabilities);
         Assert.DoesNotContain("run-checkpoints", capabilities);
     }
 
@@ -157,6 +159,81 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         Assert.Equal(HttpStatusCode.OK, manifestResponse.StatusCode);
         Assert.Equal(revision, manifest.GetProperty("revision").GetString());
         Assert.NotEmpty(manifest.GetProperty("artifacts").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task PlayableSettings_ExposeDistinctPinnedLaunchConfigurations()
+    {
+        using var response = await _client.GetAsync("/api/v1/content/settings");
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var settings = body.GetProperty("items").EnumerateArray()
+            .ToDictionary(item => item.GetProperty("settingId").GetString()!, item => item);
+        var standard = settings["default"];
+        var ascendant = settings["ascendant"];
+        Assert.Equal(64, standard.GetProperty("currentRevision").GetString()!.Length);
+        Assert.Equal(64, ascendant.GetProperty("currentRevision").GetString()!.Length);
+        Assert.NotEqual(
+            standard.GetProperty("currentRevision").GetString(),
+            ascendant.GetProperty("currentRevision").GetString());
+        Assert.Equal("spire_showcase_run",
+            standard.GetProperty("launch").GetProperty("runDefinitionId").GetString());
+        Assert.Equal("ascendant_showcase_run",
+            ascendant.GetProperty("launch").GetProperty("runDefinitionId").GetString());
+        Assert.Equal("ascendant_showcase",
+            ascendant.GetProperty("launch").GetProperty("modeId").GetString());
+
+        using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            settingId = "ascendant",
+            runDefinitionId = "ascendant_showcase_run",
+            playerEntityId = $"ascendant-player-{Guid.NewGuid():N}",
+            seed = 20260920UL,
+            contentRevision = ascendant.GetProperty("currentRevision").GetString(),
+            modeId = "ascendant_showcase"
+        });
+        var run = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
+
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+        Assert.Equal("ascendant", run.GetProperty("settingId").GetString());
+        Assert.Equal("ascendant", run.GetProperty("configName").GetString());
+        Assert.Equal("ascendant_showcase", run.GetProperty("modeId").GetString());
+        Assert.Equal("calibration", run.GetProperty("currentNodeId").GetString());
+        Assert.Contains(
+            run.GetProperty("cardZones").GetProperty("zones").EnumerateArray()
+                .SelectMany(zone => zone.GetProperty("cards").EnumerateArray()),
+            card => card.GetProperty("definitionId").GetString() == "ascendant_elemental_burst");
+
+        using var standardStartResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
+        {
+            settingId = "default",
+            runDefinitionId = standard.GetProperty("launch").GetProperty("runDefinitionId").GetString(),
+            playerEntityId = $"standard-player-{Guid.NewGuid():N}",
+            seed = 20260921UL,
+            contentRevision = standard.GetProperty("currentRevision").GetString(),
+            modeId = standard.GetProperty("launch").GetProperty("modeId").GetString()
+        });
+        var standardRun = await standardStartResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.OK, standardStartResponse.StatusCode);
+
+        using var standardEncounter = await ExecuteAdvertisedRunCommandAsync(
+            standardRun.GetProperty("runId").GetGuid(), RunCommandTypes.StartEncounter);
+        Assert.Equal(HttpStatusCode.OK, standardEncounter.StatusCode);
+        using var ascendantEncounter = await ExecuteAdvertisedRunCommandAsync(
+            run.GetProperty("runId").GetGuid(), RunCommandTypes.StartEncounter);
+        Assert.Equal(HttpStatusCode.OK, ascendantEncounter.StatusCode);
+
+        using var standardStateResponse = await _client.GetAsync(
+            $"/api/v1/runs/{standardRun.GetProperty("runId").GetGuid()}");
+        using var ascendantStateResponse = await _client.GetAsync(
+            $"/api/v1/runs/{run.GetProperty("runId").GetGuid()}");
+        var standardState = await standardStateResponse.Content.ReadFromJsonAsync<JsonElement>();
+        var ascendantState = await ascendantStateResponse.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.NotEqual(Guid.Empty, standardState.GetProperty("activeEncounterId").GetGuid());
+        Assert.NotEqual(Guid.Empty, ascendantState.GetProperty("activeEncounterId").GetGuid());
+        Assert.Equal("default", standardState.GetProperty("configName").GetString());
+        Assert.Equal("ascendant", ascendantState.GetProperty("configName").GetString());
     }
 
     [Fact]
@@ -339,7 +416,7 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         var runId = started.GetProperty("runId").GetGuid();
         var sourceSequence = started.GetProperty("sequence").GetInt32();
 
-        using var profileResponse = await _client.GetAsync($"/api/v1/profiles/{playerId}");
+        using var profileResponse = await _client.GetAsync($"/api/v1/profiles/{playerId}?settingId=default");
         var profile = await profileResponse.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(HttpStatusCode.OK, profileResponse.StatusCode);
         Assert.Equal(1, profile.GetProperty("totalRuns").GetInt32());
@@ -742,6 +819,28 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
         using var response = await _client.GetAsync(path);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    private async Task<HttpResponseMessage> ExecuteAdvertisedRunCommandAsync(Guid runId, string type)
+    {
+        using var commandsResponse = await _client.GetAsync($"/api/v1/runs/{runId}/available-commands");
+        var commandsBody = await commandsResponse.Content.ReadAsStringAsync();
+        Assert.True(commandsResponse.IsSuccessStatusCode, commandsBody);
+        var commands = JsonSerializer.Deserialize<JsonElement>(commandsBody);
+        var command = commands.GetProperty("commands").EnumerateArray()
+            .Single(item => string.Equals(item.GetProperty("type").GetString(), type, StringComparison.Ordinal));
+
+        var response = await _client.PostAsJsonAsync($"/api/v1/runs/{runId}/commands", new
+        {
+            commandId = Guid.NewGuid(),
+            expectedSequence = command.GetProperty("expectedSequence").GetInt32(),
+            expectedStep = command.GetProperty("expectedStep").GetUInt64(),
+            type,
+            payload = command.GetProperty("validPayload")
+        });
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, responseBody);
+        return response;
     }
 
     private async Task<JsonElement> StartRunEncounterAsync(

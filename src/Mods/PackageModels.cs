@@ -105,11 +105,25 @@ public sealed record SettingDefinition
 
     public int SchemaVersion { get; init; } = 1;
     public string SettingId { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public SettingLaunchDefinition? Launch { get; init; }
     public IReadOnlyList<SettingPackageReference> Packages
     {
         get => _packages;
         init => _packages = value?.ToImmutableArray() ?? [];
     }
+}
+
+/// <summary>
+/// Declares the canonical entry point exposed to game launchers. Settings may
+/// omit it when they are authoring-only package compositions.
+/// </summary>
+public sealed record SettingLaunchDefinition
+{
+    public string RunDefinitionId { get; init; } = string.Empty;
+    public string PlayerEntityId { get; init; } = "player";
+    public string ModeId { get; init; } = string.Empty;
 }
 
 public sealed record PackageDiagnostic

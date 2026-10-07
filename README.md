@@ -23,9 +23,11 @@ e os [contratos de conteúdo](docs/content/volatile-core-setting.md).
 Engine version **20**: snapshots antigos não são convertidos silenciosamente.
 Guarde o conteúdo/revisão e a versão executável compatível para reproduzi-los.
 
-A demonstração **Ember Archive** é a forma mais direta de conhecer o projeto.
-Ela percorre mapa, encontros, combate, recompensas, loja, preparação, upgrades,
-chefe, histórico e replay usando a HeroScript exclusivamente pela API REST.
+A demonstração Godot é a forma mais direta de conhecer o projeto. No menu,
+**Ember Archive** percorre mapa, encontros, combate, recompensas, loja,
+preparação, upgrades, chefe, histórico e replay. **Ascendant Matrix** reutiliza
+o mesmo cliente com outro pacote de configuração e conteúdo para demonstrar
+scaling em camadas. Ambos usam a HeroScript exclusivamente pela API REST.
 
 ### Requisitos
 
@@ -139,7 +141,7 @@ Leituras recomendadas:
 | Progressão | mapa, encounters, diálogos, recompensas, loja, preparação e encerramento |
 | Conteúdo | packages/settings JSON, validação, revisões, publicação e ativação explícita |
 | Ferramentas | timeline por comando, branches, simulação sem commit, traces e replay semântico |
-| Cliente Godot | campanha, sandboxes, localização, áudio, controles, resoluções e histórico |
+| Cliente Godot | seletor de settings, campanhas, sandboxes, localização, áudio, controles, resoluções e histórico |
 
 Prioridade/stack e políticas avançadas dependem do modo que as habilita. Reações
 continuam fora da campanha padrão. Multiplayer em rede, economia permanente,
@@ -148,9 +150,11 @@ Veja o [roadmap vigente](docs/roadmap/README.md) para as extensões deliberadas.
 
 ## Conteúdo data-driven
 
-O setting de referência está em [`data/configs/default`](data/configs/default).
-Ele contém definições de cartas, resources, entidades, efeitos, fórmulas,
-pipelines, gambits, fases, modos, lojas, diálogos, progressão, timeline e replay.
+O setting principal está em [`data/configs/default`](data/configs/default). O
+setting complementar [`data/configs/ascendant`](data/configs/ascendant) depende
+dele e acrescenta uma campanha e pipeline de scaling próprias. O catálogo
+`GET /api/v1/content/settings` anuncia os settings jogáveis, suas revisões e os
+pontos de entrada que qualquer cliente pode usar sem IDs hardcoded.
 
 O ciclo de autoria é:
 
@@ -171,9 +175,9 @@ HeroScript/
 ├── src/
 │   ├── Core/                       # Domínio, aplicação e infraestrutura da engine
 │   ├── API/                        # API REST ASP.NET Core e contrato HTTP
-│   └── Mods/                       # Placeholder para extensões futuras
-├── data/configs/default/           # Setting JSON de referência
-├── examples/godot-engine-showcase/ # Demo jogável Ember Archive
+│   └── Mods/                       # Compilador de packages/settings data-only
+├── data/configs/                   # Settings JSON default e ascendant
+├── examples/godot-engine-showcase/ # Demo Godot multi-setting
 ├── tests/
 │   ├── Core.Tests/                 # Regras, determinismo e persistência
 │   └── API.Tests/                  # Contrato, controllers e integração HTTP
@@ -182,8 +186,9 @@ HeroScript/
 └── tools/                          # CLI, calculadora e benchmarks auxiliares
 ```
 
-`src/Mods` ainda não é um sistema de plugins executáveis. A extensibilidade
-disponível hoje é feita por packages/settings data-only e revisões de conteúdo.
+`src/Mods` compila packages/settings data-only; ele não carrega código executável
+de terceiros. A extensibilidade disponível hoje é deliberadamente baseada em
+dados validados e revisões imutáveis de conteúdo.
 
 ## Build e testes
 

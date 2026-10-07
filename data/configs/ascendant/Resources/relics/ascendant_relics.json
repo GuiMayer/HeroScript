@@ -1,0 +1,16 @@
+{
+  "ascendant_serration_matrix": {
+    "relicId": "ascendant_serration_matrix",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "ascendant_serration_matrix.increased-damage",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.35,
+        "requiredTags": ["damage"]
+      }
+    ]
+  }
+}

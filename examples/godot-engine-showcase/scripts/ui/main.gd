@@ -12,11 +12,13 @@ const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
 var host: MarginContainer
 var toast: Label
 var pause_layer: Control
+var pause_canvas: CanvasLayer
 var presentation: Dictionary = {}
 var current_screen := "menu"
 var navigation_epoch := 0
 var previous_focus: WeakRef
 var settings_return_to_gameplay := false
+var continuation_run_id := ""
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -88,12 +90,14 @@ func _load_presentation() -> void:
 			presentation = I18n.presentation(value)
 
 func _probe_engine() -> void:
-	await GameSession.connect_engine()
+	if await GameSession.connect_engine(Preferences.selected_setting_id):
+		Preferences.selected_setting_id = GameSession.selected_setting_id
+		Preferences.save_session()
 	if current_screen == "menu":
 		_show_main_menu()
 
 func _prepare_combat_capture() -> void:
-	if await GameSession.connect_engine() and await GameSession.start_campaign(int(Time.get_unix_time_from_system()) % 80000000 + 10000000):
+	if await GameSession.connect_engine(Preferences.selected_setting_id) and await GameSession.start_campaign(int(Time.get_unix_time_from_system()) % 80000000 + 10000000):
 		var start := GameSession.command("START_ENCOUNTER")
 		if not start.is_empty() and await GameSession.execute_run_command("START_ENCOUNTER", start.get("validPayload", {})):
 			show_combat()
@@ -114,6 +118,7 @@ func _clear_host() -> void:
 
 func _show_main_menu() -> void:
 	current_screen = "menu"
+	continuation_run_id = ""
 	var root := _screen()
 	var status_row := HBoxContainer.new()
 	status_row.alignment = BoxContainer.ALIGNMENT_END
@@ -135,14 +140,32 @@ func _show_main_menu() -> void:
 	var eyebrow := AppTheme.muted(I18n.text("A DATA-DRIVEN SHOWCASE"), 14)
 	eyebrow.add_theme_color_override("font_color", AppTheme.EMBER)
 	card_content.add_child(eyebrow)
-	card_content.add_child(AppTheme.title("EMBER ARCHIVE", 52, AppTheme.INK))
-	card_content.add_child(AppTheme.muted(
-		I18n.text("A short ascent powered by HeroScript. Cards, enemies, resources, map and flow live in JSON; Godot brings each decision to life."), 17))
+	var chosen_setting := GameSession.selected_setting
+	var setting_name := I18n.text(str(chosen_setting.get("displayName", "Ember Archive")))
+	var setting_description := str(chosen_setting.get("description",
+		"A short ascent powered by HeroScript. Cards, enemies, resources, map and flow live in JSON; Godot brings each decision to life."))
+	card_content.add_child(AppTheme.title(setting_name.to_upper(), 52, AppTheme.INK))
+	card_content.add_child(AppTheme.muted(I18n.text(setting_description), 17))
 	var line := HSeparator.new()
 	card_content.add_child(line)
+	card_content.add_child(AppTheme.muted(I18n.text("GAME SETTING"), 13))
+	var setting_selector := OptionButton.new()
+	setting_selector.name = "SettingSelector"
+	setting_selector.custom_minimum_size = Vector2(420, 46)
+	for setting in GameSession.settings:
+		setting_selector.add_item(I18n.text(str(setting.get("displayName", setting.get("settingId", "Setting")))))
+		setting_selector.set_item_metadata(setting_selector.item_count - 1, str(setting.get("settingId", "")))
+		if str(setting.get("settingId", "")) == GameSession.selected_setting_id:
+			setting_selector.select(setting_selector.item_count - 1)
+	setting_selector.disabled = not GameSession.available or setting_selector.item_count < 2
+	setting_selector.item_selected.connect(_select_setting_from_menu.bind(setting_selector))
+	card_content.add_child(setting_selector)
+	card_content.add_child(AppTheme.muted(I18n.text("A setting swaps the complete rules and content package used by a new journey."), 13))
 	card_content.add_child(_button(I18n.text("NEW JOURNEY"), _new_campaign, 420))
 	var continue_button := _button(I18n.text("CONTINUE"), _continue_campaign, 420)
-	continue_button.disabled = Preferences.last_run_id.is_empty()
+	continue_button.name = "ContinueButton"
+	continue_button.disabled = true
+	continue_button.tooltip_text = I18n.text("Continue the selected setting's journey.")
 	card_content.add_child(continue_button)
 	if GameSession.has_pending_command:
 		card_content.add_child(_button(I18n.text("RECONNECT"), _recover_session, 420))
@@ -158,6 +181,37 @@ func _show_main_menu() -> void:
 	var bottom := AppTheme.muted(I18n.text("HeroScript decides  •  REST connects  •  Godot presents"), 13)
 	bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(bottom)
+	if GameSession.available:
+		_resolve_menu_resume.call_deferred(weakref(continue_button), navigation_epoch)
+
+func _resolve_menu_resume(reference: WeakRef, epoch: int) -> void:
+	var before := JSON.stringify(Preferences.resume_index.runs)
+	var result: Dictionary = await GameSession.find_resume(Preferences.resume_index, Preferences.api_url, Preferences.last_run_id)
+	if epoch != navigation_epoch or current_screen != "menu": return
+	var button = reference.get_ref()
+	if not is_instance_valid(button): return
+	if not result.ok:
+		button.tooltip_text = I18n.error(result)
+		return
+	if bool(result.get("legacyChecked", false)): Preferences.last_run_id = ""
+	if before != JSON.stringify(Preferences.resume_index.runs) or bool(result.get("legacyChecked", false)):
+		Preferences.save_session()
+	continuation_run_id = str(result.get("runId", ""))
+	button.disabled = continuation_run_id.is_empty()
+	if button.disabled: button.tooltip_text = I18n.text("No active journey in this setting. Start a new journey.")
+
+func _select_setting_from_menu(index: int, selector: OptionButton) -> void:
+	var setting_id := str(selector.get_item_metadata(index))
+	if setting_id == GameSession.selected_setting_id:
+		return
+	if not GameSession.select_setting(setting_id):
+		for item in selector.item_count:
+			if str(selector.get_item_metadata(item)) == GameSession.selected_setting_id: selector.select(item)
+		show_error(I18n.text("Finish or recover the current operation before changing the setting."))
+		return
+	Preferences.selected_setting_id = setting_id
+	Preferences.save_session()
+	call_deferred("_show_main_menu")
 
 func _new_campaign() -> void:
 	var epoch := navigation_epoch
@@ -170,9 +224,13 @@ func _new_campaign() -> void:
 
 func _continue_campaign() -> void:
 	var epoch := navigation_epoch
+	if continuation_run_id.is_empty() or GameSession.busy: return
 	show_toast(I18n.text("Restoring your journey…"))
-	if await GameSession.continue_run(Preferences.last_run_id) and epoch == navigation_epoch:
+	var mode := str(GameSession.selected_setting.get("launch", {}).get("modeId", ""))
+	if await GameSession.continue_run(continuation_run_id, mode) and epoch == navigation_epoch:
 		open_game()
+	elif epoch == navigation_epoch:
+		_show_main_menu()
 
 func _recover_session() -> void:
 	var epoch := navigation_epoch
@@ -264,17 +322,29 @@ func back_to_menu() -> void:
 
 func toggle_pause() -> void:
 	if is_instance_valid(pause_layer):
-		get_tree().paused = false
-		pause_layer.queue_free()
+		# Detach immediately so the closing overlay cannot intercept resumed input.
+		remove_child(pause_canvas)
+		pause_canvas.queue_free()
+		pause_canvas = null
 		pause_layer = null
+		get_tree().paused = false
 		if previous_focus and is_instance_valid(previous_focus.get_ref()): previous_focus.get_ref().grab_focus()
 		return
 	previous_focus = weakref(get_viewport().gui_get_focus_owner()) if get_viewport().gui_get_focus_owner() else null
+	# Hand emphasis, reading proxies and drag ghosts use local z priorities.
+	# A separate canvas keeps the entire modal above them, independently of z_index.
+	pause_canvas = CanvasLayer.new()
+	pause_canvas.name = "PauseCanvas"
+	pause_canvas.layer = 10
+	pause_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(pause_canvas)
 	pause_layer = ColorRect.new()
+	pause_layer.name = "PauseOverlay"
+	pause_layer.theme = theme
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	pause_layer.color = Color("#080912dd")
 	pause_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(pause_layer)
+	pause_canvas.add_child(pause_layer)
 	get_tree().paused = true
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -284,7 +354,9 @@ func toggle_pause() -> void:
 	content.add_theme_constant_override("separation", 13)
 	content.add_child(AppTheme.title(I18n.text("PAUSE"), 42, AppTheme.GOLD))
 	content.add_child(AppTheme.muted(I18n.text("Take your time. Your progress is preserved while the game is paused.")))
-	content.add_child(_button(I18n.text("RESUME"), toggle_pause, 360))
+	var resume_button := _button(I18n.text("RESUME"), toggle_pause, 360)
+	resume_button.name = "ResumeButton"
+	content.add_child(resume_button)
 	content.add_child(_button(I18n.text("SETTINGS"), _pause_settings, 360))
 	var abandon := _abandon_choice()
 	if not abandon.is_empty():
@@ -294,6 +366,7 @@ func toggle_pause() -> void:
 		content.add_child(abandon_button)
 	content.add_child(_button(I18n.text("MAIN MENU"), _pause_menu, 360))
 	center.add_child(AppTheme.panel(content))
+	AppTheme.apply_view_preferences(pause_layer)
 	_queue_focus_preparation(pause_layer)
 
 func _pause_settings() -> void:
@@ -356,7 +429,9 @@ func _on_session_changed() -> void:
 func _apply_preferences() -> void:
 	theme = AppTheme.build(Preferences.high_contrast)
 	AppTheme.apply_view_preferences(host)
-	if is_instance_valid(pause_layer): AppTheme.apply_view_preferences(pause_layer)
+	if is_instance_valid(pause_layer):
+		pause_layer.theme = theme
+		AppTheme.apply_view_preferences(pause_layer)
 
 func _on_locale_changed() -> void:
 	_load_presentation()

@@ -11,6 +11,7 @@ public sealed record ProfileRunSummary
     public Guid RunId { get; init; }
     public int Sequence { get; init; }
     public string ConfigName { get; init; } = "default";
+    public string SettingId { get; init; } = string.Empty;
     public string? ModeId { get; init; }
     public string? ChallengeId { get; init; }
     public string? CurrentNodeId { get; init; }
@@ -24,6 +25,7 @@ public sealed record ProfileRunSummary
 public sealed record PlayerProfileProjection
 {
     public string PlayerId { get; init; } = string.Empty;
+    public string SettingId { get; init; } = string.Empty;
     public string Revision { get; init; } = string.Empty;
     public int TotalRuns { get; init; }
     public int CompletedRuns { get; init; }
@@ -37,6 +39,7 @@ public interface IPlayerProfileProjectionReader
 {
     Task<PlayerProfileProjection> ReadAsync(
         string playerId,
+        string settingId,
         CancellationToken cancellationToken = default);
 }
 
@@ -55,9 +58,11 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
 
     public async Task<PlayerProfileProjection> ReadAsync(
         string playerId,
+        string settingId,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(playerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(settingId);
         var summaries = ImmutableArray.CreateBuilder<ProfileRunSummary>();
         foreach (var runId in (await _runs.ListRunIdsAsync(cancellationToken).ConfigureAwait(false))
                      .OrderBy(id => id))
@@ -75,6 +80,10 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
             }
             if (state == null || !string.Equals(state.PlayerEntityId, playerId, StringComparison.Ordinal))
                 continue;
+            // Partition before deriving statistics, unlocks, achievements and hashes.
+            // Runs keep their recorded setting/revision; selecting a setting is not migration.
+            if (!string.Equals(state.SettingId, settingId, StringComparison.Ordinal))
+                continue;
             if (state.Lineage?.InternalSimulation == true)
                 continue;
 
@@ -83,6 +92,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
                 RunId = state.RunId,
                 Sequence = state.Sequence,
                 ConfigName = state.ConfigName,
+                SettingId = state.SettingId,
                 ModeId = state.ModeId,
                 ChallengeId = state.ChallengeId,
                 CurrentNodeId = state.CurrentNodeId,
@@ -110,6 +120,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
 
         var payload = new ProfileRevisionPayload(
             playerId,
+            settingId,
             ordered.Length,
             completed,
             unlocks,
@@ -118,6 +129,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
         return new PlayerProfileProjection
         {
             PlayerId = playerId,
+            SettingId = settingId,
             Revision = CanonicalJson.ComputeHash(payload),
             TotalRuns = ordered.Length,
             CompletedRuns = completed,
@@ -133,6 +145,7 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
 
     private sealed record ProfileRevisionPayload(
         string PlayerId,
+        string SettingId,
         int TotalRuns,
         int CompletedRuns,
         ImmutableArray<string> Unlocks,

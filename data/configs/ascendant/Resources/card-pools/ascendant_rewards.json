@@ -1,0 +1,10 @@
+{
+  "ascendant_rewards": {
+    "poolId": "ascendant_rewards",
+    "includeTags": ["ascendant"],
+    "excludeTags": ["starter"],
+    "rarityWeights": { "Common": 55, "Uncommon": 35, "Rare": 10 },
+    "explicitCardIds": ["ascendant_elemental_burst", "ascendant_critical_lance", "ascendant_support_cascade", "ascendant_fracture"],
+    "metadata": { "description": "Cards that expose distinct additive and multiplicative scaling paths." }
+  }
+}

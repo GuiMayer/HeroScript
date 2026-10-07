@@ -1,0 +1,87 @@
+{
+  "ascendant_strike": {
+    "cardId": "ascendant_strike",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 18 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["ascendant", "attack", "physical", "starter", "common"],
+    "components": [
+      { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] } },
+      { "type": "influence", "componentId": "influence.flat.calibration", "order": 12, "channel": "effect_amount", "bucket": "flat", "value": 2, "requiredTags": ["damage", "attack"] },
+      { "type": "effect", "componentId": "effect.damage", "order": 20, "effect": { "effectId": "ascendant_strike.damage", "type": "DAMAGE", "target": "TARGET", "flatValue": 8, "targetResource": "health", "tags": ["damage", "attack", "physical"] } },
+      { "type": "targeting", "componentId": "targeting.enemy", "order": 80, "target": "TARGET", "minimumTargets": 1, "maximumTargets": 1 },
+      { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  },
+  "ascendant_elemental_burst": {
+    "cardId": "ascendant_elemental_burst",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 32 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["ascendant", "attack", "spell", "elemental", "uncommon"],
+    "components": [
+      { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] } },
+      { "type": "influence", "componentId": "influence.elemental.mod", "order": 12, "channel": "effect_amount", "bucket": "elemental", "value": 0.65, "requiredTags": ["damage", "elemental"] },
+      { "type": "influence", "componentId": "influence.support.more", "order": 13, "channel": "effect_amount", "bucket": "more", "value": 1.20, "requiredTags": ["damage", "spell"] },
+      { "type": "effect", "componentId": "effect.damage", "order": 20, "effect": { "effectId": "ascendant_elemental_burst.damage", "type": "DAMAGE", "target": "TARGET", "flatValue": 6, "targetResource": "health", "tags": ["damage", "spell", "elemental", "fire"] } },
+      { "type": "targeting", "componentId": "targeting.enemy", "order": 80, "target": "TARGET", "minimumTargets": 1, "maximumTargets": 1 },
+      { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  },
+  "ascendant_critical_lance": {
+    "cardId": "ascendant_critical_lance",
+    "rarity": "Rare",
+    "basePrices": [{ "resourceId": "gold", "amount": 46 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 3 }],
+    "tags": ["ascendant", "attack", "physical", "critical", "rare"],
+    "components": [
+      { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] } },
+      { "type": "influence", "componentId": "influence.critical.training", "order": 12, "channel": "effect_amount", "bucket": "critical", "value": 1.15, "requiredTags": ["damage", "critical"] },
+      { "type": "effect", "componentId": "effect.damage", "order": 20, "effect": { "effectId": "ascendant_critical_lance.damage", "type": "DAMAGE", "target": "TARGET", "flatValue": 7, "targetResource": "health", "tags": ["damage", "attack", "physical", "critical"] } },
+      { "type": "targeting", "componentId": "targeting.enemy", "order": 80, "target": "TARGET", "minimumTargets": 1, "maximumTargets": 1 },
+      { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  },
+  "ascendant_support_cascade": {
+    "cardId": "ascendant_support_cascade",
+    "rarity": "Uncommon",
+    "basePrices": [{ "resourceId": "gold", "amount": 34 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 2 }],
+    "tags": ["ascendant", "attack", "spell", "area", "support", "uncommon"],
+    "components": [
+      { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] } },
+      { "type": "influence", "componentId": "influence.support.first", "order": 12, "channel": "effect_amount", "bucket": "more", "value": 1.25, "requiredTags": ["damage", "spell"] },
+      { "type": "influence", "componentId": "influence.support.second", "order": 13, "channel": "effect_amount", "bucket": "more", "value": 1.20, "requiredTags": ["damage", "spell"] },
+      { "type": "effect", "componentId": "effect.damage-all", "order": 20, "effect": { "effectId": "ascendant_support_cascade.damage", "type": "DAMAGE", "target": "ALL_ENEMIES", "flatValue": 5, "targetResource": "health", "tags": ["damage", "spell", "area"] } },
+      { "type": "targeting", "componentId": "targeting.all", "order": 80, "target": "ALL_ENEMIES", "minimumTargets": 0, "maximumTargets": 0 },
+      { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  },
+  "ascendant_fracture": {
+    "cardId": "ascendant_fracture",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 22 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["ascendant", "attack", "physical", "debuff", "common"],
+    "components": [
+      { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] } },
+      { "type": "effect", "componentId": "effect.fracture", "order": 20, "effect": { "effectId": "ascendant_fracture.status", "type": "APPLY_STATUS", "target": "TARGET", "statusId": "ascendant_fractured", "statusStacks": 1, "statusDuration": 2, "tags": ["status", "debuff"] } },
+      { "type": "effect", "componentId": "effect.damage", "order": 30, "effect": { "effectId": "ascendant_fracture.damage", "type": "DAMAGE", "target": "TARGET", "flatValue": 4, "targetResource": "health", "tags": ["damage", "attack", "physical"] } },
+      { "type": "targeting", "componentId": "targeting.enemy", "order": 80, "target": "TARGET", "minimumTargets": 1, "maximumTargets": 1 },
+      { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  },
+  "ascendant_kinetic_guard": {
+    "cardId": "ascendant_kinetic_guard",
+    "rarity": "Common",
+    "basePrices": [{ "resourceId": "gold", "amount": 16 }],
+    "decomposeRewards": [{ "resourceId": "power_points", "amount": 1 }],
+    "tags": ["ascendant", "skill", "defense", "starter", "common"],
+    "components": [
+      { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 1 }] } },
+      { "type": "effect", "componentId": "effect.block", "order": 20, "effect": { "effectId": "ascendant_kinetic_guard.block", "type": "MODIFY_RESOURCE", "target": "SELF", "flatValue": 12, "targetResource": "block", "operation": "ADD", "tags": ["defense", "block"] } },
+      { "type": "targeting", "componentId": "targeting.self", "order": 80, "target": "SELF", "minimumTargets": 0, "maximumTargets": 0, "allowSelf": true },
+      { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
+    ]
+  }
+}

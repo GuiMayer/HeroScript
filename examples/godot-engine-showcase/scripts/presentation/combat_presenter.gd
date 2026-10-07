@@ -11,6 +11,7 @@ var _by_card := {}
 var _evaluations := {}
 var _appearance: Dictionary = {}
 var _zone_snapshot: Dictionary = {}
+var _sections
 
 func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appearance := {}, zone_snapshot := {}) -> void:
 	_i18n = translator
@@ -28,6 +29,7 @@ func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appe
 			_cards[str(card.get("cardInstanceId", ""))] = card
 	for actor in _combat.get("actors", []):
 		_actors[str(actor.get("instanceId", ""))] = actor
+	_sections = preload("res://scripts/presentation/card_section_presenter.gd").new(_i18n, _appearance, actors())
 	for candidate in _actions:
 		var id := str(candidate.get("command", {}).get("cardInstanceId", ""))
 		if not _by_card.has(id):
@@ -123,22 +125,36 @@ func card_view_model(instance_id: String) -> Dictionary:
 	var changes := _change_badges(inspection, upgrades)
 	var inspected_evaluation: Dictionary = inspection.get("evaluation", {}) if inspection.get("evaluation") is Dictionary else {}
 	var published_costs: Array = candidate.get("costs", []) if not candidate.is_empty() else inspected_evaluation.get("costs", [])
-	return {
+	var requires_alternative: bool = inspection.get("effectiveBase", {}).get("components", []).any(func(component): return component.get("type") == "cost" and not component.get("costs", {}).get("alternativeCosts", []).is_empty())
+	var costs_known := not requires_alternative or not candidate.is_empty() or published_costs.any(func(cost): return cost.get("optionId") != null)
+	var sections: Dictionary = _sections.sections(inspection, appearance)
+	var cost_options: Array = []
+	for option in _candidates(instance_id):
+		var tokens := _cost_tokens(option.get("costs", []))
+		if tokens not in cost_options: cost_options.append(tokens)
+	var result := {
+		"cardInstanceId": instance_id,
 		"definitionId": definition_id,
 		"tone": tone,
-		"name": name + (" +" if not upgrades.is_empty() else ""),
+		"name": name,
+		"upgraded": not upgrades.is_empty(),
 		"cardType": _i18n.text(card_type),
 		"rarity": _i18n.text(str(base.get("rarity", "")).to_upper()),
 		"summary": summary,
 		"effects": summary.split("\n", false),
 		"costs": _cost_tokens(published_costs),
-		"cost": _i18n.text("UNAVAILABLE") if candidate.is_empty() else "",
-		"availability": _i18n.text("SELECT TO PLAY") if not candidate.is_empty() else _i18n.text("INSPECT FOR DETAILS"),
+		"costsKnown": costs_known,
+		"cost": "" if not candidate.is_empty() or not inspection.is_empty() else _i18n.text("Cost — inspect"),
+		"costOptions": cost_options,
+		"availability": _i18n.text("SELECT TO PLAY") if not candidate.is_empty() else unavailable_reason(instance_id),
 		"changeBadges": changes,
 		"inspectionText": inspection_text(instance_id) if not inspection.is_empty() else "",
-		"alternativeCostCount": _candidates(instance_id).size(),
+		"alternativeCostCount": cost_options.size(),
 		"artPlaceholder": true
 	}
+	result.merge(sections, true)
+	result["rarity"] = _i18n.text(str(result.rarityId).to_upper())
+	return result
 
 func _card_type(tags: Array, tone: String) -> String:
 	for kind in ["attack", "skill", "power"]:
@@ -168,8 +184,6 @@ func _change_badges(inspection: Dictionary, upgrades: Array) -> Array:
 		badges.append({"kind": "upgrade", "label": _i18n.text("UPGRADED"), "symbol": "↑"})
 	if inspection.is_empty():
 		return badges
-	var directional_delta := 0.0
-	var directional_change := false
 	var contextual_change := false
 	var source_names: Array[String] = []
 	for calculation in inspection.get("calculations", []):
@@ -188,18 +202,13 @@ func _change_badges(inspection: Dictionary, upgrades: Array) -> Array:
 				var source_id := str(contribution.get("sourceId", ""))
 				if not source_id.is_empty() and source_id not in source_names:
 					source_names.append(source_id)
-				if kind in ["Actor", "Status", "Relic", "Modifier"]:
-					directional_change = true
-					directional_delta += output - input
 	if not contextual_change:
 		return badges
 	var kind := "modified"
-	var label: String = _i18n.text("MODIFIED")
+	var label: String = _i18n.text("CONTEXT CHANGED")
 	var symbol := "~"
-	if directional_change and not is_zero_approx(directional_delta):
-		kind = "buff" if directional_delta > 0 else "debuff"
-		label = _i18n.text("BUFFED") if directional_delta > 0 else _i18n.text("WEAKENED")
-		symbol = "+" if directional_delta > 0 else "−"
+	# Different parameters/resources cannot be added to infer whether a change is
+	# beneficial. Direction is represented on each published numeric effect instead.
 	badges.append({"kind": kind, "label": label, "symbol": symbol,
 		"sources": source_names.map(func(id): return _i18n.content_name(id))})
 	return badges

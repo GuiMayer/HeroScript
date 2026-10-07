@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "packageId": "heroscript.ascendant",
+  "version": "1.0.0",
+  "dataOnly": true,
+  "dependencies": [
+    { "packageId": "heroscript.base", "versionRange": "1.0.0" }
+  ],
+  "conflicts": [],
+  "content": [
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/ascendant_effect_amount.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/ascendant_effect_amount.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/status-effects/ascendant_statuses.json", "kind": "status-effects", "artifactPath": "status-effects/ascendant_statuses.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/relics/ascendant_relics.json", "kind": "relics", "artifactPath": "relics/ascendant_relics.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/cards/ascendant_cards.json", "kind": "cards", "artifactPath": "cards/ascendant_cards.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/entities/ascendant_entities.json", "kind": "entities", "artifactPath": "entities/ascendant_entities.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/enemy-pools/ascendant_enemies.json", "kind": "enemy-pools", "artifactPath": "enemy-pools/ascendant_enemies.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/card-pools/ascendant_rewards.json", "kind": "card-pools", "artifactPath": "card-pools/ascendant_rewards.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/card-selections/ascendant_reward.json", "kind": "card-selections", "artifactPath": "card-selections/ascendant_reward.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/card-upgrades/ascendant_upgrades.json", "kind": "card-upgrades", "artifactPath": "card-upgrades/ascendant_upgrades.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/runs/ascendant_showcase.json", "kind": "runs", "artifactPath": "runs/ascendant_showcase.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/modes/ascendant_showcase.json", "kind": "modes", "artifactPath": "modes/ascendant_showcase.json" }
+  ]
+}

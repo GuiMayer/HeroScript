@@ -3,16 +3,17 @@ extends Node
 signal changed
 
 const SAVE_PATH := "user://heroscript_showcase.cfg"
-const ACTIONS := ["pause_game", "end_turn", "open_timeline", "confirm_action"]
+const ACTIONS := ["pause_game", "end_turn", "open_timeline", "confirm_action", "inspect_card", "hand_overview"]
 const DEFAULT_KEYS := {
 	"pause_game": KEY_ESCAPE,
 	"end_turn": KEY_E,
 	"open_timeline": KEY_T,
-	"confirm_action": KEY_F
+	"confirm_action": KEY_F, "inspect_card": KEY_I, "hand_overview": KEY_H
 }
 
 const DEFAULT_BUTTONS := {"pause_game": JOY_BUTTON_START, "end_turn": JOY_BUTTON_Y,
-	"open_timeline": JOY_BUTTON_BACK, "confirm_action": JOY_BUTTON_RIGHT_SHOULDER}
+	"open_timeline": JOY_BUTTON_BACK, "confirm_action": JOY_BUTTON_RIGHT_SHOULDER,
+	"inspect_card": JOY_BUTTON_X, "hand_overview": JOY_BUTTON_LEFT_SHOULDER}
 const RESERVED_KEYS := [KEY_ENTER, KEY_KP_ENTER, KEY_TAB, KEY_SPACE, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT]
 const RESERVED_BUTTONS := [JOY_BUTTON_A, JOY_BUTTON_B, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]
 var text_scale := 1.0
@@ -28,6 +29,9 @@ var master_volume := 0.80
 var music_volume := 0.42
 var sfx_volume := 0.75
 var animation_speed := 1.0
+var hand_layout_mode := "adaptive"
+var hand_emphasis := 1.0
+var hand_drag_enabled := false
 var locale := "en"
 var reduced_motion := false
 var auto_animations := true
@@ -35,7 +39,9 @@ var fullscreen := false
 var high_contrast := false
 var api_url := "http://127.0.0.1:5271"
 var last_run_id := ""
+var selected_setting_id := "default"
 var campaign_counter := 0
+var resume_index = preload("res://scripts/application/run_resume_index.gd").new()
 var _saved_api_url := ""
 var _api_override := false
 
@@ -63,6 +69,10 @@ func load_settings() -> void:
 	music_volume = float(config.get_value("audio", "music", music_volume))
 	sfx_volume = float(config.get_value("audio", "sfx", sfx_volume))
 	animation_speed = float(config.get_value("game", "animation_speed", animation_speed))
+	hand_layout_mode = str(config.get_value("game", "hand_layout", "adaptive"))
+	if hand_layout_mode not in ["adaptive", "reading"]: hand_layout_mode = "adaptive"
+	hand_emphasis = clampf(float(config.get_value("game", "hand_emphasis", 1.0)), 0.0, 1.0)
+	hand_drag_enabled = bool(config.get_value("game", "hand_drag", false))
 	locale = str(config.get_value("game", "locale", locale))
 	reduced_motion = bool(config.get_value("game", "reduced_motion", reduced_motion))
 	auto_animations = bool(config.get_value("game", "auto_animations", auto_animations))
@@ -73,19 +83,24 @@ func load_settings() -> void:
 	high_contrast = bool(config.get_value("video", "high_contrast", high_contrast))
 	api_url = str(config.get_value("network", "api_url", api_url))
 	last_run_id = str(config.get_value("session", "last_run_id", last_run_id))
+	selected_setting_id = str(config.get_value("session", "selected_setting_id", selected_setting_id))
 	campaign_counter = int(config.get_value("session", "campaign_counter", campaign_counter))
+	resume_index.load_config(config)
 	for action in ACTIONS:
 		var key := int(config.get_value("input", action, DEFAULT_KEYS[action]))
 		_set_action_key(action, DEFAULT_KEYS[action] if key in RESERVED_KEYS else key)
 		_set_action_button(action, int(config.get_value("gamepad", action, DEFAULT_BUTTONS[action])))
 
-func save() -> void:
+func save(notify := true) -> void:
 	var config := ConfigFile.new()
 	config.set_value("video", "text_scale", clampf(text_scale, .9, 1.2))
 	config.set_value("audio", "master", master_volume)
 	config.set_value("audio", "music", music_volume)
 	config.set_value("audio", "sfx", sfx_volume)
 	config.set_value("game", "animation_speed", animation_speed)
+	config.set_value("game", "hand_layout", hand_layout_mode)
+	config.set_value("game", "hand_emphasis", hand_emphasis)
+	config.set_value("game", "hand_drag", hand_drag_enabled)
 	config.set_value("game", "locale", locale)
 	config.set_value("game", "reduced_motion", reduced_motion)
 	config.set_value("game", "auto_animations", auto_animations)
@@ -95,14 +110,21 @@ func save() -> void:
 	config.set_value("video", "high_contrast", high_contrast)
 	config.set_value("network", "api_url", _saved_api_url if _api_override else api_url)
 	config.set_value("session", "last_run_id", last_run_id)
+	config.set_value("session", "selected_setting_id", selected_setting_id)
 	config.set_value("session", "campaign_counter", campaign_counter)
+	resume_index.write_config(config)
 	for action in ACTIONS:
 		config.set_value("input", action, action_key(action))
 		config.set_value("gamepad", action, action_button(action))
 	config.save(SAVE_PATH)
-	apply_window()
-	apply_audio()
-	changed.emit()
+	if notify:
+		apply_window()
+		apply_audio()
+		changed.emit()
+
+func save_session() -> void:
+	# Bookmark updates must not reapply video/audio or rebuild the UI.
+	save(false)
 
 func apply_window() -> void:
 	# Audio/input saves must not reset a manually resized or maximized window.
@@ -190,9 +212,12 @@ func set_api_url(value: String) -> bool:
 	return true
 
 func next_campaign_seed() -> int:
-	campaign_counter += 1
-	save()
-	return 20260911 + campaign_counter
+	var setting: Dictionary = GameSession.selected_setting
+	var launch: Dictionary = setting.get("launch", {})
+	var counter: int = resume_index.next_counter(api_url, str(launch.get("playerEntityId", "player")),
+		GameSession.selected_setting_id, str(launch.get("modeId", "")), campaign_counter)
+	save_session()
+	return 20260911 + counter
 
 func action_key(action: String) -> int:
 	var events := InputMap.action_get_events(action)

@@ -16,17 +16,58 @@ $apiProject = Join-Path $repositoryRoot 'src\API\API.csproj'
 $apiUrl = "http://127.0.0.1:$Port"
 $startedEngine = $null
 
+function Test-CompatibleDemoEngine {
+    try {
+        Invoke-RestMethod -Uri "$apiUrl/api/v1/health/ready" -TimeoutSec 1 | Out-Null
+        $capabilities = Invoke-RestMethod -Uri "$apiUrl/api/v1/capabilities" -TimeoutSec 2
+        $catalog = Invoke-RestMethod -Uri "$apiUrl/api/v1/content/settings" -TimeoutSec 2
+        $settingIds = @($catalog.items | ForEach-Object { [string]$_.settingId })
+        return @($capabilities.capabilities) -contains 'multi-setting-runs' -and
+            @($capabilities.capabilities) -contains 'setting-scoped-profiles' -and
+            $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
+    }
+    catch {
+        return $false
+    }
+}
+
+function Stop-StaleWorkspaceEngine {
+    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if ($null -eq $listener) { return }
+
+    $owner = Get-CimInstance Win32_Process -Filter "ProcessId = $($listener.OwningProcess)" `
+        -ErrorAction SilentlyContinue
+    $commandLine = if ($null -eq $owner.CommandLine) { '' } else { [string]$owner.CommandLine }
+    $belongsToWorkspace = $commandLine.IndexOf(
+        $repositoryRoot,
+        [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+        $commandLine -match 'API\.(exe|dll|csproj)'
+    if (-not $belongsToWorkspace) {
+        throw "A porta $Port está ocupada por outro programa. Encerre-o ou use -Port com outra porta."
+    }
+
+    Write-Host 'Atualizando uma instância antiga da HeroScript...' -ForegroundColor Yellow
+    Stop-Process -Id $listener.OwningProcess -Force
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+        Start-Sleep -Milliseconds 100
+        $stillListening = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
+        if ($null -eq $stillListening) { return }
+    }
+    throw "A instância antiga da HeroScript não liberou a porta $Port."
+}
+
 New-Item -ItemType Directory -Force -Path `
     (Join-Path $runtimeRoot 'runs'), `
     (Join-Path $runtimeRoot 'content'), `
     (Join-Path $runtimeRoot 'telemetry') | Out-Null
 
 try {
-    try {
-        Invoke-RestMethod -Uri "$apiUrl/api/v1/health/ready" -TimeoutSec 1 | Out-Null
+    if (Test-CompatibleDemoEngine) {
         Write-Host "HeroScript online: $apiUrl" -ForegroundColor Green
     }
-    catch {
+    else {
+        Stop-StaleWorkspaceEngine
         $apiEnvironment = @{
             ASPNETCORE_URLS = $apiUrl
             ToolAccess__Profile = 'dev_modder'
@@ -51,12 +92,10 @@ try {
             if ($startedEngine.HasExited) {
                 throw "HeroScript stopped during startup. See $runtimeRoot\engine.log."
             }
-            try {
-                Invoke-RestMethod -Uri "$apiUrl/api/v1/health/ready" -TimeoutSec 1 | Out-Null
+            if (Test-CompatibleDemoEngine) {
                 $ready = $true
                 break
             }
-            catch { }
         }
         if (-not $ready) {
             throw "A HeroScript não iniciou. Consulte $runtimeRoot\engine-error.log."
