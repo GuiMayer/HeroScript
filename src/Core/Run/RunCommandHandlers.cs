@@ -48,7 +48,11 @@ internal sealed class IsolatedRunCommandHandler : IRunCommandHandler
             return Result<RunTransitionPlan>.Failure(hydrated.Error);
 
         var json = JsonSerializer.SerializeToElement(payload, Descriptor.PayloadType);
-        var transition = engine.ExecuteCommandTransition(state.RunId, Descriptor.Type, json);
+        // The isolated reducer retains immutable diagnostics, but never writes
+        // to the authoritative store. Its typed payload has its own canonical
+        // hash; the coordinator retains and commits the original envelope.
+        var transition = engine.Execute(state.RunId, new GameplayCommandEnvelope(
+            context.Identity with { PayloadHash = string.Empty }, json));
         if (transition.IsFailure)
             return Result<RunTransitionPlan>.Failure(transition.Error);
         var candidate = engine.GetRun(state.RunId);
@@ -63,7 +67,22 @@ internal sealed class IsolatedRunCommandHandler : IRunCommandHandler
             PreviousState = state,
             CandidateState = planned,
             Context = planned.Determinism,
-            Value = payload
+            Value = payload,
+            Frames = transition.Value.Frames
+                .Where(frame => frame.EffectSteps.Count > 0 || frame.Applications.Count > 0 ||
+                    frame.Calculations.Count > 0 || frame.CardZoneSteps.Count > 0)
+                .Select(frame => new GameplayTransitionFrame
+                {
+                    FrameIndex = frame.FrameIndex,
+                    Step = frame.Step,
+                    Scope = frame.Scope,
+                    Kind = frame.Kind,
+                    Resolution = frame.Resolution.Clone(),
+                    EffectSteps = frame.EffectSteps,
+                    Calculations = frame.Calculations,
+                    Applications = frame.Applications,
+                    CardZoneSteps = frame.CardZoneSteps
+                }).ToArray()
         });
     }
 }

@@ -1,0 +1,33 @@
+{
+  "core_volatile_sandbox": {
+    "modeId": "core_volatile_sandbox",
+    "runDefinitionId": "core_volatile_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "standard_combat",
+    "calculationPipelineIds": [
+      "default_effect_amount",
+      "signed_resource_delta",
+      "core_magnitude",
+      "core_counts",
+      "core_overflow",
+      "core_attributes"
+    ],
+    "cardPoolIds": [
+      "core_rewards"
+    ],
+    "enemyPoolIds": [
+      "core_enemies"
+    ],
+    "replayPolicyId": "sandbox_replay",
+    "timelinePolicyId": "sandbox_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "sandbox_tools",
+    "progressionPolicyId": "sandbox_progression",
+    "cardZoneSystemId": "spire_zones",
+    "rules": {
+      "presentation": "spire",
+      "difficulty": "core"
+    }
+  }
+}

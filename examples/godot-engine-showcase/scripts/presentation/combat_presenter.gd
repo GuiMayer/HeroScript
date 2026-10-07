@@ -297,9 +297,9 @@ func inspection_text(id: String) -> String:
 		for component in data.get("effectiveBase", {}).get("components", []):
 			if component.get("effect") is Dictionary:
 				var effect: Dictionary = component.effect
-				lines.append("%s · %s · ×%s" % [str(component.get("componentId", "")), _i18n.content_name(str(effect.get("effectType", "effect"))), effect.get("repeat", 1)])
+				lines.append("%s · %s · ×%s" % [str(component.get("componentId", "")), _i18n.content_name(str(effect.get("type", effect.get("effectType", "effect")))), effect.get("repeat", 1)])
 				for parameter in effect.get("parameters", []):
-					lines.append("%s: %s" % [str(parameter.get("parameterId", "")), parameter.get("flatValue", "—")])
+					lines.append("%s: %s" % [str(parameter.get("parameter", parameter.get("parameterId", "value"))), parameter.get("flatValue", "—")])
 		for proc in data.get("procs", []):
 			lines.append(_i18n.text("Condensed proc" if proc.get("isCondensation", false) else "Proc") + " · " + _i18n.text("Impacts: %s") % proc.get("impactIds", []).size())
 			for consumed in proc.get("consumedStacks", []):

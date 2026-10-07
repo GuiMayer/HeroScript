@@ -174,3 +174,11 @@ godot --headless --path . --script res://tests/resolutions.gd -- --layout-smoke
 ```
 
 Veja o [diagnóstico de desempenho e decisões de UX](../../docs/roadmap/ENGINE_PERFORMANCE_AND_DEMO_UX.md).
+
+## Core de cartas voláteis
+
+**Volatile Crucible** usa o mesmo cliente com composição permanente de cartas,
+condensação genérica, múltiplos impactos e continuação causal. Transformações são
+confirmadas com before/after consultado na API; tooltip e inspector mostram o
+consumo e os procs. [Guia específico](../../docs/guides/volatile-core-godot.md).
+Teste adicional offline: `godot --headless --path . --script tests/volatile_core.gd`.

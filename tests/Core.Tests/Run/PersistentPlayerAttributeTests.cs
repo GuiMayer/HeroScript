@@ -56,6 +56,8 @@ public sealed class PersistentPlayerAttributeTests
         var definition = Definition();
         var stats = definition.Component<StatEntityComponentDefinition>()!;
         Assert.True(EntityDefinitionValidator.Validate(definition).IsSuccess);
+        Assert.True(EntityAttributeTransitions.Validate(new Dictionary<string, float> { ["unbounded"] = float.NaN },
+            new Dictionary<string, AttributeValueRule>()).IsFailure);
         var bad = stats with { ValueRules = stats.ValueRules.SetItem("absent", Rule()) };
         Assert.True(EntityDefinitionValidator.Validate(definition with { Components = [bad] }).IsFailure);
         bad = stats with { ValueRules = stats.ValueRules.SetItem("power", Rule() with { Maximum = 1 }) };
@@ -200,6 +202,9 @@ public sealed class PersistentPlayerAttributeTests
                 Assert.True(applied.IsSuccess, applied.IsFailure ? applied.Error : null);
                 hash = applied.Value.Receipt.StateHash;
                 Assert.Equal(5, Power(applied.Value.Receipt.State.PlayerEntity!));
+                Assert.Contains(applied.Value.Receipt.Frames.SelectMany(frame => frame.Applications),
+                    application => application.AttributeOutcome?.Lifetime == AttributeLifetime.RunBase);
+                Assert.NotEmpty(applied.Value.Receipt.Frames.SelectMany(frame => frame.Calculations));
                 Assert.Equal(2, Power(parent.PlayerEntity!));
             }
             using var restarted = new FileRunCommitStore(directory, NullLogger.Instance);
@@ -218,6 +223,25 @@ public sealed class PersistentPlayerAttributeTests
             Assert.Single(await restarted.LoadCommitsAsync(parent.RunId));
         }
         finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
+    }
+
+    [Fact]
+    public void ActivationRebindsEncounterAttributeRulesWithoutResettingLiveValues()
+    {
+        var stats = Definition().Component<StatEntityComponentDefinition>()!;
+        var targetRule = Rule() with { Maximum = 20, AllowedOperations = [AttributeOperation.Set] };
+        var runtime = Content(Definition() with { Components = [stats with
+            { ValueRules = stats.ValueRules.SetItem("power", targetRule) }] }, "next");
+        var actor = Combat().GetActor("hero")! with { Components = Player().Components };
+        var combat = Combat() with { Actors = new Dictionary<string, CombatActorState> { ["hero"] = actor } };
+        var run = State() with { Encounters = [new() { Combat = combat }] };
+        var result = RunContentCompatibilityValidator.PrepareForActivation(run, runtime);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var rebound = result.Value.Encounters[0].Combat.GetActor("hero")!;
+        Assert.Equal(2, Power(rebound));
+        Assert.Equal(CanonicalJson.ComputeHash(targetRule),
+            CanonicalJson.ComputeHash(rebound.Component<StatEntityComponentState>("stats")!.ValueRules["power"]));
+        Assert.Equal(Rule().Maximum, run.Encounters[0].Combat.GetActor("hero")!.Component<StatEntityComponentState>("stats")!.ValueRules["power"].Maximum);
     }
 
     private static AttributeValueRule Rule() => new() { Minimum = 0, Maximum = 10, AllowedOperations = [AttributeOperation.Add, AttributeOperation.Multiply, AttributeOperation.Set] };

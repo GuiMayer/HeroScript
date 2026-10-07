@@ -22,6 +22,11 @@ public static class RunContentCompatibilityValidator
             var player = PersistentPlayerTransitions.Rebind(run.PlayerEntity, runtime);
             if (player.IsFailure) return Result.Failure(player.Error);
         }
+        foreach (var actor in run.Encounters.SelectMany(encounter => encounter.Combat.GetAllActors()))
+        {
+            var attributes = RebindAttributes(actor, runtime);
+            if (attributes.IsFailure) return Result.Failure(attributes.Error);
+        }
         var compiler = new CardContentCompiler();
         var effectiveCards = new EffectiveCardResolver();
         foreach (var instance in run.Deck.Topology.Instances.Values
@@ -70,9 +75,12 @@ public static class RunContentCompatibilityValidator
                 var resources = Rebind(actor.ResourceState, runtime);
                 if (resources.IsFailure)
                     return Result<RunState>.Failure(resources.Error);
+                var attributes = RebindAttributes(actor, runtime);
+                if (attributes.IsFailure) return Result<RunState>.Failure(attributes.Error);
                 actors[actor.InstanceId] = (actor with
                 {
-                    ContentRevision = runtime.Manifest.Revision
+                    ContentRevision = runtime.Manifest.Revision,
+                    Components = actor.Components.ToImmutableDictionary(StringComparer.Ordinal).SetItems(attributes.Value)
                 }).WithResourceState(resources.Value);
             }
 
@@ -95,7 +103,20 @@ public static class RunContentCompatibilityValidator
         run.Deck.Topology.Instances.Count > 0 ||
         run.ResourceState.Resources.Count > 0 ||
         run.Encounters.Any(encounter => encounter.Combat.GetAllActors()
-            .Any(entity => entity.ResourceState.Resources.Count > 0));
+                .Any(entity => entity.ResourceState.Resources.Count > 0));
+
+    private static Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>> RebindAttributes(
+        Core.Combat.Models.CombatActorState actor, ContentRuntime runtime)
+    {
+        var stats = actor.Components.Where(pair => pair.Value is Core.Combat.Models.StatEntityComponentState)
+            .ToImmutableDictionary(StringComparer.Ordinal);
+        if (stats.Count == 0)
+            return Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>>.Success(stats);
+        var rebound = PersistentPlayerTransitions.Rebind(actor with { Components = stats }, runtime);
+        return rebound.IsFailure
+            ? Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>>.Failure(rebound.Error)
+            : Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>>.Success(rebound.Value.Components);
+    }
 
     private static Result<ResourceSet> Rebind(ResourceSet resources, ContentRuntime runtime)
     {

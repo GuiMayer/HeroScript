@@ -1,10 +1,10 @@
 # Volatile Crucible
 
-Setting `volatile-core`, package `heroscript.volatile-core`, launch `core_volatile_run` / `core_volatile`. Depende de `heroscript.base`, sem patches nos settings default/ascendant. Engine version 19.
+Setting `volatile-core`, package `heroscript.volatile-core`, launch `core_volatile_run` / `core_volatile`. Depende de `heroscript.base`, sem patches nos settings default/ascendant. Engine version 20.
 
 ## Loop inicial
 
-Três encontros: um adversário introdutório, dupla de inimigos e dupla com chefe. Cada inimigo usa o gambit/intents existentes. Entre encontros há seleção de carta, transformação, preparação e outra transformação. Custos vêm dos JSONs; não existe ataque gratuito ilimitado para contornar o deck.
+Três encontros: um adversário introdutório, dupla de inimigos e dupla com chefe. Cada inimigo usa o gambit/intents existentes. Nove stops incluem seleção de carta, três forjas antes da dupla, preparação de atributos e uma quarta forja antes do chefe. Isso permite montar afinidade + multi-hit + cascade + base na mesma carta através de oportunidades normais. Custos vêm dos JSONs; não existe ataque gratuito ilimitado para contornar o deck.
 
 Cartas iniciais: Volatile strike, Ward, Renewal, Prepare charge, Condensed burst, Condensed recovery e Condensed overcharge. A intenção é validar combinações, não afirmar balanceamento ou diversão já aprovados em playtest.
 
@@ -27,4 +27,12 @@ Modos dev que autorizam transformações fora de atividade continuam usando os m
 
 Testes compilam o package real, validam cards/perfis/receitas/referências e executam componentes pelo executor comum. A combinação upgrade + afinidade + multi-hit + cascade mantém a instância e conserva magnitude. Dano/cura/modifier por condensação consomem uma vez. Compilar default antes/depois conserva sua revisão e não incorpora as cartas core.
 
-Jornada inteira via REST, save/load/replay/branches, benchmark e legibilidade Godot fazem parte das etapas seguintes. Estes testes de componentes não substituem esses gates.
+`VolatileCoreJourneyTests` executa a jornada inteira dez vezes em runtimes/stores
+novos, comparando recibos completos e verificando replay semântico. O teste exige
+quatro transformações na mesma instância, condensação e salto reais.
+`VolatileCoreBranchTests` usa `core_volatile_sandbox` para ramificar um snapshot
+com cargas e cartas transformadas. O modo normal mantém branches desabilitadas;
+o modo sandbox muda policies JSON, não o processador de efeitos.
+
+`VolatileCoreBenchmarkTests` mede somente o executor com 2/48/98 stacks. Os testes
+HTTP medem outra fronteira e não devem ser tratados como tempo puro de engine.

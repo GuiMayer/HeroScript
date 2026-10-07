@@ -2,12 +2,23 @@
   "version": 1,
   "defaults": {
     "cards": "card_unknown",
+    "effects": "effect_unknown",
+    "behaviors": "behavior_unknown",
     "actors": "actor_unknown",
     "portraits": "actor_unknown",
     "activities": "activity_unknown",
     "backgrounds": "battlefield"
   },
   "categories": {
+    "effects": {
+      "core_charge": "core_charge_effect",
+      "core_ember_damage": "core_scorch_effect",
+      "core_ember_heal": "core_afterglow_effect"
+    },
+    "behaviors": {
+      "core_multihit": "core_multihit_behavior",
+      "core_cascade": "core_cascade_behavior"
+    },
     "portraits": { "ember_keeper": "actor_adept" },
     "cards": {
       "core_strike": "core_strike",
@@ -46,6 +57,13 @@
     }
   },
   "slots": {
+    "effect_unknown": { "path": "res://assets/placeholders/spark.svg", "placeholder": true },
+    "behavior_unknown": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
+    "core_charge_effect": { "path": "res://assets/placeholders/spark.svg", "placeholder": true },
+    "core_scorch_effect": { "path": "res://assets/placeholders/flame.svg", "placeholder": true },
+    "core_afterglow_effect": { "path": "res://assets/placeholders/spark.svg", "placeholder": true },
+    "core_multihit_behavior": { "path": "res://assets/placeholders/strike.svg", "placeholder": true },
+    "core_cascade_behavior": { "path": "res://assets/placeholders/strike.svg", "placeholder": true },
     "core_strike": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
     "core_guard": { "path": "res://assets/placeholders/card.svg", "placeholder": true },
     "core_heal": { "path": "res://assets/placeholders/card.svg", "placeholder": true },

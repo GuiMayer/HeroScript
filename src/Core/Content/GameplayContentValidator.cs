@@ -118,8 +118,22 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         Visit<CardContentDefinition>("cards", (path, item) => Components(path, item.Components));
         Visit<CardComponentBundleDefinition>("card-component-bundles", (path, item) => Components(path, item.Components));
         Visit<CardUpgradeDefinition>("card-upgrades", (path, item) =>
+        {
             Components(path, item.Patches.OfType<CardComponentPatchDefinition>()
-                .Where(patch => patch.Component != null).Select(patch => patch.Component!).ToArray()));
+                .Where(patch => patch.Component != null).Select(patch => patch.Component!).ToArray());
+            foreach (var patch in item.Patches.OfType<CardEffectContinuationPatchDefinition>())
+            {
+                if (patch.Continuation is not { } continuation) continue;
+                if (!EffectContinuationPlanner.ValidPolicy(continuation)) Error(path, "invalid continuation patch policy");
+                Reference(path, "resources", continuation.SelectionResourceId);
+                Reference(path, "calculation-pipelines", continuation.OverflowPipelineId, required: true);
+                var overflow = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", continuation.OverflowPipelineId);
+                if (overflow.IsSuccess && (overflow.Value.Channel != continuation.OverflowChannel ||
+                    continuation.OverflowStageIds.Any(id => !overflow.Value.Stages.Any(stage =>
+                        stage.StageId == id && stage.Scope == CalculationStageScope.Target))))
+                    Error(path, "continuation patch targets an invalid overflow channel/stage");
+            }
+        });
         Visit<StatusEffectDefinition>("status-effects", (path, item) =>
         {
             if (!StackConsumptionPolicy.IsValid(item.Consumption)) Error(path, "invalid consumption capability");

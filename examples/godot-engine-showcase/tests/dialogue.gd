@@ -77,7 +77,7 @@ func _run() -> void:
 	router.toggle_pause()
 	await click_choice("trade")
 	check(str(session.run.dialogues[0].nodeId) == "gift" and float(session.run.resources.gold.current) == 10, "choice applies price and enters next speech")
-	check(session.run.deck.cardInstances.size() == 2, "universal effect grants actual card")
+	check(preload("res://scripts/presentation/card_zone_presenter.gd").new(session.card_zones, translator).total_cards() == 2, "universal effect grants actual card through canonical zones")
 	await click_choice("back")
 	panel = router.host.get_child(0).find_child("DialoguePanel", true, false)
 	check(panel.find_child("Choice_trade", true, false).disabled, "used or unaffordable response stays disabled")

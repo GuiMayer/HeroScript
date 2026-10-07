@@ -23,6 +23,23 @@ namespace Core.Tests.Content;
 public sealed class VolatileCoreSettingTests
 {
     [Fact]
+    public async Task UnusedContinuationUpgradesMustReferencePublishedOverflowProfiles()
+    {
+        var bundle = (await Compile()).Bundle;
+        var artifact = bundle.Artifacts.First(pair => pair.Value.ValueKind == JsonValueKind.Object &&
+            pair.Value.TryGetProperty("core_cascade", out _));
+        var json = System.Text.Json.Nodes.JsonNode.Parse(artifact.Value.GetRawText())!;
+        json["core_cascade"]!["patches"]![0]!["continuation"]!["overflowPipelineId"] = "unpublished";
+        var invalid = bundle with { Artifacts = bundle.Artifacts.SetItem(artifact.Key,
+            JsonSerializer.SerializeToElement(json)) };
+        var runtime = ContentRuntime.Create(invalid);
+        Assert.True(runtime.IsSuccess, runtime.IsFailure ? runtime.Error : null);
+        var errors = ImmutableArray.CreateBuilder<string>();
+        new GameplayContentValidator(runtime.Value, errors).Validate();
+        Assert.Contains(errors, error => error.Contains("unpublished"));
+    }
+
+    [Fact]
     public async Task ShippedSettingPublishesExecutableCardsAndAnIsolatedCoreJourney()
     {
         var compilation = await Compile();
@@ -116,8 +133,8 @@ public sealed class VolatileCoreSettingTests
         Assert.DoesNotContain("core_strike", ContentRuntime.Create(first.Value.Bundle).Value.GetDefinitions("cards").Keys);
     }
 
-    private sealed record Context(ContentRuntime Runtime, RunState Run, CombatState Combat, EffectTriggerExecutor Executor);
-    private static async Task<Context> Fixture()
+    internal sealed record Context(ContentRuntime Runtime, RunState Run, CombatState Combat, EffectTriggerExecutor Executor);
+    internal static async Task<Context> Fixture()
     {
         var runtime = ContentRuntime.Create((await Compile()).Bundle).Value;
         var runtimes = new Mock<IContentRuntimeResolver>();
@@ -149,7 +166,7 @@ public sealed class VolatileCoreSettingTests
                     ResourcePool.Materialize(runtime.GetDefinition<ResourceDefinition>("resources", pair.Key).Value, pair.Value.Current, pair.Value.Max)) } };
         }
     }
-    private static EffectTriggerExecutionRequest Request(Context fixture, EffectiveCardDefinition card, EffectDefinition effect) => new()
+    internal static EffectTriggerExecutionRequest Request(Context fixture, EffectiveCardDefinition card, EffectDefinition effect) => new()
     { Combat = fixture.Combat, Run = fixture.Run, OwnerEntityId = "player", SourceEntityId = "player", SelectedTargetEntityIds = ["enemy_0"],
         ContentRevision = fixture.Runtime.Manifest.Revision, Card = card, Tags = card.Tags.ToImmutableHashSet(),
         Provenance = new() { Kind = EffectProvenanceKind.Card, SourceId = card.DefinitionId }, Trigger = new() { TriggerId = "main", Effects = [effect] } };

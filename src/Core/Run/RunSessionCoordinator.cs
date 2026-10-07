@@ -196,7 +196,11 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
                     frame.Kind,
                     frame.Resolution
                 }),
-                Resolution = frame.Resolution.Clone()
+                Resolution = frame.Resolution.Clone(),
+                EffectSteps = frame.EffectSteps,
+                Calculations = frame.Calculations,
+                Applications = frame.Applications,
+                CardZoneSteps = frame.CardZoneSteps
             }).ToArray();
         var facts = plan.Facts.Count == 0
             ? RunCommitFacts.FromFrames(frames)

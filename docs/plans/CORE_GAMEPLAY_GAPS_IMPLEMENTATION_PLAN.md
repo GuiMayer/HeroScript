@@ -2,7 +2,12 @@
 
 Data: 2026-10-06.
 
-Status: implementação iniciada. Resultados por etapa: [acompanhamento](CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PROGRESS.md). O plano não representa capacidades já entregues.
+Status: implementação técnica das etapas 0–14 entregue. Resultados por etapa:
+[acompanhamento](CORE_GAMEPLAY_GAPS_IMPLEMENTATION_PROGRESS.md) e
+[relatório de validação](CORE_GAMEPLAY_GAPS_VALIDATION_REPORT.md). Playtest humano
+de compreensão e balanceamento continua separado e não foi declarado aprovado.
+O texto abaixo conserva o diagnóstico inicial e a ordem das entregas; os schemas
+finais estão nos contratos e no acompanhamento, não nos nomes propostos.
 
 Referência de design: [CORE_GAME_DESIGN.md](../game-design/CORE_GAME_DESIGN.md).
 

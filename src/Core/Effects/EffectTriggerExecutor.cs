@@ -188,6 +188,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 if (executed.IsFailure) return Result<EffectBatchResult>.Failure(executed.Error);
             }
         }
+        if (currentRun != null && request.Combat.CombatId == Guid.Empty)
+            currentRun = currentRun with { Determinism = current.Determinism };
         return Result<EffectBatchResult>.Success(new()
         {
             ExecutionId = executionId,
@@ -547,10 +549,16 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             if (RunEffectReducer.Supports(effect))
                             {
                                 if (currentRun == null) return Result.Failure("Effect requires an immutable run snapshot");
+                                // Run activity adapters have one RNG/identifier context. Real
+                                // encounters retain their independent combat and run streams.
+                                if (request.Combat.CombatId == Guid.Empty)
+                                    currentRun = currentRun with { Determinism = current.Determinism };
                                 var appliedRun = RunEffectReducer.Apply(currentRun, current, command,
                                     _contentRuntimes, request.ContentRevision, _cardZoneFlows);
                                 if (appliedRun.IsFailure) return Result.Failure(appliedRun.Error);
                                 currentRun = appliedRun.Value.Run;
+                                if (request.Combat.CombatId == Guid.Empty)
+                                    current = current with { Determinism = currentRun.Determinism };
                                 appliedRecords = [appliedRun.Value.Record];
                                 if (appliedRun.Value.Record.AttributeOutcome != null)
                                 {

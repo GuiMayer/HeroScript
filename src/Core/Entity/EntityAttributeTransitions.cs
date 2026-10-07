@@ -33,6 +33,8 @@ public static class EntityAttributeTransitions
 {
     public static Result Validate(IReadOnlyDictionary<string, float> values, IReadOnlyDictionary<string, AttributeValueRule> rules)
     {
+        if (values.Any(pair => string.IsNullOrWhiteSpace(pair.Key) || !float.IsFinite(pair.Value)))
+            return Result.Failure("Attribute values must have identifiers and finite values");
         foreach (var (id, rule) in rules)
         {
             if (!values.TryGetValue(id, out var value) || rule == null ||

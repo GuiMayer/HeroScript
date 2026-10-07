@@ -13,6 +13,16 @@ Unity, web ou outro — cuida somente de input, interface, áudio e animações.
 
 ## Comece pela demo jogável
 
+O setting **Volatile Crucible** demonstra o novo core: cartas de identidade
+persistente, afinidades, multi-hit com orçamento compartilhado, continuação por
+abate, condensação de stacks em um proc e progressão de atributos. Regras e
+conteúdo ficam em `data/configs/volatile-core`; a Godot somente apresenta os
+resultados da API. Consulte o [guia do core](docs/guides/volatile-core-godot.md)
+e os [contratos de conteúdo](docs/content/volatile-core-setting.md).
+
+Engine version **20**: snapshots antigos não são convertidos silenciosamente.
+Guarde o conteúdo/revisão e a versão executável compatível para reproduzi-los.
+
 A demonstração **Ember Archive** é a forma mais direta de conhecer o projeto.
 Ela percorre mapa, encontros, combate, recompensas, loja, preparação, upgrades,
 chefe, histórico e replay usando a HeroScript exclusivamente pela API REST.

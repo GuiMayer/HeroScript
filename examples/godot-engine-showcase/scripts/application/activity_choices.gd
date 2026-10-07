@@ -32,6 +32,7 @@ static func build(run: Dictionary, commands: Array) -> Array:
 					var upgrade_id = option.get("upgradeId")
 					var definition := str(option.get("cardDefinitionId", card_id))
 					var choice := _choice(type, {"cardInstanceId": card_id, "upgradeId": upgrade_id}, definition, "card")
+					if type == "REMOVE_CARD_TRANSFORMATION": choice.payload.erase("upgradeId")
 					choice["variantId"] = upgrade_id
 					if option.get("targetTransformationId") != null:
 						choice.payload["transformationId"] = option.targetTransformationId

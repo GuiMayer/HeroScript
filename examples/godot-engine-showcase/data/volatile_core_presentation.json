@@ -37,6 +37,8 @@
     }
   },
   "nodes": {
+    "core_behavior": { "name": "Impact Forge" },
+    "core_chain": { "name": "Cascade Forge" },
     "core_arrival": {
       "name": "The Crucible"
     },

@@ -138,4 +138,4 @@ Capturas entram uma vez nos cálculos do batch; cálculos de alvo entram por apl
 
 Profundidade 32, repeat 256 e orçamento global de 4.096 passos continuam valendo. Capturas e slots alocados participam do orçamento. Resolução numérica direta e schemas de payload rejeitam distribution não planejada, em vez de ignorá-la.
 
-As regressões desta subetapa usam runtime fixado, pipeline/influências/settlements/reducers reais, rollback, dez execuções e serialização de definições/steps. Não substituem testes específicos de reinício/replay/branches de multi-hit no gateway persistente, que continuam pendentes antes de concluir a etapa 8.
+As regressões da subetapa usam runtime fixado, pipeline/influências/settlements/reducers reais, rollback, dez execuções e serialização de definições/steps. O gate integrado foi fechado na etapa 14: a jornada REST executa afinidade + upgrade base + multi-hit + cascade na mesma instância; o sandbox verifica persistência, consumo e branch isolada. Consulte o [relatório final](../../plans/CORE_GAMEPLAY_GAPS_VALIDATION_REPORT.md).

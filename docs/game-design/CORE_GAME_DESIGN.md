@@ -2,6 +2,13 @@
 
 Versão: 0.1 — proposta de design para discussão e validação.
 
+Implementação de referência: o setting `volatile-core` exercita os contratos
+genéricos deste documento. O [guia da demo](../guides/volatile-core-godot.md)
+explica como testá-lo. Afinidades, custos, número de impactos e distribuição
+nesse setting são parâmetros iniciais, não decisões universais de design.
+Condensação também é demonstrada como cura e criação de modifier temporário.
+O gate técnico não substitui playtest de compreensão, diversão e balanceamento.
+
 Data: 2026-10-06.
 
 ## 1. Propósito e autoridade

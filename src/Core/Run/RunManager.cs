@@ -250,9 +250,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             Determinism = state.Determinism.AdvanceStep()
         };
         var initialNode = state.Map.Nodes.FirstOrDefault(node => node.NodeId == state.CurrentNodeId);
+        RunActivityEffectResult? initialActivityEffects = null;
         if (initialNode != null)
         {
-            var entry = ApplyActivityBoundary(state, initialNode, RunActivityBoundary.Entry);
+            var entry = ApplyActivityBoundary(state, initialNode, RunActivityBoundary.Entry, out initialActivityEffects);
             if (entry.IsFailure)
                 return Result<RunState>.Failure(entry.Error);
             state = entry.Value;
@@ -275,7 +276,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     InitialPlayableCardCount = initialPlayableCardCount,
                     Scenario = options.Scenario,
                     SettingId = options.SettingId ?? options.ConfigName
-                });
+                }, activityEffects: initialActivityEffects);
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
@@ -1170,7 +1171,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var canResolve = _progression.CanResolve(state, current);
             if (canResolve.IsFailure)
                 return Result<RunMapNodeState>.Failure(canResolve.Error);
-            var exit = ApplyActivityBoundary(state, current, RunActivityBoundary.Exit);
+            var exit = ApplyActivityBoundary(state, current, RunActivityBoundary.Exit, out var exitEffects);
             if (exit.IsFailure)
                 return Result<RunMapNodeState>.Failure(exit.Error);
             var transition = RunMapTransitions.Resolve(exit.Value, currentNodeId);
@@ -1187,7 +1188,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 : CommitTransition(
                     transition.Value,
                     RunCommandTypes.ResolveNode,
-                    new { currentNodeId });
+                    new { currentNodeId }, exitEffects);
         }
     }
 
@@ -1199,12 +1200,13 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 return Result<RunMapNodeState>.Failure($"Run not found: {runId}");
 
             var transition = RunMapTransitions.Advance(state, targetNodeId);
+            RunActivityEffectResult? entryEffects = null;
             if (transition.IsSuccess)
             {
                 var entry = ApplyActivityBoundary(
                     transition.Value.State,
                     transition.Value.Value,
-                    RunActivityBoundary.Entry);
+                    RunActivityBoundary.Entry, out entryEffects);
                 if (entry.IsFailure)
                     return Result<RunMapNodeState>.Failure(entry.Error);
                 transition = Result<RunStateTransition<RunMapNodeState>>.Success(
@@ -1215,7 +1217,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 : CommitTransition(
                     transition.Value,
                     RunCommandTypes.AdvanceNode,
-                    new { targetNodeId });
+                    new { targetNodeId }, entryEffects);
         }
     }
 
@@ -1567,7 +1569,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     combatId: combatId);
             }
 
-            var exit = ApplyActivityBoundary(cleanedState, currentNode, RunActivityBoundary.Exit);
+            var exit = ApplyActivityBoundary(cleanedState, currentNode, RunActivityBoundary.Exit, out var exitEffects);
             if (exit.IsFailure)
                 return Result<RunState>.Failure(exit.Error);
             cleanedState = exit.Value;
@@ -1596,21 +1598,24 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     : rootPayload,
                 commandIdentity,
                 scope: "combat",
-                combatId: combatId);
+                combatId: combatId, activityEffects: exitEffects);
         }
     }
 
     private Result<RunState> ApplyActivityBoundary(
         RunState state,
         RunMapNodeState node,
-        RunActivityBoundary boundary)
+        RunActivityBoundary boundary,
+        out RunActivityEffectResult? diagnostics)
     {
+        diagnostics = null;
         var configured = boundary == RunActivityBoundary.Entry ? node.EntryEffects : node.ExitEffects;
         if (configured.Count == 0)
             return Result<RunState>.Success(state);
         if (_activityEffects == null)
             return Result<RunState>.Failure("Run activity effect executor is not configured");
         var result = _activityEffects.Execute(state, node, boundary);
+        if (result.IsSuccess) diagnostics = result.Value;
         return result.IsFailure
             ? Result<RunState>.Failure(result.Error)
             : Result<RunState>.Success(result.Value.State);
@@ -1987,10 +1992,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (transition.IsFailure)
                 return Result<PreparationOptionState>.Failure(transition.Error);
 
+            RunActivityEffectResult? effectDiagnostics = null;
             if (!transition.Value.Value.Effects.IsEmpty)
             {
                 var applied = ApplyActivityBoundary(transition.Value.State, new RunMapNodeState
-                { NodeId = $"preparation:{preparationInstanceId}:{optionId}", EntryEffects = transition.Value.Value.Effects }, RunActivityBoundary.Entry);
+                { NodeId = $"preparation:{preparationInstanceId}:{optionId}", EntryEffects = transition.Value.Value.Effects }, RunActivityBoundary.Entry, out effectDiagnostics);
                 if (applied.IsFailure) return Result<PreparationOptionState>.Failure(applied.Error);
                 transition = Result<RunStateTransition<PreparationOptionState>>.Success(transition.Value with { State = applied.Value });
             }
@@ -1998,16 +2004,17 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return CommitTransition(
                 transition.Value,
                 RunCommandTypes.ApplyPreparationOption,
-                new { preparationInstanceId, optionId });
+                new { preparationInstanceId, optionId }, effectDiagnostics);
         }
     }
 
     private Result<T> CommitTransition<T>(
         RunStateTransition<T> transition,
         string commandType,
-        object command)
+        object command,
+        RunActivityEffectResult? activityEffects = null)
     {
-        var persisted = Persist(transition.State, commandType, command);
+        var persisted = Persist(transition.State, commandType, command, activityEffects: activityEffects);
         return persisted.IsSuccess
             ? Result<T>.Success(transition.Value)
             : Result<T>.Failure(persisted.Error);
@@ -2200,7 +2207,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         RunCommandIdentity? commandIdentity = null,
         string scope = "run",
         Guid? combatId = null,
-        CombatResolutionRecord? combatResolution = null)
+        CombatResolutionRecord? combatResolution = null,
+        RunActivityEffectResult? activityEffects = null)
     {
         _runs.TryGetValue(state.RunId, out var previous);
         try
@@ -2256,10 +2264,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     CombatStep = animationFrame?.CombatStep,
                     SnapshotSequence = animationFrame?.SnapshotSequence,
                     CombatStateAfter = animationFrame?.StateAfter,
-                    EffectSteps = animationFrame?.EffectSteps ?? [],
-                    Calculations = animationFrame?.Calculations ?? [],
-                    Applications = animationFrame?.Applications ?? [],
-                    CardZoneSteps = animationFrame?.CardZoneSteps ?? []
+                    EffectSteps = animationFrame?.EffectSteps ?? activityEffects?.Steps ?? [],
+                    Calculations = animationFrame?.Calculations ?? activityEffects?.Calculations ?? [],
+                    Applications = animationFrame?.Applications ?? activityEffects?.Applications ?? [],
+                    CardZoneSteps = animationFrame?.CardZoneSteps ?? activityEffects?.Applications
+                        .SelectMany(application => application.CardZoneSteps).ToArray() ?? []
                 }
             };
             var commit = new RunCommit

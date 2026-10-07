@@ -89,6 +89,36 @@
         },
         "completionPolicy": "Required",
         "nextNodeIds": [
+          "core_behavior"
+        ]
+      },
+      {
+        "nodeId": "core_behavior",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": ["core_multihit", "core_sharpen"],
+            "costs": [{ "resourceId": "gold", "amount": 10 }],
+            "allowRemoval": true,
+            "allowReplacement": true
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": ["core_chain"]
+      },
+      {
+        "nodeId": "core_chain",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": ["core_cascade", "core_sharpen"],
+            "costs": [{ "resourceId": "gold", "amount": 10 }],
+            "allowRemoval": true,
+            "allowReplacement": true
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
           "core_trial"
         ]
       },

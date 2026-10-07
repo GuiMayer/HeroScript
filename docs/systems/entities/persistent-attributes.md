@@ -48,10 +48,18 @@ RunBase somente altera o jogador fora de um encontro, no adaptador de atividade 
 
 ## Preparações e inspeção
 
+Efeitos de preparação e de entrada/saída de atividade passam pelo mesmo executor.
+O candidato carrega steps, cálculos e aplicações imutáveis até o coordenador:
+esses registros entram nos frames e fatos do commit autoritativo, não em um log
+paralelo. Reinício e replay verificam tanto a alteração quanto seus traces.
+Em atividades sintéticas, sorteios compartilham o contexto determinístico da run;
+o contexto sintético não pode descartar draws após executar um reducer de recurso.
+
+
 `preparations[].options[].effects` captura efeitos publicados em `PreparationOptionState`. APPLY_PREPARATION_OPTION continua recebendo IDs, resolve custos/grants e executa os efeitos no mesmo candidato antes do commit. Falha posterior descarta tudo. Não existe rota que aceite um patch arbitrário do jogador.
 
 As regras de boundaries — execução garantida, alvo do owner e efeito persistente — são validadas também nos filhos, inclusive em publicação. Entry/exit de atividades e opções usam o mesmo processador; não há reducer de atributos exclusivo de preparação.
 
 `CardInspectionContext.persistentActor` separa base permanente de `actor` vivo. O `EntityStatInfluenceProvider` já lê componente/value IDs do ator; tags/whitelists da pipeline determinam quais cartas usam o atributo. Upgrades da carta continuam base da carta, não stats do personagem.
 
-Estado e regras serializam nos snapshots/hashes existentes. Testes incluem reinício em store real, retry, dez replays semânticos e fork isolado para a preparação; regressão integrada com a jornada e novo setting será executada no gate final.
+Estado e regras serializam nos snapshots/hashes existentes. Testes incluem reinício em store real, retry, dez replays semânticos e fork isolado para a preparação. A etapa 14 verificou também o treinamento na jornada publicada, incluindo aplicações/cálculos duráveis. Consulte o [relatório final](../../plans/CORE_GAMEPLAY_GAPS_VALIDATION_REPORT.md).

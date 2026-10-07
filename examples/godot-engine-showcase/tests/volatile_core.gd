@@ -26,6 +26,10 @@ func _run() -> void:
 		check(not i18n.content_name("core_charge").is_empty(), "charge has localized identity: " + locale)
 		var catalog = preload("res://scripts/presentation/art_catalog.gd")
 		check(catalog.resolve("cards", "core_release").key == "core_release", "stable replaceable card art slot")
+		check(catalog.resolve("effects", "core_ember_damage").key == "core_scorch_effect", "stable replaceable effect art slot")
+		check(catalog.resolve("behaviors", "core_cascade").key == "core_cascade_behavior", "stable replaceable behavior art slot")
 	i18n.set_locale(prior)
+	root.get_node("GameAudio").shutdown()
+	await create_timer(.05).timeout
 	print("SHOWCASE_VOLATILE_CORE failures=", failures)
 	quit(0 if failures == 0 else 1)

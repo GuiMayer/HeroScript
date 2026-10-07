@@ -91,7 +91,7 @@ func transformation_text(assessment: Dictionary) -> String:
 		for component in card.get("components", []):
 			if component.get("effect") is Dictionary:
 				var effect: Dictionary = component.effect
-				lines.append("%s · %s · ×%s" % [str(component.get("componentId", "")), _i18n.content_name(str(effect.get("effectType", "effect"))), effect.get("repeat", 1)])
+				lines.append("%s · %s · ×%s" % [str(component.get("componentId", "")), _i18n.content_name(str(effect.get("type", effect.get("effectType", "effect")))), effect.get("repeat", 1)])
 				for parameter in effect.get("parameters", []):
-					lines.append("%s: %s" % [str(parameter.get("parameterId", "")), parameter.get("flatValue", "—")])
+					lines.append("%s: %s" % [str(parameter.get("parameter", parameter.get("parameterId", "value"))), parameter.get("flatValue", "—")])
 	return "\n".join(lines)

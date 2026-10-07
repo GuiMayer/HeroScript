@@ -124,7 +124,8 @@ func preview_transformation(choice: Dictionary) -> Dictionary:
 	var operation: String = {"UPGRADE_CARD": "Apply", "REMOVE_CARD_TRANSFORMATION": "Remove", "REPLACE_CARD_TRANSFORMATION": "Replace"}.get(str(choice.get("type", "")), "")
 	if operation.is_empty(): return {}
 	var payload: Dictionary = choice.get("payload", {})
-	var response: Dictionary = await _gateway.transformation_preview(captured_run, str(payload.get("cardInstanceId", "")), operation, str(payload.get("upgradeId", "")), payload.get("transformationId"))
+	var upgrade_id := str(payload.upgradeId) if payload.get("upgradeId") != null else ""
+	var response: Dictionary = await _gateway.transformation_preview(captured_run, str(payload.get("cardInstanceId", "")), operation, upgrade_id, payload.get("transformationId"))
 	if not response.ok or captured_run != str(_run.get("runId", "")) or captured_sequence != int(_run.get("sequence", -1)): return {}
 	if int(response.data.get("expectedSequence", -2)) != captured_sequence: return {}
 	return response.data.duplicate(true)

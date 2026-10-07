@@ -5,6 +5,9 @@ using Core.Combat;
 using Core.Combat.Models;
 using Core.Common;
 using Core.Determinism;
+using Core.Calculations;
+using Core.CardZones;
+using Core.Effects;
 
 namespace Core.Run;
 
@@ -33,11 +36,35 @@ public sealed record DecodedGameplayCommand(
 
 public sealed record GameplayTransitionFrame
 {
+    private ImmutableArray<EffectExecutionStep> _effectSteps = [];
+    private ImmutableArray<CalculationResult> _calculations = [];
+    private ImmutableArray<EffectApplicationRecord> _applications = [];
+    private ImmutableArray<CardZoneFlowStepRecord> _cardZoneSteps = [];
     public int FrameIndex { get; init; }
     public ulong Step { get; init; }
     public string Scope { get; init; } = "run";
     public string Kind { get; init; } = string.Empty;
     public JsonElement Resolution { get; init; }
+    public IReadOnlyList<EffectExecutionStep> EffectSteps
+    {
+        get => _effectSteps;
+        init => _effectSteps = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CalculationResult> Calculations
+    {
+        get => _calculations;
+        init => _calculations = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<EffectApplicationRecord> Applications
+    {
+        get => _applications;
+        init => _applications = value?.ToImmutableArray() ?? [];
+    }
+    public IReadOnlyList<CardZoneFlowStepRecord> CardZoneSteps
+    {
+        get => _cardZoneSteps;
+        init => _cardZoneSteps = value?.ToImmutableArray() ?? [];
+    }
 }
 
 public sealed record GameplayTransitionFact

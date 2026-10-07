@@ -38,13 +38,13 @@ Nenhum save, conteúdo publicado ou runtime da demo será apagado para ajustar s
 | 5 — Condensação | Concluída — modo inicial | Core 1.255 / API 181, sem falhas; 29 regressões novas. |
 | 6 — Transformações | Concluída — 6a + 6b | Core 1.325 / API 183; 27 regressões Core e 2 API novas na 6b. |
 | 7 — Afinidades/modificadores | Concluída | Core 1.364 / API 183; 39 regressões Core novas. |
-| 8 — Multi-hit | Contratos concluídos — 8a/8b1/8b2; gate integrado na etapa 14 | Core 1.478 / API 183; 20 regressões adicionais de sharing/scopes. |
-| 9 — Salto por abate | Contrato concluído; gate integrado na etapa 14 | Core 1.500 / API 183; 22 regressões novas. |
-| 10 — Atributos persistentes | Contrato concluído; integrado à jornada nas etapas 11/14 | Core 1.511 / API 183; 11 regressões novas. |
-| 11 — Oportunidades/conteúdo | Contrato e setting concluídos; jornada REST no gate final | Core 1.518 / API 183; 7 regressões novas. |
-| 12 — API/preview | Pendente | |
-| 13 — Godot | Pendente | |
-| 14 — Verificação integrada | Pendente | |
+| 8 — Multi-hit | Concluída — contratos e gate integrado | Sharing/scopes, jornada combinada, persistência e replay na etapa 14. |
+| 9 — Salto por abate | Concluída — contratos e gate integrado | Continuação causal executada na jornada; reinício após salto na etapa 14. |
+| 10 — Atributos persistentes | Concluída — contratos e jornada | Preparação com traces duráveis e replay na etapa 14. |
+| 11 — Oportunidades/conteúdo | Concluída — setting e jornada REST | Nove stops, quatro transformações na mesma instância, dez runs idênticas. |
+| 12 — API/preview | Concluída | Core 1.518 / API 184; escopo do snapshot, procs e before/after. |
+| 13 — Godot | Concluída | Layers, volatile_core, resolutions, smoke, UI smoke e gameplay polish: zero falhas. |
+| 14 — Verificação integrada | Implementação técnica concluída; playtest humano pendente | Core 1.524 / API 186; dez jornadas idênticas; Godot aprovado. |
 
 ## Etapa 1 — contrato executável
 
@@ -260,3 +260,31 @@ Manifesto tem slots individuais `core_*`, nomes PT/EN e fallback inglês.
 Godot layers, volatile_core, resolutions, smoke, UI smoke e gameplay polish:
 zero falhas. Layout cobre mão vazia e até 3840×2160, incluindo 2560×1080.
 Verificação visual humana e balanceamento são gates separados.
+
+## Etapa 14 — gate técnico final
+
+- Engine version 20: RNG único em atividades sintéticas e traces de preparação/
+  boundaries preservados pelo plano e coordenador, nos frames/fatos do commit.
+- Validação de atributos em ativação/rebase e referências de continuação em
+  upgrades dormentes; nenhum save ou snapshot histórico foi reescrito.
+- Jornada publicada com nove stops; quatro upgrades na mesma instância por
+  oportunidades normais. Modo sandbox autoriza branches por policy JSON.
+- Core: 1.524 aprovados, zero falhas/skip (26s). API: 186 aprovados; jornada de dez
+  repetições (4m29s) e 185 regressões (1m16s), zero falhas/skip. Grupos separados para não confundir
+  a comparação determinística com a duração das outras suítes.
+- Dez hosts/stores: 47 comandos em cada run, recibos e commits integrais idênticos.
+  Hash final `229f2c00a8ac6136a8b377492dc9c5c65d0da02b2036c9dd44d00ace225ea476`.
+  Reinício após transformação/salto; fork com acúmulo, consumo isolado e replay.
+- Godot layers, volatile_core, volatile_core_online, resolutions, smoke, UI smoke,
+  gameplay polish e diálogo: validação headless. O teste de diálogo foi migrado
+  do campo deck removido para a projeção genérica de zonas, sem fallback legado.
+- p95 HTTP core 310,77ms (p99 528,21ms, max 1.301,98ms); TCP Godot 972ms
+  (max 1.418ms). Executor medido com 2/48/98 stacks e 2/20/100 alvos. p95 abaixo
+  de 1s no ambiente medido, **não** promessa de todas as respostas abaixo de 1s.
+- Documentação de conteúdo, atributos, GDD, OpenAPI, README e guia Godot atualizada.
+  Referência legada e mudanças preexistentes preservadas; nenhum push.
+- Gates integrados das etapas 8–11 fechados tecnicamente. Entendimento, diversão,
+  ritmo e balanceamento dependem de playtest humano, não de snapshots aprovados.
+
+Evidências, medições e limites: [relatório final](CORE_GAMEPLAY_GAPS_VALIDATION_REPORT.md).
+Commit: `test: verify deterministic core runs and document final contracts`.

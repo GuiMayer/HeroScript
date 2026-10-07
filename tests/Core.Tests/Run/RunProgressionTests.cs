@@ -367,6 +367,34 @@ public sealed class RunProgressionTests
     }
 
     [Fact]
+    public void ActivityBoundary_PersistsRandomInputDrawsInTheSingleRunContext()
+    {
+        var effect = new EffectDefinition
+        {
+            EffectId = "random-entry", Type = EffectType.MODIFY_RESOURCE,
+            Target = EffectTarget.SELF, TargetResource = "gold",
+            Operation = ResourceEffectOperation.ADD, FlatValue = 3,
+            RandomInputs = [new() { InputId = "roll", Chance = .5f }]
+        };
+        var node = Node("shop", RunActivityType.Shop, "shop") with { EntryEffects = [effect] };
+        var run = State("shop", RunMapTransitions.Create([node], _activities).Value,
+            new RunProgressionPolicyDefinition()) with
+        {
+            ResolvedMode = null,
+            ResourceState = new() { OwnerId = "player", Resources = new Dictionary<string, ResourcePool>
+            { ["gold"] = ResourcePool.Materialize(new ResourceDefinition
+                { ResourceId = "gold", DisplayName = "Gold", DefaultCurrent = 5, DefaultMax = 100 }) } }
+        };
+        var executor = new RunActivityEffectExecutor(new EffectTriggerExecutor(
+            Mock.Of<IRuntimeFormulaEvaluator>(), new ImmutableEffectProcessor(), allowUnconfiguredCalculations: true));
+        var result = executor.Execute(run, run.Map.Nodes[0], RunActivityBoundary.Entry);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(run.Determinism.DrawDouble().Context.RandomState, result.Value.State.Determinism.RandomState);
+        Assert.NotEqual(run.Determinism.RandomState, result.Value.State.Determinism.RandomState);
+        Assert.Equal(run.Determinism.DrawDouble().Value, result.Value.Steps[0].RandomInputs[0].Roll);
+    }
+
+    [Fact]
     public void RegistryRejectsUnknownActivityAndMissingRequiredDefinition()
     {
         Assert.True(_activities.Validate(new RunActivityDefinition
