@@ -5,7 +5,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 ## Ordem e estado
 
 1. Contratos e baseline: concluída.
-2. Recursos persistentes por ator: pendente.
+2. Recursos persistentes por ator: concluída.
 3. Transporte entre encontros e recuperação transacional: pendente.
 4. Probabilidades calculadas e fatos de sorteio: pendente.
 5. Críticos por níveis e previews: pendente.
@@ -30,4 +30,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 
 - Baseline recebido: `fe9c8d5`; dois planos e dois identificadores Godot ainda não versionados.
 - Baseline: 31 testes aprovados (atributos persistentes, setting Ascendant, inputs aleatórios e perfil).
+- Etapa 2: componentes de recursos persistentes, política revisionada opcional por modo, ações explícitas por resultado/retry, validação de identidade/schema/proprietário e limites persistentes. Recursos não listados continuam exclusivos do encontro.
+- Engine version 21: novos snapshots de personagem incluem recursos; saves anteriores não são apagados nem reinterpretados silenciosamente.
+- Gate da etapa 2: suíte Core completa aprovada (1.537 testes) e 67 testes focados aprovados após a validação adicional do grafo. Integração de saída/recuperação ainda pertence à etapa 3.
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

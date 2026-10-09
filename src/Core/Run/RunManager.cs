@@ -244,6 +244,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
         if (definition.PlayerDefinitionId != null && state.PlayerEntity == null)
             return Result<RunState>.Failure("Persistent player requires a pinned content runtime");
+        if (state.ResolvedMode?.ActorResourceLifecyclePolicy is { } actorResourcePolicy)
+        {
+            var validPlayer = ActorResourceLifecyclePolicyValidator.ValidatePlayer(actorResourcePolicy, state.PlayerEntity);
+            if (validPlayer.IsFailure) return Result<RunState>.Failure(validPlayer.Error);
+        }
 
         state = state with
         {

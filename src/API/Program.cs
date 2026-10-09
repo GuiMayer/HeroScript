@@ -331,6 +331,12 @@ builder.Services.AddSingleton<IResourceCatalog<RunProgressionPolicyDefinition>>(
         sp.GetRequiredService<IResourceLoader>(),
         "run-progression-policies",
         definition => definition.ProgressionPolicyId));
+builder.Services.AddSingleton<IResourceCatalog<ActorResourceLifecyclePolicyDefinition>>(sp =>
+    new ResourceCatalog<ActorResourceLifecyclePolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(),
+        sp.GetRequiredService<IResourceLoader>(),
+        "actor-resource-lifecycle-policies",
+        definition => definition.ActorResourceLifecyclePolicyId));
 builder.Services.AddSingleton<IResourceCatalog<CombatRulesDefinition>>(sp =>
     new ResourceCatalog<CombatRulesDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -380,7 +386,8 @@ builder.Services.AddSingleton<GameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IResourceCatalog<EnemyPoolDefinition>>(),
     sp.GetRequiredService<IContentRuntimeResolver>(),
     new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("GameModeResolver")),
-    sp.GetRequiredService<IResourceCatalog<Core.CardZones.CardZoneSystemDefinition>>()));
+    sp.GetRequiredService<IResourceCatalog<Core.CardZones.CardZoneSystemDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<ActorResourceLifecyclePolicyDefinition>>()));
 builder.Services.AddSingleton<IGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IRevisionedGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>

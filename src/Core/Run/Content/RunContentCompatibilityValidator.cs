@@ -112,7 +112,7 @@ public static class RunContentCompatibilityValidator
             .ToImmutableDictionary(StringComparer.Ordinal);
         if (stats.Count == 0)
             return Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>>.Success(stats);
-        var rebound = PersistentPlayerTransitions.Rebind(actor with { Components = stats }, runtime);
+        var rebound = PersistentPlayerTransitions.RebindAttributes(actor with { Components = stats }, runtime);
         return rebound.IsFailure
             ? Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>>.Failure(rebound.Error)
             : Result<IReadOnlyDictionary<string, Core.Combat.Models.EntityComponentState>>.Success(rebound.Value.Components);

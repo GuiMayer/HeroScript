@@ -1,6 +1,6 @@
 # Volatile Crucible
 
-Setting `volatile-core`, package `heroscript.volatile-core`, launch `core_volatile_run` / `core_volatile`. Depende de `heroscript.base`, sem patches nos settings default/ascendant. Engine version 20.
+Setting `volatile-core`, package `heroscript.volatile-core`, launch `core_volatile_run` / `core_volatile`. Depende de `heroscript.base`, sem patches nos settings default/ascendant. Engine version 21.
 
 ## Loop inicial
 

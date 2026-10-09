@@ -3,7 +3,7 @@
 Selecione **Volatile Crucible** no menu principal e inicie uma jornada. O setting
 publica `core_volatile_run` e `core_volatile`; não use o modo do setting default.
 Se a API já estava aberta antes da atualização, encerre essa instância e inicie
-novamente a demo para carregar o build e conteúdo atuais. Confirme versão 20 em
+novamente a demo para carregar o build e conteúdo atuais. Confirme versão 21 em
 `GET /api/v1/version` e `volatile-core` no catálogo de settings. Saves antigos
 são preservados, não atualizados à força.
 

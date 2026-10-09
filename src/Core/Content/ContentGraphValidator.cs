@@ -64,6 +64,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidatePhaseSequences(runtime, errors);
         ValidateRuns(runtime, errors);
         ValidateResources(runtime, errors);
+        ValidateActorResourcePolicies(runtime, errors);
         ValidateEntities(runtime, errors);
         ValidateCardComponentBundles(runtime, errors);
         ValidateCards(runtime, errors);
@@ -116,6 +117,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "contentBindingPolicyId", "content-binding-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "capabilityPolicyId", "capability-policies");
             RequireProperty(runtime, errors, "modes", id, definition, "progressionPolicyId", "run-progression-policies");
+            if (TryGetProperty(definition, "actorResourceLifecyclePolicyId", out _))
+                RequireProperty(runtime, errors, "modes", id, definition, "actorResourceLifecyclePolicyId", "actor-resource-lifecycle-policies");
             if (TryGetProperty(definition, "cardZoneSystemId", out _))
                 RequireProperty(runtime, errors, "modes", id, definition, "cardZoneSystemId", "card-zone-systems");
             RequireArray(runtime, errors, "modes", id, definition, "cardPoolIds", "card-pools");
@@ -126,6 +129,21 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             {
                 errors.Add($"modes/{id}: {mode.Error}");
                 continue;
+            }
+            if (!string.IsNullOrWhiteSpace(mode.Value.ActorResourceLifecyclePolicyId))
+            {
+                var policy = runtime.GetDefinition<ActorResourceLifecyclePolicyDefinition>(
+                    "actor-resource-lifecycle-policies", mode.Value.ActorResourceLifecyclePolicyId);
+                var run = GetRequiredDefinition<RunDefinition>(runtime, "runs", mode.Value.RunDefinitionId);
+                if (policy.IsSuccess && run.IsSuccess)
+                {
+                    var player = string.IsNullOrWhiteSpace(run.Value.PlayerDefinitionId)
+                        ? Result<Combat.Models.EntityState>.Failure("Actor resource lifecycle requires a persistent player definition")
+                        : PersistentPlayerTransitions.Create("validation-player", run.Value.PlayerDefinitionId, runtime);
+                    var valid = player.IsFailure ? Result.Failure(player.Error)
+                        : ActorResourceLifecyclePolicyValidator.ValidatePlayer(policy.Value, player.Value);
+                    if (valid.IsFailure) errors.Add($"modes/{id}: {valid.Error}");
+                }
             }
             if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId) &&
                 !string.IsNullOrWhiteSpace(mode.Value.RunDefinitionId))
@@ -211,6 +229,19 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 if (card.IsFailure)
                     errors.Add($"card-zone-systems/{id}: unknown card definition {step.CardDefinitionId}");
             }
+        }
+    }
+
+    private static void ValidateActorResourcePolicies(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
+    {
+        foreach (var id in runtime.GetDefinitions("actor-resource-lifecycle-policies").Keys)
+        {
+            var policy = runtime.GetDefinition<ActorResourceLifecyclePolicyDefinition>("actor-resource-lifecycle-policies", id);
+            if (policy.IsFailure) { errors.Add(policy.Error); continue; }
+            var validation = ActorResourceLifecyclePolicyValidator.Validate(policy.Value);
+            if (validation.IsFailure) errors.Add($"actor-resource-lifecycle-policies/{id}: {validation.Error}");
+            foreach (var rule in policy.Value.Rules)
+                Require(runtime, errors, "actor-resource-lifecycle-policies", id, rule.ResourceId, "resources");
         }
     }
 

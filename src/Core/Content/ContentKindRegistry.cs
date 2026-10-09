@@ -130,6 +130,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
     private static IReadOnlyList<ContentKindDescriptor> CreateDefaults() =>
     [
         new("actions", "actions", typeof(ActionDefinition), "actionId"),
+        new("actor-resource-lifecycle-policies", "actor-resource-lifecycle-policies", typeof(ActorResourceLifecyclePolicyDefinition), "actorResourceLifecyclePolicyId"),
         new("boards", "boards", typeof(JsonElement)),
         new("calculation-pipelines", "calculation-pipelines", typeof(CalculationPipelineDefinition), "pipelineId"),
         new("capability-policies", "capability-policies", typeof(CapabilityPolicyDefinition), "capabilityPolicyId"),

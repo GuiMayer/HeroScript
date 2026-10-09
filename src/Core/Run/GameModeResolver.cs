@@ -39,6 +39,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     private readonly ILogger? _logger;
     private readonly IResourceCatalog<RunProgressionPolicyDefinition> _progressionPolicies;
     private readonly IResourceCatalog<CardZoneSystemDefinition>? _cardZoneSystems;
+    private readonly IResourceCatalog<ActorResourceLifecyclePolicyDefinition>? _actorResourcePolicies;
 
     public GameModeResolver(
         IResourceCatalog<GameModeDefinition> modes,
@@ -53,7 +54,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         IResourceCatalog<EnemyPoolDefinition>? enemyPools = null,
         IContentRuntimeResolver? contentRuntimes = null,
         ILogger? logger = null,
-        IResourceCatalog<CardZoneSystemDefinition>? cardZoneSystems = null)
+        IResourceCatalog<CardZoneSystemDefinition>? cardZoneSystems = null,
+        IResourceCatalog<ActorResourceLifecyclePolicyDefinition>? actorResourcePolicies = null)
     {
         _modes = modes ?? throw new ArgumentNullException(nameof(modes));
         _flowRules = flowRules ?? throw new ArgumentNullException(nameof(flowRules));
@@ -68,6 +70,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         _logger = logger;
         _progressionPolicies = progressionPolicies ?? throw new ArgumentNullException(nameof(progressionPolicies));
         _cardZoneSystems = cardZoneSystems;
+        _actorResourcePolicies = actorResourcePolicies;
     }
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName)
@@ -125,6 +128,10 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
+        var actorResources = ResolveActorResources(mode.Value, id => _actorResourcePolicies == null
+            ? Result<ActorResourceLifecyclePolicyDefinition>.Failure("Actor resource lifecycle catalog is not configured")
+            : _actorResourcePolicies.Get(id, configName));
+        if (actorResources.IsFailure) return Result<ResolvedGameMode>.Failure(actorResources.Error);
         CardZoneSystemDefinition? cardZoneSystem = null;
         if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId))
         {
@@ -168,7 +175,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             ContentBindingPolicy = binding.Value,
             CapabilityPolicy = capabilities.Value,
             ProgressionPolicy = progression.Value,
-            CardZoneSystem = cardZoneSystem
+            CardZoneSystem = cardZoneSystem,
+            ActorResourceLifecyclePolicy = actorResources.Value
         });
     }
 
@@ -234,6 +242,9 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         if (policyValidation.IsFailure)
             return Result<ResolvedGameMode>.Failure(policyValidation.Error);
 
+        var actorResources = ResolveActorResources(mode.Value, id => runtime.Value.GetDefinition<ActorResourceLifecyclePolicyDefinition>(
+            "actor-resource-lifecycle-policies", id));
+        if (actorResources.IsFailure) return Result<ResolvedGameMode>.Failure(actorResources.Error);
         CardZoneSystemDefinition? cardZoneSystem = null;
         if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId))
         {
@@ -270,7 +281,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             ContentBindingPolicy = binding.Value,
             CapabilityPolicy = capabilities.Value,
             ProgressionPolicy = progression.Value,
-            CardZoneSystem = cardZoneSystem
+            CardZoneSystem = cardZoneSystem,
+            ActorResourceLifecyclePolicy = actorResources.Value
         });
     }
 
@@ -282,6 +294,18 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
                 $"Combat rules '{combat.CombatRulesId}' requested encounter resolution strategy " +
                 $"'{combat.Flow.EncounterResolution.Strategy}', but only ManualAck is implemented");
         }
+    }
+
+    private static Result<ActorResourceLifecyclePolicyDefinition?> ResolveActorResources(
+        GameModeDefinition mode, Func<string, Result<ActorResourceLifecyclePolicyDefinition>> get)
+    {
+        if (string.IsNullOrWhiteSpace(mode.ActorResourceLifecyclePolicyId))
+            return Result<ActorResourceLifecyclePolicyDefinition?>.Success(null);
+        var policy = get(mode.ActorResourceLifecyclePolicyId);
+        if (policy.IsFailure) return Result<ActorResourceLifecyclePolicyDefinition?>.Failure(policy.Error);
+        var valid = ActorResourceLifecyclePolicyValidator.Validate(policy.Value);
+        return valid.IsFailure ? Result<ActorResourceLifecyclePolicyDefinition?>.Failure(valid.Error)
+            : Result<ActorResourceLifecyclePolicyDefinition?>.Success(policy.Value);
     }
 
     private static Result<T> GetRequired<T>(
