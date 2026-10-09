@@ -38,9 +38,14 @@ func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 	var labels: Dictionary = _appearance.get("card_tag_labels", {})
 	for tag in effective.get("tags", container.get("tags", [])):
 		if labels.has(tag): tags.append(_i18n.text(str(labels[tag])))
+	var preview_note := ""
+	if not rows.is_empty() and not inspection.get("previewScope", {}).get("hasExecutablePreview", false):
+		preview_note = _i18n.text("Base values — select a legal action for a preview")
+	elif inspection.get("previewScope", {}).get("dependsOnRandomInputs", false):
+		preview_note = _i18n.text("Sampled preview — outcome uncertain")
 	return {"rarityId": enum_name(container.get("rarity", appearance.get("rarityId", "")), ["Common", "Uncommon", "Rare", "Legendary"]).to_lower(),
 		"identityTags": tags, "requirements": requirements, "effectRows": rows, "behaviors": behaviors,
-		"previewNote": _i18n.text("Base values — select a legal action for a preview") if not rows.is_empty() and not inspection.get("previewScope", {}).get("hasExecutablePreview", false) else ""}
+		"previewNote": preview_note}
 
 func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary, inspection: Dictionary, rows: Array, behaviors: Array[String], depth := 0) -> void:
 	if depth > 32: return # The authoritative validator applies the same depth bound.
@@ -119,6 +124,8 @@ func _numeric(effect: Dictionary, component_id: String, parameter: String, origi
 		var published: Array = []
 		for step in inspection.get("previewSteps", []):
 			if str(step.get("provenance", {}).get("componentId", "")) != component_id or not step.get("applied", false): continue
+			if step.get("randomInputs", []).any(func(input): return float(input.get("probability", 1.0)) > 0.0 and float(input.get("probability", 1.0)) < 1.0):
+				return {"text": _i18n.text("Varies — inspect")}
 			# Execution IDs are NOT definition IDs. The typed parent identity separates
 			# this component's root impacts from chained effects and continuation hops.
 			if step.get("identity") is Dictionary and step.identity.get("parentProcId") != null: continue

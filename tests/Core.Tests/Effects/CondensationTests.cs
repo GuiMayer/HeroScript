@@ -115,6 +115,20 @@ public sealed class CondensationTests
     }
 
     [Fact]
+    public void NamedCriticalInputDoesNotMultiplyCondensedStacksOrRerollRecipeImplicitly()
+    {
+        var fixture = StackPayloadTests.Fixture(recipe: Recipe(CountResource()));
+        var prepared = Success(fixture.Executor.Execute(Request(fixture.Run, StackPayloadTests.Apply(8))));
+        var effect = Condense() with { RandomInputs = [new() { InputId = "critical", Chance = .5f, Scope = EffectRandomScope.Impact }] };
+        var result = Success(fixture.Executor.Execute(Request(fixture.Run, effect) with { Combat = prepared.State }));
+        var root = Assert.Single(result.Records, record => record.Condensation != null);
+        Assert.Equal(8, root.Condensation!.Inputs["condensation.count"].Value);
+        Assert.Equal(8, result.Calculations.Last().Value);
+        Assert.Single(result.Steps.SelectMany(step => step.RandomInputs));
+        Assert.Equal(prepared.State.Determinism.DrawDouble().Context.RandomState, result.State.Determinism.RandomState);
+    }
+
+    [Fact]
     public void RepeatedParentDoesNotConsumeNewStacksProducedByTheRecipe()
     {
         var output = StackPayloadTests.Apply(1) with { StatusStacks = null, Parameters = [CountParameter(EffectNumericParameter.StatusStacks)] };

@@ -10,6 +10,7 @@
   "content": [
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actor-resource-lifecycle-policies/world_one.json", "kind": "actor-resource-lifecycle-policies", "artifactPath": "actor-resource-lifecycle-policies/world_one.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/ascendant_effect_amount.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/ascendant_effect_amount.json" },
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/ascendant_critical.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/ascendant_critical.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/status-effects/ascendant_statuses.json", "kind": "status-effects", "artifactPath": "status-effects/ascendant_statuses.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/relics/ascendant_relics.json", "kind": "relics", "artifactPath": "relics/ascendant_relics.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/cards/ascendant_cards.json", "kind": "cards", "artifactPath": "cards/ascendant_cards.json" },

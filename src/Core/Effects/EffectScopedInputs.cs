@@ -26,6 +26,8 @@ public sealed record EffectRandomProbabilityDefinition
     public ImmutableArray<string> StageIds { get; init; } = [];
     public CalculationValuePolicy Conversion { get; init; } = new();
     public EffectRandomSharedContextCapture SharedContextCapture { get; init; }
+    public ImmutableSortedDictionary<string, EffectNumericParameterDefinition> Captures { get; init; } =
+        ImmutableSortedDictionary<string, EffectNumericParameterDefinition>.Empty.WithComparers(StringComparer.Ordinal);
 }
 
 /// <summary>Stochastic numeric inputs, not a second damage calculator. A critical is an authored use of these inputs.</summary>
@@ -52,6 +54,8 @@ public sealed record EffectRandomInputResult
     public string CapturedAtProcId { get; init; } = string.Empty;
     public string SnapshotHash { get; init; } = string.Empty;
     public string? RunSnapshotHash { get; init; }
+    public ImmutableSortedDictionary<string, CalculationResult> Captures { get; init; } =
+        ImmutableSortedDictionary<string, CalculationResult>.Empty.WithComparers(StringComparer.Ordinal);
 }
 
 public static class EffectRandomProbabilityPolicies
@@ -64,6 +68,17 @@ public static class EffectRandomProbabilityPolicies
             probability.UnitId != "probability" || !Enum.IsDefined(probability.SharedContextCapture) ||
             probability.StageIds.Any(string.IsNullOrWhiteSpace) || probability.StageIds.Distinct(StringComparer.Ordinal).Count() != probability.StageIds.Length)
             return Result.Failure("Calculated random inputs require a finite numeric source, channel, pipeline and probability unit");
+        if (probability.Captures.Count > 8) return Result.Failure("Random inputs support at most eight numeric captures");
+        foreach (var (id, capture) in probability.Captures)
+        {
+            if (!SafeId(id) || capture.Parameter != EffectNumericParameter.Amount || capture.InputQuantityId != null ||
+                capture.Distribution != null || string.IsNullOrWhiteSpace(capture.PipelineId) ||
+                capture.FormulaValue?.Contains("captures.", StringComparison.OrdinalIgnoreCase) == true)
+                return Result.Failure("Random captures require independent named Amount calculations with an explicit pipeline");
+            var errors = EffectDefinitionValidator.Validate([new EffectDefinition
+                { Type = EffectType.MODIFY_RESOURCE, TargetResource = "__numeric_capture", Parameters = [capture] }]);
+            if (!errors.IsEmpty) return Result.Failure(string.Join(";", errors));
+        }
         return CalculationValuePolicy.Validate(probability.Conversion);
     }
 
@@ -90,6 +105,31 @@ public static class EffectRandomProbabilityPolicies
     private static bool UsesTarget(string? formula) => formula?.Contains("target.", StringComparison.OrdinalIgnoreCase) == true ||
         formula?.Contains("target_", StringComparison.OrdinalIgnoreCase) == true ||
         formula?.Contains("repeat_index", StringComparison.OrdinalIgnoreCase) == true;
+
+    public static Result ValidateCapturePipeline(EffectNumericParameterDefinition capture, CalculationPipelineDefinition pipeline,
+        EffectRandomScope scope, EffectRandomSharedContextCapture context)
+    {
+        var valid = ValidatePipeline(new() { FlatValue = capture.FlatValue, FormulaValue = capture.FormulaValue, Channel = capture.Channel,
+            PipelineId = capture.PipelineId!, StageIds = capture.StageIds, SharedContextCapture = context },
+            pipeline with { UnitId = "probability" }, scope);
+        if (valid.IsFailure) return valid;
+        return capture.UnitId != pipeline.UnitId ? Result.Failure("Random capture unit does not match its pipeline") : Result.Success();
+    }
+
+    internal static bool SafeId(string id) => id.Length is > 0 and <= 64 &&
+        id.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
+}
+
+internal static class EffectRandomInputVariables
+{
+    public static void Add(IDictionary<string, float> variables, EffectRandomInputResult input)
+    {
+        variables[$"rolls.{input.InputId}.success"] = input.Success ? 1 : 0;
+        variables[$"rolls.{input.InputId}.probability"] = input.Probability;
+        foreach (var (id, calculation) in input.Captures) variables[$"rolls.{input.InputId}.values.{id}"] = calculation.Value;
+        foreach (var (id, value) in input.Calculation?.Checkpoints ?? ImmutableSortedDictionary<string, float>.Empty)
+            variables[$"rolls.{input.InputId}.checkpoints.{id}"] = value;
+    }
 }
 
 internal static class EffectInputNamespaces
@@ -97,9 +137,11 @@ internal static class EffectInputNamespaces
     public static bool IsFactVariable(string token)
     {
         if (token is "continuation.requested_change" or "continuation.applied_change" or "continuation.limited_change") return true;
+        if (token.StartsWith("captures.", StringComparison.Ordinal)) return EffectRandomProbabilityPolicies.SafeId(token[9..]);
         if (!token.StartsWith("rolls.", StringComparison.Ordinal)) return false;
         var parts = token.Split('.');
-        return parts.Length == 3 && parts[2] is "success" or "probability" && parts[1].Length is > 0 and <= 64 &&
-            parts[1].All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
+        return parts.Length is 3 or 4 && EffectRandomProbabilityPolicies.SafeId(parts[1]) &&
+            (parts.Length == 3 && parts[2] is "success" or "probability" ||
+             parts.Length == 4 && parts[2] is "values" or "checkpoints" && EffectRandomProbabilityPolicies.SafeId(parts[3]));
     }
 }

@@ -60,8 +60,8 @@ public sealed class VolatileCoreJourneyTests(ITestOutputHelper output)
                         var legal = await Read(client, $"/api/v1/combats/{combatId}/legal-actions?actorId=player");
                         var candidates = (legal.ValueKind == JsonValueKind.Array ? legal : legal.GetProperty("candidates")).EnumerateArray().ToArray();
                         Assert.NotEmpty(candidates);
-                        // Exercise the transformed instance, not whichever equal-ranked ID sorts first.
-                        // IDs include the engine/content revision and their lexical order is not gameplay policy.
+                        // Prefer an observable hop, then soften a target before the transformed hit.
+                        // Never withhold every lethal action: that can keep a lone enemy alive forever.
                         var selected = candidates.OrderBy(candidate => Rank(candidate,
                             usedUpgrades.Contains("core_cascade") ? coreCard : Guid.Empty, !continued)).First();
                         type = selected.GetProperty("command").GetProperty("actionType").GetString()!;
@@ -175,12 +175,13 @@ public sealed class VolatileCoreJourneyTests(ITestOutputHelper output)
             if (needsHop && candidate.GetProperty("steps").EnumerateArray().Any(step =>
                 step.GetProperty("continuation").ValueKind == JsonValueKind.Object &&
                 step.GetProperty("continuation").GetProperty("toEntityId").ValueKind == JsonValueKind.String)) return -2;
-            // Keep a wounded target alive until an overflow hit can be demonstrated.
-            // The legal projection supplies these outcomes; the test does not change engine rules or use cheats.
-            if (needsHop && candidate.GetProperty("applications").EnumerateArray().Any(application =>
+            var lethal = candidate.GetProperty("applications").EnumerateArray().Any(application =>
                 application.GetProperty("resourceOutcome").ValueKind == JsonValueKind.Object &&
-                application.GetProperty("resourceOutcome").GetProperty("causedDefeat").GetBoolean())) return 102;
-            if (command.TryGetProperty("cardInstanceId", out var instance) && instance.GetGuid() == transformedCard) return -1;
+                application.GetProperty("resourceOutcome").GetProperty("causedDefeat").GetBoolean());
+            var transformed = command.TryGetProperty("cardInstanceId", out var instance) && instance.GetGuid() == transformedCard;
+            if (needsHop && !transformed && !lethal &&
+                candidate.GetProperty("cardDefinitionId").GetString() == "core_strike") return -1;
+            if (transformed) return 0;
         }
         var source = candidate.TryGetProperty("cardDefinitionId", out var id) ? id.GetString() : "";
         return source switch { "core_charge_card" => 0, "core_release" => 1, "core_strike" => 2, "core_heal" => 3, "core_recover" => 4, _ => 5 };

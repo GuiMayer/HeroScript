@@ -5,7 +5,7 @@
     "description": "A build-focused actor whose stats are mapped into explicit calculation buckets.",
     "components": [
       { "type": "resources", "componentId": "resources", "pools": { "health": { "current": 100, "max": 100 }, "energy": { "current": 3, "max": 3 }, "block": { "current": 0, "max": 999 }, "mana": { "current": 0, "max": 0 } } },
-      { "type": "stats", "componentId": "stats", "values": { "weapon_damage": 0.45, "spell_damage": 0.35, "elemental_damage": 0.40, "critical_multiplier": 1.75 } }
+      { "type": "stats", "componentId": "stats", "values": { "weapon_damage": 0.45, "spell_damage": 0.35, "elemental_damage": 0.40, "critical_chance": 150, "critical_multiplier": 1.75 } }
     ]
   },
   "ascendant_drone": {

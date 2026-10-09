@@ -29,6 +29,8 @@ public sealed record GameModeDefinition
     public string? ProgressionPolicyId { get; init; }
     public string? ActorResourceLifecyclePolicyId { get; init; }
     public string? CardZoneSystemId { get; init; }
+    public ImmutableSortedDictionary<string, string> DefaultCalculationPipelines { get; init; } =
+        ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
 
     public IReadOnlyList<string> CalculationPipelineIds
     {

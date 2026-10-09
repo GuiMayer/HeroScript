@@ -13,7 +13,11 @@ namespace Core.Calculations;
 public sealed record ResolvedEffectAmount(
     float Value,
     CalculationResult? Calculation,
-    CalculationPipelineDefinition? Pipeline = null);
+    CalculationPipelineDefinition? Pipeline = null)
+{
+    public ImmutableSortedDictionary<string, CalculationResult> Captures { get; init; } =
+        ImmutableSortedDictionary<string, CalculationResult>.Empty.WithComparers(StringComparer.Ordinal);
+}
 
 public interface ICalculationResolver
 {
@@ -51,15 +55,35 @@ public sealed class CalculationResolver(
         valid = EffectRandomProbabilityPolicies.ValidatePipeline(probability, pipeline.Value, scope);
         if (valid.IsFailure) return Result<ResolvedEffectAmount>.Failure(valid.Error);
         var sharedSource = scope != EffectRandomScope.Impact && probability.SharedContextCapture == EffectRandomSharedContextCapture.SourceOnly;
+        var variables = context.Variables.Where(pair => !pair.Key.StartsWith("captures.", StringComparison.OrdinalIgnoreCase) &&
+            (!sharedSource || !pair.Key.StartsWith("target.", StringComparison.OrdinalIgnoreCase) &&
+                !pair.Key.StartsWith("target_", StringComparison.OrdinalIgnoreCase) && pair.Key is not ("target_index" or "repeat_index")))
+            .ToDictionary(StringComparer.Ordinal);
+        var captures = ImmutableSortedDictionary.CreateBuilder<string, CalculationResult>(StringComparer.Ordinal);
+        var captureContext = context with { CaptureOnly = true, Target = sharedSource ? null : context.Target, Variables = variables };
+        foreach (var (id, capture) in probability.Captures)
+        {
+            var capturePipeline = ResolvePipeline(owner with { CalculationChannel = capture.Channel,
+                CalculationPipelineId = capture.PipelineId }, context.Run, runtime.Value);
+            if (capturePipeline.IsFailure) return Result<ResolvedEffectAmount>.Failure(capturePipeline.Error);
+            valid = EffectRandomProbabilityPolicies.ValidateCapturePipeline(capture, capturePipeline.Value, scope, probability.SharedContextCapture);
+            if (valid.IsFailure) return Result<ResolvedEffectAmount>.Failure(valid.Error);
+            var captured = ResolveNumeric(owner with { FlatValue = capture.FlatValue, FormulaValue = capture.FormulaValue,
+                CalculationChannel = capture.Channel, CalculationPipelineId = capture.PipelineId },
+                calculationId + ":capture:" + id, captureContext with { StageIds = capture.StageIds }, capture.UnitId,
+                capture.Conversion, "CapturedValue");
+            if (captured.IsFailure) return captured;
+            captures[id] = captured.Value.Calculation!;
+            variables["captures." + id] = captured.Value.Value;
+        }
         var result = ResolveNumeric(numeric, calculationId, context with { CaptureOnly = true, StageIds = probability.StageIds,
             Target = sharedSource ? null : context.Target,
-            Variables = sharedSource ? context.Variables.Where(pair => !pair.Key.StartsWith("target.", StringComparison.OrdinalIgnoreCase) &&
-                !pair.Key.StartsWith("target_", StringComparison.OrdinalIgnoreCase) &&
-                pair.Key is not ("target_index" or "repeat_index")).ToImmutableDictionary(StringComparer.Ordinal) : context.Variables },
+            Variables = variables },
             probability.UnitId, probability.Conversion, "Probability");
         if (result.IsFailure) return result;
         return result.Value.Value is < 0 or > 1 || !float.IsFinite(result.Value.Value)
-            ? Result<ResolvedEffectAmount>.Failure("Calculated probability must be finite and within [0, 1]") : result;
+            ? Result<ResolvedEffectAmount>.Failure("Calculated probability must be finite and within [0, 1]")
+            : Result<ResolvedEffectAmount>.Success(result.Value with { Captures = captures.ToImmutable() });
     }
 
     public Result<ResolvedEffectAmount> ResolveParameter(EffectDefinition owner,
@@ -100,7 +124,7 @@ public sealed class CalculationResolver(
         }
         if (!float.IsFinite(amount))
             return Result<ResolvedEffectAmount>.Failure("Effect amount must be finite");
-        if (parameterAttribute != "Probability" && effect.Type is EffectType.DAMAGE or EffectType.HEAL && amount < 0)
+        if (parameterAttribute is not ("Probability" or "CapturedValue") && effect.Type is EffectType.DAMAGE or EffectType.HEAL && amount < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL require non-negative amounts; use MODIFY_RESOURCE for signed changes");
 
         CalculationPipelineDefinition pipeline;
@@ -158,7 +182,7 @@ public sealed class CalculationResolver(
             Variables = context.Variables
         }, pipeline);
         if (calculated.IsFailure) return Result<ResolvedEffectAmount>.Failure(calculated.Error);
-        if (parameterAttribute != "Probability" && effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
+        if (parameterAttribute is not ("Probability" or "CapturedValue") && effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL pipelines must produce non-negative amounts");
         return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value, pipeline));
     }
@@ -252,6 +276,13 @@ public sealed class CalculationResolver(
     public static Result<CalculationPipelineDefinition> ResolvePipeline(EffectDefinition effect, RunState run, ContentRuntime runtime)
     {
         var enabled = run.ResolvedMode?.Definition.CalculationPipelineIds ?? [];
+        if (string.IsNullOrWhiteSpace(effect.CalculationPipelineId) &&
+            run.ResolvedMode?.Definition.DefaultCalculationPipelines.TryGetValue(effect.CalculationChannel, out var defaultId) == true)
+        {
+            if (string.IsNullOrWhiteSpace(defaultId))
+                return Result<CalculationPipelineDefinition>.Failure("Default calculation pipeline ID cannot be empty");
+            return ResolvePipeline(effect with { CalculationPipelineId = defaultId }, run, runtime);
+        }
         if (!string.IsNullOrWhiteSpace(effect.CalculationPipelineId))
         {
             if (!enabled.Contains(effect.CalculationPipelineId, StringComparer.Ordinal))

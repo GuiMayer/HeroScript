@@ -7,8 +7,8 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 1. Contratos e baseline: concluída.
 2. Recursos persistentes por ator: concluída.
 3. Transporte entre encontros e recuperação transacional: concluída.
-4. Probabilidades calculadas e fatos de sorteio: implementada; gate REST em verificação.
-5. Críticos por níveis e previews: pendente.
+4. Probabilidades calculadas e fatos de sorteio: concluída.
+5. Críticos por níveis e previews: concluída.
 6. Catálogo de desbloqueios e contribuições: pendente.
 7. Elegibilidade congelada e concessões: pendente.
 8. Contratos REST e apresentação: pendente.
@@ -41,5 +41,11 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Etapa 4: probabilidade numérica pelo `CalculationResolver`, unidade explícita, CaptureOnly, validação de contratos compartilhados, captura Action/ParentProc/Impact e fatos com probabilidade/cálculo/revisão/snapshots. Disponível para qualquer efeito, inclusive stacks; não há calculador específico de dano/crítico.
 - Engine version 22: fingerprints e traces incorporam novos fatos. Launcher passa a exigir `calculated-random-inputs`; versões anteriores/saves reais não foram reiniciados ou apagados.
 - Gate Core após etapa 4: 1.569 testes aprovados, incluindo 22 casos novos de probabilidade, publicação, rollback e repetição/serialização. Sintaxe do launcher validada.
-- A jornada REST antiga dependia de ordenação lexical de IDs e eliminava alvos antes de exercer overflow. O jogador de teste agora prioriza a instância transformada e usa a projeção legal para preservar alvos até demonstrar uma continuação; as regras da engine e a exigência de executar o salto não foram enfraquecidas. O gate REST completo será registrado após sua execução.
+- A jornada REST antiga dependia de ordenação lexical de IDs e eliminava alvos antes de exercer overflow. Uma primeira correção preservava alvos indefinidamente e foi substituída: o bot prioriza saltos projetados e ataques não letais que preparam a instância transformada, mas nunca bloqueia todos os ataques letais. As regras da engine e a exigência de executar o salto não foram enfraquecidas.
+- Etapa 5: capturas numéricas genéricas, namespaces reservados, fato crítico consumido pela pipeline, default de canal explícito no modo, fixture Ascendant multinível e previews locais limitados/condicionais. Corrigido o suporte de módulo na simulação do acumulador matemático; não foi criado calculador específico de crítico.
+- Engine version 23 e capability `multi-tier-random-previews`. Godot sinaliza preview amostrado e não apresenta o valor aleatório como garantido; fallback inglês e tradução portuguesa mantidos.
+- Gate Core: 1.590 testes aprovados, incluindo capturas, crítico real, child sem multiplicação/reroll implícitos, condensação genérica e módulo/arity. Gate REST: 194 testes aprovados + jornada pesada aprovada separadamente (195 no total). Teste Godot de apresentação aprovado; permanece aviso preexistente de dois objetos no encerramento.
+- Jornada REST em dez stores/hosts independentes: 55 comandos por tentativa; receipts, commits, hash final, restart e replay idênticos. Condensação e salto causal efetivamente executados. Hash final `e0bec7167f18d8ebef09a9d97c129601fd9e0b7a1a032df4f4353bdb4fd1d01c`.
+- Medição local in-process da jornada (820 comandos/consultas): p95 261,53 ms, p99 422,79 ms, máximo 777,05 ms. Comandos finais p95 402,16 ms; avaliações p95 183,03 ms. Não constitui certificação com histórico grande nem substitui a etapa 10.
+- Próxima etapa: catálogo de desbloqueios e contribuições autoritativas (6), seguido da elegibilidade congelada (7). Essas funcionalidades ainda não estão implementadas.
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

@@ -494,5 +494,6 @@
   "No active journey in this setting. Start a new journey.": "No active journey in this setting. Start a new journey.",
   "This journey does not match the selected setting, player or mode, or is no longer active.": "This journey does not match the selected setting, player or mode, or is no longer active.",
   "The selected setting changed. Try again.": "The selected setting changed. Try again.",
-  "Restart the engine to enable setting-specific profiles.": "Restart the engine to enable setting-specific profiles."
+  "Restart the engine to enable setting-specific profiles.": "Restart the engine to enable setting-specific profiles.",
+  "Sampled preview — outcome uncertain": "Sampled preview — outcome uncertain"
 }

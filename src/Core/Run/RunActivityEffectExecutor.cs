@@ -25,6 +25,7 @@ public sealed record RunActivityEffectResult
         step.Parameters.Select(parameter => parameter.Calculation).OfType<Core.Calculations.CalculationResult>()
             .Concat(step.PayloadCalculations)
             .Concat(step.RandomInputs.Select(input => input.Calculation).OfType<Core.Calculations.CalculationResult>())
+            .Concat(step.RandomInputs.SelectMany(input => input.Captures.Values))
             .Concat(step.Calculation == null ? [] : new[] { step.Calculation })
             .Concat(step.SequenceBudgets.Select(budget => budget.Capture))
             .Concat(step.Continuation?.Overflow == null ? [] : new[] { step.Continuation.Overflow }))

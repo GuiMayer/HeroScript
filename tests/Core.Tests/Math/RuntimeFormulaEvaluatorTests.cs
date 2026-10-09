@@ -133,4 +133,35 @@ public class RuntimeFormulaEvaluatorTests
         _mathEngine.Verify(engine => engine.BuildFromFormula(
             It.IsAny<string>(), It.IsAny<float>(), It.IsAny<Dictionary<string, float>>()), Times.Never);
     }
+
+    [Theory]
+    [InlineData("150 % 100 / 100", .5f)]
+    [InlineData("200 % 100 / 100", 0f)]
+    [InlineData("150.5 % 100 / 100", .505f)]
+    [InlineData("-150 % 100", -50f)]
+    public void InlineModuloUsesRealAccumulatorSimulation(string expression, float expected)
+    {
+        var result = _evaluator.Evaluate(expression);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(expected, result.Value, 5);
+    }
+
+    [Fact]
+    public void InlineModuloByZeroFailsInsteadOfReturningNonFiniteValue()
+    {
+        var result = _evaluator.Evaluate("150 % 0");
+        Assert.True(result.IsFailure);
+        Assert.Contains("zero", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData("MOD")]
+    [InlineData("MODULO")]
+    public void ModuloAccumulatorValidatesItsSingleOperand(string operation)
+    {
+        Assert.Equal(50f, MathEngine.SimulateOperationResult(operation, 150f, [100f]));
+        Assert.Throws<ArgumentException>(() => MathEngine.SimulateOperationResult(operation, 150f, []));
+        Assert.Throws<ArgumentException>(() => MathEngine.SimulateOperationResult(operation, 150f, [10f, 20f]));
+        Assert.Throws<DivideByZeroException>(() => MathEngine.SimulateOperationResult(operation, 150f, [0f]));
+    }
 }

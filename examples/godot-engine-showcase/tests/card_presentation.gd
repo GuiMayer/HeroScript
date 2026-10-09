@@ -61,6 +61,11 @@ func _run() -> void:
 	var variable_trace := inspection(9, 6)
 	variable_trace.previewSteps.append({"applied": true, "provenance": {"componentId": "impact"}, "identity": {"parentProcId": null}, "calculation": {"value": 4, "baseValue": 6}})
 	check(not sections.sections(variable_trace, {}).effectRows[0].segments[1].has("value"), "different impact/target values are declared variable instead of inventing a single value")
+	var random_trace := inspection(9, 6)
+	random_trace.previewScope.dependsOnRandomInputs = true
+	random_trace.previewSteps[0].randomInputs = [{"probability": 0.5}]
+	var random_model: Dictionary = sections.sections(random_trace, {})
+	check(not random_model.effectRows[0].segments[1].has("value") and random_model.previewNote == "Sampled preview — outcome uncertain", "sampled critical impacts do not pretend to be guaranteed card values")
 	var formula := inspection(9, 6)
 	formula.compiledContainer.components[0].effect.formulaValue = "player.strength + 6"
 	check(sections.sections(formula, {}).effectRows[0].segments[1].baseValue == 6, "formula baseline comes from the published calculation")

@@ -1,0 +1,43 @@
+{
+  "ascendant_critical_chance": {
+    "pipelineId": "ascendant_critical_chance", "channel": "critical_chance", "unitId": "percent",
+    "buckets": [{ "bucketId": "chance", "order": 10, "operation": "Add" }],
+    "statInfluenceBindings": [{ "bindingId": "actor.chance", "scope": "Actor", "componentId": "stats",
+      "valueId": "critical_chance", "channel": "critical_chance", "bucket": "chance", "missingValue": "Error" }]
+  },
+  "ascendant_critical_bonus": {
+    "pipelineId": "ascendant_critical_bonus", "channel": "critical_bonus", "unitId": "factor",
+    "buckets": [{ "bucketId": "bonus", "order": 10, "operation": "Add" }],
+    "statInfluenceBindings": [{ "bindingId": "actor.multiplier", "scope": "Actor", "componentId": "stats",
+      "valueId": "critical_multiplier", "channel": "critical_bonus", "bucket": "bonus", "missingValue": "Error" }]
+  },
+  "ascendant_critical_probability": {
+    "pipelineId": "ascendant_critical_probability", "channel": "critical_probability", "unitId": "probability",
+    "stages": [{ "stageId": "guaranteed", "scope": "Actor" }, { "stageId": "fraction", "scope": "Actor" }],
+    "buckets": [
+      { "bucketId": "tiers", "stageId": "guaranteed", "order": 10, "operation": "Formula", "formula": "bucket.input / 100", "rounding": "Floor" },
+      { "bucketId": "fraction", "stageId": "fraction", "order": 20, "operation": "Formula", "formula": "captures.chance % 100 / 100" }
+    ]
+  },
+  "ascendant_critical_amount": {
+    "pipelineId": "ascendant_critical_amount", "channel": "effect_amount",
+    "buckets": [
+      { "bucketId": "flat", "order": 10, "operation": "Add" },
+      { "bucketId": "increased", "order": 20, "operation": "AddPercent" },
+      { "bucketId": "elemental", "order": 30, "operation": "AddPercent" },
+      { "bucketId": "more", "order": 40, "operation": "Multiply" },
+      { "bucketId": "critical", "order": 50, "operation": "Formula", "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input" },
+      { "bucketId": "vulnerability", "order": 60, "operation": "Multiply" },
+      { "bucketId": "mitigation", "order": 70, "operation": "ConsumeCapacity" },
+      { "bucketId": "final", "order": 80, "operation": "Add", "rounding": "Round", "midpointRounding": "AwayFromZero", "minimum": 0 }
+    ],
+    "statInfluenceBindings": [
+      { "bindingId": "actor.weapon-damage.increased", "scope": "Actor", "componentId": "stats", "valueId": "weapon_damage", "channel": "effect_amount", "bucket": "increased", "requiredTags": ["damage", "attack"], "missingValue": "Ignore" },
+      { "bindingId": "actor.spell-damage.increased", "scope": "Actor", "componentId": "stats", "valueId": "spell_damage", "channel": "effect_amount", "bucket": "increased", "requiredTags": ["damage", "spell"], "missingValue": "Ignore" },
+      { "bindingId": "actor.elemental-damage", "scope": "Actor", "componentId": "stats", "valueId": "elemental_damage", "channel": "effect_amount", "bucket": "elemental", "requiredTags": ["damage", "elemental"], "missingValue": "Ignore" }
+    ],
+    "resourceInfluenceBindings": [{ "bindingId": "target.block.mitigation", "scope": "Target", "resourceId": "block", "field": "Current",
+      "channel": "effect_amount", "bucket": "mitigation", "requiredTags": ["effect.damage"], "excludedTags": ["piercing"], "missingResource": "Ignore",
+      "settlement": { "operation": "SUBTRACT", "field": "Current", "useEffectiveValue": true } }]
+  }
+}

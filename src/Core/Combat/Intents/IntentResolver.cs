@@ -5,6 +5,8 @@ using Core.Combat.Models;
 using Core.Common;
 using Core.Effects;
 using Core.Run;
+using Core.Calculations;
+using Core.Content;
 
 namespace Core.Combat.Intents;
 
@@ -13,15 +15,21 @@ public sealed class IntentResolver : IIntentResolver
     private readonly IDecisionPolicyRegistry _decisions;
     private readonly IActionManager _actions;
     private readonly ILegalActionResolver _legalActions;
+    private readonly ICalculationEngine? _calculations;
+    private readonly IContentRuntimeResolver? _runtimes;
 
     public IntentResolver(
         IDecisionPolicyRegistry decisions,
         IActionManager actions,
-        ILegalActionResolver legalActions)
+        ILegalActionResolver legalActions,
+        ICalculationEngine? calculations = null,
+        IContentRuntimeResolver? runtimes = null)
     {
         _decisions = decisions ?? throw new ArgumentNullException(nameof(decisions));
         _actions = actions ?? throw new ArgumentNullException(nameof(actions));
         _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
+        _calculations = calculations;
+        _runtimes = runtimes;
     }
 
     public Result<CombatIntent> ResolveIntent(
@@ -92,6 +100,12 @@ public sealed class IntentResolver : IIntentResolver
     private CombatIntent BuildIntent(RunState run, CombatState combat, DecisionPolicyResult decision)
     {
         var candidate = decision.Candidate;
+        ContentRuntime? runtime = null;
+        if (_runtimes != null)
+        {
+            var resolved = _runtimes.Resolve(run.Determinism.ContentRevision, run.ConfigName);
+            if (resolved.IsSuccess) runtime = resolved.Value;
+        }
         ActionDefinition? action = null;
         if (!string.IsNullOrWhiteSpace(candidate.ActionId))
         {
@@ -119,10 +133,13 @@ public sealed class IntentResolver : IIntentResolver
             PreviewApplications = candidate.Applications,
             PreviewCalculations = candidate.Calculations,
             PreviewUncertain = candidate.OutcomeUncertain ||
+                RandomOutcomePreviewProjector.HasStochasticInput(candidate.Steps) ||
                 !string.Equals(combat.ActivationState?.ActiveActorId,
                     candidate.Command.ActorId,
                     StringComparison.Ordinal),
             PreviewFingerprint = candidate.ResolutionFingerprint,
+            RandomOutcomes = RandomOutcomePreviewProjector.Project(candidate.Steps,
+                runtime, _calculations),
             DecisionFingerprint = decision.DecisionFingerprint,
             StateFingerprint = decision.StateFingerprint,
             Priority = decision.Priority,

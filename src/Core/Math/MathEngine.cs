@@ -1087,6 +1087,12 @@ namespace Core.Math
                 
                 case "NEGATE":
                     return -currentValue;
+                case "MODULO":
+                case "MOD":
+                    if (operands.Length != 1)
+                        throw new ArgumentException("MODULO requires exactly one operand (divisor)");
+                    if (operands[0] == 0) throw new DivideByZeroException("Cannot compute modulo with divisor zero");
+                    return currentValue % operands[0];
                 
                 default:
                     throw new InvalidOperationException($"Unknown operation: {operation}");

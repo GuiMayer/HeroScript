@@ -1,5 +1,25 @@
 # Changelog do contrato público
 
+## v1 — 2026-10-09
+
+- Engine versions 21–23 adicionam políticas revisionadas de recursos persistentes
+  por ator, transporte entre encontros e owner binding explícito nas atividades.
+  A carteira da run continua separada dos recursos do personagem.
+- Inputs aleatórios podem calcular probabilidades e capturas numéricas pelas
+  pipelines publicadas, registrando fatos imutáveis por Action/ParentProc/Impact.
+- Inspections e intents publicam `randomOutcomes`: alternativas numéricas locais,
+  condicionais e limitadas, nunca uma faixa garantida do resultado global.
+  Previews estocásticos usam `SampledPathNotGuaranteedOutcome`; ações/intents
+  sinalizam incerteza. Leituras não alteram RNG ou estado.
+- O host anuncia `persistent-actor-resources`, `calculated-random-inputs` e
+  `multi-tier-random-previews`; o launcher exige as três para reutilizar um host.
+- Contratos e exemplos: [recursos persistentes](../content/actor-resource-lifecycle.md),
+  [probabilidade](../content/calculated-random-inputs.md) e
+  [capturas/críticos/previews](../content/multi-tier-critical-inputs.md).
+- Não há migração silenciosa de saves nem promessa de replay de versões de
+  execução históricas incompatíveis. Desbloqueios e elegibilidade do mundo 1
+  permanecem nas próximas etapas do plano.
+
 ## v1 — 2026-10-07
 
 - Todas as leituras de `/api/v1/profiles/{playerId}` (incluindo `/stats`, `/unlocks`,

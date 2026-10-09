@@ -36,8 +36,18 @@
     "tags": ["ascendant", "attack", "physical", "critical", "rare"],
     "components": [
       { "type": "cost", "componentId": "cost.energy", "order": 10, "costs": { "costs": [{ "resourceId": "energy", "amount": 2 }] } },
-      { "type": "influence", "componentId": "influence.critical.training", "order": 12, "channel": "effect_amount", "bucket": "critical", "value": 1.15, "requiredTags": ["damage", "critical"] },
-      { "type": "effect", "componentId": "effect.damage", "order": 20, "effect": { "effectId": "ascendant_critical_lance.damage", "type": "DAMAGE", "target": "TARGET", "flatValue": 7, "targetResource": "health", "tags": ["damage", "attack", "physical", "critical"] } },
+      { "type": "influence", "componentId": "influence.critical.training", "order": 12, "channel": "critical_bonus", "bucket": "bonus", "value": 0.15, "requiredTags": ["damage", "critical"] },
+      { "type": "effect", "componentId": "effect.damage", "order": 20, "effect": {
+        "effectId": "ascendant_critical_lance.damage", "type": "DAMAGE", "target": "TARGET", "flatValue": 7,
+        "calculationPipelineId": "ascendant_critical_amount", "targetResource": "health", "tags": ["damage", "attack", "physical", "critical"],
+        "randomInputs": [{ "inputId": "critical", "scope": "Impact", "probability": {
+          "formulaValue": "captures.chance + 0", "channel": "critical_probability", "pipelineId": "ascendant_critical_probability", "unitId": "probability",
+          "captures": {
+            "chance": { "parameter": "Amount", "flatValue": 0, "channel": "critical_chance", "pipelineId": "ascendant_critical_chance", "unitId": "percent", "conversion": { "sign": "NonNegative" } },
+            "bonus": { "parameter": "Amount", "flatValue": -1, "channel": "critical_bonus", "pipelineId": "ascendant_critical_bonus", "unitId": "factor", "conversion": { "sign": "NonNegative" } }
+          }
+        } }]
+      } },
       { "type": "targeting", "componentId": "targeting.enemy", "order": 80, "target": "TARGET", "minimumTargets": 1, "maximumTargets": 1 },
       { "type": "disposition", "componentId": "disposition.default", "order": 90, "cardZoneResolutionFlowId": "card.played.to-discard" }
     ]

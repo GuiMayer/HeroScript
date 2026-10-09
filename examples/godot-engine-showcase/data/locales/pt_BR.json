@@ -494,5 +494,6 @@
   "No active journey in this setting. Start a new journey.": "Não há jornada ativa neste setting. Comece uma nova jornada.",
   "This journey does not match the selected setting, player or mode, or is no longer active.": "Esta jornada não corresponde ao setting, jogador ou modo selecionado, ou não está mais ativa.",
   "The selected setting changed. Try again.": "O setting selecionado mudou. Tente novamente.",
-  "Restart the engine to enable setting-specific profiles.": "Reinicie a engine para habilitar perfis separados por setting."
+  "Restart the engine to enable setting-specific profiles.": "Reinicie a engine para habilitar perfis separados por setting.",
+  "Sampled preview — outcome uncertain": "Prévia amostrada — resultado incerto"
 }

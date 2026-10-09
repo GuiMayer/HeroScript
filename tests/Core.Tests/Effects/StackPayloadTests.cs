@@ -191,13 +191,16 @@ public sealed class StackPayloadTests
     public void LifecycleActivatesPayloadOnceAndExpiresAllItsLots()
     {
         var fixture = Fixture(withTrigger: true);
-        var applied = Success(fixture.Executor.Execute(Request(fixture.Run, Apply(2) with { StatusDuration = 1 })));
+        var applied = Success(fixture.Executor.Execute(Request(fixture.Run, Apply(2) with { StatusDuration = 1,
+            RandomInputs = [new() { InputId = "critical", Chance = .5f, Scope = EffectRandomScope.Impact }] })));
         var result = new CombatStatusLifecycle(fixture.Executor).Process(fixture.Run, applied.State, StatusTriggerBoundary.EndActivation, "enemy");
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
         var triggered = Assert.Single(result.Value.Events, item => item.Kind == CombatStatusLifecycleEventKind.Triggered);
         Assert.Single(triggered.Applications);
         Assert.Single(triggered.Steps);
         Assert.Equal(26, triggered.Steps[0].Calculation!.Value);
+        Assert.Empty(triggered.Steps[0].RandomInputs);
+        Assert.Equal(applied.State.Determinism.RandomState, result.Value.Combat.Determinism.RandomState);
         Assert.Empty(result.Value.Combat.StatusEffects.GetValueOrDefault("enemy", []));
     }
 

@@ -42,6 +42,7 @@ public sealed record CombatIntent
         init => _previewCalculations = value?.ToImmutableArray() ?? [];
     }
     public bool PreviewUncertain { get; init; }
+    public RandomOutcomePreview RandomOutcomes { get; init; } = new();
     public string PreviewFingerprint { get; init; } = string.Empty;
     public string DecisionFingerprint { get; init; } = string.Empty;
     public string StateFingerprint { get; init; } = string.Empty;

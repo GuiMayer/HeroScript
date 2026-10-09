@@ -100,6 +100,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         if (request.Variables.Keys.Any(key => key.StartsWith("results.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("continuation.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("rolls.", StringComparison.OrdinalIgnoreCase) ||
+            key.StartsWith("captures.", StringComparison.OrdinalIgnoreCase) ||
             key.StartsWith("parent.", StringComparison.OrdinalIgnoreCase)))
             return Result<EffectBatchResult>.Failure("Execution result namespaces cannot be supplied by the caller");
         if (request.Quantities.Keys.Any(key => key.StartsWith("continuation.", StringComparison.OrdinalIgnoreCase)))
@@ -401,6 +402,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                     if (applies)
                     {
                         work += effect.RandomInputs.Length;
+                        work += effect.RandomInputs.Sum(input => input.Probability?.Captures.Count ?? 0);
                         if (work > EffectExecutionLimits.MaximumSteps) return Result.Failure("Effect execution limit exceeded");
                         foreach (var input in effect.RandomInputs.OrderBy(input => input.InputId, StringComparer.Ordinal))
                         {
@@ -411,6 +413,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             if (!scopedInputs.TryGetValue(key, out var fact))
                             {
                                 CalculationResult? probabilityTrace = null;
+                                var captures = ImmutableSortedDictionary<string, CalculationResult>.Empty;
                                 var probability = input.Chance ?? 1;
                                 if (input.Probability is { } definition)
                                 {
@@ -424,19 +427,21 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                     if (numeric.IsFailure) return Result.Failure(numeric.Error);
                                     probability = numeric.Value.Value;
                                     probabilityTrace = numeric.Value.Calculation;
+                                    captures = numeric.Value.Captures;
+                                    calculations.AddRange(captures.Values);
                                     if (probabilityTrace != null) calculations.Add(probabilityTrace);
                                 }
                                 var snapshotHash = CanonicalJson.ComputeHash(current);
                                 var sampled = ScopedChance(key, probability);
                                 fact = new() { InputId = input.InputId, Scope = input.Scope, ScopeId = scopeId,
                                     Probability = probability, Calculation = probabilityTrace, ContentRevision = request.ContentRevision,
+                                    Captures = captures,
                                     CapturedAtImpactId = identity.ImpactId, CapturedAtProcId = identity.ProcId,
                                     SnapshotHash = snapshotHash, RunSnapshotHash = runBefore, Success = sampled.Pass, Roll = sampled.Roll };
                                 scopedInputs.Add(key, fact);
                             }
                             fact = fact with { InputId = input.InputId };
-                            randomInputs.Add(fact); variables[$"rolls.{input.InputId}.success"] = fact.Success ? 1 : 0;
-                            variables[$"rolls.{input.InputId}.probability"] = fact.Probability;
+                            randomInputs.Add(fact); EffectRandomInputVariables.Add(variables, fact);
                         }
                     }
                     (CombatState Combat, RunState? Run) preConsumption = (current, currentRun);
@@ -477,8 +482,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             var captureVariables = frameSnapshot.Variables.ToDictionary(pair => pair.Key, pair => pair.Value);
                             foreach (var input in randomInputs.Where(input => input.Scope == EffectRandomScope.Action))
                             {
-                                captureVariables[$"rolls.{input.InputId}.success"] = input.Success ? 1 : 0;
-                                captureVariables[$"rolls.{input.InputId}.probability"] = input.Probability;
+                                EffectRandomInputVariables.Add(captureVariables, input);
                             }
                             var capture = planner.Capture(frameSnapshot with { Variables = captureVariables }, effect,
                                 $"{executionId}:{frameId}", activeTriggerId, frameCount);
@@ -757,6 +761,15 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             if (pipeline.IsFailure) return Result.Failure(pipeline.Error);
             var valid = EffectRandomProbabilityPolicies.ValidatePipeline(input.Probability, pipeline.Value, input.Scope);
             if (valid.IsFailure) return valid;
+            foreach (var capture in input.Probability.Captures.Values)
+            {
+                var capturedPipeline = CalculationResolver.ResolvePipeline(effect with { CalculationChannel = capture.Channel,
+                    CalculationPipelineId = capture.PipelineId }, request.Run, runtime.Value);
+                if (capturedPipeline.IsFailure) return Result.Failure(capturedPipeline.Error);
+                valid = EffectRandomProbabilityPolicies.ValidateCapturePipeline(capture, capturedPipeline.Value, input.Scope,
+                    input.Probability.SharedContextCapture);
+                if (valid.IsFailure) return valid;
+            }
         }
         return Result.Success();
     }

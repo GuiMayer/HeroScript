@@ -1,8 +1,18 @@
 using Core.Calculations;
+using System.Collections.Immutable;
+using Core.Combat.Models;
+using Core.Common;
 using Core.Config;
 using Core.Content;
+using Core.Determinism;
+using Core.Effects;
+using Core.Logging;
+using Core.Math;
+using Core.Run;
 using Core.Run.Content;
+using Core.Tests.Effects;
 using Mods;
+using Moq;
 using Xunit;
 
 namespace Core.Tests.Content;
@@ -76,6 +86,63 @@ public sealed class AscendantSettingTests
         Bucket = bucket,
         Value = value
     };
+
+    [Theory]
+    [InlineData(false, 150f, 21f, 31f)]
+    [InlineData(true, 150f, 24f, 37f)]
+    [InlineData(true, 250f, 37f, 50f)]
+    public async Task ShippedCriticalCardUsesCapturedStatsAndPermanentUpgradeOnlyOnce(
+        bool upgrade, float chance, float lower, float higher)
+    {
+        var runtime = ContentRuntime.Create((await Compile()).Bundle).Value;
+        var mode = runtime.GetDefinition<GameModeDefinition>("modes", "ascendant_showcase").Value;
+        var run = new RunState { PlayerEntityId = "hero", ConfigName = "ascendant",
+            Determinism = DeterministicContext.Create(123, runtime.Manifest.Revision),
+            ResolvedMode = new() { Definition = mode } };
+        var compiler = new CardContentCompiler();
+        var compiled = compiler.Compile("ascendant_critical_lance", runtime).Value;
+        var instance = new CardInstanceState { CardInstanceId = Guid.Parse("10000000-0000-4000-8000-000000000001"),
+            DefinitionId = compiled.CardId };
+        if (upgrade) instance = CardInstanceUpgradeTransitions.Apply(instance,
+            runtime.GetDefinition<CardUpgradeDefinition>("card-upgrades", "ascendant_critical_calibration").Value,
+            runtime.Manifest.Revision).Value;
+        var card = new EffectiveCardResolver().Resolve(compiled, instance).Value;
+        var effect = card.All<CardEffectComponentDefinition>().Single().Effect with { TargetResource = "focus" };
+        var request = EffectTransactionTests.Request(effect);
+        var actor = request.Combat.GetActor("hero")!;
+        var stats = PersistentPlayerTransitions.Create("hero", "ascendant_operator", runtime).Value.Component<StatEntityComponentState>()!;
+        actor = actor with { Components = actor.Components.ToImmutableDictionary().SetItem(stats.ComponentId,
+            stats with { Values = stats.Values.ToImmutableDictionary().SetItem("critical_chance", chance) }) };
+        request = request with { Combat = request.Combat.ReplaceActor(actor), Run = run, Card = card,
+            ContentRevision = runtime.Manifest.Revision };
+        var resolver = new Mock<IContentRuntimeResolver>();
+        resolver.Setup(service => service.Resolve(runtime.Manifest.Revision, "ascendant")).Returns(Result<ContentRuntime>.Success(runtime));
+        var formulas = new RuntimeFormulaEvaluator(Mock.Of<IMathEngine>(), new ExpressionEvaluator(NullLogger.Instance), NullLogger.Instance);
+        var calculations = new CalculationEngine(formulas);
+        var executor = new EffectTriggerExecutor(formulas, new ImmutableEffectProcessor(), resolver.Object, calculations,
+            new CompositeCalculationInfluenceProvider([new CardComponentInfluenceProvider(formulas), new EntityStatInfluenceProvider(),
+                new EntityResourceInfluenceProvider(), new GameModeCalculationInfluenceProvider(formulas)]));
+        var before = CanonicalJson.ComputeHash(request);
+        var result = executor.Execute(request);
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        var step = result.Value.Steps[0];
+        var fact = Assert.Single(step.RandomInputs);
+        Assert.Equal(chance, fact.Captures["chance"].Value);
+        Assert.Equal(upgrade ? 1.15f : .9f, fact.Captures["bonus"].Value, 4);
+        Assert.Equal(fact.Success ? higher : lower, step.Calculation!.Value);
+        var alternatives = RandomOutcomePreviewProjector.Project(result.Value.Steps, runtime, calculations).Impacts[0].Alternatives;
+        Assert.Equal(new[] { lower, higher }, alternatives.Select(item => item.Calculation!.Value));
+        Assert.Equal(before, CanonicalJson.ComputeHash(request));
+
+        // Two profiles share a channel; implicit effects use the authored default, not arbitrary ordering.
+        var normal = compiler.Compile("ascendant_strike", runtime).Value.All<CardEffectComponentDefinition>().Single().Effect;
+        Assert.Equal("ascendant_effect_amount", CalculationResolver.ResolvePipeline(normal, run, runtime).Value.PipelineId);
+        Assert.True(CalculationResolver.ResolvePipeline(normal, run with { ResolvedMode = new()
+            { Definition = mode with { DefaultCalculationPipelines = ImmutableSortedDictionary<string, string>.Empty } } }, runtime).IsFailure);
+        foreach (var invalidDefault in new[] { "", "signed_resource_delta", "default_effect_amount" })
+            Assert.True(CalculationResolver.ResolvePipeline(normal, run with { ResolvedMode = new()
+                { Definition = mode with { DefaultCalculationPipelines = mode.DefaultCalculationPipelines.SetItem("effect_amount", invalidDefault) } } }, runtime).IsFailure);
+    }
 
     private static async Task<SettingCompilation> Compile()
     {

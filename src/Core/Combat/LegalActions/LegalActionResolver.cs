@@ -897,6 +897,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
         return Result<LegalActionCandidate>.Success(candidate with
         {
             Steps = steps,
+            OutcomeUncertain = candidate.OutcomeUncertain || RandomOutcomePreviewProjector.HasStochasticInput(steps),
             Calculations = calculations,
             Applications = applications,
             PhaseTransitions = transitioned.Value.Transitions,
@@ -945,6 +946,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             Applications = result.Applications,
             Calculations = result.Calculations,
             Steps = result.Steps,
+            OutcomeUncertain = RandomOutcomePreviewProjector.HasStochasticInput(result.Steps),
             ResolutionFingerprint = result.ResolutionFingerprint,
             SuccessorCombat = result.Combat,
             SuccessorRun = result.Run ?? run,
@@ -972,6 +974,7 @@ public sealed class LegalActionResolver : ILegalActionResolver
             Applications = result.Applications,
             Calculations = result.Calculations,
             Steps = result.Steps,
+            OutcomeUncertain = RandomOutcomePreviewProjector.HasStochasticInput(result.Steps),
             ResolutionFingerprint = result.ResolutionFingerprint,
             SuccessorCombat = result.Combat,
             SuccessorRun = result.Run ?? run,

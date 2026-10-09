@@ -43,4 +43,4 @@ O fato persiste probabilidade, resultado/roll, trace completo e fingerprints do 
 
 Falha em cálculo, efeito posterior ou persistência não publica RNG/recursos parciais. Receipts duplicados continuam reutilizando o commit existente. Novos fatos alteram hashes de execução: saves antigos permanecem preservados, sem promessa de replay semântico na versão 22.
 
-Críticos multinível e apresentação de alternativas de preview são a etapa seguinte; este contrato não converte percentuais acima de 100% em tiers implicitamente.
+Capturas numéricas e alternativas condicionais estão disponíveis a partir da versão 23; veja [críticos multinível](multi-tier-critical-inputs.md). O contrato não converte percentuais acima de 100% em tiers implicitamente: essa composição é declarada nas pipelines do setting.

@@ -97,6 +97,7 @@ public sealed record CardInspectionResult
     public CardInspectionVersion Version { get; init; } = new();
     public CardPreviewScope PreviewScope { get; init; } = new();
     public ImmutableArray<CardProcPreview> Procs { get; init; } = [];
+    public RandomOutcomePreview RandomOutcomes { get; init; } = new();
     public InspectionDetailLevel Detail { get; init; }
     public string Zone { get; init; } = string.Empty;
     public bool IsInPlayableZone { get; init; }
@@ -151,19 +152,22 @@ public sealed class CardInspectionService : ICardInspectionService
     private readonly ICardContentCompiler _compiler;
     private readonly IEffectiveCardResolver _effectiveCards;
     private readonly ILegalActionResolver _legalActions;
+    private readonly ICalculationEngine? _calculations;
 
     public CardInspectionService(
         IRunQueryService runs,
         IContentRuntimeResolver runtimes,
         ICardContentCompiler compiler,
         IEffectiveCardResolver effectiveCards,
-        ILegalActionResolver legalActions)
+        ILegalActionResolver legalActions,
+        ICalculationEngine? calculations = null)
     {
         _runs = runs ?? throw new ArgumentNullException(nameof(runs));
         _runtimes = runtimes ?? throw new ArgumentNullException(nameof(runtimes));
         _compiler = compiler ?? throw new ArgumentNullException(nameof(compiler));
         _effectiveCards = effectiveCards ?? throw new ArgumentNullException(nameof(effectiveCards));
         _legalActions = legalActions ?? throw new ArgumentNullException(nameof(legalActions));
+        _calculations = calculations;
     }
 
     public Result<CardInspectionResult> Inspect(CardInspectionRequest request)
@@ -270,6 +274,7 @@ public sealed class CardInspectionService : ICardInspectionService
 
         var isInPlayableZone = CardZonePlaySource.Contains(run, actorId, request.CardInstanceId);
         var preview = legal.Value.Candidate?.CardPlay;
+        var stochastic = RandomOutcomePreviewProjector.HasStochasticInput(preview?.Steps ?? []);
 
         var context = detail == InspectionDetailLevel.Full
             ? BuildContext(run, combat, actor, resolvedEvaluation)
@@ -307,10 +312,12 @@ public sealed class CardInspectionService : ICardInspectionService
             },
             Detail = detail,
             PreviewScope = new() { HasExecutablePreview = preview != null,
-                DependsOnRandomInputs = preview?.Steps.Any(step => step.ChanceRoll != null || step.RandomInputs.Any(input => input.Roll != null)) == true,
+                DependsOnRandomInputs = stochastic,
+                Validity = stochastic ? "SampledPathNotGuaranteedOutcome" : "ExactForCapturedSnapshotAndInput",
                 SelectedTargetIds = request.SelectedTargetIds.ToImmutableArray(), CostOptionId = request.CostOptionId,
                 SnapshotHash = CanonicalJson.ComputeHash(run), CombatSnapshotHash = CanonicalJson.ComputeHash(combat) },
             Procs = CardProcPreviewProjector.Project(preview?.Steps ?? []),
+            RandomOutcomes = RandomOutcomePreviewProjector.Project(preview?.Steps ?? [], runtime.Value, _calculations),
             Zone = ResolveZone(run.Deck, request.CardInstanceId),
             IsInPlayableZone = isInPlayableZone,
             IsPlayable = isInPlayableZone && resolvedEvaluation.IsLegal,

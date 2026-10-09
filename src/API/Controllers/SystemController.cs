@@ -94,6 +94,7 @@ public sealed class SystemController : ControllerBase
             "setting-scoped-profiles",
             "persistent-actor-resources",
             "calculated-random-inputs",
+            "multi-tier-random-previews",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

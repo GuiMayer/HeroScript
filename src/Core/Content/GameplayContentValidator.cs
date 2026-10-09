@@ -32,6 +32,13 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         {
             Influences(path, item.Influences);
             var enabled = item.CalculationPipelineIds.ToHashSet(StringComparer.Ordinal);
+            foreach (var (channel, id) in item.DefaultCalculationPipelines)
+            {
+                Reference(path, "calculation-pipelines", id, required: true);
+                var definition = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", id);
+                if (!enabled.Contains(id) || definition.IsSuccess && definition.Value.Channel != channel)
+                    Error(path, "default calculation pipelines must be enabled and match their channel");
+            }
             foreach (var influence in item.Influences)
             {
                 var reachable = enabled.Select(id => runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", id))
@@ -294,6 +301,18 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                 var probability = input.Probability!;
                 Reference(address, "calculation-pipelines", probability.PipelineId, required: true);
                 Formula(address, probability.FormulaValue);
+                foreach (var capture in probability.Captures.Values)
+                {
+                    Reference(address, "calculation-pipelines", capture.PipelineId, required: true);
+                    Formula(address, capture.FormulaValue);
+                    var capturedPipeline = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", capture.PipelineId!);
+                    if (capturedPipeline.IsSuccess)
+                    {
+                        var valid = EffectRandomProbabilityPolicies.ValidateCapturePipeline(capture, capturedPipeline.Value, input.Scope,
+                            probability.SharedContextCapture);
+                        if (valid.IsFailure) Error(address, valid.Error);
+                    }
+                }
                 var profile = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", probability.PipelineId);
                 if (profile.IsSuccess)
                 {
