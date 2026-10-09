@@ -7,7 +7,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 1. Contratos e baseline: concluída.
 2. Recursos persistentes por ator: concluída.
 3. Transporte entre encontros e recuperação transacional: concluída.
-4. Probabilidades calculadas e fatos de sorteio: pendente.
+4. Probabilidades calculadas e fatos de sorteio: implementada; gate REST em verificação.
 5. Críticos por níveis e previews: pendente.
 6. Catálogo de desbloqueios e contribuições: pendente.
 7. Elegibilidade congelada e concessões: pendente.
@@ -38,4 +38,8 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Testes de jornada: recuperação + custo com o mesmo resource ID em proprietários distintos; rollback por pagamento/efeito/durabilidade; restart, receipt duplicado, branch isolada e 10 replays por roteiro de recuperação/vitória/retry.
 - Gate da etapa 3: 1.546 testes Core aprovados antes do ajuste de identidade; 50 testes focados aprovados após o ajuste. A suíte API revelou um encontro com ID fixo; corrigido com `identityBinding: RunPlayer` e confirmado por dois testes REST (incluindo identidade personalizada). Suíte API completa será repetida no próximo gate.
 - Launcher exige a capability `persistent-actor-resources` para não reutilizar um processo anterior sem os novos contratos. Nenhum processo/save real foi alterado pelos testes.
+- Etapa 4: probabilidade numérica pelo `CalculationResolver`, unidade explícita, CaptureOnly, validação de contratos compartilhados, captura Action/ParentProc/Impact e fatos com probabilidade/cálculo/revisão/snapshots. Disponível para qualquer efeito, inclusive stacks; não há calculador específico de dano/crítico.
+- Engine version 22: fingerprints e traces incorporam novos fatos. Launcher passa a exigir `calculated-random-inputs`; versões anteriores/saves reais não foram reiniciados ou apagados.
+- Gate Core após etapa 4: 1.569 testes aprovados, incluindo 22 casos novos de probabilidade, publicação, rollback e repetição/serialização. Sintaxe do launcher validada.
+- A jornada REST antiga dependia de ordenação lexical de IDs e eliminava alvos antes de exercer overflow. O jogador de teste agora prioriza a instância transformada e usa a projeção legal para preservar alvos até demonstrar uma continuação; as regras da engine e a exigência de executar o salto não foram enfraquecidas. O gate REST completo será registrado após sua execução.
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

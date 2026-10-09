@@ -2,7 +2,7 @@
 
 Data: 2026-10-09.
 
-Status: planejado; implementação não iniciada.
+Status: implementação em andamento; ver [registro das etapas e verificações](ENGINE_WORLD_1_IMPLEMENTATION_PROGRESS.md).
 
 Referência de design: [Ascendant — pesquisa e plano do mundo 1](ASCENDANT_WORLD_1_DESIGN_RESEARCH_AND_PLAN.md).
 

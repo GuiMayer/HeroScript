@@ -17,7 +17,7 @@ public static class EffectDefinitionValidator
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         var outputIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var randomGroups = new Dictionary<string, float>(StringComparer.Ordinal);
+        var randomGroups = new Dictionary<string, string>(StringComparer.Ordinal);
         var pending = new Stack<(EffectDefinition Effect, string Path, int Depth, long Multiplier)>();
         foreach (var (effect, index) in effects.Select((effect, index) => (effect, index)).Reverse())
             pending.Push((effect, $"effects[{index}]", 0, 1));
@@ -34,10 +34,10 @@ public static class EffectDefinitionValidator
             void Error(string message) => errors.Add($"{path}: {message}");
             bool SafeGroup(string? group) => group == null || group.Length is > 0 and <= 64 &&
                 group.All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
-            void CheckGroup(string key, float chance)
+            void CheckGroup(string key, string contract)
             {
-                if (randomGroups.TryGetValue(key, out var previous) && previous != chance) Error("random group has conflicting probabilities");
-                else randomGroups[key] = chance;
+                if (randomGroups.TryGetValue(key, out var previous) && previous != contract) Error("random group has conflicting probabilities");
+                else randomGroups[key] = contract;
             }
             if (effect.OutputId is { } outputId)
             {
@@ -62,15 +62,25 @@ public static class EffectDefinitionValidator
                 effect.ExecutionGroupId != null && effect.ExecutionScope == EffectExecutionScope.EveryInvocation ||
                 effect.ChanceGroupId != null && effect.ChanceScope is not (EffectChanceScope.PerAction or EffectChanceScope.PerProc))
                 Error("group IDs require a compatible scoped execution or chance policy");
-            if (effect.ChanceGroupId != null) CheckGroup($"chance:{effect.ChanceScope}:{effect.ChanceGroupId}", effect.Chance);
+            if (effect.ChanceGroupId != null && float.IsFinite(effect.Chance)) CheckGroup($"chance:{effect.ChanceScope}:{effect.ChanceGroupId}", Core.Determinism.CanonicalJson.ComputeHash(effect.Chance));
             if (effect.RandomInputs.Length > 16 || effect.RandomInputs.Select(input => input.InputId).Distinct(StringComparer.Ordinal).Count() != effect.RandomInputs.Length ||
                 effect.RandomInputs.Any(input => string.IsNullOrWhiteSpace(input.InputId) || input.InputId.Length > 64 ||
                     input.InputId.Any(character => !char.IsAsciiLetterOrDigit(character) && character != '_') ||
-                    !Enum.IsDefined(input.Scope) || !float.IsFinite(input.Chance) || input.Chance is < 0 or > 1 ||
+                    !Enum.IsDefined(input.Scope) || input.Chance is { } chance && (!float.IsFinite(chance) || chance is < 0 or > 1) ||
+                    input.Chance != null && input.Probability != null ||
                     !SafeGroup(input.GroupId) || input.GroupId != null && input.Scope == EffectRandomScope.Impact))
                 Error("invalid or duplicate scoped random inputs");
-            foreach (var input in effect.RandomInputs.Where(input => input.GroupId != null))
-                CheckGroup($"input:{input.Scope}:{input.GroupId}", input.Chance);
+            foreach (var input in effect.RandomInputs)
+            {
+                if (input.Probability != null)
+                {
+                    var valid = EffectRandomProbabilityPolicies.Validate(input.Probability);
+                    if (valid.IsFailure) { Error(valid.Error); continue; }
+                }
+                if (input.Chance is { } chance && !float.IsFinite(chance)) continue;
+                if (input.GroupId != null)
+                    CheckGroup($"input:{input.Scope}:{input.GroupId}", Core.Determinism.CanonicalJson.ComputeHash(new { Chance = input.Probability == null ? input.Chance ?? 1 : (float?)null, input.Probability }));
+            }
             if (effect.Type == EffectType.CONDENSE_STACKS)
             {
                 if (string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) Error("condensation requires condensationRecipeId");

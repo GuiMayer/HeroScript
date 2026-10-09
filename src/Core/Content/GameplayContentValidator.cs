@@ -289,6 +289,18 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             Reference(address, "cards", effect.CardDefinitionId);
             Reference(address, "calculation-pipelines", effect.CalculationPipelineId);
             Reference(address, "condensation-recipes", effect.CondensationRecipeId);
+            foreach (var input in effect.RandomInputs.Where(input => input.Probability != null))
+            {
+                var probability = input.Probability!;
+                Reference(address, "calculation-pipelines", probability.PipelineId, required: true);
+                Formula(address, probability.FormulaValue);
+                var profile = runtime.GetDefinition<CalculationPipelineDefinition>("calculation-pipelines", probability.PipelineId);
+                if (profile.IsSuccess)
+                {
+                    var valid = EffectRandomProbabilityPolicies.ValidatePipeline(probability, profile.Value, input.Scope);
+                    if (valid.IsFailure) Error(address, valid.Error);
+                }
+            }
             if (effect.Continuation is { } continuation)
             {
                 Reference(address, "resources", continuation.SelectionResourceId);

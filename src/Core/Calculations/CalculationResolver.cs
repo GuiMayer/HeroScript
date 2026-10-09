@@ -20,6 +20,8 @@ public interface ICalculationResolver
     Result<ResolvedEffectAmount> Resolve(EffectDefinition effect, string calculationId, CalculationSourceContext context);
     Result<ResolvedEffectAmount> ResolveParameter(EffectDefinition owner, EffectNumericParameterDefinition parameter,
         string calculationId, CalculationSourceContext context);
+    Result<ResolvedEffectAmount> ResolveProbability(EffectDefinition owner, EffectRandomProbabilityDefinition probability,
+        EffectRandomScope scope, string calculationId, CalculationSourceContext context);
 }
 
 /// <summary>One numerical entry point for all effect origins, including preview and replay.</summary>
@@ -32,6 +34,33 @@ public sealed class CalculationResolver(
 {
     public Result<ResolvedEffectAmount> Resolve(EffectDefinition effect, string calculationId, CalculationSourceContext context)
         => ResolveNumeric(effect, calculationId, context, "scalar", new());
+
+    public Result<ResolvedEffectAmount> ResolveProbability(EffectDefinition owner, EffectRandomProbabilityDefinition probability,
+        EffectRandomScope scope, string calculationId, CalculationSourceContext context)
+    {
+        var valid = EffectRandomProbabilityPolicies.Validate(probability);
+        if (valid.IsFailure) return Result<ResolvedEffectAmount>.Failure(valid.Error);
+        if (runtimes == null || context.Run?.ResolvedMode == null)
+            return Result<ResolvedEffectAmount>.Failure("Calculated random inputs require pinned calculation services");
+        var runtime = runtimes.Resolve(context.ContentRevision, context.Run.ConfigName);
+        if (runtime.IsFailure) return Result<ResolvedEffectAmount>.Failure(runtime.Error);
+        var numeric = owner with { FlatValue = probability.FlatValue, FormulaValue = probability.FormulaValue,
+            CalculationChannel = probability.Channel, CalculationPipelineId = probability.PipelineId };
+        var pipeline = ResolvePipeline(numeric, context.Run, runtime.Value);
+        if (pipeline.IsFailure) return Result<ResolvedEffectAmount>.Failure(pipeline.Error);
+        valid = EffectRandomProbabilityPolicies.ValidatePipeline(probability, pipeline.Value, scope);
+        if (valid.IsFailure) return Result<ResolvedEffectAmount>.Failure(valid.Error);
+        var sharedSource = scope != EffectRandomScope.Impact && probability.SharedContextCapture == EffectRandomSharedContextCapture.SourceOnly;
+        var result = ResolveNumeric(numeric, calculationId, context with { CaptureOnly = true, StageIds = probability.StageIds,
+            Target = sharedSource ? null : context.Target,
+            Variables = sharedSource ? context.Variables.Where(pair => !pair.Key.StartsWith("target.", StringComparison.OrdinalIgnoreCase) &&
+                !pair.Key.StartsWith("target_", StringComparison.OrdinalIgnoreCase) &&
+                pair.Key is not ("target_index" or "repeat_index")).ToImmutableDictionary(StringComparer.Ordinal) : context.Variables },
+            probability.UnitId, probability.Conversion, "Probability");
+        if (result.IsFailure) return result;
+        return result.Value.Value is < 0 or > 1 || !float.IsFinite(result.Value.Value)
+            ? Result<ResolvedEffectAmount>.Failure("Calculated probability must be finite and within [0, 1]") : result;
+    }
 
     public Result<ResolvedEffectAmount> ResolveParameter(EffectDefinition owner,
         EffectNumericParameterDefinition parameter, string calculationId, CalculationSourceContext context)
@@ -71,7 +100,7 @@ public sealed class CalculationResolver(
         }
         if (!float.IsFinite(amount))
             return Result<ResolvedEffectAmount>.Failure("Effect amount must be finite");
-        if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && amount < 0)
+        if (parameterAttribute != "Probability" && effect.Type is EffectType.DAMAGE or EffectType.HEAL && amount < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL require non-negative amounts; use MODIFY_RESOURCE for signed changes");
 
         CalculationPipelineDefinition pipeline;
@@ -129,7 +158,7 @@ public sealed class CalculationResolver(
             Variables = context.Variables
         }, pipeline);
         if (calculated.IsFailure) return Result<ResolvedEffectAmount>.Failure(calculated.Error);
-        if (effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
+        if (parameterAttribute != "Probability" && effect.Type is EffectType.DAMAGE or EffectType.HEAL && calculated.Value.Value < 0)
             return Result<ResolvedEffectAmount>.Failure("DAMAGE and HEAL pipelines must produce non-negative amounts");
         return Result<ResolvedEffectAmount>.Success(new(calculated.Value.Value, calculated.Value, pipeline));
     }

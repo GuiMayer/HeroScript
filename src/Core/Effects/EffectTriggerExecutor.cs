@@ -114,6 +114,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             if (distribution.IsFailure) referenceErrors.Add(distribution.Error);
             var continuation = ValidateContinuationProfiles(effect, request);
             if (continuation.IsFailure) referenceErrors.Add(continuation.Error);
+            var probability = ValidateProbabilityProfiles(effect, request);
+            if (probability.IsFailure) referenceErrors.Add(probability.Error);
             if (effect.Type != EffectType.CONDENSE_STACKS || string.IsNullOrWhiteSpace(effect.CondensationRecipeId)) return;
             var resolved = ResolveRecipe(effect.CondensationRecipeId, request);
             if (resolved.IsFailure) referenceErrors.Add(resolved.Error);
@@ -127,6 +129,8 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                 if (distribution.IsFailure) referenceErrors.Add(distribution.Error);
                 var continuation = ValidateContinuationProfiles(effect, request);
                 if (continuation.IsFailure) referenceErrors.Add(continuation.Error);
+                var probability = ValidateProbabilityProfiles(effect, request);
+                if (probability.IsFailure) referenceErrors.Add(probability.Error);
             }));
         if (referenceErrors.Count > 0) return Result<EffectBatchResult>.Failure(string.Join("; ", referenceErrors));
         if (!definitionErrors.IsEmpty)
@@ -144,6 +148,7 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
         var activeQuantities = request.Quantities;
         var sharedBudgets = new Dictionary<string, ImmutableArray<EffectSequenceBudget>>(StringComparer.Ordinal);
         var scopedRolls = new Dictionary<string, (bool Pass, double? Roll)>(StringComparer.Ordinal);
+        var scopedInputs = new Dictionary<string, EffectRandomInputResult>(StringComparer.Ordinal);
         var attemptedEffects = new HashSet<string>(StringComparer.Ordinal);
         (CombatState Combat, RunState? Run)? numericSnapshot = null;
         foreach (var prefix in request.PrefixCommands)
@@ -402,10 +407,36 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                             var scopeId = input.Scope switch { EffectRandomScope.Action => executionId,
                                 EffectRandomScope.ParentProc => parentProcId ?? procId, _ => identity.ImpactId };
                             var inputKey = input.GroupId == null ? $"{definitionPath}:{input.InputId}" : "group:" + input.GroupId;
-                            var sampled = ScopedChance($"input:{inputKey}:{scopeId}", input.Chance);
-                            var fact = new EffectRandomInputResult { InputId = input.InputId, Scope = input.Scope, ScopeId = scopeId,
-                                Success = sampled.Pass, Roll = sampled.Roll };
-                            randomInputs.Add(fact); variables[$"rolls.{input.InputId}.success"] = sampled.Pass ? 1 : 0;
+                            var key = $"input:{inputKey}:{scopeId}";
+                            if (!scopedInputs.TryGetValue(key, out var fact))
+                            {
+                                CalculationResult? probabilityTrace = null;
+                                var probability = input.Chance ?? 1;
+                                if (input.Probability is { } definition)
+                                {
+                                    var numeric = new CalculationResolver(_formulas, _contentRuntimes, _calculations, _influences)
+                                        .ResolveProbability(effect, definition, input.Scope, key, new CalculationSourceContext
+                                        {
+                                            ContentRevision = request.ContentRevision, Combat = current, Run = currentRun, Card = request.Card,
+                                            ComponentId = activeTriggerId, Actor = current.GetActor(request.SourceEntityId) ?? current.GetActor(request.OwnerEntityId),
+                                            Target = current.GetActor(targetId), Variables = variables, Tags = request.Tags.Concat(effect.Tags).ToHashSet(StringComparer.Ordinal)
+                                        });
+                                    if (numeric.IsFailure) return Result.Failure(numeric.Error);
+                                    probability = numeric.Value.Value;
+                                    probabilityTrace = numeric.Value.Calculation;
+                                    if (probabilityTrace != null) calculations.Add(probabilityTrace);
+                                }
+                                var snapshotHash = CanonicalJson.ComputeHash(current);
+                                var sampled = ScopedChance(key, probability);
+                                fact = new() { InputId = input.InputId, Scope = input.Scope, ScopeId = scopeId,
+                                    Probability = probability, Calculation = probabilityTrace, ContentRevision = request.ContentRevision,
+                                    CapturedAtImpactId = identity.ImpactId, CapturedAtProcId = identity.ProcId,
+                                    SnapshotHash = snapshotHash, RunSnapshotHash = runBefore, Success = sampled.Pass, Roll = sampled.Roll };
+                                scopedInputs.Add(key, fact);
+                            }
+                            fact = fact with { InputId = input.InputId };
+                            randomInputs.Add(fact); variables[$"rolls.{input.InputId}.success"] = fact.Success ? 1 : 0;
+                            variables[$"rolls.{input.InputId}.probability"] = fact.Probability;
                         }
                     }
                     (CombatState Combat, RunState? Run) preConsumption = (current, currentRun);
@@ -445,7 +476,10 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
                                 _calculations, _influences), _calculations!);
                             var captureVariables = frameSnapshot.Variables.ToDictionary(pair => pair.Key, pair => pair.Value);
                             foreach (var input in randomInputs.Where(input => input.Scope == EffectRandomScope.Action))
+                            {
                                 captureVariables[$"rolls.{input.InputId}.success"] = input.Success ? 1 : 0;
+                                captureVariables[$"rolls.{input.InputId}.probability"] = input.Probability;
+                            }
                             var capture = planner.Capture(frameSnapshot with { Variables = captureVariables }, effect,
                                 $"{executionId}:{frameId}", activeTriggerId, frameCount);
                             if (capture.IsFailure) return Result.Failure(capture.Error);
@@ -708,6 +742,23 @@ public sealed class EffectTriggerExecutor : IEffectTriggerExecutor
             var pass = DrawChance(chance, out var roll);
             var result = (pass, roll); scopedRolls.Add(key, result); return result;
         }
+    }
+
+    private Result ValidateProbabilityProfiles(EffectDefinition effect, EffectTriggerExecutionRequest request)
+    {
+        foreach (var input in effect.RandomInputs.Where(input => input.Probability != null))
+        {
+            if (_contentRuntimes == null || _calculations == null || _influences == null || request.Run?.ResolvedMode == null)
+                return Result.Failure("Calculated random inputs require pinned calculation services");
+            var runtime = _contentRuntimes.Resolve(request.ContentRevision, request.Run.ConfigName);
+            if (runtime.IsFailure) return Result.Failure(runtime.Error);
+            var pipeline = CalculationResolver.ResolvePipeline(effect with { CalculationChannel = input.Probability!.Channel,
+                CalculationPipelineId = input.Probability.PipelineId }, request.Run, runtime.Value);
+            if (pipeline.IsFailure) return Result.Failure(pipeline.Error);
+            var valid = EffectRandomProbabilityPolicies.ValidatePipeline(input.Probability, pipeline.Value, input.Scope);
+            if (valid.IsFailure) return valid;
+        }
+        return Result.Success();
     }
 
     private Result ValidateContinuationProfiles(EffectDefinition effect, EffectTriggerExecutionRequest request)
