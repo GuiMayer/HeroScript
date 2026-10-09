@@ -41,6 +41,7 @@ public static class PreparationTransitions
             {
                 OptionId = option.OptionId,
                 Effects = option.Effects,
+                EffectOwner = option.EffectOwner,
                 Costs = option.Costs,
                 GrantedCardIds = option.GrantedCardIds,
                 ApplyModifiers = option.ApplyModifiers.Select(modifier => new PreparationModifierGrantState

@@ -1542,13 +1542,18 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 Determinism = flowed.Value.Context
             };
 
+            var retry = _progression.ShouldRestartEncounterActivity(cleanedState, encounter.Combat.Status);
+            var promoted = PersistentPlayerTransitions.ResolveEncounter(cleanedState, encounter.Combat, retry);
+            if (promoted.IsFailure) return Result<RunState>.Failure(promoted.Error);
+            cleanedState = promoted.Value with { ActiveEncounterId = null };
+
             var currentNode = cleanedState.Map.Nodes.First(node => node.NodeId == encounter.NodeId);
             var resolved = encounter with
             {
                 Resolved = true,
                 Outcome = encounter.Combat.Status.ToString()
             };
-            if (_progression.ShouldRestartEncounterActivity(cleanedState, encounter.Combat.Status))
+            if (retry)
             {
                 var retryable = cleanedState with
                 {
@@ -2001,7 +2006,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             if (!transition.Value.Value.Effects.IsEmpty)
             {
                 var applied = ApplyActivityBoundary(transition.Value.State, new RunMapNodeState
-                { NodeId = $"preparation:{preparationInstanceId}:{optionId}", EntryEffects = transition.Value.Value.Effects }, RunActivityBoundary.Entry, out effectDiagnostics);
+                { NodeId = $"preparation:{preparationInstanceId}:{optionId}", EntryEffects = transition.Value.Value.Effects,
+                    EntryEffectOwner = transition.Value.Value.EffectOwner }, RunActivityBoundary.Entry, out effectDiagnostics);
                 if (applied.IsFailure) return Result<PreparationOptionState>.Failure(applied.Error);
                 transition = Result<RunStateTransition<PreparationOptionState>>.Success(transition.Value with { State = applied.Value });
             }
@@ -2226,6 +2232,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             var effectiveCommand = activeCommand?.Payload
                 ?? JsonSerializer.SerializeToElement(command, _jsonOptions).Clone();
             var nextSequence = checked((previous?.Sequence ?? 0) + 1);
+            state = PersistentPlayerTransitions.ApplyResourceConsequences(state);
             state = state with
             {
                 Sequence = nextSequence,

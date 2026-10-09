@@ -69,7 +69,8 @@ public static class DialogueTransitions
             CurrentNodeId = definition.StartNodeId, History = [new(definition.StartNodeId, null)]
         };
         var candidate = run with { Dialogues = run.Dialogues.Add(dialogue), Determinism = allocation.Context };
-        var applied = Execute(candidate, dialogue, "entry", definition.Nodes.Single(node => node.NodeId == definition.StartNodeId).EntryEffects, effects);
+        var initial = definition.Nodes.Single(node => node.NodeId == definition.StartNodeId);
+        var applied = Execute(candidate, dialogue, "entry", initial.EntryEffects, effects, initial.EntryEffectOwner);
         return applied.IsFailure ? applied : Result<RunState>.Success(applied.Value with { Determinism = applied.Value.Determinism.AdvanceStep() });
     }
 
@@ -87,7 +88,7 @@ public static class DialogueTransitions
         var spent = RunResourceTransitions.Spend(run.ResourceState, choice.Costs, $"dialogue:{dialogue.DialogueInstanceId}:{node.NodeId}:{choice.ChoiceId}");
         if (spent.IsFailure) return Result<RunState>.Failure(spent.Error);
         var candidate = run with { ResourceState = spent.Value.State, NarrativeFlags = run.NarrativeFlags.SetItems(choice.SetFlags) };
-        var applied = Execute(candidate, dialogue, $"choice:{choice.ChoiceId}", choice.Effects, effects);
+        var applied = Execute(candidate, dialogue, $"choice:{choice.ChoiceId}", choice.Effects, effects, choice.EffectOwner);
         if (applied.IsFailure) return applied;
         candidate = applied.Value;
         var nextDialogue = dialogue with
@@ -99,8 +100,8 @@ public static class DialogueTransitions
         if (!nextDialogue.Completed)
         {
             nextDialogue = nextDialogue with { History = nextDialogue.History.Add(new(nextDialogue.CurrentNodeId, null)) };
-            var entered = Execute(candidate, nextDialogue, "entry",
-                dialogue.Definition.Nodes.Single(node => node.NodeId == nextDialogue.CurrentNodeId).EntryEffects, effects);
+            var nextNode = dialogue.Definition.Nodes.Single(node => node.NodeId == nextDialogue.CurrentNodeId);
+            var entered = Execute(candidate, nextDialogue, "entry", nextNode.EntryEffects, effects, nextNode.EntryEffectOwner);
             if (entered.IsFailure) return entered;
             candidate = entered.Value;
         }
@@ -121,14 +122,15 @@ public static class DialogueTransitions
     }
 
     private static Result<RunState> Execute(RunState run, DialogueState dialogue, string boundary,
-        IReadOnlyList<EffectDefinition> definitions, IRunActivityEffectExecutor? effects)
+        IReadOnlyList<EffectDefinition> definitions, IRunActivityEffectExecutor? effects, RunActivityEffectOwner owner)
     {
         if (definitions.Count == 0) return Result<RunState>.Success(run);
         if (effects == null) return Result<RunState>.Failure("Run activity effect executor is unavailable");
         var result = effects.Execute(run, new RunMapNodeState
         {
             NodeId = $"{dialogue.ActivityNodeId}:dialogue:{dialogue.DialogueInstanceId}:{dialogue.CurrentNodeId}:{boundary}",
-            EntryEffects = definitions
+            EntryEffects = definitions,
+            EntryEffectOwner = owner
         }, RunActivityBoundary.Entry);
         return result.IsFailure ? Result<RunState>.Failure(result.Error) : Result<RunState>.Success(result.Value.State);
     }

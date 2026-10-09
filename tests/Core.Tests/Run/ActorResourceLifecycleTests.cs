@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Text.Json;
 using Core.Combat.Models;
+using Core.Calculations;
 using Core.Content;
 using Core.Determinism;
 using Core.Entity.Definitions;
@@ -115,7 +116,9 @@ public sealed class ActorResourceLifecycleTests
             ["entities/catalog.json"] = JsonSerializer.SerializeToElement(new Dictionary<string, EntityDefinition> { ["operator"] = new()
             { DefinitionId = "operator", DisplayName = "Operator", Components = [new ResourceEntityComponentDefinition { ComponentId = "pools",
                 Pools = new Dictionary<string, ResourcePoolDefinition> { ["resolve"] = new() { Current = 37, Max = 60 } } }] } }),
-            ["resources/catalog.json"] = JsonSerializer.SerializeToElement(new Dictionary<string, ResourceDefinition> { ["resolve"] = Definition() })
+            ["resources/catalog.json"] = JsonSerializer.SerializeToElement(new Dictionary<string, ResourceDefinition> { ["resolve"] = Definition() }),
+            ["calculation-pipelines/catalog.json"] = JsonSerializer.SerializeToElement(new Dictionary<string, CalculationPipelineDefinition>
+            { ["recovery"] = new() { PipelineId = "recovery", Channel = "recovery", UnitId = "points", Buckets = [new() { BucketId = "base" }] } })
         };
         return ContentRuntime.Create(new() { Manifest = new() { ConfigName = "test", Revision = revision,
             Artifacts = artifacts.Select(pair => new ContentArtifactManifest { Kind = pair.Key.Split('/')[0], Path = pair.Key, DefinitionCount = 1 }).ToArray() },

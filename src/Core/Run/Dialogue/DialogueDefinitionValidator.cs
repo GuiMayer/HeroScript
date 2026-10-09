@@ -12,6 +12,7 @@ public static class DialogueDefinitionValidator
         if (ids.Count != definition.Nodes.Length || ids.Contains(string.Empty)) errors.Add("nodeIds must be nonempty and unique");
         foreach (var node in definition.Nodes)
         {
+            if (!Enum.IsDefined(node.EntryEffectOwner)) errors.Add($"{node.NodeId}: invalid effect owner binding");
             Text(node.Text, $"{node.NodeId}/text", errors);
             if (node.Choices.IsEmpty) errors.Add($"{node.NodeId} requires a choice (use a terminal Continue to close)");
             if (node.Choices.Select(choice => choice.ChoiceId).Distinct(StringComparer.Ordinal).Count() != node.Choices.Length)
@@ -19,6 +20,7 @@ public static class DialogueDefinitionValidator
             foreach (var choice in node.Choices)
             {
                 var path = $"{node.NodeId}/{choice.ChoiceId}";
+                if (!Enum.IsDefined(choice.EffectOwner)) errors.Add($"{path}: invalid effect owner binding");
                 if (string.IsNullOrWhiteSpace(choice.ChoiceId)) errors.Add($"{path}: choiceId is required");
                 Text(choice.Text, path, errors);
                 if (choice.NextNodeId != null && !ids.Contains(choice.NextNodeId)) errors.Add($"{path}: nextNodeId does not exist");

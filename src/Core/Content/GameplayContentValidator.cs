@@ -62,13 +62,13 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
                     var costs = CardTransformationAccess.ReadCosts(node.Activity);
                     if (costs.IsSuccess) foreach (var cost in costs.Value) Reference(address, "resources", cost.ResourceId, required: true);
                 }
-                RunBoundaryEffects($"{address}/entryEffects", node.EntryEffects);
-                RunBoundaryEffects($"{address}/exitEffects", node.ExitEffects);
+                RunBoundaryEffects($"{address}/entryEffects", node.EntryEffects, node.EntryEffectOwner);
+                RunBoundaryEffects($"{address}/exitEffects", node.ExitEffects, node.ExitEffectOwner);
             }
         });
         Visit<PreparationDefinition>("preparations", (path, item) =>
         {
-            foreach (var option in item.Options) RunBoundaryEffects($"{path}/options/{option.OptionId}/effects", option.Effects);
+            foreach (var option in item.Options) RunBoundaryEffects($"{path}/options/{option.OptionId}/effects", option.Effects, option.EffectOwner);
         });
         Visit<RunProgressionPolicyDefinition>("run-progression-policies", (path, item) =>
         {
@@ -100,11 +100,11 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
             foreach (var error in Core.Run.Dialogue.DialogueDefinitionValidator.Validate(item)) Error(path, error);
             foreach (var node in item.Nodes)
             {
-                RunBoundaryEffects($"{path}/{node.NodeId}/entryEffects", node.EntryEffects);
+                RunBoundaryEffects($"{path}/{node.NodeId}/entryEffects", node.EntryEffects, node.EntryEffectOwner);
                 foreach (var choice in node.Choices)
                 {
                     var address = $"{path}/{node.NodeId}/{choice.ChoiceId}";
-                    RunBoundaryEffects($"{address}/effects", choice.Effects);
+                    RunBoundaryEffects($"{address}/effects", choice.Effects, choice.EffectOwner);
                     foreach (var cost in choice.Costs) Reference(address, "resources", cost.ResourceId, required: true);
                     DialogueConditionReferences(address, choice.Condition);
                 }
@@ -371,8 +371,9 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         }
     }
 
-    private void RunBoundaryEffects(string path, IReadOnlyList<EffectDefinition> effects)
+    private void RunBoundaryEffects(string path, IReadOnlyList<EffectDefinition> effects, RunActivityEffectOwner owner)
     {
+        if (!Enum.IsDefined(owner)) Error(path, "invalid effect owner binding");
         Effects(path, effects);
         EffectDefinitionValidator.Validate(effects, (effect, location) =>
         {
@@ -399,8 +400,16 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
 
         var instanceIds = new HashSet<string>(StringComparer.Ordinal);
         var sideIds = new HashSet<string>(StringComparer.Ordinal);
+        var runPlayerBindings = 0;
         foreach (var participant in participants.EnumerateArray())
         {
+            if (participant.TryGetProperty("identityBinding", out var binding))
+            {
+                if (binding.ValueKind != System.Text.Json.JsonValueKind.String ||
+                    !Enum.TryParse<Core.Combat.CombatParticipantIdentityBinding>(binding.GetString(), out var parsed) || !Enum.IsDefined(parsed))
+                    Error(path, "invalid encounter participant identity binding");
+                else if (parsed == Core.Combat.CombatParticipantIdentityBinding.RunPlayer) runPlayerBindings++;
+            }
             var instanceId = participant.TryGetProperty("instanceId", out var instance) ? instance.GetString() : null;
             var definitionId = participant.TryGetProperty("definitionId", out var definition) ? definition.GetString() : null;
             var sideId = participant.TryGetProperty("sideId", out var side) ? side.GetString() : null;
@@ -418,6 +427,7 @@ internal sealed class GameplayContentValidator(ContentRuntime runtime, Immutable
         }
         if (sideIds.Count < 2)
             Error(path, "encounter participants require at least two sides");
+        if (runPlayerBindings > 1) Error(path, "an encounter can bind only one participant to the run player");
     }
 
     private void ReferencesParameter(

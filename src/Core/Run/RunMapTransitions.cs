@@ -37,6 +37,8 @@ public static class RunMapTransitions
                 return Result<RunMapState>.Failure($"Map node '{definition.NodeId}': {activity.Error}");
             if (!Enum.IsDefined(definition.CompletionPolicy))
                 return Result<RunMapState>.Failure($"Map node '{definition.NodeId}' has invalid completion policy");
+            if (!Enum.IsDefined(definition.EntryEffectOwner) || !Enum.IsDefined(definition.ExitEffectOwner))
+                return Result<RunMapState>.Failure($"Map node '{definition.NodeId}' has invalid effect owner binding");
 
             var duplicateEdge = definition.NextNodeIds
                 .GroupBy(nodeId => nodeId, StringComparer.Ordinal)
@@ -170,6 +172,8 @@ public static class RunMapTransitions
             Activity = definition.Activity,
             CompletionPolicy = definition.CompletionPolicy,
             EntryEffects = definition.EntryEffects,
+            EntryEffectOwner = definition.EntryEffectOwner,
+            ExitEffectOwner = definition.ExitEffectOwner,
             ExitEffects = definition.ExitEffects,
             NextNodeIds = definition.NextNodeIds,
             Metadata = definition.Metadata.ToImmutableDictionary(

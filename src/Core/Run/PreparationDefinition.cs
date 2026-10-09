@@ -24,6 +24,7 @@ public sealed record PreparationDefinition
 
 public sealed record PreparationOptionDefinition
 {
+    public RunActivityEffectOwner EffectOwner { get; init; }
     public ImmutableArray<Core.Effects.EffectDefinition> Effects { get; init; } = [];
     private ImmutableList<string> _grantedCardIds = [];
     private ImmutableList<PreparationModifierGrantDefinition> _applyModifiers = [];
@@ -86,6 +87,7 @@ public sealed record PreparationState
 
 public sealed record PreparationOptionState
 {
+    public RunActivityEffectOwner EffectOwner { get; init; }
     public ImmutableArray<Core.Effects.EffectDefinition> Effects { get; init; } = [];
     private ImmutableList<string> _grantedCardIds = [];
     private ImmutableList<PreparationModifierGrantState> _applyModifiers = [];

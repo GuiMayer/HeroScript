@@ -11,6 +11,25 @@ namespace Core.Run;
 /// <summary>Persistent attributes and actor resources. Combat resources are transported only by mode policy.</summary>
 public static class PersistentPlayerTransitions
 {
+    public static Result<RunState> ResolveEncounter(RunState run, CombatState combat, bool retry)
+    {
+        var policy = run.ResolvedMode?.ActorResourceLifecyclePolicy;
+        if (policy == null) return Result<RunState>.Success(run);
+        var player = run.PlayerEntity;
+        var actor = combat.GetActor(run.PlayerEntityId);
+        if (player == null || actor == null || player.InstanceId != run.PlayerEntityId ||
+            player.ContentRevision != run.Determinism.ContentRevision)
+            return Result<RunState>.Failure("Persistent player is missing or incompatible with resolved encounter");
+        var promoted = ActorResourceLifecycleTransitions.Exit(player, actor, policy, combat.Status, retry);
+        return promoted.IsFailure ? Result<RunState>.Failure(promoted.Error)
+            : Result<RunState>.Success(run with { PlayerEntity = promoted.Value });
+    }
+
+    public static RunState ApplyResourceConsequences(RunState run) => run.ActiveEncounterId == null &&
+        run.Lifecycle != RunLifecycleState.Abandoned && run.PlayerEntity?.Component<ResourceEntityComponentState>() is { } resources &&
+        ResourceThresholdEvaluator.IsOwnerDefeated(resources.State.Resources.Values)
+        ? run with { Lifecycle = RunLifecycleState.Failed } : run;
+
     public static Result<EntityState> Create(string instanceId, string definitionId, ContentRuntime runtime)
         => Create(instanceId, definitionId, runtime, true);
 

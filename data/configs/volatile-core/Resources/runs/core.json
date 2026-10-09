@@ -30,6 +30,7 @@
             "participants": [
               {
                 "instanceId": "player",
+                "identityBinding": "RunPlayer",
                 "definitionId": "core_adept",
                 "sideId": "player",
                 "controllerBinding": {
@@ -130,6 +131,7 @@
             "participants": [
               {
                 "instanceId": "player",
+                "identityBinding": "RunPlayer",
                 "definitionId": "core_adept",
                 "sideId": "player",
                 "controllerBinding": {
@@ -209,6 +211,7 @@
             "participants": [
               {
                 "instanceId": "player",
+                "identityBinding": "RunPlayer",
                 "definitionId": "core_adept",
                 "sideId": "player",
                 "controllerBinding": {

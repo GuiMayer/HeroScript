@@ -1,0 +1,27 @@
+{
+  "ascendant_actor_resources": {
+    "actorResourceLifecyclePolicyId": "ascendant_actor_resources",
+    "rules": [
+      {
+        "resourceId": "health",
+        "entry": "PreserveCurrent",
+        "victory": "PreserveCurrent",
+        "defeat": "PreserveCurrent",
+        "draw": "PreserveCurrent",
+        "abandoned": "PreserveCurrent",
+        "retry": "EncounterOnly",
+        "missingResource": "Error"
+      },
+      {
+        "resourceId": "energy",
+        "entry": "ResetToMaximum",
+        "victory": "EncounterOnly",
+        "defeat": "EncounterOnly",
+        "draw": "EncounterOnly",
+        "abandoned": "EncounterOnly",
+        "retry": "EncounterOnly",
+        "missingResource": "Error"
+      }
+    ]
+  }
+}

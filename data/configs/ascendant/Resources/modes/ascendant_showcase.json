@@ -13,6 +13,7 @@
     "contentBindingPolicyId": "pinned_published",
     "capabilityPolicyId": "standard_gameplay",
     "progressionPolicyId": "standard_progression",
+    "actorResourceLifecyclePolicyId": "ascendant_actor_resources",
     "cardZoneSystemId": "spire_zones",
     "influences": [
       {

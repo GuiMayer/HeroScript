@@ -24,6 +24,7 @@ function Test-CompatibleDemoEngine {
         $settingIds = @($catalog.items | ForEach-Object { [string]$_.settingId })
         return @($capabilities.capabilities) -contains 'multi-setting-runs' -and
             @($capabilities.capabilities) -contains 'setting-scoped-profiles' -and
+            @($capabilities.capabilities) -contains 'persistent-actor-resources' -and
             $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
     }
     catch {

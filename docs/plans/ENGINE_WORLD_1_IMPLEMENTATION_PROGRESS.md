@@ -6,7 +6,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 
 1. Contratos e baseline: concluída.
 2. Recursos persistentes por ator: concluída.
-3. Transporte entre encontros e recuperação transacional: pendente.
+3. Transporte entre encontros e recuperação transacional: concluída.
 4. Probabilidades calculadas e fatos de sorteio: pendente.
 5. Críticos por níveis e previews: pendente.
 6. Catálogo de desbloqueios e contribuições: pendente.
@@ -33,4 +33,9 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Etapa 2: componentes de recursos persistentes, política revisionada opcional por modo, ações explícitas por resultado/retry, validação de identidade/schema/proprietário e limites persistentes. Recursos não listados continuam exclusivos do encontro.
 - Engine version 21: novos snapshots de personagem incluem recursos; saves anteriores não são apagados nem reinterpretados silenciosamente.
 - Gate da etapa 2: suíte Core completa aprovada (1.537 testes) e 67 testes focados aprovados após a validação adicional do grafo. Integração de saída/recuperação ainda pertence à etapa 3.
+- Suíte API completa aprovada após a etapa 2: 193 testes.
+- Etapa 3: promoção no commit da resolução (incluindo política de retry), owner binding em mapa/preparação/diálogo, cura via processador/pipeline comum e consequência de derrota fora de combate. Ascendant passa a preservar vida e restaurar energia por JSON.
+- Testes de jornada: recuperação + custo com o mesmo resource ID em proprietários distintos; rollback por pagamento/efeito/durabilidade; restart, receipt duplicado, branch isolada e 10 replays por roteiro de recuperação/vitória/retry.
+- Gate da etapa 3: 1.546 testes Core aprovados antes do ajuste de identidade; 50 testes focados aprovados após o ajuste. A suíte API revelou um encontro com ID fixo; corrigido com `identityBinding: RunPlayer` e confirmado por dois testes REST (incluindo identidade personalizada). Suíte API completa será repetida no próximo gate.
+- Launcher exige a capability `persistent-actor-resources` para não reutilizar um processo anterior sem os novos contratos. Nenhum processo/save real foi alterado pelos testes.
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

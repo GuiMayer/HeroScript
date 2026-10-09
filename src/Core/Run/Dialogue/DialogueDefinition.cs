@@ -27,6 +27,7 @@ public sealed record DialogueNodeDefinition
     public DialogueText Text { get; init; } = new();
     public string? PortraitId { get; init; }
     public ImmutableArray<EffectDefinition> EntryEffects { get; init; } = [];
+    public RunActivityEffectOwner EntryEffectOwner { get; init; }
     public ImmutableArray<DialogueChoiceDefinition> Choices { get; init; } = [];
 }
 
@@ -42,6 +43,7 @@ public sealed record DialogueChoiceDefinition
     public DialogueText UnavailableText { get; init; } = new() { Text = "Requirements not met." };
     public ImmutableArray<ResourceAmount> Costs { get; init; } = [];
     public ImmutableArray<EffectDefinition> Effects { get; init; } = [];
+    public RunActivityEffectOwner EffectOwner { get; init; }
     public ImmutableDictionary<string, string> SetFlags { get; init; } = ImmutableDictionary<string, string>.Empty;
 }
 

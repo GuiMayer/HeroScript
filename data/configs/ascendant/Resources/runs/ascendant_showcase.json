@@ -1,6 +1,7 @@
 {
   "ascendant_showcase_run": {
     "runId": "ascendant_showcase_run",
+    "playerDefinitionId": "ascendant_operator",
     "startingResources": { "gold": 40, "power_points": 2 },
     "initialPlayableCardCount": 5,
     "initialCardZoneId": "draw",
@@ -18,7 +19,7 @@
           "type": "Encounter",
           "parameters": {
             "participants": [
-              { "instanceId": "player", "definitionId": "ascendant_operator", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+              { "instanceId": "player", "identityBinding": "RunPlayer", "definitionId": "ascendant_operator", "sideId": "player", "controllerBinding": { "kind": "Player" } },
               { "instanceId": "drone", "definitionId": "ascendant_drone", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
             ]
           }
@@ -61,7 +62,7 @@
           "type": "Encounter",
           "parameters": {
             "participants": [
-              { "instanceId": "player", "definitionId": "ascendant_operator", "sideId": "player", "controllerBinding": { "kind": "Player" } },
+              { "instanceId": "player", "identityBinding": "RunPlayer", "definitionId": "ascendant_operator", "sideId": "player", "controllerBinding": { "kind": "Player" } },
               { "instanceId": "prime", "definitionId": "ascendant_prime", "sideId": "opposition", "controllerBinding": { "kind": "AI", "policyId": "gambit" } }
             ]
           }

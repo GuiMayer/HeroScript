@@ -92,6 +92,7 @@ public sealed class SystemController : ControllerBase
             "run-content-revision",
             "multi-setting-runs",
             "setting-scoped-profiles",
+            "persistent-actor-resources",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

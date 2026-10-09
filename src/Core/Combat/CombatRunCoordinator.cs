@@ -81,16 +81,30 @@ public sealed class CombatRunCoordinator : ICombatRunCoordinator
             if (node.Activity.Type != RunActivityType.Encounter)
                 return Result<CombatRunEncounterResult>.Failure($"Current map node is not an encounter: {node.NodeId}");
 
+            var boundParticipants = CombatParticipantBindings.Resolve(participants, run.PlayerEntityId);
+            if (boundParticipants.IsFailure) return Result<CombatRunEncounterResult>.Failure(boundParticipants.Error);
+            var resourceValues = initialResourceValues;
+            if (initialResourceValues != null)
+            {
+                var ids = participants.Zip(boundParticipants.Value).ToDictionary(pair => pair.First.InstanceId, pair => pair.Second.InstanceId, StringComparer.Ordinal);
+                var remapped = new Dictionary<string, IReadOnlyDictionary<string, float>>(StringComparer.Ordinal);
+                foreach (var (ownerId, values) in initialResourceValues)
+                {
+                    if (!remapped.TryAdd(ids.GetValueOrDefault(ownerId, ownerId), values))
+                        return Result<CombatRunEncounterResult>.Failure("Initial resource owner bindings collide");
+                }
+                resourceValues = remapped;
+            }
             var seed = run.Determinism.DrawUInt64();
             var combatResult = _combatFactory.Create(
-                participants,
+                boundParticipants.Value,
                 new CombatStartOptions(
                     seed.Value,
                     run.Determinism.ContentRevision,
                     runId,
                     node.NodeId,
                     $"run-combat:{runId:N}:{node.NodeId}",
-                    InitialResourceValues: initialResourceValues,
+                    InitialResourceValues: resourceValues,
                     ConfigName: run.ConfigName));
             if (combatResult.IsFailure)
                 return Result<CombatRunEncounterResult>.Failure(combatResult.Error);

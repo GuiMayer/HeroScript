@@ -49,6 +49,8 @@ public sealed record RunMapNodeDefinition
     private ImmutableArray<EffectDefinition> _exitEffects = [];
 
     public string NodeId { get; init; } = string.Empty;
+    public RunActivityEffectOwner EntryEffectOwner { get; init; }
+    public RunActivityEffectOwner ExitEffectOwner { get; init; }
     public RunActivityDefinition Activity { get; init; } = new();
     public RunActivityCompletionPolicy CompletionPolicy { get; init; } = RunActivityCompletionPolicy.Required;
     public IReadOnlyList<EffectDefinition> EntryEffects
