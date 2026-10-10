@@ -80,13 +80,13 @@ func _load_presentation() -> void:
 		var value = JSON.parse_string(file.get_as_text())
 		file.close()
 		if value is Dictionary:
-			var core_file := "res://data/volatile_core_presentation.json"
-			if FileAccess.file_exists(core_file):
-				var core = JSON.parse_string(FileAccess.get_file_as_string(core_file))
-				if core is Dictionary:
-					for category in core:
+			for overlay_path in ["res://data/volatile_core_presentation.json", "res://data/world_one_presentation.json"]:
+				if not FileAccess.file_exists(overlay_path): continue
+				var overlay = JSON.parse_string(FileAccess.get_file_as_string(overlay_path))
+				if overlay is Dictionary:
+					for category in overlay:
 						if not value.has(category): value[category] = {}
-						value[category].merge(core[category], true)
+						value[category].merge(overlay[category], true)
 			presentation = I18n.presentation(value)
 
 func _probe_engine() -> void:

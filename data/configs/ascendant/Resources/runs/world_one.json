@@ -54,7 +54,7 @@
         ],
         "metadata": {
           "displayName": "Fractured Approach",
-          "description": "Visible attack cycles; current health persists. Rift Scout.",
+          "description": "Visible attack cycles; current health persists. Rift Scout. Reward: 12 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "arrival",
           "risk": "Standard",
@@ -121,7 +121,7 @@
         ],
         "metadata": {
           "displayName": "Gate Calibration",
-          "description": "Visible attack cycles; current health persists. Gate Sentinel.",
+          "description": "Visible attack cycles; current health persists. Gate Sentinel. Reward: 14 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "gate",
           "risk": "Standard",
@@ -204,7 +204,7 @@
         ],
         "metadata": {
           "displayName": "Keen Lens",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "+30 critical chance. Choose critical growth instead of defense or residual potency.",
           "rewardTransition": true
         }
       },
@@ -222,7 +222,7 @@
         ],
         "metadata": {
           "displayName": "Ward Plate",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "20% increased Block, additive with Fortification.",
           "rewardTransition": true
         }
       },
@@ -240,7 +240,7 @@
         ],
         "metadata": {
           "displayName": "Catalytic Coil",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "25% increased residual potency, captured once at application.",
           "rewardTransition": true
         }
       },
@@ -286,7 +286,7 @@
         ],
         "metadata": {
           "displayName": "Watch Patrol",
-          "description": "Visible attack cycles; current health persists. Gate Sentinel + Shard Mite.",
+          "description": "Visible attack cycles; current health persists. Gate Sentinel + Shard Mite. Reward: 16 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "watch",
           "risk": "Standard",
@@ -336,7 +336,7 @@
         ],
         "metadata": {
           "displayName": "Charging Passage",
-          "description": "Visible attack cycles; current health persists. Rift Charger.",
+          "description": "Visible attack cycles; current health persists. Rift Charger. Reward: 16 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "charge",
           "risk": "Standard",
@@ -431,7 +431,7 @@
         ],
         "metadata": {
           "displayName": "Corrosive Nest",
-          "description": "Visible attack cycles; current health persists. Corrosion Spitter + Shard Mite.",
+          "description": "Visible attack cycles; current health persists. Corrosion Spitter + Shard Mite. Reward: 16 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "corrosion",
           "risk": "Standard",
@@ -490,7 +490,7 @@
         ],
         "metadata": {
           "displayName": "Binding Patrol",
-          "description": "Visible attack cycles; current health persists. Matrix Binder + Rift Scout.",
+          "description": "Visible attack cycles; current health persists. Matrix Binder + Rift Scout. Reward: 16 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "binding",
           "risk": "Standard",
@@ -650,7 +650,7 @@
         ],
         "metadata": {
           "displayName": "Rest: recover 25 health",
-          "description": "Recovery costs the alternative event opportunity."
+          "description": "Recover 25 persistent health once. This route forgoes the alternative forge/event."
         }
       },
       {
@@ -695,7 +695,7 @@
         ],
         "metadata": {
           "displayName": "Guarded Venom",
-          "description": "Visible attack cycles; current health persists. Gate Sentinel + Corrosion Spitter.",
+          "description": "Visible attack cycles; current health persists. Gate Sentinel + Corrosion Spitter. Reward: 16 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "guarded",
           "risk": "Standard",
@@ -754,7 +754,7 @@
         ],
         "metadata": {
           "displayName": "Shard Rush",
-          "description": "Visible attack cycles; current health persists. Rift Charger + Shard Mite.",
+          "description": "Visible attack cycles; current health persists. Rift Charger + Shard Mite. Reward: 16 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "rush",
           "risk": "Standard",
@@ -866,7 +866,7 @@
         ],
         "metadata": {
           "displayName": "Artillery Escort",
-          "description": "Visible attack cycles; current health persists. Crystal Artillery + Rift Scout.",
+          "description": "Visible attack cycles; current health persists. Crystal Artillery + Rift Scout. Reward: 18 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "patrol",
           "risk": "Standard",
@@ -933,7 +933,7 @@
         ],
         "metadata": {
           "displayName": "Iron Custodian",
-          "description": "Optional elite: higher risk, relic reward. Iron Custodian.",
+          "description": "Optional elite: higher risk, relic reward. Iron Custodian. Reward: 32 gold + card choice.",
           "tier": "Elite",
           "encounterTemplate": "iron",
           "risk": "High",
@@ -980,7 +980,7 @@
         ],
         "metadata": {
           "displayName": "Opening Ward",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "8 Block once at combat entry. Not a free defense each turn.",
           "rewardTransition": true
         }
       },
@@ -1017,7 +1017,7 @@
         ],
         "metadata": {
           "displayName": "Venom Archivist",
-          "description": "Optional elite: higher risk, relic reward. Venom Archivist.",
+          "description": "Optional elite: higher risk, relic reward. Venom Archivist. Reward: 32 gold + card choice.",
           "tier": "Elite",
           "encounterTemplate": "venom",
           "risk": "High",
@@ -1064,7 +1064,7 @@
         ],
         "metadata": {
           "displayName": "Serrated Core",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "20% increased attack damage in the common increased bucket.",
           "rewardTransition": true
         }
       },
@@ -1101,7 +1101,7 @@
         ],
         "metadata": {
           "displayName": "Prismatic Hunter",
-          "description": "Optional elite: higher risk, relic reward. Prismatic Hunter.",
+          "description": "Optional elite: higher risk, relic reward. Prismatic Hunter. Reward: 32 gold + card choice.",
           "tier": "Elite",
           "encounterTemplate": "prism",
           "risk": "High",
@@ -1148,7 +1148,7 @@
         ],
         "metadata": {
           "displayName": "Precision Core",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "+0.20 damage bonus for each critical tier.",
           "rewardTransition": true
         }
       },
@@ -1228,7 +1228,7 @@
         ],
         "metadata": {
           "displayName": "Sentinel Swarm",
-          "description": "Visible attack cycles; current health persists. Shard Swarm + Gate Sentinel.",
+          "description": "Visible attack cycles; current health persists. Shard Swarm + Gate Sentinel. Reward: 18 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "swarm",
           "risk": "Standard",
@@ -1287,7 +1287,7 @@
         ],
         "metadata": {
           "displayName": "Corrosive Siege",
-          "description": "Visible attack cycles; current health persists. Crystal Artillery + Corrosion Spitter.",
+          "description": "Visible attack cycles; current health persists. Crystal Artillery + Corrosion Spitter. Reward: 18 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "siege",
           "risk": "Standard",
@@ -1354,7 +1354,7 @@
         ],
         "metadata": {
           "displayName": "Final Rest: recover 25 health",
-          "description": "Recovery now means no final card transformation."
+          "description": "Recover 25 persistent health once. This route forgoes the alternative forge/event."
         }
       },
       {
@@ -1409,7 +1409,7 @@
         ],
         "metadata": {
           "displayName": "Field Kit",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "Recover 3 health once at combat entry, up to current maximum.",
           "rewardTransition": true
         }
       },
@@ -1426,7 +1426,7 @@
         ],
         "metadata": {
           "displayName": "Reserve Coil",
-          "description": "Choose this relic instead of the other offered route rewards.",
+          "description": "Store 5 guard potency at combat entry. Release Guard is needed to consume it.",
           "rewardTransition": true
         }
       },
@@ -1472,7 +1472,7 @@
         ],
         "metadata": {
           "displayName": "Prime Vanguard",
-          "description": "Visible attack cycles; current health persists. Rift Charger + Gate Sentinel.",
+          "description": "Visible attack cycles; current health persists. Rift Charger + Gate Sentinel. Reward: 20 gold + card choice.",
           "tier": "Common",
           "encounterTemplate": "vanguard",
           "risk": "Standard",
@@ -1537,7 +1537,7 @@
         "nextNodeIds": [],
         "metadata": {
           "displayName": "Ascendant Prime — Act Finale",
-          "description": "Two-state boss; survives strong builds. Ascendant Prime.",
+          "description": "Two-state boss; survives strong builds. Ascendant Prime. The demo ends here.",
           "tier": "Boss",
           "encounterTemplate": "world_one_boss",
           "risk": "Boss",

@@ -22,6 +22,7 @@ function Test-CompatibleDemoEngine {
         $capabilities = Invoke-RestMethod -Uri "$apiUrl/api/v1/capabilities" -TimeoutSec 2
         $catalog = Invoke-RestMethod -Uri "$apiUrl/api/v1/content/settings" -TimeoutSec 2
         $settingIds = @($catalog.items | ForEach-Object { [string]$_.settingId })
+        $ascendant = @($catalog.items | Where-Object settingId -eq 'ascendant') | Select-Object -First 1
         return @($capabilities.capabilities) -contains 'multi-setting-runs' -and
             @($capabilities.capabilities) -contains 'setting-scoped-profiles' -and
             @($capabilities.capabilities) -contains 'persistent-actor-resources' -and
@@ -32,7 +33,8 @@ function Test-CompatibleDemoEngine {
             @($capabilities.capabilities) -contains 'foundation-read-models' -and
             @($capabilities.capabilities) -contains 'foundation-reload-safety' -and
             @($capabilities.capabilities) -contains 'canonical-effect-identities' -and
-            $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
+            $settingIds -contains 'default' -and $settingIds -contains 'ascendant' -and
+            $null -ne $ascendant -and $ascendant.launch.modeId -eq 'ascendant_world_one'
     }
     catch {
         return $false

@@ -1,0 +1,161 @@
+{
+  "cards": {
+    "w1_strike": {
+      "name": "Matrix Strike",
+      "text": "Reliable single-target damage.",
+      "tone": "attack"
+    },
+    "w1_guard": {
+      "name": "Kinetic Guard",
+      "text": "Baseline mitigation.",
+      "tone": "skill"
+    },
+    "w1_scorch": {
+      "name": "Scorch Cut",
+      "text": "Immediate damage plus a short residual.",
+      "tone": "attack"
+    },
+    "w1_poison": {
+      "name": "Corrosion",
+      "text": "Delayed single-target pressure.",
+      "tone": "power"
+    },
+    "w1_release": {
+      "name": "Condense",
+      "text": "Consume all Scorch/Corrosion potency in one proc at 150%; not remaining-duration damage.",
+      "tone": "skill"
+    },
+    "w1_precision": {
+      "name": "Precision",
+      "text": "Card-local +50 critical chance.",
+      "tone": "attack"
+    },
+    "w1_focus": {
+      "name": "Focus",
+      "text": "One-time combat investment: +80 critical chance.",
+      "tone": "skill"
+    },
+    "w1_lance": {
+      "name": "Critical Lance",
+      "text": "Card-local +75 critical chance; supports guaranteed tiers.",
+      "tone": "attack"
+    },
+    "w1_flurry": {
+      "name": "Twin Blades",
+      "text": "One shared budget split into two independent crit rolls.",
+      "tone": "attack"
+    },
+    "w1_barrage": {
+      "name": "Shard Barrage",
+      "text": "Shared source budget; four per-impact rolls.",
+      "tone": "attack"
+    },
+    "w1_sweep": {
+      "name": "Arc Sweep",
+      "text": "Pays for coverage rather than single-target burst.",
+      "tone": "attack"
+    },
+    "w1_shield_bash": {
+      "name": "Shield Bash",
+      "text": "Bridge between defense and offense.",
+      "tone": "attack"
+    },
+    "w1_fortify": {
+      "name": "Fortify",
+      "text": "35% increased Block for this encounter.",
+      "tone": "skill"
+    },
+    "w1_bulwark": {
+      "name": "Bulwark",
+      "text": "Efficient defense, at the cost of offensive tempo.",
+      "tone": "skill"
+    },
+    "w1_reserve": {
+      "name": "Guard reserve",
+      "text": "Defend now and store a future Block proc.",
+      "tone": "skill"
+    },
+    "w1_release_guard": {
+      "name": "Release Guard",
+      "text": "Consumes defense reserve, not damage stacks.",
+      "tone": "skill"
+    },
+    "w1_fracture": {
+      "name": "Expose Weakness",
+      "text": "Makes following impacts more effective.",
+      "tone": "attack"
+    },
+    "w1_dampen": {
+      "name": "Dampen",
+      "text": "Reduce one actor's outgoing damage instead of racing it.",
+      "tone": "skill"
+    },
+    "w1_recall": {
+      "name": "Tactical Recall",
+      "text": "Convert energy into hand options.",
+      "tone": "skill"
+    },
+    "w1_insight": {
+      "name": "Brief Insight",
+      "text": "Exhausts; cannot cycle forever.",
+      "tone": "skill"
+    },
+    "w1_mend": {
+      "name": "Field Dressing",
+      "text": "Limited recovery; exhausts each encounter.",
+      "tone": "skill"
+    },
+    "w1_momentum": {
+      "name": "Gather Momentum",
+      "text": "One-time 30% increased damage investment.",
+      "tone": "power"
+    },
+    "w1_catalyst": {
+      "name": "Volatile Catalyst",
+      "text": "Captured residual potency scales at application, not again on release.",
+      "tone": "power"
+    },
+    "w1_venom_flurry": {
+      "name": "Venom Flurry",
+      "text": "Multiple hits plus one status application, not one free payload per hit.",
+      "tone": "attack"
+    },
+    "w1_inferno": {
+      "name": "Spreading Embers",
+      "text": "Delayed coverage for multi-actor encounters.",
+      "tone": "skill"
+    },
+    "w1_detonate": {
+      "name": "Detonating Cut",
+      "text": "Cash-out before attacking; avoids a duplicate tick.",
+      "tone": "attack"
+    },
+    "w1_riposte": {
+      "name": "Guard Conversion",
+      "text": "Consumes own Block after converting 75% into an attack.",
+      "tone": "attack"
+    },
+    "w1_pierce": {
+      "name": "Piercing Ray",
+      "text": "Trade base damage for ignoring Block.",
+      "tone": "attack"
+    },
+    "w1_rehearse": {
+      "name": "Rehearsed Strike",
+      "text": "Critical/draw sidegrade unlocked after reaching world-one completion.",
+      "tone": "attack"
+    },
+    "w1_renewal": {
+      "name": "Lasting Renewal",
+      "text": "A second limited recovery option; unlock, not permanent stats.",
+      "tone": "skill"
+    }
+  },
+  "condensation_labels": {
+    "w1_release_dot": "Consume all Scorch/Corrosion stacks: release 150% of current potency once.",
+    "w1_release_guard": "Consume all Guard reserve stacks: gain 150% of stored potency as Block."
+  },
+  "card_flow_labels": {
+    "effect.draw": "Draw"
+  }
+}

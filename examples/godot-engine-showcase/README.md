@@ -14,7 +14,8 @@ O launcher inicia a API em `http://127.0.0.1:5271`, guarda os dados de teste em 
 
 Antes de reutilizar uma API já aberta, o launcher verifica se ela publica os
 settings `default` e `ascendant`, `setting-scoped-profiles` e as capabilities dos
-fundamentos do mundo 1, incluindo `canonical-effect-identities` (engine 28). Se encontrar na porta uma versão antiga desta
+fundamentos do mundo 1, incluindo `canonical-effect-identities` (engine 28), e o
+launch do Ascendant em `ascendant_world_one`. Se encontrar na porta uma versão antiga desta
 mesma workspace, ele a encerra e inicia a build atual; processos de outros
 programas nunca são encerrados automaticamente.
 
@@ -169,11 +170,22 @@ o setting registrado pela própria run.
 
 - **Ember Archive**: campanha ampla para cartas, recursos, status, progressão e
   diferentes atividades.
-- **Ascendant Matrix**: campanha curta de buildcraft inspirada na leitura em
-  camadas de jogos como Warframe e Path of Exile. A pipeline soma bônus
-  `increased`, aplica uma camada elemental e depois multiplicadores
-  independentes de suporte, crítico e vulnerabilidade. Tudo está em JSON; o
-  processador continua conhecendo apenas buckets genéricos.
+- **Ascendant Matrix**: primeiro ato em alpha, com 30 cartas, 12 transformações,
+  oito relíquias, 14 paradas principais e nove combates por caminho. Rotas
+  oferecem encontros alternativos, três elites opcionais, loja, descansos,
+  forjas e cinco eventos. Energia paga cartas; vida persiste entre combates.
+  Crítico multinível, DoT, condensação, multi-hit e defesa usam os processadores
+  genéricos da engine. A duração e o balanceamento ainda precisam de playtests.
+
+Depois de atualizar, reinicie pelo launcher e escolha **Nova run** no Ascendant.
+Um save anterior permanece na revisão do showcase antigo; continuar não o migra.
+Veja o [catálogo e contratos do ato](../../docs/content/ASCENDANT_WORLD_ONE.md).
+
+Validação local da apresentação do ato, sem API:
+
+```powershell
+godot --headless --path . --script res://tests/world_one.gd
+```
 
 ### Atualização visual estável
 
@@ -243,7 +255,9 @@ Arquivos principais:
 O setting `default` contém o modo `spire_showcase`, a run
 `spire_showcase_run` e os atores do Ember Archive. O setting `ascendant` vive em
 `data/configs/ascendant`, depende do pacote base e acrescenta sua própria run,
-modo, cartas, atores, upgrades, relíquia e pipeline. O conteúdo é compilado,
+modo, cartas, atores, upgrades, relíquias, serviços e pipelines. O launch atual
+é `ascendant_world_one_run` / `ascendant_world_one`; a vitrine anterior permanece
+como fixture. O conteúdo é compilado,
 validado e fixado por revisão quando uma run começa. Alterar esses JSONs e
 reiniciar a API cria uma nova revisão sem reescrever a interface.
 

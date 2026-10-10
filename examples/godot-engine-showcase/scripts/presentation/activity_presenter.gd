@@ -17,7 +17,16 @@ func current_node() -> Dictionary:
 	return {}
 
 func node_name(id: String) -> String:
+	for node in _run.get("map", {}).get("nodes", []):
+		if str(node.get("nodeId", "")) == id:
+			var metadata: Dictionary = node.get("metadata", {})
+			if metadata.has("displayName"):
+				return _i18n.content_name(id, str(metadata.displayName))
 	return str(_appearance.get("nodes", {}).get(id, {}).get("name", _i18n.content_name(id)))
+
+func node_description(node: Dictionary, fallback: String) -> String:
+	var metadata: Dictionary = node.get("metadata", {})
+	return _i18n.content_name(str(node.get("nodeId", "")) + ".description", str(metadata.get("description", fallback)))
 
 func route() -> Array:
 	var result: Array = []
@@ -28,6 +37,7 @@ func route() -> Array:
 			if str(choice.type) == "ADVANCE_NODE" and str(choice.subjectId) == id: travel = choice.duplicate(true)
 		result.append({
 			"id": id, "name": node_name(id), "kind": str(node.get("activity", {}).get("type", "")),
+			"description": node_description(node, ""), "risk": str(node.get("metadata", {}).get("risk", "")),
 			"next": node.get("nextNodeIds", []).duplicate(), "travel": travel,
 			"current": id == str(_run.get("currentNodeId", "")),
 			"resolved": id in _run.get("map", {}).get("resolvedNodeIds", [])
@@ -70,6 +80,9 @@ func offer(choice: Dictionary) -> Dictionary:
 	var name: String = _i18n.content_name(definition, str(card.get("name", definition)))
 	if str(choice.get("subjectType", "")) == "node": name = node_name(subject)
 	var summary := str(card.get("text", _i18n.text("Choose your next action.")))
+	if str(choice.get("subjectType", "")) == "node":
+		for node in _run.get("map", {}).get("nodes", []):
+			if str(node.get("nodeId", "")) == subject: summary = node_description(node, summary)
 	if choice.has("variantId"): summary = _i18n.content_name(str(choice.variantId))
 	var price: Array[String] = []
 	for cost in costs: price.append("%s %s" % [_i18n.number(float(cost.get("amount", 0))), _i18n.content_name(str(cost.get("resourceId", "")))])

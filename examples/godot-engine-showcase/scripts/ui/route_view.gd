@@ -19,7 +19,9 @@ func setup(route: Array) -> void:
 		button.disabled = node.travel.is_empty()
 		button.add_theme_color_override("font_disabled_color", AppTheme.GOLD if node.current else AppTheme.MUTED)
 		button.add_theme_stylebox_override("disabled", AppTheme.box(Color("#242133") if node.current else Color("#141623"), 9, AppTheme.GOLD if node.current else Color("#343448"), 1))
-		button.tooltip_text = str(node.name)
+		button.tooltip_text = str(node.name) + "\n" + str(node.get("description", ""))
+		if str(node.get("risk", "")) == "High":
+			button.add_theme_color_override("font_color", AppTheme.EMBER)
 		button.pressed.connect(func(): travel_requested.emit(node.travel))
 		add_child(button)
 	queue_redraw()

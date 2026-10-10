@@ -85,7 +85,9 @@ func _build_header() -> void:
 	row.add_theme_constant_override("separation", 12)
 	var title_box := VBoxContainer.new()
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_box.add_child(AppTheme.title(I18n.text("THE EMBER PATH"), 30))
+	var metadata: Dictionary = GameSession.run.get("metadata", {})
+	var run_title := I18n.content_name(str(GameSession.run.get("runDefinitionId", "")), str(metadata.get("displayName", I18n.text("THE EMBER PATH"))))
+	title_box.add_child(AppTheme.title(run_title, 30))
 	title_box.tooltip_text = "Seed: %s · Sequence: %s" % [GameSession.run.get("seed", 0), GameSession.run.get("sequence", 0)]
 	title_box.add_child(AppTheme.muted(I18n.text("Build your deck. Choose your path."), 14, 240))
 	row.add_child(title_box)
@@ -164,7 +166,7 @@ func _activity_summary(node: Dictionary) -> Control:
 		"Preparation": I18n.text("Rest or prepare for your next battle."),
 		"CardUpgrade": I18n.text("Upgrade a card to improve its base components.")
 	}.get(kind, I18n.text("Choose your next action."))
-	content.add_child(AppTheme.muted(description, 16))
+	content.add_child(AppTheme.muted(presenter.node_description(node, description), 16, 180))
 	var zone_view = preload("res://scripts/presentation/card_zone_presenter.gd").new(GameSession.card_zones, I18n)
 	content.add_child(AppTheme.muted(I18n.text("Deck · %s cards") % zone_view.total_cards(), 14))
 	row.add_child(content)
