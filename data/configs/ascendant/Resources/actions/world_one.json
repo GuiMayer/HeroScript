@@ -1,0 +1,1620 @@
+{
+  "w1_scout.cycle0": {
+    "actionId": "w1_scout.cycle0",
+    "displayName": "Probe: 8",
+    "description": "Baseline attacker. Guard or race it.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_scout.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 8,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_mite.cycle0": {
+    "actionId": "w1_mite.cycle0",
+    "displayName": "Double bite: 4 × 2",
+    "description": "Two impacts share eight damage; Block absorbs them normally.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_mite.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 2,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 8,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_sentinel.cycle0": {
+    "actionId": "w1_sentinel.cycle0",
+    "displayName": "Brace: 5 + 8 Block",
+    "description": "Alternates defense and an exposed attacking window.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_sentinel.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 5,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_sentinel.cycle0.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 8,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_sentinel.cycle1": {
+    "actionId": "w1_sentinel.cycle1",
+    "displayName": "Strike: 10",
+    "description": "Alternates defense and an exposed attacking window.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_sentinel.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 10,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_spitter.cycle0": {
+    "actionId": "w1_spitter.cycle0",
+    "displayName": "Corrosive spit: 4 + residual 2",
+    "description": "Pressure persists after an unblocked application; removing it early matters.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_spitter.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 4,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_spitter.cycle0.1",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_poison",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 2
+          }
+        ],
+        "tags": [
+          "residual"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        }
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_spitter.cycle1": {
+    "actionId": "w1_spitter.cycle1",
+    "displayName": "Bite: 7",
+    "description": "Pressure persists after an unblocked application; removing it early matters.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_spitter.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 7,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_charger.cycle0": {
+    "actionId": "w1_charger.cycle0",
+    "displayName": "Wind-up: 5",
+    "description": "A clear heavy window rewards saving defense.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_charger.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 5,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_charger.cycle1": {
+    "actionId": "w1_charger.cycle1",
+    "displayName": "Charge: 14",
+    "description": "A clear heavy window rewards saving defense.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_charger.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 14,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_binder.cycle0": {
+    "actionId": "w1_binder.cycle0",
+    "displayName": "Bind: 6 + Weakened",
+    "description": "Weakens outgoing damage; control and residuals offer alternatives.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_binder.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 6,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_binder.cycle0.1",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_weakened",
+        "statusStacks": 1,
+        "statusDuration": 2,
+        "tags": [
+          "debuff"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        }
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_binder.cycle1": {
+    "actionId": "w1_binder.cycle1",
+    "displayName": "Pulse: 8",
+    "description": "Weakens outgoing damage; control and residuals offer alternatives.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_binder.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 8,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_swarm.cycle0": {
+    "actionId": "w1_swarm.cycle0",
+    "displayName": "Swarm: 4 × 3",
+    "description": "Multi-hit pressure without free added damage per hit.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_swarm.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 3,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 12,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_artillery.cycle0": {
+    "actionId": "w1_artillery.cycle0",
+    "displayName": "Stabilize: 7 + 4 Block",
+    "description": "Two-phase attacker; prioritization matters in groups.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_artillery.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 7,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_artillery.cycle0.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 4,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_artillery.cycle1": {
+    "actionId": "w1_artillery.cycle1",
+    "displayName": "Crystal shell: 15",
+    "description": "Two-phase attacker; prioritization matters in groups.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_artillery.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 15,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_bulwark_elite.cycle0": {
+    "actionId": "w1_bulwark_elite.cycle0",
+    "displayName": "Bastion: 8 + 12 Block",
+    "description": "Defense test; piercing, timed burst and residuals all help.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_bulwark_elite.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 8,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_bulwark_elite.cycle0.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 12,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_bulwark_elite.cycle1": {
+    "actionId": "w1_bulwark_elite.cycle1",
+    "displayName": "Crushing blow: 18",
+    "description": "Defense test; piercing, timed burst and residuals all help.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_bulwark_elite.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 18,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_corrosion_elite.cycle0": {
+    "actionId": "w1_corrosion_elite.cycle0",
+    "displayName": "Archive venom: 7 + residual 3",
+    "description": "Target-priority and limited recovery test; no blanket DoT immunity.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_corrosion_elite.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 7,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_corrosion_elite.cycle0.1",
+        "type": "APPLY_STATUS",
+        "target": "TARGET",
+        "statusId": "w1_poison",
+        "statusStacks": 1,
+        "statusDuration": 3,
+        "payloadBindings": [
+          {
+            "parameterId": "potency",
+            "flatValue": 3
+          }
+        ],
+        "tags": [
+          "residual"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        }
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_corrosion_elite.cycle1": {
+    "actionId": "w1_corrosion_elite.cycle1",
+    "displayName": "Toxic strike: 14",
+    "description": "Target-priority and limited recovery test; no blanket DoT immunity.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_corrosion_elite.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 14,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prism_elite.cycle0": {
+    "actionId": "w1_prism_elite.cycle0",
+    "displayName": "Prism volley: 6 × 3",
+    "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prism_elite.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 3,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 18,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prism_elite.cycle1": {
+    "actionId": "w1_prism_elite.cycle1",
+    "displayName": "Shatter: 24",
+    "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prism_elite.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 24,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prism_elite.cycle2": {
+    "actionId": "w1_prism_elite.cycle2",
+    "displayName": "Refract: 9 + 6 Block",
+    "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prism_elite.cycle2.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 9,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_prism_elite.cycle2.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 6,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prime.cycle0": {
+    "actionId": "w1_prime.cycle0",
+    "displayName": "Survey: 12",
+    "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.cycle0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 12,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prime.cycle1": {
+    "actionId": "w1_prime.cycle1",
+    "displayName": "World fracture: 20",
+    "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.cycle1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 20,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prime.cycle2": {
+    "actionId": "w1_prime.cycle2",
+    "displayName": "Rebuild: 10 + 10 Block",
+    "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.cycle2.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 10,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_prime.cycle2.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 10,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false,
+    "cooldown": 0,
+    "tags": [
+      "enemy",
+      "world_one"
+    ]
+  },
+  "w1_prime.enraged0": {
+    "actionId": "w1_prime.enraged0",
+    "displayName": "Rupture: 16",
+    "description": "Enraged cycle below half health. No immunity; defeat it before round 12.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.enraged0.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 16,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false
+  },
+  "w1_prime.enraged1": {
+    "actionId": "w1_prime.enraged1",
+    "displayName": "Cataclysm wind-up: 26",
+    "description": "Enraged cycle below half health. No immunity; defeat it before round 12.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.enraged1.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 26,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false
+  },
+  "w1_prime.enraged2": {
+    "actionId": "w1_prime.enraged2",
+    "displayName": "Reconstitute: 12 + 8 Block",
+    "description": "Enraged cycle below half health. No immunity; defeat it before round 12.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.enraged2.0",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 12,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      },
+      {
+        "effectId": "w1_prime.enraged2.1",
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "flatValue": 8,
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ]
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false
+  },
+  "w1_prime.cataclysm": {
+    "actionId": "w1_prime.cataclysm",
+    "displayName": "Cataclysm: 34",
+    "description": "Round 12 onwards. A visible damage escalation, not an invulnerability gate.",
+    "actionType": "POWER",
+    "costs": {
+      "costs": []
+    },
+    "effects": [
+      {
+        "effectId": "w1_prime.cataclysm.damage",
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "repeat": 1,
+        "tags": [
+          "damage",
+          "attack",
+          "enemy"
+        ],
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "flatValue": 34,
+            "unitId": "points",
+            "channel": "effect_amount",
+            "pipelineId": "w1_amount",
+            "stageIds": [
+              "w1_target"
+            ],
+            "distribution": {
+              "sourceStageIds": [
+                "w1_origin"
+              ],
+              "allocation": {
+                "mode": "Quantized",
+                "quantum": 1
+              }
+            }
+          }
+        ],
+        "targetLoss": {
+          "policy": "Retarget",
+          "retarget": "LOWEST_RESOURCE_ENEMY"
+        },
+        "selectionResourceId": "health"
+      }
+    ],
+    "requiresTarget": true,
+    "multiTarget": false
+  }
+}

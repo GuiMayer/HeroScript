@@ -1,0 +1,509 @@
+{
+  "w1_scout": {
+    "definitionId": "w1_scout",
+    "displayName": "Rift Scout",
+    "description": "Baseline attacker. Guard or race it.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 28,
+            "max": 28
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_scout.cycle0"
+        ]
+      }
+    ]
+  },
+  "w1_mite": {
+    "definitionId": "w1_mite",
+    "displayName": "Shard Mite",
+    "description": "Two impacts share eight damage; Block absorbs them normally.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 22,
+            "max": 22
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_mite.cycle0"
+        ]
+      }
+    ]
+  },
+  "w1_sentinel": {
+    "definitionId": "w1_sentinel",
+    "displayName": "Gate Sentinel",
+    "description": "Alternates defense and an exposed attacking window.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 38,
+            "max": 38
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_sentinel.cycle0",
+          "w1_sentinel.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_spitter": {
+    "definitionId": "w1_spitter",
+    "displayName": "Corrosion Spitter",
+    "description": "Pressure persists after an unblocked application; removing it early matters.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 30,
+            "max": 30
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_spitter.cycle0",
+          "w1_spitter.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_charger": {
+    "definitionId": "w1_charger",
+    "displayName": "Rift Charger",
+    "description": "A clear heavy window rewards saving defense.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 46,
+            "max": 46
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_charger.cycle0",
+          "w1_charger.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_binder": {
+    "definitionId": "w1_binder",
+    "displayName": "Matrix Binder",
+    "description": "Weakens outgoing damage; control and residuals offer alternatives.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 34,
+            "max": 34
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_binder.cycle0",
+          "w1_binder.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_swarm": {
+    "definitionId": "w1_swarm",
+    "displayName": "Shard Swarm",
+    "description": "Multi-hit pressure without free added damage per hit.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 28,
+            "max": 28
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_swarm.cycle0"
+        ]
+      }
+    ]
+  },
+  "w1_artillery": {
+    "definitionId": "w1_artillery",
+    "displayName": "Crystal Artillery",
+    "description": "Two-phase attacker; prioritization matters in groups.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 44,
+            "max": 44
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_artillery.cycle0",
+          "w1_artillery.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_bulwark_elite": {
+    "definitionId": "w1_bulwark_elite",
+    "displayName": "Iron Custodian",
+    "description": "Defense test; piercing, timed burst and residuals all help.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 96,
+            "max": 96
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_bulwark_elite.cycle0",
+          "w1_bulwark_elite.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_corrosion_elite": {
+    "definitionId": "w1_corrosion_elite",
+    "displayName": "Venom Archivist",
+    "description": "Target-priority and limited recovery test; no blanket DoT immunity.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 84,
+            "max": 84
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_corrosion_elite.cycle0",
+          "w1_corrosion_elite.cycle1"
+        ]
+      }
+    ]
+  },
+  "w1_prism_elite": {
+    "definitionId": "w1_prism_elite",
+    "displayName": "Prismatic Hunter",
+    "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 100,
+            "max": 100
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_prism_elite.cycle0",
+          "w1_prism_elite.cycle1",
+          "w1_prism_elite.cycle2"
+        ]
+      }
+    ]
+  },
+  "w1_prime": {
+    "definitionId": "w1_prime",
+    "displayName": "Ascendant Prime",
+    "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 180,
+            "max": 180
+          },
+          "energy": {
+            "current": 0,
+            "max": 0
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "critical_chance": 0,
+          "critical_multiplier": 1.5
+        }
+      },
+      {
+        "type": "abilities",
+        "componentId": "abilities",
+        "abilityIds": [
+          "w1_prime.cycle0",
+          "w1_prime.cycle1",
+          "w1_prime.cycle2",
+          "w1_prime.enraged0",
+          "w1_prime.enraged1",
+          "w1_prime.enraged2",
+          "w1_prime.cataclysm"
+        ]
+      }
+    ]
+  }
+}

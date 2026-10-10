@@ -54,6 +54,25 @@ Implementação inicial em andamento. O fundamento da engine foi certificado sep
 ## Verificação por etapa
 
 1. Cartas, pipelines, payloads e operador: 30 cartas compiladas; custos exclusivamente em energia; grafo de conteúdo validado e fixtures antigas preservadas.
-2. Inimigos, serviços, rotas e apresentação: próximas etapas.
+2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços, rotas e apresentação: próximas etapas.
 3. Jornadas e balanceamento: registrar evidências sem substituir playtest humano por sucesso de bot.
+
+## Ameaças
+
+Cada entidade usa habilidades/gambits próprios. O chefe troca de ciclo com vida ≤50%; após o round 12 anuncia Cataclysm. Não existe imunidade a crítico, DoT ou bloqueio. Os números abaixo são nominais: preview e pipeline calculam vulnerabilidade, redução e mitigação.
+
+| ID | Classe | Vida | Ciclo anunciado |
+| --- | --- | ---: | --- |
+| w1_scout | Common | 28 | Probe: 8 |
+| w1_mite | Common | 22 | Double bite: 4 × 2 |
+| w1_sentinel | Common | 38 | Brace: 5 + 8 Block → Strike: 10 |
+| w1_spitter | Common | 30 | Corrosive spit: 4 + residual 2 → Bite: 7 |
+| w1_charger | Common | 46 | Wind-up: 5 → Charge: 14 |
+| w1_binder | Common | 34 | Bind: 6 + Weakened → Pulse: 8 |
+| w1_swarm | Common | 28 | Swarm: 4 × 3 |
+| w1_artillery | Common | 44 | Stabilize: 7 + 4 Block → Crystal shell: 15 |
+| w1_bulwark_elite | Elite | 96 | Bastion: 8 + 12 Block → Crushing blow: 18 |
+| w1_corrosion_elite | Elite | 84 | Archive venom: 7 + residual 3 → Toxic strike: 14 |
+| w1_prism_elite | Elite | 100 | Prism volley: 6 × 3 → Shatter: 24 → Refract: 9 + 6 Block |
+| w1_prime | Boss | 180 | Survey: 12 → World fracture: 20 → Rebuild: 10 + 10 Block |
 

@@ -1,0 +1,97 @@
+{
+  "w1_combat": {
+    "combatRulesId": "w1_combat",
+    "defaultPhaseSequenceId": "classic-style",
+    "turnOrder": {
+      "strategy": "Fixed",
+      "recalculateAt": "CombatStart",
+      "tieBreak": {
+        "strategy": "StableActorId",
+        "epoch": "Unspecified"
+      }
+    },
+    "flow": {
+      "automaticResolution": {
+        "strategy": "ToNextPlayerInput",
+        "maxAutomaticSteps": 100
+      },
+      "actionBudget": {
+        "strategy": "ResourceLimited",
+        "actionCosts": "Configured",
+        "actorScope": "PlayerControlled",
+        "resourceId": "energy",
+        "consumingCommands": [
+          "PLAY_CARD"
+        ]
+      },
+      "ai": {
+        "enabled": true,
+        "autoEndAfterAction": true,
+        "publishIntents": true,
+        "decisionIds": [
+          "w1_scout.cycle0",
+          "w1_mite.cycle0",
+          "w1_sentinel.cycle0",
+          "w1_sentinel.cycle1",
+          "w1_spitter.cycle0",
+          "w1_spitter.cycle1",
+          "w1_charger.cycle0",
+          "w1_charger.cycle1",
+          "w1_binder.cycle0",
+          "w1_binder.cycle1",
+          "w1_swarm.cycle0",
+          "w1_artillery.cycle0",
+          "w1_artillery.cycle1",
+          "w1_bulwark_elite.cycle0",
+          "w1_bulwark_elite.cycle1",
+          "w1_corrosion_elite.cycle0",
+          "w1_corrosion_elite.cycle1",
+          "w1_prism_elite.cycle0",
+          "w1_prism_elite.cycle1",
+          "w1_prism_elite.cycle2",
+          "w1_prime.cycle0",
+          "w1_prime.cycle1",
+          "w1_prime.cycle2",
+          "w1_prime.enraged0",
+          "w1_prime.enraged1",
+          "w1_prime.enraged2",
+          "w1_prime.cataclysm"
+        ],
+        "intent": {
+          "refresh": "LockUntilActorActivation",
+          "whenInvalid": "Recompute"
+        }
+      },
+      "resourceCycle": {
+        "resourceId": "energy",
+        "actorScope": "PlayerControlled",
+        "startActivation": "ResetToMax"
+      },
+      "statusTiming": {
+        "boundaries": [
+          "StartRound",
+          "StartActivation",
+          "EndActivation",
+          "EndRound"
+        ],
+        "ordering": "PriorityThenInstanceId"
+      },
+      "outcome": {
+        "evaluationBoundary": "AfterCurrentAction",
+        "tieBreak": "Draw"
+      },
+      "encounterResolution": {
+        "strategy": "ManualAck"
+      },
+      "animation": {
+        "mode": "CompactWithSnapshotLookup"
+      },
+      "journal": {
+        "granularity": "Full"
+      },
+      "reactions": {
+        "strategy": "Disabled"
+      }
+    }
+  }
+}

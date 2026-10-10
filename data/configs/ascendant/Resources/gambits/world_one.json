@@ -1,0 +1,855 @@
+{
+  "w1_scout.cycle0": {
+    "gambitId": "w1_scout.cycle0",
+    "displayName": "Probe: 8",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_scout.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Probe: 8",
+      "description": "Baseline attacker. Guard or race it.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_mite.cycle0": {
+    "gambitId": "w1_mite.cycle0",
+    "displayName": "Double bite: 4 × 2",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_mite.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Double bite: 4 × 2",
+      "description": "Two impacts share eight damage; Block absorbs them normally.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_sentinel.cycle0": {
+    "gambitId": "w1_sentinel.cycle0",
+    "displayName": "Brace: 5 + 8 Block",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_sentinel.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Brace: 5 + 8 Block",
+      "description": "Alternates defense and an exposed attacking window.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_sentinel.cycle1": {
+    "gambitId": "w1_sentinel.cycle1",
+    "displayName": "Strike: 10",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_sentinel.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Strike: 10",
+      "description": "Alternates defense and an exposed attacking window.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_spitter.cycle0": {
+    "gambitId": "w1_spitter.cycle0",
+    "displayName": "Corrosive spit: 4 + residual 2",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_spitter.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Corrosive spit: 4 + residual 2",
+      "description": "Pressure persists after an unblocked application; removing it early matters.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_spitter.cycle1": {
+    "gambitId": "w1_spitter.cycle1",
+    "displayName": "Bite: 7",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_spitter.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Bite: 7",
+      "description": "Pressure persists after an unblocked application; removing it early matters.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_charger.cycle0": {
+    "gambitId": "w1_charger.cycle0",
+    "displayName": "Wind-up: 5",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_charger.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Wind-up: 5",
+      "description": "A clear heavy window rewards saving defense.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_charger.cycle1": {
+    "gambitId": "w1_charger.cycle1",
+    "displayName": "Charge: 14",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_charger.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Charge: 14",
+      "description": "A clear heavy window rewards saving defense.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_binder.cycle0": {
+    "gambitId": "w1_binder.cycle0",
+    "displayName": "Bind: 6 + Weakened",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_binder.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Bind: 6 + Weakened",
+      "description": "Weakens outgoing damage; control and residuals offer alternatives.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_binder.cycle1": {
+    "gambitId": "w1_binder.cycle1",
+    "displayName": "Pulse: 8",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_binder.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Pulse: 8",
+      "description": "Weakens outgoing damage; control and residuals offer alternatives.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_swarm.cycle0": {
+    "gambitId": "w1_swarm.cycle0",
+    "displayName": "Swarm: 4 × 3",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "1"
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_swarm.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Swarm: 4 × 3",
+      "description": "Multi-hit pressure without free added damage per hit.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_artillery.cycle0": {
+    "gambitId": "w1_artillery.cycle0",
+    "displayName": "Stabilize: 7 + 4 Block",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_artillery.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Stabilize: 7 + 4 Block",
+      "description": "Two-phase attacker; prioritization matters in groups.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_artillery.cycle1": {
+    "gambitId": "w1_artillery.cycle1",
+    "displayName": "Crystal shell: 15",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_artillery.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Crystal shell: 15",
+      "description": "Two-phase attacker; prioritization matters in groups.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "common"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_bulwark_elite.cycle0": {
+    "gambitId": "w1_bulwark_elite.cycle0",
+    "displayName": "Bastion: 8 + 12 Block",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_bulwark_elite.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Bastion: 8 + 12 Block",
+      "description": "Defense test; piercing, timed burst and residuals all help.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_bulwark_elite.cycle1": {
+    "gambitId": "w1_bulwark_elite.cycle1",
+    "displayName": "Crushing blow: 18",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_bulwark_elite.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Crushing blow: 18",
+      "description": "Defense test; piercing, timed burst and residuals all help.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_corrosion_elite.cycle0": {
+    "gambitId": "w1_corrosion_elite.cycle0",
+    "displayName": "Archive venom: 7 + residual 3",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_corrosion_elite.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Archive venom: 7 + residual 3",
+      "description": "Target-priority and limited recovery test; no blanket DoT immunity.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_corrosion_elite.cycle1": {
+    "gambitId": "w1_corrosion_elite.cycle1",
+    "displayName": "Toxic strike: 14",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 2",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_corrosion_elite.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Toxic strike: 14",
+      "description": "Target-priority and limited recovery test; no blanket DoT immunity.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prism_elite.cycle0": {
+    "gambitId": "w1_prism_elite.cycle0",
+    "displayName": "Prism volley: 6 × 3",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prism_elite.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Prism volley: 6 × 3",
+      "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prism_elite.cycle1": {
+    "gambitId": "w1_prism_elite.cycle1",
+    "displayName": "Shatter: 24",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 2,
+        "maximum": 2
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prism_elite.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Shatter: 24",
+      "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prism_elite.cycle2": {
+    "gambitId": "w1_prism_elite.cycle2",
+    "displayName": "Refract: 9 + 6 Block",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prism_elite.cycle2",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Refract: 9 + 6 Block",
+      "description": "Three-step pressure cycle; a recovery window follows the heavy hit.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "elite"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prime.cycle0": {
+    "gambitId": "w1_prime.cycle0",
+    "displayName": "Survey: 12",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.cycle0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Survey: 12",
+      "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "boss"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prime.cycle1": {
+    "gambitId": "w1_prime.cycle1",
+    "displayName": "World fracture: 20",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 2,
+        "maximum": 2
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.cycle1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "World fracture: 20",
+      "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "world_one",
+        "boss"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prime.cycle2": {
+    "gambitId": "w1_prime.cycle2",
+    "displayName": "Rebuild: 10 + 10 Block",
+    "priority": 100,
+    "predicates": [
+      {
+        "expression": "turn % 3",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.cycle2",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Rebuild: 10 + 10 Block",
+      "description": "At half health the announced cycle intensifies. After round 12 it unleashes 34-damage Cataclysm.",
+      "telegraphType": "Attack",
+      "tags": [
+        "world_one",
+        "boss"
+      ]
+    },
+    "tags": [
+      "world_one"
+    ]
+  },
+  "w1_prime.enraged0": {
+    "gambitId": "w1_prime.enraged0",
+    "priority": 200,
+    "predicates": [
+      {
+        "expression": "actor_resource_health_percent",
+        "maximum": 0.5
+      },
+      {
+        "expression": "turn % 3",
+        "minimum": 1,
+        "maximum": 1
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.enraged0",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Rupture: 16",
+      "description": "Enraged cycle below half health. No immunity; defeat it before round 12.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "boss",
+        "enraged"
+      ]
+    }
+  },
+  "w1_prime.enraged1": {
+    "gambitId": "w1_prime.enraged1",
+    "priority": 200,
+    "predicates": [
+      {
+        "expression": "actor_resource_health_percent",
+        "maximum": 0.5
+      },
+      {
+        "expression": "turn % 3",
+        "minimum": 2,
+        "maximum": 2
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.enraged1",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Cataclysm wind-up: 26",
+      "description": "Enraged cycle below half health. No immunity; defeat it before round 12.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "boss",
+        "enraged"
+      ]
+    }
+  },
+  "w1_prime.enraged2": {
+    "gambitId": "w1_prime.enraged2",
+    "priority": 200,
+    "predicates": [
+      {
+        "expression": "actor_resource_health_percent",
+        "maximum": 0.5
+      },
+      {
+        "expression": "turn % 3",
+        "minimum": 0,
+        "maximum": 0
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.enraged2",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Reconstitute: 12 + 8 Block",
+      "description": "Enraged cycle below half health. No immunity; defeat it before round 12.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "boss",
+        "enraged"
+      ]
+    }
+  },
+  "w1_prime.cataclysm": {
+    "gambitId": "w1_prime.cataclysm",
+    "priority": 300,
+    "predicates": [
+      {
+        "expression": "turn",
+        "minimum": 12
+      }
+    ],
+    "action": {
+      "actionType": "POWER",
+      "actionId": "w1_prime.cataclysm",
+      "targetSelector": {
+        "strategy": "FirstOrdinal",
+        "relationship": "Enemy"
+      }
+    },
+    "intent": {
+      "displayName": "Cataclysm: 34",
+      "description": "Round 12 onwards. A visible damage escalation, not an invulnerability gate.",
+      "telegraphType": "HeavyAttack",
+      "tags": [
+        "boss",
+        "escalation"
+      ]
+    }
+  }
+}

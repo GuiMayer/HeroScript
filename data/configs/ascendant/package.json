@@ -143,6 +143,34 @@
       "sourcePath": "Resources/entities/world_one_player.json",
       "kind": "entities",
       "artifactPath": "entities/world_one_player.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/entities/world_one_enemies.json",
+      "kind": "entities",
+      "artifactPath": "entities/world_one_enemies.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/actions/world_one.json",
+      "kind": "actions",
+      "artifactPath": "actions/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/gambits/world_one.json",
+      "kind": "gambits",
+      "artifactPath": "gambits/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/combat-rules/world_one.json",
+      "kind": "combat-rules",
+      "artifactPath": "combat-rules/world_one.json"
     }
   ]
 }
