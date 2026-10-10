@@ -54,8 +54,19 @@ Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundam
 ## Verificação por etapa
 
 1. Cartas, pipelines, payloads e operador: 30 cartas compiladas; custos exclusivamente em energia; grafo de conteúdo validado e fixtures antigas preservadas.
-2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços e grafo publicados; apresentação/verificação de jornadas na etapa seguinte.
-3. Jornadas e balanceamento: registrar evidências sem substituir playtest humano por sucesso de bot.
+2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços e grafo publicados. Desempate de iniciativa favorece o jogador, evitando ataque de entrada não anunciado.
+3. Apresentação: componentes compartilhados, nomes/descrições em inglês e português, riscos/custos nos metadados e launch atualizado. A navegação continua vindo das escolhas da API, não das arestas desenhadas.
+4. Verificação técnica e pendências: [relatório do ato](../plans/ASCENDANT_WORLD_1_CONTENT_VALIDATION_REPORT.md). Vitória de uma política automática não substitui playtest nem garante viabilidade de todas as builds.
+
+### Quantização explícita
+
+A pipeline padrão do ato usa a unidade `scalar`, inclusive nos valores simples
+de defesa/cura e nas habilidades dos inimigos. Ataques críticos tipados usam
+`points`. Antes de distribuir um orçamento de origem em impactos inteiros, o
+bucket `more` arredonda com `AwayFromZero`. Assim, redução de 25% ou amplificação
+de 20% não produz orçamento fracionário incompatível com `quantum: 1` nem
+invalida ações da IA. A pipeline de payload residual conserva sua potência
+fracionária; a liquidação no alvo continua sendo outra etapa.
 
 ## Ameaças
 

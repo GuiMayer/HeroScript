@@ -32,7 +32,13 @@ jobs:
         timeout-minutes: 5
         env:
           HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
-        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests" --no-build -c Release
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests&FullyQualifiedName!~AscendantWorldOneJourneyTests" --no-build -c Release
+
+      - name: Published Ascendant world one journey and replay
+        timeout-minutes: 10
+        env:
+          HERESCRIPT_REPO_ROOT: ${{ github.workspace }}
+        run: dotnet test tests/API.Tests/API.Tests.csproj --filter "FullyQualifiedName~AscendantWorldOneJourneyTests" --no-build -c Release -- RunConfiguration.TestSessionTimeout=600000
 
       - name: Contract change policy
         if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'

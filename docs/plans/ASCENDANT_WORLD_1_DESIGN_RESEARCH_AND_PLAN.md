@@ -2,7 +2,12 @@
 
 Data: 2026-10-09.
 
-Status: plano de design e implementação; nenhuma alteração de gameplay realizada nesta revisão.
+Status atualizado em 2026-10-10: fundamentos certificados e conteúdo do ato
+implementado em alpha. Este documento preserva o diagnóstico da base abaixo;
+não descreve o estado atual de todas as regras. Consulte o
+[catálogo publicado](../content/ASCENDANT_WORLD_ONE.md) e o
+[relatório de implementação e validação](ASCENDANT_WORLD_1_CONTENT_VALIDATION_REPORT.md).
+Os gates de balanceamento por famílias/sementes e playtests humanos continuam abertos.
 
 Base examinada: `main`, commit `fe9c8d5`, setting `ascendant` / Ascendant Matrix.
 
@@ -531,4 +536,6 @@ Gate: primeiro ato navegável, conteúdo validado, sem duplicação de autoridad
 
 Primeiro corrigir o fundamento que muda o balanceamento inteiro: persistência de vida, transporte de atributos e crítico real. Depois provar uma fatia pequena das cinco famílias e das ameaças. Em seguida expandir recompensas, grafo, elites/chefe e catálogo. Por fim completar desbloqueios, apresentação e o ciclo de playtests.
 
-Não iniciar preenchendo dezenas de JSONs com inimigos mais resistentes sobre regras ainda inconsistentes. Cada etapa deve ter um commit focado e verificação proporcional quando sua implementação for autorizada; neste momento foi produzido apenas este plano.
+O plano foi escrito antes das alterações de engine e conteúdo. A implementação
+posterior manteve commits por etapa; o relatório vinculado no início distingue
+o conteúdo entregue dos gates que ainda dependem de balanceamento e playtests.

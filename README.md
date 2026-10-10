@@ -27,13 +27,21 @@ Os [fundamentos do mundo 1](docs/api/world-one-foundations.md) incluem recursos
 persistentes do personagem, recuperação transacional, críticos multinível,
 desbloqueios por setting e elegibilidade congelada. A
 [certificação técnica](docs/plans/ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md)
-é distinta do conteúdo/balanceamento do ato, que ainda segue seu plano de design.
+é distinta do conteúdo/balanceamento do ato. O
+[conteúdo do primeiro mundo](docs/content/ASCENDANT_WORLD_ONE.md) já está publicado
+como alpha: 30 cartas, 12 transformações, 8 relíquias, rotas ramificadas,
+14 paradas principais e nove combates por tentativa, incluindo o chefe.
+A duração de 25–40 minutos e a viabilidade das cinco famílias ainda precisam
+de playtests; consulte o [relatório do conteúdo](docs/plans/ASCENDANT_WORLD_1_CONTENT_VALIDATION_REPORT.md).
 
 A demonstração Godot é a forma mais direta de conhecer o projeto. No menu,
 **Ember Archive** percorre mapa, encontros, combate, recompensas, loja,
 preparação, upgrades, chefe, histórico e replay. **Ascendant Matrix** reutiliza
-o mesmo cliente com outro pacote de configuração e conteúdo para demonstrar
-scaling em camadas. Ambos usam a HeroScript exclusivamente pela API REST.
+o mesmo cliente no primeiro ato, com crítico multinível, residuais/condensação,
+multi-hit, defesa e transformações. Os settings usam a HeroScript exclusivamente
+pela API REST. Para acessar o ato novo, reinicie pelo launcher, selecione
+**Ascendant Matrix** e inicie uma **nova run**: continuar um save antigo mantém
+o conteúdo e a revisão daquela tentativa.
 
 ### Requisitos
 
