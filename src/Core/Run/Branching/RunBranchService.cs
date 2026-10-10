@@ -357,6 +357,8 @@ public static class RunBranchTransitions
         {
             RunId = allocated.Value,
             CreationReceipt = null,
+            ProgressProvenance = source.ProgressProvenance != null || source.ResolvedMode?.ProfileProgressPolicy != null
+                ? Core.Meta.ProfileProgressProvenance.Branch : null,
             Lineage = lineage,
             Sequence = 1,
             ActiveEncounterId = childCombatId,

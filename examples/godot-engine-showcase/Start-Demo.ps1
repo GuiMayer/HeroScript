@@ -30,6 +30,7 @@ function Test-CompatibleDemoEngine {
             @($capabilities.capabilities) -contains 'configurable-profile-progress' -and
             @($capabilities.capabilities) -contains 'frozen-run-eligibility' -and
             @($capabilities.capabilities) -contains 'foundation-read-models' -and
+            @($capabilities.capabilities) -contains 'foundation-reload-safety' -and
             $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
     }
     catch {

@@ -28,7 +28,7 @@ public static class RunContentCompatibilityValidator
             var player = PersistentPlayerTransitions.Rebind(run.PlayerEntity, runtime);
             if (player.IsFailure) return Result.Failure(player.Error);
         }
-        foreach (var actor in run.Encounters.SelectMany(encounter => encounter.Combat.GetAllActors()))
+        foreach (var actor in run.Encounters.Where(encounter => !encounter.Resolved).SelectMany(encounter => encounter.Combat.GetAllActors()))
         {
             var attributes = RebindAttributes(actor, runtime);
             if (attributes.IsFailure) return Result.Failure(attributes.Error);
@@ -75,6 +75,7 @@ public static class RunContentCompatibilityValidator
         var encounters = new List<RunEncounterState>(run.Encounters.Length);
         foreach (var encounter in run.Encounters)
         {
+            if (encounter.Resolved) { encounters.Add(encounter); continue; }
             var actors = new Dictionary<string, Core.Combat.Models.CombatActorState>(StringComparer.Ordinal);
             foreach (var actor in encounter.Combat.GetAllActors())
             {

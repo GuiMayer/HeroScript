@@ -287,7 +287,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
         state = state with
         {
-            Determinism = state.Determinism.AdvanceStep()
+            Determinism = state.Determinism.AdvanceStep(),
+            ProgressProvenance = state.ResolvedMode?.ProfileProgressPolicy == null
+                ? null : Core.Meta.RunProgressProvenance.Effective(state)
         };
         var initialNode = state.Map.Nodes.FirstOrDefault(node => node.NodeId == state.CurrentNodeId);
         RunActivityEffectResult? initialActivityEffects = null;
@@ -1071,10 +1073,10 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             return Result<RunState>.Failure("Unsupported content activation boundary");
         }
-        if (state.GetActiveEncounter()?.Combat.IsActive == true)
+        if (state.ActiveEncounterId != null)
         {
             return Result<RunState>.Failure(
-                "Content revision activation is only safe outside an active combat");
+                "Content revision activation is only safe outside an active combat; resolve the active encounter first");
         }
 
         var activationState = state;
@@ -1118,6 +1120,15 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 .WithContentRevision(manifest.Revision)
                 .AdvanceStep()
         };
+        candidate = candidate with { ProgressProvenance = Core.Meta.RunProgressProvenance.Combine(
+            Core.Meta.RunProgressProvenance.Effective(state), Core.Meta.RunProgressProvenance.Effective(candidate)) };
+        var candidateEligibility = RunEligibility.ValidateCandidate(state, candidate);
+        if (candidateEligibility.IsFailure) return Result<RunState>.Failure(candidateEligibility.Error);
+        if (candidate.ResolvedMode?.ActorResourceLifecyclePolicy is { } lifecycle)
+        {
+            var validPlayer = ActorResourceLifecyclePolicyValidator.ValidatePlayer(lifecycle, candidate.PlayerEntity);
+            if (validPlayer.IsFailure) return Result<RunState>.Failure(validPlayer.Error);
+        }
         return Result<RunState>.Success(candidate);
     }
 

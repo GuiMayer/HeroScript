@@ -30,6 +30,8 @@ public sealed record RunState : ICanonicalHashMemoizable
     public RunEligibilitySnapshot? Eligibility { get; init; }
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public RunCreationReceiptIdentity? CreationReceipt { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public Core.Meta.ProfileProgressProvenance? ProgressProvenance { get; init; }
     public RunLineage? Lineage { get; init; }
     public ResourceSet ResourceState { get; init; } = new();
 

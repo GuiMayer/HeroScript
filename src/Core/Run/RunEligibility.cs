@@ -101,6 +101,8 @@ public static class RunEligibility
 
     public static Result ValidateSnapshot(RunState run)
     {
+        var provenance = RunProgressProvenance.Validate(null, run);
+        if (provenance.IsFailure) return provenance;
         var snapshot = run.Eligibility;
         if (snapshot == null) return run.ResolvedMode?.ProfileProgressPolicy == null ? Result.Success()
             : Result.Failure("Run is missing its frozen eligibility snapshot");
@@ -131,6 +133,8 @@ public static class RunEligibility
     /// <summary>Final acquisition fence shared by every command, including effect/zone-driven grants.</summary>
     public static Result ValidateCandidate(RunState? before, RunState after)
     {
+        var provenance = RunProgressProvenance.Validate(before, after);
+        if (provenance.IsFailure) return provenance;
         var valid = ValidateSnapshot(after);
         if (valid.IsFailure) return valid;
         if (before != null && CanonicalJson.ComputeHash(before.Eligibility) != CanonicalJson.ComputeHash(after.Eligibility))

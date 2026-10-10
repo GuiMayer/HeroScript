@@ -100,14 +100,7 @@ public static class ProfileProgressFacts
         if (mode == null || policy == null || string.IsNullOrWhiteSpace(after.ModeId) || after.Lineage?.InternalSimulation == true) return [];
         // Fork creation copies a historical state; it is not new gameplay completion.
         if (before == null && after.Lineage?.ParentRunId != null) return [];
-        var provenance = after.Lineage?.ParentRunId != null ? ProfileProgressProvenance.Branch :
-            mode.Definition.ProfileProgressProvenance is ProfileProgressProvenance.DevModder or ProfileProgressProvenance.Sandbox
-                ? mode.Definition.ProfileProgressProvenance.Value :
-            after.Scenario != null ? ProfileProgressProvenance.Sandbox :
-            (mode.CapabilityPolicy.AllowRunResourceCheats || mode.CapabilityPolicy.AllowCardZoneCheats
-                ? mode.Definition.ProfileProgressProvenance is ProfileProgressProvenance.DevModder
-                    ? ProfileProgressProvenance.DevModder : ProfileProgressProvenance.Experimental
-                : mode.Definition.ProfileProgressProvenance ?? ProfileProgressProvenance.Published);
+        var provenance = RunProgressProvenance.Effective(after);
         if (!policy.ContributingModeIds.Contains(after.ModeId, StringComparer.Ordinal) || !policy.AllowedProvenances.Contains(provenance)) return [];
         var result = ImmutableArray.CreateBuilder<ProfileProgressContribution>();
         if (before == null && after.Lineage?.ParentRunId == null) Add(UnlockConditionKind.AttemptStarted);

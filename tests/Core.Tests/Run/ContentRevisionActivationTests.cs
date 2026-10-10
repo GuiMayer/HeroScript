@@ -8,6 +8,7 @@ using Core.Determinism;
 using Core.Effects;
 using Core.Infrastructure.Persistence;
 using Core.Logging;
+using Core.Meta;
 using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
@@ -19,6 +20,72 @@ namespace Core.Tests.Run;
 
 public sealed class ContentRevisionActivationTests
 {
+    [Fact]
+    public void TerminalEncounterMustBeResolvedBeforeActivation()
+    {
+        var a = new string('a', 64); var b = new string('b', 64);
+        var manager = CreateManager(null, a, b);
+        var source = CreateState(a);
+        var id = Guid.NewGuid();
+        source = source with { ActiveEncounterId = id, Encounters = [new() { NodeId = "combat",
+            Combat = new() { CombatId = id, RunId = source.RunId, Status = CombatStatus.VICTORY,
+                Determinism = source.Determinism } }] };
+        var state = manager.HydrateForReplay(source).Value;
+        var hash = CanonicalJson.ComputeHash(state);
+        Assert.False(manager.Preview(state.RunId, b).Value.Compatible);
+        Assert.True(Activate(manager, state, b).IsFailure);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(manager.GetRun(state.RunId).Value));
+    }
+
+    [Fact]
+    public void PreviewAndCommitRejectDestinationModeThatChangesFrozenGates()
+    {
+        var a = new string('a', 64); var b = new string('b', 64);
+        var source = CreateState(a) with { PlayerEntityId = "player", SettingId = "setting" };
+        source = source with { ResolvedMode = source.ResolvedMode! with { ProfileProgressPolicy = ProfileProgressTests.Policy() } };
+        source = source with { Eligibility = RunEligibility.Capture(source.ResolvedMode!, "player", "setting", a,
+            ProfileProgressSnapshot.Empty("player", "setting")).Value };
+        var target = source.ResolvedMode! with { ProfileProgressPolicy = ProfileProgressTests.Policy() with { Unlocks = [] } };
+        var manager = CreateManager(null, a, [b], target);
+        var state = manager.HydrateForReplay(source).Value;
+        var hash = CanonicalJson.ComputeHash(state);
+        var preview = manager.Preview(state.RunId, b).Value;
+        Assert.False(preview.Compatible);
+        Assert.Contains(preview.Blockers, item => item.Contains("frozen eligibility gates"));
+        Assert.True(Activate(manager, state, b).IsFailure);
+        Assert.Equal(hash, CanonicalJson.ComputeHash(manager.GetRun(state.RunId).Value));
+    }
+
+    [Fact]
+    public void ActivationPreservesExperimentalOriginEvenWhenDestinationDisablesCheats()
+    {
+        var a = new string('a', 64); var b = new string('b', 64);
+        var source = CreateState(a);
+        var target = source.ResolvedMode!;
+        source = source with { ResolvedMode = target with { CapabilityPolicy = target.CapabilityPolicy with { AllowRunResourceCheats = true } } };
+        var manager = CreateManager(null, a, [b], target);
+        var state = manager.HydrateForReplay(source).Value;
+        Assert.True(manager.Preview(state.RunId, b).Value.Compatible);
+        var activated = Activate(manager, state, b);
+        Assert.True(activated.IsSuccess, activated.IsFailure ? activated.Error : null);
+        Assert.False(activated.Value.State.ResolvedMode!.CapabilityPolicy.AllowRunResourceCheats);
+        Assert.Equal(ProfileProgressProvenance.Experimental, activated.Value.State.ProgressProvenance);
+    }
+
+    [Fact]
+    public void ResolvedEncounterActorsRemainByteEquivalentWhenTheirResourceIsRemovedFromFutureContent()
+    {
+        var a = new string('a', 64); var b = new string('b', 64);
+        var state = CreateState(a) with { Encounters = [new() { Resolved = true, Combat = new() {
+            Status = CombatStatus.VICTORY, Determinism = DeterministicContext.Create(17, a), Actors =
+            new Dictionary<string, CombatActorState> { ["old"] = new CombatActorState { InstanceId = "old", ContentRevision = a }
+                .WithResourceState(new ResourceSet { OwnerId = "old", Resources = new Dictionary<string, ResourcePool> {
+                    ["retired"] = new() { ResourceId = "retired", Current = 3, Minimum = 0, Maximum = 10 } } }) } } }] };
+        var result = RunContentCompatibilityValidator.PrepareForActivation(state, RuntimeWithResources(b, Resource("New", false)));
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error : null);
+        Assert.Equal(CanonicalJson.ComputeHash(state.Encounters), CanonicalJson.ComputeHash(result.Value.Encounters));
+    }
+
     [Fact]
     public async Task ActivateContentRevision_IsJournaledAndChangesOnlyFutureContext()
     {
@@ -363,6 +430,10 @@ public sealed class ContentRevisionActivationTests
         IRunCommitStore? repository,
         string revisionA,
         params string[] additionalRevisions)
+        => CreateManager(repository, revisionA, additionalRevisions, null);
+
+    private static RunManager CreateManager(IRunCommitStore? repository, string revisionA,
+        string[] additionalRevisions, ResolvedGameMode? targetMode)
     {
         var config = new Mock<IConfigManager>();
         var resources = new Mock<IResourceLoader>();
@@ -380,10 +451,15 @@ public sealed class ContentRevisionActivationTests
             .Returns((string revision) => manifestsByRevision.TryGetValue(revision, out var manifest)
                 ? Core.Common.Result<ContentManifest>.Success(manifest)
                 : Core.Common.Result<ContentManifest>.Failure($"Manifest not found: {revision}"));
+        var modes = new Mock<IGameModeResolver>();
+        if (targetMode != null)
+            modes.As<IRevisionedGameModeResolver>().Setup(item => item.Resolve(It.IsAny<string>(), "test", It.IsAny<string>()))
+                .Returns(Core.Common.Result<ResolvedGameMode>.Success(targetMode));
         return new RunManager(
             config.Object,
             resources.Object,
             repository: repository,
+            gameModeResolver: targetMode == null ? null : modes.Object,
             contentManifestProvider: manifests.Object);
     }
 

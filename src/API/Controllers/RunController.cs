@@ -270,6 +270,7 @@ public sealed class RunController : BaseApiController
             runResourceOwnerId = run.ResourceState.OwnerId,
             run.Eligibility,
             run.CreationReceipt,
+            run.ProgressProvenance,
             run.ModeId,
             run.ResolvedMode,
             run.ChallengeId,

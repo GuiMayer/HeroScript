@@ -1,8 +1,24 @@
 # Contratos dos fundamentos do mundo 1
 
-Engine mínima nesta entrega: `26` (etapa 8). Commit schema `4`, meta schema `1`.
-O launcher verifica `foundation-read-models` e as capabilities anteriores;
+Engine mínima nesta entrega: `27` (etapa 9). Commit schema `4`, meta schema `1`.
+O launcher verifica `foundation-reload-safety` e as capabilities anteriores;
 saves históricos incompatíveis são preservados, não convertidos automaticamente.
+
+## Ativação e proveniência
+
+Preview e comando validam também o modo da revisão de destino: ele não pode
+substituir os gates da elegibilidade capturada nem exigir recursos persistentes
+ausentes. Um encontro terminal ainda precisa ser resolvido antes da ativação.
+Encontros resolvidos preservam integralmente atores, recursos e revisão histórica;
+somente estado operacional/futuro é rebindado.
+
+`progressProvenance` registra a origem conservadora da run. A ordem monotônica é
+Published → Experimental → Sandbox → DevModder → Branch. Desabilitar cheats ou
+trocar de regras não apaga a origem anterior. A política continua definindo quais
+origens podem contribuir; branches podem ser autorizadas explicitamente e
+simulações nunca contribuem. Valores inválidos e downgrade são rejeitados antes
+de persistir. O campo é opcional para modos sem política; sua classificação
+efetiva também considera cenário, capabilities e linhagem.
 
 ## Recursos no GET da run
 

@@ -2,6 +2,10 @@
 
 ## v1 — 2026-10-10
 
+- Engine `27`: hotreload valida gates do modo de destino e recursos do ator,
+  exige resolução do encontro terminal e preserva snapshots de encontros resolvidos.
+  `progressProvenance` é monotônica, incluindo branches; desligar cheats não
+  reclassifica a run como Published. Capability `foundation-reload-safety`.
 - Engine `26`: `characterResources` seleciona a reserva operacional e
   `runResourceOwnerId` distingue carteira de personagem. Perfil/unlocks incluem
   catálogo atual, condições/evidências, disponibilidade e prova histórica.

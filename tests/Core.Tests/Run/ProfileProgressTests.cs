@@ -12,6 +12,22 @@ namespace Core.Tests.Run;
 
 public sealed class ProfileProgressTests
 {
+    [Fact]
+    public void ProvenanceCannotBeDowngradedOrForgedAndPolicyStillControlsContributions()
+    {
+        var published = State();
+        var experimental = published with { ResolvedMode = published.ResolvedMode! with {
+            CapabilityPolicy = published.ResolvedMode.CapabilityPolicy with { AllowRunResourceCheats = true } } };
+        Assert.True(RunEligibility.ValidateCandidate(experimental, published).IsFailure);
+        var retained = published with { ProgressProvenance = ProfileProgressProvenance.Experimental };
+        Assert.True(RunEligibility.ValidateCandidate(experimental, retained).IsSuccess);
+        Assert.Empty(ProfileProgressFacts.Extract(null, retained, Command()));
+        var allowed = retained with { ResolvedMode = retained.ResolvedMode! with { ProfileProgressPolicy = Policy() with {
+            AllowedProvenances = [ProfileProgressProvenance.Published, ProfileProgressProvenance.Experimental] } } };
+        Assert.Equal(ProfileProgressProvenance.Experimental, Assert.Single(ProfileProgressFacts.Extract(null, allowed, Command())).Provenance);
+        Assert.True(RunEligibility.ValidateSnapshot(published with { ProgressProvenance = (ProfileProgressProvenance)999 }).IsFailure);
+    }
+
     internal static ProfileProgressPolicyDefinition Policy(int count = 1) => new()
     {
         ProfileProgressPolicyId = "options", ContributingModeIds = ["published"], Unlocks =

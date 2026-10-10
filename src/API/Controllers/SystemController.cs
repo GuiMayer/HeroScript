@@ -98,6 +98,7 @@ public sealed class SystemController : ControllerBase
             "configurable-profile-progress",
             "frozen-run-eligibility",
             "foundation-read-models",
+            "foundation-reload-safety",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

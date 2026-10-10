@@ -656,7 +656,8 @@
           "runResourceOwnerId": { "type": "string", "description": "Owner of the resources wallet; not the character resource reserve." },
           "characterResources": { "$ref": "#/components/schemas/CharacterResourceView" },
           "eligibility": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunEligibilitySnapshot" }] },
-          "creationReceipt": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunCreationReceiptIdentity" }] }
+          "creationReceipt": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunCreationReceiptIdentity" }] },
+          "progressProvenance": { "type": "string", "nullable": true, "enum": ["Published", "Experimental", "Sandbox", "DevModder", "Branch"], "description": "Monotonic recorded origin; disabling cheats never restores Published provenance." }
         },
         "additionalProperties": true
       },

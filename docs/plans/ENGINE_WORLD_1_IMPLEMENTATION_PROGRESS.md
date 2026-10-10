@@ -12,7 +12,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 6. Catálogo de desbloqueios e contribuições: concluída.
 7. Elegibilidade congelada e concessões: concluída.
 8. Contratos REST e apresentação: concluída.
-9. Hotreload, restart, replay e branches: pendente.
+9. Hotreload, restart, replay e branches: concluída.
 10. Certificação integrada e desempenho: pendente.
 
 ## Contratos que não podem regredir
@@ -71,3 +71,6 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Gate da etapa 8: 1.640 testes Core e 202 testes REST não pesados aprovados, sem skips. Inclui owner, catálogo e reads sem grants. Layout Godot em 1280×720/800, 1920×1080 e 2560×1080, dois idiomas e duas escalas aprovado; corrigida a fixture offline que não implementava connect_engine (a primeira execução produzia erro de script apesar das assertions aprovadas). Jornada completa será repetida no gate final.
 - Próximas etapas: auditoria transversal de hotreload/restart/replay/branches (9), seguida de certificação integrada/performance (10). [Contrato REST/Godot](../api/world-one-foundations.md).
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.
+- Etapa 9: preview/commit verificam o modo de destino e a identidade dos gates congelados; encontro terminal exige resolução antes de ativar. Atores de encontros resolvidos não são rebindados nem exigem definições removidas do conteúdo futuro.
+- Proveniência de progresso monotônica persiste desde a criação e nas branches; desabilitar cheats no hotreload não converte uma tentativa experimental em Published. Policy ainda escolhe as origens autorizadas, sem bloquear mods explicitamente permitidos. Engine 27/capability foundation-reload-safety, schemas 4/1, sem migração automática de saves.
+- Gate da etapa 9: 1.645 testes Core e 202 REST não pesados aprovados, sem skips. Cinco regressões novas de preview/commit atômico, terminal pendente, snapshot histórico, origem conservada e enum/downgrade; testes existentes de recuperação/resolução repetem restart, receipt duplicado, branches e dez replays. OpenAPI/launcher e diff verificados. Certificação de roteiro integrado e desempenho permanece na etapa 10.
