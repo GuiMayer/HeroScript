@@ -5,6 +5,7 @@ using Core.Abstractions.Persistence;
 using Core.Caching;
 using Core.Logging;
 using Core.Run;
+using Core.Meta;
 
 namespace Core.Infrastructure.Persistence;
 
@@ -13,13 +14,14 @@ namespace Core.Infrastructure.Persistence;
 /// unrelated runs can persist concurrently. Each append is flushed to a
 /// temporary file and atomically renamed to its immutable sequence path.
 /// </summary>
-public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStore, IDisposable
+public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStore, IRunCommitEnvelopeReader, IProfileProgressSnapshotReader, IProfileProgressCommitReader, IDisposable
 {
     private readonly string _storePath;
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<Guid, SemaphoreSlim> _runGates = new();
     private readonly ConcurrentDictionary<Guid, AppendCursor> _appendCursors = new();
     private readonly LruCache<string, ValidatedCommitIdentity>? _validatedBytes;
+    private readonly ProfileProgressCommitCoordinator _profileProgress;
 
     private sealed record AppendCursor(int Sequence, string StateHash, string ByteHash);
 
@@ -42,6 +44,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _storePath = Path.GetFullPath(storePath);
         Directory.CreateDirectory(_storePath);
+        _profileProgress = new(this, _storePath, AppendRawPreparedAsync);
     }
 
     public Task<RunCommitAppendResult> AppendAsync(
@@ -49,7 +52,13 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         CancellationToken ct = default) =>
         AppendPreparedAsync(PreparedRunCommit.Create(commit), ct);
 
-    public async Task<RunCommitAppendResult> AppendPreparedAsync(
+    public Task<RunCommitAppendResult> AppendPreparedAsync(PreparedRunCommit prepared, CancellationToken ct = default) =>
+        _profileProgress.AppendPreparedAsync(prepared, ct);
+
+    public Task<ProfileProgressSnapshot> ReadAsync(string playerId, string settingId, CancellationToken ct = default) =>
+        _profileProgress.ReadAsync(playerId, settingId, ct);
+
+    private async Task<RunCommitAppendResult> AppendRawPreparedAsync(
         PreparedRunCommit prepared,
         CancellationToken ct = default)
     {
@@ -137,6 +146,71 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         {
             gate.Release();
         }
+    }
+
+    public async Task<IReadOnlyList<ProfileProgressCommit>> LoadProfileProgressCommitsAsync(
+        string playerId, string settingId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(playerId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(settingId);
+        var result = new List<ProfileProgressCommit>();
+        foreach (var runId in await ListRunIdsAsync(ct).ConfigureAwait(false))
+        {
+            var gate = Gate(runId);
+            await gate.WaitAsync(ct).ConfigureAwait(false);
+            try
+            {
+                var initialPath = GetCommitPath(runId, 1);
+                if (!File.Exists(initialPath)) continue;
+                using var initial = JsonDocument.Parse(await File.ReadAllBytesAsync(initialPath, ct).ConfigureAwait(false));
+                // A stable meta envelope is readable even when gameplay execution is unavailable.
+                // No deserialization/migration of the old actor, effects or state-delta contracts.
+                if (!initial.RootElement.TryGetProperty("StateAfter", out var state) || state.ValueKind != JsonValueKind.Object ||
+                    !state.TryGetProperty("PlayerEntityId", out var player) || player.GetString() != playerId ||
+                    !state.TryGetProperty("SettingId", out var setting) || setting.GetString() != settingId) continue;
+                string? previousHash = null;
+                var expected = 1;
+                foreach (var sequence in ListSequencesUnsafe(runId))
+                {
+                    using var document = JsonDocument.Parse(await File.ReadAllBytesAsync(GetCommitPath(runId, sequence), ct).ConfigureAwait(false));
+                    var header = document.RootElement;
+                    if (header.GetProperty("RunId").GetGuid() != runId || header.GetProperty("Sequence").GetInt32() != expected++ ||
+                        previousHash != null && header.GetProperty("PreviousStateHash").GetString() != previousHash)
+                        throw new InvalidDataException("Invalid profile source commit chain");
+                    previousHash = header.GetProperty("StateHash").GetString();
+                    if (!header.TryGetProperty("ProfileProgress", out var metadata) || metadata.ValueKind == JsonValueKind.Null) continue;
+                    var proof = metadata.Deserialize<ProfileProgressCommit>(RunCommitJson.Options)
+                        ?? throw new InvalidDataException("Empty profile progress proof");
+                    proof.ValidateEnvelope(runId, sequence, header.GetProperty("RootCommand").GetProperty("CommandId").GetGuid());
+                    if (proof.PlayerId != playerId || proof.SettingId != settingId)
+                        throw new InvalidDataException("Profile proof scope differs from its source stream");
+                    result.Add(proof);
+                }
+            }
+            finally { gate.Release(); }
+        }
+        return result;
+    }
+
+    public async Task<IReadOnlyList<RunCommit>> LoadCommitEnvelopesAsync(Guid runId, CancellationToken ct = default)
+    {
+        var gate = Gate(runId);
+        await gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var result = new List<RunCommit>();
+            foreach (var sequence in ListSequencesUnsafe(runId))
+            {
+                var commit = await LoadEnvelopeUnsafeAsync(runId, sequence, ct).ConfigureAwait(false)
+                    ?? throw new InvalidDataException("Missing run commit envelope");
+                if (commit.RunId != runId || commit.Sequence != result.Count + 1 ||
+                    result.Count > 0 && commit.PreviousStateHash != result[^1].StateHash)
+                    throw new InvalidDataException("Invalid run commit envelope chain");
+                result.Add(commit);
+            }
+            return result;
+        }
+        finally { gate.Release(); }
     }
 
     public async Task<RunCommit?> LoadCommitAsync(
@@ -335,6 +409,9 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
         try
         {
             var path = GetRunDirectory(runId);
+            foreach (var sequence in ListSequencesUnsafe(runId))
+                if ((await LoadEnvelopeUnsafeAsync(runId, sequence, ct).ConfigureAwait(false))?.ProfileProgress != null)
+                    throw new InvalidOperationException("Cannot delete an authoritative profile contribution stream");
             if (Directory.Exists(path))
                 Directory.Delete(path, recursive: true);
             _appendCursors.TryRemove(runId, out _);
@@ -359,7 +436,10 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
 
     private async Task<AppendCursor> GetAppendCursorUnsafeAsync(Guid runId, CancellationToken ct)
     {
-        if (_appendCursors.TryGetValue(runId, out var cursor))
+        // A profile lease also serializes participating commands from OTHER hosts.
+        // Their append can advance this run while this instance still has an old cursor.
+        if (_appendCursors.TryGetValue(runId, out var cursor) &&
+            !File.Exists(GetCommitPath(runId, checked(cursor.Sequence + 1))))
             return cursor;
 
         var sequence = ListSequencesUnsafe(runId).LastOrDefault();

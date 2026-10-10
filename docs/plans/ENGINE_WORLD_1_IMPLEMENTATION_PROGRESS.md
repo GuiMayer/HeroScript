@@ -9,7 +9,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 3. Transporte entre encontros e recuperação transacional: concluída.
 4. Probabilidades calculadas e fatos de sorteio: concluída.
 5. Críticos por níveis e previews: concluída.
-6. Catálogo de desbloqueios e contribuições: pendente.
+6. Catálogo de desbloqueios e contribuições: concluída.
 7. Elegibilidade congelada e concessões: pendente.
 8. Contratos REST e apresentação: pendente.
 9. Hotreload, restart, replay e branches: pendente.
@@ -47,5 +47,15 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Gate Core: 1.590 testes aprovados, incluindo capturas, crítico real, child sem multiplicação/reroll implícitos, condensação genérica e módulo/arity. Gate REST: 194 testes aprovados + jornada pesada aprovada separadamente (195 no total). Teste Godot de apresentação aprovado; permanece aviso preexistente de dois objetos no encerramento.
 - Jornada REST em dez stores/hosts independentes: 55 comandos por tentativa; receipts, commits, hash final, restart e replay idênticos. Condensação e salto causal efetivamente executados. Hash final `e0bec7167f18d8ebef09a9d97c129601fd9e0b7a1a032df4f4353bdb4fd1d01c`.
 - Medição local in-process da jornada (820 comandos/consultas): p95 261,53 ms, p99 422,79 ms, máximo 777,05 ms. Comandos finais p95 402,16 ms; avaliações p95 183,03 ms. Não constitui certificação com histórico grande nem substitui a etapa 10.
-- Próxima etapa: catálogo de desbloqueios e contribuições autoritativas (6), seguido da elegibilidade congelada (7). Essas funcionalidades ainda não estão implementadas.
+- Etapa 6: catálogo declarativo de opções (cartas/upgrades/relíquias), condições tipadas All/Any e dependências, provenances configuráveis e dedupe por linhagem/instância. Ascendant referencia um catálogo publicado, sem tuning adicional de combate.
+- Provas e contribuições entram no mesmo append de `RunCommit`; bases de perfil encadeadas por revisão/seq, lease por jogador/setting, cache LRU incremental e rebuild pelos envelopes. Nenhum segundo armazenamento autoritativo foi introduzido; o fence arquitetural continua intacto.
+- Ausência de policy não concede conteúdo arbitrariamente. Removido `completed-run-content`; badges de histórico continuam separados. Perfil apresenta `progressSequence`, `progressRevision` e `unlockProofs`.
+- Engine version 24 e commit schema 4; launcher exige `configurable-profile-progress`. Os saves reais não foram usados nem removidos pelos testes.
+- Testes novos: redução/rebuild e dez hashes de prova idênticos; condições inválidas/ciclos/referências; isolamento; branches explícitas e herdadas; duas instâncias/8 runs concorrentes com grant único; retry, falha de durabilidade, restart e delta com prova. Cursor de append atualizado quando outro host avança a mesma run.
+- Jornada REST adicional: duas tentativas, combate Ascendant real, vitória e resolução concedendo os dois unlocks dependentes no mesmo commit; replay sem nova contribuição. Criação idempotente e gating de ofertas permanecem na etapa 7; GET e histórico não antecipam esse comportamento.
+- Provas de meta-progressão usam schema próprio (1): continuam legíveis quando a versão de execução do gameplay antigo está indisponível, sem migrar/reinterpretar atores, efeitos ou deltas. Teste confirma preservação dos desbloqueios e dos bytes históricos; a execução incompatível continua rejeitada.
+- Gate final da etapa 6: 1.623 testes Core e 196 testes API aprovados, sem skips; jornada REST pesada aprovada separadamente (197 testes API no total). Build API sem erros/avisos, sintaxe do launcher validada e `git diff --check` aprovado.
+- Jornada REST isolada da etapa 6: dez runtimes/stores, 55 comandos por tentativa, receipts/commits/restart/replay equivalentes; hash final `9fe87a1de365e2af45e21f98cba4c766ca3be354099cfbbd47a95456bc37e9d1`. Condensação e salto causal executados. A primeira execução concorrente excedeu o limite de sessão de 5 minutos; a repetição isolada passou em 4m55s, com orçamento de sessão de 10 minutos, sem reduzir as assertions.
+- Medição local isolada (820 comandos/consultas): p95 287,10 ms, p99 454,99 ms, máximo 600,24 ms; comandos finais p95 436,26 ms, avaliações p95 220,33 ms. Não certifica reconstrução fria com histórico grande; essa verificação permanece na etapa 10.
+- Próxima etapa: elegibilidade congelada e validação de todos os caminhos de concessão (7); ainda não implementada. Documento de contrato: [progresso por setting](../content/profile-progress-policies.md).
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

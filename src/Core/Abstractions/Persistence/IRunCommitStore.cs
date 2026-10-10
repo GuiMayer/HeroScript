@@ -43,3 +43,9 @@ public interface IPreparedRunCommitStore
         PreparedRunCommit prepared,
         CancellationToken ct = default);
 }
+
+/// <summary>Validated envelopes without replaying state deltas; suitable for compact meta projections.</summary>
+public interface IRunCommitEnvelopeReader
+{
+    Task<IReadOnlyList<RunCommit>> LoadCommitEnvelopesAsync(Guid runId, CancellationToken ct = default);
+}

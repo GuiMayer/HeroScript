@@ -16,6 +16,7 @@ using Core.Run;
 using Core.Run.Content;
 using Core.StatusEffects;
 using Core.CardZones;
+using Core.Meta;
 
 namespace Core.Content;
 
@@ -65,6 +66,7 @@ public sealed class ContentGraphValidator : IContentGraphValidator
         ValidateRuns(runtime, errors);
         ValidateResources(runtime, errors);
         ValidateActorResourcePolicies(runtime, errors);
+        ValidateProfileProgressPolicies(runtime, errors);
         ValidateEntities(runtime, errors);
         ValidateCardComponentBundles(runtime, errors);
         ValidateCards(runtime, errors);
@@ -119,6 +121,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             RequireProperty(runtime, errors, "modes", id, definition, "progressionPolicyId", "run-progression-policies");
             if (TryGetProperty(definition, "actorResourceLifecyclePolicyId", out _))
                 RequireProperty(runtime, errors, "modes", id, definition, "actorResourceLifecyclePolicyId", "actor-resource-lifecycle-policies");
+            if (TryGetProperty(definition, "profileProgressPolicyId", out _))
+                RequireProperty(runtime, errors, "modes", id, definition, "profileProgressPolicyId", "profile-progress-policies");
             if (TryGetProperty(definition, "cardZoneSystemId", out _))
                 RequireProperty(runtime, errors, "modes", id, definition, "cardZoneSystemId", "card-zone-systems");
             RequireArray(runtime, errors, "modes", id, definition, "cardPoolIds", "card-pools");
@@ -130,6 +134,8 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 errors.Add($"modes/{id}: {mode.Error}");
                 continue;
             }
+            if (mode.Value.ProfileProgressProvenance is { } provenance && !Enum.IsDefined(provenance))
+                errors.Add($"modes/{id}: invalid profile progress provenance");
             if (!string.IsNullOrWhiteSpace(mode.Value.ActorResourceLifecyclePolicyId))
             {
                 var policy = runtime.GetDefinition<ActorResourceLifecyclePolicyDefinition>(
@@ -242,6 +248,17 @@ public sealed class ContentGraphValidator : IContentGraphValidator
             if (validation.IsFailure) errors.Add($"actor-resource-lifecycle-policies/{id}: {validation.Error}");
             foreach (var rule in policy.Value.Rules)
                 Require(runtime, errors, "actor-resource-lifecycle-policies", id, rule.ResourceId, "resources");
+        }
+    }
+
+    private static void ValidateProfileProgressPolicies(ContentRuntime runtime, ImmutableArray<string>.Builder errors)
+    {
+        foreach (var id in runtime.GetDefinitions("profile-progress-policies").Keys)
+        {
+            var policy = runtime.GetDefinition<ProfileProgressPolicyDefinition>("profile-progress-policies", id);
+            if (policy.IsFailure) { errors.Add(policy.Error); continue; }
+            var valid = ProfileProgressPolicyValidator.Validate(policy.Value, runtime);
+            if (valid.IsFailure) errors.Add($"profile-progress-policies/{id}: {valid.Error}");
         }
     }
 

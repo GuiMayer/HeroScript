@@ -139,6 +139,7 @@ Leituras recomendadas:
 | Regras | effects, resources genéricos, cálculos por buckets, status, relíquias e modifiers |
 | Cartas | componentes, upgrades, influências, custos alternativos e zonas configuráveis |
 | Progressão | mapa, encounters, diálogos, recompensas, loja, preparação e encerramento |
+| Perfil | desbloqueios de opções configuráveis por setting, condições e provas no commit; elegibilidade das ofertas em implementação |
 | Conteúdo | packages/settings JSON, validação, revisões, publicação e ativação explícita |
 | Ferramentas | timeline por comando, branches, simulação sem commit, traces e replay semântico |
 | Cliente Godot | seletor de settings, campanhas, sandboxes, localização, áudio, controles, resoluções e histórico |

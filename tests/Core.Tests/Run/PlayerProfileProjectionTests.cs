@@ -66,7 +66,8 @@ public sealed class PlayerProfileProjectionTests
         Assert.Equal("a", profileA.Runs[0].SettingId);
         Assert.Equal(1, profileA.CompletedRuns);
         Assert.Contains("first-completion", profileA.Achievements);
-        Assert.NotEmpty(profileA.Unlocks);
+        // Completion is a history badge, not a hardcoded gameplay unlock.
+        Assert.Empty(profileA.Unlocks);
         Assert.Equal(b.RunId, Assert.Single(profileB.Runs).RunId);
         Assert.Equal(1, profileB.ActiveRuns);
         Assert.Equal(0, profileB.CompletedRuns);

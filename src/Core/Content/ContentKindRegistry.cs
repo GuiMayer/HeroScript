@@ -12,6 +12,7 @@ using Core.Resources;
 using Core.Run;
 using Core.Run.Content;
 using Core.StatusEffects;
+using Core.Meta;
 
 namespace Core.Content;
 
@@ -159,6 +160,7 @@ public sealed class ContentKindRegistry : IContentKindRegistry
         new("phase-sequences", "phase-sequences", typeof(PhaseSequenceDefinition), "sequenceId"),
         new("powers", "powers", typeof(JsonElement)),
         new("preparations", "preparations", typeof(PreparationDefinition), "preparationId"),
+        new("profile-progress-policies", "profile-progress-policies", typeof(ProfileProgressPolicyDefinition), "profileProgressPolicyId"),
         new("races", "races", typeof(JsonElement)),
         new("relics", "relics", typeof(RelicDefinition), "relicId"),
         new("replay-policies", "replay-policies", typeof(ReplayPolicyDefinition), "replayPolicyId"),

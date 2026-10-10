@@ -69,8 +69,11 @@ afetam essa revisão. Versões de conteúdo do mesmo setting compartilham o perf
 mas cada run mantém sua própria revisão imutável. Uma configuração sem runs
 correspondentes retorna um perfil vazio, sem herdar conquistas de outra.
 
-Os marcos de desbloqueio/conquista atuais continuam sendo uma projeção básica,
-não uma nova economia permanente nem um sistema genérico de recompensas meta.
+Desbloqueios usam [políticas declarativas](../content/profile-progress-policies.md)
+e provas no commit canônico, separadas dos badges de histórico. O perfil completo
+retorna `progressSequence`, `progressRevision` e `unlockProofs`. Não há bônus
+permanente de atributos: os alvos são opções de cartas/upgrades/relíquias.
+A captura de elegibilidade e sua aplicação em ofertas pertencem à etapa 7.
 
 Reações, pilha e prioridade usam o mesmo gateway autoritativo das demais ações.
 Elas só ficam ativas em modos cuja política de combate as habilite; modos sem

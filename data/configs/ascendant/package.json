@@ -8,6 +8,7 @@
   ],
   "conflicts": [],
   "content": [
+    { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/profile-progress-policies/ascendant_options.json", "kind": "profile-progress-policies", "artifactPath": "profile-progress-policies/ascendant_options.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/actor-resource-lifecycle-policies/world_one.json", "kind": "actor-resource-lifecycle-policies", "artifactPath": "actor-resource-lifecycle-policies/world_one.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/ascendant_effect_amount.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/ascendant_effect_amount.json" },
     { "schemaVersion": 1, "operation": "definition", "sourcePath": "Resources/calculation-pipelines/ascendant_critical.json", "kind": "calculation-pipelines", "artifactPath": "calculation-pipelines/ascendant_critical.json" },

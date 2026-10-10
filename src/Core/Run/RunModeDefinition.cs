@@ -5,6 +5,7 @@ using Core.Combat.Flow;
 using Core.Combat.TurnOrder;
 using Core.Calculations;
 using Core.CardZones;
+using Core.Meta;
 
 namespace Core.Run;
 
@@ -28,6 +29,10 @@ public sealed record GameModeDefinition
     public string? CapabilityPolicyId { get; init; }
     public string? ProgressionPolicyId { get; init; }
     public string? ActorResourceLifecyclePolicyId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ProfileProgressPolicyId { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProfileProgressProvenance? ProfileProgressProvenance { get; init; }
     public string? CardZoneSystemId { get; init; }
     public ImmutableSortedDictionary<string, string> DefaultCalculationPipelines { get; init; } =
         ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);
@@ -181,6 +186,8 @@ public sealed record ResolvedGameMode
     public CapabilityPolicyDefinition CapabilityPolicy { get; init; } = new();
     public RunProgressionPolicyDefinition ProgressionPolicy { get; init; } = new();
     public ActorResourceLifecyclePolicyDefinition? ActorResourceLifecyclePolicy { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProfileProgressPolicyDefinition? ProfileProgressPolicy { get; init; }
     public CardZoneSystemDefinition? CardZoneSystem { get; init; }
 }
 

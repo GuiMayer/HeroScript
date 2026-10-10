@@ -27,6 +27,7 @@ function Test-CompatibleDemoEngine {
             @($capabilities.capabilities) -contains 'persistent-actor-resources' -and
             @($capabilities.capabilities) -contains 'calculated-random-inputs' -and
             @($capabilities.capabilities) -contains 'multi-tier-random-previews' -and
+            @($capabilities.capabilities) -contains 'configurable-profile-progress' -and
             $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
     }
     catch {

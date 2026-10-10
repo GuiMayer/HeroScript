@@ -6,6 +6,7 @@ using Core.Content;
 using Core.Logging;
 using Core.Run.Content;
 using Core.CardZones;
+using Core.Meta;
 
 namespace Core.Run;
 
@@ -40,6 +41,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
     private readonly IResourceCatalog<RunProgressionPolicyDefinition> _progressionPolicies;
     private readonly IResourceCatalog<CardZoneSystemDefinition>? _cardZoneSystems;
     private readonly IResourceCatalog<ActorResourceLifecyclePolicyDefinition>? _actorResourcePolicies;
+    private readonly IResourceCatalog<ProfileProgressPolicyDefinition>? _profileProgressPolicies;
 
     public GameModeResolver(
         IResourceCatalog<GameModeDefinition> modes,
@@ -55,7 +57,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         IContentRuntimeResolver? contentRuntimes = null,
         ILogger? logger = null,
         IResourceCatalog<CardZoneSystemDefinition>? cardZoneSystems = null,
-        IResourceCatalog<ActorResourceLifecyclePolicyDefinition>? actorResourcePolicies = null)
+        IResourceCatalog<ActorResourceLifecyclePolicyDefinition>? actorResourcePolicies = null,
+        IResourceCatalog<ProfileProgressPolicyDefinition>? profileProgressPolicies = null)
     {
         _modes = modes ?? throw new ArgumentNullException(nameof(modes));
         _flowRules = flowRules ?? throw new ArgumentNullException(nameof(flowRules));
@@ -71,6 +74,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         _progressionPolicies = progressionPolicies ?? throw new ArgumentNullException(nameof(progressionPolicies));
         _cardZoneSystems = cardZoneSystems;
         _actorResourcePolicies = actorResourcePolicies;
+        _profileProgressPolicies = profileProgressPolicies;
     }
 
     public Result<ResolvedGameMode> Resolve(string modeId, string configName)
@@ -132,6 +136,10 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             ? Result<ActorResourceLifecyclePolicyDefinition>.Failure("Actor resource lifecycle catalog is not configured")
             : _actorResourcePolicies.Get(id, configName));
         if (actorResources.IsFailure) return Result<ResolvedGameMode>.Failure(actorResources.Error);
+        var profile = ResolveProfileProgress(mode.Value, id => _profileProgressPolicies == null
+            ? Result<ProfileProgressPolicyDefinition>.Failure("Profile progress catalog is not configured")
+            : _profileProgressPolicies.Get(id, configName));
+        if (profile.IsFailure) return Result<ResolvedGameMode>.Failure(profile.Error);
         CardZoneSystemDefinition? cardZoneSystem = null;
         if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId))
         {
@@ -176,7 +184,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             CapabilityPolicy = capabilities.Value,
             ProgressionPolicy = progression.Value,
             CardZoneSystem = cardZoneSystem,
-            ActorResourceLifecyclePolicy = actorResources.Value
+            ActorResourceLifecyclePolicy = actorResources.Value,
+            ProfileProgressPolicy = profile.Value
         });
     }
 
@@ -245,6 +254,9 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         var actorResources = ResolveActorResources(mode.Value, id => runtime.Value.GetDefinition<ActorResourceLifecyclePolicyDefinition>(
             "actor-resource-lifecycle-policies", id));
         if (actorResources.IsFailure) return Result<ResolvedGameMode>.Failure(actorResources.Error);
+        var profile = ResolveProfileProgress(mode.Value, id => runtime.Value.GetDefinition<ProfileProgressPolicyDefinition>(
+            "profile-progress-policies", id), runtime.Value);
+        if (profile.IsFailure) return Result<ResolvedGameMode>.Failure(profile.Error);
         CardZoneSystemDefinition? cardZoneSystem = null;
         if (!string.IsNullOrWhiteSpace(mode.Value.CardZoneSystemId))
         {
@@ -282,7 +294,8 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             CapabilityPolicy = capabilities.Value,
             ProgressionPolicy = progression.Value,
             CardZoneSystem = cardZoneSystem,
-            ActorResourceLifecyclePolicy = actorResources.Value
+            ActorResourceLifecyclePolicy = actorResources.Value,
+            ProfileProgressPolicy = profile.Value
         });
     }
 
@@ -306,6 +319,24 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
         var valid = ActorResourceLifecyclePolicyValidator.Validate(policy.Value);
         return valid.IsFailure ? Result<ActorResourceLifecyclePolicyDefinition?>.Failure(valid.Error)
             : Result<ActorResourceLifecyclePolicyDefinition?>.Success(policy.Value);
+    }
+
+    private static Result<ProfileProgressPolicyDefinition?> ResolveProfileProgress(
+        GameModeDefinition mode, Func<string, Result<ProfileProgressPolicyDefinition>> get, ContentRuntime? runtime = null)
+    {
+        if (mode.ProfileProgressProvenance is { } provenance && !Enum.IsDefined(provenance))
+            return Result<ProfileProgressPolicyDefinition?>.Failure("Invalid profile progress provenance");
+        if (string.IsNullOrWhiteSpace(mode.ProfileProgressPolicyId))
+            return Result<ProfileProgressPolicyDefinition?>.Success(null);
+        if (string.IsNullOrWhiteSpace(mode.RunDefinitionId))
+            return Result<ProfileProgressPolicyDefinition?>.Failure("Profile progress requires a mode with an explicit run definition");
+        var policy = get(mode.ProfileProgressPolicyId);
+        if (policy.IsFailure) return Result<ProfileProgressPolicyDefinition?>.Failure(policy.Error);
+        if (policy.Value.ProfileProgressPolicyId != mode.ProfileProgressPolicyId)
+            return Result<ProfileProgressPolicyDefinition?>.Failure("Profile progress policy identity mismatch");
+        var valid = ProfileProgressPolicyValidator.Validate(policy.Value, runtime);
+        return valid.IsFailure ? Result<ProfileProgressPolicyDefinition?>.Failure(valid.Error)
+            : Result<ProfileProgressPolicyDefinition?>.Success(policy.Value);
     }
 
     private static Result<T> GetRequired<T>(

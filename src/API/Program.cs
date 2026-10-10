@@ -241,12 +241,15 @@ builder.Services.AddSingleton<IOperationalEventStore>(sp =>
     return new JsonFileOperationalEventStore(telemetryStorePath, logger);
 });
 
-builder.Services.AddSingleton<IRunCommitStore>(sp =>
+builder.Services.AddSingleton<FileRunCommitStore>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
     var logger = new CoreLoggerAdapter(loggerFactory.CreateLogger("FileRunCommitStore"));
     return new FileRunCommitStore(runStatePath, logger);
 });
+builder.Services.AddSingleton<IRunCommitStore>(sp => sp.GetRequiredService<FileRunCommitStore>());
+builder.Services.AddSingleton<Core.Meta.IProfileProgressSnapshotReader>(sp =>
+    (Core.Meta.IProfileProgressSnapshotReader)sp.GetRequiredService<IRunCommitStore>());
 builder.Services.AddSingleton<IRunCommitReader>(sp => sp.GetRequiredService<IRunCommitStore>());
 builder.Services.AddSingleton<IRunCommitProjectionReader, RunCommitProjectionReader>();
 builder.Services.AddSingleton<ICombatResolutionReader, CombatResolutionReader>();
@@ -343,6 +346,10 @@ builder.Services.AddSingleton<IResourceCatalog<CombatRulesDefinition>>(sp =>
         sp.GetRequiredService<IResourceLoader>(),
         "combat-rules",
         definition => definition.CombatRulesId));
+builder.Services.AddSingleton<IResourceCatalog<Core.Meta.ProfileProgressPolicyDefinition>>(sp =>
+    new ResourceCatalog<Core.Meta.ProfileProgressPolicyDefinition>(
+        sp.GetRequiredService<IConfigManager>(), sp.GetRequiredService<IResourceLoader>(),
+        "profile-progress-policies", definition => definition.ProfileProgressPolicyId));
 builder.Services.AddSingleton<IResourceCatalog<ReplayPolicyDefinition>>(sp =>
     new ResourceCatalog<ReplayPolicyDefinition>(
         sp.GetRequiredService<IConfigManager>(),
@@ -387,7 +394,8 @@ builder.Services.AddSingleton<GameModeResolver>(sp => new GameModeResolver(
     sp.GetRequiredService<IContentRuntimeResolver>(),
     new CoreLoggerAdapter(sp.GetRequiredService<ILoggerFactory>().CreateLogger("GameModeResolver")),
     sp.GetRequiredService<IResourceCatalog<Core.CardZones.CardZoneSystemDefinition>>(),
-    sp.GetRequiredService<IResourceCatalog<ActorResourceLifecyclePolicyDefinition>>()));
+    sp.GetRequiredService<IResourceCatalog<ActorResourceLifecyclePolicyDefinition>>(),
+    sp.GetRequiredService<IResourceCatalog<Core.Meta.ProfileProgressPolicyDefinition>>()));
 builder.Services.AddSingleton<IGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IRevisionedGameModeResolver>(sp => sp.GetRequiredService<GameModeResolver>());
 builder.Services.AddSingleton<IResourceCatalog<DailyChallengeDefinition>>(sp =>

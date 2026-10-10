@@ -15,6 +15,7 @@
     "capabilityPolicyId": "standard_gameplay",
     "progressionPolicyId": "standard_progression",
     "actorResourceLifecyclePolicyId": "ascendant_actor_resources",
+    "profileProgressPolicyId": "ascendant_options",
     "cardZoneSystemId": "spire_zones",
     "influences": [
       {

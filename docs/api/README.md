@@ -15,6 +15,7 @@ ferramentas de QA. O contrato de máquina está em `/openapi/v1.json` e em
 | [Eventos](events.md) | Paginação e SSE. |
 | [Conteúdo e plataforma](content-and-platform.md) | Revisões, administração e recursos futuros. |
 | [Packages e settings](../content/packages-and-settings.md) | Criar jogos/mods data-only e publicar revisões. |
+| [Progresso por setting](../content/profile-progress-policies.md) | Configurar condições, origens e provas de desbloqueios. |
 | [Autenticação](authentication.md) | Usar administração sem expor a chave. |
 | [Changelog](changelog.md) | Mudanças publicadas no contrato. |
 

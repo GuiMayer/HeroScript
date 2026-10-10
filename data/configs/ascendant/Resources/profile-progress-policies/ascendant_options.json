@@ -1,0 +1,42 @@
+{
+  "ascendant_options": {
+    "profileProgressPolicyId": "ascendant_options",
+    "contributingModeIds": ["ascendant_showcase"],
+    "allowedProvenances": ["Published"],
+    "deduplication": "RootLineage",
+    "unlocks": [
+      {
+        "unlockId": "critical_calibration_option",
+        "displayName": "Critical calibration",
+        "description": "Win the calibration encounter to unlock a critical card modification option.",
+        "targets": [{ "kind": "CardUpgrade", "definitionId": "ascendant_critical_calibration" }],
+        "condition": {
+          "kind": "EncounterCompleted",
+          "runDefinitionId": "ascendant_showcase_run",
+          "nodeId": "calibration",
+          "encounterOutcomes": ["VICTORY"]
+        }
+      },
+      {
+        "unlockId": "support_link_option",
+        "displayName": "Support link",
+        "description": "Start two distinct attempts and complete calibration to unlock a support modification option.",
+        "targets": [{ "kind": "CardUpgrade", "definitionId": "ascendant_support_link" }],
+        "condition": {
+          "kind": "All",
+          "conditions": [
+            { "kind": "AttemptStarted", "count": 2 },
+            { "kind": "UnlockGranted", "unlockId": "critical_calibration_option" }
+          ]
+        }
+      },
+      {
+        "unlockId": "venom_lens_option",
+        "displayName": "Venom lens",
+        "description": "Complete a published Ascendant attempt to unlock a relic option.",
+        "targets": [{ "kind": "Relic", "definitionId": "venom_lens" }],
+        "condition": { "kind": "RunCompleted" }
+      }
+    ]
+  }
+}

@@ -31,6 +31,9 @@ public sealed record PlayerProfileProjection
     public int CompletedRuns { get; init; }
     public int ActiveRuns { get; init; }
     public ImmutableArray<string> Unlocks { get; init; } = [];
+    public long ProgressSequence { get; init; }
+    public string ProgressRevision { get; init; } = string.Empty;
+    public ImmutableArray<UnlockGrantProof> UnlockProofs { get; init; } = [];
     public ImmutableArray<string> Achievements { get; init; } = [];
     public ImmutableArray<ProfileRunSummary> Runs { get; init; } = [];
 }
@@ -50,10 +53,12 @@ public interface IPlayerProfileProjectionReader
 public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionReader
 {
     private readonly IRunCommitReader _runs;
+    private readonly IProfileProgressSnapshotReader? _progress;
 
-    public PlayerProfileProjectionReader(IRunCommitReader runs)
+    public PlayerProfileProjectionReader(IRunCommitReader runs, IProfileProgressSnapshotReader? progress = null)
     {
         _runs = runs;
+        _progress = progress ?? runs as IProfileProgressSnapshotReader;
     }
 
     public async Task<PlayerProfileProjection> ReadAsync(
@@ -109,9 +114,9 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
             .ThenBy(run => run.RunId)
             .ToImmutableArray();
         var completed = ordered.Count(run => run.Completed);
-        var unlocks = completed > 0
-            ? ImmutableArray.Create("completed-run-content")
-            : ImmutableArray<string>.Empty;
+        var progress = _progress == null ? ProfileProgressSnapshot.Empty(playerId, settingId)
+            : await _progress.ReadAsync(playerId, settingId, cancellationToken).ConfigureAwait(false);
+        var unlocks = progress.Grants.Keys.Order(StringComparer.Ordinal).ToImmutableArray();
         var achievements = ImmutableArray.CreateBuilder<string>();
         if (!ordered.IsEmpty)
             achievements.Add("first-run");
@@ -125,7 +130,8 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
             completed,
             unlocks,
             achievements.ToImmutable(),
-            ordered);
+            ordered,
+            progress.Revision);
         return new PlayerProfileProjection
         {
             PlayerId = playerId,
@@ -135,6 +141,9 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
             CompletedRuns = completed,
             ActiveRuns = ordered.Count(run => run.Lifecycle == Core.Run.RunLifecycleState.Active),
             Unlocks = unlocks,
+            ProgressSequence = progress.Sequence,
+            ProgressRevision = progress.Revision,
+            UnlockProofs = unlocks.Select(id => progress.Grants[id]).ToImmutableArray(),
             Achievements = payload.Achievements,
             Runs = ordered
         };
@@ -150,5 +159,6 @@ public sealed class PlayerProfileProjectionReader : IPlayerProfileProjectionRead
         int CompletedRuns,
         ImmutableArray<string> Unlocks,
         ImmutableArray<string> Achievements,
-        ImmutableArray<ProfileRunSummary> Runs);
+        ImmutableArray<ProfileRunSummary> Runs,
+        string ProgressRevision);
 }

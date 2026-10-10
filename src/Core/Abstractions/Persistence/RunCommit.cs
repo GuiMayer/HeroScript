@@ -10,6 +10,7 @@ using Core.Determinism;
 using Core.Effects;
 using Core.Run;
 using Core.Run.Branching;
+using Core.Meta;
 
 namespace Core.Abstractions.Persistence;
 
@@ -93,7 +94,7 @@ public sealed record RunCommitFact
 /// </summary>
 public sealed record RunCommit
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     private ImmutableArray<RunCommitFrame> _frames = [];
     private ImmutableArray<RunCommitFact> _facts = [];
@@ -114,6 +115,7 @@ public sealed record RunCommit
     public RunState? StateAfter { get; init; }
     public RunLineage? Lineage { get; init; }
     public RunCommitCombatResolution? CombatResolution { get; init; }
+    public ProfileProgressCommit? ProfileProgress { get; init; }
 
     public IReadOnlyList<RunCommitFrame> Frames
     {
@@ -148,6 +150,11 @@ public sealed record RunCommit
             throw new InvalidOperationException("Run commit stateHash does not match stateAfter");
         if (Sequence == 1 && StateAfter.Lineage != Lineage)
             throw new InvalidOperationException("Initial commit lineage differs from state lineage");
+        if (ProfileProgress is { } progress && (progress.PlayerId != StateAfter.PlayerEntityId ||
+            progress.SettingId != StateAfter.SettingId || progress.ContentRevision != StateAfter.Determinism.ContentRevision ||
+            StateAfter.Lineage?.InternalSimulation == true || StateAfter.ResolvedMode?.ProfileProgressPolicy == null ||
+            CanonicalJson.ComputeHash(progress.Policy) != CanonicalJson.ComputeHash(StateAfter.ResolvedMode.ProfileProgressPolicy)))
+            throw new InvalidOperationException("Profile progress differs from its authoritative run scope/policy");
     }
 
     public RunState RequireState() => StateAfter
@@ -201,6 +208,7 @@ public sealed record RunCommit
             throw new InvalidOperationException("Run commit command payload hash does not match its envelope");
         if (_frames.Length == 0 || _facts.Length == 0)
             throw new InvalidOperationException("Run commit requires at least one frame and one durable fact");
+        ProfileProgress?.ValidateEnvelope(RunId, Sequence, RootCommand.CommandId);
 
         if (CombatResolution is { } resolution &&
             (resolution.CommandId != RootCommand.CommandId ||
@@ -269,16 +277,18 @@ public enum RunCommitStorageKind
 /// </summary>
 public sealed class PreparedRunCommit
 {
-    private PreparedRunCommit(RunCommit commit, RunState liveState, byte[] bytes, string byteHash)
+    private PreparedRunCommit(RunCommit commit, RunState liveState, byte[] bytes, string byteHash, RunState? previousState)
     {
         Commit = commit;
         LiveState = liveState;
         Bytes = bytes;
         ByteHash = byteHash;
+        PreviousState = previousState;
     }
 
     public RunCommit Commit { get; }
     public RunState LiveState { get; }
+    public RunState? PreviousState { get; }
     public ReadOnlyMemory<byte> Bytes { get; }
     public string ByteHash { get; }
 
@@ -323,7 +333,16 @@ public sealed class PreparedRunCommit
             persisted,
             liveState,
             bytes,
-            Convert.ToHexString(SHA256.HashData(bytes)));
+            Convert.ToHexString(SHA256.HashData(bytes)), previousState);
+    }
+
+    public PreparedRunCommit WithProfileProgress(ProfileProgressCommit progress)
+    {
+        var commit = Commit with { ProfileProgress = progress };
+        (commit with { StateAfter = LiveState }).Validate(commit.StateHash);
+        commit.ValidateEnvelope();
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(commit, RunCommitJson.Options);
+        return new(commit, LiveState, bytes, Convert.ToHexString(SHA256.HashData(bytes)), PreviousState);
     }
 }
 

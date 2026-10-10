@@ -2,6 +2,14 @@
 
 ## v1 — 2026-10-09
 
+- Engine version `24`, commit schema `4`: catálogo `profile-progress-policies`,
+  condições tipadas, dedupe por linhagem e provas de desbloqueio no append
+  canônico. Concorrência por jogador/setting e perfil reconstruível, sem outro
+  save autoritário. GET de perfil inclui `progressSequence`, `progressRevision`
+  e `unlockProofs`; removido o unlock arbitrário `completed-run-content`.
+- Host/launcher passam a exigir também `configurable-profile-progress`.
+  [Contrato de progresso](../content/profile-progress-policies.md). Filtragem
+  de elegibilidade e apresentação de disponibilidade ainda são etapas 7/8.
 - Engine versions 21–23 adicionam políticas revisionadas de recursos persistentes
   por ator, transporte entre encontros e owner binding explícito nas atividades.
   A carteira da run continua separada dos recursos do personagem.
@@ -17,8 +25,8 @@
   [probabilidade](../content/calculated-random-inputs.md) e
   [capturas/críticos/previews](../content/multi-tier-critical-inputs.md).
 - Não há migração silenciosa de saves nem promessa de replay de versões de
-  execução históricas incompatíveis. Desbloqueios e elegibilidade do mundo 1
-  permanecem nas próximas etapas do plano.
+  execução históricas incompatíveis. Elegibilidade do mundo 1 permanece na
+  próxima etapa do plano; o registro de desbloqueios já está implementado.
 
 ## v1 — 2026-10-07
 

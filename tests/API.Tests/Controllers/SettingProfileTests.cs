@@ -98,7 +98,8 @@ public sealed class SettingProfileTests : IClassFixture<TestWebApplicationFactor
         {
             if (suffix == "/unlocks") Assert.Empty(bodyB.GetProperty("items").EnumerateArray());
             else Assert.DoesNotContain(bodyB.GetProperty("items").EnumerateArray(), item => item.GetString() == "first-completion");
-            Assert.NotEmpty(bodyA.GetProperty("items").EnumerateArray());
+            if (suffix == "/unlocks") Assert.Empty(bodyA.GetProperty("items").EnumerateArray());
+            else Assert.NotEmpty(bodyA.GetProperty("items").EnumerateArray());
         }
         else
         {
