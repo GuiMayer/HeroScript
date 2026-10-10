@@ -6,7 +6,7 @@
       "strategy": "Fixed",
       "recalculateAt": "CombatStart",
       "tieBreak": {
-        "strategy": "StableActorId",
+        "strategy": "PlayerControlledFirst",
         "epoch": "Unspecified"
       }
     },

@@ -23,7 +23,7 @@
           {
             "parameter": "Amount",
             "flatValue": 8,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -79,7 +79,7 @@
           {
             "parameter": "Amount",
             "flatValue": 8,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -135,7 +135,7 @@
           {
             "parameter": "Amount",
             "flatValue": 5,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -203,7 +203,7 @@
           {
             "parameter": "Amount",
             "flatValue": 10,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -259,7 +259,7 @@
           {
             "parameter": "Amount",
             "flatValue": 4,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -335,7 +335,7 @@
           {
             "parameter": "Amount",
             "flatValue": 7,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -391,7 +391,7 @@
           {
             "parameter": "Amount",
             "flatValue": 5,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -447,7 +447,7 @@
           {
             "parameter": "Amount",
             "flatValue": 14,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -503,7 +503,7 @@
           {
             "parameter": "Amount",
             "flatValue": 6,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -573,7 +573,7 @@
           {
             "parameter": "Amount",
             "flatValue": 8,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -629,7 +629,7 @@
           {
             "parameter": "Amount",
             "flatValue": 12,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -685,7 +685,7 @@
           {
             "parameter": "Amount",
             "flatValue": 7,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -753,7 +753,7 @@
           {
             "parameter": "Amount",
             "flatValue": 15,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -809,7 +809,7 @@
           {
             "parameter": "Amount",
             "flatValue": 8,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -877,7 +877,7 @@
           {
             "parameter": "Amount",
             "flatValue": 18,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -933,7 +933,7 @@
           {
             "parameter": "Amount",
             "flatValue": 7,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1009,7 +1009,7 @@
           {
             "parameter": "Amount",
             "flatValue": 14,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1065,7 +1065,7 @@
           {
             "parameter": "Amount",
             "flatValue": 18,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1121,7 +1121,7 @@
           {
             "parameter": "Amount",
             "flatValue": 24,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1177,7 +1177,7 @@
           {
             "parameter": "Amount",
             "flatValue": 9,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1245,7 +1245,7 @@
           {
             "parameter": "Amount",
             "flatValue": 12,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1301,7 +1301,7 @@
           {
             "parameter": "Amount",
             "flatValue": 20,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1357,7 +1357,7 @@
           {
             "parameter": "Amount",
             "flatValue": 10,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1425,7 +1425,7 @@
           {
             "parameter": "Amount",
             "flatValue": 16,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1476,7 +1476,7 @@
           {
             "parameter": "Amount",
             "flatValue": 26,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1527,7 +1527,7 @@
           {
             "parameter": "Amount",
             "flatValue": 12,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [
@@ -1590,7 +1590,7 @@
           {
             "parameter": "Amount",
             "flatValue": 34,
-            "unitId": "points",
+            "unitId": "scalar",
             "channel": "effect_amount",
             "pipelineId": "w1_amount",
             "stageIds": [

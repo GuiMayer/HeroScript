@@ -2,7 +2,7 @@
   "w1_amount": {
     "pipelineId": "w1_amount",
     "channel": "effect_amount",
-    "unitId": "points",
+    "unitId": "scalar",
     "stages": [
       {
         "stageId": "w1_origin",
@@ -30,7 +30,9 @@
         "bucketId": "more",
         "stageId": "w1_origin",
         "order": 30,
-        "operation": "Multiply"
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
       },
       {
         "bucketId": "vulnerability",
@@ -166,7 +168,9 @@
         "bucketId": "more",
         "stageId": "w1_origin",
         "order": 30,
-        "operation": "Multiply"
+        "operation": "Multiply",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero"
       },
       {
         "bucketId": "critical",
