@@ -2,6 +2,15 @@
 
 ## v1 — 2026-10-10
 
+- Engine `28`: identidades de execução de efeitos ordenam tags semanticamente
+  não ordenadas antes do hash e payloads de stacks persistem tags em ordem ordinal.
+  Intents, receipts, commits e replay passam a ser
+  equivalentes entre processos, não apenas entre runtimes no mesmo processo.
+  Capability `canonical-effect-identities`; launcher rejeita hosts anteriores.
+  Não se reinterpretam snapshots antigos. A certificação integrada e os testes
+  entre processos constam no [relatório](../plans/ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md).
+  Microsoft.OpenApi atualizado para `3.5.4`, patch do advisory
+  [GHSA-v5pm-xwqc-g5wc](https://github.com/advisories/GHSA-v5pm-xwqc-g5wc).
 - Engine `27`: hotreload valida gates do modo de destino e recursos do ator,
   exige resolução do encontro terminal e preserva snapshots de encontros resolvidos.
   `progressProvenance` é monotônica, incluindo branches; desligar cheats não
@@ -23,8 +32,8 @@
   elegibilidade fornecidos pelo cliente são rejeitados.
 - Read model inclui `eligibility` e `creationReceipt`; replay e branches
   preservam a captura. Host/launcher exigem `frozen-run-eligibility`.
-  [Contrato](../content/run-eligibility.md). Apresentação detalhada, auditoria
-  transversal e certificação de histórico grande permanecem nas etapas 8–10.
+  [Contrato](../content/run-eligibility.md). Apresentação, auditoria transversal e
+  certificação foram concluídas nas etapas 8–10; limites constam no relatório.
 
 ## v1 — 2026-10-09
 

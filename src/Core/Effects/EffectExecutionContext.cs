@@ -110,7 +110,7 @@ internal sealed record EffectResultContext
         run = request.Run == null ? null : CanonicalJson.ComputeHash(request.Run),
         request.Trigger, request.Components, request.PrefixCommands,
         request.Provenance, request.ContentRevision, request.OwnerEntityId, request.SourceEntityId,
-        request.Variables, request.Tags, card = request.Card?.Fingerprint,
+        request.Variables, tags = request.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToArray(), card = request.Card?.Fingerprint,
         request.StackPayloadLots, request.Quantities,
         targets = request.SelectedTargetEntityIds
     });

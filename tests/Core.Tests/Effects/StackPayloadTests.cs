@@ -21,6 +21,28 @@ namespace Core.Tests.Effects;
 
 public sealed class StackPayloadTests
 {
+    [Fact]
+    public void PayloadTagSetsUseOrdinalWireOrderInLotHashesAndRoundTrips()
+    {
+        var fixture = Fixture();
+        var applied = Success(fixture.Executor.Execute(Request(fixture.Run, Apply(2)) with
+        { Tags = ImmutableHashSet.Create(StringComparer.Ordinal, "physical", "Fire", "damage") }));
+        var lot = Assert.Single(Lots(applied.State));
+        var parameter = lot.Parameters["potency"];
+        Assert.Equal(parameter.Tags.OrderBy(tag => tag, StringComparer.Ordinal).ToArray(), parameter.Tags.ToArray());
+        var reversed = parameter with { Tags = parameter.Tags.WithComparer(
+            Comparer<string>.Create((left, right) => StringComparer.Ordinal.Compare(right, left))) };
+        Assert.Equal(CanonicalJson.ComputeHash(parameter), CanonicalJson.ComputeHash(reversed));
+        var restored = JsonSerializer.Deserialize<StackPayloadLot>(JsonSerializer.Serialize(lot))!;
+        Assert.Equal(CanonicalJson.ComputeHash(lot), CanonicalJson.ComputeHash(restored));
+        Assert.Same(StringComparer.Ordinal, restored.Parameters["potency"].Tags.KeyComparer);
+        // Collation treats these spellings as equivalent; ordinal tag IDs do not.
+        var unicode = parameter with { Tags = ImmutableSortedSet.Create(StringComparer.Ordinal, "é", "e\u0301") };
+        var unicodeRestored = JsonSerializer.Deserialize<StackPayloadParameterState>(JsonSerializer.Serialize(unicode))!;
+        Assert.Equal(2, unicodeRestored.Tags.Count);
+        Assert.Equal(CanonicalJson.ComputeHash(unicode), CanonicalJson.ComputeHash(unicodeRestored));
+    }
+
     [Theory]
     [InlineData(StackParameterEvaluation.Snapshot, 26)]
     [InlineData(StackParameterEvaluation.Dynamic, 10)]

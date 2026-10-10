@@ -12,6 +12,21 @@ namespace Core.Tests.Run;
 
 public sealed class ProfileProgressTests
 {
+    [Theory]
+    [InlineData(ProfileProgressProvenance.Published, ProfileProgressProvenance.Experimental)]
+    [InlineData(ProfileProgressProvenance.Experimental, ProfileProgressProvenance.Experimental)]
+    [InlineData(ProfileProgressProvenance.Sandbox, ProfileProgressProvenance.Sandbox)]
+    [InlineData(ProfileProgressProvenance.DevModder, ProfileProgressProvenance.DevModder)]
+    [InlineData(ProfileProgressProvenance.Branch, ProfileProgressProvenance.Branch)]
+    public void DeclaredOriginAndIntrinsicCapabilitiesComposeConservatively(ProfileProgressProvenance declared, ProfileProgressProvenance expected)
+    {
+        var run = State();
+        run = run with { ResolvedMode = run.ResolvedMode! with {
+            Definition = run.ResolvedMode.Definition with { ProfileProgressProvenance = declared },
+            CapabilityPolicy = run.ResolvedMode.CapabilityPolicy with { AllowRunResourceCheats = true } } };
+        Assert.Equal(expected, RunProgressProvenance.Effective(run));
+    }
+
     [Fact]
     public void ProvenanceCannotBeDowngradedOrForgedAndPolicyStillControlsContributions()
     {

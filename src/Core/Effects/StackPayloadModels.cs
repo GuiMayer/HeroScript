@@ -32,9 +32,17 @@ public sealed record StackPayloadBinding
 
 public sealed record StackPayloadParameterState
 {
+    private ImmutableSortedSet<string> _tags = ImmutableSortedSet<string>.Empty.WithComparer(StringComparer.Ordinal);
     public StackPayloadParameterDefinition Definition { get; init; } = new();
     public CalculationQuantity? Snapshot { get; init; }
-    public ImmutableHashSet<string> Tags { get; init; } = ImmutableHashSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    // Persisted sets need an ordinal wire order, independently of process hash salts or culture.
+    [JsonConverter(typeof(OrdinalStringSetJsonConverter))]
+    public ImmutableSortedSet<string> Tags
+    {
+        get => _tags;
+        init => _tags = value?.WithComparer(StringComparer.Ordinal)
+            ?? ImmutableSortedSet<string>.Empty.WithComparer(StringComparer.Ordinal);
+    }
 }
 
 /// <summary>One application contribution inside the canonical status/modifier instance.</summary>

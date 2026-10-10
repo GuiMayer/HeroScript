@@ -1,7 +1,7 @@
 # Contratos dos fundamentos do mundo 1
 
-Engine mínima nesta entrega: `27` (etapa 9). Commit schema `4`, meta schema `1`.
-O launcher verifica `foundation-reload-safety` e as capabilities anteriores;
+Engine mínima nesta entrega: `28` (etapa 10). Commit schema `4`, meta schema `1`.
+O launcher verifica `canonical-effect-identities`, `foundation-reload-safety` e as capabilities anteriores;
 saves históricos incompatíveis são preservados, não convertidos automaticamente.
 
 ## Ativação e proveniência

@@ -48,7 +48,7 @@ public sealed class StackPayloadResolver(ICalculationResolver resolver, ICalcula
             var definition = schema with { Numeric = numeric };
             validation = StackPayloadPolicies.ValidateDefinitions([definition], policy);
             if (validation.IsFailure) return Result<StackPayloadCapture>.Failure(validation.Error);
-            var tags = CalculationResolver.NormalizeTags(origin, request.Tags).ToImmutableHashSet(StringComparer.Ordinal);
+            var tags = CalculationResolver.NormalizeTags(origin, request.Tags).ToImmutableSortedSet(StringComparer.Ordinal);
             CalculationQuantity? snapshot = null;
             if (definition.Evaluation == StackParameterEvaluation.Snapshot)
             {

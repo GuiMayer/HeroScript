@@ -99,6 +99,7 @@ public sealed class SystemController : ControllerBase
             "frozen-run-eligibility",
             "foundation-read-models",
             "foundation-reload-safety",
+            "canonical-effect-identities",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

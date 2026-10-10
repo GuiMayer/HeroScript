@@ -1,6 +1,6 @@
 # HeroScript Documentation
 
-**Última atualização:** 2026-09-20
+**Última atualização:** 2026-10-10
 **Versão:** 1.0.0
 
 ---
@@ -13,6 +13,8 @@
 - [Architecture Overview](architecture/overview.md)
 - [API v1 Contract](api/README.md)
 - [Development Roadmap](roadmap/README.md)
+- [World 1 Foundations](api/world-one-foundations.md) - Contratos engine 28: recursos, probabilidades, elegibilidade e hotreload
+- [World 1 Certification](plans/ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md) - Jornada determinística e limites das medições
 
 ---
 

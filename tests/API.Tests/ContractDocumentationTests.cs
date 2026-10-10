@@ -23,6 +23,10 @@ public sealed class ContractDocumentationTests
         var readModel = schemas.GetProperty("RunReadModel").GetProperty("properties");
         Assert.True(readModel.TryGetProperty("characterResources", out _));
         Assert.True(readModel.TryGetProperty("runResourceOwnerId", out _));
+        var provenance = readModel.GetProperty("progressProvenance");
+        Assert.True(provenance.GetProperty("nullable").GetBoolean());
+        Assert.Equal(new[] { "Published", "Experimental", "Sandbox", "DevModder", "Branch" },
+            provenance.GetProperty("enum").EnumerateArray().Select(item => item.GetString()));
         Assert.True(schemas.GetProperty("PlayerProfileProjection").GetProperty("properties").TryGetProperty("availability", out _));
         var probability = schemas.GetProperty("RandomImpactPreview").GetProperty("properties");
         foreach (var field in new[] { "probabilityUnit", "probabilitySource", "probabilityCalculation", "contentRevision", "snapshotHash" })

@@ -31,6 +31,7 @@ function Test-CompatibleDemoEngine {
             @($capabilities.capabilities) -contains 'frozen-run-eligibility' -and
             @($capabilities.capabilities) -contains 'foundation-read-models' -and
             @($capabilities.capabilities) -contains 'foundation-reload-safety' -and
+            @($capabilities.capabilities) -contains 'canonical-effect-identities' -and
             $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
     }
     catch {

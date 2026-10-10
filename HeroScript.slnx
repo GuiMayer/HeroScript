@@ -11,6 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Core.Tests/Core.Tests.csproj" />
     <Project Path="tests/API.Tests/API.Tests.csproj" />
+    <Project Path="tests/Determinism.Probe/Determinism.Probe.csproj" />
   </Folder>
   <Folder Name="/solution-items/">
     <File Path="README.md" />

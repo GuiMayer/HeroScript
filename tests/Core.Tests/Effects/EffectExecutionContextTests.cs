@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Collections.Immutable;
 using Core.Combat.Models;
 using Core.Determinism;
 using Core.Effects;
@@ -12,6 +13,26 @@ namespace Core.Tests.Effects;
 
 public sealed class EffectExecutionContextTests
 {
+    private sealed class TagHashComparer(bool reverse) : IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y) => StringComparer.Ordinal.Equals(x, y);
+        public int GetHashCode(string value) => reverse ? -value[0] : value[0];
+    }
+
+    [Fact]
+    public void EquivalentTagSetsProduceIdenticalExecutionIdentitiesRegardlessOfHashBucketOrder()
+    {
+        var request = EffectTransactionTests.Request(Hit(3));
+        var forward = ImmutableHashSet.CreateRange(new TagHashComparer(false), new[] { "attack", "damage", "physical" });
+        var reverse = ImmutableHashSet.CreateRange(new TagHashComparer(true), new[] { "attack", "damage", "physical" });
+        Assert.False(forward.SequenceEqual(reverse)); // Exercises enumeration, not just insertion order.
+        var a = EffectTransactionTests.Executor().Execute(request with { Tags = forward });
+        var b = EffectTransactionTests.Executor().Execute(request with { Tags = reverse });
+        Assert.True(a.IsSuccess && b.IsSuccess);
+        Assert.Equal(a.Value.ExecutionId, b.Value.ExecutionId);
+        Assert.Equal(CanonicalJson.ComputeHash(a.Value), CanonicalJson.ComputeHash(b.Value));
+    }
+
     [Fact]
     public void ClampedResourceMutationHasSignedRequestedAppliedAndLimitedFacts()
     {

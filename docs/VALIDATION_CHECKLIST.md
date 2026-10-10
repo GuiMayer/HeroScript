@@ -2,7 +2,7 @@
 
 **Contrato validado:** API v1, runs determinísticas e recursos genéricos
 
-**Atualizado em:** 2026-09-05
+**Atualizado em:** 2026-10-10
 
 Use este documento antes de integrar um cliente, publicar conteúdo ou entregar uma
 versão. O contrato de máquina está em `/openapi/v1.json`; exemplos narrativos ficam
@@ -13,18 +13,25 @@ em [docs/api](api/README.md).
 - [ ] A solução compila sem erro.
 - [ ] `Core.Tests` passa integralmente.
 - [ ] `API.Tests` passa integralmente.
+- [ ] O teste entre processos concorda em intents, sorteios, payloads de stacks, receipts e commits.
 - [ ] A execução não cria diferenças em arquivos versionados.
 - [ ] `git diff --check` não encontra whitespace inválido.
 
 ```powershell
 dotnet build HeroScript.slnx
 dotnet test tests/Core.Tests/Core.Tests.csproj --no-build
-dotnet test tests/API.Tests/API.Tests.csproj --no-build
+dotnet test tests/API.Tests/API.Tests.csproj --no-build -- RunConfiguration.TestSessionTimeout=900000
 git diff --check
 ```
 
 Não fixe no documento uma contagem de testes: novos cenários devem poder ser
 adicionados sem tornar o checklist falso.
+
+Para repetir o recorte da CI, use os três comandos REST do [README](../README.md#build-e-testes):
+regressões completas sem as jornadas longas, certificação do mundo 1 e jornada
+do core volátil. Os filtros por categoria sozinhos não cobrem testes sem tags.
+As jornadas repetem dez runtimes e têm orçamento de sessão próprio, sem reduzir
+assertions. Stores devem ser temporários e isolados dos saves da demo.
 
 ## 2. Saúde e contrato HTTP
 
@@ -55,12 +62,17 @@ POST /api/v1/runs
 Content-Type: application/json
 
 {
-  "configName": "default",
-  "runDefinitionId": "default_run",
+  "settingId": "ascendant",
+  "contentRevision": "<revisão publicada de GET /api/v1/content/settings>",
+  "modeId": "ascendant_showcase",
+  "runDefinitionId": "ascendant_showcase_run",
   "playerEntityId": "player",
   "seed": 424242
 }
 ```
+
+Substitua a revisão pela anunciada no catálogo; o placeholder não é um input
+válido. `configName` não faz parte do contrato público de criação.
 
 Toda mutação posterior usa:
 

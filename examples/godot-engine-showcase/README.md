@@ -13,9 +13,16 @@ No PowerShell, a partir deste diretório:
 O launcher inicia a API em `http://127.0.0.1:5271`, guarda os dados de teste em `.runtime/`, abre a Godot e encerra apenas o processo que ele próprio iniciou. Também é possível abrir `project.godot` no editor depois de iniciar a API separadamente.
 
 Antes de reutilizar uma API já aberta, o launcher verifica se ela publica os
-settings `default` e `ascendant` e a capacidade `setting-scoped-profiles`. Se encontrar na porta uma versão antiga desta
+settings `default` e `ascendant`, `setting-scoped-profiles` e as capabilities dos
+fundamentos do mundo 1, incluindo `canonical-effect-identities` (engine 28). Se encontrar na porta uma versão antiga desta
 mesma workspace, ele a encerra e inicia a build atual; processos de outros
 programas nunca são encerrados automaticamente.
+
+Recursos do personagem são lidos de `characterResources`, separados da carteira
+da run. Recuperação é uma atividade legal com custo/efeito no mesmo commit;
+disponibilidade atual do perfil não substitui a elegibilidade da tentativa salva.
+Veja o [contrato REST](../../docs/api/world-one-foundations.md) e o
+[relatório de validação](../../docs/plans/ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md).
 
 Para validar a integração sem abrir uma janela:
 

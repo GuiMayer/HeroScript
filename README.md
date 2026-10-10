@@ -20,8 +20,14 @@ conteúdo ficam em `data/configs/volatile-core`; a Godot somente apresenta os
 resultados da API. Consulte o [guia do core](docs/guides/volatile-core-godot.md)
 e os [contratos de conteúdo](docs/content/volatile-core-setting.md).
 
-Engine version **20**: snapshots antigos não são convertidos silenciosamente.
+Engine version **28**: snapshots antigos não são convertidos silenciosamente.
 Guarde o conteúdo/revisão e a versão executável compatível para reproduzi-los.
+
+Os [fundamentos do mundo 1](docs/api/world-one-foundations.md) incluem recursos
+persistentes do personagem, recuperação transacional, críticos multinível,
+desbloqueios por setting e elegibilidade congelada. A
+[certificação técnica](docs/plans/ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md)
+é distinta do conteúdo/balanceamento do ato, que ainda segue seu plano de design.
 
 A demonstração Godot é a forma mais direta de conhecer o projeto. No menu,
 **Ember Archive** percorre mapa, encontros, combate, recompensas, loja,
@@ -181,7 +187,8 @@ HeroScript/
 ├── examples/godot-engine-showcase/ # Demo Godot multi-setting
 ├── tests/
 │   ├── Core.Tests/                 # Regras, determinismo e persistência
-│   └── API.Tests/                  # Contrato, controllers e integração HTTP
+│   ├── API.Tests/                  # Contrato, controllers e integração HTTP
+│   └── Determinism.Probe/          # Jornada HTTP em processos independentes
 ├── openapi/                        # Contrato v1 versionado
 ├── docs/                           # Arquitetura, sistemas, API e roadmap
 └── tools/                          # CLI, calculadora e benchmarks auxiliares
@@ -202,14 +209,20 @@ dotnet test .\tests\Core.Tests\Core.Tests.csproj `
   --no-build --configuration Release
 
 dotnet test .\tests\API.Tests\API.Tests.csproj `
-  --filter "Category=Unit" --no-build --configuration Release
+  --filter "FullyQualifiedName!~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay&FullyQualifiedName!~WorldOneFoundationJourneyTests" `
+  --no-build --configuration Release
 
 dotnet test .\tests\API.Tests\API.Tests.csproj `
-  --filter "Category=Contract" --no-build --configuration Release
+  --filter "FullyQualifiedName~WorldOneFoundationJourneyTests" `
+  --no-build --configuration Release -- RunConfiguration.TestSessionTimeout=600000
 
 dotnet test .\tests\API.Tests\API.Tests.csproj `
-  --filter "Category=Integration" --no-build --configuration Release
+  --filter "FullyQualifiedName~TenFreshRuntimesAgreeOnWholeJourneyReceiptsAndSemanticReplay" `
+  --no-build --configuration Release -- RunConfiguration.TestSessionTimeout=600000
 ```
+
+As jornadas longas rodam separadamente, com orçamento de sessão explícito.
+O gate restante inclui testes sem tags de categoria; eles não são omitidos da CI.
 
 Encerre uma API que esteja usando a saída `Release` antes de recompilar essa
 mesma saída; no Windows, o processo em execução mantém os assemblies bloqueados.

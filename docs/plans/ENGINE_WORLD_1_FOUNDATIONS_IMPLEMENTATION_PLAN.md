@@ -2,7 +2,8 @@
 
 Data: 2026-10-09.
 
-Status: implementação em andamento; ver [registro das etapas e verificações](ENGINE_WORLD_1_IMPLEMENTATION_PROGRESS.md).
+Status: dez etapas concluídas; ver [registro das etapas e verificações](ENGINE_WORLD_1_IMPLEMENTATION_PROGRESS.md)
+e [certificação técnica e seus limites](ENGINE_WORLD_1_FOUNDATIONS_VALIDATION_REPORT.md).
 
 Referência de design: [Ascendant — pesquisa e plano do mundo 1](ASCENDANT_WORLD_1_DESIGN_RESEARCH_AND_PLAN.md).
 

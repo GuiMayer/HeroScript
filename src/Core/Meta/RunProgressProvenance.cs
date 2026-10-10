@@ -11,12 +11,11 @@ public static class RunProgressProvenance
     {
         var mode = run.ResolvedMode;
         var intrinsic = run.Lineage?.ParentRunId != null ? ProfileProgressProvenance.Branch :
-            mode?.Definition.ProfileProgressProvenance is ProfileProgressProvenance.DevModder or ProfileProgressProvenance.Sandbox
-                ? mode.Definition.ProfileProgressProvenance.Value :
             run.Scenario != null ? ProfileProgressProvenance.Sandbox :
             mode?.CapabilityPolicy is { } capability && (capability.AllowRunResourceCheats || capability.AllowCardZoneCheats)
-                ? ProfileProgressProvenance.Experimental : mode?.Definition.ProfileProgressProvenance ?? ProfileProgressProvenance.Published;
-        return Combine(run.ProgressProvenance ?? ProfileProgressProvenance.Published, intrinsic);
+                ? ProfileProgressProvenance.Experimental : ProfileProgressProvenance.Published;
+        return Combine(run.ProgressProvenance ?? ProfileProgressProvenance.Published,
+            Combine(mode?.Definition.ProfileProgressProvenance ?? ProfileProgressProvenance.Published, intrinsic));
     }
 
     public static ProfileProgressProvenance Combine(ProfileProgressProvenance previous, ProfileProgressProvenance next) =>
