@@ -1,0 +1,46 @@
+{
+  "w1_options": {
+    "profileProgressPolicyId": "w1_options",
+    "contributingModeIds": [
+      "ascendant_world_one"
+    ],
+    "allowedProvenances": [
+      "Published"
+    ],
+    "deduplication": "RootLineage",
+    "unlocks": [
+      {
+        "unlockId": "w1_rehearsed_option",
+        "displayName": "Rehearsed Strike",
+        "targets": [
+          {
+            "kind": "Card",
+            "definitionId": "w1_rehearse"
+          }
+        ],
+        "condition": {
+          "kind": "RunCompleted",
+          "runDefinitionId": "ascendant_world_one_run"
+        }
+      },
+      {
+        "unlockId": "w1_renewal_option",
+        "displayName": "Lasting Renewal",
+        "targets": [
+          {
+            "kind": "Card",
+            "definitionId": "w1_renewal"
+          }
+        ],
+        "condition": {
+          "kind": "EncounterCompleted",
+          "runDefinitionId": "ascendant_world_one_run",
+          "nodeId": "world_one_boss",
+          "encounterOutcomes": [
+            "VICTORY"
+          ]
+        }
+      }
+    ]
+  }
+}

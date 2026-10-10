@@ -171,6 +171,76 @@
       "sourcePath": "Resources/combat-rules/world_one.json",
       "kind": "combat-rules",
       "artifactPath": "combat-rules/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-upgrades/world_one.json",
+      "kind": "card-upgrades",
+      "artifactPath": "card-upgrades/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/relics/world_one.json",
+      "kind": "relics",
+      "artifactPath": "relics/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-pools/world_one.json",
+      "kind": "card-pools",
+      "artifactPath": "card-pools/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/card-selections/world_one.json",
+      "kind": "card-selections",
+      "artifactPath": "card-selections/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/shops/world_one.json",
+      "kind": "shops",
+      "artifactPath": "shops/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/preparations/world_one.json",
+      "kind": "preparations",
+      "artifactPath": "preparations/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/profile-progress-policies/world_one.json",
+      "kind": "profile-progress-policies",
+      "artifactPath": "profile-progress-policies/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/dialogues/world_one.json",
+      "kind": "dialogues",
+      "artifactPath": "dialogues/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/runs/world_one.json",
+      "kind": "runs",
+      "artifactPath": "runs/world_one.json"
+    },
+    {
+      "schemaVersion": 1,
+      "operation": "definition",
+      "sourcePath": "Resources/modes/world_one.json",
+      "kind": "modes",
+      "artifactPath": "modes/world_one.json"
     }
   ]
 }

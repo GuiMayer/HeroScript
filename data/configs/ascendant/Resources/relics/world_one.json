@@ -1,0 +1,158 @@
+{
+  "w1_keen_lens": {
+    "relicId": "w1_keen_lens",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "w1.lens",
+        "scope": "Actor",
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 30,
+        "requiredTags": []
+      }
+    ]
+  },
+  "w1_ward_plate": {
+    "relicId": "w1_ward_plate",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "w1.plate",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.2,
+        "requiredTags": [
+          "defense",
+          "block"
+        ]
+      }
+    ]
+  },
+  "w1_catalytic_coil": {
+    "relicId": "w1_catalytic_coil",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "w1.coil",
+        "scope": "Actor",
+        "channel": "w1_dot",
+        "bucket": "increased",
+        "value": 0.25,
+        "requiredTags": [
+          "residual"
+        ]
+      }
+    ]
+  },
+  "w1_serrated_core": {
+    "relicId": "w1_serrated_core",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "w1.serration",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.2,
+        "requiredTags": [
+          "damage",
+          "attack"
+        ]
+      }
+    ]
+  },
+  "w1_opening_ward": {
+    "relicId": "w1_opening_ward",
+    "stackLimit": 1,
+    "influences": [],
+    "triggers": [
+      {
+        "triggerId": "w1_opening_ward.entry",
+        "boundary": "CombatStart",
+        "effects": [
+          {
+            "effectId": "w1_opening_ward.0",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "flatValue": 8,
+            "tags": [
+              "defense",
+              "block"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "w1_field_kit": {
+    "relicId": "w1_field_kit",
+    "stackLimit": 1,
+    "influences": [],
+    "triggers": [
+      {
+        "triggerId": "w1_field_kit.entry",
+        "boundary": "CombatStart",
+        "effects": [
+          {
+            "effectId": "w1_field_kit.0",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "flatValue": 3,
+            "tags": [
+              "recovery"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "w1_precision_core": {
+    "relicId": "w1_precision_core",
+    "stackLimit": 1,
+    "influences": [
+      {
+        "influenceId": "w1.precision",
+        "scope": "Actor",
+        "channel": "critical_bonus",
+        "bucket": "bonus",
+        "value": 0.2,
+        "requiredTags": []
+      }
+    ]
+  },
+  "w1_reserve_coil": {
+    "relicId": "w1_reserve_coil",
+    "stackLimit": 1,
+    "influences": [],
+    "triggers": [
+      {
+        "triggerId": "w1_reserve_coil.entry",
+        "boundary": "CombatStart",
+        "effects": [
+          {
+            "effectId": "w1_reserve_coil.0",
+            "type": "APPLY_STATUS",
+            "target": "SELF",
+            "statusId": "w1_reserve",
+            "statusStacks": 1,
+            "statusDuration": -1,
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 5
+              }
+            ],
+            "tags": [
+              "reserve"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

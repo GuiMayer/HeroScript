@@ -22,7 +22,7 @@ public sealed class FoundationReadModelTests(TestWebApplicationFactory factory) 
         Assert.NotEqual(player, initial.GetProperty("runResourceOwnerId").GetString());
         var profile = await client.GetFromJsonAsync<JsonElement>($"/api/v1/profiles/{player}?settingId=ascendant");
         var options = profile.GetProperty("availability").GetProperty("options");
-        Assert.Equal(3, options.GetArrayLength());
+        Assert.Equal(5, options.GetArrayLength()); // Three fixture options plus two world-one sidegrades.
         Assert.All(options.EnumerateArray(), item => Assert.Empty(item.GetProperty("availableTargets").EnumerateArray()));
         for (var repeat = 0; repeat < 3; repeat++)
         {

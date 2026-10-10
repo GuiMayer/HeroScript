@@ -1,0 +1,366 @@
+{
+  "w1_medic": {
+    "dialogueId": "w1_medic",
+    "title": {
+      "text": "Field Medic",
+      "translations": {
+        "pt_BR": "Médico de campo"
+      }
+    },
+    "startNodeId": "choice",
+    "nodes": [
+      {
+        "nodeId": "choice",
+        "text": {
+          "text": "Choose recovery or keep your purchasing power.",
+          "translations": {
+            "pt_BR": "Escolha recuperação ou conserve seu poder de compra."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "heal",
+            "text": {
+              "text": "Pay 15 gold: recover 18 health",
+              "translations": {
+                "pt_BR": "Pagar 15 ouro: recuperar 18 vida"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "HEAL",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 18,
+                "tags": [
+                  "recovery"
+                ]
+              }
+            ],
+            "effectOwner": "PlayerEntity",
+            "costs": [
+              {
+                "resourceId": "gold",
+                "amount": 15
+              }
+            ]
+          },
+          {
+            "choiceId": "leave",
+            "text": {
+              "text": "Leave",
+              "translations": {
+                "pt_BR": "Sair"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [],
+            "effectOwner": "RunWallet",
+            "costs": []
+          }
+        ]
+      }
+    ]
+  },
+  "w1_cache": {
+    "dialogueId": "w1_cache",
+    "title": {
+      "text": "Forgotten Cache",
+      "translations": {
+        "pt_BR": "Reserva esquecida"
+      }
+    },
+    "startNodeId": "choice",
+    "nodes": [
+      {
+        "nodeId": "choice",
+        "text": {
+          "text": "Take equipment funds or medical supplies.",
+          "translations": {
+            "pt_BR": "Leve recursos para equipamento ou suprimentos médicos."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "funds",
+            "text": {
+              "text": "Take 20 gold",
+              "translations": {
+                "pt_BR": "Receber 20 ouro"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "MODIFY_RESOURCE",
+                "target": "SELF",
+                "targetResource": "gold",
+                "operation": "ADD",
+                "flatValue": 20
+              }
+            ],
+            "effectOwner": "RunWallet",
+            "costs": []
+          },
+          {
+            "choiceId": "supplies",
+            "text": {
+              "text": "Recover 12 health",
+              "translations": {
+                "pt_BR": "Recuperar 12 vida"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "HEAL",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 12,
+                "tags": [
+                  "recovery"
+                ]
+              }
+            ],
+            "effectOwner": "PlayerEntity",
+            "costs": []
+          }
+        ]
+      }
+    ]
+  },
+  "w1_salvage": {
+    "dialogueId": "w1_salvage",
+    "title": {
+      "text": "Unstable Salvage",
+      "translations": {
+        "pt_BR": "Sucata instável"
+      }
+    },
+    "startNodeId": "choice",
+    "nodes": [
+      {
+        "nodeId": "choice",
+        "text": {
+          "text": "A risky recovery yields gold. Both consequences commit together.",
+          "translations": {
+            "pt_BR": "Uma coleta arriscada rende ouro. Ambas as consequências são confirmadas juntas."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "risk",
+            "text": {
+              "text": "Lose 12 health: collect 35 gold",
+              "translations": {
+                "pt_BR": "Perder 12 vida: coletar 35 ouro"
+              }
+            },
+            "nextNodeId": "collect",
+            "effects": [
+              {
+                "type": "DAMAGE",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 12,
+                "tags": [
+                  "risk"
+                ]
+              }
+            ],
+            "effectOwner": "PlayerEntity",
+            "costs": []
+          },
+          {
+            "choiceId": "leave",
+            "text": {
+              "text": "Leave",
+              "translations": {
+                "pt_BR": "Sair"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [],
+            "effectOwner": "RunWallet",
+            "costs": []
+          }
+        ]
+      },
+      {
+        "nodeId": "collect",
+        "entryEffectOwner": "RunWallet",
+        "entryEffects": [
+          {
+            "effectId": "w1_salvage.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 35
+          }
+        ],
+        "text": {
+          "text": "The salvage is yours.",
+          "translations": {
+            "pt_BR": "A sucata é sua."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "leave",
+            "text": {
+              "text": "Leave",
+              "translations": {
+                "pt_BR": "Sair"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [],
+            "effectOwner": "RunWallet",
+            "costs": []
+          }
+        ]
+      }
+    ]
+  },
+  "w1_shelter": {
+    "dialogueId": "w1_shelter",
+    "title": {
+      "text": "Quiet Shelter",
+      "translations": {
+        "pt_BR": "Abrigo tranquilo"
+      }
+    },
+    "startNodeId": "choice",
+    "nodes": [
+      {
+        "nodeId": "choice",
+        "text": {
+          "text": "A small recovery or supplies for the forge market.",
+          "translations": {
+            "pt_BR": "Um pouco de recuperação ou suprimentos para o mercado."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "rest",
+            "text": {
+              "text": "Recover 15 health",
+              "translations": {
+                "pt_BR": "Recuperar 15 vida"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "HEAL",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 15,
+                "tags": [
+                  "recovery"
+                ]
+              }
+            ],
+            "effectOwner": "PlayerEntity",
+            "costs": []
+          },
+          {
+            "choiceId": "supplies",
+            "text": {
+              "text": "Take 16 gold",
+              "translations": {
+                "pt_BR": "Receber 16 ouro"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "MODIFY_RESOURCE",
+                "target": "SELF",
+                "targetResource": "gold",
+                "operation": "ADD",
+                "flatValue": 16
+              }
+            ],
+            "effectOwner": "RunWallet",
+            "costs": []
+          }
+        ]
+      }
+    ]
+  },
+  "w1_archive": {
+    "dialogueId": "w1_archive",
+    "title": {
+      "text": "Old Archive",
+      "translations": {
+        "pt_BR": "Arquivo antigo"
+      }
+    },
+    "startNodeId": "choice",
+    "nodes": [
+      {
+        "nodeId": "choice",
+        "text": {
+          "text": "Purchase a major recovery or leave with a small stipend.",
+          "translations": {
+            "pt_BR": "Compre uma recuperação maior ou saia com uma pequena ajuda."
+          }
+        },
+        "choices": [
+          {
+            "choiceId": "restore",
+            "text": {
+              "text": "Pay 25 gold: recover 30 health",
+              "translations": {
+                "pt_BR": "Pagar 25 ouro: recuperar 30 vida"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "HEAL",
+                "target": "SELF",
+                "targetResource": "health",
+                "flatValue": 30,
+                "tags": [
+                  "recovery"
+                ]
+              }
+            ],
+            "effectOwner": "PlayerEntity",
+            "costs": [
+              {
+                "resourceId": "gold",
+                "amount": 25
+              }
+            ]
+          },
+          {
+            "choiceId": "stipend",
+            "text": {
+              "text": "Take 10 gold",
+              "translations": {
+                "pt_BR": "Receber 10 ouro"
+              }
+            },
+            "nextNodeId": null,
+            "effects": [
+              {
+                "type": "MODIFY_RESOURCE",
+                "target": "SELF",
+                "targetResource": "gold",
+                "operation": "ADD",
+                "flatValue": 10
+              }
+            ],
+            "effectOwner": "RunWallet",
+            "costs": []
+          }
+        ]
+      }
+    ]
+  }
+}

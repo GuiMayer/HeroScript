@@ -1,0 +1,30 @@
+{
+  "w1_reward": {
+    "selectionId": "w1_reward",
+    "pickCount": 1,
+    "offerCount": 3,
+    "cardPoolId": "w1_rewards",
+    "cardPool": [],
+    "reroll": {
+      "freeRerolls": 0,
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 12
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 8
+        }
+      ]
+    },
+    "decompose": {
+      "enabled": false
+    },
+    "metadata": {
+      "description": "Choose one of three seeded offers, or decline. Rerolls consume shop budget."
+    }
+  }
+}

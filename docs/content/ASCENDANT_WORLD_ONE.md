@@ -2,7 +2,7 @@
 
 ## Estado
 
-Implementação inicial em andamento. O fundamento da engine foi certificado separadamente; este documento acompanha o conteúdo do ato. A meta de 25–40 minutos e a qualidade do balanceamento dependem de sessões humanas, ainda não realizadas.
+Catálogo e grafo do primeiro ato implementados como alpha de playtest. O fundamento da engine foi certificado separadamente. A meta de 25–40 minutos e a qualidade do balanceamento dependem de sessões humanas, ainda não realizadas.
 
 ## Contratos de conteúdo
 
@@ -54,7 +54,7 @@ Implementação inicial em andamento. O fundamento da engine foi certificado sep
 ## Verificação por etapa
 
 1. Cartas, pipelines, payloads e operador: 30 cartas compiladas; custos exclusivamente em energia; grafo de conteúdo validado e fixtures antigas preservadas.
-2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços, rotas e apresentação: próximas etapas.
+2. Inimigos: oito comuns, três elites e um chefe, com ciclos por round e intenções fixadas até a ativação. Serviços e grafo publicados; apresentação/verificação de jornadas na etapa seguinte.
 3. Jornadas e balanceamento: registrar evidências sem substituir playtest humano por sucesso de bot.
 
 ## Ameaças
@@ -75,4 +75,33 @@ Cada entidade usa habilidades/gambits próprios. O chefe troca de ciclo com vida
 | w1_corrosion_elite | Elite | 84 | Archive venom: 7 + residual 3 → Toxic strike: 14 |
 | w1_prism_elite | Elite | 100 | Prism volley: 6 × 3 → Shatter: 24 → Refract: 9 + 6 Block |
 | w1_prime | Boss | 180 | Survey: 12 → World fracture: 20 → Rebuild: 10 + 10 Block |
+
+## Rotas e economia
+
+- 14 paradas principais por caminho; nove combates (chefe incluso), oito ofertas intermediárias de três cartas. Telas de recompensa não contam como parada principal.
+- Doze templates comuns, três elites opcionais na nona parada; rota sem elite sempre disponível. As ramificações convergem e nenhuma é um beco sem saída.
+- Ouro inicial 30; encontros rendem 12–20, elites 32. Cartas da loja custam 25/38/55. Rerolls são pagos, sem opções gratuitas ilimitadas.
+- Forja inicial e correção intermediária: uma operação por visita. A forja final custa 10 ouro e substitui descanso de 25 vida. Remover/substituir **transformações** não significa apagar uma carta do deck: remoção permanente de carta não está sendo anunciada como serviço suportado.
+- A primeira recompensa de relíquia oferece crítico/defesa/residual. Elites rendem uma relíquia específica; recompensa final oferece recuperação limitada/reserva defensiva. Escolher uma rota exclui as outras, sem precisar de regras na Godot.
+- Eventos: médico pago, cache com escolha vida/ouro, sucata com dano/ganho transacional, abrigo com escolha e arquivo com recuperação paga. Todo efeito altera o proprietário explícito (carteira ou jogador).
+- Duas cartas alternativas desbloqueáveis. Contribuições só do modo publicado `ascendant_world_one`; nada concede bônus permanente de vida/dano. Elegibilidade congela no início da tentativa.
+- Launch do setting `ascendant` agora usa `ascendant_world_one_run` / `ascendant_world_one`. Saves do showcase continuam presos à própria revisão; não há migração implícita.
+
+### Transformações
+
+- `w1_ranked_edge`: Ranked Edge.
+- `w1_ranked_ward`: Ranked Ward.
+- `w1_efficiency`: Efficient Support.
+- `w1_split`: Split Impacts.
+- `w1_calibration`: Critical Calibration.
+- `w1_amplify`: Amplifying Support.
+- `w1_fire_affinity`: Ember Affinity.
+- `w1_poison_affinity`: Corrosive Affinity.
+- `w1_cascade`: Causal Cascade.
+- `w1_lasting`: Lingering Residual.
+- `w1_recall_link`: Recall Link.
+- `w1_ward_link`: Ward Link.
+
+Slots de afinidade (1) e comportamento (2) são por carta; upgrades de base têm limite declarado. Multi-hit divide orçamento, afinidades aplicam uma dose por ação (não um payload gratuito por acerto), e cascata transporta apenas a sobra causal sem repetir crítico/origem.
+
 

@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "settingId": "ascendant",
   "displayName": "Ascendant Matrix",
-  "description": "A compact campaign about layered build scaling: added values, increased bonuses, elemental scaling, multiplicative supports and critical hits.",
+  "description": "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.",
   "launch": {
-    "runDefinitionId": "ascendant_showcase_run",
+    "runDefinitionId": "ascendant_world_one_run",
     "playerEntityId": "player",
-    "modeId": "ascendant_showcase"
+    "modeId": "ascendant_world_one"
   },
   "packages": [
     { "packageId": "heroscript.ascendant", "versionRange": "1.0.0" }

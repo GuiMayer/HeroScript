@@ -1,0 +1,1560 @@
+{
+  "ascendant_world_one_run": {
+    "runId": "ascendant_world_one_run",
+    "playerDefinitionId": "w1_operator",
+    "startingResources": {
+      "gold": 30
+    },
+    "initialPlayableCardCount": 5,
+    "initialCardZoneId": "draw",
+    "initialCardOwner": "RunOwner",
+    "startingCards": [
+      "w1_strike",
+      "w1_strike",
+      "w1_strike",
+      "w1_guard",
+      "w1_guard",
+      "w1_guard",
+      "w1_scorch",
+      "w1_precision",
+      "w1_flurry",
+      "w1_shield_bash"
+    ],
+    "mapNodes": [
+      {
+        "nodeId": "s01_arrival",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_scout",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r01"
+        ],
+        "metadata": {
+          "displayName": "Fractured Approach",
+          "description": "Visible attack cycles; current health persists. Rift Scout.",
+          "tier": "Common",
+          "encounterTemplate": "arrival",
+          "risk": "Standard",
+          "reward": "12 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s01_arrival.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 12
+          }
+        ]
+      },
+      {
+        "nodeId": "r01",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s02_gate"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s02_gate",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r02"
+        ],
+        "metadata": {
+          "displayName": "Gate Calibration",
+          "description": "Visible attack cycles; current health persists. Gate Sentinel.",
+          "tier": "Common",
+          "encounterTemplate": "gate",
+          "risk": "Standard",
+          "reward": "14 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s02_gate.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 14
+          }
+        ]
+      },
+      {
+        "nodeId": "r02",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s03_forge"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s03_forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [
+              "w1_ranked_edge",
+              "w1_ranked_ward",
+              "w1_efficiency",
+              "w1_split",
+              "w1_calibration",
+              "w1_amplify",
+              "w1_fire_affinity",
+              "w1_poison_affinity",
+              "w1_cascade",
+              "w1_lasting",
+              "w1_recall_link",
+              "w1_ward_link"
+            ],
+            "allowRemoval": true,
+            "allowReplacement": true,
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "relic_keen",
+          "relic_ward",
+          "relic_dot"
+        ],
+        "metadata": {
+          "displayName": "First Forge",
+          "description": "One card transformation or correction. Unused choices are forfeited on departure."
+        }
+      },
+      {
+        "nodeId": "relic_keen",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_keen_lens",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s04_watch",
+          "s04_charge"
+        ],
+        "metadata": {
+          "displayName": "Keen Lens",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "relic_ward",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_ward_plate",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s04_watch",
+          "s04_charge"
+        ],
+        "metadata": {
+          "displayName": "Ward Plate",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "relic_dot",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_catalytic_coil",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s04_watch",
+          "s04_charge"
+        ],
+        "metadata": {
+          "displayName": "Catalytic Coil",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s04_watch",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_mite",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r04_watch"
+        ],
+        "metadata": {
+          "displayName": "Watch Patrol",
+          "description": "Visible attack cycles; current health persists. Gate Sentinel + Shard Mite.",
+          "tier": "Common",
+          "encounterTemplate": "watch",
+          "risk": "Standard",
+          "reward": "16 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s04_watch.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 16
+          }
+        ]
+      },
+      {
+        "nodeId": "s04_charge",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_charger",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r04_charge"
+        ],
+        "metadata": {
+          "displayName": "Charging Passage",
+          "description": "Visible attack cycles; current health persists. Rift Charger.",
+          "tier": "Common",
+          "encounterTemplate": "charge",
+          "risk": "Standard",
+          "reward": "16 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s04_charge.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 16
+          }
+        ]
+      },
+      {
+        "nodeId": "r04_watch",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s05_corrosion",
+          "s05_binding"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "r04_charge",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s05_corrosion",
+          "s05_binding"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s05_corrosion",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_spitter",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_mite",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r05_corrosion"
+        ],
+        "metadata": {
+          "displayName": "Corrosive Nest",
+          "description": "Visible attack cycles; current health persists. Corrosion Spitter + Shard Mite.",
+          "tier": "Common",
+          "encounterTemplate": "corrosion",
+          "risk": "Standard",
+          "reward": "16 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s05_corrosion.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 16
+          }
+        ]
+      },
+      {
+        "nodeId": "s05_binding",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_binder",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_scout",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r05_binding"
+        ],
+        "metadata": {
+          "displayName": "Binding Patrol",
+          "description": "Visible attack cycles; current health persists. Matrix Binder + Rift Scout.",
+          "tier": "Common",
+          "encounterTemplate": "binding",
+          "risk": "Standard",
+          "reward": "16 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s05_binding.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 16
+          }
+        ]
+      },
+      {
+        "nodeId": "r05_corrosion",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s06_medic",
+          "s06_cache",
+          "s06_salvage",
+          "s06_shelter",
+          "s06_archive",
+          "s06_rest"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "r05_binding",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s06_medic",
+          "s06_cache",
+          "s06_salvage",
+          "s06_shelter",
+          "s06_archive",
+          "s06_rest"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s06_medic",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "w1_medic",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s07_guarded",
+          "s07_rush"
+        ],
+        "metadata": {
+          "displayName": "Field Medic",
+          "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+        }
+      },
+      {
+        "nodeId": "s06_cache",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "w1_cache",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s07_guarded",
+          "s07_rush"
+        ],
+        "metadata": {
+          "displayName": "Forgotten Cache",
+          "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+        }
+      },
+      {
+        "nodeId": "s06_salvage",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "w1_salvage",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s07_guarded",
+          "s07_rush"
+        ],
+        "metadata": {
+          "displayName": "Unstable Salvage",
+          "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+        }
+      },
+      {
+        "nodeId": "s06_shelter",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "w1_shelter",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s07_guarded",
+          "s07_rush"
+        ],
+        "metadata": {
+          "displayName": "Quiet Shelter",
+          "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+        }
+      },
+      {
+        "nodeId": "s06_archive",
+        "activity": {
+          "type": "Dialogue",
+          "definitionId": "w1_archive",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s07_guarded",
+          "s07_rush"
+        ],
+        "metadata": {
+          "displayName": "Old Archive",
+          "description": "Choose a one-time recovery/economy tradeoff. No persistent power bonus."
+        }
+      },
+      {
+        "nodeId": "s06_rest",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "w1_rest",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s07_guarded",
+          "s07_rush"
+        ],
+        "metadata": {
+          "displayName": "Rest: recover 25 health",
+          "description": "Recovery costs the alternative event opportunity."
+        }
+      },
+      {
+        "nodeId": "s07_guarded",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_spitter",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r07_guarded"
+        ],
+        "metadata": {
+          "displayName": "Guarded Venom",
+          "description": "Visible attack cycles; current health persists. Gate Sentinel + Corrosion Spitter.",
+          "tier": "Common",
+          "encounterTemplate": "guarded",
+          "risk": "Standard",
+          "reward": "16 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s07_guarded.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 16
+          }
+        ]
+      },
+      {
+        "nodeId": "s07_rush",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_charger",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_mite",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r07_rush"
+        ],
+        "metadata": {
+          "displayName": "Shard Rush",
+          "description": "Visible attack cycles; current health persists. Rift Charger + Shard Mite.",
+          "tier": "Common",
+          "encounterTemplate": "rush",
+          "risk": "Standard",
+          "reward": "16 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s07_rush.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 16
+          }
+        ]
+      },
+      {
+        "nodeId": "r07_guarded",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s08_market"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "r07_rush",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s08_market"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s08_market",
+        "activity": {
+          "type": "Shop",
+          "definitionId": "w1_shop",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s09_patrol",
+          "s09_iron",
+          "s09_venom",
+          "s09_prism"
+        ],
+        "metadata": {
+          "displayName": "Rift Market",
+          "description": "Cards cost 25/38/55 gold. Leave without purchasing; rerolls cost 18 gold and increase."
+        }
+      },
+      {
+        "nodeId": "s09_patrol",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_artillery",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_scout",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r09_patrol"
+        ],
+        "metadata": {
+          "displayName": "Artillery Escort",
+          "description": "Visible attack cycles; current health persists. Crystal Artillery + Rift Scout.",
+          "tier": "Common",
+          "encounterTemplate": "patrol",
+          "risk": "Standard",
+          "reward": "18 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s09_patrol.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ]
+      },
+      {
+        "nodeId": "r09_patrol",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s10_forge"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s09_iron",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_bulwark_elite",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r09_iron"
+        ],
+        "metadata": {
+          "displayName": "Iron Custodian",
+          "description": "Optional elite: higher risk, relic reward. Iron Custodian.",
+          "tier": "Elite",
+          "encounterTemplate": "iron",
+          "risk": "High",
+          "reward": "32 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s09_iron.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ]
+      },
+      {
+        "nodeId": "r09_iron",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "elite_relic_iron"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "elite_relic_iron",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_opening_ward",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s10_forge"
+        ],
+        "metadata": {
+          "displayName": "Opening Ward",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s09_venom",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_corrosion_elite",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r09_venom"
+        ],
+        "metadata": {
+          "displayName": "Venom Archivist",
+          "description": "Optional elite: higher risk, relic reward. Venom Archivist.",
+          "tier": "Elite",
+          "encounterTemplate": "venom",
+          "risk": "High",
+          "reward": "32 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s09_venom.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ]
+      },
+      {
+        "nodeId": "r09_venom",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "elite_relic_venom"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "elite_relic_venom",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_serrated_core",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s10_forge"
+        ],
+        "metadata": {
+          "displayName": "Serrated Core",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s09_prism",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_prism_elite",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r09_prism"
+        ],
+        "metadata": {
+          "displayName": "Prismatic Hunter",
+          "description": "Optional elite: higher risk, relic reward. Prismatic Hunter.",
+          "tier": "Elite",
+          "encounterTemplate": "prism",
+          "risk": "High",
+          "reward": "32 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s09_prism.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 32
+          }
+        ]
+      },
+      {
+        "nodeId": "r09_prism",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "elite_relic_prism"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "elite_relic_prism",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_precision_core",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s10_forge"
+        ],
+        "metadata": {
+          "displayName": "Precision Core",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s10_forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [
+              "w1_ranked_edge",
+              "w1_ranked_ward",
+              "w1_efficiency",
+              "w1_split",
+              "w1_calibration",
+              "w1_amplify",
+              "w1_fire_affinity",
+              "w1_poison_affinity",
+              "w1_cascade",
+              "w1_lasting",
+              "w1_recall_link",
+              "w1_ward_link"
+            ],
+            "allowRemoval": true,
+            "allowReplacement": true,
+            "costs": []
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s11_swarm",
+          "s11_siege"
+        ],
+        "metadata": {
+          "displayName": "Build Correction",
+          "description": "One card transformation or correction. Unused choices are forfeited on departure."
+        }
+      },
+      {
+        "nodeId": "s11_swarm",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_swarm",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r11_swarm"
+        ],
+        "metadata": {
+          "displayName": "Sentinel Swarm",
+          "description": "Visible attack cycles; current health persists. Shard Swarm + Gate Sentinel.",
+          "tier": "Common",
+          "encounterTemplate": "swarm",
+          "risk": "Standard",
+          "reward": "18 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s11_swarm.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ]
+      },
+      {
+        "nodeId": "s11_siege",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_artillery",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_spitter",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r11_siege"
+        ],
+        "metadata": {
+          "displayName": "Corrosive Siege",
+          "description": "Visible attack cycles; current health persists. Crystal Artillery + Corrosion Spitter.",
+          "tier": "Common",
+          "encounterTemplate": "siege",
+          "risk": "Standard",
+          "reward": "18 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s11_siege.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 18
+          }
+        ]
+      },
+      {
+        "nodeId": "r11_swarm",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s12_rest",
+          "s12_forge"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "r11_siege",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "s12_rest",
+          "s12_forge"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s12_rest",
+        "activity": {
+          "type": "Preparation",
+          "definitionId": "w1_rest",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "relic_field",
+          "relic_reserve"
+        ],
+        "metadata": {
+          "displayName": "Final Rest: recover 25 health",
+          "description": "Recovery now means no final card transformation."
+        }
+      },
+      {
+        "nodeId": "s12_forge",
+        "activity": {
+          "type": "CardUpgrade",
+          "parameters": {
+            "upgradeIds": [
+              "w1_ranked_edge",
+              "w1_ranked_ward",
+              "w1_efficiency",
+              "w1_split",
+              "w1_calibration",
+              "w1_amplify",
+              "w1_fire_affinity",
+              "w1_poison_affinity",
+              "w1_cascade",
+              "w1_lasting",
+              "w1_recall_link",
+              "w1_ward_link"
+            ],
+            "allowRemoval": true,
+            "allowReplacement": true,
+            "costs": [
+              {
+                "resourceId": "gold",
+                "amount": 10
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "relic_field",
+          "relic_reserve"
+        ],
+        "metadata": {
+          "displayName": "Final Forge: 10 gold",
+          "description": "One card transformation or correction. Unused choices are forfeited on departure."
+        }
+      },
+      {
+        "nodeId": "relic_field",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_field_kit",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s13_vanguard"
+        ],
+        "metadata": {
+          "displayName": "Field Kit",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "relic_reserve",
+        "activity": {
+          "type": "RelicReward",
+          "definitionId": "w1_reserve_coil",
+          "parameters": {}
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "s13_vanguard"
+        ],
+        "metadata": {
+          "displayName": "Reserve Coil",
+          "description": "Choose this relic instead of the other offered route rewards.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "s13_vanguard",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_charger",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              },
+              {
+                "instanceId": "opponent_2",
+                "definitionId": "w1_sentinel",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [
+          "r13"
+        ],
+        "metadata": {
+          "displayName": "Prime Vanguard",
+          "description": "Visible attack cycles; current health persists. Rift Charger + Gate Sentinel.",
+          "tier": "Common",
+          "encounterTemplate": "vanguard",
+          "risk": "Standard",
+          "reward": "20 gold + card choice"
+        },
+        "exitEffects": [
+          {
+            "effectId": "s13_vanguard.gold",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "gold",
+            "operation": "ADD",
+            "flatValue": 20
+          }
+        ]
+      },
+      {
+        "nodeId": "r13",
+        "activity": {
+          "type": "CardSelection",
+          "definitionId": "w1_reward",
+          "parameters": {}
+        },
+        "completionPolicy": "Optional",
+        "nextNodeIds": [
+          "world_one_boss"
+        ],
+        "metadata": {
+          "displayName": "Choose or decline a card",
+          "description": "Three seeded offers; decline without diluting the deck.",
+          "rewardTransition": true
+        }
+      },
+      {
+        "nodeId": "world_one_boss",
+        "activity": {
+          "type": "Encounter",
+          "parameters": {
+            "participants": [
+              {
+                "instanceId": "player",
+                "identityBinding": "RunPlayer",
+                "definitionId": "w1_operator",
+                "sideId": "player",
+                "controllerBinding": {
+                  "kind": "Player"
+                }
+              },
+              {
+                "instanceId": "opponent_1",
+                "definitionId": "w1_prime",
+                "sideId": "opposition",
+                "controllerBinding": {
+                  "kind": "AI",
+                  "policyId": "gambit"
+                }
+              }
+            ]
+          }
+        },
+        "completionPolicy": "Required",
+        "nextNodeIds": [],
+        "metadata": {
+          "displayName": "Ascendant Prime — Act Finale",
+          "description": "Two-state boss; survives strong builds. Ascendant Prime.",
+          "tier": "Boss",
+          "encounterTemplate": "world_one_boss",
+          "risk": "Boss",
+          "reward": "Act complete"
+        },
+        "exitEffects": []
+      }
+    ],
+    "metadata": {
+      "displayName": "Ascendant — World One",
+      "description": "An energy-only branching act. Persistent health; build through cards, finite transformations and visible risk/rewards. The demo ends after Ascendant Prime.",
+      "world": 1,
+      "targetMinutes": [
+        25,
+        40
+      ],
+      "contentPhase": "playtest-alpha"
+    }
+  }
+}

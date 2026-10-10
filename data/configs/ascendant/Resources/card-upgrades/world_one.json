@@ -1,0 +1,406 @@
+{
+  "w1_ranked_edge": {
+    "upgradeId": "w1_ranked_edge",
+    "category": "Base",
+    "maxApplications": 2,
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_flurry",
+      "w1_barrage",
+      "w1_shield_bash",
+      "w1_venom_flurry",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "effect_parameter_numeric",
+        "componentId": "main",
+        "parameter": "Amount",
+        "operation": "Add",
+        "value": 3
+      }
+    ]
+  },
+  "w1_ranked_ward": {
+    "upgradeId": "w1_ranked_ward",
+    "category": "Base",
+    "maxApplications": 2,
+    "cardDefinitionIds": [
+      "w1_guard",
+      "w1_bulwark",
+      "w1_reserve"
+    ],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "main",
+        "attribute": "FlatValue",
+        "operation": "Add",
+        "value": 3
+      }
+    ]
+  },
+  "w1_efficiency": {
+    "upgradeId": "w1_efficiency",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_lance",
+      "w1_barrage",
+      "w1_sweep",
+      "w1_bulwark",
+      "w1_venom_flurry",
+      "w1_inferno",
+      "w1_detonate"
+    ],
+    "patches": [
+      {
+        "type": "cost_amount",
+        "componentId": "cost",
+        "resourceId": "energy",
+        "operation": "Add",
+        "value": -1
+      }
+    ]
+  },
+  "w1_split": {
+    "upgradeId": "w1_split",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_shield_bash",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "main",
+        "attribute": "Repeat",
+        "operation": "Set",
+        "value": 3
+      },
+      {
+        "type": "tags",
+        "add": [
+          "multihit"
+        ]
+      }
+    ]
+  },
+  "w1_calibration": {
+    "upgradeId": "w1_calibration",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_flurry",
+      "w1_barrage",
+      "w1_shield_bash",
+      "w1_venom_flurry",
+      "w1_riposte",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "upgrade.critical",
+        "operation": "Add",
+        "component": {
+          "type": "influence",
+          "componentId": "upgrade.critical",
+          "order": 16,
+          "channel": "critical_chance",
+          "bucket": "chance",
+          "value": 40,
+          "requiredTags": [
+            "damage"
+          ]
+        }
+      }
+    ]
+  },
+  "w1_amplify": {
+    "upgradeId": "w1_amplify",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_flurry",
+      "w1_barrage",
+      "w1_shield_bash",
+      "w1_venom_flurry",
+      "w1_riposte",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "upgrade.more",
+        "operation": "Add",
+        "component": {
+          "type": "influence",
+          "componentId": "upgrade.more",
+          "order": 16,
+          "channel": "effect_amount",
+          "bucket": "more",
+          "value": 1.2,
+          "requiredTags": [
+            "damage"
+          ]
+        }
+      }
+    ]
+  },
+  "w1_fire_affinity": {
+    "upgradeId": "w1_fire_affinity",
+    "category": "Affinity",
+    "maxApplications": 1,
+    "slotId": "affinity",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_precision",
+      "w1_lance",
+      "w1_shield_bash",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "upgrade.residual",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "upgrade.residual",
+          "order": 35,
+          "effect": {
+            "effectId": "w1_fire_affinity.residual",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "w1_burn",
+            "statusStacks": 1,
+            "statusDuration": 2,
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 2
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "tags": [
+              "residual"
+            ]
+          }
+        }
+      },
+      {
+        "type": "tags",
+        "add": [
+          "fire"
+        ]
+      }
+    ]
+  },
+  "w1_poison_affinity": {
+    "upgradeId": "w1_poison_affinity",
+    "category": "Affinity",
+    "maxApplications": 1,
+    "slotId": "affinity",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_shield_bash",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "upgrade.residual",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "upgrade.residual",
+          "order": 35,
+          "effect": {
+            "effectId": "w1_poison_affinity.residual",
+            "type": "APPLY_STATUS",
+            "target": "TARGET",
+            "statusId": "w1_poison",
+            "statusStacks": 1,
+            "statusDuration": 2,
+            "payloadBindings": [
+              {
+                "parameterId": "potency",
+                "flatValue": 2
+              }
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "tags": [
+              "residual"
+            ]
+          }
+        }
+      },
+      {
+        "type": "tags",
+        "add": [
+          "poison"
+        ]
+      }
+    ]
+  },
+  "w1_cascade": {
+    "upgradeId": "w1_cascade",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_shield_bash",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "effect_continuation",
+        "componentId": "main",
+        "continuation": {
+          "maximumHops": 3,
+          "selector": "LOWEST_RESOURCE_ENEMY",
+          "selectionResourceId": "health",
+          "overflowPipelineId": "w1_overflow",
+          "overflowChannel": "w1_overflow",
+          "overflowStageIds": [
+            "w1_remainder"
+          ],
+          "impactStageIds": [
+            "w1_target"
+          ],
+          "carryChildren": false
+        }
+      }
+    ]
+  },
+  "w1_lasting": {
+    "upgradeId": "w1_lasting",
+    "category": "Base",
+    "maxApplications": 2,
+    "cardDefinitionIds": [
+      "w1_poison",
+      "w1_inferno"
+    ],
+    "patches": [
+      {
+        "type": "effect_numeric",
+        "componentId": "main",
+        "attribute": "StatusDuration",
+        "operation": "Add",
+        "value": 1
+      }
+    ]
+  },
+  "w1_recall_link": {
+    "upgradeId": "w1_recall_link",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_shield_bash",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "upgrade.draw",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "upgrade.draw",
+          "order": 45,
+          "effect": {
+            "effectId": "w1_recall_link.draw",
+            "type": "CARD_ZONE_FLOW",
+            "target": "SELF",
+            "cardZoneFlowId": "effect.draw",
+            "cardCount": 1
+          }
+        }
+      }
+    ]
+  },
+  "w1_ward_link": {
+    "upgradeId": "w1_ward_link",
+    "category": "Behavior",
+    "maxApplications": 1,
+    "slotId": "behavior",
+    "cardDefinitionIds": [
+      "w1_strike",
+      "w1_scorch",
+      "w1_precision",
+      "w1_lance",
+      "w1_shield_bash",
+      "w1_pierce",
+      "w1_rehearse"
+    ],
+    "patches": [
+      {
+        "type": "component",
+        "componentId": "upgrade.guard",
+        "operation": "Add",
+        "component": {
+          "type": "effect",
+          "componentId": "upgrade.guard",
+          "order": 45,
+          "effect": {
+            "effectId": "w1_ward_link.block",
+            "type": "MODIFY_RESOURCE",
+            "target": "SELF",
+            "targetResource": "block",
+            "operation": "ADD",
+            "flatValue": 4,
+            "tags": [
+              "defense",
+              "block"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

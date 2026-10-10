@@ -179,31 +179,31 @@ public sealed class ApiContractFoundationTests : IClassFixture<TestWebApplicatio
             ascendant.GetProperty("currentRevision").GetString());
         Assert.Equal("spire_showcase_run",
             standard.GetProperty("launch").GetProperty("runDefinitionId").GetString());
-        Assert.Equal("ascendant_showcase_run",
+        Assert.Equal("ascendant_world_one_run",
             ascendant.GetProperty("launch").GetProperty("runDefinitionId").GetString());
-        Assert.Equal("ascendant_showcase",
+        Assert.Equal("ascendant_world_one",
             ascendant.GetProperty("launch").GetProperty("modeId").GetString());
 
         using var startResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {
             settingId = "ascendant",
-            runDefinitionId = "ascendant_showcase_run",
+            runDefinitionId = "ascendant_world_one_run",
             playerEntityId = $"ascendant-player-{Guid.NewGuid():N}",
             seed = 20260920UL,
             contentRevision = ascendant.GetProperty("currentRevision").GetString(),
-            modeId = "ascendant_showcase"
+            modeId = "ascendant_world_one"
         });
         var run = await startResponse.Content.ReadFromJsonAsync<JsonElement>();
 
         Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
         Assert.Equal("ascendant", run.GetProperty("settingId").GetString());
         Assert.Equal("ascendant", run.GetProperty("configName").GetString());
-        Assert.Equal("ascendant_showcase", run.GetProperty("modeId").GetString());
-        Assert.Equal("calibration", run.GetProperty("currentNodeId").GetString());
+        Assert.Equal("ascendant_world_one", run.GetProperty("modeId").GetString());
+        Assert.Equal("s01_arrival", run.GetProperty("currentNodeId").GetString());
         Assert.Contains(
             run.GetProperty("cardZones").GetProperty("zones").EnumerateArray()
                 .SelectMany(zone => zone.GetProperty("cards").EnumerateArray()),
-            card => card.GetProperty("definitionId").GetString() == "ascendant_elemental_burst");
+            card => card.GetProperty("definitionId").GetString() == "w1_scorch");
 
         using var standardStartResponse = await _client.PostAsJsonAsync("/api/v1/runs", new
         {

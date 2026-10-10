@@ -1,0 +1,49 @@
+{
+  "w1_rewards": {
+    "poolId": "w1_rewards",
+    "includeTags": [
+      "world_one"
+    ],
+    "excludeTags": [
+      "starter"
+    ],
+    "rarityWeights": {
+      "Common": 55,
+      "Uncommon": 35,
+      "Rare": 10
+    },
+    "explicitCardIds": [
+      "w1_scorch",
+      "w1_poison",
+      "w1_release",
+      "w1_precision",
+      "w1_focus",
+      "w1_lance",
+      "w1_flurry",
+      "w1_barrage",
+      "w1_sweep",
+      "w1_shield_bash",
+      "w1_fortify",
+      "w1_bulwark",
+      "w1_reserve",
+      "w1_release_guard",
+      "w1_fracture",
+      "w1_dampen",
+      "w1_recall",
+      "w1_insight",
+      "w1_mend",
+      "w1_momentum",
+      "w1_catalyst",
+      "w1_venom_flurry",
+      "w1_inferno",
+      "w1_detonate",
+      "w1_riposte",
+      "w1_pierce",
+      "w1_rehearse",
+      "w1_renewal"
+    ],
+    "metadata": {
+      "description": "All five families, plus draw, control and bridges. Starter and fixture cards are excluded."
+    }
+  }
+}

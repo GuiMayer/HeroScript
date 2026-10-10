@@ -1,0 +1,27 @@
+{
+  "w1_rest": {
+    "preparationId": "w1_rest",
+    "options": [
+      {
+        "optionId": "recover",
+        "costs": [],
+        "effectOwner": "PlayerEntity",
+        "effects": [
+          {
+            "effectId": "w1_rest.recover",
+            "type": "HEAL",
+            "target": "SELF",
+            "targetResource": "health",
+            "flatValue": 25,
+            "tags": [
+              "recovery"
+            ]
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "description": "Recover 25 persistent health once. Taking this route forgoes the alternative forge/event."
+    }
+  }
+}

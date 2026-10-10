@@ -1,0 +1,32 @@
+{
+  "w1_shop": {
+    "shopId": "w1_shop",
+    "cardPoolId": "w1_rewards",
+    "offerCount": 5,
+    "pricing": {
+      "baseMultiplier": 1,
+      "rarityMultipliers": {
+        "Common": 1,
+        "Uncommon": 1,
+        "Rare": 1
+      }
+    },
+    "reroll": {
+      "baseCosts": [
+        {
+          "resourceId": "gold",
+          "amount": 18
+        }
+      ],
+      "costsPerReroll": [
+        {
+          "resourceId": "gold",
+          "amount": 10
+        }
+      ]
+    },
+    "metadata": {
+      "description": "Limited correction: seeded cards, 25/38/55 gold. Crafting is a separate one-operation stop."
+    }
+  }
+}

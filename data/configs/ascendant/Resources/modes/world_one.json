@@ -1,0 +1,47 @@
+{
+  "ascendant_world_one": {
+    "modeId": "ascendant_world_one",
+    "runDefinitionId": "ascendant_world_one_run",
+    "allowCustomSeed": true,
+    "flowRulesId": "standard_flow",
+    "combatRulesId": "w1_combat",
+    "calculationPipelineIds": [
+      "w1_amount",
+      "w1_critical_amount",
+      "w1_dot",
+      "w1_overflow",
+      "ascendant_critical_chance",
+      "ascendant_critical_bonus",
+      "ascendant_critical_probability",
+      "signed_resource_delta"
+    ],
+    "defaultCalculationPipelines": {
+      "effect_amount": "w1_amount",
+      "w1_dot": "w1_dot",
+      "w1_overflow": "w1_overflow"
+    },
+    "cardPoolIds": [
+      "w1_rewards"
+    ],
+    "enemyPoolIds": [],
+    "replayPolicyId": "standard_replay",
+    "timelinePolicyId": "standard_timeline",
+    "contentBindingPolicyId": "pinned_published",
+    "capabilityPolicyId": "standard_gameplay",
+    "progressionPolicyId": "standard_progression",
+    "actorResourceLifecyclePolicyId": "ascendant_actor_resources",
+    "profileProgressPolicyId": "w1_options",
+    "cardZoneSystemId": "spire_zones",
+    "rules": {
+      "presentation": "ascendant",
+      "scalingModel": "layered-buildcraft",
+      "difficulty": "world-one-alpha",
+      "world": 1,
+      "condensationModel": "current-potency-150-percent",
+      "targetMinutes": [
+        25,
+        40
+      ]
+    }
+  }
+}
