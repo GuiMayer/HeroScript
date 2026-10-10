@@ -11,7 +11,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 5. Críticos por níveis e previews: concluída.
 6. Catálogo de desbloqueios e contribuições: concluída.
 7. Elegibilidade congelada e concessões: concluída.
-8. Contratos REST e apresentação: pendente.
+8. Contratos REST e apresentação: concluída.
 9. Hotreload, restart, replay e branches: pendente.
 10. Certificação integrada e desempenho: pendente.
 
@@ -65,5 +65,9 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Gate REST final da etapa 7: 201 testes API aprovados e jornada pesada isolada aprovada (202 no total), sem skips. Inclui tentativa de forjar unlocks, retry unseeded com chave, colisão de payload, comando raiz, provas dependentes reais e captura antiga preservada após desbloqueio. Cinco testes de documentação aprovados; JSON OpenAPI, sintaxe do launcher e `git diff --check` válidos. A UI Godot não foi alterada nesta etapa, além do contrato de compatibilidade do launcher.
 - Jornada REST isolada da etapa 7: dez runtimes/stores, 55 comandos por tentativa; receipts/commits/restart/replay equivalentes e condensação/salto causal executados. Hash final `e730a07e8faade3830bdd5c99661bf3879586ebfbfe41b5619e77b6cb8df3cbb`. Passou em 4m20s, com orçamento de sessão de 10 minutos.
 - Medição local in-process (820 comandos/consultas): p95 265,73 ms, p99 418,09 ms, máximo 558,76 ms. Comandos finais p95 398,77 ms; avaliações p95 180,27 ms. Não certifica reconstrução fria/histórico grande, ainda na etapa 10.
-- Próxima etapa: REST, conteúdo, projeções e integração mínima Godot (8); apresentação completa de disponibilidade ainda pendente. Contrato implementado: [elegibilidade por run](../content/run-eligibility.md).
+- Etapa 8: projeção pura de recursos escolhe a autoridade do personagem e identifica a carteira da run. Perfil/unlocks apresentam catálogo revisionado, condições/evidências e alvos disponíveis pelas provas; a avaliação de condições é compartilhada com o reducer, sem segundo interpretador.
+- Unidade/origem/cálculo da probabilidade e revisão/snapshot agora acompanham os previews locais. Engine 26 versiona a expansão de snapshots de intenção; commit/meta schemas permanecem 4/1. Capability/launcher foundation-read-models; OpenAPI e documentação atualizados.
+- Godot remove schemaVersion da criação, preserva commandId após resposta incerta, apresenta reservas separadas e resumo de opções do setting no histórico. Inglês fallback/tradução portuguesa, sem regras calculadas no cliente. Teste offline foundations e regressão de setting/Continue aprovados (aviso preexistente de dois objetos no encerramento da regressão de menu).
+- Gate da etapa 8: 1.640 testes Core e 202 testes REST não pesados aprovados, sem skips. Inclui owner, catálogo e reads sem grants. Layout Godot em 1280×720/800, 1920×1080 e 2560×1080, dois idiomas e duas escalas aprovado; corrigida a fixture offline que não implementava connect_engine (a primeira execução produzia erro de script apesar das assertions aprovadas). Jornada completa será repetida no gate final.
+- Próximas etapas: auditoria transversal de hotreload/restart/replay/branches (9), seguida de certificação integrada/performance (10). [Contrato REST/Godot](../api/world-one-foundations.md).
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

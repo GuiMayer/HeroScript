@@ -1,4 +1,8 @@
 {
+  "Character resources": "Recursos do personagem",
+  "Unlocked options: %s / %s": "Opções desbloqueadas: %s / %s",
+  "Available": "Disponível",
+  "Locked": "Bloqueado",
   "Impact Forge": "Forja de impactos",
   "Cascade Forge": "Forja de cascatas",
   "Divide one scaled budget across its impacts.": "Divide um orçamento escalado entre seus impactos.",

@@ -21,6 +21,12 @@ public sealed class ContractDocumentationTests
             Assert.False(properties.TryGetProperty(forbidden, out _));
         Assert.False(properties.GetProperty("modeId").TryGetProperty("default", out _));
         var readModel = schemas.GetProperty("RunReadModel").GetProperty("properties");
+        Assert.True(readModel.TryGetProperty("characterResources", out _));
+        Assert.True(readModel.TryGetProperty("runResourceOwnerId", out _));
+        Assert.True(schemas.GetProperty("PlayerProfileProjection").GetProperty("properties").TryGetProperty("availability", out _));
+        var probability = schemas.GetProperty("RandomImpactPreview").GetProperty("properties");
+        foreach (var field in new[] { "probabilityUnit", "probabilitySource", "probabilityCalculation", "contentRevision", "snapshotHash" })
+            Assert.True(probability.TryGetProperty(field, out _));
         Assert.Equal("#/components/schemas/RunEligibilitySnapshot",
             readModel.GetProperty("eligibility").GetProperty("allOf")[0].GetProperty("$ref").GetString());
         Assert.Equal("#/components/schemas/RunCreationReceiptIdentity",

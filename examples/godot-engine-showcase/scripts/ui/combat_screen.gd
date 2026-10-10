@@ -490,6 +490,9 @@ func _populate_character_sidebar(details: VBoxContainer) -> void:
 		details.add_child(AppTheme.caption(definition_id, 11, 260))
 	_add_sidebar_section(details, I18n.text("Resources"))
 	var resources: Dictionary = actor.get("resources", {}) if actor.get("resources", {}) is Dictionary else {}
+	var resource_projection: Dictionary = GameSession.run.get("characterResources", {})
+	if str(resource_projection.get("ownerId", "")) == str(actor.get("instanceId", "")) and str(resource_projection.get("authority", "")) == "ActiveEncounter":
+		resources = resource_projection.get("resources", {}).duplicate(true)
 	var ordered_resources: Array = presentation.get("resource_order", []).duplicate()
 	for resource_id in resources:
 		if resource_id not in ordered_resources:

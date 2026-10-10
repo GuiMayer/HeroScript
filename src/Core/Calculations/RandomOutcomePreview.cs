@@ -28,6 +28,11 @@ public sealed record RandomImpactPreview
     public bool ConditionalOnReachingImpact { get; init; } = true;
     public string Validity { get; init; } = "LocalNumericAlternativesWithCapturedContributions";
     public ImmutableArray<RandomNumericAlternative> Alternatives { get; init; } = [];
+    public string ProbabilityUnit { get; init; } = "probability";
+    public string ProbabilitySource { get; init; } = "Literal";
+    public CalculationResult? ProbabilityCalculation { get; init; }
+    public string ContentRevision { get; init; } = string.Empty;
+    public string SnapshotHash { get; init; } = string.Empty;
 }
 
 public sealed record RandomOutcomePreview
@@ -96,6 +101,8 @@ public static class RandomOutcomePreviewProjector
             }
             impacts.Add(new() { ImpactId = step.Identity?.ImpactId ?? string.Empty, TargetEntityId = step.TargetEntityId,
                 InputId = input.InputId, Scope = input.Scope, Probability = input.Probability, Captures = input.Captures,
+                ProbabilitySource = input.Calculation == null ? "Literal" : "Calculated", ProbabilityCalculation = input.Calculation,
+                ContentRevision = input.ContentRevision, SnapshotHash = input.SnapshotHash,
                 Checkpoints = input.Calculation?.Checkpoints ?? ImmutableSortedDictionary<string, float>.Empty, Alternatives = alternatives.ToImmutable() });
         }
         return new() { Impacts = impacts.ToImmutable(), Truncated = inputs.Length > MaximumInputs };

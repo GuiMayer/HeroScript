@@ -129,6 +129,7 @@ disponibilidade do runtime histórico. Não há concessões retroativas implíci
 
 ## Limites desta entrega
 
-A apresentação completa de disponibilidade/perfil pertence à etapa 8.
+A apresentação de disponibilidade/perfil foi entregue na etapa 8:
+[contrato REST/Godot](../api/world-one-foundations.md).
 Certificação com histórico grande, reconstrução fria e latência pertence à
 etapa 10. Os testes usam stores isolados, nunca os saves reais do jogador.

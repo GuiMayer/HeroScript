@@ -2,6 +2,8 @@ extends SceneTree
 ## Production combat UI with offline projection fixtures; no REST or saved preferences.
 var failures := 0
 class InspectionFixture extends RefCounted:
+	func connect_engine() -> Dictionary:
+		return {"ok": false, "status": 503, "error": "Offline layout fixture"}
 	func inspect_hand(_combat: String, _actor: String, _targets: Array) -> Dictionary:
 		return {"ok": true, "data": {"cards": []}}
 func _init() -> void: call_deferred("_run")

@@ -96,6 +96,14 @@ func _build_header() -> void:
 	badges.alignment = FlowContainer.ALIGNMENT_END
 	badges.add_theme_constant_override("h_separation", 16)
 	badges.add_theme_constant_override("v_separation", 6)
+	var character: Dictionary = GameSession.run.get("characterResources", {})
+	for resource_id in character.get("resources", {}):
+		var pool: Dictionary = character.resources[resource_id]
+		var resource_badge := Label.new()
+		resource_badge.text = "%s/%s %s" % [I18n.number(float(pool.get("current", 0))), I18n.number(float(pool.get("maximum", 0))), I18n.content_name(str(resource_id))]
+		resource_badge.tooltip_text = I18n.text("Character resources") + " · " + str(character.get("ownerId", ""))
+		resource_badge.add_theme_color_override("font_color", AppTheme.TEAL)
+		badges.add_child(resource_badge)
 	for resource_id in GameSession.run.get("resources", {}):
 		var resource = GameSession.run.get("resources", {}).get(resource_id, {})
 		var badge := Label.new()

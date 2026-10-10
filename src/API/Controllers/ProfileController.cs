@@ -44,7 +44,8 @@ public sealed class ProfileController : BaseApiController
     public async Task<IActionResult> GetUnlocks(string playerId, [FromQuery, Required] string settingId, CancellationToken cancellationToken)
     {
         var profile = await _profiles.ReadAsync(playerId, settingId, cancellationToken);
-        return Ok(new { profile.PlayerId, profile.SettingId, profile.Revision, items = profile.Unlocks });
+        return Ok(new { profile.PlayerId, profile.SettingId, profile.Revision, profile.ProgressSequence,
+            profile.ProgressRevision, items = profile.Unlocks, profile.UnlockProofs, profile.Availability });
     }
 
     [HttpGet("achievements")]

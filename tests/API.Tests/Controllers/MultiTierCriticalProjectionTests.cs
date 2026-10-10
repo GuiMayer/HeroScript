@@ -43,6 +43,11 @@ public sealed class MultiTierCriticalProjectionTests(TestWebApplicationFactory f
             Assert.False(preview.GetProperty("randomOutcomes").GetProperty("isGlobalOutcomeRange").GetBoolean());
             var impact = Assert.Single(preview.GetProperty("randomOutcomes").GetProperty("impacts").EnumerateArray());
             Assert.Equal(.5f, impact.GetProperty("probability").GetSingle());
+            Assert.Equal("probability", impact.GetProperty("probabilityUnit").GetString());
+            Assert.Equal("Calculated", impact.GetProperty("probabilitySource").GetString());
+            Assert.Equal(before.GetProperty("contentRevision").GetString(), impact.GetProperty("contentRevision").GetString());
+            Assert.NotEmpty(impact.GetProperty("snapshotHash").GetString()!);
+            Assert.Equal(.5f, impact.GetProperty("probabilityCalculation").GetProperty("value").GetSingle());
             Assert.Equal(150f, impact.GetProperty("captures").GetProperty("chance").GetProperty("value").GetSingle());
             Assert.Equal(new[] { 21f, 31f }, impact.GetProperty("alternatives").EnumerateArray()
                 .Select(item => item.GetProperty("calculation").GetProperty("value").GetSingle()));

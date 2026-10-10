@@ -243,7 +243,7 @@
         "operationId": "getProfileProjection",
         "x-heroscript-stability": "experimental",
         "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }],
-        "responses": { "200": { "description": "Derived immutable player profile for exactly one setting; includes settingId, revision, statistics, unlocks, achievements and setting-labelled runs." }, "400": { "$ref": "#/components/responses/Problem" } }
+        "responses": { "200": { "description": "Setting-scoped history, progress proofs and read-only current catalog availability", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlayerProfileProjection" } } } }, "400": { "$ref": "#/components/responses/Problem" } }
       }
     },
     "/api/v1/profiles/{playerId}/stats": {
@@ -257,7 +257,7 @@
       "get": {
         "tags": ["System"], "operationId": "getSettingProfileUnlocks", "x-heroscript-stability": "experimental",
         "parameters": [{ "name": "playerId", "in": "path", "required": true, "schema": { "type": "string" } }, { "$ref": "#/components/parameters/ProfileSetting" }],
-        "responses": { "200": { "description": "Unlocks derived only from this setting's immutable runs" }, "400": { "$ref": "#/components/responses/Problem" } }
+        "responses": { "200": { "description": "Unlock IDs, progress sequence/revision, unlockProofs and availability for this player/setting; reads do not grant options" }, "400": { "$ref": "#/components/responses/Problem" } }
       }
     },
     "/api/v1/profiles/{playerId}/achievements": {
@@ -653,10 +653,82 @@
           "step": { "type": "integer", "minimum": 0 },
           "stateHash": { "type": "string" },
           "cardZones": { "$ref": "#/components/schemas/CardZoneSnapshot" },
+          "runResourceOwnerId": { "type": "string", "description": "Owner of the resources wallet; not the character resource reserve." },
+          "characterResources": { "$ref": "#/components/schemas/CharacterResourceView" },
           "eligibility": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunEligibilitySnapshot" }] },
           "creationReceipt": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunCreationReceiptIdentity" }] }
         },
         "additionalProperties": true
+      },
+      "CharacterResourceView": {
+        "type": "object",
+        "required": ["ownerId", "authority", "resources"],
+        "properties": {
+          "ownerId": { "type": "string" },
+          "authority": { "type": "string", "enum": ["Unavailable", "PersistentPlayer", "ActiveEncounter"] },
+          "combatId": { "type": "string", "format": "uuid", "nullable": true },
+          "resources": { "type": "object", "additionalProperties": { "$ref": "#/components/schemas/ResourcePoolView" } }
+        }
+      },
+      "ResourcePoolView": {
+        "type": "object",
+        "required": ["current", "minimum", "maximum"],
+        "properties": { "current": { "type": "number" }, "minimum": { "type": "number" }, "maximum": { "type": "number" } }
+      },
+      "PlayerProfileProjection": {
+        "type": "object",
+        "properties": {
+          "playerId": { "type": "string" }, "settingId": { "type": "string" }, "revision": { "type": "string" },
+          "totalRuns": { "type": "integer" }, "completedRuns": { "type": "integer" }, "activeRuns": { "type": "integer" },
+          "progressSequence": { "type": "integer" }, "progressRevision": { "type": "string" },
+          "unlocks": { "type": "array", "items": { "type": "string" } },
+          "unlockProofs": { "type": "array", "items": { "type": "object", "description": "Canonical grant with policy/content revision, command, evidence counts, contribution keys and targets", "additionalProperties": true } },
+          "availability": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/ProfileUnlockAvailability" }] },
+          "achievements": { "type": "array", "items": { "type": "string" } },
+          "runs": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
+      },
+      "ProfileUnlockAvailability": {
+        "type": "object",
+        "required": ["contentRevision", "progressRevision", "options"],
+        "properties": {
+          "contentRevision": { "type": "string" }, "progressRevision": { "type": "string" },
+          "options": { "type": "array", "items": { "$ref": "#/components/schemas/ProfileUnlockOption" } }
+        }
+      },
+      "ProfileUnlockOption": {
+        "type": "object",
+        "properties": {
+          "policyId": { "type": "string" }, "unlockId": { "type": "string" }, "displayName": { "type": "string" },
+          "condition": { "type": "object", "description": "Typed declarative condition tree", "additionalProperties": true },
+          "conditionSatisfied": { "type": "boolean", "description": "Read-only explanation; never an implicit grant" },
+          "evidenceCounts": { "type": "object", "additionalProperties": { "type": "integer" } },
+          "targets": { "type": "array", "items": { "$ref": "#/components/schemas/RunEligibilityTarget" } },
+          "availableTargets": { "type": "array", "items": { "$ref": "#/components/schemas/RunEligibilityTarget" } },
+          "proof": { "type": "object", "nullable": true, "additionalProperties": true }
+        }
+      },
+      "RandomOutcomePreview": {
+        "type": "object",
+        "properties": {
+          "truncated": { "type": "boolean" }, "isGlobalOutcomeRange": { "type": "boolean", "enum": [false] },
+          "impacts": { "type": "array", "maxItems": 64, "items": { "$ref": "#/components/schemas/RandomImpactPreview" } }
+        }
+      },
+      "RandomImpactPreview": {
+        "type": "object",
+        "properties": {
+          "impactId": { "type": "string" }, "targetEntityId": { "type": "string" }, "inputId": { "type": "string" },
+          "scope": { "type": "string", "enum": ["Action", "ParentProc", "Impact"] },
+          "probability": { "type": "number", "minimum": 0, "maximum": 1 },
+          "probabilityUnit": { "type": "string", "enum": ["probability"] },
+          "probabilitySource": { "type": "string", "enum": ["Literal", "Calculated"] },
+          "probabilityCalculation": { "type": "object", "nullable": true, "additionalProperties": true },
+          "contentRevision": { "type": "string" }, "snapshotHash": { "type": "string" },
+          "conditionalOnReachingImpact": { "type": "boolean" }, "validity": { "type": "string" },
+          "captures": { "type": "object", "additionalProperties": true }, "checkpoints": { "type": "object", "additionalProperties": { "type": "number" } },
+          "alternatives": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        }
       },
       "RunCreationReceiptIdentity": {
         "type": "object",
@@ -1322,6 +1394,7 @@
         "properties": {
           "version": { "type": "object", "description": "Run, combat, engine and content-revision coordinates used by this projection", "additionalProperties": true },
           "previewScope": { "type": "object", "description": "Exact only for the captured snapshot, target IDs and cost option; dependsOnRandomInputs does not mean nondeterministic. GET never consumes RNG.", "additionalProperties": true },
+          "randomOutcomes": { "$ref": "#/components/schemas/RandomOutcomePreview" },
           "procs": { "type": "array", "items": { "$ref": "#/components/schemas/CardProcPreview" } },
           "detail": { "type": "string", "enum": ["Resolved", "Full"] },
           "zone": { "type": "string", "description": "Authored card-zone identifier containing this instance." },

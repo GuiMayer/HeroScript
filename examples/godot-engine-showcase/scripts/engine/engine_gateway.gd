@@ -2,6 +2,7 @@ extends RefCounted
 ## REST contract adapter. No UI, localization, preferences or animation dependencies.
 
 var _transport
+var _campaign_request: Dictionary = {}
 
 func _init(transport) -> void:
 	_transport = transport
@@ -15,13 +16,23 @@ func connect_engine() -> Dictionary:
 func create_campaign(seed: int, setting: Dictionary) -> Dictionary:
 	var launch: Dictionary = setting.get("launch", {})
 	var setting_id := str(setting.get("settingId", ""))
-	return await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs", {
-		"schemaVersion": 1, "settingId": setting_id,
+	var body := {
+		"settingId": setting_id,
 		"runDefinitionId": str(launch.get("runDefinitionId", "")),
 		"playerEntityId": str(launch.get("playerEntityId", "player")),
 		"modeId": str(launch.get("modeId", "")),
 		"contentRevision": str(setting.get("currentRevision", "")), "seed": seed
-	})
+	}
+	# Retain identical inputs after an uncertain response; success ends this attempt's retry window.
+	var previous := _campaign_request.duplicate(true)
+	previous.erase("commandId")
+	if previous != body:
+		_campaign_request = body.duplicate(true)
+		_campaign_request["commandId"] = _uuid()
+	var response: Dictionary = await _transport.request(HTTPClient.METHOD_POST, "/api/v1/runs", _campaign_request.duplicate(true))
+	if response.ok or (int(response.get("status", 0)) >= 400 and int(response.get("status", 0)) < 500):
+		_campaign_request = {}
+	return response
 
 func create_sandbox(mode_id: String, scenario: Dictionary, seed: int, revision: String, setting_id: String) -> Dictionary:
 	var body := scenario.duplicate(true)
@@ -47,6 +58,10 @@ func run_history(player_id: String, setting_id: String) -> Dictionary:
 			"completedRuns": response.data.get("completedRuns", 0),
 			"activeRuns": response.data.get("activeRuns", 0),
 			"unlocks": response.data.get("unlocks", []).duplicate(true),
+			"progressSequence": response.data.get("progressSequence", 0),
+			"progressRevision": response.data.get("progressRevision", ""),
+			"unlockProofs": response.data.get("unlockProofs", []).duplicate(true),
+			"availability": response.data.get("availability", {}).duplicate(true) if response.data.get("availability") is Dictionary else {},
 			"achievements": response.data.get("achievements", []).duplicate(true),
 			"items": response.data.get("runs", []).duplicate(true)
 		}

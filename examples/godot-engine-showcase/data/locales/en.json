@@ -1,4 +1,8 @@
 {
+  "Character resources": "Character resources",
+  "Unlocked options: %s / %s": "Unlocked options: %s / %s",
+  "Available": "Available",
+  "Locked": "Locked",
   "Impact Forge": "Impact Forge",
   "Cascade Forge": "Cascade Forge",
   "Divide one scaled budget across its impacts.": "Divide one scaled budget across its impacts.",

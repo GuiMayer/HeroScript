@@ -18,7 +18,7 @@ não são regras de disponibilidade de conteúdo.
 A [elegibilidade por run](run-eligibility.md), implementada na etapa 7, captura
 essas provas antes da inicialização e restringe ofertas/deck inicial e demais
 aquisições. O exemplo Ascendant já consome essa captura. A interface detalhada
-de disponibilidade pertence à etapa 8.
+de disponibilidade foi entregue na etapa 8, com condições, evidências e provas.
 
 ## JSON
 
@@ -133,7 +133,8 @@ silenciosamente a prova de progresso. Não há endpoint para forjar grants.
 `GET /api/v1/profiles/{playerId}?settingId=...` retorna `progressSequence`,
 `progressRevision`, IDs em `unlocks` e provas em `unlockProofs`. Estatísticas e
 histórico continuam separados da cadeia de progresso. `/unlocks` conserva a
-lista de IDs; sua apresentação completa será expandida na etapa 8.
+lista de IDs e agora inclui também `availability` e `unlockProofs`:
+[contrato de apresentação](../api/world-one-foundations.md).
 
 O rebuild aplica cada delta na sequência capturada, verificando base, condições,
 grants e revision hash. Consultas não concedem novos unlocks. Replay executa um

@@ -2,6 +2,13 @@
 
 ## v1 — 2026-10-10
 
+- Engine `26`: `characterResources` seleciona a reserva operacional e
+  `runResourceOwnerId` distingue carteira de personagem. Perfil/unlocks incluem
+  catálogo atual, condições/evidências, disponibilidade e prova histórica.
+  Previews incluem unidade/origem/cálculo da probabilidade e revisão/snapshot.
+  Capability `foundation-read-models`; adaptação Godot/launcher e OpenAPI.
+  [Contrato de apresentação](world-one-foundations.md). A expansão dos fatos
+  de intenção altera o snapshot; runtime histórico incompatível não é migrado.
 - Engine version `25`, commit schema `4`, meta schema `1`: elegibilidade de
   cartas/upgrades/relíquias capturada por jogador/setting na criação da run.
   Modos podem declarar `Profile`, `Fixed` ou `Unrestricted` (com cheats) e

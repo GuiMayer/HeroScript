@@ -10,6 +10,7 @@ var replay_button: Button
 var continue_button: Button
 var verify_button: Button
 var loading := false
+var unlock_summary: Label
 
 func setup(owner) -> void:
 	router = owner
@@ -23,6 +24,9 @@ func setup(owner) -> void:
 	add_child(header)
 	var setting_name := I18n.text(str(GameSession.selected_setting.get("displayName", GameSession.selected_setting_id)))
 	add_child(AppTheme.title(setting_name, 18, AppTheme.TEAL))
+	unlock_summary = AppTheme.muted("", 13)
+	unlock_summary.name = "ProfileUnlockSummary"
+	add_child(unlock_summary)
 	add_child(AppTheme.muted(I18n.text("Every journey is an immutable engine record. Inspect, verify or replay it without changing its outcome.")))
 	var body := HSplitContainer.new()
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -72,6 +76,13 @@ func _load() -> void:
 		details.text = I18n.error(response)
 		return
 	entries = response.data.get("items", []).duplicate(true)
+	var options: Array = response.data.get("availability", {}).get("options", [])
+	var available := options.filter(func(option): return not option.get("availableTargets", []).is_empty())
+	unlock_summary.text = I18n.text("Unlocked options: %s / %s") % [available.size(), options.size()]
+	var names: Array[String] = []
+	for option in options:
+		names.append("%s · %s" % [str(option.get("displayName", option.get("unlockId", ""))), I18n.text("Available") if not option.get("availableTargets", []).is_empty() else I18n.text("Locked")])
+	unlock_summary.tooltip_text = "\n".join(names)
 	# Defense in depth for malformed/stale projections: never show another setting.
 	entries = entries.filter(func(record): return str(record.get("settingId", record.get("configName", ""))) == GameSession.selected_setting_id)
 	list.clear()

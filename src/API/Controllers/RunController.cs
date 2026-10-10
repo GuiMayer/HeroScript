@@ -266,6 +266,8 @@ public sealed class RunController : BaseApiController
             run.SettingId,
             run.PlayerEntityId,
             run.PlayerEntity,
+            characterResources = Core.Run.Projections.RunResourceProjection.Character(run),
+            runResourceOwnerId = run.ResourceState.OwnerId,
             run.Eligibility,
             run.CreationReceipt,
             run.ModeId,

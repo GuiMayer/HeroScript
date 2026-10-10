@@ -47,13 +47,13 @@ public static class ProfileProgressReducer
             foreach (var unlock in candidate.Policy.Unlocks.OrderBy(item => item.UnlockId, StringComparer.Ordinal))
             {
                 if (unlocked.Contains(unlock.UnlockId)) continue;
-                var evidence = ImmutableSortedDictionary.CreateBuilder<string, int>(StringComparer.Ordinal);
-                if (!Satisfied(unlock.Condition, "condition", evidence)) continue;
+                var evidence = ProfileProgressConditions.Evaluate(candidate.Policy, unlock.Condition, all, unlocked);
+                if (!evidence.Satisfied) continue;
                 unlocked.Add(unlock.UnlockId); changed = true;
                 grants.Add(new() { GrantId = CanonicalJson.ComputeHash(new { candidate.PlayerId, candidate.SettingId, unlock.UnlockId }),
                     UnlockId = unlock.UnlockId, PolicyId = candidate.Policy.ProfileProgressPolicyId, PolicyFingerprint = policyHash,
                     ContentRevision = candidate.ContentRevision, RunId = candidate.RunId, Sequence = candidate.RunSequence,
-                    CommandId = candidate.CommandId, BasisRevision = basis.Revision, EvidenceCounts = evidence.ToImmutable(),
+                    CommandId = candidate.CommandId, BasisRevision = basis.Revision, EvidenceCounts = evidence.Counts,
                     ContributionKeys = additions.Select(item => item.Key).ToImmutableArray(), Targets = unlock.Targets });
             }
         } while (changed);
@@ -61,22 +61,6 @@ public static class ProfileProgressReducer
         var planned = candidate with { Contributions = additions, Grants = grants.ToImmutable(), Revision = string.Empty };
         return Result<ProfileProgressCommit?>.Success(planned with { Revision = CanonicalJson.ComputeHash(planned) });
 
-        bool Satisfied(UnlockConditionDefinition condition, string path, ImmutableSortedDictionary<string, int>.Builder evidence)
-        {
-            if (condition.Kind is UnlockConditionKind.All or UnlockConditionKind.Any)
-            {
-                var results = condition.Conditions.Select((child, index) => Satisfied(child, path + "." + index, evidence)).ToArray();
-                return condition.Kind == UnlockConditionKind.All ? results.All(item => item) : results.Any(item => item);
-            }
-            var count = condition.Kind == UnlockConditionKind.UnlockGranted ? (unlocked.Contains(condition.UnlockId!) ? 1 : 0) : all.Count(item =>
-                item.Kind == condition.Kind && candidate.Policy.ContributingModeIds.Contains(item.ModeId, StringComparer.Ordinal) &&
-                candidate.Policy.AllowedProvenances.Contains(item.Provenance) &&
-                (condition.RunDefinitionId == null || condition.RunDefinitionId == item.RunDefinitionId) &&
-                (condition.NodeId == null || condition.NodeId == item.NodeId) &&
-                (condition.Kind != UnlockConditionKind.RunOutcome || condition.Outcomes.Contains(item.Outcome)) &&
-                (condition.Kind != UnlockConditionKind.EncounterCompleted || condition.EncounterOutcomes.Contains(item.EncounterOutcome!.Value)));
-            evidence[path] = count; return count >= condition.Count;
-        }
     }
 
     public static Result<ProfileProgressSnapshot> Apply(ProfileProgressSnapshot basis, ProfileProgressCommit proof)
