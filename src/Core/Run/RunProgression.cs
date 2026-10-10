@@ -463,6 +463,8 @@ internal sealed class CardSelectionRunActivityHandler : RunActivityHandlerBase
                 new { selectionInstanceId = "guid", cardId = "string" },
                 new { selectionInstanceId = selection.SelectionInstanceId, cardIds = options }));
         }
+        if (node.CompletionPolicy == RunActivityCompletionPolicy.Optional)
+            available.Add(Resolve(run, node));
         return available;
     }
 

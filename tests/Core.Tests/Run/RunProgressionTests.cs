@@ -14,6 +14,29 @@ public sealed class RunProgressionTests
 {
     private readonly RunActivityRegistry _activities = RunActivityRegistry.CreateDefault();
 
+    [Theory]
+    [InlineData(RunActivityCompletionPolicy.Optional, true)]
+    [InlineData(RunActivityCompletionPolicy.Required, false)]
+    public void OpenCardOffer_CanBeDeclinedOnlyWhenActivityAllowsIt(
+        RunActivityCompletionPolicy completion, bool canDecline)
+    {
+        var map = RunMapTransitions.Create([Node("reward", RunActivityType.CardSelection,
+            "basic_reward", completion)], _activities).Value;
+        var run = State("reward", map, new RunProgressionPolicyDefinition()) with
+        {
+            CardSelections = [new CardSelectionState
+            {
+                SelectionInstanceId = Guid.Parse("10000000-0000-0000-0000-000000000001"),
+                NodeId = "reward", SelectionId = "basic_reward", Completed = false
+            }]
+        };
+        var service = new RunProgressionService(_activities);
+        Assert.Equal(canDecline, service.GetAvailableCommands(run).Value
+            .Any(command => command.Type == RunCommandTypes.ResolveNode));
+        Assert.Equal(canDecline, service.CanResolve(run, map.Nodes[0]).IsSuccess);
+        Assert.False(run.CardSelections[0].Completed);
+    }
+
     [Fact]
     public void ConfiguredActivities_DriveACompleteRunLoop()
     {
