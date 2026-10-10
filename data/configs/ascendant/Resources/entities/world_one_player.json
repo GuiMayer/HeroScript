@@ -1,0 +1,41 @@
+{
+  "w1_operator": {
+    "definitionId": "w1_operator",
+    "displayName": "Matrix Wanderer",
+    "description": "World one: persistent health, energy-only cards and no permanent power bonuses.",
+    "components": [
+      {
+        "type": "resources",
+        "componentId": "resources",
+        "pools": {
+          "health": {
+            "current": 100,
+            "max": 100
+          },
+          "energy": {
+            "current": 3,
+            "max": 3
+          },
+          "block": {
+            "current": 0,
+            "max": 999
+          }
+        }
+      },
+      {
+        "type": "stats",
+        "componentId": "stats",
+        "values": {
+          "weapon_damage": 0,
+          "spell_damage": 0,
+          "elemental_damage": 0,
+          "dot_damage": 0,
+          "block_efficiency": 0,
+          "critical_chance": 15,
+          "critical_multiplier": 1.5
+        }
+      }
+    ]
+  }
+}
+

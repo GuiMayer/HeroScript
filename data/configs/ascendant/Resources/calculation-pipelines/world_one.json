@@ -1,0 +1,400 @@
+{
+  "w1_amount": {
+    "pipelineId": "w1_amount",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_amount.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "attack"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "spell"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.elemental_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "elemental_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "elemental"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_amount.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "defense",
+          "block"
+        ],
+        "missingValue": "Ignore"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_amount.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      }
+    ]
+  },
+  "w1_critical_amount": {
+    "pipelineId": "w1_critical_amount",
+    "channel": "effect_amount",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_impact",
+        "scope": "Shared"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "critical",
+        "stageId": "w1_impact",
+        "order": 40,
+        "operation": "Formula",
+        "formula": "rolls.critical.checkpoints.guaranteed + rolls.critical.success * rolls.critical.values.bonus + 1 * bucket.input"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_critical_amount.weapon_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "weapon_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "attack"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.spell_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "spell_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "spell"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.elemental_damage",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "elemental_damage",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "damage",
+          "elemental"
+        ],
+        "missingValue": "Ignore"
+      },
+      {
+        "bindingId": "w1_critical_amount.block_efficiency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "block_efficiency",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "requiredTags": [
+          "defense",
+          "block"
+        ],
+        "missingValue": "Ignore"
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_critical_amount.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "effect_amount",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      }
+    ]
+  },
+  "w1_dot": {
+    "pipelineId": "w1_dot",
+    "channel": "w1_dot",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_origin",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_release",
+        "scope": "Actor"
+      },
+      {
+        "stageId": "w1_target",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "flat",
+        "stageId": "w1_origin",
+        "order": 10,
+        "operation": "Add"
+      },
+      {
+        "bucketId": "increased",
+        "stageId": "w1_origin",
+        "order": 20,
+        "operation": "AddPercent"
+      },
+      {
+        "bucketId": "more",
+        "stageId": "w1_origin",
+        "order": 30,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "release",
+        "stageId": "w1_release",
+        "order": 40,
+        "operation": "Formula",
+        "formula": "bucket.input * 1.5"
+      },
+      {
+        "bucketId": "vulnerability",
+        "stageId": "w1_target",
+        "order": 50,
+        "operation": "Multiply"
+      },
+      {
+        "bucketId": "mitigation",
+        "stageId": "w1_target",
+        "order": 60,
+        "operation": "ConsumeCapacity"
+      },
+      {
+        "bucketId": "final",
+        "stageId": "w1_target",
+        "order": 70,
+        "operation": "Add",
+        "rounding": "Round",
+        "midpointRounding": "AwayFromZero",
+        "minimum": 0
+      }
+    ],
+    "statInfluenceBindings": [
+      {
+        "bindingId": "w1_dot.potency",
+        "scope": "Actor",
+        "componentId": "stats",
+        "valueId": "dot_damage",
+        "channel": "w1_dot",
+        "bucket": "increased",
+        "missingValue": "Ignore",
+        "requiredTags": [
+          "residual"
+        ]
+      }
+    ],
+    "resourceInfluenceBindings": [
+      {
+        "bindingId": "w1_dot.block",
+        "scope": "Target",
+        "resourceId": "block",
+        "field": "Current",
+        "channel": "w1_dot",
+        "bucket": "mitigation",
+        "requiredTags": [
+          "effect.damage"
+        ],
+        "excludedTags": [
+          "piercing"
+        ],
+        "missingResource": "Ignore",
+        "settlement": {
+          "operation": "SUBTRACT",
+          "field": "Current",
+          "useEffectiveValue": true
+        }
+      }
+    ]
+  },
+  "w1_overflow": {
+    "pipelineId": "w1_overflow",
+    "channel": "w1_overflow",
+    "unitId": "points",
+    "stages": [
+      {
+        "stageId": "w1_remainder",
+        "scope": "Target"
+      }
+    ],
+    "buckets": [
+      {
+        "bucketId": "remainder",
+        "stageId": "w1_remainder",
+        "operation": "Formula",
+        "formula": "continuation.requested_change - continuation.applied_change * -1"
+      }
+    ]
+  }
+}
+

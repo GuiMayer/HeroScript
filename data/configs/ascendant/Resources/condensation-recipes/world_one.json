@@ -1,0 +1,104 @@
+{
+  "w1_release_dot": {
+    "recipeId": "w1_release_dot",
+    "ownerBinding": "TargetEntity",
+    "selectionTiming": "ActionStart",
+    "evaluationTiming": "AfterConsumption",
+    "emptySelection": "Skip",
+    "selection": {
+      "stores": [
+        "Status"
+      ],
+      "definitionIds": [
+        "w1_burn",
+        "w1_poison"
+      ]
+    },
+    "aggregates": [
+      {
+        "parameterId": "potency",
+        "kind": "Payload",
+        "payloadParameterId": "potency"
+      }
+    ],
+    "effects": [
+      {
+        "type": "DAMAGE",
+        "target": "TARGET",
+        "targetResource": "health",
+        "operation": "ADD",
+        "tags": [
+          "damage",
+          "residual"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "inputQuantityId": "condensation.potency",
+            "unitId": "points",
+            "channel": "w1_dot",
+            "pipelineId": "w1_dot",
+            "stageIds": [
+              "w1_release",
+              "w1_target"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "w1_release_guard": {
+    "recipeId": "w1_release_guard",
+    "ownerBinding": "SourceEntity",
+    "selectionTiming": "ActionStart",
+    "evaluationTiming": "AfterConsumption",
+    "emptySelection": "Skip",
+    "selection": {
+      "stores": [
+        "Status"
+      ],
+      "definitionIds": [
+        "w1_reserve"
+      ]
+    },
+    "aggregates": [
+      {
+        "parameterId": "potency",
+        "kind": "Payload",
+        "payloadParameterId": "potency"
+      }
+    ],
+    "effects": [
+      {
+        "type": "MODIFY_RESOURCE",
+        "target": "SELF",
+        "targetResource": "block",
+        "operation": "ADD",
+        "tags": [
+          "defense",
+          "block"
+        ],
+        "targetLoss": {
+          "policy": "Skip"
+        },
+        "parameters": [
+          {
+            "parameter": "Amount",
+            "inputQuantityId": "condensation.potency",
+            "unitId": "points",
+            "channel": "w1_dot",
+            "pipelineId": "w1_dot",
+            "stageIds": [
+              "w1_release",
+              "w1_target"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+

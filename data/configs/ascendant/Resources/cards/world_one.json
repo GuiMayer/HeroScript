@@ -1,0 +1,3568 @@
+{
+  "w1_strike": {
+    "cardId": "w1_strike",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "starter"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_strike",
+      "artKey": "placeholder.w1_strike",
+      "displayName": "Matrix Strike",
+      "description": "Reliable single-target damage."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_strike.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 8,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_guard": {
+    "cardId": "w1_guard",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "defense",
+      "starter"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_guard",
+      "artKey": "placeholder.w1_guard",
+      "displayName": "Kinetic Guard",
+      "description": "Baseline mitigation."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_guard.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 8,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_scorch": {
+    "cardId": "w1_scorch",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "fire"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_scorch",
+      "artKey": "placeholder.w1_scorch",
+      "displayName": "Scorch Cut",
+      "description": "Immediate damage plus a short residual."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_scorch.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_scorch.1",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_burn",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_poison": {
+    "cardId": "w1_poison",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "poison",
+      "dot"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_poison",
+      "artKey": "placeholder.w1_poison",
+      "displayName": "Corrosive Mark",
+      "description": "Delayed single-target pressure."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_poison.0",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_poison",
+          "statusStacks": 1,
+          "statusDuration": 3,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 4
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_release": {
+    "cardId": "w1_release",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "condensation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_release",
+      "artKey": "placeholder.w1_release",
+      "displayName": "Condense",
+      "description": "Consume all Scorch/Corrosion potency in one proc at 150%; not remaining-duration damage."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_release.0",
+          "type": "CONDENSE_STACKS",
+          "target": "TARGET",
+          "condensationRecipeId": "w1_release_dot"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_precision": {
+    "cardId": "w1_precision",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "critical"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_precision",
+      "artKey": "placeholder.w1_precision",
+      "displayName": "Calibrated Shot",
+      "description": "Card-local +50 critical chance."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "influence",
+        "componentId": "critical.chance",
+        "order": 15,
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 50,
+        "requiredTags": [
+          "damage"
+        ]
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_precision.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 7,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_focus": {
+    "cardId": "w1_focus",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "critical"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_focus",
+      "artKey": "placeholder.w1_focus",
+      "displayName": "Perfect Focus",
+      "description": "One-time combat investment: +80 critical chance."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_focus.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_focus",
+          "statusStacks": 1,
+          "statusDuration": -1,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_lance": {
+    "cardId": "w1_lance",
+    "rarity": "Rare",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 55
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "critical"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_lance",
+      "artKey": "placeholder.w1_lance",
+      "displayName": "Critical Lance",
+      "description": "Card-local +75 critical chance; supports guaranteed tiers."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "influence",
+        "componentId": "critical.chance",
+        "order": 15,
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 75,
+        "requiredTags": [
+          "damage"
+        ]
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_lance.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 17,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_flurry": {
+    "cardId": "w1_flurry",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "multihit"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_flurry",
+      "artKey": "placeholder.w1_flurry",
+      "displayName": "Twin Blades",
+      "description": "One shared budget split into two independent crit rolls."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_flurry.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 2,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 10,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_barrage": {
+    "cardId": "w1_barrage",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "multihit"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_barrage",
+      "artKey": "placeholder.w1_barrage",
+      "displayName": "Shard Barrage",
+      "description": "Shared source budget; four per-impact rolls."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_barrage.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 4,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 22,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_sweep": {
+    "cardId": "w1_sweep",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "area"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_sweep",
+      "artKey": "placeholder.w1_sweep",
+      "displayName": "Arc Sweep",
+      "description": "Pays for coverage rather than single-target burst."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_sweep.0",
+          "type": "DAMAGE",
+          "target": "ALL_ENEMIES",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 12,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_origin",
+                "w1_impact",
+                "w1_target"
+              ]
+            }
+          ],
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "ALL_ENEMIES",
+        "minimumTargets": 0,
+        "maximumTargets": 0
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_shield_bash": {
+    "cardId": "w1_shield_bash",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "tank"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_shield_bash",
+      "artKey": "placeholder.w1_shield_bash",
+      "displayName": "Shield Bash",
+      "description": "Bridge between defense and offense."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_shield_bash.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_shield_bash.1",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 5,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_fortify": {
+    "cardId": "w1_fortify",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "tank"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_fortify",
+      "artKey": "placeholder.w1_fortify",
+      "displayName": "Fortify",
+      "description": "35% increased Block for this encounter."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_fortify.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_guard_mastery",
+          "statusStacks": 1,
+          "statusDuration": -1,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_bulwark": {
+    "cardId": "w1_bulwark",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "tank"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_bulwark",
+      "artKey": "placeholder.w1_bulwark",
+      "displayName": "Bulwark",
+      "description": "Efficient defense, at the cost of offensive tempo."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_bulwark.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 19,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_reserve": {
+    "cardId": "w1_reserve",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "tank",
+      "reserve"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_reserve",
+      "artKey": "placeholder.w1_reserve",
+      "displayName": "Store Guard",
+      "description": "Defend now and store a future Block proc."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_reserve.0",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 4,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_reserve.1",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_reserve",
+          "statusStacks": 1,
+          "statusDuration": -1,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 6
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_release_guard": {
+    "cardId": "w1_release_guard",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "tank",
+      "condensation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_release_guard",
+      "artKey": "placeholder.w1_release_guard",
+      "displayName": "Release Guard",
+      "description": "Consumes defense reserve, not damage stacks."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_release_guard.0",
+          "type": "CONDENSE_STACKS",
+          "target": "SELF",
+          "condensationRecipeId": "w1_release_guard"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_fracture": {
+    "cardId": "w1_fracture",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "debuff"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_fracture",
+      "artKey": "placeholder.w1_fracture",
+      "displayName": "Expose Weakness",
+      "description": "Makes following impacts more effective."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_fracture.0",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_exposed",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status"
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_fracture.1",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 4,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_dampen": {
+    "cardId": "w1_dampen",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "control"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_dampen",
+      "artKey": "placeholder.w1_dampen",
+      "displayName": "Dampen",
+      "description": "Reduce one actor's outgoing damage instead of racing it."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_dampen.0",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_weakened",
+          "statusStacks": 1,
+          "statusDuration": 2,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status"
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_dampen.1",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 3,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_recall": {
+    "cardId": "w1_recall",
+    "rarity": "Common",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 25
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "draw"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_recall",
+      "artKey": "placeholder.w1_recall",
+      "displayName": "Tactical Recall",
+      "description": "Convert energy into hand options."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_recall.0",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.draw",
+          "cardCount": 2
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_insight": {
+    "cardId": "w1_insight",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "draw"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_insight",
+      "artKey": "placeholder.w1_insight",
+      "displayName": "Brief Insight",
+      "description": "Exhausts; cannot cycle forever."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 0
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_insight.0",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.draw",
+          "cardCount": 2
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_mend": {
+    "cardId": "w1_mend",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "recovery"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_mend",
+      "artKey": "placeholder.w1_mend",
+      "displayName": "Field Dressing",
+      "description": "Limited recovery; exhausts each encounter."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_mend.0",
+          "type": "HEAL",
+          "target": "SELF",
+          "targetResource": "health",
+          "flatValue": 6,
+          "tags": [
+            "recovery"
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_mend.1",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "ADD",
+          "flatValue": 3,
+          "tags": [
+            "defense",
+            "block"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_momentum": {
+    "cardId": "w1_momentum",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "scaling"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_momentum",
+      "artKey": "placeholder.w1_momentum",
+      "displayName": "Gather Momentum",
+      "description": "One-time 30% increased damage investment."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_momentum.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_strength",
+          "statusStacks": 1,
+          "statusDuration": -1,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_catalyst": {
+    "cardId": "w1_catalyst",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "dot"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_catalyst",
+      "artKey": "placeholder.w1_catalyst",
+      "displayName": "Volatile Catalyst",
+      "description": "Captured residual potency scales at application, not again on release."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_catalyst.0",
+          "type": "APPLY_STATUS",
+          "target": "SELF",
+          "statusId": "w1_dot_mastery",
+          "statusStacks": 1,
+          "statusDuration": -1,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  },
+  "w1_venom_flurry": {
+    "cardId": "w1_venom_flurry",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "poison",
+      "multihit"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_venom_flurry",
+      "artKey": "placeholder.w1_venom_flurry",
+      "displayName": "Venom Flurry",
+      "description": "Multiple hits plus one status application, not one free payload per hit."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_venom_flurry.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 3,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 14,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_venom_flurry.1",
+          "type": "APPLY_STATUS",
+          "target": "TARGET",
+          "statusId": "w1_poison",
+          "statusStacks": 1,
+          "statusDuration": 3,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 3
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_inferno": {
+    "cardId": "w1_inferno",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "fire",
+      "area"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_inferno",
+      "artKey": "placeholder.w1_inferno",
+      "displayName": "Spreading Embers",
+      "description": "Delayed coverage for multi-actor encounters."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_inferno.0",
+          "type": "APPLY_STATUS",
+          "target": "ALL_ENEMIES",
+          "statusId": "w1_burn",
+          "statusStacks": 1,
+          "statusDuration": 3,
+          "targetLoss": {
+            "policy": "Skip"
+          },
+          "tags": [
+            "status",
+            "residual"
+          ],
+          "payloadBindings": [
+            {
+              "parameterId": "potency",
+              "flatValue": 4
+            }
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "ALL_ENEMIES",
+        "minimumTargets": 0,
+        "maximumTargets": 0
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_detonate": {
+    "cardId": "w1_detonate",
+    "rarity": "Rare",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 55
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "condensation"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_detonate",
+      "artKey": "placeholder.w1_detonate",
+      "displayName": "Detonating Cut",
+      "description": "Cash-out before attacking; avoids a duplicate tick."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_detonate.0",
+          "type": "CONDENSE_STACKS",
+          "target": "TARGET",
+          "condensationRecipeId": "w1_release_dot"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_detonate.1",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 12,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_riposte": {
+    "cardId": "w1_riposte",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "tank"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_riposte",
+      "artKey": "placeholder.w1_riposte",
+      "displayName": "Guard Conversion",
+      "description": "Consumes own Block after converting 75% into an attack."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_riposte.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "formulaValue": "source.resources.block.current * 0.75",
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_riposte.1",
+          "type": "MODIFY_RESOURCE",
+          "target": "SELF",
+          "targetResource": "block",
+          "operation": "SET",
+          "flatValue": 0,
+          "tags": [
+            "conversion"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_pierce": {
+    "cardId": "w1_pierce",
+    "rarity": "Uncommon",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 38
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "piercing"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_pierce",
+      "artKey": "placeholder.w1_pierce",
+      "displayName": "Piercing Ray",
+      "description": "Trade base damage for ignoring Block."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_pierce.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "piercing"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 7,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_rehearse": {
+    "cardId": "w1_rehearse",
+    "rarity": "Rare",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 55
+      }
+    ],
+    "tags": [
+      "world_one",
+      "attack",
+      "critical",
+      "draw"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_rehearse",
+      "artKey": "placeholder.w1_rehearse",
+      "displayName": "Rehearsed Strike",
+      "description": "Critical/draw sidegrade unlocked after reaching world-one completion."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_rehearse.0",
+          "type": "DAMAGE",
+          "target": "TARGET",
+          "targetResource": "health",
+          "repeat": 1,
+          "tags": [
+            "damage",
+            "attack",
+            "physical"
+          ],
+          "randomInputs": [
+            {
+              "inputId": "critical",
+              "scope": "Impact",
+              "probability": {
+                "formulaValue": "captures.chance + 0",
+                "channel": "critical_probability",
+                "pipelineId": "ascendant_critical_probability",
+                "unitId": "probability",
+                "captures": {
+                  "chance": {
+                    "parameter": "Amount",
+                    "flatValue": 0,
+                    "channel": "critical_chance",
+                    "pipelineId": "ascendant_critical_chance",
+                    "unitId": "percent",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  },
+                  "bonus": {
+                    "parameter": "Amount",
+                    "flatValue": -1,
+                    "channel": "critical_bonus",
+                    "pipelineId": "ascendant_critical_bonus",
+                    "unitId": "factor",
+                    "conversion": {
+                      "sign": "NonNegative"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "parameters": [
+            {
+              "parameter": "Amount",
+              "flatValue": 6,
+              "unitId": "points",
+              "channel": "effect_amount",
+              "pipelineId": "w1_critical_amount",
+              "stageIds": [
+                "w1_impact",
+                "w1_target"
+              ],
+              "distribution": {
+                "sourceStageIds": [
+                  "w1_origin"
+                ],
+                "allocation": {
+                  "mode": "Quantized",
+                  "quantum": 1
+                }
+              }
+            }
+          ],
+          "targetLoss": {
+            "policy": "Retarget",
+            "retarget": "LOWEST_RESOURCE_ENEMY"
+          },
+          "selectionResourceId": "health"
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "secondary1",
+        "order": 30,
+        "effect": {
+          "effectId": "w1_rehearse.1",
+          "type": "CARD_ZONE_FLOW",
+          "target": "SELF",
+          "cardZoneFlowId": "effect.draw",
+          "cardCount": 1
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "TARGET",
+        "minimumTargets": 1,
+        "maximumTargets": 1
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-discard"
+      }
+    ]
+  },
+  "w1_renewal": {
+    "cardId": "w1_renewal",
+    "rarity": "Rare",
+    "basePrices": [
+      {
+        "resourceId": "gold",
+        "amount": 55
+      }
+    ],
+    "tags": [
+      "world_one",
+      "skill",
+      "recovery"
+    ],
+    "metadata": {
+      "nameKey": "card.w1_renewal",
+      "artKey": "placeholder.w1_renewal",
+      "displayName": "Lasting Renewal",
+      "description": "A second limited recovery option; unlock, not permanent stats."
+    },
+    "transformationSlots": [
+      {
+        "slotId": "affinity",
+        "capacity": 1,
+        "allowedCategories": [
+          "Affinity"
+        ]
+      },
+      {
+        "slotId": "behavior",
+        "capacity": 2,
+        "allowedCategories": [
+          "Behavior"
+        ]
+      }
+    ],
+    "components": [
+      {
+        "type": "cost",
+        "componentId": "cost",
+        "order": 10,
+        "costs": {
+          "costs": [
+            {
+              "resourceId": "energy",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "type": "effect",
+        "componentId": "main",
+        "order": 20,
+        "effect": {
+          "effectId": "w1_renewal.0",
+          "type": "HEAL",
+          "target": "SELF",
+          "targetResource": "health",
+          "flatValue": 9,
+          "tags": [
+            "recovery"
+          ]
+        }
+      },
+      {
+        "type": "targeting",
+        "componentId": "targeting",
+        "order": 80,
+        "target": "SELF",
+        "minimumTargets": 0,
+        "maximumTargets": 0,
+        "allowSelf": true
+      },
+      {
+        "type": "disposition",
+        "componentId": "disposition",
+        "order": 90,
+        "cardZoneResolutionFlowId": "card.played.to-exhaust"
+      }
+    ]
+  }
+}
+

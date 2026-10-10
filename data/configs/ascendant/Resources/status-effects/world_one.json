@@ -1,0 +1,323 @@
+{
+  "w1_burn": {
+    "statusId": "w1_burn",
+    "displayName": "Scorch",
+    "description": "Each stack keeps its captured potency. Ticks at the affected actor's end of activation; release consumes all stacks.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_dot",
+          "pipelineId": "w1_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_dot"
+      ]
+    },
+    "tags": [
+      "residual",
+      "fire"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_burn.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetResource": "health",
+            "tags": [
+              "damage",
+              "residual"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "w1_dot",
+                "pipelineId": "w1_dot",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "w1_poison": {
+    "statusId": "w1_poison",
+    "displayName": "Corrosion",
+    "description": "Each stack keeps its captured potency. Ticks at the affected actor's end of activation; release consumes all stacks.",
+    "defaultDuration": 3,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_dot",
+          "pipelineId": "w1_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_dot"
+      ]
+    },
+    "tags": [
+      "residual",
+      "poison"
+    ],
+    "triggers": [
+      {
+        "triggerId": "w1_poison.tick",
+        "boundary": "EndActivation",
+        "effects": [
+          {
+            "type": "DAMAGE",
+            "target": "SELF",
+            "targetResource": "health",
+            "tags": [
+              "damage",
+              "residual"
+            ],
+            "targetLoss": {
+              "policy": "Skip"
+            },
+            "parameters": [
+              {
+                "parameter": "Amount",
+                "inputQuantityId": "payload.potency",
+                "unitId": "points",
+                "channel": "w1_dot",
+                "pipelineId": "w1_dot",
+                "stageIds": [
+                  "w1_target"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "w1_reserve": {
+    "statusId": "w1_reserve",
+    "displayName": "Guard reserve",
+    "description": "Stores defense potency until released.",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 99,
+    "payloadParameters": [
+      {
+        "parameterId": "potency",
+        "evaluation": "Snapshot",
+        "numeric": {
+          "parameter": "Amount",
+          "flatValue": 0,
+          "unitId": "points",
+          "channel": "w1_dot",
+          "pipelineId": "w1_dot",
+          "stageIds": [
+            "w1_origin"
+          ]
+        }
+      }
+    ],
+    "consumption": {
+      "allowedRecipeIds": [
+        "w1_release_guard"
+      ]
+    },
+    "tags": [
+      "reserve"
+    ]
+  },
+  "w1_focus": {
+    "statusId": "w1_focus",
+    "displayName": "Focus",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_focus"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_focus.bonus",
+        "scope": "Actor",
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 80,
+        "requiredTags": []
+      }
+    ]
+  },
+  "w1_precision": {
+    "statusId": "w1_precision",
+    "displayName": "Precision",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_precision"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_precision.bonus",
+        "scope": "Actor",
+        "channel": "critical_chance",
+        "bucket": "chance",
+        "value": 40,
+        "requiredTags": []
+      }
+    ]
+  },
+  "w1_exposed": {
+    "statusId": "w1_exposed",
+    "displayName": "Exposed",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_exposed"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_exposed.bonus",
+        "scope": "Target",
+        "channel": "effect_amount",
+        "bucket": "vulnerability",
+        "value": 1.25,
+        "requiredTags": [
+          "damage"
+        ]
+      }
+    ]
+  },
+  "w1_weakened": {
+    "statusId": "w1_weakened",
+    "displayName": "Weakened",
+    "defaultDuration": 2,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_weakened"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_weakened.bonus",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "more",
+        "value": 0.75,
+        "requiredTags": [
+          "damage"
+        ]
+      }
+    ]
+  },
+  "w1_strength": {
+    "statusId": "w1_strength",
+    "displayName": "Momentum",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_strength"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_strength.bonus",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.3,
+        "requiredTags": [
+          "damage"
+        ]
+      }
+    ]
+  },
+  "w1_dot_mastery": {
+    "statusId": "w1_dot_mastery",
+    "displayName": "Catalyst",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_dot_mastery"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_dot_mastery.bonus",
+        "scope": "Actor",
+        "channel": "w1_dot",
+        "bucket": "increased",
+        "value": 0.5,
+        "requiredTags": [
+          "residual"
+        ]
+      }
+    ]
+  },
+  "w1_guard_mastery": {
+    "statusId": "w1_guard_mastery",
+    "displayName": "Fortification",
+    "defaultDuration": -1,
+    "durationTickBoundary": "EndActivation",
+    "maxStacks": 1,
+    "tags": [
+      "world_one",
+      "w1_guard_mastery"
+    ],
+    "influences": [
+      {
+        "influenceId": "w1_guard_mastery.bonus",
+        "scope": "Actor",
+        "channel": "effect_amount",
+        "bucket": "increased",
+        "value": 0.35,
+        "requiredTags": [
+          "defense",
+          "block"
+        ]
+      }
+    ]
+  }
+}
+
