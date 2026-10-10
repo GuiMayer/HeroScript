@@ -10,7 +10,7 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 4. Probabilidades calculadas e fatos de sorteio: concluída.
 5. Críticos por níveis e previews: concluída.
 6. Catálogo de desbloqueios e contribuições: concluída.
-7. Elegibilidade congelada e concessões: pendente.
+7. Elegibilidade congelada e concessões: concluída.
 8. Contratos REST e apresentação: pendente.
 9. Hotreload, restart, replay e branches: pendente.
 10. Certificação integrada e desempenho: pendente.
@@ -57,5 +57,13 @@ Guia: [plano de implementação](ENGINE_WORLD_1_FOUNDATIONS_IMPLEMENTATION_PLAN.
 - Gate final da etapa 6: 1.623 testes Core e 196 testes API aprovados, sem skips; jornada REST pesada aprovada separadamente (197 testes API no total). Build API sem erros/avisos, sintaxe do launcher validada e `git diff --check` aprovado.
 - Jornada REST isolada da etapa 6: dez runtimes/stores, 55 comandos por tentativa, receipts/commits/restart/replay equivalentes; hash final `9fe87a1de365e2af45e21f98cba4c766ca3be354099cfbbd47a95456bc37e9d1`. Condensação e salto causal executados. A primeira execução concorrente excedeu o limite de sessão de 5 minutos; a repetição isolada passou em 4m55s, com orçamento de sessão de 10 minutos, sem reduzir as assertions.
 - Medição local isolada (820 comandos/consultas): p95 287,10 ms, p99 454,99 ms, máximo 600,24 ms; comandos finais p95 436,26 ms, avaliações p95 220,33 ms. Não certifica reconstrução fria com histórico grande; essa verificação permanece na etapa 10.
-- Próxima etapa: elegibilidade congelada e validação de todos os caminhos de concessão (7); ainda não implementada. Documento de contrato: [progresso por setting](../content/profile-progress-policies.md).
+- Etapa 7: serviço de criação captura elegibilidade por jogador/setting/política antes da inicialização. Fingerprint efetivo separado da revisão histórica; grants antigos autorizam apenas os alvos de suas provas. Modos Profile/Fixed/Unrestricted e pools Reject/AllowEmpty, sem fallback arbitrário.
+- Recompensas, lojas, rerolls, transformações, preparações, relíquias e fluxos de zonas (incluindo efeitos/ferramentas/fronteiras) consomem a mesma captura. Barreiras antes de criar e antes de persistir, incluindo candidatos intermediários, impedem criar e consumir uma opção bloqueada no mesmo fluxo. Branches/simulações herdam elegibilidade, não a receipt raiz.
+- POST de criação recebe commandId opcional: retries devolvem a criação original sem recapturar perfil ou retroceder o save. Seed sem chave usa identidade por inputs; sem seed nem chave cada POST é outra tentativa. Receipt no commit inicial e lease operacional por chave serializam hosts; nenhum segundo save autoritativo.
+- Engine version 25, commit schema 4 e meta schema 1; launcher exige frozen-run-eligibility. Read model expõe eligibility/creationReceipt e rejeita inputs de elegibilidade forjados. OpenAPI, quickstart e exemplo HTTP corrigidos. Saves reais não foram usados, reiniciados ou migrados.
+- Gate Core da etapa 7: 1.640 testes aprovados, sem skips. Novos casos cobrem escopo, provas históricas, catálogo fixo, cheats, ordenação/RNG, pool vazio, todas as aquisições, tentativa de substituir captura, criação concorrente/restart, branches/simulações e identidade de retries.
+- Gate REST final da etapa 7: 201 testes API aprovados e jornada pesada isolada aprovada (202 no total), sem skips. Inclui tentativa de forjar unlocks, retry unseeded com chave, colisão de payload, comando raiz, provas dependentes reais e captura antiga preservada após desbloqueio. Cinco testes de documentação aprovados; JSON OpenAPI, sintaxe do launcher e `git diff --check` válidos. A UI Godot não foi alterada nesta etapa, além do contrato de compatibilidade do launcher.
+- Jornada REST isolada da etapa 7: dez runtimes/stores, 55 comandos por tentativa; receipts/commits/restart/replay equivalentes e condensação/salto causal executados. Hash final `e730a07e8faade3830bdd5c99661bf3879586ebfbfe41b5619e77b6cb8df3cbb`. Passou em 4m20s, com orçamento de sessão de 10 minutos.
+- Medição local in-process (820 comandos/consultas): p95 265,73 ms, p99 418,09 ms, máximo 558,76 ms. Comandos finais p95 398,77 ms; avaliações p95 180,27 ms. Não certifica reconstrução fria/histórico grande, ainda na etapa 10.
+- Próxima etapa: REST, conteúdo, projeções e integração mínima Godot (8); apresentação completa de disponibilidade ainda pendente. Contrato implementado: [elegibilidade por run](../content/run-eligibility.md).
 - A execução será registrada aqui com testes e limites reais, sem marcar etapas incompletas como concluídas.

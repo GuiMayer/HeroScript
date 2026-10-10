@@ -7,6 +7,27 @@ namespace API.Tests;
 public sealed class ContractDocumentationTests
 {
     [Fact]
+    public void CreationContract_DeclaresRetryInputsButNotClientEligibility()
+    {
+        using var document = LoadJson("openapi", "heroscript-v1.json");
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+        var request = schemas.GetProperty("RunStartRequest");
+        Assert.Equal(new[] { "settingId", "contentRevision", "modeId" },
+            request.GetProperty("required").EnumerateArray().Select(item => item.GetString()));
+        Assert.False(request.GetProperty("additionalProperties").GetBoolean());
+        var properties = request.GetProperty("properties");
+        Assert.Equal("uuid", properties.GetProperty("commandId").GetProperty("format").GetString());
+        foreach (var forbidden in new[] { "configName", "eligibility", "capturedEligibility", "unlockIds" })
+            Assert.False(properties.TryGetProperty(forbidden, out _));
+        Assert.False(properties.GetProperty("modeId").TryGetProperty("default", out _));
+        var readModel = schemas.GetProperty("RunReadModel").GetProperty("properties");
+        Assert.Equal("#/components/schemas/RunEligibilitySnapshot",
+            readModel.GetProperty("eligibility").GetProperty("allOf")[0].GetProperty("$ref").GetString());
+        Assert.Equal("#/components/schemas/RunCreationReceiptIdentity",
+            readModel.GetProperty("creationReceipt").GetProperty("allOf")[0].GetProperty("$ref").GetString());
+    }
+
+    [Fact]
     public void Profiles_RequireExplicitSettingOnEverySurface()
     {
         using var document = LoadJson("openapi", "heroscript-v1.json");
@@ -196,6 +217,7 @@ public sealed class ContractDocumentationTests
             "docs/api/content-and-platform.md",
             "docs/api/changelog.md",
             "docs/content/packages-and-settings.md",
+            "docs/content/run-eligibility.md",
             "docs/architecture/cross-cutting-systems.md",
             "docs/systems/calculations/calculation-system.md",
             "docs/systems/effects/effect-system.md",

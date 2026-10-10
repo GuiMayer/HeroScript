@@ -550,7 +550,8 @@ internal sealed class PreparationRunActivityHandler : RunActivityHandlerBase
             _ => base.ValidateCommand(run, node, commandType, payload)
         };
     }
-    public override bool IsComplete(RunState run, RunMapNodeState node) => Preparation(run, node)?.AppliedOptionIds.Count > 0;
+    public override bool IsComplete(RunState run, RunMapNodeState node) => Preparation(run, node)?.AppliedOptionIds.Count > 0 ||
+        run.Eligibility?.EmptyPools == EmptyEligiblePoolPolicy.AllowEmpty && Preparation(run, node)?.Options.Count == 0;
 
     public override IReadOnlyList<RunAvailableCommand> GetAvailableCommands(RunState run, RunMapNodeState node)
     {
@@ -566,6 +567,7 @@ internal sealed class PreparationRunActivityHandler : RunActivityHandlerBase
             return initialCommands;
         }
         var options = preparation.Options.Where(option => !option.Applied).Select(option => option.OptionId).Order().ToArray();
+        if (options.Length == 0 && IsComplete(run, node)) return [Resolve(run, node)];
         var commands = new List<RunAvailableCommand>
         {
             Command(run, node, RunCommandTypes.ApplyPreparationOption,

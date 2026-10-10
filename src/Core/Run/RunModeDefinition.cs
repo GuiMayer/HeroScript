@@ -33,6 +33,8 @@ public sealed record GameModeDefinition
     public string? ProfileProgressPolicyId { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ProfileProgressProvenance? ProfileProgressProvenance { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RunEligibilityRules? EligibilityRules { get; init; }
     public string? CardZoneSystemId { get; init; }
     public ImmutableSortedDictionary<string, string> DefaultCalculationPipelines { get; init; } =
         ImmutableSortedDictionary<string, string>.Empty.WithComparers(StringComparer.Ordinal);

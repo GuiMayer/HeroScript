@@ -1,6 +1,6 @@
 # Progresso e desbloqueios por setting
 
-Disponível na engine `24`, com `RunCommit` schema `4` e capability
+Introduzido na engine `24`, disponível na engine atual `25`, com `RunCommit` schema `4` e capability
 `configurable-profile-progress`. É a etapa 6 dos fundamentos do mundo 1.
 
 ## Autoridade e limites
@@ -15,9 +15,9 @@ relíquia. Não modifica atributos permanentes, recursos ou dano do personagem.
 O histórico ainda apresenta os badges `first-run` e `first-completion`; eles
 não são regras de disponibilidade de conteúdo.
 
-**A filtragem das ofertas/deck inicial ainda pertence à etapa 7.** Esta etapa
-registra o progresso e suas provas; o exemplo Ascendant não restringe ofertas
-antes da implementação do snapshot de elegibilidade. A interface detalhada
+A [elegibilidade por run](run-eligibility.md), implementada na etapa 7, captura
+essas provas antes da inicialização e restringe ofertas/deck inicial e demais
+aquisições. O exemplo Ascendant já consome essa captura. A interface detalhada
 de disponibilidade pertence à etapa 8.
 
 ## JSON
@@ -146,6 +146,7 @@ reinterpretados pela política nova. Provas de progresso com schema meta `1`
 continuam legíveis independentemente da disponibilidade do runtime histórico:
 o leitor extrai apenas o envelope meta e valida sua cadeia, sem executar ou
 migrar os estados de gameplay antigos. Histórico anterior sem provas não vira
-uma concessão retroativa. Criação repetida com inputs determinísticos
-iguais ainda retorna `Run already exists`; a receipt idempotente de criação
-com elegibilidade capturada pertence à etapa 7.
+uma concessão retroativa. Criação repetida com seed/inputs idênticos ou com o
+mesmo `commandId` recupera a receipt original, inclusive sua elegibilidade,
+sem consultar novamente o perfil. Para outra tentativa com a mesma seed,
+use novo `commandId`. Sem seed nem chave de retry, cada POST é uma nova tentativa.

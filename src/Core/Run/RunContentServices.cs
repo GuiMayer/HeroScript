@@ -57,6 +57,8 @@ internal sealed class RunOfferGenerator(
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(lockedCardIds);
+        if (lockedCardIds.Any(id => !RunEligibility.Allows(state, Core.Meta.UnlockTargetKind.Card, id)))
+            return Result<CardSelectionOfferGeneration>.Failure("A locked offer is outside run eligibility");
 
         var lockedOptions = lockedCardIds
             .OrderBy(cardId => cardId, StringComparer.Ordinal)
@@ -85,7 +87,7 @@ internal sealed class RunOfferGenerator(
                 poolResult.Value,
                 System.Math.Max(0, desiredCount),
                 state.Determinism,
-                lockedCardIds);
+                lockedCardIds, state.Eligibility);
             if (offer.IsFailure)
                 return Result<CardSelectionOfferGeneration>.Failure(offer.Error);
             lockedOptions.AddRange(offer.Value.Cards.Select(ToOption));
@@ -97,15 +99,18 @@ internal sealed class RunOfferGenerator(
 
         var candidates = definition.CardPool
             .Where(cardId => !string.IsNullOrWhiteSpace(cardId))
+            .Where(cardId => RunEligibility.Allows(state, Core.Meta.UnlockTargetKind.Card, cardId))
             .Where(cardId => !lockedCardIds.Contains(cardId))
             .Select(cardId => CreateCardSelectionOption(state, cardId) ?? new CardSelectionOptionState { CardId = cardId })
             .OrderBy(option => option.CardId, StringComparer.Ordinal)
             .ToList();
+        if (desiredCount > 0 && candidates.Count == 0 && lockedOptions.Count == 0 && state.Eligibility?.EmptyPools == EmptyEligiblePoolPolicy.Reject)
+            return Result<CardSelectionOfferGeneration>.Failure("Card selection has no eligible candidates");
         lockedOptions.AddRange(candidates.Take(System.Math.Max(0, desiredCount)));
         return Result<CardSelectionOfferGeneration>.Success(new(
             lockedOptions,
             state.Determinism,
-            CanonicalJson.ComputeHash(lockedOptions.Select(option => option.CardId).ToArray())));
+            CanonicalJson.ComputeHash(new { cards = lockedOptions.Select(option => option.CardId).ToArray(), eligibility = state.Eligibility?.EffectiveFingerprint })));
     }
 
     public Result<ShopOfferGeneration> GenerateShop(RunState state, ShopDefinition definition)
@@ -132,7 +137,7 @@ internal sealed class RunOfferGenerator(
             var offer = CardOfferResolver.Resolve(
                 poolResult.Value,
                 System.Math.Max(1, definition.OfferCount),
-                state.Determinism);
+                state.Determinism, eligibility: state.Eligibility);
             if (offer.IsFailure)
                 return Result<ShopOfferGeneration>.Failure(offer.Error);
             return Result<ShopOfferGeneration>.Success(new(
@@ -145,11 +150,14 @@ internal sealed class RunOfferGenerator(
 
         var items = definition.Items
             .Select((item, index) => ToShopItem(state, item, definition.Pricing, index))
+            .Where(item => item.CardId == null || RunEligibility.Allows(state, Core.Meta.UnlockTargetKind.Card, item.CardId))
             .ToList();
+        if (items.Count == 0 && state.Eligibility?.EmptyPools == EmptyEligiblePoolPolicy.Reject)
+            return Result<ShopOfferGeneration>.Failure("Shop has no eligible items");
         return Result<ShopOfferGeneration>.Success(new(
             items,
             state.Determinism,
-            CanonicalJson.ComputeHash(items.Select(item => item.ItemId).ToArray())));
+            CanonicalJson.ComputeHash(new { items = items.Select(item => item.ItemId).ToArray(), eligibility = state.Eligibility?.EffectiveFingerprint })));
     }
 
     private CardSelectionOptionState? CreateCardSelectionOption(RunState state, string cardId)

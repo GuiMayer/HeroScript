@@ -81,6 +81,8 @@ public static class RelicTransitions
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(definition);
+        var eligibility = RunEligibility.Require(state, Core.Meta.UnlockTargetKind.Relic, definition.RelicId);
+        if (eligibility.IsFailure) return Result<RelicTransition>.Failure(eligibility.Error);
         if (string.IsNullOrWhiteSpace(definition.RelicId))
             return Result<RelicTransition>.Failure("Relic definition id is required");
         if (definition.StackLimit < 1)

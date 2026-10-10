@@ -55,6 +55,20 @@ public sealed class ProfileProgressFoundationTests(TestWebApplicationFactory fac
         Assert.True(replay.IsSuccessStatusCode, await replay.Content.ReadAsStringAsync());
         Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("isValid").GetBoolean());
         Assert.Equal(profile.Revision, (await progress.ReadAsync(player, "ascendant")).Revision);
+        Assert.Empty(run.GetProperty("eligibility").GetProperty("availableTargets").EnumerateArray());
+        var freshId = await game.StartRunAsync("ascendant", "ascendant_showcase_run", player, 152, "ascendant_showcase");
+        var fresh = await game.GetRunStateAsync(freshId);
+        Assert.Equal(2, fresh.GetProperty("eligibility").GetProperty("availableTargets").GetArrayLength());
+        Assert.Empty((await game.GetRunStateAsync(runId)).GetProperty("eligibility").GetProperty("availableTargets").EnumerateArray());
+        using var retryOriginal = await client.PostAsJsonAsync("/api/v1/runs", new {
+            settingId = "ascendant", runDefinitionId = "ascendant_showcase_run", playerEntityId = player,
+            seed = 150UL, modeId = "ascendant_showcase", contentRevision = run.GetProperty("contentRevision").GetString() });
+        Assert.True(retryOriginal.IsSuccessStatusCode, await retryOriginal.Content.ReadAsStringAsync());
+        var original = await retryOriginal.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(runId, original.GetProperty("runId").GetGuid());
+        Assert.Equal(1, original.GetProperty("sequence").GetInt32());
+        Assert.Empty(original.GetProperty("eligibility").GetProperty("availableTargets").EnumerateArray());
+        Assert.Equal(run.GetProperty("sequence").GetInt32(), (await game.GetRunStateAsync(runId)).GetProperty("sequence").GetInt32());
     }
 
     private static async Task AvailableCommand(HttpClient client, Guid runId, string type)
@@ -88,9 +102,8 @@ public sealed class ProfileProgressFoundationTests(TestWebApplicationFactory fac
         Assert.Equal(1, before.GetProperty("progressSequence").GetInt64());
         Assert.Empty(before.GetProperty("unlockProofs").EnumerateArray());
         using var retry = await client.PostAsJsonAsync("/api/v1/runs", payload);
-        // Creation still rejects repeated deterministic inputs. Creation receipts/eligibility are stage 7.
-        Assert.Equal(HttpStatusCode.BadRequest, retry.StatusCode);
-        Assert.Contains("Run already exists", await retry.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+        Assert.Equal(state.GetRawText(), (await retry.Content.ReadFromJsonAsync<JsonElement>()).GetRawText());
         using var replay = await client.PostAsync($"/api/v1/runs/{runId}/verify", null);
         Assert.True(replay.IsSuccessStatusCode, await replay.Content.ReadAsStringAsync());
         Assert.True((await replay.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("isValid").GetBoolean());

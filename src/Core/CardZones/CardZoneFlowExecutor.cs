@@ -18,6 +18,7 @@ public sealed record CardZoneFlowContext
     public string RunOwnerId { get; init; } = string.Empty;
     public string? ContentRevision { get; init; }
     public string? ConfigName { get; init; }
+    public RunEligibilitySnapshot? Eligibility { get; init; }
     public string? ActiveActorId { get; init; }
     public string? SourceActorId { get; init; }
     public string? TargetActorId { get; init; }
@@ -293,6 +294,8 @@ public sealed class CardZoneFlowExecutor : ICardZoneFlowExecutor
                 return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} requires exactly {count.Value} requested card definitions");
             if (definitions.Any(string.IsNullOrWhiteSpace))
                 return Fail($"Card-zone flow {flow.FlowId}/{step.StepId} received an empty card definition id");
+            if (definitions.Any(id => context.Eligibility?.Allows(Core.Meta.UnlockTargetKind.Card, id) == false))
+                return Fail("Card-zone flow attempted to create content outside the run eligibility");
             var created = CardZoneTransitions.CreateInstances(state, target!,
                 definitions, step.Lifetime,
                 step.Insertion, createTargetDefinition.Value.Capacity, createTargetDefinition.Value.Ordering, deterministicContext);

@@ -30,7 +30,8 @@ public static class CardZoneRunInitializer
         string contentRevision,
         string configName,
         DeterministicContext context,
-        ICardZoneFlowExecutor flows)
+        ICardZoneFlowExecutor flows,
+        RunEligibilitySnapshot? eligibility = null)
     {
         ArgumentNullException.ThrowIfNull(system);
         ArgumentNullException.ThrowIfNull(definition);
@@ -87,6 +88,7 @@ public static class CardZoneRunInitializer
                 ActiveActorId = playerActorId,
                 ContentRevision = contentRevision,
                 ConfigName = configName,
+                Eligibility = eligibility,
                 Variables = new Dictionary<string, double>
                 {
                     ["initialPlayableCardCount"] = initialPlayableCardCount

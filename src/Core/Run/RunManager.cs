@@ -40,6 +40,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
     private readonly IGameModeResolver? _gameModeResolver;
     private readonly RunContentDefinitionResolver? _contentDefinitions;
     private readonly RunOfferGenerator _offerGenerator;
+    private readonly RunCreationService _creation;
     private readonly RunActivityRegistry _activities;
     private readonly RunProgressionService _progression;
     private readonly IRunActivityEffectExecutor? _activityEffects;
@@ -77,6 +78,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         _scriptModifierCatalog = scriptModifierCatalog;
         _eventBus = eventBus;
         _repository = repository;
+        _creation = new(repository);
         _history = history ?? repository;
         _sessionGates = sessionGates ?? new RunSessionGateProvider();
         _contentManifestProvider = contentManifestProvider;
@@ -103,6 +105,30 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
     public Result<RunState> StartRun(RunStartOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        try
+        {
+            if (options.CreationCommandId == Guid.Empty)
+                return Result<RunState>.Failure("Creation command id cannot be empty");
+            if (_repository != null && (options.CapturedEligibility != null || options.CapturedCreationIdentity != null))
+                return Result<RunState>.Failure("Live creation cannot accept captured creation inputs");
+            var identity = options.CapturedCreationIdentity ?? RunCreationService.Identify(options);
+            using var gate = _sessionGates.Enter(new Guid(Convert.FromHexString(identity.Key)[..16]));
+            using var lease = _creation.Acquire(identity);
+            var existing = _creation.Find(identity);
+            if (existing.IsFailure) return Result<RunState>.Failure(existing.Error);
+            if (existing.Value != null) return Result<RunState>.Success(existing.Value);
+            var started = StartRunCore(options, identity);
+            if (started.IsSuccess) _creation.Remember(started.Value);
+            return started;
+        }
+        catch (Exception exception)
+        {
+            return Result<RunState>.Failure($"Run creation failed: {exception.Message}", exception);
+        }
+    }
+
+    private Result<RunState> StartRunCore(RunStartOptions options, RunCreationReceiptIdentity creationIdentity)
+    {
 
         if (string.IsNullOrWhiteSpace(options.ConfigName))
             return Result<RunState>.Failure("Config name is required");
@@ -169,11 +195,15 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
         var manifest = resolvedContent.Manifest;
         var contentRevision = resolvedContent.Revision;
+        var eligibility = _creation.Capture(options, resolvedMode, contentRevision!);
+        if (eligibility.IsFailure) return Result<RunState>.Failure(eligibility.Error);
         var seed = options.Seed ?? CreateSeed();
         var context = DeterministicContext.Create(seed, contentRevision!);
         var runId = context.AllocateId(
             $"run:{options.ConfigName}:{effectiveRunDefinitionId}:{options.PlayerEntityId}:" +
-            $"{options.ModeId ?? "default"}:{options.ChallengeId ?? "none"}:{options.AttemptKey ?? "default"}");
+            $"{options.ModeId ?? "default"}:{options.ChallengeId ?? "none"}:{options.AttemptKey ?? "default"}" +
+            (eligibility.Value == null ? "" : $":eligibility:{eligibility.Value.EffectiveFingerprint}") +
+            (options.CreationCommandId == null ? "" : $":creation:{options.CreationCommandId:D}"));
         context = runId.Context;
 
         var startingCards = options.StartingCards ?? definition.StartingCards
@@ -181,6 +211,9 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             .ToArray();
         if (startingCards.Count == 0)
             return Result<RunState>.Failure("Starting cards cannot be empty");
+        if (eligibility.Value is { } captured && startingCards.Any(card => !captured.Allows(Core.Meta.UnlockTargetKind.Card, card.DefinitionId) ||
+                card.Upgrades.Any(upgrade => !captured.Allows(Core.Meta.UnlockTargetKind.CardUpgrade, upgrade.UpgradeId))))
+            return Result<RunState>.Failure("Starting deck contains content outside the run eligibility");
         var initialPlayableCardCount = options.InitialPlayableCardCount ?? definition.InitialPlayableCardCount;
         if (initialPlayableCardCount < 0)
             return Result<RunState>.Failure("Initial playable card count cannot be negative");
@@ -192,7 +225,7 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             return Result<RunState>.Failure(compiled.Error);
         var initialized = CardZoneRunInitializer.Initialize(
             compiled.Value, definition, startingCards, "$run", options.PlayerEntityId,
-            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows);
+            [], initialPlayableCardCount, contentRevision!, options.ConfigName, context, _cardZoneFlows, eligibility.Value);
         if (initialized.IsFailure)
             return Result<RunState>.Failure(initialized.Error);
         var initialDeck = new DeckState { Topology = initialized.Value.State };
@@ -211,6 +244,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
             Scenario = options.Scenario,
             ScenarioHash = options.ScenarioHash,
             AttemptKey = options.AttemptKey,
+            Eligibility = eligibility.Value,
+            CreationReceipt = creationIdentity,
             ResourceState = null!,
             CurrentNodeId = definition.MapNodes.FirstOrDefault()?.NodeId,
             Map = mapResult.Value,
@@ -280,8 +315,12 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                     StartingCards = startingCards,
                     InitialPlayableCardCount = initialPlayableCardCount,
                     Scenario = options.Scenario,
-                    SettingId = options.SettingId ?? options.ConfigName
-                }, activityEffects: initialActivityEffects);
+                    SettingId = options.SettingId ?? options.ConfigName,
+                    CapturedEligibility = eligibility.Value,
+                    CapturedCreationIdentity = creationIdentity
+                }, commandIdentity: options.CreationCommandId is { } creationCommandId
+                    ? new RunCommandIdentity(creationCommandId, RunCommandTypes.StartRun, 0, 0, string.Empty) : null,
+                activityEffects: initialActivityEffects);
             if (persisted.IsFailure)
                 return Result<RunState>.Failure(persisted.Error);
             state = persisted.Value;
@@ -1633,6 +1672,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
 
     private Result ValidateLoadedRunCompatibility(RunState state)
     {
+        var eligibility = RunEligibility.ValidateSnapshot(state);
+        if (eligibility.IsFailure) return eligibility;
         if (!string.Equals(
                 state.Determinism.EngineVersion,
                 DeterministicContext.CurrentEngineVersion,
@@ -1949,6 +1990,8 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
                 state,
                 definitionResult.Value,
                 state.CurrentNodeId ?? string.Empty);
+            if (state.Eligibility?.EmptyPools == EmptyEligiblePoolPolicy.Reject && transition.Value.Options.Count == 0)
+                return Result<PreparationState>.Failure("Preparation has no eligible options");
             return CommitTransition(
                 transition,
                 RunCommandTypes.CreatePreparation,
@@ -2334,6 +2377,11 @@ public sealed class RunManager : IRunManager, IRunEncounterRuntime, IContentRevi
         {
             if (candidates.Count == 0)
                 return Result<RunState>.Failure("A run commit requires at least one transition frame");
+            foreach (var candidate in candidates)
+            {
+                var eligible = RunEligibility.ValidateCandidate(previous, candidate.State);
+                if (eligible.IsFailure) return Result<RunState>.Failure(eligible.Error);
+            }
             var sequence = checked(previous.Sequence + 1);
             var finalState = candidates[^1].State with { Sequence = sequence };
             var previousStateHash = CanonicalJson.ComputeHash(previous);

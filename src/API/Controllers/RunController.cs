@@ -47,7 +47,8 @@ public sealed class RunController : BaseApiController
                 request.Seed,
                 request.ContentRevision,
                 request.ModeId,
-                SettingId: request.SettingId));
+                SettingId: request.SettingId,
+                CreationCommandId: request.CommandId));
 
             return result.IsFailure ? BadRequest(new { error = result.Error }) : Ok(MapRun(result.Value));
         }
@@ -265,6 +266,8 @@ public sealed class RunController : BaseApiController
             run.SettingId,
             run.PlayerEntityId,
             run.PlayerEntity,
+            run.Eligibility,
+            run.CreationReceipt,
             run.ModeId,
             run.ResolvedMode,
             run.ChallengeId,
@@ -376,10 +379,12 @@ public sealed class RunController : BaseApiController
 
 }
 
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
 public sealed record StartRunRequest(
     string? SettingId,
     string? RunDefinitionId,
     string? PlayerEntityId,
     ulong? Seed = null,
     string? ContentRevision = null,
-    string? ModeId = null);
+    string? ModeId = null,
+    Guid? CommandId = null);

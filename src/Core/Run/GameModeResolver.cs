@@ -173,7 +173,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             }
         }
 
-        return Result<ResolvedGameMode>.Success(new ResolvedGameMode
+        return ValidateEligibility(new ResolvedGameMode
         {
             Definition = mode.Value,
             FlowRules = flow.Value,
@@ -283,7 +283,7 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
                 return Result<ResolvedGameMode>.Failure($"Enemy pool '{poolId}' has no entities");
         }
 
-        return Result<ResolvedGameMode>.Success(new ResolvedGameMode
+        return ValidateEligibility(new ResolvedGameMode
         {
             Definition = mode.Value,
             FlowRules = flow.Value,
@@ -297,6 +297,12 @@ public sealed class GameModeResolver : IGameModeResolver, IRevisionedGameModeRes
             ActorResourceLifecyclePolicy = actorResources.Value,
             ProfileProgressPolicy = profile.Value
         });
+    }
+
+    private static Result<ResolvedGameMode> ValidateEligibility(ResolvedGameMode mode)
+    {
+        var valid = RunEligibility.ValidateRules(mode);
+        return valid.IsFailure ? Result<ResolvedGameMode>.Failure(valid.Error) : Result<ResolvedGameMode>.Success(mode);
     }
 
     private void WarnReservedPolicies(CombatRulesDefinition combat)

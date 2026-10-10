@@ -356,6 +356,7 @@ public static class RunBranchTransitions
         return Result<RunState>.Success(source with
         {
             RunId = allocated.Value,
+            CreationReceipt = null,
             Lineage = lineage,
             Sequence = 1,
             ActiveEncounterId = childCombatId,

@@ -1,18 +1,27 @@
 # Quickstart: uma run determinística
 
-Defina uma seed e crie a run. Guarde o `runId`, a sequência e o step retornados.
+Consulte `GET /api/v1/content/settings` e copie `currentRevision` do setting
+desejado. Defina seed, modo e um `commandId` por tentativa, então crie a run.
+Guarde o `runId`, a sequência e o step retornados.
 
 ```http
 POST /api/v1/runs
 Content-Type: application/json
 
 {
-  "configName": "default",
+  "settingId": "default",
+  "contentRevision": "<currentRevision do setting default>",
+  "modeId": "standard",
   "runDefinitionId": "default_run",
   "playerEntityId": "player",
-  "seed": 424242
+  "seed": 424242,
+  "commandId": "978346b8-8564-4f4b-aa91-3b2b8e74482c"
 }
 ```
+
+Reenvie o mesmo request em retry. Isso recupera a criação original, incluindo
+sua elegibilidade, não o estado atual da partida. Outra tentativa exige um
+novo `commandId`. Veja [o contrato](../content/run-eligibility.md).
 
 Leia o estado e os comandos que o mapa permite. O cliente não deve decidir
 quais comandos são válidos por conta própria.
@@ -31,5 +40,5 @@ uma nova decisão ao usuário. Quando receber `422`, preserve o estado local e
 mostre a violação de regra; não tente corrigir a resposta por heurística.
 
 Ao finalizar ou auditar, consulte `/journal` e execute `POST /verify`. Uma run
-é reproduzível apenas quando seed, conteúdo fixado, journal e hash final
-concordam.
+é reproduzível quando os inputs capturados (incluindo elegibilidade), seed,
+conteúdo fixado, journal e hash final concordam.

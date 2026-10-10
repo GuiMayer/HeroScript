@@ -58,23 +58,23 @@ public sealed class CombatSandboxService : ICombatSandboxService
 
         var started = _runs.StartRun(compiled.Value.RunStart);
         if (started.IsFailure)
+            return Result<SandboxCombatLaunch>.Failure(started.Error);
+        var live = _runs.GetRun(started.Value.RunId);
+        if (live.IsFailure) return Result<SandboxCombatLaunch>.Failure(live.Error);
+        var existingEncounter = live.Value.GetActiveEncounter();
+        if (existingEncounter != null)
         {
-            var duplicate = FindExisting(compiled.Value.ScenarioHash, compiled.Value.Scenario.AttemptKey);
-            if (duplicate == null)
-                return Result<SandboxCombatLaunch>.Failure(started.Error);
-            var encounter = duplicate.GetActiveEncounter();
-            if (encounter == null)
-                return Result<SandboxCombatLaunch>.Failure(
-                    "Existing scenario run is incomplete and cannot be relaunched automatically");
             return Result<SandboxCombatLaunch>.Success(new SandboxCombatLaunch
             {
-                Run = duplicate,
-                Combat = encounter.Combat,
-                Resolution = FindLatestResolution(duplicate.RunId),
+                Run = live.Value,
+                Combat = existingEncounter.Combat,
+                Resolution = FindLatestResolution(live.Value.RunId),
                 ScenarioHash = compiled.Value.ScenarioHash,
                 Duplicate = true
             });
         }
+        if (live.Value.Sequence > 1)
+            return Result<SandboxCombatLaunch>.Failure("Existing scenario run has no active encounter; use a new attempt key");
 
         var payload = JsonSerializer.SerializeToElement(new StartSandboxEncounterCommand(
             compiled.Value.Participants,
@@ -104,7 +104,8 @@ public sealed class CombatSandboxService : ICombatSandboxService
             Run = encounterResult.Value.Receipt.State,
             Combat = encounterResult.Value.CombatState,
             Resolution = encounterResult.Value.Receipt.CombatResolution,
-            ScenarioHash = compiled.Value.ScenarioHash
+            ScenarioHash = compiled.Value.ScenarioHash,
+            Duplicate = encounterResult.Value.Receipt.Duplicate
         });
     }
 
@@ -116,29 +117,6 @@ public sealed class CombatSandboxService : ICombatSandboxService
         return run.Value.Scenario == null
             ? Result<CombatScenarioDefinition>.Failure($"Run is not a sandbox scenario: {runId}")
             : Result<CombatScenarioDefinition>.Success(run.Value.Scenario);
-    }
-
-    private RunState? FindExisting(string scenarioHash, string attemptKey)
-    {
-        try
-        {
-            foreach (var runId in _repository.ListRunIdsAsync().GetAwaiter().GetResult().OrderBy(id => id))
-            {
-                var state = _repository.LoadLatestStateAsync(runId).GetAwaiter().GetResult();
-                if (state != null &&
-                    string.Equals(state.ScenarioHash, scenarioHash, StringComparison.Ordinal) &&
-                    string.Equals(state.AttemptKey, attemptKey, StringComparison.Ordinal))
-                {
-                    return state;
-                }
-            }
-        }
-        catch
-        {
-            // The original start error remains the useful failure if durable
-            // lookup is unavailable.
-        }
-        return null;
     }
 
     private CombatResolutionRecord? FindLatestResolution(Guid runId)

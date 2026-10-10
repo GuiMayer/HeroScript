@@ -29,7 +29,8 @@ public static class CardOfferResolver
         CardPoolResult pool,
         int count,
         DeterministicContext context,
-        IReadOnlySet<string>? excludedCardIds = null)
+        IReadOnlySet<string>? excludedCardIds = null,
+        RunEligibilitySnapshot? eligibility = null)
     {
         ArgumentNullException.ThrowIfNull(pool);
         ArgumentNullException.ThrowIfNull(context);
@@ -47,11 +48,14 @@ public static class CardOfferResolver
 
         var excluded = excludedCardIds ?? new HashSet<string>(StringComparer.Ordinal);
         var remaining = pool.Cards
+            .Where(card => eligibility?.Allows(Core.Meta.UnlockTargetKind.Card, card.CardId) ?? true)
             .Where(card => !excluded.Contains(card.CardId))
             .Select(card => new WeightedCard(card, ResolveWeight(pool, card)))
             .Where(candidate => candidate.Weight > 0)
             .OrderBy(candidate => candidate.Card.CardId, StringComparer.Ordinal)
             .ToList();
+        if (count > 0 && remaining.Count == 0 && eligibility?.EmptyPools == EmptyEligiblePoolPolicy.Reject)
+            return Result<CardOfferResult>.Failure($"Card pool {pool.PoolId} has no eligible candidates");
         var selected = ImmutableArray.CreateBuilder<CardContentDefinition>(
             System.Math.Min(count, remaining.Count));
         var current = context;
@@ -94,7 +98,8 @@ public static class CardOfferResolver
                 startStep = context.Step,
                 finalStep = current.Step,
                 startRandomState = context.RandomState,
-                finalRandomState = current.RandomState
+                finalRandomState = current.RandomState,
+                eligibility = eligibility?.EffectiveFingerprint
             })
         });
     }

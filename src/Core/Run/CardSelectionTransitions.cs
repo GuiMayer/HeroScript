@@ -29,7 +29,8 @@ public static class CardSelectionTransitions
             Decompose = definition.Decompose,
             FreeRerollsRemaining = definition.Reroll.FreeRerolls,
             RerollCosts = CalculateRerollCosts(definition.Reroll, 0),
-            Options = options
+            Options = options,
+            Completed = options.Count == 0 && state.Eligibility?.EmptyPools == EmptyEligiblePoolPolicy.AllowEmpty
         };
 
         var next = state with
@@ -122,7 +123,8 @@ public static class CardSelectionTransitions
             FreeRerollsRemaining = System.Math.Max(0, selection.FreeRerollsRemaining - 1),
             RerollCosts = CalculateRerollCosts(selection.Reroll, rerollsUsed),
             Options = options,
-            OfferFingerprint = offerFingerprint
+            OfferFingerprint = offerFingerprint,
+            Completed = options.Count == 0 && state.Eligibility?.EmptyPools == EmptyEligiblePoolPolicy.AllowEmpty
         };
         var next = state with
         {

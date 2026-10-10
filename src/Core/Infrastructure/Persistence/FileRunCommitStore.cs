@@ -14,7 +14,7 @@ namespace Core.Infrastructure.Persistence;
 /// unrelated runs can persist concurrently. Each append is flushed to a
 /// temporary file and atomically renamed to its immutable sequence path.
 /// </summary>
-public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStore, IRunCommitEnvelopeReader, IProfileProgressSnapshotReader, IProfileProgressCommitReader, IDisposable
+public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStore, IRunCommitEnvelopeReader, IProfileProgressSnapshotReader, IProfileProgressCommitReader, IRunCreationStorage, IDisposable
 {
     private readonly string _storePath;
     private readonly ILogger _logger;
@@ -22,6 +22,7 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
     private readonly ConcurrentDictionary<Guid, AppendCursor> _appendCursors = new();
     private readonly LruCache<string, ValidatedCommitIdentity>? _validatedBytes;
     private readonly ProfileProgressCommitCoordinator _profileProgress;
+    private readonly LruCache<Guid, string> _creationKeys = new(4096);
 
     private sealed record AppendCursor(int Sequence, string StateHash, string ByteHash);
 
@@ -57,6 +58,46 @@ public sealed class FileRunCommitStore : IRunCommitStore, IPreparedRunCommitStor
 
     public Task<ProfileProgressSnapshot> ReadAsync(string playerId, string settingId, CancellationToken ct = default) =>
         _profileProgress.ReadAsync(playerId, settingId, ct);
+
+    public async Task<IDisposable> AcquireCreationLeaseAsync(string key, CancellationToken ct = default)
+    {
+        if (key.Length != 64 || key.Any(character => !Uri.IsHexDigit(character)))
+            throw new ArgumentException("Invalid creation lease key", nameof(key));
+        var directory = Path.Combine(_storePath, "_creation-leases");
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, key + ".lease");
+        var deadline = System.Diagnostics.Stopwatch.StartNew();
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
+            catch (IOException) when (deadline.Elapsed < TimeSpan.FromSeconds(15))
+            { await Task.Delay(20, ct).ConfigureAwait(false); }
+        }
+    }
+
+    public async Task<RunState?> FindCreationStateAsync(RunCreationReceiptIdentity identity, CancellationToken ct = default)
+    {
+        foreach (var runId in await ListRunIdsAsync(ct).ConfigureAwait(false))
+        {
+            // The initial commit is immutable. Cache only its locator, never trust a cached grant/state.
+            if (!_creationKeys.TryGetValue(runId, out var key))
+            {
+                var path = GetCommitPath(runId, 1);
+                if (!File.Exists(path)) continue;
+                using var document = JsonDocument.Parse(await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false));
+                key = document.RootElement.GetProperty("RootCommand").GetProperty("Type").GetString() == RunCommandTypes.StartRun &&
+                    document.RootElement.TryGetProperty("StateAfter", out var state) && state.ValueKind == JsonValueKind.Object &&
+                    state.TryGetProperty("CreationReceipt", out var receipt) && receipt.ValueKind == JsonValueKind.Object
+                    ? receipt.GetProperty("Key").GetString() ?? string.Empty : string.Empty;
+                _creationKeys.Set(runId, key);
+            }
+            if (key != identity.Key) continue;
+            // A matching receipt with an unavailable execution version fails explicitly; do not recreate it.
+            return await LoadStateAsync(runId, 1, ct).ConfigureAwait(false);
+        }
+        return null;
+    }
 
     private async Task<RunCommitAppendResult> AppendRawPreparedAsync(
         PreparedRunCommit prepared,

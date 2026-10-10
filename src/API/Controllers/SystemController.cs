@@ -96,6 +96,7 @@ public sealed class SystemController : ControllerBase
             "calculated-random-inputs",
             "multi-tier-random-previews",
             "configurable-profile-progress",
+            "frozen-run-eligibility",
             "run-card-instances",
             "run-card-zones",
             "run-card-zone-tool-flows",

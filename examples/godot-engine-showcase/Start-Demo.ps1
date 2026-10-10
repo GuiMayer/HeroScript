@@ -28,6 +28,7 @@ function Test-CompatibleDemoEngine {
             @($capabilities.capabilities) -contains 'calculated-random-inputs' -and
             @($capabilities.capabilities) -contains 'multi-tier-random-previews' -and
             @($capabilities.capabilities) -contains 'configurable-profile-progress' -and
+            @($capabilities.capabilities) -contains 'frozen-run-eligibility' -and
             $settingIds -contains 'default' -and $settingIds -contains 'ascendant'
     }
     catch {

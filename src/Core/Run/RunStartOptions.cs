@@ -17,7 +17,10 @@ public sealed record RunStartOptions(
     string? ScenarioHash = null,
     string? AttemptKey = null,
     Sandbox.CombatScenarioDefinition? Scenario = null,
-    string? SettingId = null);
+    string? SettingId = null,
+    Guid? CreationCommandId = null,
+    RunEligibilitySnapshot? CapturedEligibility = null,
+    RunCreationReceiptIdentity? CapturedCreationIdentity = null);
 
 /// <summary>
 /// An immutable card declaration consumed only at run creation. Scenario

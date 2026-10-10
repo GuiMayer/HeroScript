@@ -313,6 +313,8 @@ public sealed class PreparedRunCommit
         ArgumentException.ThrowIfNullOrWhiteSpace(computedStateHash);
         var liveState = commit.StateAfter
             ?? throw new InvalidOperationException("Preparing a run commit requires its live state");
+        var eligibility = RunEligibility.ValidateCandidate(previousState, liveState);
+        if (eligibility.IsFailure) throw new InvalidOperationException(eligibility.Error);
         commit.Validate(computedStateHash);
         var checkpoint = previousState == null || RunCommitCheckpointPolicy.ShouldCheckpoint(commit);
         var persisted = checkpoint

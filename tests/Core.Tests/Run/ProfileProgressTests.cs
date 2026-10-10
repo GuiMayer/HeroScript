@@ -19,14 +19,19 @@ public sealed class ProfileProgressTests
             Condition = new() { Kind = UnlockConditionKind.AttemptStarted, Count = count } }]
     };
 
-    internal static RunState State(int id = 1, ProfileProgressPolicyDefinition? policy = null) => new()
+    internal static RunState State(int id = 1, ProfileProgressPolicyDefinition? policy = null)
     {
+        var mode = new ResolvedGameMode { Definition = new() { ModeId = "published", RunDefinitionId = "act-one" },
+            ProfileProgressPolicy = policy ?? Policy() };
+        return new()
+        {
         RunId = Guid.Parse($"00000000-0000-0000-0000-{id:D12}"), Sequence = 1, PlayerEntityId = "player", SettingId = "setting",
         ModeId = "published", Determinism = DeterministicContext.Create(42, "revision").AdvanceStep(),
         Lineage = RunLineage.Root(Guid.Parse($"00000000-0000-0000-0000-{id:D12}")),
-        ResolvedMode = new() { Definition = new() { ModeId = "published", RunDefinitionId = "act-one" },
-            ProfileProgressPolicy = policy ?? Policy() }
-    };
+        ResolvedMode = mode,
+        Eligibility = RunEligibility.Capture(mode, "player", "setting", "revision", ProfileProgressSnapshot.Empty("player", "setting")).Value
+        };
+    }
 
     internal static RunCommandIdentity Command(int id = 1) => new(
         Guid.Parse($"10000000-0000-0000-0000-{id:D12}"), "TEST", 0, 0, "hash");

@@ -1,16 +1,24 @@
 @baseUrl = http://localhost:5260
 @runId = replace-with-run-id
 @commandId = 54c0c99b-21b1-4e2f-a519-0de7fdf79ece
+@creationCommandId = 978346b8-8564-4f4b-aa91-3b2b8e74482c
+@contentRevision = replace-with-default-currentRevision
+
+### Discover published settings; copy default.currentRevision above
+GET {{baseUrl}}/api/v1/content/settings
 
 ### Start a deterministic run
 POST {{baseUrl}}/api/v1/runs
 Content-Type: application/json
 
 {
-  "configName": "default",
+  "settingId": "default",
+  "contentRevision": "{{contentRevision}}",
+  "modeId": "standard",
   "runDefinitionId": "default_run",
   "playerEntityId": "player",
-  "seed": 424242
+  "seed": 424242,
+  "commandId": "{{creationCommandId}}"
 }
 
 ### Read authoritative state

@@ -229,15 +229,14 @@ public sealed class RunSessionCoordinator : IRunCommandProcessor
         };
         var prepared = PreparedRunCommit.CreateVerified(commit, stateHash, plan.PreviousState);
 
-        if (_store is IPreparedRunCommitStore preparedStore)
-            await preparedStore.AppendPreparedAsync(prepared, cancellationToken).ConfigureAwait(false);
-        else if (_store != null)
-            await _store.AppendAsync(commit, cancellationToken).ConfigureAwait(false);
+        var appended = _store is IPreparedRunCommitStore preparedStore
+            ? await preparedStore.AppendPreparedAsync(prepared, cancellationToken).ConfigureAwait(false)
+            : _store == null ? null : await _store.AppendAsync(commit, cancellationToken).ConfigureAwait(false);
 
         // Publication is deliberately after the durable append. If append
         // fails, neither the live aggregate nor the receipt cache changes.
         _publish(stateAfter);
-        var receipt = CreateReceipt(prepared.Commit, duplicate: false, stateAfter);
+        var receipt = CreateReceipt(appended?.Commit ?? prepared.Commit, appended?.Duplicate ?? false, stateAfter);
         _receipts[(stateAfter.RunId, identity.CommandId)] = receipt;
         return Result<RunCommandReceipt>.Success(receipt);
     }

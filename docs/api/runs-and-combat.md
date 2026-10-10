@@ -18,6 +18,18 @@ retry, reconexão ou replay devem usar os gateways de comando descritos aqui.
 Não existem rotas alternativas para criar combate, executar ação, avançar IA,
 encerrar turno ou forçar resultado fora da run.
 
+## Retry da criação
+
+O POST de criação aceita `commandId` UUID. Guarde o mesmo ID e request durante
+retries; um novo ID representa outra tentativa, inclusive com a mesma seed.
+O retry retorna a criação original (sequência 1), não o estado atual: para
+continuar, consulte o GET da run. Mesmo ID com inputs diferentes retorna 400.
+
+Sem chave, requests com seed/inputs idênticos também recuperam a criação;
+sem seed nem chave, cada POST cria uma tentativa nova. `eligibility` e
+`creationReceipt` são outputs da engine, nunca listas de permissões enviadas
+pelo cliente. Veja [captura e concessões](../content/run-eligibility.md).
+
 ## Exemplo: avançar uma run
 
 ```http

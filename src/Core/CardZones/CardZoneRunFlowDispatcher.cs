@@ -37,6 +37,7 @@ public static class CardZoneRunFlowDispatcher
                 ActiveActorId = actorId,
                 ContentRevision = context.ContentRevision,
                 ConfigName = run.ConfigName,
+                Eligibility = run.Eligibility,
                 CardInstanceIds = cardInstanceIds ?? [],
                 Variables = variables ?? new Dictionary<string, double>()
             });
@@ -66,6 +67,7 @@ public static class CardZoneRunFlowDispatcher
                 ActiveActorId = actorId,
                 ContentRevision = context.ContentRevision,
                 ConfigName = run.ConfigName,
+                Eligibility = run.Eligibility,
                 CardInstanceIds = [cardInstanceId]
             });
     }
@@ -93,6 +95,7 @@ public static class CardZoneRunFlowDispatcher
                 ActiveActorId = actorId ?? run.PlayerEntityId,
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
+                Eligibility = run.Eligibility,
                 CardInstanceIds = cardInstanceIds,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
@@ -129,6 +132,7 @@ public static class CardZoneRunFlowDispatcher
                 ActiveActorId = run.PlayerEntityId,
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
+                Eligibility = run.Eligibility,
                 CardInstanceIds = cardInstanceIds,
                 Variables = new Dictionary<string, double>
                 {
@@ -165,6 +169,7 @@ public static class CardZoneRunFlowDispatcher
                 TargetActorId = targetActorId,
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
+                Eligibility = run.Eligibility,
                 CardInstanceIds = cardInstanceIds,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
@@ -195,6 +200,7 @@ public static class CardZoneRunFlowDispatcher
                 ActiveActorId = run.PlayerEntityId,
                 ContentRevision = run.Determinism.ContentRevision,
                 ConfigName = run.ConfigName,
+                Eligibility = run.Eligibility,
                 CardDefinitionIds = cardDefinitionIds,
                 Variables = new Dictionary<string, double>
                 {

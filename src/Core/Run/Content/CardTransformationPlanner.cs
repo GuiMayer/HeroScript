@@ -61,6 +61,11 @@ public static class CardTransformationAccess
 
     public static Result Validate(RunState run, CardTransformationOperation operation, string? upgradeId)
     {
+        if (operation != CardTransformationOperation.Remove && upgradeId != null)
+        {
+            var eligibility = RunEligibility.Require(run, Core.Meta.UnlockTargetKind.CardUpgrade, upgradeId);
+            if (eligibility.IsFailure) return eligibility;
+        }
         if (run.Lifecycle != RunLifecycleState.Active) return Result.Failure("Run is not active");
         if (run.ActiveEncounterId != null) return Result.Failure("Permanent card transformations require leaving the active encounter");
         if (!Enum.IsDefined(operation)) return Result.Failure("Invalid transformation operation");

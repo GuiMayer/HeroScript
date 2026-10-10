@@ -16,6 +16,12 @@ public static class RunContentCompatibilityValidator
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(runtime);
+        var eligibility = RunEligibility.ValidateSnapshot(run);
+        if (eligibility.IsFailure) return eligibility;
+        if (run.Eligibility is { } captured)
+            foreach (var target in captured.AvailableTargets)
+                if (!runtime.GetDefinitions(target.ContentKind).ContainsKey(target.DefinitionId))
+                    return Result.Failure($"Frozen eligible option is missing from target content: {target.ContentKind}/{target.DefinitionId}");
         if (run.PlayerEntity != null)
         {
             if (run.PlayerEntity.InstanceId != run.PlayerEntityId) return Result.Failure("Persistent player identity mismatch");

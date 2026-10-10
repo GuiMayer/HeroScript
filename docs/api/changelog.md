@@ -1,5 +1,20 @@
 # Changelog do contrato público
 
+## v1 — 2026-10-10
+
+- Engine version `25`, commit schema `4`, meta schema `1`: elegibilidade de
+  cartas/upgrades/relíquias capturada por jogador/setting na criação da run.
+  Modos podem declarar `Profile`, `Fixed` ou `Unrestricted` (com cheats) e
+  `Reject`/`AllowEmpty` para pools vazios. Aquisições compartilham a mesma barreira.
+- `POST /api/v1/runs` aceita `commandId` para retry da criação original,
+  sem recapturar perfil nem retroceder o estado atual. Seed sem chave mantém
+  retry por inputs; sem ambos cada POST é nova tentativa. Campos de
+  elegibilidade fornecidos pelo cliente são rejeitados.
+- Read model inclui `eligibility` e `creationReceipt`; replay e branches
+  preservam a captura. Host/launcher exigem `frozen-run-eligibility`.
+  [Contrato](../content/run-eligibility.md). Apresentação detalhada, auditoria
+  transversal e certificação de histórico grande permanecem nas etapas 8–10.
+
 ## v1 — 2026-10-09
 
 - Engine version `24`, commit schema `4`: catálogo `profile-progress-policies`,
@@ -9,7 +24,8 @@
   e `unlockProofs`; removido o unlock arbitrário `completed-run-content`.
 - Host/launcher passam a exigir também `configurable-profile-progress`.
   [Contrato de progresso](../content/profile-progress-policies.md). Filtragem
-  de elegibilidade e apresentação de disponibilidade ainda são etapas 7/8.
+  de elegibilidade e apresentação de disponibilidade eram etapas 7/8;
+  elegibilidade foi entregue na engine 25, acima.
 - Engine versions 21–23 adicionam políticas revisionadas de recursos persistentes
   por ator, transporte entre encontros e owner binding explícito nas atividades.
   A carteira da run continua separada dos recursos do personagem.
@@ -25,8 +41,8 @@
   [probabilidade](../content/calculated-random-inputs.md) e
   [capturas/críticos/previews](../content/multi-tier-critical-inputs.md).
 - Não há migração silenciosa de saves nem promessa de replay de versões de
-  execução históricas incompatíveis. Elegibilidade do mundo 1 permanece na
-  próxima etapa do plano; o registro de desbloqueios já está implementado.
+  execução históricas incompatíveis. O registro de desbloqueios foi entregue
+  nesta versão; a elegibilidade foi entregue na engine 25.
 
 ## v1 — 2026-10-07
 

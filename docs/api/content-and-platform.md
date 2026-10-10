@@ -73,7 +73,9 @@ Desbloqueios usam [políticas declarativas](../content/profile-progress-policies
 e provas no commit canônico, separadas dos badges de histórico. O perfil completo
 retorna `progressSequence`, `progressRevision` e `unlockProofs`. Não há bônus
 permanente de atributos: os alvos são opções de cartas/upgrades/relíquias.
-A captura de elegibilidade e sua aplicação em ofertas pertencem à etapa 7.
+A [elegibilidade por run](../content/run-eligibility.md) é capturada na criação
+e aplicada às ofertas e aquisições. Progresso posterior não altera essa captura;
+a apresentação detalhada de disponibilidade pertence à etapa 8.
 
 Reações, pilha e prioridade usam o mesmo gateway autoritativo das demais ações.
 Elas só ficam ativas em modos cuja política de combate as habilite; modos sem

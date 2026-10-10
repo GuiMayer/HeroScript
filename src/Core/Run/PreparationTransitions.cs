@@ -37,7 +37,8 @@ public static class PreparationTransitions
             RunId = state.RunId,
             NodeId = nodeId,
             PreparationId = definition.PreparationId,
-            Options = definition.Options.Select(option => new PreparationOptionState
+            Options = definition.Options.Where(option => option.GrantedCardIds.All(id =>
+                RunEligibility.Allows(state, Core.Meta.UnlockTargetKind.Card, id))).Select(option => new PreparationOptionState
             {
                 OptionId = option.OptionId,
                 Effects = option.Effects,

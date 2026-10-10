@@ -26,6 +26,10 @@ public sealed record RunState : ICanonicalHashMemoizable
     public CombatScenarioDefinition? Scenario { get; init; }
     public string? ScenarioHash { get; init; }
     public string? AttemptKey { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public RunEligibilitySnapshot? Eligibility { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public RunCreationReceiptIdentity? CreationReceipt { get; init; }
     public RunLineage? Lineage { get; init; }
     public ResourceSet ResourceState { get; init; } = new();
 

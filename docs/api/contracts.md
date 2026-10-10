@@ -1,5 +1,15 @@
 # Contratos compartilhados
 
+## Criação de run
+
+`POST /api/v1/runs` exige `settingId`, `contentRevision` e `modeId`; aceita
+`commandId` para recuperar a criação original em retries. A elegibilidade é
+resolvida pela engine a partir da política publicada e do perfil do setting.
+O cliente não envia unlocks/snapshots. Requests desconhecidos são rejeitados;
+sem seed nem chave cada POST é outra tentativa. Veja o
+[contrato de elegibilidade](../content/run-eligibility.md) e
+[fluxo de criação/continuação](runs-and-combat.md#retry-da-criação).
+
 ## Comandos autoritativos
 
 Os gateways de run e combate recebem o mesmo envelope:

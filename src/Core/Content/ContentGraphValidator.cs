@@ -198,6 +198,11 @@ public sealed class ContentGraphValidator : IContentGraphValidator
                 binding.Value,
                 capabilities.Value,
                 progression.Value);
+            var profile = string.IsNullOrWhiteSpace(mode.Value.ProfileProgressPolicyId) ? null :
+                runtime.GetDefinition<ProfileProgressPolicyDefinition>("profile-progress-policies", mode.Value.ProfileProgressPolicyId).ValueOr((ProfileProgressPolicyDefinition)null!);
+            var eligibility = RunEligibility.ValidateRules(new ResolvedGameMode
+            { Definition = mode.Value, CapabilityPolicy = capabilities.Value, ProfileProgressPolicy = profile });
+            if (eligibility.IsFailure) errors.Add($"modes/{id}: {eligibility.Error}");
             if (policyGraph.IsFailure)
                 errors.Add($"modes/{id}: {policyGraph.Error}");
         }

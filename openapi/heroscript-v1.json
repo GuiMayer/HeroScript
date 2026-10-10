@@ -82,7 +82,7 @@
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RunStartRequest" } } }
         },
         "responses": {
-          "200": { "description": "Run created deterministically" },
+          "200": { "description": "Run created, or original creation state returned on retry", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RunReadModel" } } } },
           "400": { "$ref": "#/components/responses/Problem" }
         }
       }
@@ -582,14 +582,16 @@
     "schemas": {
       "RunStartRequest": {
         "type": "object",
-        "required": ["configName", "runDefinitionId", "playerEntityId"],
+        "required": ["settingId", "contentRevision", "modeId"],
+        "additionalProperties": false,
         "properties": {
-          "configName": { "type": "string" },
-          "runDefinitionId": { "type": "string" },
-          "playerEntityId": { "type": "string" },
-          "seed": { "type": "integer", "format": "uint64" },
-          "contentRevision": { "type": "string" },
-          "modeId": { "type": "string", "default": "standard", "description": "Published game mode; omitted selects the canonical standard mode." }
+          "settingId": { "type": "string", "minLength": 1 },
+          "runDefinitionId": { "type": "string", "nullable": true, "description": "Published run definition; omitted selects default_run." },
+          "playerEntityId": { "type": "string", "nullable": true, "description": "Player scope; omitted selects player." },
+          "seed": { "type": "integer", "nullable": true, "format": "uint64", "minimum": 0 },
+          "contentRevision": { "type": "string", "minLength": 1 },
+          "modeId": { "type": "string", "minLength": 1, "description": "Explicit published game mode." },
+          "commandId": { "type": "string", "nullable": true, "format": "uuid", "description": "Creation retry key, scoped by player and setting. Same key requires identical inputs and returns original sequence-1 state; use a new key for a new attempt. Without a key, seeded requests retry by inputs; unseeded requests create new attempts." }
         }
       },
       "CombatScenarioDefinition": {
@@ -650,9 +652,49 @@
           "sequence": { "type": "integer", "minimum": 0 },
           "step": { "type": "integer", "minimum": 0 },
           "stateHash": { "type": "string" },
-          "cardZones": { "$ref": "#/components/schemas/CardZoneSnapshot" }
+          "cardZones": { "$ref": "#/components/schemas/CardZoneSnapshot" },
+          "eligibility": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunEligibilitySnapshot" }] },
+          "creationReceipt": { "type": "object", "nullable": true, "allOf": [{ "$ref": "#/components/schemas/RunCreationReceiptIdentity" }] }
         },
         "additionalProperties": true
+      },
+      "RunCreationReceiptIdentity": {
+        "type": "object",
+        "required": ["key", "requestFingerprint"],
+        "properties": {
+          "key": { "type": "string" },
+          "requestFingerprint": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "RunEligibilitySnapshot": {
+        "type": "object",
+        "required": ["playerId", "settingId", "contentRevision", "policyId", "policyFingerprint", "source", "emptyPools", "profileSequence", "profileRevision", "unlockIds", "gatedTargets", "availableTargets", "effectiveFingerprint"],
+        "properties": {
+          "playerId": { "type": "string" },
+          "settingId": { "type": "string" },
+          "contentRevision": { "type": "string" },
+          "policyId": { "type": "string" },
+          "policyFingerprint": { "type": "string" },
+          "source": { "type": "string", "enum": ["Profile", "Fixed", "Unrestricted"] },
+          "emptyPools": { "type": "string", "enum": ["Reject", "AllowEmpty"] },
+          "profileSequence": { "type": "integer", "minimum": 0 },
+          "profileRevision": { "type": "string", "description": "Historical provenance, excluded from effective eligibility identity." },
+          "unlockIds": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+          "gatedTargets": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/components/schemas/RunEligibilityTarget" } },
+          "availableTargets": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/components/schemas/RunEligibilityTarget" } },
+          "effectiveFingerprint": { "type": "string" }
+        },
+        "additionalProperties": false
+      },
+      "RunEligibilityTarget": {
+        "type": "object",
+        "required": ["kind", "definitionId"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["Card", "CardUpgrade", "Relic"] },
+          "definitionId": { "type": "string" }
+        },
+        "additionalProperties": false
       },
       "CardZoneSnapshot": {
         "type": "object",
