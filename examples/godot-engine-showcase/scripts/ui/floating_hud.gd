@@ -4,7 +4,7 @@ var host := Control.new()
 
 func _init() -> void:
 	name = "FloatingCombatHUD"
-	layer = 5 # Gameplay/card effects: 0; pause: 10.
+	layer = preload("res://scripts/ui/shell/overlay_layers.gd").FLOATING
 	host.name = "FloatingHUDHost"
 	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(host)

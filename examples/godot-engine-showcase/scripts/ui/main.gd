@@ -10,14 +10,18 @@ const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
 const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
 
 var visual_context
-var host: MarginContainer
-var toast: Label
-var pause_layer: Control
-var pause_canvas: CanvasLayer
+var shell
+var host: MarginContainer:
+	get: return shell.host
+var toast: Label:
+	get: return shell.toast
+var pause_layer: Control:
+	get: return shell.pause_layer if shell else null
+var pause_canvas: CanvasLayer:
+	get: return shell.pause_canvas if shell else null
 var presentation: Dictionary = {}
 var current_screen := "menu"
 var navigation_epoch := 0
-var previous_focus: WeakRef
 var settings_return_to_gameplay := false
 var continuation_run_id := ""
 
@@ -33,24 +37,15 @@ func _ready() -> void:
 	var background := EmberBackground.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
-	host = MarginContainer.new()
-	host.process_mode = Node.PROCESS_MODE_PAUSABLE
-	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	host.add_theme_constant_override("margin_left", 48)
-	host.add_theme_constant_override("margin_top", 24)
-	host.add_theme_constant_override("margin_right", 48)
-	host.add_theme_constant_override("margin_bottom", 24)
-	add_child(host)
+	shell = preload("res://scenes/ui/application_shell.tscn").instantiate()
+	add_child(shell)
+	shell.mount(visual_context)
+	shell.theme = theme
+	shell.resume_requested.connect(toggle_pause)
+	shell.settings_requested.connect(_pause_settings)
+	shell.menu_requested.connect(_pause_menu)
+	shell.abandon_requested.connect(_abandon_from_pause)
 	host.child_entered_tree.connect(_queue_focus_preparation)
-	toast = Label.new()
-	toast.visible = false
-	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	toast.position = Vector2(-260, 18)
-	toast.size = Vector2(520, 52)
-	toast.add_theme_stylebox_override("normal", AppTheme.box(AppTheme.color("surface.toast"), 10, AppTheme.EMBER, 1))
-	toast.add_theme_font_size_override("font_size", 16)
-	add_child(toast)
 	GameSession.failed.connect(func(error): show_error(I18n.error(error)))
 	GameSession.changed.connect(_on_session_changed)
 	Preferences.changed.connect(_apply_preferences)
@@ -325,52 +320,11 @@ func back_to_menu() -> void:
 
 func toggle_pause() -> void:
 	if is_instance_valid(pause_layer):
-		# Detach immediately so the closing overlay cannot intercept resumed input.
-		remove_child(pause_canvas)
-		pause_canvas.queue_free()
-		pause_canvas = null
-		pause_layer = null
 		get_tree().paused = false
-		if previous_focus and is_instance_valid(previous_focus.get_ref()): previous_focus.get_ref().grab_focus()
+		shell.close_pause()
 		return
-	previous_focus = weakref(get_viewport().gui_get_focus_owner()) if get_viewport().gui_get_focus_owner() else null
-	# Hand emphasis, reading proxies and drag ghosts use local z priorities.
-	# A separate canvas keeps the entire modal above them, independently of z_index.
-	pause_canvas = CanvasLayer.new()
-	pause_canvas.name = "PauseCanvas"
-	pause_canvas.layer = 10
-	pause_canvas.process_mode = Node.PROCESS_MODE_ALWAYS
-	add_child(pause_canvas)
-	pause_layer = ColorRect.new()
-	pause_layer.name = "PauseOverlay"
-	pause_layer.theme = theme
-	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
-	pause_layer.color = AppTheme.color("surface.modal_scrim")
-	pause_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pause_canvas.add_child(pause_layer)
 	get_tree().paused = true
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	pause_layer.add_child(center)
-	var content := VBoxContainer.new()
-	content.custom_minimum_size = Vector2(420, 0)
-	content.add_theme_constant_override("separation", 13)
-	content.add_child(AppTheme.title(I18n.text("PAUSE"), 42, AppTheme.GOLD))
-	content.add_child(AppTheme.muted(I18n.text("Take your time. Your progress is preserved while the game is paused.")))
-	var resume_button := _button(I18n.text("RESUME"), toggle_pause, 360)
-	resume_button.name = "ResumeButton"
-	content.add_child(resume_button)
-	content.add_child(_button(I18n.text("SETTINGS"), _pause_settings, 360))
-	var abandon := _abandon_choice()
-	if not abandon.is_empty():
-		var abandon_button := _button(I18n.text("ABANDON RUN"), func(): _confirm_pause_abandon(abandon), 360)
-		abandon_button.name = "AbandonRunButton"
-		abandon_button.add_theme_color_override("font_color", AppTheme.BLOOD)
-		content.add_child(abandon_button)
-	content.add_child(_button(I18n.text("MAIN MENU"), _pause_menu, 360))
-	center.add_child(AppTheme.panel(content))
-	AppTheme.apply_view_preferences(pause_layer)
-	_queue_focus_preparation(pause_layer)
+	shell.show_pause(_abandon_choice())
 
 func _pause_settings() -> void:
 	toggle_pause()
@@ -387,17 +341,7 @@ func _abandon_choice() -> Dictionary:
 	return {}
 
 func _confirm_pause_abandon(choice: Dictionary) -> void:
-	if not is_instance_valid(pause_layer) or GameSession.busy: return
-	var dialog := ConfirmationDialog.new()
-	dialog.process_mode = Node.PROCESS_MODE_ALWAYS
-	dialog.title = I18n.text("Confirm choice")
-	dialog.dialog_text = I18n.text("This ends the current journey. Its history remains available.")
-	dialog.ok_button_text = I18n.text("ABANDON RUN")
-	dialog.cancel_button_text = I18n.text("CANCEL")
-	dialog.confirmed.connect(func(): _abandon_from_pause(choice))
-	dialog.visibility_changed.connect(func(): if not dialog.visible: dialog.queue_free())
-	pause_layer.add_child(dialog)
-	dialog.popup_centered(Vector2i(480, 190))
+	if not GameSession.busy: shell.confirm_abandon(choice)
 
 func _abandon_from_pause(choice: Dictionary) -> void:
 	if GameSession.busy: return
@@ -406,12 +350,7 @@ func _abandon_from_pause(choice: Dictionary) -> void:
 	if await GameSession.submit_activity(choice) and is_inside_tree(): open_game()
 
 func show_toast(message: String, error := false) -> void:
-	toast.text = message
-	toast.add_theme_color_override("font_color", AppTheme.BLOOD if error else AppTheme.INK)
-	toast.visible = true
-	var tween := create_tween()
-	tween.tween_interval(2.5)
-	tween.tween_callback(func(): toast.visible = false)
+	shell.show_toast(message, error)
 
 func show_error(message: String) -> void:
 	show_toast(message, true)
@@ -433,6 +372,7 @@ func _apply_preferences() -> void:
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
+	shell.theme = theme
 	AppTheme.apply_view_preferences(host)
 	if is_instance_valid(pause_layer):
 		pause_layer.theme = theme
@@ -468,3 +408,10 @@ func _refresh_layout_navigation() -> void:
 	if not is_inside_tree(): return
 	var scope: Control = pause_layer if is_instance_valid(pause_layer) else host
 	preload("res://scripts/ui/focus_navigation.gd").wire(scope)
+
+
+func _exit_tree() -> void:
+	if GameSession.changed.is_connected(_on_session_changed): GameSession.changed.disconnect(_on_session_changed)
+	if Preferences.changed.is_connected(_apply_preferences): Preferences.changed.disconnect(_apply_preferences)
+	if I18n.locale_changed.is_connected(_on_locale_changed): I18n.locale_changed.disconnect(_on_locale_changed)
+	if get_tree(): get_tree().paused = false

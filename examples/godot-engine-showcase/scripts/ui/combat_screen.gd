@@ -39,6 +39,7 @@ var action_buttons: Array[Button] = []
 var choices: VBoxContainer
 var hint_label: Label
 var selection_label: Label
+var feedback
 var frame_delay := 0.0
 var submitting: bool:
 	get: return controller.state.submitting if controller else false
@@ -68,6 +69,8 @@ func _ready() -> void:
 func setup(owner, data: Dictionary) -> void:
 	router = owner
 	visual_context = owner.visual_context
+	feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(visual_context)
+	add_child(feedback)
 	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return router.get_tree().paused)
 	controller.changed.connect(_update_controls)
 	if not Playback.frame_presented.is_connected(_on_frame):
@@ -104,7 +107,8 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 		_refresh_structure()
 		return
 	card_buttons.clear()
-	for child in get_children(): remove_child(child); child.queue_free()
+	for child in get_children():
+		if child != feedback: remove_child(child); child.queue_free()
 	add_theme_constant_override("separation", 8)
 	_build_header()
 	var body: HBoxContainer = preload("res://scenes/ui/combat_composition.tscn").instantiate()
@@ -185,6 +189,7 @@ func _layout_gameplay() -> void:
 
 func _exit_tree() -> void:
 	if controller: controller.dispose()
+	if feedback: feedback.dispose()
 	if Playback.frame_presented.is_connected(_on_frame):
 		Playback.frame_presented.disconnect(_on_frame)
 
@@ -459,7 +464,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 		if card_buttons.has(id):
 			var still_present := CardZonePresenter.new(_zone_snapshot, I18n).playable_cards().any(func(card): return str(card.get("cardInstanceId", "")) == id)
 			if not still_present: card_buttons[id].modulate.a = 0
-			await card_buttons[id].fly_to(destination, router)
+			await card_buttons[id].fly_to(destination, feedback.effects)
 		if is_inside_tree():
 			router.open_game()
 	else:
@@ -480,16 +485,8 @@ func _next_frame() -> void:
 	_update_controls()
 
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
-	detail_label.text = "%s %s/%s  •  %s" % [I18n.text("Animations"), index + 1, total, I18n.content_name(str(frame.get("transitionType", "")))]
-	var flashed: Array[String] = []
-	for application in frame.get("applications", []):
-		detail_label.text += "\n" + presenter.application_text(application, true)
-		var target := str(application.get("targetEntityId", ""))
-		if actor_portraits.has(target):
-			if not Preferences.reduced_motion and target not in flashed:
-				actor_portraits[target].flash_hit()
-				flashed.append(target)
-			_float_application(application, actor_portraits[target])
+	if not is_instance_valid(detail_label): return
+	detail_label.text = feedback.present(frame, index, total, presenter, actor_portraits)
 	detail_label.tooltip_text = detail_label.text
 	GameAudio.hit()
 
@@ -627,30 +624,6 @@ func _update_controls() -> void:
 
 func _actor_name(id: String) -> String:
 	return presenter.actor_name(id)
-
-func _float_application(application: Dictionary, portrait: Control) -> void:
-	var previous = application.get("previousValue")
-	var current = application.get("currentValue")
-	if previous == null or current == null:
-		return
-	var delta := float(current) - float(previous)
-	if is_zero_approx(delta):
-		return
-	var label := Label.new()
-	label.text = "%s%s %s" % ["+" if delta > 0 else "", I18n.number(delta),
-		I18n.content_name(str(application.get("resourceId", "")))]
-	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", AppTheme.TEAL if delta > 0 else AppTheme.GOLD)
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.process_mode = Node.PROCESS_MODE_PAUSABLE
-	router.add_child(label)
-	label.global_position = portrait.global_position + Vector2(20, 45)
-	var tween := label.create_tween().set_parallel()
-	var duration := .6 / maxf(Preferences.animation_speed, .25)
-	if not Preferences.reduced_motion:
-		tween.tween_property(label, "position:y", label.position.y - 36, duration)
-	tween.tween_property(label, "modulate:a", 0.0, duration)
-	tween.chain().tween_callback(label.queue_free)
 
 func _reconnect() -> void:
 	var accepted: bool = await controller.reconnect()
