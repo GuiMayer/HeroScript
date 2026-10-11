@@ -1,0 +1,57 @@
+[gd_resource type="Resource" load_steps=7 format=3]
+[ext_resource type="Script" path="res://scripts/ui/styles/visual_theme_profile.gd" id="1"]
+[ext_resource type="FontFile" path="res://assets/fonts/cinzel/Cinzel.ttf" id="2"]
+[ext_resource type="FontFile" path="res://assets/fonts/source-sans-3/SourceSans3.ttf" id="3"]
+[ext_resource type="Resource" path="res://data/themes/ivory_card_style.tres" id="4"]
+[sub_resource type="FontVariation" id="Body"]
+base_font = ExtResource("3")
+variation_opentype = { 2003265652: 500.0 }
+[sub_resource type="FontVariation" id="Title"]
+base_font = ExtResource("2")
+variation_opentype = { 2003265652: 600.0 }
+[resource]
+script = ExtResource("1")
+profile_id = "ivory_lab"
+printed_surfaces = true
+corner_radius = 2
+body_font = SubResource("Body")
+title_font = SubResource("Title")
+card_style = ExtResource("4")
+art_manifest = "res://data/labs/ivory_art_manifest.json"
+colors = {
+"text.primary": "#20201c",
+"text.secondary": "#5b574f",
+"text.disabled": "#777166",
+"text.high_contrast_disabled": "#5b574f",
+"accent.primary": "#b83e25",
+"accent.warm": "#98311d",
+"accent.positive": "#286853",
+"accent.danger": "#a4322c",
+"accent.power": "#625383",
+"surface.canvas": "#f2ebdd",
+"surface.panel": "#faf5eb",
+"surface.panel_translucent": "#faf5eb",
+"surface.raised": "#eee4d1",
+"surface.hover": "#e5d6bd",
+"surface.pressed": "#d5c4a5",
+"surface.disabled": "#e9e1d3",
+"stroke.control": "#827b70",
+"stroke.disabled": "#aea697",
+"stroke.panel": "#827b70",
+"surface.input": "#faf5eb",
+"stroke.input": "#827b70",
+"surface.inset": "#e5dbc8",
+"stroke.editor": "#827b70",
+"text.code": "#20201c",
+"surface.popup": "#faf5eb",
+"surface.card_art": "#eee4d1",
+"stroke.art_text": "#faf5eb",
+"surface.cost_unknown": "#e5dbc8",
+"stroke.cost_unknown": "#827b70",
+"resource.unknown": "#666879",
+"surface.high_contrast": "#ffffff",
+"surface.high_contrast_panel": "#ffffff",
+"surface.modal_scrim": "#20201cbb",
+"surface.effects": "#20201c",
+"text.inverse": "#faf5eb"
+}

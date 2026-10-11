@@ -12,7 +12,7 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	name = "CardTooltip" if mode == DisplayMode.TOOLTIP else "CardDetails"
 	var border: Color = style.rarity_color(str(model.get("rarityId", "")))
 	set_meta("semantic_border_color", border)
-	add_theme_stylebox_override("panel", AppTheme.box(AppTheme.PANEL, 10, border, 2))
+	add_theme_stylebox_override("panel", AppTheme.box(AppTheme.PANEL, style.face_radius if style.printed_face else 10, border, 2))
 	custom_minimum_size = Vector2(style.tooltip_width, 0 if mode == DisplayMode.TOOLTIP else style.inspection_height)
 	var body := VBoxContainer.new()
 	body.name = "CardDetailContent"
@@ -31,7 +31,7 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 		scroll.follow_focus = true
 		add_child(scroll)
 		scroll.add_child(body)
-	body.add_child(AppTheme.caption(str(model.get("name", "")), 20, 260))
+	body.add_child(AppTheme.title(str(model.get("name", "")), 22) if style.printed_face else AppTheme.caption(str(model.get("name", "")), 20, 260))
 	body.add_child(AppTheme.caption(" · ".join([str(model.get("cardType", "")), str(model.get("rarity", ""))]), 13, 260))
 	var options: Array = model.get("costOptions", [])
 	if options.is_empty(): options = [model.get("costs", [])]
@@ -54,7 +54,14 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	if rows.is_empty(): rows = EffectText.plain_rows(Array(model.get("effects", str(model.get("summary", "")).split("\n"))))
 	if mode == DisplayMode.TOOLTIP: rows = rows.slice(0, maxi(1, style.tooltip_effect_rows))
 	rules.configure(rows, style)
-	body.add_child(rules)
+	if style.printed_face:
+		var effect_panel := PanelContainer.new()
+		effect_panel.name = "EffectPanel"
+		effect_panel.set_meta("contrast_surface_role", "surface.effects")
+		effect_panel.add_theme_stylebox_override("panel", AppTheme.box(style.effect_surface, 1))
+		effect_panel.add_child(rules)
+		body.add_child(effect_panel)
+	else: body.add_child(rules)
 	if mode == DisplayMode.TOOLTIP:
 		_build_tooltip_summary(body, rules, model)
 		return

@@ -19,8 +19,12 @@ var scale_picker: OptionButton
 var layout_picker: OptionButton
 var _prior_preferences: Dictionary = {}
 var _rotation := 0
+var _prior_profile: Resource
+var ornaments: Array[Control] = []
 
 func _ready() -> void:
+	_prior_profile = AppTheme.profile
+	AppTheme.set_profile(preload("res://data/themes/ivory_theme.tres"))
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
 	var appearance = JSON.parse_string(FileAccess.get_file_as_string("res://data/presentation.json"))
 	if appearance is Dictionary: visual_context.set_resource_styles(appearance.get("resources", {}))
@@ -37,6 +41,14 @@ func _build() -> void:
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(background)
+	var trace := preload("res://scripts/ui/components/circuit_trace.gd").new()
+	trace.name = "PrintedCircuit"
+	trace.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	trace.position = Vector2(-510, 18)
+	trace.size = Vector2(480, 78)
+	trace.mirrored = true
+	add_child(trace)
+	ornaments.append(trace)
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 24)
@@ -53,8 +65,12 @@ func _build() -> void:
 	upper_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	upper_scroll.add_child(column)
 	outer.add_child(upper_scroll)
-	column.add_child(AppTheme.title("CARD / HAND LAB", 25, AppTheme.GOLD))
-	column.add_child(AppTheme.muted("Offline visual samples. The same CardView and hand component used in combat — no game rules or API calls.", 13, 320))
+	var heading := AppTheme.title(I18n.text("IVORY / CARD LAB"), 30)
+	heading.set_meta("lab_label", "IVORY / CARD LAB")
+	column.add_child(heading)
+	var subtitle := AppTheme.muted(I18n.text("Shared game components. Visual samples only — no rules or API calls."), 14, 320)
+	subtitle.set_meta("lab_label", "Shared game components. Visual samples only — no rules or API calls.")
+	column.add_child(subtitle)
 	var tools := HFlowContainer.new()
 	tools.add_theme_constant_override("h_separation", 12)
 	tools.add_theme_constant_override("v_separation", 8)
@@ -65,11 +81,13 @@ func _build() -> void:
 	for preset in catalog.presets: preset_picker.add_item(str(preset.name))
 	preset_picker.item_selected.connect(set_preset)
 	tools.add_child(preset_picker)
-	tools.add_child(AppTheme.title("Cards", 14))
+	var count_label := AppTheme.title(I18n.text("Cards"), 14)
+	count_label.set_meta("lab_label", "Cards")
+	tools.add_child(count_label)
 	count_picker = SpinBox.new()
 	count_picker.name = "HandCount"
 	count_picker.min_value = 0
-	count_picker.max_value = 40
+	count_picker.max_value = 100
 	count_picker.step = 1
 	count_picker.value = count
 	count_picker.custom_minimum_size = Vector2(85, 40)
@@ -88,11 +106,13 @@ func _build() -> void:
 	tools.add_child(scale_picker)
 	var contrast := CheckButton.new()
 	contrast.text = "High contrast"
+	contrast.set_meta("lab_label", "High contrast")
 	contrast.button_pressed = Preferences.high_contrast
 	contrast.toggled.connect(func(value): Preferences.high_contrast = value; _refresh())
 	tools.add_child(contrast)
 	var motion := CheckButton.new()
 	motion.text = "Reduced motion"
+	motion.set_meta("lab_label", "Reduced motion")
 	motion.button_pressed = Preferences.reduced_motion
 	motion.toggled.connect(func(value): Preferences.reduced_motion = value; _refresh())
 	tools.add_child(motion)
@@ -108,7 +128,7 @@ func _build() -> void:
 	workspace.name = "SampleDetails"
 	workspace.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	workspace.custom_minimum_size.y = 70
-	workspace.add_theme_stylebox_override("panel", AppTheme.box(AppTheme.PANEL, 12))
+	workspace.add_theme_stylebox_override("panel", AppTheme.box(AppTheme.PANEL, AppTheme.profile.corner_radius))
 	details = RichTextLabel.new()
 	details.name = "FullSampleText"
 	details.selection_enabled = true
@@ -133,12 +153,14 @@ func _build() -> void:
 	tools.add_child(layout_picker)
 	var drag_toggle := CheckButton.new()
 	drag_toggle.text = I18n.text("Drag cards to play")
+	drag_toggle.set_meta("lab_label", "Drag cards to play")
 	drag_toggle.toggled.connect(func(enabled): hand.drag_override = enabled)
 	tools.add_child(drag_toggle)
 	actions.add_child(_button("Add sample", func(): set_count(count + 1)))
 	actions.add_child(_button("Enrich selected", enrich_selected))
 	var read_only := CheckButton.new()
 	read_only.text = "Read-only / busy"
+	read_only.set_meta("lab_label", "Read-only / busy")
 	read_only.toggled.connect(func(enabled): hand.set_read_only(enabled))
 	actions.add_child(read_only)
 
@@ -152,6 +174,7 @@ func _button(label: String, action: Callable) -> Button:
 	var button := AppTheme.button(label)
 	button.custom_minimum_size.y = 40
 	button.pressed.connect(action)
+	button.set_meta("lab_label", label)
 	return button
 
 func set_preset(index: int) -> void:
@@ -161,7 +184,7 @@ func set_preset(index: int) -> void:
 	set_count(catalog.presets[preset_index].cards.size())
 
 func set_count(value: int) -> void:
-	count = clampi(value, 0, 40)
+	count = clampi(value, 0, 100)
 	count_picker.set_value_no_signal(count)
 	selected_id = ""
 	_refresh()
@@ -180,6 +203,11 @@ func _refresh() -> void:
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
+	_translate_controls(self)
+	for i in 3: scale_picker.set_item_text(i, I18n.text("Text %s%%") % [90, 100, 120][i])
+	layout_picker.set_item_text(0, I18n.text("Adaptive fan"))
+	layout_picker.set_item_text(1, I18n.text("Reading — no overlap"))
+	for ornament in ornaments: ornament.simplified = Preferences.high_contrast
 	models.clear()
 	var entries: Array = catalog.presets[preset_index].cards
 	for i in count:
@@ -193,6 +221,15 @@ func _refresh() -> void:
 		models.append(data)
 	_render_hand()
 
+func _translate_controls(node: Node) -> void:
+	if node.has_meta("lab_label"):
+		var key := str(node.get_meta("lab_label"))
+		node.text = I18n.text(key)
+		if node is CheckButton:
+			if key == "High contrast": node.set_pressed_no_signal(Preferences.high_contrast)
+			elif key == "Reduced motion": node.set_pressed_no_signal(Preferences.reduced_motion)
+	for child in node.get_children(): _translate_controls(child)
+
 func _render_hand() -> void:
 	hand.sync_models(models, "lab:" + str(preset_index), I18n.text("Your hand is empty."))
 	card_controls = hand.ordered_cards()
@@ -204,8 +241,8 @@ func select_card(id: String) -> void:
 	selected_id = id
 	hand.set_selection(id)
 	var selected := selected_model()
-	status.text = "%s cards · %s · %s%% text · visual samples only" % [models.size(), I18n.locale, roundi(Preferences.text_scale * 100)]
-	details.text = "Select a sample to see the complete text. Use the horizontal scrollbar when the hand is full.\n\nUnknown art/resources/types, long titles, stacked changes and translated rules deliberately exercise the current component limits. No effects are executed here."
+	status.text = I18n.text("%s cards · %s · %s%% text · visual samples only") % [models.size(), I18n.locale, roundi(Preferences.text_scale * 100)]
+	details.text = I18n.text("Select a sample to read its full text. Hover for a summary; Inspect selected opens persistent details. No effects are executed here.")
 	if not selected.is_empty():
 		details.text = "%s\n%s · %s\n\n%s\n\n%s" % [selected.name, selected.definitionId, selected.cardType, selected.summary, selected.availability]
 		for badge in selected.get("changeBadges", []):
@@ -246,6 +283,8 @@ func _exit_tree() -> void:
 	Preferences.high_contrast = _prior_preferences.high_contrast
 	Preferences.reduced_motion = _prior_preferences.reduced_motion
 	I18n.set_locale(str(_prior_preferences.locale))
+	AppTheme.set_profile(_prior_profile)
+	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 
 func _capture_if_requested() -> void:
 	var target := ""
@@ -256,6 +295,11 @@ func _capture_if_requested() -> void:
 				if str(catalog.presets[i].id) == id: set_preset(i)
 		elif argument.begins_with("--lab-count="): set_count(int(argument.trim_prefix("--lab-count=")))
 		elif argument.begins_with("--lab-scale="): set_text_scale(float(argument.trim_prefix("--lab-scale=")))
+		elif argument.begins_with("--lab-locale="): set_language(argument.trim_prefix("--lab-locale="))
+		elif argument.begins_with("--lab-resolution="):
+			var parts := argument.trim_prefix("--lab-resolution=").split("x")
+			if parts.size() == 2: get_window().size = Vector2i(int(parts[0]), int(parts[1]))
+		elif argument == "--lab-high-contrast": Preferences.high_contrast = true; _refresh()
 		elif argument == "--lab-reading": hand.mode_override = "reading"; layout_picker.select(1); hand.request_layout()
 		elif argument.begins_with("--lab-screenshot="): target = argument.trim_prefix("--lab-screenshot=")
 	if target.is_empty(): return

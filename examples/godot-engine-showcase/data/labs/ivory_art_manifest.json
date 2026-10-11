@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "defaults": { "cards": "unknown" },
+  "categories": { "cards": {
+    "basic_attack": "strike", "defend": "guard", "fireball": "flame", "heal": "spark", "arcane_bolt": "strike",
+    "core_strike": "strike", "core_guard": "guard", "core_heal": "spark", "core_charge_card": "condense", "core_release": "condense", "core_recover": "spark", "core_empower_card": "condense"
+  } },
+  "slots": {
+    "unknown": { "path": "res://assets/ivory/unknown.svg", "placeholder": true },
+    "strike": { "path": "res://assets/ivory/strike.svg", "placeholder": true },
+    "guard": { "path": "res://assets/ivory/guard.svg", "placeholder": true },
+    "flame": { "path": "res://assets/ivory/flame.svg", "placeholder": true },
+    "spark": { "path": "res://assets/ivory/spark.svg", "placeholder": true },
+    "condense": { "path": "res://assets/ivory/condense.svg", "placeholder": true }
+  }
+}

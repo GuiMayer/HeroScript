@@ -16,6 +16,11 @@ extends Resource
 @export var text_scale_height_margin := 120.0
 @export var rules_font_size := 14
 @export var art_height := 72.0
+@export_group("Printed face")
+@export var printed_face := false
+@export var face_radius := 12
+@export var effect_surface := Color.TRANSPARENT
+@export var effect_ink := Color("#f5ecd8")
 @export_group("Tooltip summary")
 @export var tooltip_width := 410.0
 @export_range(1, 8) var tooltip_effect_rows := 3

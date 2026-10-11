@@ -9,10 +9,15 @@ var animate_entry := true
 var hand_managed := false
 var configuration_count := 0
 var _configuration_key := ""
+var _context_card_style: CardVisualStyle
 @export var visual_style: CardVisualStyle = preload("res://data/default_card_visual_style.tres")
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 
 func configure(data: Dictionary) -> void:
+	# Follow profile changes unless the consumer explicitly injected another policy.
+	if visual_style == _context_card_style:
+		_context_card_style = visual_context.card_style
+		visual_style = _context_card_style
 	var presentation_key: String = JSON.stringify(data) + visual_style.presentation_key() + visual_context.presentation_key()
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
@@ -30,9 +35,16 @@ func configure(data: Dictionary) -> void:
 	for key in get_meta_list():
 		if str(key).begins_with("base_style_"): remove_meta(key)
 	for state in ["normal", "disabled", "pressed"]:
-		add_theme_stylebox_override(state, AppTheme.box(tone.darkened(.76 if state != "pressed" else .62), 12, border, 2))
-	add_theme_stylebox_override("hover", AppTheme.box(tone.darkened(.62), 12, border, 2))
-	add_theme_stylebox_override("focus", AppTheme.box(Color.TRANSPARENT, 12, border, 4))
+		var fill: Color = AppTheme.PANEL if visual_style.printed_face else tone.darkened(.76 if state != "pressed" else .62)
+		add_theme_stylebox_override(state, AppTheme.box(fill, visual_style.face_radius, border, 2))
+	add_theme_stylebox_override("hover", AppTheme.box(AppTheme.PANEL if visual_style.printed_face else tone.darkened(.62), visual_style.face_radius, border, 2))
+	add_theme_stylebox_override("focus", AppTheme.box(Color.TRANSPARENT, visual_style.face_radius, border, 4))
+	if visual_style.printed_face:
+		var keyline := InkKeyline.new()
+		keyline.name = "PrintedKeyline"
+		keyline.ink = AppTheme.INK
+		keyline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(keyline)
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right", "top", "bottom"]: margin.add_theme_constant_override("margin_" + side, 12)
@@ -44,6 +56,7 @@ func configure(data: Dictionary) -> void:
 	header.add_theme_constant_override("separation", 5)
 	var title := AppTheme.title(str(data.get("name", "")), 17)
 	title.name = "CardName"
+	if visual_style.printed_face and visual_context.profile.title_font: title.add_theme_font_override("font", visual_context.profile.title_font)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(title)
@@ -58,23 +71,30 @@ func configure(data: Dictionary) -> void:
 	var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 	art.setup("cards", str(data.get("definitionId", "")))
 	art_frame.add_child(art)
+	var placeholder_name: Label
 	if art.is_placeholder and bool(data.get("artPlaceholder", true)):
 		var art_name := Label.new()
 		art_name.text = str(data.get("name", "")).trim_suffix(" +").to_upper()
 		art_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		art_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		art_name.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM if visual_style.printed_face else VERTICAL_ALIGNMENT_CENTER
 		art_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		art_name.max_lines_visible = 2
-		art_name.add_theme_font_size_override("font_size", 15)
-		art_name.add_theme_color_override("font_color", Color.WHITE)
-		art_name.add_theme_constant_override("outline_size", 4)
+		art_name.add_theme_font_size_override("font_size", 11 if visual_style.printed_face else 15)
+		art_name.add_theme_color_override("font_color", AppTheme.INK if visual_style.printed_face else Color.WHITE)
+		art_name.add_theme_constant_override("outline_size", 0 if visual_style.printed_face else 4)
 		art_name.add_theme_color_override("font_outline_color", AppTheme.color("stroke.art_text"))
-		art_frame.add_child(art_name)
+		if visual_style.printed_face: placeholder_name = art_name
+		else: art_frame.add_child(art_name)
 	column.add_child(art_frame)
+	if placeholder_name:
+		placeholder_name.name = "ArtPlaceholderName"
+		placeholder_name.max_lines_visible = 1
+		placeholder_name.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		column.add_child(placeholder_name)
 	var type_line := HBoxContainer.new()
 	var card_type := AppTheme.muted(str(data.get("cardType", str(data.get("tone", "skill")).to_upper())), 10)
 	card_type.autowrap_mode = TextServer.AUTOWRAP_OFF
-	card_type.add_theme_color_override("font_color", tone.lightened(.28))
+	card_type.add_theme_color_override("font_color", tone.darkened(.15) if visual_style.printed_face else tone.lightened(.28))
 	type_line.add_child(card_type)
 	var type_push := Control.new()
 	type_push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -102,7 +122,15 @@ func configure(data: Dictionary) -> void:
 	rules.custom_minimum_size.y = 68
 	rules.scroll_active = false
 	rules.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(rules)
+	if visual_style.printed_face:
+		var effect_panel := PanelContainer.new()
+		effect_panel.name = "EffectPanel"
+		effect_panel.set_meta("contrast_surface_role", "surface.effects")
+		effect_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		effect_panel.add_theme_stylebox_override("panel", _compact_box(visual_style.effect_surface, Color.TRANSPARENT, 1, 0))
+		effect_panel.add_child(rules)
+		column.add_child(effect_panel)
+	else: column.add_child(rules)
 	if not data.get("behaviors", []).is_empty():
 		column.add_child(AppTheme.caption(" · ".join(data.behaviors), 11, 160))
 	var badges := _change_badges(data.get("changeBadges", []))
@@ -115,7 +143,7 @@ func configure(data: Dictionary) -> void:
 	var availability := AppTheme.muted(str(data.get("availability", "")), 11)
 	availability.autowrap_mode = TextServer.AUTOWRAP_OFF
 	availability.name = "Availability"
-	availability.add_theme_color_override("font_color", tone.lightened(.2))
+	availability.add_theme_color_override("font_color", tone.darkened(.15) if visual_style.printed_face else tone.lightened(.2))
 	availability.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	column.add_child(availability)
 	_ignore_mouse(margin)
@@ -169,6 +197,7 @@ func _cost_chip(cost: Dictionary) -> Control:
 	var appearance: Dictionary = visual_context.resource_style(str(cost.get("resourceId", "")))
 	var color := Color.from_string(str(appearance.get("cost_color", "")), AppTheme.color("resource.unknown"))
 	var chip := PanelContainer.new()
+	if visual_style.printed_face: chip.set_meta("contrast_preserve_colors", true)
 	chip.add_theme_stylebox_override("panel", _compact_box(color.darkened(.58), color.lightened(.18), 12, 2))
 	var amount: String = visual_context.translator.number(float(cost.get("amount", 0)))
 	var label := AppTheme.muted("%s %s" % [cost.get("symbol", "•"), amount], 12)
@@ -192,6 +221,7 @@ func _change_badges(items) -> Control:
 			"debuff": AppTheme.color("change.debuff"), "modified": AppTheme.color("change.modified")
 		}.get(kind, AppTheme.color("change.modified"))
 		var badge := PanelContainer.new()
+		if visual_style.printed_face: badge.set_meta("contrast_preserve_colors", true)
 		badge.add_theme_stylebox_override("panel", _compact_box(color.darkened(.72), color, 4, 1))
 		var label := AppTheme.muted("%s %s" % [item.get("symbol", "~"), item.get("label", "")], 9)
 		label.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -254,6 +284,8 @@ func select_card(value: bool) -> void:
 	if changed: _emphasize(value or is_hovered() or has_focus())
 
 func _emphasize(value: bool) -> void:
+	var keyline := get_node_or_null("PrintedKeyline")
+	if keyline: keyline.queue_redraw()
 	if hand_managed: return
 	if motion:
 		motion.kill()
@@ -305,9 +337,22 @@ class FlightCompletion extends RefCounted:
 		done = true
 		finished.emit()
 
+class InkKeyline extends Control:
+	var ink := Color("#20201c")
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		focus_mode = Control.FOCUS_NONE
+		resized.connect(queue_redraw)
+	func _draw() -> void:
+		var owner_card := get_parent() as CardView
+		var width := 2.0 if owner_card and (owner_card.chosen or owner_card.has_focus()) else 1.0
+		draw_rect(Rect2(Vector2(4, 4), (size - Vector2(8, 8)).max(Vector2.ZERO)), ink, false, width)
+
 func _exit_tree() -> void:
 	if motion: motion.kill()
 
 
 func _init(context = null) -> void:
 	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
+	visual_style = visual_context.card_style
+	_context_card_style = visual_style

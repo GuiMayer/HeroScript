@@ -83,7 +83,50 @@ static func build(high_contrast := false) -> Theme:
 	for variant in ["ScreenTitle", "SectionTitle"]:
 		if profile.title_font: result.set_font("font", variant, profile.title_font)
 	result.set_color("font_color", "Caption", MUTED)
+	if profile.printed_surfaces: _printed_controls(result, high_contrast)
 	return result
+
+static func _printed_controls(result: Theme, contrast: bool) -> void:
+	# Opt-in presentation variant; the production theme remains unchanged.
+	for type in ["Label", "Button", "CheckButton", "CheckBox", "OptionButton", "SpinBox", "LineEdit", "RichTextLabel", "PopupMenu"]:
+		result.set_color("font_color", type, INK)
+		result.set_color("font_hover_color", type, INK)
+		result.set_color("font_focus_color", type, INK)
+		result.set_color("font_pressed_color", type, GOLD)
+		result.set_color("font_disabled_color", type, color("text.disabled"))
+		result.set_color("font_outline_color", type, PANEL)
+		result.set_constant("outline_size", type, 0)
+	result.set_color("font_shadow_color", "Label", Color.TRANSPARENT)
+	result.set_constant("shadow_offset_x", "Label", 0)
+	result.set_constant("shadow_offset_y", "Label", 0)
+	for type in ["Button", "OptionButton"]:
+		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+			var fill := {"normal": PANEL_LIGHT, "hover": color("surface.hover"), "pressed": color("surface.pressed"), "disabled": color("surface.disabled"), "focus": Color.TRANSPARENT}
+			result.set_stylebox(state, type, box(fill[state], 2, GOLD if state == "focus" else color("stroke.control"), 2 if state == "focus" or contrast else 1))
+			var control_box: StyleBoxFlat = result.get_stylebox(state, type)
+			control_box.content_margin_left = 10; control_box.content_margin_right = 10
+			control_box.content_margin_top = 6; control_box.content_margin_bottom = 6
+	result.set_stylebox("panel", "PopupMenu", box(PANEL, 2, INK, 1))
+	result.set_stylebox("hover", "PopupMenu", box(color("surface.hover"), 0))
+	result.set_stylebox("panel", "PopupPanel", box(PANEL, 2, INK, 1))
+	result.set_stylebox("normal", "LineEdit", box(color("surface.input"), 2, color("stroke.input"), 1))
+	result.set_stylebox("focus", "LineEdit", box(color("surface.input"), 2, GOLD, 2))
+	for type in ["HScrollBar", "VScrollBar"]:
+		var track := box(color("surface.inset"), 0)
+		track.content_margin_left = 2; track.content_margin_right = 2
+		track.content_margin_top = 2; track.content_margin_bottom = 2
+		result.set_stylebox("scroll", type, track)
+		for state in ["grabber", "grabber_highlight", "grabber_pressed"]:
+			var style := box(GOLD if state == "grabber_pressed" else MUTED, 0)
+			style.content_margin_left = 4; style.content_margin_right = 4
+			style.content_margin_top = 4; style.content_margin_bottom = 4
+			result.set_stylebox(state, type, style)
+	var window_border := box(PANEL, 2, INK, 1)
+	window_border.expand_margin_top = 32
+	result.set_stylebox("embedded_border", "Window", window_border)
+	result.set_color("title_color", "Window", INK)
+	result.set_constant("title_height", "Window", 32)
+	result.set_stylebox("panel", "AcceptDialog", box(PANEL, 2, INK, 1))
 
 static func box(color: Color, radius := 8, border := Color.TRANSPARENT, width := 0) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -186,8 +229,9 @@ static func apply_view_preferences(node: Node, scale_override := -1.0, contrast_
 				if not background_role.is_empty(): style.bg_color = color(background_role)
 				if not border_role.is_empty(): style.border_color = color(border_role)
 			if effective_contrast and style is StyleBoxFlat:
-				style.bg_color = color("surface.high_contrast_panel")
-				style.border_color = node.get_meta("semantic_border_color", Color.WHITE)
+				if not node.get_meta("contrast_preserve_colors", false):
+					style.bg_color = color(str(node.get_meta("contrast_surface_role", "surface.high_contrast_panel")))
+					style.border_color = node.get_meta("semantic_border_color", Color.WHITE)
 				style.set_border_width_all(2)
 			node.add_theme_stylebox_override(style_name, style)
 	for child in node.get_children(): apply_view_preferences(child, effective_scale, effective_contrast, revision)

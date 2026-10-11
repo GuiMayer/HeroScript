@@ -1,0 +1,32 @@
+{
+	"captured_at_utc": "2026-10-11T21:08:53",
+	"captures": [
+		"hand-en-1280x720.png",
+		"scaling-en-1280x720.png",
+		"inspection-en-1280x720.png",
+		"empty-en-1280x720.png",
+		"hand-pt_BR-1280x720.png",
+		"scaling-pt_BR-1280x720.png",
+		"inspection-pt_BR-1280x720.png",
+		"empty-pt_BR-1280x720.png",
+		"hand-en-2560x1080.png",
+		"scaling-en-2560x1080.png",
+		"inspection-en-2560x1080.png",
+		"empty-en-2560x1080.png",
+		"hand-pt_BR-2560x1080.png",
+		"scaling-pt_BR-2560x1080.png",
+		"inspection-pt_BR-2560x1080.png",
+		"empty-pt_BR-2560x1080.png",
+		"high-contrast-en-1280x720.png",
+		"overview-100-en-1280x720.png"
+	],
+	"failures": 0,
+	"fixture": true,
+	"font_weights": {
+		"Cinzel": 600,
+		"Source Sans 3": 500
+	},
+	"godot": "4.7.2-stable (steam)",
+	"production_stretch": "1440x900 / canvas_items / expand",
+	"rendered": true
+}

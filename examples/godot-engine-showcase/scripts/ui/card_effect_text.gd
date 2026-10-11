@@ -11,7 +11,7 @@ func configure(effect_rows: Array, style: Resource) -> void:
 	bbcode_enabled = false
 	selection_enabled = true
 	meta_underlined = false
-	add_theme_color_override("default_color", AppTheme.INK)
+	add_theme_color_override("default_color", style.effect_ink if style.printed_face else AppTheme.INK)
 	add_theme_font_size_override("normal_font_size", style.rules_font_size)
 	add_theme_font_size_override("bold_font_size", style.rules_font_size)
 	# Preserve the established font inspection contract, alongside the actual rich font.

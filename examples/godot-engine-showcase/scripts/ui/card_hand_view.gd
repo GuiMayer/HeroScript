@@ -35,6 +35,7 @@ var _layout_pending := false
 var _syncing := false
 var _reserved_card_size := Vector2.ZERO
 var _layout_text_scale := -1.0
+var _layout_card_style_key := ""
 var _inspection_anchor := ""
 
 func _init(context = null) -> void:
@@ -230,9 +231,11 @@ func _relayout() -> void:
 	_layout_pending = false
 	if not is_inside_tree(): return
 	relayout_count += 1
-	var default_style = preload("res://data/default_card_visual_style.tres")
+	var default_style = visual_context.card_style
 	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
-	if not is_equal_approx(_layout_text_scale, visual_context.text_scale): _reserved_card_size = Vector2.ZERO
+	var policy_key: String = default_style.presentation_key()
+	if not is_equal_approx(_layout_text_scale, visual_context.text_scale) or policy_key != _layout_card_style_key: _reserved_card_size = Vector2.ZERO
+	_layout_card_style_key = policy_key
 	_layout_text_scale = visual_context.text_scale
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
 	dimensions = dimensions.max(_reserved_card_size)

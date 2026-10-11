@@ -51,7 +51,12 @@ Abra `scenes/card_hand_lab.tscn` no editor e pressione **F6**. Essa cena funcion
 sem API e usa os mesmos `CardView` e `CardHandView` do combate, sem executar regras
 ou alterar runs. F5 continua abrindo o jogo normal.
 
-Há 17 modelos visuais em quatro grupos, mão de 0 a 40 cartas, textos em português
+O laboratório aplica o perfil **Marfim / circuito impresso**, isolado do tema do
+jogo. Títulos editoriais, placeholders em tinta e efeitos em faixa escura usam
+os componentes compartilhados; ao sair, o perfil anterior é restaurado.
+[Guia e capturas](../../docs/design/IVORY_CARD_LAB.md).
+
+Há 17 modelos visuais em quatro grupos, mão de 0 a 100 cartas, textos em português
 e inglês, custos variados e alterações simultâneas. Edite as amostras em
 `data/labs/card_hand_lab.json`. Elas são fixtures de apresentação, não conteúdo
 autoritativo dos settings.

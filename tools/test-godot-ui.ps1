@@ -1,6 +1,8 @@
 param(
     [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation'),
     [string]$ApiUrl = '',
+    [string]$VisualTest = '',
+    [string]$VisualOutputDirectory = '',
     [int]$TimeoutSeconds = 180,
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
@@ -22,11 +24,21 @@ $configPath = Join-Path $project 'project.godot'
 $config = [IO.File]::ReadAllText($configPath).Replace('[application]', "[application]`nconfig/use_custom_user_dir=true`nconfig/custom_user_dir_name=`"HeroScript-ui-refactor-$taskId`"")
 [IO.File]::WriteAllText($configPath, $config)
 $results = [Collections.Generic.List[object]]::new()
-foreach ($test in @('import') + $Tests) {
+if ($VisualTest) {
+    if (-not $VisualOutputDirectory) { throw 'VisualOutputDirectory is required for a rendered test.' }
+    $VisualOutputDirectory = [IO.Path]::GetFullPath($VisualOutputDirectory)
+    New-Item -ItemType Directory -Path $VisualOutputDirectory -Force | Out-Null
+}
+$testNames = @('import') + $Tests
+if ($VisualTest) { $testNames += $VisualTest }
+foreach ($test in $testNames) {
     $stdout = Join-Path $project "$test.stdout.log"
     $stderr = Join-Path $project "$test.stderr.log"
     $arguments = @('--headless','--path',"`"$project`"")
-    if ($test -eq 'import') { $arguments += @('--editor','--import','--quit') }
+    if ($test -eq $VisualTest) {
+        $arguments = @('--path',"`"$project`"",'--audio-driver','Dummy','--script',"res://tests/$test.gd",'--',"`"--lab-output=$VisualOutputDirectory`"")
+    }
+    elseif ($test -eq 'import') { $arguments += @('--editor','--import','--quit') }
     else { $arguments += @('--script',"res://tests/$test.gd",'--','--layout-smoke') }
     if ($ApiUrl -and $test -ne 'import') { $arguments += "--api-url=$ApiUrl" }
     $watch = [Diagnostics.Stopwatch]::StartNew()

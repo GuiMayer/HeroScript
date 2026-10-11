@@ -1,0 +1,98 @@
+[
+  {
+    "test": "import",
+    "exit_code": 0,
+    "checks": 0,
+    "elapsed_ms": 9957,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab",
+    "exit_code": 0,
+    "checks": 68,
+    "elapsed_ms": 23570,
+    "diagnostics": []
+  },
+  {
+    "test": "card_hand_lab",
+    "exit_code": 0,
+    "checks": 118,
+    "elapsed_ms": 6709,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "card_presentation",
+    "exit_code": 0,
+    "checks": 55,
+    "elapsed_ms": 1338,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "card_preview_separation",
+    "exit_code": 0,
+    "checks": 35,
+    "elapsed_ms": 789,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "theme_contracts",
+    "exit_code": 0,
+    "checks": 10,
+    "elapsed_ms": 508,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "hand_ux",
+    "exit_code": 0,
+    "checks": 37,
+    "elapsed_ms": 4584,
+    "diagnostics": []
+  },
+  {
+    "test": "component_context",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 689,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "view_replacement",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 3185,
+    "diagnostics": []
+  },
+  {
+    "test": "pause_layers",
+    "exit_code": 0,
+    "checks": 24,
+    "elapsed_ms": 3099,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "ui_lifecycle",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 2908,
+    "diagnostics": []
+  },
+  {
+    "test": "ivory_lab_visual",
+    "exit_code": 0,
+    "checks": 39,
+    "elapsed_ms": 11032,
+    "diagnostics": []
+  }
+]

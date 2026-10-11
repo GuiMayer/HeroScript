@@ -26,6 +26,8 @@ func presentation_key() -> String:
 	return JSON.stringify([_options, _resource_styles, translator.locale, setting_id, profile.presentation_key()])
 var text_scale: float:
 	get: return float(_options.get("text_scale", 1.0))
+var card_style: CardVisualStyle:
+	get: return profile.card_style if profile.card_style else preload("res://data/default_card_visual_style.tres")
 var high_contrast: bool:
 	get: return bool(_options.get("high_contrast", false))
 var reduced_motion: bool:

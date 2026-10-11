@@ -2,7 +2,7 @@
 
 Data: 2026-10-11.
 
-Status: etapa 0 executada; tema Marfim ainda não aplicado. Registro, capturas, testes e limites da base em [interface-baseline/2026-10-11](../design/interface-baseline/2026-10-11/README.md). Etapas 1–10 pendentes.
+Status: etapa 0 executada; primeiro marco Marfim implementado no laboratório, usando recursos/tratamentos das etapas 1–5. Aprovação visual pendente antes de expandir. Migração global de controles/artes e etapas 6–10 ainda pendentes. Registro da base em [interface-baseline/2026-10-11](../design/interface-baseline/2026-10-11/README.md); [entrega do laboratório](../design/IVORY_CARD_LAB.md).
 
 Direção escolhida pelo autor: [conceito 02 — Marfim](../design/interface-concepts/2026-10-11/02-ivory.png). Os conceitos e seus prompts permanecem como referência; o mockup não é uma especificação literal de regras ou layout.
 
@@ -378,5 +378,7 @@ Critérios para concluir:
 ## 9. Primeiro marco recomendado
 
 Implementar as etapas 0–5 e apresentar uma captura real do laboratório de cartas com a mão no novo tema. Confirmada a direção, concluir o combate da etapa 6 e usá-lo como referência de qualidade para jornada e menus.
+
+Entregue em 2026-10-11 no escopo do laboratório: perfil Marfim e fontes locais, variante opt-in dos controles usados, circuitos estáticos, seis placeholders SVG pelo manifesto e cartas/detalhes/mão compartilhados. A entrada de produção continua com o tema preservado; sair da cena restaura o perfil anterior. Não representa artes finais ou a migração de todos os controles da demo. [Guia e evidências](../design/IVORY_CARD_LAB.md).
 
 Essa ordem valida primeiro os elementos mais frequentes e os conflitos semânticos. A repaginação só é considerada completa após as telas restantes e a auditoria final, não ao terminar a primeira screenshot bonita.

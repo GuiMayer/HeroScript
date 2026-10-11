@@ -16,7 +16,7 @@ func setup(title_text: String, summary: String, data: Dictionary = {}, card_mode
 	var detail: Control = null
 	if not card_model.is_empty():
 		detail = preload("res://scripts/ui/card_details_panel.gd").new(visual_context)
-		detail.configure(card_model, style if style != null else preload("res://data/default_card_visual_style.tres"))
+		detail.configure(card_model, style if style != null else visual_context.card_style)
 		detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		body.add_child(detail)
 		text.visible = false
