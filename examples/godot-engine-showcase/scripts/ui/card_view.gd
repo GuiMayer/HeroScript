@@ -12,7 +12,8 @@ var _configuration_key := ""
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 
 func configure(data: Dictionary) -> void:
-	var presentation_key := JSON.stringify(data) + str(Preferences.text_scale) + str(Preferences.high_contrast) + visual_style.presentation_key()
+	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
+	var presentation_key: String = JSON.stringify(data) + str(Preferences.text_scale) + str(Preferences.high_contrast) + visual_style.presentation_key() + AppTheme.profile.presentation_key()
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
 	configuration_count += 1
@@ -22,7 +23,7 @@ func configure(data: Dictionary) -> void:
 		remove_child(child)
 		child.queue_free()
 	custom_minimum_size = visual_style.effective_size(Preferences.text_scale)
-	var tone: Color = {"attack": AppTheme.BLOOD, "power": Color("#9a86d8")}.get(str(data.get("tone", "skill")), AppTheme.TEAL)
+	var tone: Color = {"attack": AppTheme.BLOOD, "power": AppTheme.color("accent.power")}.get(str(data.get("tone", "skill")), AppTheme.TEAL)
 	var border: Color = visual_style.rarity_color(str(data.get("rarityId", "")))
 	set_meta("semantic_border_color", border)
 	for key in get_meta_list():
@@ -52,7 +53,7 @@ func configure(data: Dictionary) -> void:
 	art_frame.name = "Art"
 	art_frame.custom_minimum_size.y = visual_style.art_height
 	art_frame.clip_contents = true
-	art_frame.add_theme_stylebox_override("panel", _compact_box(Color("#121421"), tone.darkened(.28), 5, 1))
+	art_frame.add_theme_stylebox_override("panel", _compact_box(AppTheme.color("surface.card_art"), tone.darkened(.28), 5, 1))
 	var art := preload("res://scripts/ui/art_slot.gd").new()
 	art.setup("cards", str(data.get("definitionId", "")))
 	art_frame.add_child(art)
@@ -66,7 +67,7 @@ func configure(data: Dictionary) -> void:
 		art_name.add_theme_font_size_override("font_size", 15)
 		art_name.add_theme_color_override("font_color", Color.WHITE)
 		art_name.add_theme_constant_override("outline_size", 4)
-		art_name.add_theme_color_override("font_outline_color", Color("#0b0d16d9"))
+		art_name.add_theme_color_override("font_outline_color", AppTheme.color("stroke.art_text"))
 		art_frame.add_child(art_name)
 	column.add_child(art_frame)
 	var type_line := HBoxContainer.new()
@@ -155,7 +156,7 @@ func _cost_zone(data: Dictionary) -> Control:
 		var fallback := str(data.get("cost", ""))
 		if fallback.is_empty(): fallback = "0"
 		var neutral := PanelContainer.new()
-		neutral.add_theme_stylebox_override("panel", _compact_box(Color("#303243"), Color("#77798c"), 12, 1))
+		neutral.add_theme_stylebox_override("panel", _compact_box(AppTheme.color("surface.cost_unknown"), AppTheme.color("stroke.cost_unknown"), 12, 1))
 		var label := AppTheme.muted(fallback, 11)
 		label.autowrap_mode = TextServer.AUTOWRAP_OFF
 		label.add_theme_color_override("font_color", AppTheme.INK)
@@ -164,7 +165,7 @@ func _cost_zone(data: Dictionary) -> Control:
 	return zone
 
 func _cost_chip(cost: Dictionary) -> Control:
-	var color := Color.from_string(str(cost.get("color", "#666879")), Color("#666879"))
+	var color := Color.from_string(str(cost.get("color", "#666879")), AppTheme.color("resource.unknown"))
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", _compact_box(color.darkened(.58), color.lightened(.18), 12, 2))
 	var amount := I18n.number(float(cost.get("amount", 0)))
@@ -185,9 +186,9 @@ func _change_badges(items) -> Control:
 		var item: Dictionary = items[index]
 		var kind := str(item.get("kind", "modified"))
 		var color: Color = {
-			"upgrade": Color("#79d58c"), "buff": Color("#62d6bf"),
-			"debuff": Color("#ee7b78"), "modified": Color("#b39ce6")
-		}.get(kind, Color("#b39ce6"))
+			"upgrade": AppTheme.color("change.upgrade"), "buff": AppTheme.color("change.buff"),
+			"debuff": AppTheme.color("change.debuff"), "modified": AppTheme.color("change.modified")
+		}.get(kind, AppTheme.color("change.modified"))
 		var badge := PanelContainer.new()
 		badge.add_theme_stylebox_override("panel", _compact_box(color.darkened(.72), color, 4, 1))
 		var label := AppTheme.muted("%s %s" % [item.get("symbol", "~"), item.get("label", "")], 9)

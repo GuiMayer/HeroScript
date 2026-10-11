@@ -15,22 +15,22 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var size := get_rect().size
-	draw_rect(Rect2(Vector2.ZERO, size), Color("#080b18"))
+	draw_rect(Rect2(Vector2.ZERO, size), AppTheme.color("scenery.base"))
 	for i in 9:
 		var ratio := float(i) / 8.0
-		var tint := Color("#171228").lerp(Color("#0d2430"), ratio)
+		var tint := AppTheme.color("scenery.gradient_start").lerp(AppTheme.color("scenery.gradient_end"), ratio)
 		draw_rect(Rect2(0, ratio * size.y, size.x, size.y / 8.0 + 1), tint)
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(0, size.y * .64), Vector2(size.x * .18, size.y * .31),
 		Vector2(size.x * .34, size.y * .64), Vector2(size.x * .51, size.y * .25),
 		Vector2(size.x * .72, size.y * .64), Vector2(size.x, size.y * .37),
 		Vector2(size.x, size.y), Vector2(0, size.y)
-	]), Color("#121526"))
+	]), AppTheme.color("scenery.far"))
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(0, size.y * .77), Vector2(size.x * .25, size.y * .51),
 		Vector2(size.x * .47, size.y * .78), Vector2(size.x * .73, size.y * .48),
 		Vector2(size.x, size.y * .72), Vector2(size.x, size.y), Vector2(0, size.y)
-	]), Color("#171a28"))
+	]), AppTheme.color("scenery.near"))
 	for i in 28:
 		var x := fmod(float(i * 193 + 41), maxf(size.x, 1.0))
 		var base_y := fmod(float(i * 83), maxf(size.y, 1.0))

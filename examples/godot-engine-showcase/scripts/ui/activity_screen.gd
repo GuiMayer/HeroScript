@@ -141,7 +141,7 @@ func _build_map() -> Control:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.add_child(route)
 	column.add_child(scroll)
-	return AppTheme.panel(column, Color("#151727d9"))
+	return AppTheme.panel(column, AppTheme.color("surface.journey"))
 
 func _activity_summary(node: Dictionary) -> Control:
 	var row := HBoxContainer.new()

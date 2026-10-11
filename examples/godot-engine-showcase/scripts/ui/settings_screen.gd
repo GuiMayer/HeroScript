@@ -74,7 +74,7 @@ func _category_navigation() -> Control:
 	var local_note := AppTheme.muted(I18n.text("Your preferences are saved locally and do not affect game rules."), 12, 220)
 	local_note.custom_minimum_size.y = 64
 	content.add_child(local_note)
-	var panel := AppTheme.panel(content, Color("#171927e8"))
+	var panel := AppTheme.panel(content, AppTheme.color("surface.settings_navigation"))
 	panel.name = "SettingsCategories"
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	return panel
@@ -105,7 +105,7 @@ func _page_panel() -> Control:
 	page_content.add_theme_constant_override("separation", 8)
 	scroll.add_child(page_content)
 	content.add_child(scroll)
-	var panel := AppTheme.panel(content, Color("#202236e8"))
+	var panel := AppTheme.panel(content, AppTheme.color("surface.settings_content"))
 	panel.name = "SettingsPage"
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -301,7 +301,7 @@ func _add_option(title_text: String, description_text: String, control: Control)
 	control.tooltip_text = description_text
 	row.add_child(control)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", AppTheme.box(Color("#171927a8"), 9, Color("#34364d"), 1))
+	panel.add_theme_stylebox_override("panel", AppTheme.box(AppTheme.color("surface.settings_row"), 9, AppTheme.color("stroke.settings_row"), 1))
 	panel.add_child(row)
 	page_content.add_child(panel)
 

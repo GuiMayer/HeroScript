@@ -76,11 +76,12 @@ func refresh_state(data: Dictionary) -> void:
 	_render(data, false)
 
 func _render(data: Dictionary, play_entry_animation: bool) -> void:
+	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	_run_snapshot = GameSession.run
 	_combat_snapshot = GameSession.combat
 	_action_snapshot = GameSession.legal_actions
 	_zone_snapshot = GameSession.card_zones
-	var key: Array = [_run_snapshot, _combat_snapshot, _action_snapshot, _zone_snapshot, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast]
+	var key: Array = [_run_snapshot, _combat_snapshot, _action_snapshot, _zone_snapshot, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast, AppTheme.profile.presentation_key()]
 	if key == _projection_key and is_instance_valid(hand):
 		_update_controls()
 		return

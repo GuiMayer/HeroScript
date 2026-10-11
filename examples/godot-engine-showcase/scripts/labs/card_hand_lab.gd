@@ -173,6 +173,7 @@ func set_text_scale(value: float) -> void:
 	_refresh()
 
 func _refresh() -> void:
+	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
 	models.clear()
 	var entries: Array = catalog.presets[preset_index].cards

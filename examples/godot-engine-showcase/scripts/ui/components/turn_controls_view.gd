@@ -43,7 +43,7 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary, overlay_host
 	add_child(system_slot)
 	var end := _button(translator.text("END TURN  [%s]") % str(labels["end_turn"]), end_requested.emit, 195)
 	end.name = "EndTurnButton"
-	end.add_theme_stylebox_override("normal", AppTheme.box(Color("#705033"), 10, AppTheme.GOLD, 2))
+	end.theme_type_variation = "PrimaryAction"
 	end.set_meta("requires_end", true)
 	buttons.append(end)
 	add_child(end)

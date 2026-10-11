@@ -47,7 +47,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	target_button.toggle_mode = true
 	target_button.tooltip_text = I18n.text("Choose a highlighted target.")
 	for state in ["normal", "disabled"]: target_button.add_theme_stylebox_override(state, AppTheme.box(Color.TRANSPARENT, 12))
-	for state in ["hover", "focus", "pressed"]: target_button.add_theme_stylebox_override(state, AppTheme.box(Color("#e7b75d18"), 12, AppTheme.GOLD, 2))
+	for state in ["hover", "focus", "pressed"]: target_button.add_theme_stylebox_override(state, AppTheme.box(AppTheme.color("surface.target_hover"), 12, AppTheme.GOLD, 2))
 	target_button.pressed.connect(func(): target_selected.emit(str(actor.get("instanceId", ""))))
 	(root_content if compact else content).add_child(target_button)
 	var portrait := preload("res://scripts/ui/art_slot.gd").new()
@@ -92,7 +92,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 	status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status.add_theme_color_override("font_color", AppTheme.EMBER if not statuses.is_empty() else AppTheme.MUTED)
 	content.add_child(status)
-	var panel_style := AppTheme.box(Color("#161723bc"), 16)
+	var panel_style := AppTheme.box(AppTheme.color("surface.actor"), 16)
 	if battlefield:
 		panel_style = AppTheme.box(Color.TRANSPARENT, 0)
 		panel_style.content_margin_top = 4; panel_style.content_margin_bottom = 4

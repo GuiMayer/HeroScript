@@ -1,21 +1,42 @@
 class_name AppTheme
 extends RefCounted
 
-const INK := Color("#f5ecd8")
-const MUTED := Color("#a9a0a8")
-const EMBER := Color("#ee8653")
-const GOLD := Color("#e7b75d")
-const TEAL := Color("#53c9b5")
-const BLOOD := Color("#ce5269")
-const NIGHT := Color("#111323")
-const PANEL := Color("#202236")
-const PANEL_LIGHT := Color("#2d2d43")
+static var INK: Color:
+	get: return color("text.primary")
+static var MUTED: Color:
+	get: return color("text.secondary")
+static var EMBER: Color:
+	get: return color("accent.warm")
+static var GOLD: Color:
+	get: return color("accent.primary")
+static var TEAL: Color:
+	get: return color("accent.positive")
+static var BLOOD: Color:
+	get: return color("accent.danger")
+static var NIGHT: Color:
+	get: return color("surface.canvas")
+static var PANEL: Color:
+	get: return color("surface.panel")
+static var PANEL_LIGHT: Color:
+	get: return color("surface.raised")
+static var profile: Resource = preload("res://data/themes/preserved.tres")
+static var generation := 0
+static var text_scale := 1.0
+static var high_contrast_enabled := false
+static func configure_preferences(scale: float, contrast: bool) -> void:
+	text_scale = scale
+	high_contrast_enabled = contrast
+static func set_profile(value: Resource) -> void:
+	profile = value
+	generation += 1
+static func color(role: String) -> Color: return profile.color(role)
+static func color_tag(role: String) -> String: return "[color=#" + color(role).to_html(false) + "]"
 const MIN_READABLE_TEXT_WIDTH := 112.0
 
 static func build(high_contrast := false) -> Theme:
 	var result := Theme.new()
-	result.default_font_size = roundi(17 * Preferences.text_scale)
-	result.set_font_size("font_size", "Label", roundi(17 * Preferences.text_scale))
+	result.default_font_size = roundi(profile.body_font_size * text_scale)
+	result.set_font_size("font_size", "Label", roundi(17 * text_scale))
 	result.set_color("font_color", "Label", INK)
 	if high_contrast:
 		result.set_constant("outline_size", "Label", 2)
@@ -28,35 +49,44 @@ static func build(high_contrast := false) -> Theme:
 	result.set_color("font_color", "Button", INK)
 	result.set_color("font_hover_color", "Button", Color.WHITE)
 	result.set_color("font_pressed_color", "Button", GOLD)
-	result.set_color("font_disabled_color", "Button", Color("#656275"))
-	result.set_stylebox("normal", "Button", box(PANEL_LIGHT, 9, Color("#4b4961"), 1))
-	result.set_stylebox("hover", "Button", box(Color("#3b3546"), 9, EMBER, 2))
-	result.set_stylebox("pressed", "Button", box(Color("#181927"), 9, GOLD, 2))
-	result.set_stylebox("disabled", "Button", box(Color("#191a27"), 9, Color("#313142"), 1))
-	result.set_stylebox("panel", "PanelContainer", box(Color("#1b1d2edb"), 13, Color("#3a3b55"), 1))
-	result.set_stylebox("normal", "LineEdit", box(Color("#131522"), 7, Color("#44465d"), 1))
-	result.set_stylebox("focus", "LineEdit", box(Color("#131522"), 7, TEAL, 2))
+	result.set_color("font_disabled_color", "Button", color("text.disabled"))
+	result.set_stylebox("normal", "Button", box(PANEL_LIGHT, 9, color("stroke.control"), 1))
+	result.set_stylebox("hover", "Button", box(color("surface.hover"), 9, EMBER, 2))
+	result.set_stylebox("pressed", "Button", box(color("surface.pressed"), 9, GOLD, 2))
+	result.set_stylebox("disabled", "Button", box(color("surface.disabled"), 9, color("stroke.disabled"), 1))
+	result.set_stylebox("panel", "PanelContainer", box(color("surface.panel_translucent"), 13, color("stroke.panel"), 1))
+	result.set_stylebox("normal", "LineEdit", box(color("surface.input"), 7, color("stroke.input"), 1))
+	result.set_stylebox("focus", "LineEdit", box(color("surface.input"), 7, TEAL, 2))
 	result.set_color("font_color", "LineEdit", INK)
 	result.set_color("font_placeholder_color", "LineEdit", MUTED)
-	result.set_stylebox("normal", "TextEdit", box(Color("#11131f"), 8, Color("#3e4058"), 1))
-	result.set_stylebox("focus", "TextEdit", box(Color("#11131f"), 8, TEAL, 2))
-	result.set_color("font_color", "TextEdit", Color("#d9e6dd"))
-	result.set_color("background", "ProgressBar", Color("#11131f"))
+	result.set_stylebox("normal", "TextEdit", box(color("surface.inset"), 8, color("stroke.editor"), 1))
+	result.set_stylebox("focus", "TextEdit", box(color("surface.inset"), 8, TEAL, 2))
+	result.set_color("font_color", "TextEdit", color("text.code"))
+	result.set_color("background", "ProgressBar", color("surface.inset"))
 	result.set_color("font_color", "ProgressBar", INK)
-	result.set_stylebox("background", "ProgressBar", box(Color("#11131f"), 6))
+	result.set_stylebox("background", "ProgressBar", box(color("surface.inset"), 6))
 	result.set_stylebox("fill", "ProgressBar", box(BLOOD, 6))
 	result.set_color("font_color", "RichTextLabel", INK)
 	result.set_color("default_color", "RichTextLabel", INK)
-	result.set_stylebox("panel", "PopupPanel", box(Color("#171927"), 12, EMBER, 1))
+	result.set_stylebox("panel", "PopupPanel", box(color("surface.popup"), 12, EMBER, 1))
 	result.set_stylebox("focus", "Button", box(Color.TRANSPARENT, 9, Color.WHITE if high_contrast else GOLD, 3))
 	if high_contrast:
-		result.set_color("font_disabled_color", "Button", Color("#b7b7bf"))
-		result.set_stylebox("normal", "Button", box(Color("#070911"), 9, Color.WHITE, 2))
+		result.set_color("font_disabled_color", "Button", color("text.high_contrast_disabled"))
+		result.set_stylebox("normal", "Button", box(color("surface.high_contrast"), 9, Color.WHITE, 2))
+	for variant in ["PrimaryAction", "SecondaryAction", "DangerAction"]:
+		result.set_type_variation(variant, "Button")
+	result.set_stylebox("normal", "PrimaryAction", box(color("surface.primary_action"), profile.corner_radius, GOLD, 2))
+	result.set_color("font_color", "DangerAction", BLOOD)
+	for variant in ["ScreenTitle", "SectionTitle", "Caption"]:
+		result.set_type_variation(variant, "Label")
+	result.set_color("font_color", "Caption", MUTED)
 	return result
 
 static func box(color: Color, radius := 8, border := Color.TRANSPARENT, width := 0) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
+	style.set_meta("background_role", profile.role_for(color))
+	style.set_meta("border_role", profile.role_for(border))
 	style.corner_radius_top_left = radius
 	style.corner_radius_top_right = radius
 	style.corner_radius_bottom_left = radius
@@ -72,18 +102,19 @@ static func box(color: Color, radius := 8, border := Color.TRANSPARENT, width :=
 	style.content_margin_bottom = 12
 	return style
 
-static func title(text: String, size := 34, color := INK) -> Label:
+static func title(text: String, size := 34, color = null) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_color", INK if color == null else color)
+	label.set_meta("text_role", profile.role_for(INK if color == null else color))
 	return label
 
 static func muted(text: String, size := 15, min_width := 0.0) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", MUTED)
+	label.theme_type_variation = "Caption"
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if min_width > 0:
 		label.custom_minimum_size.x = min_width
@@ -94,7 +125,7 @@ static func caption(text: String, size := 15, min_width := 0) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_color", MUTED)
+	label.theme_type_variation = "Caption"
 	label.custom_minimum_size.x = min_width
 	label.clip_text = true
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -113,28 +144,37 @@ static func button(text: String, min_width := 0) -> Button:
 	value.text = text
 	value.custom_minimum_size = Vector2(min_width, 48)
 	value.focus_mode = Control.FOCUS_ALL
+	value.theme_type_variation = "SecondaryAction"
 	return value
 
-static func panel(content: Control, color := PANEL) -> PanelContainer:
+static func panel(content: Control, color = null) -> PanelContainer:
 	var wrapper := PanelContainer.new()
-	wrapper.add_theme_stylebox_override("panel", box(color, 13, Color(color).lightened(0.18), 1))
+	var resolved: Color = PANEL if color == null else color
+	wrapper.add_theme_stylebox_override("panel", box(resolved, 13, resolved.lightened(0.18), 1))
 	wrapper.add_child(content)
 	return wrapper
 
 static func apply_view_preferences(node: Node) -> void:
 	if node is Control:
+		if node.has_meta("text_role") and not str(node.get_meta("text_role")).is_empty():
+			node.add_theme_color_override("font_color", color(str(node.get_meta("text_role"))))
 		for font_key in ["font_size", "normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
 			if not node.has_theme_font_size_override(font_key): continue
 			var font_meta: String = "base_" + font_key
 			if not node.has_meta(font_meta): node.set_meta(font_meta, node.get_theme_font_size(font_key))
-			node.add_theme_font_size_override(font_key, roundi(float(node.get_meta(font_meta)) * Preferences.text_scale))
+			node.add_theme_font_size_override(font_key, roundi(float(node.get_meta(font_meta)) * text_scale))
 		for style_name in ["normal", "panel", "hover", "pressed", "disabled"]:
 			if not node.has_theme_stylebox_override(style_name): continue
 			var meta: String = "base_style_" + style_name
 			if not node.has_meta(meta): node.set_meta(meta, node.get_theme_stylebox(style_name).duplicate())
 			var style = node.get_meta(meta).duplicate()
-			if Preferences.high_contrast and style is StyleBoxFlat:
-				style.bg_color = Color("#090b15")
+			if style is StyleBoxFlat:
+				var background_role := str(style.get_meta("background_role", ""))
+				var border_role := str(style.get_meta("border_role", ""))
+				if not background_role.is_empty(): style.bg_color = color(background_role)
+				if not border_role.is_empty(): style.border_color = color(border_role)
+			if high_contrast_enabled and style is StyleBoxFlat:
+				style.bg_color = color("surface.high_contrast_panel")
 				style.border_color = node.get_meta("semantic_border_color", Color.WHITE)
 				style.set_border_width_all(2)
 			node.add_theme_stylebox_override(style_name, style)

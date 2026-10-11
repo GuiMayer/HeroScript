@@ -140,7 +140,7 @@ func _render_state(entry: Dictionary, commit: Dictionary) -> void:
 	var deck: Dictionary = state.get("deck", {})
 	var cards = deck.get("cardInstances", {})
 	var card_count: int = cards.size() if cards is Dictionary or cards is Array else 0
-	state_text.text = "[font_size=22][color=#f5ecd8]%s[/color][/font_size]\n%s\n%s\n%s\n[color=#a9a0a8]%s[/color]" % [
+	state_text.text = ("[font_size=22]" + AppTheme.color_tag("text.primary") + "%s[/color][/font_size]\n%s\n%s\n%s\n" + AppTheme.color_tag("text.secondary") + "%s[/color]") % [
 		_command_name(str(entry.get("commandType", ""))),
 		I18n.text("State after command: %s") % lifecycle,
 		I18n.text("Stop: %s  •  Deck: %s cards  •  Relics: %s") % [node, card_count, state.get("relics", []).size()],
@@ -156,7 +156,7 @@ func _render_frames(entry: Dictionary) -> void:
 	if frames.is_empty():
 		frame_text.text = I18n.text("No internal frames were recorded for this command.")
 		return
-	var lines: Array[String] = ["[color=#53c9b5]%s[/color]" % (I18n.text("%s internal frame(s)") % frames.size())]
+	var lines: Array[String] = [(AppTheme.color_tag("accent.positive") + "%s[/color]") % (I18n.text("%s internal frame(s)") % frames.size())]
 	for frame in frames:
 		var scope := str(frame.get("scope", "run"))
 		var kind := str(frame.get("kind", "transition")).replace("_", " ").replace(".", " › ").capitalize()

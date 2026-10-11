@@ -18,7 +18,7 @@ func setup(route: Array) -> void:
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		button.disabled = node.travel.is_empty()
 		button.add_theme_color_override("font_disabled_color", AppTheme.GOLD if node.current else AppTheme.MUTED)
-		button.add_theme_stylebox_override("disabled", AppTheme.box(Color("#242133") if node.current else Color("#141623"), 9, AppTheme.GOLD if node.current else Color("#343448"), 1))
+		button.add_theme_stylebox_override("disabled", AppTheme.box(AppTheme.color("surface.route_current") if node.current else AppTheme.color("surface.route_locked"), 9, AppTheme.GOLD if node.current else AppTheme.color("stroke.route_locked"), 1))
 		button.tooltip_text = str(node.name) + "\n" + str(node.get("description", ""))
 		if str(node.get("risk", "")) == "High":
 			button.add_theme_color_override("font_color", AppTheme.EMBER)
@@ -32,10 +32,10 @@ func _draw() -> void:
 		for next in node.next:
 			if not markers.has(str(next)): continue
 			var destination: Vector2 = markers[str(next)]
-			var color := AppTheme.TEAL.darkened(.4) if node.resolved else Color("#575267")
+			var color := AppTheme.TEAL.darkened(.4) if node.resolved else AppTheme.color("stroke.route")
 			var bend := 8.0 if absf(destination.y - origin.y) > 80 else 18.0
 			draw_polyline(PackedVector2Array([origin, Vector2(bend, origin.y + 12), Vector2(bend, destination.y - 12), destination]), color, 2, true)
 			draw_line(destination, destination + Vector2(-4, -7 if destination.y > origin.y else 7), color, 2, true)
 	for node in nodes:
 		var point: Vector2 = markers[str(node.id)]
-		draw_circle(point, 7, AppTheme.GOLD if node.current else (AppTheme.TEAL if node.resolved else Color("#575267")))
+		draw_circle(point, 7, AppTheme.GOLD if node.current else (AppTheme.TEAL if node.resolved else AppTheme.color("stroke.route")))

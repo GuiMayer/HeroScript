@@ -21,6 +21,7 @@ var settings_return_to_gameplay := false
 var continuation_run_id := ""
 
 func _ready() -> void:
+	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--locale="):
@@ -45,7 +46,7 @@ func _ready() -> void:
 	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	toast.position = Vector2(-260, 18)
 	toast.size = Vector2(520, 52)
-	toast.add_theme_stylebox_override("normal", AppTheme.box(Color("#281e2be8"), 10, AppTheme.EMBER, 1))
+	toast.add_theme_stylebox_override("normal", AppTheme.box(AppTheme.color("surface.toast"), 10, AppTheme.EMBER, 1))
 	toast.add_theme_font_size_override("font_size", 16)
 	add_child(toast)
 	GameSession.failed.connect(func(error): show_error(I18n.error(error)))
@@ -177,7 +178,7 @@ func _show_main_menu() -> void:
 	card_content.add_child(_button(I18n.text("CONTENT CODEX"), show_codex, 420))
 	card_content.add_child(_button(I18n.text("SETTINGS"), show_settings, 420))
 	card_content.add_child(_button(I18n.text("QUIT"), get_tree().quit, 420))
-	center.add_child(AppTheme.panel(card_content, Color("#171929e8")))
+	center.add_child(AppTheme.panel(card_content, AppTheme.color("surface.menu")))
 	var bottom := AppTheme.muted(I18n.text("HeroScript decides  •  REST connects  •  Godot presents"), 13)
 	bottom.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(bottom)
@@ -342,7 +343,7 @@ func toggle_pause() -> void:
 	pause_layer.name = "PauseOverlay"
 	pause_layer.theme = theme
 	pause_layer.process_mode = Node.PROCESS_MODE_ALWAYS
-	pause_layer.color = Color("#080912dd")
+	pause_layer.color = AppTheme.color("surface.modal_scrim")
 	pause_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	pause_canvas.add_child(pause_layer)
 	get_tree().paused = true
@@ -427,6 +428,7 @@ func _on_session_changed() -> void:
 			screen._update_controls()
 
 func _apply_preferences() -> void:
+	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
 	AppTheme.apply_view_preferences(host)
 	if is_instance_valid(pause_layer):

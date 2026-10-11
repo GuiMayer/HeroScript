@@ -103,7 +103,7 @@ func _select(index: int) -> void:
 	var mode := I18n.content_name(str(selected.get("modeId", "")), str(selected.get("modeId", "")).replace("_", " ").capitalize())
 	var node := I18n.content_name(str(selected.get("currentNodeId", "")), I18n.text("Unknown stop"))
 	var lifecycle := _lifecycle(str(selected.get("lifecycle", "Active")))
-	details.text = "[font_size=26][color=#e7b75d]%s[/color][/font_size]\n\n%s\n%s\n%s\n%s\n[color=#a9a0a8]%s[/color]" % [
+	details.text = ("[font_size=26]" + AppTheme.color_tag("accent.primary") + "%s[/color][/font_size]\n\n%s\n%s\n%s\n%s\n" + AppTheme.color_tag("text.secondary") + "%s[/color]") % [
 		lifecycle,
 		I18n.text("Mode: %s") % mode,
 		I18n.text("Seed: %s") % str(selected.get("seed", "—")),

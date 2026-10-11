@@ -14,7 +14,7 @@ func setup(id: String, state: Dictionary, appearance: Dictionary = {}) -> void:
 	bar.max_value = maxf(float(state.get("maximum", 1)), 1.0)
 	bar.value = float(state.get("current", 0))
 	bar.show_percentage = false
-	var tone: Color = {"health": AppTheme.BLOOD, "block": Color("#7e9fbd"), "energy": AppTheme.GOLD, "mana": Color("#8c75dc")}.get(id, AppTheme.TEAL)
+	var tone: Color = {"health": AppTheme.BLOOD, "block": AppTheme.color("resource.block"), "energy": AppTheme.GOLD, "mana": AppTheme.color("resource.mana")}.get(id, AppTheme.TEAL)
 	bar.add_theme_stylebox_override("fill", AppTheme.box(tone, 5))
 	bar.visible = str(appearance.get("display", "bar")) == "bar"
 	add_child(bar)
