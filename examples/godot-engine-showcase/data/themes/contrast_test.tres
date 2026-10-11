@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/ui/styles/visual_theme_profile.gd" id="1"]
+[resource]
+script = ExtResource("1")
+profile_id = "contrast_test"
+colors = {
+"text.primary": "#182a35",
+"text.secondary": "#4f5e65",
+"surface.canvas": "#e8e2d5",
+"surface.panel": "#ede7d9",
+"surface.raised": "#d6d0c2",
+"accent.primary": "#a94b31",
+"accent.warm": "#9b472f",
+"accent.positive": "#24756b",
+"surface.menu": "#ede7d9",
+"surface.modal_scrim": "#111b23bb",
+"surface.panel_translucent": "#ede7d9ee",
+"surface.popup": "#ede7d9"
+}

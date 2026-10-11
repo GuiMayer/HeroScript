@@ -20,6 +20,13 @@ func _run() -> void:
 	panel.theme = AppTheme.build()
 	AppTheme.apply_view_preferences(panel)
 	check(label.get_theme_color("font_color") == alternate.color("text.primary"), "existing text adopts semantic role")
+	var before_fonts: String = alternate.presentation_key()
+	alternate.font_sizes = {"section": 23}
+	check(before_fonts != alternate.presentation_key(), "typography invalidates the visual profile")
+	alternate.font_sizes = {}
+	var before_art: String = alternate.presentation_key()
+	alternate.setting_art_manifests = {"fixture": "res://data/labs/art_manifest_context_test.json"}
+	check(before_art != alternate.presentation_key() and alternate.manifest_for("fixture").contains("context_test"), "setting-specific art remains presentation-only and invalidates the profile")
 	check(panel.get_theme_stylebox("panel").bg_color == alternate.color("surface.panel"), "existing panel adopts profile without rebuilding")
 	prefs.text_scale = 1.2
 	AppTheme.configure_preferences(1.2, false)

@@ -1,0 +1,11 @@
+[gd_scene format=3]
+[node name="CombatBody" type="HBoxContainer"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+metadata/layout_id = "lateral_preview_test"
+[node name="CombatGameplay" type="Control" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 2

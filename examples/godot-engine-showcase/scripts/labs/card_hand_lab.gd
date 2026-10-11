@@ -22,6 +22,8 @@ var _rotation := 0
 
 func _ready() -> void:
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
+	var appearance = JSON.parse_string(FileAccess.get_file_as_string("res://data/presentation.json"))
+	if appearance is Dictionary: visual_context.set_resource_styles(appearance.get("resources", {}))
 	_prior_preferences = {"text_scale": Preferences.text_scale, "high_contrast": Preferences.high_contrast,
 		"reduced_motion": Preferences.reduced_motion, "locale": I18n.locale}
 	catalog = JSON.parse_string(FileAccess.get_file_as_string(Fixtures))

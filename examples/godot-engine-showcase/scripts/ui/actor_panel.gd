@@ -8,7 +8,7 @@ var _battlefield_content: VBoxContainer
 var _projection := []
 
 func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: String, compact := false, battlefield := false) -> void:
-	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, visual_context.translator.locale]
+	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, visual_context.translator.locale, visual_context.profile.presentation_key()]
 	if projection == _projection: return
 	_projection = projection.duplicate(true)
 	if get_child_count() > 0:

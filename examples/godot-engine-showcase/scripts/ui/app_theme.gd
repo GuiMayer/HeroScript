@@ -105,6 +105,7 @@ static func box(color: Color, radius := 8, border := Color.TRANSPARENT, width :=
 static func title(text: String, size := 34, color = null) -> Label:
 	var label := Label.new()
 	label.text = text
+	label.set_meta("font_role", "screen_title" if size >= 28 else ("section_title" if size >= 20 else ("body" if size >= 15 else "caption")))
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", INK if color == null else color)
 	label.set_meta("text_role", profile.role_for(INK if color == null else color))
@@ -164,7 +165,7 @@ static func apply_view_preferences(node: Node, scale_override := -1.0, contrast_
 			if not node.has_theme_font_size_override(font_key): continue
 			var font_meta: String = "base_" + font_key
 			if not node.has_meta(font_meta): node.set_meta(font_meta, node.get_theme_font_size(font_key))
-			node.add_theme_font_size_override(font_key, roundi(float(node.get_meta(font_meta)) * effective_scale))
+			node.add_theme_font_size_override(font_key, roundi(profile.font_size(str(node.get_meta("font_role", "")), float(node.get_meta(font_meta))) * effective_scale))
 		for style_name in ["normal", "panel", "hover", "pressed", "disabled"]:
 			if not node.has_theme_stylebox_override(style_name): continue
 			var meta: String = "base_style_" + style_name

@@ -10,6 +10,20 @@ var translator = English.new()
 var profile: Resource = preload("res://data/themes/preserved.tres")
 var _options: Dictionary = {}
 var _revision_key: Array = []
+var _resource_styles: Dictionary = {}
+var setting_id := "":
+	set(value):
+		if value == setting_id: return
+		setting_id = value
+		changed.emit()
+func set_resource_styles(styles: Dictionary) -> void:
+	if styles == _resource_styles: return
+	_resource_styles = styles.duplicate(true)
+	changed.emit()
+func resource_style(id: String) -> Dictionary:
+	return _resource_styles.get(id, {}).duplicate(true)
+func presentation_key() -> String:
+	return JSON.stringify([_options, _resource_styles, translator.locale, setting_id, profile.presentation_key()])
 var text_scale: float:
 	get: return float(_options.get("text_scale", 1.0))
 var high_contrast: bool:
@@ -52,4 +66,4 @@ func update_from(preferences, i18n, theme_profile: Resource) -> void:
 func action_label(action: String) -> String:
 	return str(_options.get("action_labels", {}).get(action, action))
 func resolve_art(category: String, content_id: String) -> Dictionary:
-	return preload("res://scripts/presentation/art_catalog.gd").resolve(category, content_id, profile.art_manifest)
+	return preload("res://scripts/presentation/art_catalog.gd").resolve(category, content_id, profile.manifest_for(setting_id))

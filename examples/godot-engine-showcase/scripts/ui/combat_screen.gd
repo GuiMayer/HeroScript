@@ -7,6 +7,10 @@ var presenter
 var zone_presenter
 var router
 var presentation: Dictionary
+@export var composition_scene: PackedScene = preload("res://scenes/ui/combat_composition.tscn")
+@export var layout_profile: Resource = preload("res://data/themes/bottom_preview.tres")
+var _pending_composition: Dictionary = {}
+var _feedback_column: Control
 var controller
 var selected_target: String:
 	get: return controller.state.selected_target if controller else ""
@@ -111,7 +115,7 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 		if child != feedback: remove_child(child); child.queue_free()
 	add_theme_constant_override("separation", 8)
 	_build_header()
-	var body: HBoxContainer = preload("res://scenes/ui/combat_composition.tscn").instantiate()
+	var body: HBoxContainer = composition_scene.instantiate()
 	gameplay_column = body.get_node("CombatGameplay")
 	gameplay_column.resized.connect(_queue_gameplay_layout)
 	_ensure_bottom_hud()
@@ -173,11 +177,19 @@ func _layout_gameplay() -> void:
 	if is_instance_valid(floating_hud):
 		floating_hud.fit_to(gameplay_column.get_global_rect(), router.theme)
 		if is_instance_valid(character_sidebar):
-			character_sidebar.offset_bottom = minf(520, gameplay_column.size.y - 84)
+			character_sidebar.offset_bottom = minf(layout_profile.sidebar_height, gameplay_column.size.y - 84)
+			character_sidebar.offset_left = -layout_profile.sidebar_width
 		if is_instance_valid(candidate_panel):
 			var dock_height: float = hand.toolbar.get_combined_minimum_size().y + bottom_hud.get_node("TurnControls").get_combined_minimum_size().y + 10
 			candidate_panel.offset_bottom = -dock_height
-			candidate_panel.offset_top = -dock_height - 144
+			candidate_panel.offset_top = -dock_height - layout_profile.candidate_height
+			candidate_panel.offset_right = layout_profile.candidate_width
+	if is_instance_valid(_feedback_column) and layout_profile.preview_placement == "floating_left":
+		_feedback_column.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+		var dock_height: float = hand.toolbar.get_combined_minimum_size().y + turn_view.get_combined_minimum_size().y + 10
+		_feedback_column.offset_right = layout_profile.preview_width
+		_feedback_column.offset_bottom = -dock_height
+		_feedback_column.offset_top = -dock_height - 110
 	# The scenery extends behind the floating hand, but actor information stays
 	# above even the raised cards. No rules or card count limits affect this layout.
 	if is_instance_valid(battlefield_actors):
@@ -224,9 +236,7 @@ func _build_battlefield() -> void:
 		battlefield_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		gameplay_column.move_child(battlefield_view, 0)
 	var stage = battlefield_view
-	var actors: Array = presenter.actors().map(func(actor): return {"actor": actor,
-		"hostile": presenter.relationship(actor, GameSession.input_actor_id()) == "Enemy",
-		"intent": presenter.intent_for(str(actor.get("instanceId", "")))})
+	var actors: Array = presenter.combat_model(GameSession.input_actor_id()).read("actors")
 	stage.visual_context = visual_context
 	stage.apply_model(actors, presentation)
 	battlefield_actors = stage.actor_scroll
@@ -330,12 +340,16 @@ func _build_footer() -> void:
 	_turn_key = key.duplicate(true)
 	if is_instance_valid(turn_view):
 		for button in turn_view.buttons: action_buttons.erase(button)
+		if is_instance_valid(_feedback_column) and _feedback_column.get_parent() != turn_view:
+			_feedback_column.get_parent().remove_child(_feedback_column)
+			_feedback_column.queue_free()
 		bottom_hud.remove_child(turn_view); turn_view.queue_free()
 		floating_hud.host.remove_child(reconnect_button); reconnect_button.queue_free()
 		floating_hud.host.remove_child(candidate_panel); candidate_panel.queue_free()
 	var row = preload("res://scripts/ui/components/turn_controls_view.gd").new()
 	turn_view = row
 	var feedback = preload("res://scripts/ui/components/action_preview_view.gd").new()
+	_feedback_column = feedback
 	feedback.mount(I18n.text("Select a card, then choose a highlighted target."))
 	row.add_child(feedback)
 	detail_label = feedback.detail_label; selection_label = feedback.selection_label; queue_label = feedback.queue_label
@@ -364,6 +378,7 @@ func _build_footer() -> void:
 	alternatives.add_child(choices)
 	candidate_panel.add_child(alternatives)
 	bottom_hud.add_child(row)
+	_apply_preview_composition()
 
 func _build_character_sidebar() -> Control:
 	_ensure_floating_hud()
@@ -373,7 +388,7 @@ func _build_character_sidebar() -> Control:
 		character_sidebar_reopen.z_index = 1
 		floating_hud.host.add_child(character_sidebar_reopen)
 		character_sidebar_reopen.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		character_sidebar_reopen.offset_left = -44
+		character_sidebar_reopen.offset_left = -layout_profile.handle_width
 		character_sidebar_reopen.offset_bottom = 44
 	var view = character_sidebar
 	if not is_instance_valid(view):
@@ -386,8 +401,8 @@ func _build_character_sidebar() -> Control:
 		"setting": GameSession.selected_setting, "setting_id": GameSession.selected_setting_id}, I18n)
 	character_sidebar = view
 	view.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	view.offset_left = -328
-	view.offset_bottom = 520
+	view.offset_left = -layout_profile.sidebar_width
+	view.offset_bottom = layout_profile.sidebar_height
 	character_sidebar_content = view.content_scroll
 	character_sidebar_title = view.title_label
 	_apply_character_sidebar_state()
@@ -515,6 +530,7 @@ func _button(text: String, action: Callable, width := 0) -> Button:
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
 	return value
 func _process(delta: float) -> void:
+	_try_apply_composition()
 	if get_tree().paused:
 		return
 	frame_delay -= delta
@@ -707,3 +723,55 @@ func apply_interaction(_state) -> void: _update_controls()
 func dispose() -> void:
 	if controller: controller.dispose()
 	if feedback: feedback.dispose()
+
+
+func capture_local_state() -> Dictionary:
+	var focused := get_viewport().gui_get_focus_owner()
+	return {"selected_card": selected_card, "selected_target": selected_target,
+		"sidebar": character_sidebar_expanded, "hand_scroll": hand.scroll.scroll_horizontal,
+		"focus": weakref(focused) if is_instance_valid(focused) else null}
+
+func restore_local_state(state: Dictionary) -> void:
+	character_sidebar_expanded = bool(state.get("sidebar", false))
+	_apply_character_sidebar_state()
+	hand.scroll.scroll_horizontal = int(state.get("hand_scroll", 0))
+	var focus = state.get("focus")
+	if focus and is_instance_valid(focus.get_ref()) and focus.get_ref().is_inside_tree(): focus.get_ref().grab_focus()
+
+func replace_composition(scene: PackedScene, profile: Resource) -> void:
+	_pending_composition = {"scene": scene, "profile": profile}
+	_try_apply_composition()
+
+func _try_apply_composition() -> void:
+	if _pending_composition.is_empty() or not is_inside_tree() or submitting or GameSession.busy or not hand.interaction.pressed.is_empty(): return
+	var state := capture_local_state()
+	hand.cancel_gesture()
+	var body: HBoxContainer = _pending_composition.scene.instantiate()
+	var replacement: Control = body.get_node("CombatGameplay")
+	var previous := gameplay_column.get_parent()
+	var index := previous.get_index()
+	gameplay_column = replacement
+	remove_child(previous)
+	add_child(body)
+	move_child(body, index)
+	battlefield_view.reparent(replacement, false)
+	battlefield_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bottom_hud.reparent(replacement, false)
+	bottom_hud.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	gameplay_column.resized.connect(_queue_gameplay_layout)
+	previous.queue_free()
+	composition_scene = _pending_composition.scene
+	layout_profile = _pending_composition.profile
+	_pending_composition.clear()
+	_apply_preview_composition()
+	restore_local_state(state)
+	_queue_gameplay_layout()
+	preload("res://scripts/ui/focus_navigation.gd").queue(self)
+
+func _apply_preview_composition() -> void:
+	if not is_instance_valid(_feedback_column): return
+	var parent: Control = floating_hud.host if layout_profile.preview_placement == "floating_left" else turn_view
+	if _feedback_column.get_parent() != parent: _feedback_column.reparent(parent, false)
+	if parent == turn_view:
+		_feedback_column.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		turn_view.move_child(_feedback_column, 0)

@@ -18,7 +18,7 @@ func _run() -> void:
 	session._run = {"runId": "stable", "sequence": 1}
 	session._combat = {"combatId": "combat", "activeActorId": "hero", "actors": [
 		{"instanceId": "hero", "resources": {"health": {"current": 10, "minimum": 0, "maximum": 20}}, "statuses": []}]}
-	session._card_zones = {"zones": [{"zoneId": "play", "allowsCardPlay": true, "cards": [{"cardInstanceId": "c", "definitionId": "defend"}]}]}
+	session._card_zones = {"zones": [{"zoneId": "play", "allowsCardPlay": true, "contentsVisible": true, "count": 1, "cards": [{"cardInstanceId": "c", "definitionId": "defend"}]}]}
 	var router = load("res://main.tscn").instantiate()
 	root.add_child(router)
 	router.show_combat()

@@ -72,3 +72,9 @@ func inspect_hand(targets: Array) -> Dictionary: return await _session.inspect_h
 func dispose() -> void:
 	_alive = false
 	_epoch += 1
+
+
+func submit_option(reference_id: String, card_id: String) -> bool:
+	for option in presenter.action_options(card_id):
+		if option.reference == reference_id: return await submit(option.read("candidate"))
+	return false

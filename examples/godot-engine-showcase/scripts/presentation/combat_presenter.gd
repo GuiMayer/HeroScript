@@ -36,7 +36,7 @@ func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appe
 		_by_card[id].append(candidate)
 
 func actors() -> Array:
-	return _combat.get("actors", []).duplicate(true)
+	return _combat.get("actors", []).map(func(actor): return preload("res://scripts/presentation/view_models.gd").Actor.new(actor).to_dictionary())
 
 func candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
 	for candidate in _actions:
@@ -169,7 +169,6 @@ func _cost_tokens(costs: Array) -> Array:
 			"resourceId": resource_id,
 			"amount": float(cost.get("amount", 0)),
 			"symbol": symbol if not symbol.is_empty() else "•",
-			"color": str(style.get("cost_color", "#666879")),
 			"name": _i18n.content_name(resource_id)
 		})
 	return result
@@ -350,3 +349,20 @@ func pile_cards(zone: String) -> Array:
 	# Avoid revealing the shuffled draw order through the inspector.
 	result.sort_custom(func(a, b): return str(a.get("definitionId", "")) < str(b.get("definitionId", "")))
 	return result
+
+
+func context_key() -> String:
+	return JSON.stringify([_run.get("runId", ""), _run.get("branchId", ""), _run.get("sequence", 0),
+		_combat.get("combatId", ""), _combat.get("step", 0)])
+func action_options(instance_id: String) -> Array:
+	var result: Array = []
+	for index in _actions.size():
+		var candidate: Dictionary = _actions[index]
+		if str(candidate.get("command", {}).get("cardInstanceId", "")) == instance_id:
+			result.append(preload("res://scripts/presentation/view_models.gd").ActionOption.new({
+				"reference": context_key() + "/" + str(index), "candidate": candidate}))
+	return result
+func combat_model(viewpoint: String):
+	var items: Array = actors().map(func(actor): return {"actor": actor,
+		"hostile": relationship(actor, viewpoint) == "Enemy", "intent": intent_for(str(actor.get("instanceId", "")))})
+	return preload("res://scripts/presentation/view_models.gd").Combat.new({"context": context_key(), "actors": items})

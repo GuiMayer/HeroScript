@@ -34,6 +34,7 @@ func _ready() -> void:
 			I18n.set_locale(argument.trim_prefix("--locale="))
 	theme = AppTheme.build(Preferences.high_contrast)
 	_load_presentation()
+	visual_context.setting_id = GameSession.selected_setting_id
 	var background := EmberBackground.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
@@ -86,10 +87,12 @@ func _load_presentation() -> void:
 						if not value.has(category): value[category] = {}
 						value[category].merge(overlay[category], true)
 			presentation = I18n.presentation(value)
+	visual_context.set_resource_styles(presentation.get("resources", {}))
 
 func _probe_engine() -> void:
 	if await GameSession.connect_engine(Preferences.selected_setting_id):
 		Preferences.selected_setting_id = GameSession.selected_setting_id
+		visual_context.setting_id = GameSession.selected_setting_id
 		Preferences.save_session()
 	if current_screen == "menu":
 		_show_main_menu()
@@ -208,6 +211,8 @@ func _select_setting_from_menu(index: int, selector: OptionButton) -> void:
 			if str(selector.get_item_metadata(item)) == GameSession.selected_setting_id: selector.select(item)
 		show_error(I18n.text("Finish or recover the current operation before changing the setting."))
 		return
+	visual_context.setting_id = setting_id
+	visual_context.changed.emit()
 	Preferences.selected_setting_id = setting_id
 	Preferences.save_session()
 	call_deferred("_show_main_menu")
@@ -416,3 +421,11 @@ func _exit_tree() -> void:
 	if Preferences.changed.is_connected(_apply_preferences): Preferences.changed.disconnect(_apply_preferences)
 	if I18n.locale_changed.is_connected(_on_locale_changed): I18n.locale_changed.disconnect(_on_locale_changed)
 	if get_tree(): get_tree().paused = false
+
+
+func apply_visual_profile(profile: Resource) -> void:
+	AppTheme.set_profile(profile)
+	_apply_preferences()
+	for screen in host.get_children():
+		if screen.has_method("apply_visual_profile"): screen.apply_visual_profile(profile)
+	if is_instance_valid(pause_layer): pause_layer.color = AppTheme.color("surface.modal_scrim")

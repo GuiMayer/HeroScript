@@ -13,7 +13,7 @@ var _configuration_key := ""
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 
 func configure(data: Dictionary) -> void:
-	var presentation_key: String = JSON.stringify(data) + str(visual_context.text_scale) + str(visual_context.high_contrast) + visual_style.presentation_key() + AppTheme.profile.presentation_key()
+	var presentation_key: String = JSON.stringify(data) + visual_style.presentation_key() + visual_context.presentation_key()
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
 	configuration_count += 1
@@ -165,7 +165,8 @@ func _cost_zone(data: Dictionary) -> Control:
 	return zone
 
 func _cost_chip(cost: Dictionary) -> Control:
-	var color := Color.from_string(str(cost.get("color", "#666879")), AppTheme.color("resource.unknown"))
+	var appearance: Dictionary = visual_context.resource_style(str(cost.get("resourceId", "")))
+	var color := Color.from_string(str(appearance.get("cost_color", "")), AppTheme.color("resource.unknown"))
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", _compact_box(color.darkened(.58), color.lightened(.18), 12, 2))
 	var amount: String = visual_context.translator.number(float(cost.get("amount", 0)))
