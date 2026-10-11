@@ -1,4 +1,5 @@
 extends VBoxContainer
+var visual_context
 ## Shared hand. Instance identities and intents only; no REST or game rules.
 signal card_activated(instance_id: String)
 signal card_previewed(instance_id: String)
@@ -36,7 +37,8 @@ var _reserved_card_size := Vector2.ZERO
 var _layout_text_scale := -1.0
 var _inspection_anchor := ""
 
-func _init() -> void:
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
 	name = "CardHandView"
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 2)
@@ -49,10 +51,10 @@ func _init() -> void:
 	next = _tool("›", func(): page(1))
 	tools.add_child(previous)
 	tools.add_child(next)
-	var inspect := _tool(I18n.text("Inspect card"), func(): inspection_requested.emit(active_card_id()))
+	var inspect := _tool(visual_context.translator.text("Inspect card"), func(): inspection_requested.emit(active_card_id()))
 	inspect.name = "HandInspectButton"
 	tools.add_child(inspect)
-	var overview := _tool(I18n.text("Hand overview"), show_overview)
+	var overview := _tool(visual_context.translator.text("Hand overview"), show_overview)
 	overview.name = "HandOverviewButton"
 	overview.set_meta("initial_focus", true)
 	tools.add_child(overview)
@@ -78,7 +80,7 @@ func _ready() -> void:
 	scroll.resized.connect(request_layout)
 	scroll.get_h_scroll_bar().value_changed.connect(func(_value): _update_counter())
 	scroll.get_h_scroll_bar().visibility_changed.connect(position_hit_surface)
-	Preferences.changed.connect(_preferences_changed)
+	if not visual_context.changed.is_connected(_preferences_changed): visual_context.changed.connect(_preferences_changed)
 	set_notify_transform(true)
 	request_layout()
 
@@ -97,11 +99,13 @@ func _tool(label: String, action: Callable) -> Button:
 func _preferences_changed() -> void:
 	interaction.cancel_pointer()
 	_clear_ghost()
+	toolbar.get_node("HandInspectButton").text = visual_context.translator.text("Inspect card")
+	toolbar.get_node("HandOverviewButton").text = visual_context.translator.text("Hand overview")
 	for card in _cards.values(): card.configure(card.model)
 	request_layout()
 
 func layout_mode() -> String:
-	return mode_override if not mode_override.is_empty() else Preferences.hand_layout_mode
+	return mode_override if not mode_override.is_empty() else visual_context.hand_layout_mode
 func card_for(id: String): return _cards.get(id)
 func active_card_id() -> String:
 	var id: String = interaction.active_id()
@@ -135,7 +139,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 		assert(not id.is_empty() and id not in incoming, "Hand models need unique instance IDs")
 		incoming.append(id)
 		if not _cards.has(id):
-			var card := CardView.new()
+			var card := CardView.new(visual_context)
 			card.name = "HandCard_" + id.validate_node_name()
 			card.animate_entry = false
 			card.hand_managed = true
@@ -156,7 +160,7 @@ func sync_models(models: Array, context: String, empty_message := "Your hand is 
 			card.focus_exited.connect(func():
 				if interaction.focused == id: interaction.focused = ""
 				_apply_emphasis())
-			if is_inside_tree() and not Preferences.reduced_motion:
+			if is_inside_tree() and not visual_context.reduced_motion:
 				card.modulate.a = 0
 				card.create_tween().tween_property(card, "modulate:a", 1.0, duration())
 		else:
@@ -216,7 +220,7 @@ func cancel_gesture() -> void:
 	interaction.cancel_pointer()
 	_clear_ghost()
 	if is_instance_valid(_reading_proxy): _reading_proxy.hide()
-func duration() -> float: return visual_style.transition_seconds / maxf(Preferences.animation_speed, .25)
+func duration() -> float: return visual_style.transition_seconds / maxf(visual_context.animation_speed, .25)
 
 func request_layout() -> void:
 	if _layout_pending: return
@@ -227,9 +231,9 @@ func _relayout() -> void:
 	if not is_inside_tree(): return
 	relayout_count += 1
 	var default_style = preload("res://data/default_card_visual_style.tres")
-	var dimensions: Vector2 = default_style.effective_size(Preferences.text_scale)
-	if not is_equal_approx(_layout_text_scale, Preferences.text_scale): _reserved_card_size = Vector2.ZERO
-	_layout_text_scale = Preferences.text_scale
+	var dimensions: Vector2 = default_style.effective_size(visual_context.text_scale)
+	if not is_equal_approx(_layout_text_scale, visual_context.text_scale): _reserved_card_size = Vector2.ZERO
+	_layout_text_scale = visual_context.text_scale
 	for card in _cards.values(): dimensions = dimensions.max(card.get_combined_minimum_size())
 	dimensions = dimensions.max(_reserved_card_size)
 	_reserved_card_size = dimensions
@@ -244,7 +248,7 @@ func _relayout() -> void:
 		card.pivot_offset = dimensions * .5
 		slot.size = dimensions
 		var target: Vector2 = _layout.positions[i]
-		if slot.has_meta("placed") and slot.position != target and not Preferences.reduced_motion:
+		if slot.has_meta("placed") and slot.position != target and not visual_context.reduced_motion:
 			if _motions.has(id) and _motions[id].is_valid(): _motions[id].kill()
 			_motions[id] = create_tween()
 			_motions[id].tween_property(slot, "position", target, duration())
@@ -272,14 +276,14 @@ func _apply_emphasis() -> void:
 		if not _cards.has(id): continue
 		if i >= _layout.rotations.size(): continue
 		var raised := id == active
-		var target := Vector2(0, -visual_style.lift * Preferences.hand_emphasis) if raised else Vector2.ZERO
+		var target := Vector2(0, -visual_style.lift * visual_context.hand_emphasis) if raised else Vector2.ZERO
 		var angle: float = 0 if raised else _layout.rotations[i]
 		var card: CardView = _cards[id]
 		_slots[id].z_index = 100 if raised else (50 if id == interaction.selected else mini(i, 40))
 		if _emphasis.has(id) and _emphasis[id].position == target and is_equal_approx(_emphasis[id].rotation, angle): continue
 		if _emphasis.has(id) and _emphasis[id].tween != null and _emphasis[id].tween.is_valid(): _emphasis[id].tween.kill()
 		var tween: Tween = null
-		if not Preferences.reduced_motion and is_inside_tree():
+		if not visual_context.reduced_motion and is_inside_tree():
 			tween = create_tween().set_parallel()
 			tween.tween_property(card, "position", target, duration())
 			tween.tween_property(card, "rotation", angle, duration())
@@ -302,7 +306,7 @@ func _update_reading_proxy() -> void:
 		if is_instance_valid(_reading_proxy): _reading_proxy.hide()
 		return
 	if not is_instance_valid(_reading_proxy):
-		_reading_proxy = CardView.new()
+		_reading_proxy = CardView.new(visual_context)
 		_reading_proxy.name = "HandReadingProxy"
 		_reading_proxy.animate_entry = false
 		_reading_proxy.hand_managed = true
@@ -317,7 +321,7 @@ func _update_reading_proxy() -> void:
 	_reading_proxy.size = card.size
 	_reading_proxy.global_position = Vector2(clampf(resting.x, clip.position.x + visual_style.padding,
 		maxf(clip.position.x + visual_style.padding, clip.end.x - card.size.x - visual_style.padding)),
-		resting.y - visual_style.lift * Preferences.hand_emphasis)
+		resting.y - visual_style.lift * visual_context.hand_emphasis)
 	_reading_proxy.show()
 
 func pick(local_point: Vector2, stable := false) -> String:
@@ -348,14 +352,14 @@ func page(direction: int) -> void:
 	_update_counter()
 func _update_counter() -> void:
 	var overflow := not _layout.is_empty() and bool(_layout.overflow)
-	counter.text = (I18n.text("%s cards") % order.size()) + ("  ↔" if overflow else "")
+	counter.text = (visual_context.translator.text("%s cards") % order.size()) + ("  ↔" if overflow else "")
 	previous.disabled = not overflow or scroll.scroll_horizontal <= 0
 	next.disabled = not overflow or scroll.scroll_horizontal >= scroll.get_h_scroll_bar().max_value - scroll.get_h_scroll_bar().page - 1
-	counter.tooltip_text = I18n.text("More cards — scroll or open hand overview.") if overflow else ""
+	counter.tooltip_text = visual_context.translator.text("More cards — scroll or open hand overview.") if overflow else ""
 	var inspect: Button = find_child("HandInspectButton", true, false)
 	var overview: Button = find_child("HandOverviewButton", true, false)
-	if is_instance_valid(inspect): inspect.text = "%s [%s]" % [I18n.text("Inspect card"), Preferences.action_label("inspect_card")]
-	if is_instance_valid(overview): overview.text = "%s [%s]" % [I18n.text("Hand overview"), Preferences.action_label("hand_overview")]
+	if is_instance_valid(inspect): inspect.text = "%s [%s]" % [visual_context.translator.text("Inspect card"), visual_context.action_label("inspect_card")]
+	if is_instance_valid(overview): overview.text = "%s [%s]" % [visual_context.translator.text("Hand overview"), visual_context.action_label("hand_overview")]
 	_update_reading_proxy()
 
 func pointer_input(event: InputEvent) -> void:
@@ -366,7 +370,7 @@ func pointer_input(event: InputEvent) -> void:
 			interaction.hovered = id
 			if not id.is_empty(): _inspection_anchor = id; card_previewed.emit(id)
 		_apply_emphasis()
-		if not read_only and not interaction.pressed.is_empty() and (Preferences.hand_drag_enabled if drag_override == null else drag_override):
+		if not read_only and not interaction.pressed.is_empty() and (visual_context.hand_drag_enabled if drag_override == null else drag_override):
 			if event.global_position.distance_to(interaction.press_position) >= visual_style.drag_threshold:
 				interaction.dragging = true
 				_drag_visual(event.global_position)
@@ -394,7 +398,7 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 func _drag_visual(point: Vector2) -> void:
 	if not is_instance_valid(_ghost):
-		_ghost = CardView.new()
+		_ghost = CardView.new(visual_context)
 		_ghost.hand_managed = true
 		_ghost.animate_entry = false
 		_ghost.visual_style = _cards[interaction.pressed].visual_style

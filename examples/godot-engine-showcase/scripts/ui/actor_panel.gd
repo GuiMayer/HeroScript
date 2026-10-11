@@ -1,4 +1,5 @@
 extends PanelContainer
+var visual_context
 ## Passive actor view: the portrait is a target, not just a small text button.
 signal target_selected(actor_id: String)
 var portrait_view: Control
@@ -7,11 +8,11 @@ var _battlefield_content: VBoxContainer
 var _projection := []
 
 func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: String, compact := false, battlefield := false) -> void:
-	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, I18n.locale]
+	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, visual_context.translator.locale]
 	if projection == _projection: return
 	_projection = projection.duplicate(true)
 	if get_child_count() > 0:
-		var desired = get_script().new()
+		var desired = get_script().new(visual_context)
 		desired.setup(actor, hostile, presentation, intent, compact, battlefield)
 		preload("res://scripts/ui/view_reconciler.gd").patch(self, desired)
 		desired.free()
@@ -28,7 +29,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		content.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 3 if compact else 5)
 	var intention := Label.new()
-	intention.text = I18n.text("INTENT  •  %s") % intent if not intent.is_empty() else (I18n.text("YOUR SIDE") if not hostile else I18n.text("No intent revealed"))
+	intention.text = visual_context.translator.text("INTENT  •  %s") % intent if not intent.is_empty() else (visual_context.translator.text("YOUR SIDE") if not hostile else visual_context.translator.text("No intent revealed"))
 	intention.tooltip_text = intention.text
 	intention.custom_minimum_size.y = 36 if battlefield else 48
 	intention.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -45,17 +46,17 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		target_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		target_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	target_button.toggle_mode = true
-	target_button.tooltip_text = I18n.text("Choose a highlighted target.")
+	target_button.tooltip_text = visual_context.translator.text("Choose a highlighted target.")
 	for state in ["normal", "disabled"]: target_button.add_theme_stylebox_override(state, AppTheme.box(Color.TRANSPARENT, 12))
 	for state in ["hover", "focus", "pressed"]: target_button.add_theme_stylebox_override(state, AppTheme.box(AppTheme.color("surface.target_hover"), 12, AppTheme.GOLD, 2))
 	target_button.pressed.connect(func(): target_selected.emit(str(actor.get("instanceId", ""))))
 	(root_content if compact else content).add_child(target_button)
-	var portrait := preload("res://scripts/ui/art_slot.gd").new()
+	var portrait := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 	portrait.setup("actors", str(actor.get("definitionId", "")))
 	target_button.add_child(portrait)
 	portrait.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	portrait_view = portrait
-	var title := AppTheme.title(I18n.content_name(str(actor.get("definitionId", "")), str(actor.get("name", ""))), 18)
+	var title := AppTheme.title(visual_context.translator.content_name(str(actor.get("definitionId", "")), str(actor.get("name", ""))), 18)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	title.add_theme_color_override("font_color", AppTheme.INK)
@@ -72,20 +73,20 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		if not resources.has(id): continue
 		var appearance: Dictionary = presentation.get("resources", {}).get(id, {})
 		if str(appearance.get("display", "bar")) == "bar":
-			var resource := preload("res://scripts/ui/resource_view.gd").new()
+			var resource := preload("res://scripts/ui/resource_view.gd").new(visual_context)
 			resource.name = "Resource_" + str(id).validate_node_name()
 			resource.setup(id, resources[id], appearance)
 			content.add_child(resource)
 		else:
-			var amount := AppTheme.muted("%s %s" % [I18n.number(float(resources[id].get("current", 0))), I18n.content_name(id)], 14)
+			var amount := AppTheme.muted("%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)], 14)
 			amount.autowrap_mode = TextServer.AUTOWRAP_OFF
 			amount.add_theme_color_override("font_color", Color(str(appearance.get("color", "#e7b75d"))))
-			amount.tooltip_text = "%s: %s / %s" % [I18n.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]
+			amount.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]
 			counters.add_child(amount)
 	content.add_child(counters)
 	var statuses: Array = actor.get("statuses", []).filter(func(status): return status.get("isActive", true))
-	var status_text := statuses.map(func(status): return "%s ×%s" % [I18n.content_name(str(status.get("statusId", "status"))), status.get("stacks", 1)])
-	var status := AppTheme.muted(" · ".join(status_text) if not statuses.is_empty() else I18n.text("No active statuses"), 12)
+	var status_text := statuses.map(func(status): return "%s ×%s" % [visual_context.translator.content_name(str(status.get("statusId", "status"))), status.get("stacks", 1)])
+	var status := AppTheme.muted(" · ".join(status_text) if not statuses.is_empty() else visual_context.translator.text("No active statuses"), 12)
 	status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	status.tooltip_text = status.text
 	status.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -113,3 +114,7 @@ func fit_battlefield_height(available: float) -> void:
 	for child in _battlefield_content.get_children():
 		if child != target_button and child is Control: fixed += child.get_combined_minimum_size().y
 	target_button.custom_minimum_size.y = clampf(available - fixed - 1, 60, 100)
+
+
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()

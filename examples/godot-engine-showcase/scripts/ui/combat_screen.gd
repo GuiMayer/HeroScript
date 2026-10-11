@@ -3,6 +3,7 @@ extends VBoxContainer
 const Presenter = preload("res://scripts/presentation/combat_presenter.gd")
 const CardZonePresenter = preload("res://scripts/presentation/card_zone_presenter.gd")
 const HandView = preload("res://scripts/ui/card_hand_view.gd")
+var visual_context
 var presenter
 var zone_presenter
 var router
@@ -66,6 +67,7 @@ func _ready() -> void:
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	visual_context = owner.visual_context
 	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return router.get_tree().paused)
 	controller.changed.connect(_update_controls)
 	if not Playback.frame_presented.is_connected(_on_frame):
@@ -76,6 +78,7 @@ func refresh_state(data: Dictionary) -> void:
 	_render(data, false)
 
 func _render(data: Dictionary, play_entry_animation: bool) -> void:
+	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	_run_snapshot = GameSession.run
 	_combat_snapshot = GameSession.combat
@@ -219,6 +222,7 @@ func _build_battlefield() -> void:
 	var actors: Array = presenter.actors().map(func(actor): return {"actor": actor,
 		"hostile": presenter.relationship(actor, GameSession.input_actor_id()) == "Enemy",
 		"intent": presenter.intent_for(str(actor.get("instanceId", "")))})
+	stage.visual_context = visual_context
 	stage.apply_model(actors, presentation)
 	battlefield_actors = stage.actor_scroll
 	actor_portraits = stage.portraits
@@ -270,7 +274,7 @@ func _build_hand() -> void:
 	zones_scroll.add_child(zones)
 	heading.add_child(zones_scroll)
 	if not is_instance_valid(hand):
-		hand = HandView.new()
+		hand = HandView.new(visual_context)
 		hand.card_activated.connect(_choose_card)
 		hand.card_previewed.connect(_show_preview)
 		hand.inspection_requested.connect(_inspect_instance)
@@ -371,6 +375,7 @@ func _build_character_sidebar() -> Control:
 		view = preload("res://scripts/ui/components/character_sidebar_view.gd").new()
 		view.collapse_requested.connect(_toggle_character_sidebar)
 		floating_hud.host.add_child(view)
+	view.visual_context = visual_context
 	view.apply_model({"presentation": presentation, "run": _run_snapshot, "combat": _combat_snapshot,
 		"actors": presenter.actors(), "input_actor": GameSession.input_actor_id(), "zones": _zone_snapshot,
 		"setting": GameSession.selected_setting, "setting_id": GameSession.selected_setting_id}, I18n)
@@ -687,7 +692,7 @@ func _inspect_card() -> void:
 
 func _inspect_instance(id: String) -> void:
 	if id not in card_buttons: return
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new()
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
 	dialog.setup(I18n.text("Card inspection"), presenter.inspection_text(id), presenter.inspection_data(id), presenter.card_view_model(id), card_buttons[id].visual_style)
 	dialog.tree_exiting.connect(func(): if id in card_buttons: card_buttons[id].grab_focus())
 	add_child(dialog)
@@ -698,7 +703,7 @@ func _inspect_pile(label: String, zone: String) -> void:
 	var lines: Array[String] = []
 	for card in presenter.pile_cards(zone):
 		lines.append(I18n.content_name(str(card.get("definitionId", ""))) + (" +" if not card.get("upgrades", []).is_empty() else ""))
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new()
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
 	dialog.setup(I18n.text(label), "\n".join(lines) if not lines.is_empty() else I18n.text("Empty"))
 	add_child(dialog)
 	hand.track_reading_modal(dialog)

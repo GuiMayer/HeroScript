@@ -33,7 +33,7 @@ func _run() -> void:
 	router.current_screen = "combat"
 	var content := Control.new()
 	router.host.add_child(content)
-	var hand = load("res://scripts/ui/card_hand_view.gd").new()
+	var hand = load("res://scripts/ui/card_hand_view.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	hand.position = Vector2(30, 260)
 	hand.size = Vector2(1200, 450)
 	content.add_child(hand)

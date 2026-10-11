@@ -1,4 +1,5 @@
 extends Control
+var visual_context = preload("res://scripts/ui/visual_context.gd").new()
 signal target_selected(actor_id: String)
 signal target_previewed(actor_id: String)
 signal preview_left
@@ -17,7 +18,7 @@ func apply_model(actors: Array, presentation: Dictionary) -> void:
 	stage.name = "Battlefield"
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage.clip_contents = true
-	var backdrop := preload("res://scripts/ui/art_slot.gd").new()
+	var backdrop := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 	backdrop.setup("backgrounds", "combat")
 	stage.add_child(backdrop)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -52,7 +53,7 @@ func apply_model(actors: Array, presentation: Dictionary) -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation: Dictionary) -> Control:
-	var panel := preload("res://scripts/ui/actor_panel.gd").new()
+	var panel := preload("res://scripts/ui/actor_panel.gd").new(visual_context)
 	var id := str(actor.get("instanceId", ""))
 	panel.name = "ActorView_" + id.validate_node_name()
 	panel.setup(actor, hostile, presentation, intent, false, true)

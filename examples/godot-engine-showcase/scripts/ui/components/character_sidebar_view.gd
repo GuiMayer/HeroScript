@@ -1,4 +1,5 @@
 extends PanelContainer
+var visual_context = preload("res://scripts/ui/visual_context.gd").new()
 signal collapse_requested
 var content_scroll: ScrollContainer
 var title_label: Label
@@ -20,6 +21,7 @@ func apply_model(model: Dictionary, i18n) -> void:
 	_projection = projection
 	if get_child_count() > 0:
 		var desired = get_script().new()
+		desired.visual_context = visual_context
 		desired.apply_model(model, i18n)
 		preload("res://scripts/ui/view_reconciler.gd").patch(self, desired)
 		desired.free()
@@ -85,7 +87,7 @@ func _populate_character_sidebar(details: VBoxContainer) -> void:
 	for resource_id in ordered_resources:
 		if not resources.has(resource_id) or not (resources[resource_id] is Dictionary):
 			continue
-		var resource_view := preload("res://scripts/ui/resource_view.gd").new()
+		var resource_view := preload("res://scripts/ui/resource_view.gd").new(visual_context)
 		resource_view.name = "CharacterResource_" + str(resource_id).validate_node_name()
 		resource_view.set_meta("resource_id", str(resource_id))
 		resource_view.custom_minimum_size.x = 260

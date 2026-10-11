@@ -25,6 +25,8 @@ func _run() -> void:
 	check(lab.hand.get_script() == hand_script, "laboratory uses the shared combat hand")
 	check(lab.catalog.cards.size() >= 16 and lab.catalog.presets.size() == 4, "varied familiar, volatile, scaling and custom-content fixtures")
 	var screen = load("res://scripts/ui/combat_screen.gd").new()
+	screen.visual_context = lab.visual_context
+	screen.controller = load("res://scripts/ui/controllers/combat_controller.gd").new(session, root.get_node("Playback"), func(): return false)
 	screen.gameplay_column = VBoxContainer.new()
 	screen.add_child(screen.gameplay_column)
 	var snapshot := {"zones": [{"zoneId": "anything", "allowsCardPlay": true, "contentsVisible": true, "cards": [{"cardInstanceId": "sample", "definitionId": "basic_attack"}]}]}

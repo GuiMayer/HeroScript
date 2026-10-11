@@ -154,7 +154,9 @@ static func panel(content: Control, color = null) -> PanelContainer:
 	wrapper.add_child(content)
 	return wrapper
 
-static func apply_view_preferences(node: Node) -> void:
+static func apply_view_preferences(node: Node, scale_override := -1.0, contrast_override = null) -> void:
+	var effective_scale: float = text_scale if scale_override < 0 else scale_override
+	var effective_contrast: bool = high_contrast_enabled if contrast_override == null else bool(contrast_override)
 	if node is Control:
 		if node.has_meta("text_role") and not str(node.get_meta("text_role")).is_empty():
 			node.add_theme_color_override("font_color", color(str(node.get_meta("text_role"))))
@@ -162,7 +164,7 @@ static func apply_view_preferences(node: Node) -> void:
 			if not node.has_theme_font_size_override(font_key): continue
 			var font_meta: String = "base_" + font_key
 			if not node.has_meta(font_meta): node.set_meta(font_meta, node.get_theme_font_size(font_key))
-			node.add_theme_font_size_override(font_key, roundi(float(node.get_meta(font_meta)) * text_scale))
+			node.add_theme_font_size_override(font_key, roundi(float(node.get_meta(font_meta)) * effective_scale))
 		for style_name in ["normal", "panel", "hover", "pressed", "disabled"]:
 			if not node.has_theme_stylebox_override(style_name): continue
 			var meta: String = "base_style_" + style_name
@@ -173,9 +175,9 @@ static func apply_view_preferences(node: Node) -> void:
 				var border_role := str(style.get_meta("border_role", ""))
 				if not background_role.is_empty(): style.bg_color = color(background_role)
 				if not border_role.is_empty(): style.border_color = color(border_role)
-			if high_contrast_enabled and style is StyleBoxFlat:
+			if effective_contrast and style is StyleBoxFlat:
 				style.bg_color = color("surface.high_contrast_panel")
 				style.border_color = node.get_meta("semantic_border_color", Color.WHITE)
 				style.set_border_width_all(2)
 			node.add_theme_stylebox_override(style_name, style)
-	for child in node.get_children(): apply_view_preferences(child)
+	for child in node.get_children(): apply_view_preferences(child, effective_scale, effective_contrast)

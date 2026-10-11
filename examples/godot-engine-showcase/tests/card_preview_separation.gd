@@ -40,7 +40,7 @@ func _run() -> void:
 		check(model.effectRows[0].segments[1].value == 12 and model.effectRows[0].segments[1].baseValue == 8, "Actor-prefix output preserves scaling, excluding random impact and target mitigation")
 		check(presenter.action_preview("card", "foe").contains("Named opponent") and presenter.action_preview("card", "other").contains("Second opponent"), "separate preview identifies the actual target")
 		check(presenter.action_preview("card", "foe").contains("10 → 7"), "separate preview consumes the actual resource transition")
-		var card = load("res://scripts/ui/card_view.gd").new()
+		var card = load("res://scripts/ui/card_view.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 		card.animate_entry = false
 		card.configure(model)
 		check(not card.tooltip_text.contains("Named opponent") and not card.tooltip_text.contains("Second opponent"), "accessible card tooltip does not leak preview/diagnostic target names")

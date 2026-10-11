@@ -38,7 +38,7 @@ func _run() -> void:
 		model["cardInstanceId"] = "instance-%s" % i
 		model["rarityId"] = "rare"
 		models.append(model)
-	var hand = load("res://scripts/ui/card_hand_view.gd").new()
+	var hand = load("res://scripts/ui/card_hand_view.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	hand.position = Vector2(20, 180)
 	hand.size = Vector2(900, 500)
 	root.add_child(hand)

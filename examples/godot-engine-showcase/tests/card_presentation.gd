@@ -93,8 +93,9 @@ func _run() -> void:
 	check(not unavailable_presenter.card_view_model("card").costsKnown, "missing alternative quotes are never presented as a known free cost")
 	model.merge({"name": "Presentation contract", "cardType": "ATTACK", "rarity": "RARE", "costs": [], "availability": "SELECT TO PLAY"})
 	model.effectRows.append({"segments": [{"text": "Lower "}, {"text": "3", "value": 3, "baseValue": 6}, {"text": " · Base "}, {"text": "6", "value": 6, "baseValue": 6}]})
-	var card = load("res://scripts/ui/card_view.gd").new()
+	var card = load("res://scripts/ui/card_view.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	card.animate_entry = false
+	card.visual_context.update_from(root.get_node("Preferences"), root.get_node("I18n"), AppTheme.profile)
 	card.configure(model)
 	root.add_child(card)
 	for _frame in 4: await process_frame
@@ -111,7 +112,7 @@ func _run() -> void:
 	check(not tooltip.find_child("DetailedEffects", true, false).get_v_scroll_bar().visible, "hover summary never displays a rich-text scrollbar")
 	check(card._make_custom_tooltip("") == null, "an empty tooltip does not create a popup")
 	tooltip.free()
-	var dialog = load("res://scripts/ui/inspection_dialog.gd").new()
+	var dialog = load("res://scripts/ui/inspection_dialog.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	dialog.setup("Inspection", "fallback", inspection(9, 6), model, style)
 	root.add_child(dialog)
 	check(dialog.find_child("CardDetails", true, false).get_theme_stylebox("panel").border_color == style.rarity_color("rare"), "keyboard/controller inspection uses the same rarity panel")
@@ -129,6 +130,7 @@ func _run() -> void:
 		i18n.set_locale(locale)
 		for text_scale in [1.0, 1.2]:
 			prefs.text_scale = text_scale
+			card.visual_context.update_from(root.get_node("Preferences"), root.get_node("I18n"), AppTheme.profile)
 			card.configure(verbose_model)
 			var summary = card._make_custom_tooltip(card.tooltip_text)
 			root.add_child(summary)
@@ -141,7 +143,7 @@ func _run() -> void:
 			summary.free()
 	i18n.set_locale("en")
 	prefs.text_scale = 1.0
-	var complete = load("res://scripts/ui/card_details_panel.gd").new()
+	var complete = load("res://scripts/ui/card_details_panel.gd").new(load("res://scripts/ui/visual_context.gd").from_nodes(root.get_node("Preferences"), root.get_node("I18n")))
 	complete.configure(verbose_model, style)
 	complete.position = Vector2(600, 100)
 	root.add_child(complete)
@@ -164,18 +166,21 @@ func _run() -> void:
 	check(complete_scroll.has_focus(), "persistent description can receive keyboard/controller focus")
 	check(JSON.stringify(verbose_model) == model_before, "summarizing never truncates or mutates the source model")
 	complete.free()
+	card.visual_context.update_from(root.get_node("Preferences"), root.get_node("I18n"), AppTheme.profile)
 	card.configure(model)
 	rules = card.find_child("Rules", true, false)
 	prefs.high_contrast = true
 	load("res://scripts/ui/app_theme.gd").apply_view_preferences(card)
 	check(card.get_theme_stylebox("normal").border_color == style.rarity_color("rare") and rules.numeric_colors[0] == style.higher_value_color, "high contrast preserves semantic colors")
 	prefs.text_scale = 1.2
+	card.visual_context.update_from(root.get_node("Preferences"), root.get_node("I18n"), AppTheme.profile)
 	card.configure(model)
 	check(card.find_child("Rules", true, false).get_theme_font_size("normal_font_size") == roundi(style.rules_font_size * 1.2), "rich text respects configured font scale on asynchronous enrichment")
 	var custom_style = style.duplicate(true)
 	custom_style.higher_value_color = Color("#22ffff")
 	custom_style.rarity_colors["rare"] = Color("#ff55cc")
 	card.visual_style = custom_style
+	card.visual_context.update_from(root.get_node("Preferences"), root.get_node("I18n"), AppTheme.profile)
 	card.configure(model)
 	check(card.get_theme_stylebox("normal").border_color == custom_style.rarity_color("rare") and card.find_child("Rules", true, false).numeric_colors[0] == custom_style.higher_value_color, "component policy can be overridden without changing card or engine definitions")
 	card.free()

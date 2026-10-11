@@ -3,6 +3,7 @@ extends Control
 const HandView = preload("res://scripts/ui/card_hand_view.gd")
 const Fixtures = "res://data/labs/card_hand_lab.json"
 var catalog: Dictionary = {}
+var visual_context
 var hand
 var card_controls: Array = []
 var models: Array = []
@@ -20,6 +21,7 @@ var _prior_preferences: Dictionary = {}
 var _rotation := 0
 
 func _ready() -> void:
+	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
 	_prior_preferences = {"text_scale": Preferences.text_scale, "high_contrast": Preferences.high_contrast,
 		"reduced_motion": Preferences.reduced_motion, "locale": I18n.locale}
 	catalog = JSON.parse_string(FileAccess.get_file_as_string(Fixtures))
@@ -115,7 +117,7 @@ func _build() -> void:
 	status = AppTheme.caption("", 13, 280)
 	status.name = "LabStatus"
 	column.add_child(status)
-	hand = HandView.new()
+	hand = HandView.new(visual_context)
 	hand.card_activated.connect(select_card)
 	hand.selection_requested.connect(select_card)
 	hand.inspection_requested.connect(func(id): select_card(id); inspect_selected())
@@ -173,6 +175,7 @@ func set_text_scale(value: float) -> void:
 	_refresh()
 
 func _refresh() -> void:
+	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
 	models.clear()
@@ -222,7 +225,7 @@ func remove_selected() -> void:
 func inspect_selected() -> void:
 	var data := selected_model()
 	if data.is_empty(): return
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new()
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
 	dialog.setup(str(data.name), str(data.summary), data, data)
 	add_child(dialog)
 	hand.track_reading_modal(dialog)

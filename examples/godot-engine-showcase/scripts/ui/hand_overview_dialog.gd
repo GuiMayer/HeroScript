@@ -1,9 +1,10 @@
 extends AcceptDialog
+var visual_context
 signal card_chosen(instance_id: String)
 var hand
 func setup(models: Array, scope: String, selected: String) -> void:
-	title = I18n.text("Hand overview")
-	theme = AppTheme.build(Preferences.high_contrast)
+	title = visual_context.translator.text("Hand overview")
+	theme = AppTheme.build(visual_context.high_contrast)
 	theme.set_stylebox("panel", "AcceptDialog", AppTheme.box(AppTheme.NIGHT, 10, AppTheme.GOLD, 1))
 	var border := AppTheme.box(AppTheme.PANEL, 10, AppTheme.GOLD, 1)
 	border.expand_margin_top = 30
@@ -11,7 +12,7 @@ func setup(models: Array, scope: String, selected: String) -> void:
 	theme.set_color("title_color", "Window", AppTheme.INK)
 	theme.set_constant("title_height", "Window", 30)
 	min_size = Vector2i(850, 560)
-	hand = load("res://scripts/ui/card_hand_view.gd").new()
+	hand = load("res://scripts/ui/card_hand_view.gd").new(visual_context)
 	hand.mode_override = "reading"
 	hand.drag_override = false
 	add_child(hand)
@@ -27,8 +28,8 @@ func _inspect(id: String) -> void:
 	if hand.reading_modal: return
 	var card = hand.card_for(id)
 	if not is_instance_valid(card): return
-	var detail = preload("res://scripts/ui/inspection_dialog.gd").new()
-	detail.setup(I18n.text("Card inspection"), str(card.model.get("summary", "")), {}, card.model, card.visual_style)
+	var detail = preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
+	detail.setup(visual_context.translator.text("Card inspection"), str(card.model.get("summary", "")), {}, card.model, card.visual_style)
 	add_child(detail)
 	hand.track_reading_modal(detail)
 	detail.tree_exiting.connect(func(): if is_instance_valid(card): card.grab_focus())
@@ -38,3 +39,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("inspect_card") and not event.is_echo():
 		_inspect(hand.active_card_id())
 		set_input_as_handled()
+
+
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()

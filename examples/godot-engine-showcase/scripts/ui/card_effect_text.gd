@@ -1,4 +1,5 @@
 extends RichTextLabel
+var visual_context
 ## Typed text segments keep numeric comparisons separate from localized prose.
 var rows: Array = []
 var numeric_colors: Array[Color] = []
@@ -30,7 +31,7 @@ func configure(effect_rows: Array, style: Resource) -> void:
 				pop()
 				pop()
 				if (segment.get("baseValue") is float or segment.get("baseValue") is int) and (segment.value is float or segment.value is int):
-					comparisons.append(I18n.text("Base: %s → Current: %s") % [I18n.number(float(segment.baseValue)), I18n.number(float(segment.value))])
+					comparisons.append(visual_context.translator.text("Base: %s → Current: %s") % [visual_context.translator.number(float(segment.baseValue)), visual_context.translator.number(float(segment.value))])
 			else:
 				# add_text is literal: content cannot inject BBCode or style other numbers.
 				add_text(str(segment.get("text", "")))
@@ -48,3 +49,7 @@ static func plain_text(effect_rows: Array) -> String:
 		for segment in row.get("segments", []): line += str(segment.get("text", ""))
 		lines.append(line)
 	return "\n".join(lines)
+
+
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()

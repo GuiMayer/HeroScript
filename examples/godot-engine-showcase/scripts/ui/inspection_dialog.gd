@@ -1,4 +1,7 @@
 extends AcceptDialog
+var visual_context
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
 ## Read-only inspection overlay. No engine service access.
 func setup(title_text: String, summary: String, data: Dictionary = {}, card_model: Dictionary = {}, style: Resource = null) -> void:
 	title = title_text
@@ -12,7 +15,7 @@ func setup(title_text: String, summary: String, data: Dictionary = {}, card_mode
 	text.selection_enabled = true
 	var detail: Control = null
 	if not card_model.is_empty():
-		detail = preload("res://scripts/ui/card_details_panel.gd").new()
+		detail = preload("res://scripts/ui/card_details_panel.gd").new(visual_context)
 		detail.configure(card_model, style if style != null else preload("res://data/default_card_visual_style.tres"))
 		detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		body.add_child(detail)
@@ -20,7 +23,7 @@ func setup(title_text: String, summary: String, data: Dictionary = {}, card_mode
 	body.add_child(text)
 	if not data.is_empty():
 		var technical := CheckButton.new()
-		technical.text = I18n.text("Show engine details")
+		technical.text = visual_context.translator.text("Show engine details")
 		technical.toggled.connect(func(value):
 			text.text = JSON.stringify(data, "  ") if value else summary
 			if detail != null:

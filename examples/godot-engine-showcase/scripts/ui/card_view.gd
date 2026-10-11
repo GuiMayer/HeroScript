@@ -1,5 +1,6 @@
 class_name CardView
 extends Button
+var visual_context
 
 var motion: Tween
 var chosen := false
@@ -12,8 +13,7 @@ var _configuration_key := ""
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 
 func configure(data: Dictionary) -> void:
-	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
-	var presentation_key: String = JSON.stringify(data) + str(Preferences.text_scale) + str(Preferences.high_contrast) + visual_style.presentation_key() + AppTheme.profile.presentation_key()
+	var presentation_key: String = JSON.stringify(data) + str(visual_context.text_scale) + str(visual_context.high_contrast) + visual_style.presentation_key() + AppTheme.profile.presentation_key()
 	if presentation_key == _configuration_key: return
 	_configuration_key = presentation_key
 	configuration_count += 1
@@ -22,7 +22,7 @@ func configure(data: Dictionary) -> void:
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
-	custom_minimum_size = visual_style.effective_size(Preferences.text_scale)
+	custom_minimum_size = visual_style.effective_size(visual_context.text_scale)
 	var tone: Color = {"attack": AppTheme.BLOOD, "power": AppTheme.color("accent.power")}.get(str(data.get("tone", "skill")), AppTheme.TEAL)
 	var border: Color = visual_style.rarity_color(str(data.get("rarityId", "")))
 	set_meta("semantic_border_color", border)
@@ -54,7 +54,7 @@ func configure(data: Dictionary) -> void:
 	art_frame.custom_minimum_size.y = visual_style.art_height
 	art_frame.clip_contents = true
 	art_frame.add_theme_stylebox_override("panel", _compact_box(AppTheme.color("surface.card_art"), tone.darkened(.28), 5, 1))
-	var art := preload("res://scripts/ui/art_slot.gd").new()
+	var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 	art.setup("cards", str(data.get("definitionId", "")))
 	art_frame.add_child(art)
 	if art.is_placeholder and bool(data.get("artPlaceholder", true)):
@@ -86,14 +86,14 @@ func configure(data: Dictionary) -> void:
 	if not data.get("identityTags", []).is_empty():
 		column.add_child(AppTheme.caption(" · ".join(data.identityTags), 11, 160))
 	for requirement in data.get("requirements", []):
-		var requirement_label := AppTheme.caption(I18n.text("Requires: %s") % str(requirement.get("text", "")), 11, 160)
+		var requirement_label := AppTheme.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 11, 160)
 		requirement_label.add_theme_color_override("font_color", AppTheme.BLOOD if requirement.get("passed") == false else AppTheme.INK)
 		column.add_child(requirement_label)
-	var effects_title := AppTheme.muted(I18n.text("EFFECTS"), 10)
+	var effects_title := AppTheme.muted(visual_context.translator.text("EFFECTS"), 10)
 	effects_title.autowrap_mode = TextServer.AUTOWRAP_OFF
 	effects_title.add_theme_color_override("font_color", AppTheme.MUTED.darkened(.05))
 	column.add_child(effects_title)
-	var rules := EffectText.new()
+	var rules := EffectText.new(visual_context)
 	rules.name = "Rules"
 	var rows: Array = data.get("effectRows", [])
 	if rows.is_empty(): rows = EffectText.plain_rows(Array(data.get("effects", str(data.get("summary", "")).split("\n"))))
@@ -107,7 +107,7 @@ func configure(data: Dictionary) -> void:
 	var badges := _change_badges(data.get("changeBadges", []))
 	if badges != null:
 		column.add_child(badges)
-	var more := AppTheme.muted(I18n.text("Full text in details"), 10)
+	var more := AppTheme.muted(visual_context.translator.text("Full text in details"), 10)
 	more.name = "DetailsHint"
 	more.autowrap_mode = TextServer.AUTOWRAP_OFF
 	column.add_child(more)
@@ -129,7 +129,7 @@ func configure(data: Dictionary) -> void:
 	# the replacement subtree before configure returns so no frame is drawn with
 	# the unscaled base fonts.
 	for child in get_children():
-		AppTheme.apply_view_preferences(child)
+		AppTheme.apply_view_preferences(child, visual_context.text_scale, visual_context.high_contrast)
 
 func _cost_zone(data: Dictionary) -> Control:
 	var zone := HFlowContainer.new()
@@ -139,7 +139,7 @@ func _cost_zone(data: Dictionary) -> Control:
 	var options: Array = data.get("costOptions", [])
 	if options.size() > 1:
 		for index in options.size():
-			if index > 0: zone.add_child(AppTheme.title(I18n.text("OR"), 11))
+			if index > 0: zone.add_child(AppTheme.title(visual_context.translator.text("OR"), 11))
 			for j in options[index].size():
 				if j > 0: zone.add_child(AppTheme.title("+", 11))
 				zone.add_child(_cost_chip(options[index][j]))
@@ -150,7 +150,7 @@ func _cost_zone(data: Dictionary) -> Control:
 		if index > 0: zone.add_child(AppTheme.title("+", 11))
 		zone.add_child(_cost_chip(costs[index]))
 	if not bool(data.get("costsKnown", true)):
-		zone.add_child(AppTheme.title(I18n.text("Alternative cost — inspect"), 11))
+		zone.add_child(AppTheme.title(visual_context.translator.text("Alternative cost — inspect"), 11))
 		return zone
 	if costs.is_empty():
 		var fallback := str(data.get("cost", ""))
@@ -168,7 +168,7 @@ func _cost_chip(cost: Dictionary) -> Control:
 	var color := Color.from_string(str(cost.get("color", "#666879")), AppTheme.color("resource.unknown"))
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", _compact_box(color.darkened(.58), color.lightened(.18), 12, 2))
-	var amount := I18n.number(float(cost.get("amount", 0)))
+	var amount: String = visual_context.translator.number(float(cost.get("amount", 0)))
 	var label := AppTheme.muted("%s %s" % [cost.get("symbol", "•"), amount], 12)
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.add_theme_color_override("font_color", Color.WHITE)
@@ -205,18 +205,18 @@ func _change_badges(items) -> Control:
 
 func _make_custom_tooltip(for_text: String) -> Object:
 	if for_text.is_empty(): return null
-	var detail := preload("res://scripts/ui/card_details_panel.gd").new()
+	var detail := preload("res://scripts/ui/card_details_panel.gd").new(visual_context)
 	detail.configure(model, visual_style, detail.DisplayMode.TOOLTIP)
 	return detail
 
 func _cost_accessible_text(data: Dictionary) -> String:
-	if not data.get("costsKnown", true): return I18n.text("Alternative cost — inspect")
+	if not data.get("costsKnown", true): return visual_context.translator.text("Alternative cost — inspect")
 	var parts: Array[String] = []
 	for cost in data.get("costs", []):
-		parts.append("%s %s" % [I18n.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
+		parts.append("%s %s" % [visual_context.translator.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
 	if parts.is_empty():
 		return str(data.get("cost", "0"))
-	return I18n.text("Cost: %s") % " + ".join(parts)
+	return visual_context.translator.text("Cost: %s") % " + ".join(parts)
 
 func _compact_box(color: Color, border: Color, radius: int, width: int) -> StyleBoxFlat:
 	var style := AppTheme.box(color, radius, border, width)
@@ -238,12 +238,12 @@ func _ready() -> void:
 	mouse_exited.connect(func(): _emphasize(chosen))
 	focus_entered.connect(func(): _emphasize(true))
 	focus_exited.connect(func(): _emphasize(chosen))
-	if animate_entry and not hand_managed and not Preferences.reduced_motion:
+	if animate_entry and not hand_managed and not visual_context.reduced_motion:
 		modulate.a = 0.0
 		scale = Vector2(.92, .92)
 		motion = create_tween().set_parallel()
-		motion.tween_property(self, "modulate:a", 1.0, .18 / Preferences.animation_speed)
-		motion.tween_property(self, "scale", Vector2.ONE, .22 / Preferences.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		motion.tween_property(self, "modulate:a", 1.0, .18 / visual_context.animation_speed)
+		motion.tween_property(self, "scale", Vector2.ONE, .22 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func select_card(value: bool) -> void:
 	var changed := chosen != value
@@ -257,17 +257,17 @@ func _emphasize(value: bool) -> void:
 		motion.kill()
 	modulate.a = 1.0
 	z_index = 2 if value else 0
-	if Preferences.reduced_motion:
+	if visual_context.reduced_motion:
 		scale = Vector2.ONE
 		return
 	motion = create_tween()
 	motion.tween_property(self, "scale", Vector2(1.035, 1.035) if value else Vector2.ONE,
-		.12 / Preferences.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		.12 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
 func fly_to(destination: Vector2, overlay: Node) -> void:
-	if Preferences.reduced_motion:
+	if visual_context.reduced_motion:
 		return
-	var ghost := CardView.new()
+	var ghost := CardView.new(visual_context)
 	ghost.animate_entry = false
 	ghost.hand_managed = true
 	ghost.visual_style = visual_style
@@ -286,8 +286,12 @@ func fly_to(destination: Vector2, overlay: Node) -> void:
 	ghost.pivot_offset = size * .5
 	ghost.z_index = 100
 	var tween := ghost.create_tween().set_parallel()
-	tween.tween_property(ghost, "global_position", destination - size * .5, .22 / Preferences.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tween.tween_property(ghost, "scale", Vector2(.45, .45), .22 / Preferences.animation_speed)
-	tween.tween_property(ghost, "modulate:a", 0.0, .22 / Preferences.animation_speed)
+	tween.tween_property(ghost, "global_position", destination - size * .5, .22 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_property(ghost, "scale", Vector2(.45, .45), .22 / visual_context.animation_speed)
+	tween.tween_property(ghost, "modulate:a", 0.0, .22 / visual_context.animation_speed)
 	await tween.finished
 	ghost.queue_free()
+
+
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()

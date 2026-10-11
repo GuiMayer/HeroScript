@@ -9,6 +9,7 @@ const TimelineScreen = preload("res://scripts/ui/timeline_screen.gd")
 const RunHistoryScreen = preload("res://scripts/ui/run_history_screen.gd")
 const RunReplayScreen = preload("res://scripts/ui/run_replay_screen.gd")
 
+var visual_context
 var host: MarginContainer
 var toast: Label
 var pause_layer: Control
@@ -21,6 +22,7 @@ var settings_return_to_gameplay := false
 var continuation_run_id := ""
 
 func _ready() -> void:
+	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	for argument in OS.get_cmdline_user_args():
@@ -428,6 +430,7 @@ func _on_session_changed() -> void:
 			screen._update_controls()
 
 func _apply_preferences() -> void:
+	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	theme = AppTheme.build(Preferences.high_contrast)
 	AppTheme.apply_view_preferences(host)
@@ -436,6 +439,7 @@ func _apply_preferences() -> void:
 		AppTheme.apply_view_preferences(pause_layer)
 
 func _on_locale_changed() -> void:
+	visual_context.update_from(Preferences, I18n, AppTheme.profile)
 	_load_presentation()
 	call_deferred("_rebuild_localized_screen")
 

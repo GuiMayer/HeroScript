@@ -3,6 +3,7 @@ extends VBoxContainer
 var router
 var presentation: Dictionary
 var action_panel: VBoxContainer
+var visual_context
 var presenter
 var choice_buttons: Array[Button] = []
 var verifying := false
@@ -14,6 +15,7 @@ var render_epoch := 0
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	visual_context = owner.visual_context
 	_render(data, true)
 
 func refresh_state(data: Dictionary) -> void:
@@ -147,7 +149,7 @@ func _activity_summary(node: Dictionary) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 20)
 	var kind := str(node.get("activity", {}).get("type", "Unknown"))
-	var art := preload("res://scripts/ui/art_slot.gd").new()
+	var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 	art.setup("activities", kind)
 	art.custom_minimum_size = Vector2(140, 150)
 	row.add_child(art)
@@ -212,7 +214,7 @@ func _build_actions() -> void:
 			choice_buttons.append(button)
 			secondary.add_child(button)
 		elif str(model.category) == "cards":
-			var card := CardView.new()
+			var card := CardView.new(visual_context)
 			card.animate_entry = animate_card_entry
 			model["availability"] = label
 			if str(model.cost).is_empty(): model["cost"] = I18n.text("DECK CHOICE")
@@ -224,7 +226,7 @@ func _build_actions() -> void:
 		else:
 			var column := VBoxContainer.new()
 			column.custom_minimum_size.x = 236
-			var art := preload("res://scripts/ui/art_slot.gd").new()
+			var art := preload("res://scripts/ui/art_slot.gd").new(visual_context)
 			art.setup("activities", str(_current_node().get("activity", {}).get("type", "")))
 			art.custom_minimum_size.y = 100
 			column.add_child(art)

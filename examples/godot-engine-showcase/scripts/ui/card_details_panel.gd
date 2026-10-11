@@ -1,4 +1,5 @@
 extends PanelContainer
+var visual_context
 ## Shared visual policy with explicit passive-summary and persistent-inspection modes.
 const EffectText = preload("res://scripts/ui/card_effect_text.gd")
 enum DisplayMode { INSPECTION, TOOLTIP }
@@ -37,14 +38,14 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	var payments: Array[String] = []
 	for option in options:
 		var parts: Array[String] = []
-		for cost in option: parts.append("%s %s" % [I18n.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
-		payments.append(" + ".join(parts) if not parts.is_empty() else (str(model.get("cost", "0")) if model.get("costsKnown", true) else I18n.text("Alternative cost — inspect")))
-	body.add_child(AppTheme.caption(I18n.text("Cost: %s") % (" " + I18n.text("OR") + " ").join(payments), 14, 260))
-	if not model.get("costsKnown", true): body.add_child(AppTheme.caption(I18n.text("Alternative cost — inspect"), 14, 260))
+		for cost in option: parts.append("%s %s" % [visual_context.translator.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
+		payments.append(" + ".join(parts) if not parts.is_empty() else (str(model.get("cost", "0")) if model.get("costsKnown", true) else visual_context.translator.text("Alternative cost — inspect")))
+	body.add_child(AppTheme.caption(visual_context.translator.text("Cost: %s") % (" " + visual_context.translator.text("OR") + " ").join(payments), 14, 260))
+	if not model.get("costsKnown", true): body.add_child(AppTheme.caption(visual_context.translator.text("Alternative cost — inspect"), 14, 260))
 	var requirements: Array = model.get("requirements", [])
 	if mode == DisplayMode.TOOLTIP: requirements = requirements.slice(0, 1)
-	for requirement in requirements: body.add_child(AppTheme.caption(I18n.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
-	var rules := EffectText.new()
+	for requirement in requirements: body.add_child(AppTheme.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))
+	var rules := EffectText.new(visual_context)
 	rules.name = "DetailedEffects"
 	rules.fit_content = mode == DisplayMode.INSPECTION
 	rules.scroll_active = false
@@ -60,7 +61,7 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	for row in rows:
 		for segment in row.get("segments", []):
 			if (segment.get("value") is float or segment.get("value") is int) and (segment.get("baseValue") is float or segment.get("baseValue") is int):
-				body.add_child(AppTheme.caption(I18n.text("Base: %s → Current: %s") % [I18n.number(float(segment.baseValue)), I18n.number(float(segment.value))], 12, 260))
+				body.add_child(AppTheme.caption(visual_context.translator.text("Base: %s → Current: %s") % [visual_context.translator.number(float(segment.baseValue)), visual_context.translator.number(float(segment.value))], 12, 260))
 	for behavior in model.get("behaviors", []): body.add_child(AppTheme.caption(str(behavior), 13, 260))
 	for badge in model.get("changeBadges", []):
 		body.add_child(AppTheme.caption(str(badge.get("label", "")) + ": " + ", ".join(badge.get("sources", [])), 13, 260))
@@ -81,7 +82,7 @@ func _build_tooltip_summary(body: VBoxContainer, rules: RichTextLabel, model: Di
 	if not changes.is_empty(): body.add_child(AppTheme.caption(" · ".join(changes), 13, 260))
 	for field in ["previewNote", "availability"]:
 		if not str(model.get(field, "")).is_empty(): body.add_child(AppTheme.caption(str(model[field]), 13, 260))
-	var hint := AppTheme.caption(I18n.text("Summary — open card inspection for full details."), 12, 260)
+	var hint := AppTheme.caption(visual_context.translator.text("Summary — open card inspection for full details."), 12, 260)
 	hint.name = "InspectionHint"
 	body.add_child(hint)
 	for child in body.get_children():
@@ -104,3 +105,7 @@ func _disable_tooltip_input(node: Node) -> void:
 		node.focus_mode = Control.FOCUS_NONE
 		node.tooltip_text = ""
 	for child in node.get_children(): _disable_tooltip_input(child)
+
+
+func _init(context = null) -> void:
+	visual_context = context if context != null else preload("res://scripts/ui/visual_context.gd").new()
