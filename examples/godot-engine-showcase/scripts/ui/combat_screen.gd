@@ -7,8 +7,13 @@ var presenter
 var zone_presenter
 var router
 var presentation: Dictionary
-var selected_target := ""
-var selected_card := ""
+var controller
+var selected_target: String:
+	get: return controller.state.selected_target if controller else ""
+	set(value): controller.state.selected_target = value
+var selected_card: String:
+	get: return controller.state.selected_card if controller else ""
+	set(value): controller.state.selected_card = value
 var hand
 var hand_section: VBoxContainer
 var _view_key := ""
@@ -23,7 +28,9 @@ var choices: VBoxContainer
 var hint_label: Label
 var selection_label: Label
 var frame_delay := 0.0
-var submitting := false
+var submitting: bool:
+	get: return controller.state.submitting if controller else false
+	set(value): controller.state.submitting = value
 var reconnect_button: Button
 var selection_actions: HBoxContainer
 var animate_card_entry := true
@@ -48,6 +55,8 @@ func _ready() -> void:
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	controller = preload("res://scripts/ui/controllers/combat_controller.gd").new(GameSession, Playback, func(): return router.get_tree().paused)
+	controller.changed.connect(_update_controls)
 	if not Playback.frame_presented.is_connected(_on_frame):
 		Playback.frame_presented.connect(_on_frame)
 	_render(data, true)
@@ -58,7 +67,6 @@ func refresh_state(data: Dictionary) -> void:
 func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	var key := JSON.stringify([GameSession.run, GameSession.combat, GameSession.legal_actions, GameSession.card_zones, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast])
 	if key == _view_key and is_instance_valid(hand):
-		submitting = false
 		_update_controls()
 		return
 	_view_key = key
@@ -68,7 +76,6 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	render_epoch += 1
 	presentation = data
 	animate_card_entry = play_entry_animation
-	submitting = false
 	frame_delay = 0.0
 	actor_portraits.clear()
 	target_buttons.clear()
@@ -76,6 +83,7 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	zone_presenter = CardZonePresenter.new(GameSession.card_zones, I18n)
 	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions,
 		I18n, presentation, GameSession.card_zones)
+	controller.bind(presenter, _hand_scope(), zone_presenter.playable_cards().map(func(card): return str(card.get("cardInstanceId", ""))))
 	if preserve:
 		_refresh_structure()
 		return
@@ -184,6 +192,7 @@ func _layout_gameplay() -> void:
 			actor.fit_battlefield_height(available)
 
 func _exit_tree() -> void:
+	if controller: controller.dispose()
 	if Playback.frame_presented.is_connected(_on_frame):
 		Playback.frame_presented.disconnect(_on_frame)
 
@@ -639,20 +648,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_cancel_selection()
 
 func _select_target(actor_id: String) -> void:
-	if _locked() or selected_card.is_empty():
-		return
-	selected_target = actor_id
-	var matches: Array = _candidates(selected_card).filter(func(candidate): return actor_id in _targets(candidate))
-	_update_controls()
-	_offer_candidates(matches)
+	var matches: Array = controller.target_options(actor_id)
+	if not matches.is_empty(): _offer_candidates(matches)
 
 func _play_candidate(candidate: Dictionary) -> void:
 	if _locked() or candidate.is_empty():
 		return
-	submitting = true
-	_update_controls()
 	var id := str(candidate.command.get("cardInstanceId", ""))
-	var success := await GameSession.submit_candidate(candidate)
+	var success: bool = await controller.submit(candidate)
 	if not is_inside_tree():
 		return
 	if success:
@@ -678,35 +681,11 @@ func _play_candidate(candidate: Dictionary) -> void:
 		_update_controls()
 
 func _end_turn() -> void:
-	if _locked():
-		return
-	var candidate := _system_candidate(["END_TURN"])
-	if candidate.is_empty():
-		return
-	submitting = true
-	_update_controls()
-	var accepted := await GameSession.submit_candidate(candidate)
-	if not is_inside_tree():
-		return
-	if accepted:
-		router.open_game()
-	else:
-		submitting = false
-		_update_controls()
+	_execute_system(_system_candidate(["END_TURN"]))
 
 func _execute_system(candidate: Dictionary) -> void:
-	if _locked():
-		return
-	submitting = true
-	_update_controls()
-	var accepted := await GameSession.submit_candidate(candidate)
-	if not is_inside_tree():
-		return
-	if accepted:
-		router.open_game()
-	else:
-		submitting = false
-		_update_controls()
+	var accepted: bool = await controller.submit(candidate)
+	if is_inside_tree() and accepted: router.open_game()
 
 func _next_frame() -> void:
 	if get_tree().paused:
@@ -764,8 +743,7 @@ func _has_frames() -> bool:
 	return Playback.has_frames()
 
 func _locked() -> bool:
-	return presenter.input_state(submitting or GameSession.busy, GameSession.synchronized,
-		_has_frames(), router.get_tree().paused, selected_card) not in [Presenter.InputState.READY, Presenter.InputState.SELECTING]
+	return controller.locked()
 
 func _choose_card(id: String) -> void:
 	if _locked():
@@ -774,8 +752,7 @@ func _choose_card(id: String) -> void:
 	if selected_card == id and matches.size() == 1:
 		_play_candidate(matches[0])
 		return
-	selected_card = id
-	selected_target = ""
+	if not controller.select_card(id): return
 	GameAudio.ui()
 	_clear_choices()
 	_show_preview(id)
@@ -784,10 +761,7 @@ func _choose_card(id: String) -> void:
 		_offer_candidates(matches)
 
 func _cancel_selection() -> void:
-	if submitting or GameSession.busy:
-		return
-	selected_card = ""
-	selected_target = ""
+	if not controller.cancel(): return
 	_clear_choices()
 	detail_label.text = I18n.text("Select a card, then choose a highlighted target.")
 	_update_controls()
@@ -893,7 +867,7 @@ func _float_application(application: Dictionary, portrait: Control) -> void:
 	tween.chain().tween_callback(label.queue_free)
 
 func _reconnect() -> void:
-	var accepted := await GameSession.refresh()
+	var accepted: bool = await controller.reconnect()
 	if not is_inside_tree():
 		return
 	if accepted:
@@ -911,7 +885,7 @@ func _load_inspection(ticket: int) -> void:
 		if not targets.is_empty():
 			representative_targets = [targets[0]]
 			break
-	var response := await GameSession.inspect_hand(representative_targets)
+	var response: Dictionary = await controller.inspect_hand(representative_targets)
 	if not is_inside_tree() or ticket != render_epoch or not response.ok:
 		return
 	presenter.accept_evaluations(response.data.get("cards", []))
@@ -954,13 +928,5 @@ func _open_zone_tools() -> void:
 	dialog.popup_centered()
 
 func _execute_zone_flow(payload: Dictionary) -> void:
-	if _locked(): return
-	submitting = true
-	_update_controls()
-	var accepted := await GameSession.execute_run_command("INVOKE_CARD_ZONE_FLOW", payload, str(payload.get("flowId", "")))
-	if not is_inside_tree(): return
-	if accepted:
-		router.open_game()
-	else:
-		submitting = false
-		_update_controls()
+	var accepted: bool = await controller.execute_zone_flow(payload)
+	if is_inside_tree() and accepted: router.open_game()

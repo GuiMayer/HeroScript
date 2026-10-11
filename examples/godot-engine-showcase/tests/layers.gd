@@ -233,8 +233,9 @@ func _run() -> void:
 	var projected: Array = presenter.candidates("card-1")
 	projected[0].command.targetIds.clear()
 	check(presenter.targets(presenter.candidates("card-1")[0]) == ["enemy"], "indexed candidates cannot be mutated by views")
-	check(presenter.input_state(false, true, true, false, "card-1") == Presenter.InputState.ANIMATING, "presentation cursor overrides selection state")
-	check(presenter.input_state(false, true, false, true, "") == Presenter.InputState.PAUSED, "pause blocks every presentation input state")
+	var UiState = load("res://scripts/ui/controllers/combat_ui_state.gd")
+	check(UiState.phase(false, true, true, false, "card-1") == UiState.InputState.ANIMATING, "presentation cursor overrides selection state")
+	check(UiState.phase(false, true, false, true, "") == UiState.InputState.PAUSED, "pause blocks every presentation input state")
 	for field in [0.0, 1.0, 2.0, "Current", "Minimum", "Maximum"]:
 		var label: String = presenter.application_text({"previousValue": 1, "currentValue": 2, "resourceId": "custom", "resourceField": field})
 		check(not label.is_empty(), "resource field presentation accepts numeric and named values: " + str(field))

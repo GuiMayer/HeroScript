@@ -1,6 +1,5 @@
 extends RefCounted
 ## Passive projection of one engine snapshot. Never evaluates effects or issues commands.
-enum InputState { READY, SELECTING, SUBMITTING, ANIMATING, RECOVERING, PAUSED }
 var _i18n
 var _run: Dictionary
 var _combat: Dictionary
@@ -38,13 +37,6 @@ func _init(run: Dictionary, combat: Dictionary, actions: Array, translator, appe
 
 func actors() -> Array:
 	return _combat.get("actors", []).duplicate(true)
-
-func input_state(submitting: bool, synchronized: bool, animating: bool, paused: bool, selected: String) -> InputState:
-	if paused: return InputState.PAUSED
-	if submitting: return InputState.SUBMITTING
-	if not synchronized: return InputState.RECOVERING
-	if animating: return InputState.ANIMATING
-	return InputState.READY if selected.is_empty() else InputState.SELECTING
 
 func candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
 	for candidate in _actions:
