@@ -253,7 +253,7 @@ func _actor_card(actor: Dictionary, hostile: bool) -> Control:
 	var panel := preload("res://scripts/ui/actor_panel.gd").new()
 	var id := str(actor.get("instanceId", ""))
 	panel.name = "ActorView_" + id.validate_node_name()
-	panel.setup(actor, hostile, presentation, presenter._intent_for(id), false, true)
+	panel.setup(actor, hostile, presentation, presenter.intent_for(id), false, true)
 	panel.minimum_size_changed.connect(_queue_gameplay_layout)
 	panel.target_selected.connect(_select_target)
 	panel.target_button.mouse_entered.connect(func(): _show_target_preview(id))
@@ -733,19 +733,19 @@ func _queue_text() -> String:
 	return I18n.text("%s animation(s) remaining") % maxi(remaining, 0)
 
 func _candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
-	return presenter._candidate_for_card(instance_id, target_id)
+	return presenter.candidate_for_card(instance_id, target_id)
 
 func _system_candidate(action_types: Array) -> Dictionary:
-	return presenter._system_candidate(action_types)
+	return presenter.system_candidate(action_types)
 
 func _preview(candidate: Dictionary) -> String:
-	return presenter._preview(candidate)
+	return presenter.preview(candidate)
 
 func _card_instance(instance_id: String) -> Dictionary:
-	return presenter._card_instance(instance_id)
+	return presenter.card_instance(instance_id)
 
 func _intent_for(actor_id: String) -> String:
-	return presenter._intent_for(actor_id)
+	return presenter.intent_for(actor_id)
 
 func _button(text: String, action: Callable, width := 0) -> Button:
 	var value := AppTheme.button(text, width)
@@ -793,10 +793,10 @@ func _cancel_selection() -> void:
 	_update_controls()
 
 func _candidates(id: String) -> Array:
-	return presenter._candidates(id)
+	return presenter.candidates(id)
 
 func _targets(candidate: Dictionary) -> Array:
-	return presenter._targets(candidate)
+	return presenter.targets(candidate)
 
 func _clear_choices() -> void:
 	if is_instance_valid(candidate_panel): candidate_panel.hide()
@@ -866,7 +866,7 @@ func _update_controls() -> void:
 		target_buttons[id].modulate = AppTheme.GOLD if allowed else Color.WHITE
 
 func _actor_name(id: String) -> String:
-	return presenter._actor_name(id)
+	return presenter.actor_name(id)
 
 func _float_application(application: Dictionary, portrait: Control) -> void:
 	var previous = application.get("previousValue")
@@ -900,14 +900,14 @@ func _reconnect() -> void:
 		router.open_game()
 
 func _cost_text(candidate: Dictionary) -> String:
-	return presenter._cost_text(candidate)
+	return presenter.cost_text(candidate)
 
 func _load_inspection(ticket: int) -> void:
 	var representative_targets: Array = []
 	if not selected_target.is_empty(): representative_targets = [selected_target]
 	for candidate in GameSession.legal_actions:
 		if not representative_targets.is_empty(): break
-		var targets: Array = presenter._targets(candidate)
+		var targets: Array = presenter.targets(candidate)
 		if not targets.is_empty():
 			representative_targets = [targets[0]]
 			break

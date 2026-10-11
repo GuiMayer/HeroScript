@@ -230,9 +230,9 @@ func _run() -> void:
 	var presenter = Presenter.new({}, actor_fixture, [transport.legal], i18n)
 	actor_fixture.actors.clear()
 	check(presenter.actors().size() == 3, "presenter freezes its input and retains every actor")
-	var projected: Array = presenter._candidates("card-1")
+	var projected: Array = presenter.candidates("card-1")
 	projected[0].command.targetIds.clear()
-	check(presenter._targets(presenter._candidates("card-1")[0]) == ["enemy"], "indexed candidates cannot be mutated by views")
+	check(presenter.targets(presenter.candidates("card-1")[0]) == ["enemy"], "indexed candidates cannot be mutated by views")
 	check(presenter.input_state(false, true, true, false, "card-1") == Presenter.InputState.ANIMATING, "presentation cursor overrides selection state")
 	check(presenter.input_state(false, true, false, true, "") == Presenter.InputState.PAUSED, "pause blocks every presentation input state")
 	for field in [0.0, 1.0, 2.0, "Current", "Minimum", "Maximum"]:

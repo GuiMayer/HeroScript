@@ -46,37 +46,37 @@ func input_state(submitting: bool, synchronized: bool, animating: bool, paused: 
 	if animating: return InputState.ANIMATING
 	return InputState.READY if selected.is_empty() else InputState.SELECTING
 
-func _candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
+func candidate_for_card(instance_id: String, target_id := "") -> Dictionary:
 	for candidate in _actions:
 		var command: Dictionary = candidate.get("command", {})
 		if str(command.get("cardInstanceId", "")) != instance_id:
 			continue
 		var targets: Array = command.get("targetIds", [])
 		if target_id.is_empty() or target_id in targets or str(command.get("targetId", "")) == target_id:
-			return candidate
+			return candidate.duplicate(true)
 	return {}
 
-func _system_candidate(action_types: Array) -> Dictionary:
+func system_candidate(action_types: Array) -> Dictionary:
 	for candidate in _actions:
 		if str(candidate.get("source", "")) == "System" and \
 			str(candidate.get("command", {}).get("actionType", "")) in action_types:
-			return candidate
+			return candidate.duplicate(true)
 	return {}
 
-func _preview(candidate: Dictionary) -> String:
+func preview(candidate: Dictionary) -> String:
 	if candidate.is_empty():
 		return _i18n.text("No legal actions for this card in the current state.")
-	var lines: Array[String] = [_i18n.text("Cost: %s") % _cost_text(candidate)]
+	var lines: Array[String] = [_i18n.text("Cost: %s") % cost_text(candidate)]
 	if bool(candidate.get("outcomeUncertain", false)):
 		lines.append(_i18n.text("The outcome depends on the next responses."))
 	for application in candidate.get("applications", []):
 		lines.append(application_text(application))
 	return "  •  ".join(lines)
 
-func _card_instance(instance_id: String) -> Dictionary:
+func card_instance(instance_id: String) -> Dictionary:
 	return _cards.get(instance_id, {}).duplicate(true)
 
-func _intent_for(actor_id: String) -> String:
+func intent_for(actor_id: String) -> String:
 	for intent in _combat.get("activation", {}).get("intents", []):
 		if str(intent.get("actorId", "")) == actor_id:
 			var lines: Array[String] = [_i18n.content_name(str(intent.get("actionId", intent.get("actionType", ""))))]
@@ -87,33 +87,33 @@ func _intent_for(actor_id: String) -> String:
 			return "\n".join(lines)
 	return ""
 
-func _candidates(id: String) -> Array:
+func candidates(id: String) -> Array:
 	return _by_card.get(id, []).duplicate(true)
 
-func _targets(candidate: Dictionary) -> Array:
+func targets(candidate: Dictionary) -> Array:
 	var command: Dictionary = candidate.get("command", {})
 	var targets: Array = command.get("targetIds", [])
 	if targets.is_empty() and command.get("targetId") != null:
 		targets = [command.targetId]
-	return targets
+	return targets.duplicate(true)
 
-func _actor_name(id: String) -> String:
+func actor_name(id: String) -> String:
 	for actor in _combat.get("actors", []):
 		if str(actor.get("instanceId", "")) == id:
 			return _i18n.content_name(str(actor.get("definitionId", "")), str(actor.get("name", id)))
 	return id
 
-func _cost_text(candidate: Dictionary) -> String:
+func cost_text(candidate: Dictionary) -> String:
 	var parts: Array[String] = []
 	for cost in candidate.get("costs", []):
 		parts.append("%s %s" % [_i18n.number(float(cost.get("amount", 0))), _i18n.content_name(str(cost.get("resourceId", "")))])
 	return " + ".join(parts) if not parts.is_empty() else "0"
 
 func card_view_model(instance_id: String) -> Dictionary:
-	var card := _card_instance(instance_id)
+	var card := card_instance(instance_id)
 	var definition_id := str(card.get("definitionId", ""))
 	var appearance: Dictionary = _appearance.get("cards", {}).get(definition_id, {})
-	var candidate := _candidate_for_card(instance_id)
+	var candidate := candidate_for_card(instance_id)
 	var inspection: Dictionary = _evaluations.get(instance_id, {})
 	var base: Dictionary = inspection.get("baseContainer", {}) if inspection.get("baseContainer") is Dictionary else {}
 	var upgrades: Array = inspection.get("appliedUpgrades", card.get("upgrades", []))
@@ -133,7 +133,7 @@ func card_view_model(instance_id: String) -> Dictionary:
 		summary = "\n".join(sections.effectRows.map(func(row):
 			return "".join(row.get("segments", []).map(func(segment): return str(segment.get("text", ""))))))
 	var cost_options: Array = []
-	for option in _candidates(instance_id):
+	for option in candidates(instance_id):
 		var tokens := _cost_tokens(option.get("costs", []))
 		if tokens not in cost_options: cost_options.append(tokens)
 	var result := {
@@ -158,7 +158,7 @@ func card_view_model(instance_id: String) -> Dictionary:
 	}
 	result.merge(sections, true)
 	result["rarity"] = _i18n.text(str(result.rarityId).to_upper())
-	return result
+	return preload("res://scripts/presentation/view_models.gd").Card.new(result).to_dictionary()
 
 func _card_type(tags: Array, tone: String) -> String:
 	for kind in ["attack", "skill", "power"]:
@@ -225,7 +225,7 @@ func _source_kind(value) -> String:
 	return str(value)
 
 func application_text(application: Dictionary, include_source := false) -> String:
-	var text := _actor_name(str(application.get("targetEntityId", ""))) + ": "
+	var text := actor_name(str(application.get("targetEntityId", ""))) + ": "
 	var previous = application.get("previousValue")
 	var current = application.get("currentValue")
 	if previous != null and current != null:
@@ -266,7 +266,7 @@ func unavailable_reason(id: String) -> String:
 	return "\n".join(reasons) if not reasons.is_empty() else _i18n.text("No legal actions for this card in the current state.")
 
 func action_summary(id: String) -> String:
-	var candidates := _candidates(id)
+	var candidates := candidates(id)
 	if candidates.is_empty(): return _i18n.text("UNAVAILABLE")
 	var descriptions: Array[String] = []
 	for candidate in candidates:
@@ -281,13 +281,13 @@ func action_summary(id: String) -> String:
 	return descriptions[0] if descriptions.size() == 1 else _i18n.text("%s legal choices — select a target") % descriptions.size()
 
 func action_preview(id: String, target_id := "") -> String:
-	var candidates := _candidates(id)
+	var candidates := candidates(id)
 	if not target_id.is_empty():
-		candidates = candidates.filter(func(candidate): return target_id in _targets(candidate))
+		candidates = candidates.filter(func(candidate): return target_id in targets(candidate))
 	if candidates.is_empty(): return unavailable_reason(id)
 	if target_id.is_empty() and candidates.size() > 1:
 		return _i18n.text("Choose a highlighted target.")
-	return "\n".join(candidates.map(func(candidate): return _preview(candidate)))
+	return "\n".join(candidates.map(func(candidate): return preview(candidate)))
 
 func _is_cost(application: Dictionary, candidate: Dictionary) -> bool:
 	var source: Dictionary = application.get("provenance", {})
@@ -306,13 +306,13 @@ func compact_application(application: Dictionary) -> String:
 	elif field in ["2", "2.0", "Maximum"]: suffix = " " + _i18n.text("Maximum")
 	return "%s%s %s%s · %s" % ["+" if delta > 0 else "", _i18n.number(delta),
 		_i18n.content_name(str(application.get("resourceId", ""))), suffix,
-		_actor_name(str(application.get("targetEntityId", "")))]
+		actor_name(str(application.get("targetEntityId", "")))]
 
 func inspection_text(id: String) -> String:
 	var data: Dictionary = _evaluations.get(id, {})
 	var lines: Array[String] = [action_summary(id)]
-	if _candidates(id).is_empty(): lines.append(unavailable_reason(id))
-	for candidate in _candidates(id): lines.append(_preview(candidate))
+	if candidates(id).is_empty(): lines.append(unavailable_reason(id))
+	for candidate in candidates(id): lines.append(preview(candidate))
 	if data.is_empty():
 		lines.append(_i18n.text("Detailed inspection is unavailable."))
 	else:
@@ -329,7 +329,7 @@ func inspection_text(id: String) -> String:
 			for consumed in proc.get("consumedStacks", []):
 				lines.append(_i18n.text("Consumed stacks: %s → %s") % [consumed.get("previousStacks", 0), consumed.get("currentStacks", 0)])
 			for hop in proc.get("continuations", []):
-				lines.append("%s → %s" % [_actor_name(str(hop.get("fromEntityId", ""))), _actor_name(str(hop.get("toEntityId", "")))])
+				lines.append("%s → %s" % [actor_name(str(hop.get("fromEntityId", ""))), actor_name(str(hop.get("toEntityId", "")))])
 		var context: Dictionary = data.get("contextSources", {}) if data.get("contextSources") is Dictionary else {}
 		for upgrade in data.get("appliedUpgrades", []):
 			lines.append(_i18n.content_name(str(upgrade.get("upgradeId", ""))))
@@ -339,7 +339,7 @@ func inspection_text(id: String) -> String:
 			lines.append(_i18n.text(pair[0]) + ": " + ", ".join(names))
 		for actor_id in context.get("statuses", {}):
 			for status in context.statuses[actor_id]:
-				lines.append("%s: %s ×%s" % [_actor_name(actor_id), _i18n.content_name(str(status.get("statusId", ""))), status.get("stacks", 1)])
+				lines.append("%s: %s ×%s" % [actor_name(actor_id), _i18n.content_name(str(status.get("statusId", ""))), status.get("stacks", 1)])
 	return "\n\n".join(lines)
 
 func inspection_data(id: String) -> Dictionary:
@@ -353,7 +353,7 @@ func pile_cards(zone: String) -> Array:
 				result.append_array(view.get("cards", []))
 	else:
 		for id in _run.get("deck", {}).get(zone, []):
-			var card := _card_instance(str(id))
+			var card := card_instance(str(id))
 			if not card.is_empty(): result.append(card)
 	# Avoid revealing the shuffled draw order through the inspector.
 	result.sort_custom(func(a, b): return str(a.get("definitionId", "")) < str(b.get("definitionId", "")))

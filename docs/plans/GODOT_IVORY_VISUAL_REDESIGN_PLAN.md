@@ -6,6 +6,8 @@ Status: etapa 0 executada; tema Marfim ainda não aplicado. Registro, capturas, 
 
 Direção escolhida pelo autor: [conceito 02 — Marfim](../design/interface-concepts/2026-10-11/02-ivory.png). Os conceitos e seus prompts permanecem como referência; o mockup não é uma especificação literal de regras ou layout.
 
+Dependência de arquitetura adicionada após a revisão do frontend: [reestruturação da UI para estilos substituíveis](GODOT_UI_ARCHITECTURE_REFACTOR_PLAN.md). Executar primeiro os contratos/componentização desse plano e compartilhar sua infraestrutura de tema; não criar sistemas paralelos em ambos. A seção 7 do novo plano define a ordem combinada, preservando esta direção artística.
+
 ## 1. Objetivo e limites
 
 Transformar a apresentação do jogo em uma interface de papel marfim, tinta escura e vermelhão, identificada por feixes finos de linhas paralelas com mudanças de direção de 45°. O resultado deve parecer uma linguagem visual deliberada e consistente, não apenas o tema atual com novas cores.
