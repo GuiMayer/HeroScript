@@ -1,5 +1,16 @@
 extends RefCounted
 ## Explicit focus graph for keyboard/gamepad; no gameplay shortcuts replace UI navigation.
+static func queue(root: Control) -> void:
+	if not is_instance_valid(root) or root.get_meta("focus_pass_pending", false): return
+	root.set_meta("focus_pass_pending", true)
+	_flush.call_deferred(weakref(root))
+
+static func _flush(reference: WeakRef) -> void:
+	var root = reference.get_ref()
+	if not is_instance_valid(root): return
+	root.set_meta("focus_pass_pending", false)
+	wire(root)
+
 static func controls(root: Node) -> Array[Control]:
 	var found: Array[Control] = []
 	if root is Control and root.is_visible_in_tree() and root.focus_mode == Control.FOCUS_ALL:

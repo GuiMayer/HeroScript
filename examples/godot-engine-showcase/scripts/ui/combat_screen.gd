@@ -16,7 +16,18 @@ var selected_card: String:
 	set(value): controller.state.selected_card = value
 var hand
 var hand_section: VBoxContainer
-var _view_key := ""
+var _projection_key: Array = []
+var _run_snapshot: Dictionary
+var _combat_snapshot: Dictionary
+var _action_snapshot: Array
+var _zone_snapshot: Dictionary
+var header_view
+var battlefield_view
+var turn_view
+var _turn_key: Array = []
+var _hand_chrome_key: Array = []
+var _inspection_key: Array = []
+var _inspection_cards: Array = []
 var detail_label: RichTextLabel
 var queue_label: Label
 var next_frame_button: Button
@@ -65,11 +76,15 @@ func refresh_state(data: Dictionary) -> void:
 	_render(data, false)
 
 func _render(data: Dictionary, play_entry_animation: bool) -> void:
-	var key := JSON.stringify([GameSession.run, GameSession.combat, GameSession.legal_actions, GameSession.card_zones, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast])
-	if key == _view_key and is_instance_valid(hand):
+	_run_snapshot = GameSession.run
+	_combat_snapshot = GameSession.combat
+	_action_snapshot = GameSession.legal_actions
+	_zone_snapshot = GameSession.card_zones
+	var key: Array = [_run_snapshot, _combat_snapshot, _action_snapshot, _zone_snapshot, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast]
+	if key == _projection_key and is_instance_valid(hand):
 		_update_controls()
 		return
-	_view_key = key
+	_projection_key = key.duplicate(true)
 	var preserve := is_instance_valid(hand) and is_instance_valid(hand_section)
 	if preserve: hand.cancel_gesture()
 	if not preserve or hand.scope != _hand_scope(): selected_card = ""; selected_target = ""
@@ -77,12 +92,9 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	presentation = data
 	animate_card_entry = play_entry_animation
 	frame_delay = 0.0
-	actor_portraits.clear()
-	target_buttons.clear()
-	action_buttons.clear()
-	zone_presenter = CardZonePresenter.new(GameSession.card_zones, I18n)
-	presenter = Presenter.new(GameSession.run, GameSession.combat, GameSession.legal_actions,
-		I18n, presentation, GameSession.card_zones)
+	zone_presenter = CardZonePresenter.new(_zone_snapshot, I18n)
+	presenter = Presenter.new(_run_snapshot, _combat_snapshot, _action_snapshot,
+		I18n, presentation, _zone_snapshot)
 	controller.bind(presenter, _hand_scope(), zone_presenter.playable_cards().map(func(card): return str(card.get("cardInstanceId", ""))))
 	if preserve:
 		_refresh_structure()
@@ -109,27 +121,12 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	_load_inspection.call_deferred(render_epoch)
 
 func _hand_scope() -> String:
-	return JSON.stringify([GameSession.run.get("runId", ""), GameSession.run.get("branchId", ""),
-		GameSession.combat.get("combatId", ""), GameSession.input_actor_id(),
-		GameSession.card_zones.get("zones", []).filter(func(zone): return zone.get("allowsCardPlay", false)).map(func(zone): return zone.get("zoneId", ""))])
+	return JSON.stringify([_run_snapshot.get("runId", ""), _run_snapshot.get("branchId", ""),
+		_combat_snapshot.get("combatId", ""), GameSession.input_actor_id(),
+		_zone_snapshot.get("zones", []).filter(func(zone): return zone.get("allowsCardPlay", false)).map(func(zone): return zone.get("zoneId", ""))])
 
 func _refresh_structure() -> void:
-	# Keep the actual hand in the tree: removing/reparenting it loses focus too.
-	var body := gameplay_column.get_parent()
-	for child in get_children():
-		if child != body and child != floating_hud: remove_child(child); child.queue_free()
-	for child in floating_hud.host.get_children():
-		if child != character_sidebar_reopen:
-			floating_hud.host.remove_child(child); child.queue_free()
-	for child in gameplay_column.get_children():
-		if child != bottom_hud and child != character_sidebar_reopen:
-			gameplay_column.remove_child(child); child.queue_free()
-	for child in bottom_hud.get_children():
-		if child != hand_section: bottom_hud.remove_child(child); child.queue_free()
-	for child in body.get_children():
-		if child != gameplay_column: body.remove_child(child); child.queue_free()
 	_build_header()
-	move_child(get_child(get_child_count() - 1), 0)
 	_build_battlefield()
 	_build_hand()
 	_build_footer()
@@ -188,34 +185,40 @@ func _exit_tree() -> void:
 		Playback.frame_presented.disconnect(_on_frame)
 
 func _build_header() -> void:
-	var row = preload("res://scripts/ui/components/combat_header_view.gd").new()
-	row.name = "CombatHeader"
-	row.timeline_requested.connect(router.show_timeline)
-	row.tools_requested.connect(_open_zone_tools)
-	row.pause_requested.connect(router.toggle_pause)
-	var activation: Dictionary = GameSession.combat.get("activation", {})
+	if not is_instance_valid(header_view):
+		header_view = preload("res://scripts/ui/components/combat_header_view.gd").new()
+		header_view.name = "CombatHeader"
+		header_view.timeline_requested.connect(router.show_timeline)
+		header_view.tools_requested.connect(_open_zone_tools)
+		header_view.pause_requested.connect(router.toggle_pause)
+		add_child(header_view)
+		move_child(header_view, 0)
+		action_buttons.append(header_view.tool_button) if is_instance_valid(header_view.tool_button) else null
+	var row = header_view
+	var activation: Dictionary = _combat_snapshot.get("activation", {})
 	row.apply_model({"title": I18n.text("COMBAT"),
-		"context": str(GameSession.combat.get("runNodeId", "")) + " · " + str(GameSession.combat.get("stateHash", "")),
-		"round": I18n.text("ROUND %s") % int(activation.get("round", GameSession.combat.get("currentTurn", 1))),
+		"context": str(_combat_snapshot.get("runNodeId", "")) + " · " + str(_combat_snapshot.get("stateHash", "")),
+		"round": I18n.text("ROUND %s") % int(activation.get("round", _combat_snapshot.get("currentTurn", 1))),
 		"timeline": I18n.text("TIMELINE  [%s]") % Preferences.action_label("open_timeline"),
-		"tools": I18n.text("ZONE TOOLS"), "allow_tools": not CardZonePresenter.tool_flows(GameSession.run).is_empty(),
+		"tools": I18n.text("ZONE TOOLS"), "allow_tools": not CardZonePresenter.tool_flows(_run_snapshot).is_empty(),
 		"pause": I18n.text("PAUSE")})
-	action_buttons.append(row.tool_button)
-	add_child(row)
+	if row.tool_button not in action_buttons: action_buttons.append(row.tool_button)
 
 func _build_battlefield() -> void:
-	var stage = preload("res://scripts/ui/components/battlefield_view.gd").new()
-	stage.target_selected.connect(_select_target)
-	stage.target_previewed.connect(_show_target_preview)
-	stage.preview_left.connect(func(): if not selected_card.is_empty(): _show_preview(selected_card))
-	stage.layout_requested.connect(_queue_gameplay_layout)
+	if not is_instance_valid(battlefield_view):
+		battlefield_view = preload("res://scripts/ui/components/battlefield_view.gd").new()
+		battlefield_view.target_selected.connect(_select_target)
+		battlefield_view.target_previewed.connect(_show_target_preview)
+		battlefield_view.preview_left.connect(func(): if not selected_card.is_empty(): _show_preview(selected_card))
+		battlefield_view.layout_requested.connect(_queue_gameplay_layout)
+		gameplay_column.add_child(battlefield_view)
+		battlefield_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		gameplay_column.move_child(battlefield_view, 0)
+	var stage = battlefield_view
 	var actors: Array = presenter.actors().map(func(actor): return {"actor": actor,
 		"hostile": presenter.relationship(actor, GameSession.input_actor_id()) == "Enemy",
 		"intent": presenter.intent_for(str(actor.get("instanceId", "")))})
 	stage.apply_model(actors, presentation)
-	gameplay_column.add_child(stage)
-	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	gameplay_column.move_child(stage, 0)
 	battlefield_actors = stage.actor_scroll
 	actor_portraits = stage.portraits
 	target_buttons = stage.targets
@@ -223,6 +226,11 @@ func _build_battlefield() -> void:
 func _build_hand() -> void:
 	var section := hand_section if is_instance_valid(hand_section) else VBoxContainer.new()
 	hand_section = section
+	var chrome_key: Array = [zone_presenter.auxiliary_zones(), I18n.locale]
+	if is_instance_valid(hand) and _hand_chrome_key == chrome_key:
+		_sync_hand_models()
+		return
+	_hand_chrome_key = chrome_key.duplicate(true)
 	section.name = "HandSection"
 	for child in section.get_children():
 		if child != hand: section.remove_child(child); child.queue_free()
@@ -267,7 +275,7 @@ func _build_hand() -> void:
 		hand.inspection_requested.connect(_inspect_instance)
 		hand.selection_requested.connect(func(id):
 			if _locked() or id not in card_buttons: return
-			selected_card = id; selected_target = ""
+			if not controller.select_card(id): return
 			_clear_choices(); _show_preview(id); _update_controls())
 		hand.drop_requested.connect(_drop_card)
 		section.add_child(hand)
@@ -275,6 +283,9 @@ func _build_hand() -> void:
 	hand.toolbar.move_child(heading, 0)
 	hand.set_tools_below_cards(true)
 	hand.counter.size_flags_horizontal = Control.SIZE_FILL
+	_sync_hand_models()
+
+func _sync_hand_models() -> void:
 	var models: Array = []
 	for card in zone_presenter.playable_cards():
 		models.append(presenter.card_view_model(str(card.get("cardInstanceId", ""))))
@@ -284,7 +295,7 @@ func _build_hand() -> void:
 		if card_buttons[id].has_meta("initial_focus"): card_buttons[id].remove_meta("initial_focus")
 	if selected_card not in card_buttons: selected_card = ""; selected_target = ""
 	_ensure_bottom_hud()
-	if section.get_parent() == null: bottom_hud.add_child(section)
+	if hand_section.get_parent() == null: bottom_hud.add_child(hand_section)
 
 func _empty_hand_state() -> Control:
 	return HandView.empty_state(I18n.text("Your hand is empty."))
@@ -297,14 +308,23 @@ func _drop_card(id: String, point: Vector2) -> void:
 			selected_card = id
 			_select_target(actor_id)
 			return
-	var stage := gameplay_column.find_child("Battlefield", true, false)
+	var stage: Control = battlefield_view
 	if is_instance_valid(stage) and stage.get_global_rect().has_point(point):
 		var candidates := _candidates(id).filter(func(candidate): return _targets(candidate).is_empty())
 		if not candidates.is_empty(): selected_card = id; _update_controls(); _offer_candidates(candidates)
 
 func _build_footer() -> void:
 	_ensure_floating_hud()
+	var key: Array = [_system_candidate(["PASS", "PASS_PRIORITY"]), I18n.locale, Preferences.action_label("end_turn"), Preferences.action_label("confirm_action")]
+	if is_instance_valid(turn_view) and key == _turn_key: return
+	_turn_key = key.duplicate(true)
+	if is_instance_valid(turn_view):
+		for button in turn_view.buttons: action_buttons.erase(button)
+		bottom_hud.remove_child(turn_view); turn_view.queue_free()
+		floating_hud.host.remove_child(reconnect_button); reconnect_button.queue_free()
+		floating_hud.host.remove_child(candidate_panel); candidate_panel.queue_free()
 	var row = preload("res://scripts/ui/components/turn_controls_view.gd").new()
+	turn_view = row
 	var feedback = preload("res://scripts/ui/components/action_preview_view.gd").new()
 	feedback.mount(I18n.text("Select a card, then choose a highlighted target."))
 	row.add_child(feedback)
@@ -345,13 +365,15 @@ func _build_character_sidebar() -> Control:
 		character_sidebar_reopen.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		character_sidebar_reopen.offset_left = -44
 		character_sidebar_reopen.offset_bottom = 44
-	var view = preload("res://scripts/ui/components/character_sidebar_view.gd").new()
-	view.collapse_requested.connect(_toggle_character_sidebar)
-	view.apply_model({"presentation": presentation, "run": GameSession.run, "combat": GameSession.combat,
-		"actors": presenter.actors(), "input_actor": GameSession.input_actor_id(), "zones": GameSession.card_zones,
+	var view = character_sidebar
+	if not is_instance_valid(view):
+		view = preload("res://scripts/ui/components/character_sidebar_view.gd").new()
+		view.collapse_requested.connect(_toggle_character_sidebar)
+		floating_hud.host.add_child(view)
+	view.apply_model({"presentation": presentation, "run": _run_snapshot, "combat": _combat_snapshot,
+		"actors": presenter.actors(), "input_actor": GameSession.input_actor_id(), "zones": _zone_snapshot,
 		"setting": GameSession.selected_setting, "setting_id": GameSession.selected_setting_id}, I18n)
 	character_sidebar = view
-	floating_hud.host.add_child(view)
 	view.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	view.offset_left = -328
 	view.offset_bottom = 520
@@ -367,7 +389,7 @@ func _toggle_character_sidebar() -> void:
 func _apply_character_sidebar_state() -> void:
 	if not is_instance_valid(character_sidebar) or not is_instance_valid(character_sidebar_content):
 		return
-	var toggle: Button = character_sidebar.find_child("CharacterSidebarToggle", true, false)
+	var toggle: Button = character_sidebar.toggle_button
 	var transfer_focus := (is_instance_valid(toggle) and toggle.has_focus()) or character_sidebar_reopen.has_focus()
 	character_sidebar.custom_minimum_size.x = 328
 	character_sidebar.visible = character_sidebar_expanded
@@ -379,7 +401,7 @@ func _apply_character_sidebar_state() -> void:
 		toggle.tooltip_text = I18n.text("COLLAPSE CHARACTER PANEL")
 	if transfer_focus and is_inside_tree():
 		(toggle if character_sidebar_expanded else character_sidebar_reopen).grab_focus()
-	preload("res://scripts/ui/focus_navigation.gd").wire.call_deferred(self)
+	preload("res://scripts/ui/focus_navigation.gd").queue(self)
 
 func _input(event: InputEvent) -> void:
 	# Consume cancel before the router handles pause; the first Escape cancels targeting.
@@ -429,7 +451,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 			var portrait: Control = actor_portraits[target_ids[0]]
 			destination = portrait.global_position + portrait.size * .5
 		if card_buttons.has(id):
-			var still_present := CardZonePresenter.new(GameSession.card_zones, I18n).playable_cards().any(func(card): return str(card.get("cardInstanceId", "")) == id)
+			var still_present := CardZonePresenter.new(_zone_snapshot, I18n).playable_cards().any(func(card): return str(card.get("cardInstanceId", "")) == id)
 			if not still_present: card_buttons[id].modulate.a = 0
 			await card_buttons[id].fly_to(destination, router)
 		if is_inside_tree():
@@ -635,9 +657,14 @@ func _cost_text(candidate: Dictionary) -> String:
 	return presenter.cost_text(candidate)
 
 func _load_inspection(ticket: int) -> void:
+	var inspection_key: Array = [_hand_scope(), _run_snapshot.get("sequence", 0), _combat_snapshot.get("step", 0)]
+	if inspection_key == _inspection_key:
+		presenter.accept_evaluations(_inspection_cards)
+		_sync_hand_models()
+		return
 	var representative_targets: Array = []
 	if not selected_target.is_empty(): representative_targets = [selected_target]
-	for candidate in GameSession.legal_actions:
+	for candidate in _action_snapshot:
 		if not representative_targets.is_empty(): break
 		var targets: Array = presenter.targets(candidate)
 		if not targets.is_empty():
@@ -646,7 +673,9 @@ func _load_inspection(ticket: int) -> void:
 	var response: Dictionary = await controller.inspect_hand(representative_targets)
 	if not is_inside_tree() or ticket != render_epoch or not response.ok:
 		return
-	presenter.accept_evaluations(response.data.get("cards", []))
+	_inspection_key = inspection_key.duplicate(true)
+	_inspection_cards = response.data.get("cards", []).duplicate(true)
+	presenter.accept_evaluations(_inspection_cards)
 	hand.sync_models(hand.order.map(func(id): return presenter.card_view_model(id)), _hand_scope(), I18n.text("Your hand is empty."))
 	card_buttons = hand.cards()
 	hand.set_selection(selected_card)
@@ -676,7 +705,7 @@ func _inspect_pile(label: String, zone: String) -> void:
 
 func _open_zone_tools() -> void:
 	if _locked(): return
-	var flows: Array = CardZonePresenter.tool_flows(GameSession.run)
+	var flows: Array = CardZonePresenter.tool_flows(_run_snapshot)
 	if flows.is_empty(): return
 	var dialog := preload("res://scripts/ui/card_zone_tool_dialog.gd").new()
 	dialog.setup(flows, selected_card)

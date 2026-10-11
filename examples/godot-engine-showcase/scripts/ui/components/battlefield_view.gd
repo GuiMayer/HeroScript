@@ -6,7 +6,13 @@ signal layout_requested
 var actor_scroll: ScrollContainer
 var portraits := {}
 var targets := {}
+var panels := {}
+var allies: HBoxContainer
+var opponents: HBoxContainer
 func apply_model(actors: Array, presentation: Dictionary) -> void:
+	if is_instance_valid(actor_scroll):
+		_sync_actors(actors, presentation)
+		return
 	var stage := self
 	stage.name = "Battlefield"
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -25,18 +31,15 @@ func apply_model(actors: Array, presentation: Dictionary) -> void:
 	field.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	field.alignment = BoxContainer.ALIGNMENT_CENTER
 	field.add_theme_constant_override("separation", 22)
-	var allies := HBoxContainer.new()
-	var opponents := HBoxContainer.new()
+	allies = HBoxContainer.new()
+	opponents = HBoxContainer.new()
 	allies.alignment = BoxContainer.ALIGNMENT_CENTER
 	opponents.alignment = BoxContainer.ALIGNMENT_CENTER
 	for side in [allies, opponents]:
 		side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		side.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		side.add_theme_constant_override("separation", 18)
-	for item in actors:
-		var actor: Dictionary = item.actor
-		var hostile: bool = item.hostile
-		(opponents if hostile else allies).add_child(_actor_card(actor, hostile, str(item.intent), presentation))
+	_sync_actors(actors, presentation)
 	field.add_child(allies)
 	var divider := CenterContainer.new()
 	divider.custom_minimum_size.x = 88
@@ -59,6 +62,28 @@ func _actor_card(actor: Dictionary, hostile: bool, intent: String, presentation:
 	panel.target_button.focus_entered.connect(func(): target_previewed.emit(id))
 	panel.target_button.mouse_exited.connect(func():
 		preview_left.emit())
+	panels[id] = panel
 	portraits[id] = panel.portrait_view
 	targets[id] = panel.target_button
 	return panel
+
+
+func _sync_actors(actors: Array, presentation: Dictionary) -> void:
+	var live: Array = []
+	for item in actors:
+		var actor: Dictionary = item.actor
+		var id := str(actor.get("instanceId", ""))
+		live.append(id)
+		var parent := opponents if bool(item.hostile) else allies
+		if panels.has(id):
+			var panel: Control = panels[id]
+			if panel.get_parent() != parent: panel.reparent(parent)
+			panel.setup(actor, bool(item.hostile), presentation, str(item.intent), false, true)
+		else:
+			parent.add_child(_actor_card(actor, bool(item.hostile), str(item.intent), presentation))
+	for id in panels.keys():
+		if id not in live:
+			var panel: Control = panels[id]
+			panel.get_parent().remove_child(panel)
+			panel.queue_free()
+			panels.erase(id); portraits.erase(id); targets.erase(id)

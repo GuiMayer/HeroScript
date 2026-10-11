@@ -4,8 +4,18 @@ signal target_selected(actor_id: String)
 var portrait_view: Control
 var target_button: Button
 var _battlefield_content: VBoxContainer
+var _projection := []
 
 func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: String, compact := false, battlefield := false) -> void:
+	var projection: Array = [actor, hostile, presentation, intent, compact, battlefield, I18n.locale]
+	if projection == _projection: return
+	_projection = projection.duplicate(true)
+	if get_child_count() > 0:
+		var desired = get_script().new()
+		desired.setup(actor, hostile, presentation, intent, compact, battlefield)
+		preload("res://scripts/ui/view_reconciler.gd").patch(self, desired)
+		desired.free()
+		return
 	var root_content: BoxContainer = HBoxContainer.new() if compact else VBoxContainer.new()
 	root_content.add_theme_constant_override("separation", 8)
 	var content := VBoxContainer.new()
@@ -63,6 +73,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		var appearance: Dictionary = presentation.get("resources", {}).get(id, {})
 		if str(appearance.get("display", "bar")) == "bar":
 			var resource := preload("res://scripts/ui/resource_view.gd").new()
+			resource.name = "Resource_" + str(id).validate_node_name()
 			resource.setup(id, resources[id], appearance)
 			content.add_child(resource)
 		else:

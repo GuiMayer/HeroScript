@@ -3,8 +3,16 @@ signal timeline_requested
 signal tools_requested
 signal pause_requested
 var tool_button: Button
+var _model := {}
 func apply_model(model: Dictionary) -> void:
-	for child in get_children(): remove_child(child); child.queue_free()
+	if _model == model: return
+	_model = model.duplicate(true)
+	if get_child_count() > 0:
+		var desired = get_script().new()
+		desired.apply_model(model)
+		preload("res://scripts/ui/view_reconciler.gd").patch(self, desired)
+		desired.free()
+		return
 	var title := AppTheme.title(str(model.title), 24)
 	title.tooltip_text = str(model.context)
 	add_child(title)

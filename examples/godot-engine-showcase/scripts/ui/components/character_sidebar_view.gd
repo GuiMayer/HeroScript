@@ -12,7 +12,18 @@ var _zones
 var _input_actor: String
 var _setting: Dictionary
 var _setting_id: String
+var _projection := {}
 func apply_model(model: Dictionary, i18n) -> void:
+	var projection := model.duplicate(true)
+	projection["locale"] = i18n.locale
+	if _projection == projection: return
+	_projection = projection
+	if get_child_count() > 0:
+		var desired = get_script().new()
+		desired.apply_model(model, i18n)
+		preload("res://scripts/ui/view_reconciler.gd").patch(self, desired)
+		desired.free()
+		return
 	translator = i18n
 	presentation = model.presentation.duplicate(true)
 	_run = model.run.duplicate(true); _combat = model.combat.duplicate(true)
