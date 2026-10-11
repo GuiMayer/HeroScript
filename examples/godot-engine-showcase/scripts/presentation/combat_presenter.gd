@@ -121,13 +121,17 @@ func card_view_model(instance_id: String) -> Dictionary:
 	var tone := str(appearance.get("tone", "skill"))
 	var tags: Array = base.get("tags", []) if base.get("tags") is Array else []
 	var card_type := _card_type(tags, tone)
-	var summary := card_summary(instance_id) if not candidate.is_empty() else str(appearance.get("text", _i18n.text("See inspection for details")))
+	# Definitions describe cards; target outcomes belong to the separate preview.
+	var summary := str(appearance.get("text", _i18n.text("See inspection for details")))
 	var changes := _change_badges(inspection, upgrades)
 	var inspected_evaluation: Dictionary = inspection.get("evaluation", {}) if inspection.get("evaluation") is Dictionary else {}
 	var published_costs: Array = candidate.get("costs", []) if not candidate.is_empty() else inspected_evaluation.get("costs", [])
 	var requires_alternative: bool = inspection.get("effectiveBase", {}).get("components", []).any(func(component): return component.get("type") == "cost" and not component.get("costs", {}).get("alternativeCosts", []).is_empty())
 	var costs_known := not requires_alternative or not candidate.is_empty() or published_costs.any(func(cost): return cost.get("optionId") != null)
 	var sections: Dictionary = _sections.sections(inspection, appearance)
+	if not sections.get("effectRows", []).is_empty():
+		summary = "\n".join(sections.effectRows.map(func(row):
+			return "".join(row.get("segments", []).map(func(segment): return str(segment.get("text", ""))))))
 	var cost_options: Array = []
 	for option in _candidates(instance_id):
 		var tokens := _cost_tokens(option.get("costs", []))
@@ -187,7 +191,9 @@ func _change_badges(inspection: Dictionary, upgrades: Array) -> Array:
 	var contextual_change := false
 	var source_names: Array[String] = []
 	for calculation in inspection.get("calculations", []):
+		var outcome_stages: Array = calculation.get("quantity", {}).get("incorporatedStages", []).filter(func(stage): return str(stage.get("scope", "")) in ["Target", "Shared"]).map(func(stage): return str(stage.get("stageId", "")))
 		for bucket in calculation.get("buckets", []):
+			if str(bucket.get("stageId", "")) in outcome_stages: continue
 			for contribution in bucket.get("contributions", []):
 				if not bool(contribution.get("applied", false)):
 					continue
@@ -196,7 +202,7 @@ func _change_badges(inspection: Dictionary, upgrades: Array) -> Array:
 				if is_equal_approx(input, output):
 					continue
 				var kind := _source_kind(contribution.get("sourceKind", ""))
-				if kind not in ["Actor", "Target", "Status", "Relic", "GameMode", "Encounter", "Modifier"]:
+				if kind not in ["Actor", "Status", "Relic", "GameMode", "Encounter", "Modifier"]:
 					continue
 				contextual_change = true
 				var source_id := str(contribution.get("sourceId", ""))
@@ -259,7 +265,7 @@ func unavailable_reason(id: String) -> String:
 	var reasons: Array = _evaluations.get(id, {}).get("evaluation", {}).get("failureReasons", [])
 	return "\n".join(reasons) if not reasons.is_empty() else _i18n.text("No legal actions for this card in the current state.")
 
-func card_summary(id: String) -> String:
+func action_summary(id: String) -> String:
 	var candidates := _candidates(id)
 	if candidates.is_empty(): return _i18n.text("UNAVAILABLE")
 	var descriptions: Array[String] = []
@@ -273,6 +279,15 @@ func card_summary(id: String) -> String:
 		if summary.is_empty(): summary = _i18n.text("See inspection for details")
 		if summary not in descriptions: descriptions.append(summary)
 	return descriptions[0] if descriptions.size() == 1 else _i18n.text("%s legal choices — select a target") % descriptions.size()
+
+func action_preview(id: String, target_id := "") -> String:
+	var candidates := _candidates(id)
+	if not target_id.is_empty():
+		candidates = candidates.filter(func(candidate): return target_id in _targets(candidate))
+	if candidates.is_empty(): return unavailable_reason(id)
+	if target_id.is_empty() and candidates.size() > 1:
+		return _i18n.text("Choose a highlighted target.")
+	return "\n".join(candidates.map(func(candidate): return _preview(candidate)))
 
 func _is_cost(application: Dictionary, candidate: Dictionary) -> bool:
 	var source: Dictionary = application.get("provenance", {})
@@ -295,7 +310,7 @@ func compact_application(application: Dictionary) -> String:
 
 func inspection_text(id: String) -> String:
 	var data: Dictionary = _evaluations.get(id, {})
-	var lines: Array[String] = [card_summary(id)]
+	var lines: Array[String] = [action_summary(id)]
 	if _candidates(id).is_empty(): lines.append(unavailable_reason(id))
 	for candidate in _candidates(id): lines.append(_preview(candidate))
 	if data.is_empty():

@@ -256,6 +256,10 @@ func _actor_card(actor: Dictionary, hostile: bool) -> Control:
 	panel.setup(actor, hostile, presentation, presenter._intent_for(id), false, true)
 	panel.minimum_size_changed.connect(_queue_gameplay_layout)
 	panel.target_selected.connect(_select_target)
+	panel.target_button.mouse_entered.connect(func(): _show_target_preview(id))
+	panel.target_button.focus_entered.connect(func(): _show_target_preview(id))
+	panel.target_button.mouse_exited.connect(func():
+		if not selected_card.is_empty(): _show_preview(selected_card))
 	actor_portraits[id] = panel.portrait_view
 	target_buttons[id] = panel.target_button
 	return panel
@@ -345,6 +349,7 @@ func _drop_card(id: String, point: Vector2) -> void:
 func _build_footer() -> void:
 	_ensure_floating_hud()
 	detail_label = RichTextLabel.new()
+	detail_label.name = "ActionPreview"
 	detail_label.bbcode_enabled = false
 	detail_label.custom_minimum_size = Vector2(0, 42)
 	detail_label.add_theme_font_size_override("normal_font_size", 14)
@@ -720,6 +725,7 @@ func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 				actor_portraits[target].flash_hit()
 				flashed.append(target)
 			_float_application(application, actor_portraits[target])
+	detail_label.tooltip_text = detail_label.text
 	GameAudio.hit()
 
 func _queue_text() -> String:
@@ -817,16 +823,21 @@ func _offer_candidates(candidates: Array) -> void:
 func _show_preview(id: String) -> void:
 	if not is_instance_valid(detail_label) or _has_frames():
 		return
-	var matches := _candidates(id)
-	detail_label.text = _preview(matches[0]) if matches.size() == 1 else I18n.text("Choose a highlighted target.")
-	if matches.is_empty():
-		detail_label.text = presenter.unavailable_reason(id)
+	detail_label.text = I18n.text("Action preview: %s") % presenter.action_preview(id, selected_target if id == selected_card else "")
+	detail_label.tooltip_text = detail_label.text
+
+func _show_target_preview(actor_id: String) -> void:
+	if _locked() or selected_card.is_empty() or not _candidates(selected_card).any(func(candidate): return actor_id in _targets(candidate)):
+		return
+	detail_label.text = I18n.text("Action preview: %s") % presenter.action_preview(selected_card, actor_id)
+	detail_label.tooltip_text = detail_label.text
 
 func _update_controls() -> void:
 	preload("res://scripts/ui/focus_navigation.gd").wire.call_deferred(self)
 	if not is_instance_valid(queue_label):
 		return
 	var locked := _locked()
+	detail_label.tooltip_text = detail_label.text
 	hand.set_read_only(locked)
 	hand.set_selection(selected_card)
 	reconnect_button.visible = not GameSession.synchronized

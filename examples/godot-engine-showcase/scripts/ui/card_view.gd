@@ -118,7 +118,8 @@ func configure(data: Dictionary) -> void:
 	column.add_child(availability)
 	_ignore_mouse(margin)
 	var tooltip: Array[String] = [str(data.get("name", "")), _cost_accessible_text(data), str(data.get("summary", ""))]
-	if not str(data.get("inspectionText", "")).is_empty(): tooltip.append(str(data.inspectionText))
+	# Target previews and execution diagnostics belong to the separate combat
+	# preview/persistent inspector, including for accessible tooltip text.
 	for badge in data.get("changeBadges", []):
 		var sources: Array = badge.get("sources", [])
 		tooltip.append(str(badge.get("label", "")) + (": " + ", ".join(sources) if not sources.is_empty() else ""))

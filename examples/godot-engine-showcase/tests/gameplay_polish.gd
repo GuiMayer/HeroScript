@@ -282,7 +282,7 @@ func _projection_tests() -> void:
 		{"targetEntityId": "hero", "resourceId": "mana", "previousValue": 3, "currentValue": 2, "provenance": {"sourceId": "card", "componentId": "arbitrary-price"}},
 		{"targetEntityId": "enemy", "resourceId": "mana", "previousValue": 10, "currentValue": 7, "provenance": {"sourceId": "card", "componentId": "drain"}}]}
 	var combat = preload("res://scripts/presentation/combat_presenter.gd").new({}, {}, [candidate], translator)
-	check(not combat.card_summary("card").contains("-1") and combat.card_summary("card").contains("-3"), "costs are not repeated as effects; damage to any resource stays visible")
+	check(not combat.action_summary("card").contains("-1") and combat.action_summary("card").contains("-3"), "costs are not repeated as effects; damage to any resource stays visible")
 	var card_run := {"sequence": 7, "deck": {"cardInstances": [
 		{"cardInstanceId": "card", "definitionId": "fireball", "upgrades": [{"upgradeId": "focused_flame"}]}
 	]}}

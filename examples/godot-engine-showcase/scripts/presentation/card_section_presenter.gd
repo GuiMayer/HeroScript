@@ -5,12 +5,10 @@ const TARGET_TYPES = ["SELF", "TARGET", "ALL_ENEMIES", "ALL_ALLIES", "RANDOM_ENE
 const PARAMETER_TYPES = ["Amount", "StatusStacks", "StatusDuration", "ModifierStacks", "ModifierDuration", "CardCount"]
 var _i18n
 var _appearance: Dictionary
-var _actors: Array
 
-func _init(translator, appearance: Dictionary, actors: Array) -> void:
+func _init(translator, appearance: Dictionary, _actors: Array) -> void:
 	_i18n = translator
 	_appearance = appearance.duplicate(true)
-	_actors = actors.duplicate(true)
 
 func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 	var original: Dictionary = inspection.get("compiledContainer", {})
@@ -38,20 +36,15 @@ func sections(inspection: Dictionary, appearance: Dictionary) -> Dictionary:
 	var labels: Dictionary = _appearance.get("card_tag_labels", {})
 	for tag in effective.get("tags", container.get("tags", [])):
 		if labels.has(tag): tags.append(_i18n.text(str(labels[tag])))
-	var preview_note := ""
-	if not rows.is_empty() and not inspection.get("previewScope", {}).get("hasExecutablePreview", false):
-		preview_note = _i18n.text("Base values — select a legal action for a preview")
-	elif inspection.get("previewScope", {}).get("dependsOnRandomInputs", false):
-		preview_note = _i18n.text("Sampled preview — outcome uncertain")
 	return {"rarityId": enum_name(container.get("rarity", appearance.get("rarityId", "")), ["Common", "Uncommon", "Rare", "Legendary"]).to_lower(),
 		"identityTags": tags, "requirements": requirements, "effectRows": rows, "behaviors": behaviors,
-		"previewNote": preview_note}
+		"previewNote": ""}
 
 func _effect_rows(effect: Dictionary, component_id: String, original: Dictionary, inspection: Dictionary, rows: Array, behaviors: Array[String], depth := 0) -> void:
 	if depth > 32: return # The authoritative validator applies the same depth bound.
 	var type := enum_name(effect.get("type", effect.get("effectType", "")), EFFECT_TYPES)
 	var resource: String = _i18n.content_name(str(effect.get("targetResource", "")))
-	var target := _target_text(effect, inspection)
+	var target := _target_text(effect)
 	var template := ""
 	var parameter := "Amount"
 	match type:
@@ -124,23 +117,28 @@ func _numeric(effect: Dictionary, component_id: String, parameter: String, origi
 		var published: Array = []
 		for step in inspection.get("previewSteps", []):
 			if str(step.get("provenance", {}).get("componentId", "")) != component_id or not step.get("applied", false): continue
-			if step.get("randomInputs", []).any(func(input): return float(input.get("probability", 1.0)) > 0.0 and float(input.get("probability", 1.0)) < 1.0):
-				return {"text": _i18n.text("Varies — inspect")}
 			# Execution IDs are NOT definition IDs. The typed parent identity separates
 			# this component's root impacts from chained effects and continuation hops.
 			if step.get("identity") is Dictionary and step.identity.get("parentProcId") != null: continue
 			if step.get("continuation") is Dictionary: continue
 			var found_parameter := false
+			# Show the source budget, not a target-specific share or critical roll.
+			for budget in step.get("sequenceBudgets", []):
+				if enum_name(budget.get("parameter"), PARAMETER_TYPES) == parameter and budget.get("capture") is Dictionary:
+					published.append(budget.capture)
+					found_parameter = true
+			if found_parameter: continue
 			for resolved in step.get("parameters", []):
 				if enum_name(resolved.get("parameter"), PARAMETER_TYPES) == parameter and resolved.get("calculation") is Dictionary:
 					published.append(resolved.calculation)
 					found_parameter = true
 			if parameter == "Amount" and not found_parameter and step.get("calculation") is Dictionary: published.append(step.calculation)
 		if not published.is_empty():
-			current = published[0].get("value")
-			if published.any(func(calculation): return calculation.get("value") != current): return {"text": _i18n.text("Varies — inspect")}
-			var distributed: bool = effect.get("parameters", []).any(func(item): return enum_name(item.get("parameter"), PARAMETER_TYPES) == parameter and item.get("distribution") is Dictionary)
-			if baseline == null or distributed: baseline = published[0].get("baseValue")
+			var source_values: Array = published.map(_source_value).filter(func(value): return value != null)
+			if not source_values.is_empty():
+				current = source_values[0]
+				if source_values.any(func(value): return value != current): return {"text": _i18n.text("Calculated — inspect")}
+				if baseline == null: baseline = published[0].get("baseValue")
 	if not (current is float or current is int) or not is_finite(float(current)): return {"text": _i18n.text("Calculated — inspect")}
 	return {"text": _i18n.number(float(current)), "value": current, "baseValue": baseline}
 
@@ -151,13 +149,24 @@ func _flat_parameter(effect: Dictionary, parameter: String, field: String):
 	if parameter == "Amount" and effect.get("formulaValue") != null and not str(effect.formulaValue).is_empty(): return null
 	return effect.get(field)
 
-func _target_text(effect: Dictionary, inspection: Dictionary) -> String:
+func _source_value(calculation: Dictionary):
+	# Consume published Actor prefix outputs, never reconstruct formulas/buckets
+	# or guess content-specific stage names. Unknown scopes keep effective base.
+	var source_stages: Array[String] = []
+	for stage in calculation.get("quantity", {}).get("incorporatedStages", []):
+		if str(stage.get("scope", "")) != "Actor": break
+		source_stages.append(str(stage.get("stageId", "")))
+	if source_stages.is_empty(): return null
+	var value = null
+	for bucket in calculation.get("buckets", []):
+		if str(bucket.get("stageId", "")) in source_stages: value = bucket.get("output")
+	if calculation.get("captureOnly", false) and source_stages.size() == calculation.get("quantity", {}).get("incorporatedStages", []).size():
+		value = calculation.get("value")
+	return value
+
+func _target_text(effect: Dictionary) -> String:
 	var target := enum_name(effect.get("target", "TARGET"), TARGET_TYPES)
 	var labels := {"SELF": "yourself", "TARGET": "a selected target", "ALL_ENEMIES": "all enemies", "ALL_ALLIES": "all allies", "RANDOM_ENEMY": "a random enemy", "LOWEST_RESOURCE_ENEMY": "the enemy with the lowest selected resource", "HIGHEST_RESOURCE_ENEMY": "the enemy with the highest selected resource"}
-	var selected: Array = inspection.get("previewScope", {}).get("selectedTargetIds", [])
-	if target == "TARGET" and selected.size() == 1:
-		for actor in _actors:
-			if str(actor.get("instanceId", "")) == str(selected[0]): return _i18n.content_name(str(actor.get("definitionId", "")), str(actor.get("name", selected[0])))
 	return _i18n.text(str(labels.get(target, "configured targets")))
 
 static func enum_name(value, names: Array) -> String:

@@ -32,7 +32,9 @@ func inspection(current: float, baseline: float, type := "DAMAGE", resource := "
 		"evaluation": {"cardInstanceId": "card", "costs": []},
 		"previewScope": {"hasExecutablePreview": true},
 		"previewSteps": [{"applied": true, "effectInstanceId": "runtime:compound:execution:id", "provenance": {"componentId": "impact"},
-			"identity": {"parentProcId": null}, "calculation": {"baseValue": baseline, "value": current}, "parameters": []}]}
+			"identity": {"parentProcId": null}, "calculation": {"baseValue": baseline, "value": current,
+				"quantity": {"incorporatedStages": [{"stageId": "source", "scope": "Actor"}]},
+				"buckets": [{"stageId": "source", "output": current}]}, "parameters": []}]}
 
 func _run() -> void:
 	var i18n = root.get_node("I18n")
@@ -60,12 +62,12 @@ func _run() -> void:
 	check(sections.sections(child_trace, {}).effectRows[0].segments[1].value == 9, "child calculations do not contaminate their parent's value")
 	var variable_trace := inspection(9, 6)
 	variable_trace.previewSteps.append({"applied": true, "provenance": {"componentId": "impact"}, "identity": {"parentProcId": null}, "calculation": {"value": 4, "baseValue": 6}})
-	check(not sections.sections(variable_trace, {}).effectRows[0].segments[1].has("value"), "different impact/target values are declared variable instead of inventing a single value")
+	check(sections.sections(variable_trace, {}).effectRows[0].segments[1].value == 9, "different final target values never replace the source value on the card")
 	var random_trace := inspection(9, 6)
 	random_trace.previewScope.dependsOnRandomInputs = true
 	random_trace.previewSteps[0].randomInputs = [{"probability": 0.5}]
 	var random_model: Dictionary = sections.sections(random_trace, {})
-	check(not random_model.effectRows[0].segments[1].has("value") and random_model.previewNote == "Sampled preview — outcome uncertain", "sampled critical impacts do not pretend to be guaranteed card values")
+	check(random_model.effectRows[0].segments[1].value == 9 and random_model.previewNote.is_empty(), "sampled critical impacts stay in the separate preview, not the source value on the card")
 	var formula := inspection(9, 6)
 	formula.compiledContainer.components[0].effect.formulaValue = "player.strength + 6"
 	check(sections.sections(formula, {}).effectRows[0].segments[1].baseValue == 6, "formula baseline comes from the published calculation")

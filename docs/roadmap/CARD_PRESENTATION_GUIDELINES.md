@@ -19,7 +19,8 @@ Este documento consolida as diretrizes discutidas na conversa e as decisões de 
 | Tipo e afinidade | Linha abaixo da arte | Mostrar tipo e tags com significado para o jogador. Tags técnicas ficam nos detalhes. Os rótulos são configuráveis na apresentação. |
 | Raridade | Borda externa e texto discreto | A borda da carta, do tooltip e do painel de inspeção deve usar a mesma cor. O nome da raridade continua disponível, evitando depender só da cor. |
 | Condição para usar a carta | Faixa antes dos efeitos | Mostrar o requisito e, quando publicado, se ele foi atendido. Não avaliar expressões na Godot. |
-| Efeitos | Corpo principal | Estrutura de leitura: verbo, valor, recurso/status e alvo. Efeitos de recursos não presumem que dano significa reduzir vida. |
+| Efeitos | Corpo principal | Verbo, valor, recurso/status e categoria de alvo (um alvo, todos os inimigos, você). Nunca nome do personagem atingido. Efeitos de recursos não presumem que dano significa reduzir vida. |
+| Preview contextual | Área separada no rodapé do combate | Nome do alvo, custo/opção de pagamento, valores antes/depois, mitigação e incerteza. Selecionar uma carta e passar o ponteiro/foco sobre um alvo mostra os fatos publicados, sem executar ações. |
 | Condição de um efeito | Junto do efeito correspondente | Não apresentar uma condição interna como impedimento para jogar a carta inteira. Condições complexas sem descrição recebem indicação para inspecionar. |
 | Chance, duração e momento de execução | Junto do efeito | Não misturar esses qualificadores com custo ou raridade. Efeitos encadeados indicam antes/depois do impacto. |
 | Repetição, orçamento, condensação e continuação | Palavras-chave de comportamento | Mostrar os parâmetros importantes; explicar a operação completa nos detalhes. Condensar stacks não significa obrigatoriamente causar dano. |
@@ -47,14 +48,16 @@ Azul significa **maior**, não necessariamente melhor. Vermelho significa **meno
 
 ### O que significa “base”
 
-- Para um parâmetro literal do efeito, comparar o valor atual publicado com o literal da definição compilada original, antes dos upgrades da instância. Sem preview executável, pode-se mostrar a base efetiva da instância, deixando explícito que não é um resultado de combate.
+- Para um parâmetro literal, comparar a quantidade de origem publicada com o literal da definição compilada original, antes dos upgrades. A face usa somente saídas do prefixo de estágios `Actor` identificado nos receipts da engine, nunca o resultado final de crítico/mitigação do alvo. Sem prefixo inequívoco, mostrar a base efetiva, não inventar scaling.
 - Quando a base depende de fórmula, usar `baseValue` do cálculo publicado pela engine. Não avaliar a fórmula novamente na Godot. Essa base calculada pode já incluir entradas do personagem; não fingir que é uma versão da fórmula com o personagem zerado.
-- Para orçamento distribuído, comparar o valor publicado do impacto com a base publicada desse cálculo. Não comparar uma fatia com o orçamento total e marcá-la como penalidade.
-- Se diferentes impactos ou alvos publicarem valores diferentes, mostrar “Varies — inspect”, com os impactos na inspeção. Não escolher um deles como resultado universal.
+- Para orçamento distribuído, a face mostra a captura de origem de `sequenceBudgets`, acompanhada de repetição/orçamento compartilhado. Fatias e resultados por impacto pertencem ao preview/inspeção. Não comparar uma fatia com o orçamento total e marcá-la como penalidade.
+- Diferenças de alvo ou sorteio não reescrevem o texto/valor de origem da carta. Se os próprios valores de origem forem distintos ou não houver fato publicável confiável, indicar cálculo na inspeção sem selecionar um resultado universal.
 - Para efeitos filhos sem vínculo inequívoco de preview, mostrar a definição, como valor base, e deixar os resultados executados na inspeção. Não usar o cálculo do pai para colorir o filho.
 - Valores inválidos ou sem base comparável ficam neutros. Texto livre não é interpretado por expressão regular para descobrir números ou cálculos.
 
-A comparação é numérica, mas o escopo do preview também importa: alvo selecionado, opção de pagamento e snapshot. O resultado calculado de um efeito não deve ser confundido com a variação final do recurso depois de limites ou regras de aplicação. Os detalhes mostram o cálculo e os fatos de aplicação separadamente.
+A descrição e o tooltip da carta não usam aplicações de uma ação legal como fallback nem incorporam nomes de atores. O rodapé **Action preview / Previsão da ação** consome os resultados para o alvo apontado; vários pagamentos permanecem explícitos. O cálculo de origem e a variação final do recurso após limites/mitigação são informações distintas. O inspector persistente pode mostrar os diagnósticos completos, fora da descrição do efeito.
+
+Regressão: `godot --headless --path examples/godot-engine-showcase --script res://tests/card_preview_separation.gd`, além dos testes de apresentação e layout compartilhados.
 
 ## Raridade e estados de interação
 
