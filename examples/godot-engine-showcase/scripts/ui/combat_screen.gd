@@ -91,18 +91,9 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	for child in get_children(): remove_child(child); child.queue_free()
 	add_theme_constant_override("separation", 8)
 	_build_header()
-	var body := HBoxContainer.new()
-	body.name = "CombatBody"
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 10)
-	gameplay_column = Control.new()
-	gameplay_column.name = "CombatGameplay"
-	gameplay_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gameplay_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	gameplay_column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var body: HBoxContainer = preload("res://scenes/ui/combat_composition.tscn").instantiate()
+	gameplay_column = body.get_node("CombatGameplay")
 	gameplay_column.resized.connect(_queue_gameplay_layout)
-	body.add_child(gameplay_column)
 	_ensure_bottom_hud()
 	_build_battlefield()
 	_build_hand()
@@ -197,81 +188,37 @@ func _exit_tree() -> void:
 		Playback.frame_presented.disconnect(_on_frame)
 
 func _build_header() -> void:
-	var row := HBoxContainer.new()
-	var activation: Dictionary = GameSession.combat.get("activation", {}) if GameSession.combat.get("activation", {}) is Dictionary else {}
-	var title := AppTheme.title(I18n.text("COMBAT"), 24)
-	title.tooltip_text = str(GameSession.combat.get("runNodeId", "")) + " · " + str(GameSession.combat.get("stateHash", ""))
-	row.add_child(title)
-	var push := Control.new()
-	push.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(push)
-	var turn := AppTheme.title(I18n.text("ROUND %s") % int(activation.get("round", GameSession.combat.get("currentTurn", 1))), 18, AppTheme.GOLD)
-	row.add_child(turn)
-	row.add_child(_button(I18n.text("TIMELINE  [%s]") % Preferences.action_label("open_timeline"), router.show_timeline, 165))
-	if not CardZonePresenter.tool_flows(GameSession.run).is_empty():
-		var tools := _button(I18n.text("ZONE TOOLS"), _open_zone_tools, 125)
-		action_buttons.append(tools)
-		row.add_child(tools)
-	row.add_child(_button(I18n.text("PAUSE"), router.toggle_pause, 100))
+	var row = preload("res://scripts/ui/components/combat_header_view.gd").new()
+	row.name = "CombatHeader"
+	row.timeline_requested.connect(router.show_timeline)
+	row.tools_requested.connect(_open_zone_tools)
+	row.pause_requested.connect(router.toggle_pause)
+	var activation: Dictionary = GameSession.combat.get("activation", {})
+	row.apply_model({"title": I18n.text("COMBAT"),
+		"context": str(GameSession.combat.get("runNodeId", "")) + " · " + str(GameSession.combat.get("stateHash", "")),
+		"round": I18n.text("ROUND %s") % int(activation.get("round", GameSession.combat.get("currentTurn", 1))),
+		"timeline": I18n.text("TIMELINE  [%s]") % Preferences.action_label("open_timeline"),
+		"tools": I18n.text("ZONE TOOLS"), "allow_tools": not CardZonePresenter.tool_flows(GameSession.run).is_empty(),
+		"pause": I18n.text("PAUSE")})
+	action_buttons.append(row.tool_button)
 	add_child(row)
 
 func _build_battlefield() -> void:
-	var stage := Control.new()
-	stage.name = "Battlefield"
-	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stage.clip_contents = true
-	var backdrop := preload("res://scripts/ui/art_slot.gd").new()
-	backdrop.setup("backgrounds", "combat")
-	stage.add_child(backdrop)
-	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var scroller := ScrollContainer.new()
-	scroller.name = "BattlefieldActors"
-	battlefield_actors = scroller
-	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	var field := HBoxContainer.new()
-	field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	field.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	field.alignment = BoxContainer.ALIGNMENT_CENTER
-	field.add_theme_constant_override("separation", 22)
-	var allies := HBoxContainer.new()
-	var opponents := HBoxContainer.new()
-	allies.alignment = BoxContainer.ALIGNMENT_CENTER
-	opponents.alignment = BoxContainer.ALIGNMENT_CENTER
-	for side in [allies, opponents]:
-		side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		side.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		side.add_theme_constant_override("separation", 18)
-	for actor in presenter.actors():
-		var hostile: bool = presenter.relationship(actor, GameSession.input_actor_id()) == "Enemy"
-		(opponents if hostile else allies).add_child(_actor_card(actor, hostile))
-	field.add_child(allies)
-	var divider := CenterContainer.new()
-	divider.custom_minimum_size.x = 88
-	divider.add_child(AppTheme.title("◇", 26, AppTheme.GOLD))
-	field.add_child(divider)
-	field.add_child(opponents)
-	scroller.add_child(field)
-	stage.add_child(scroller)
-	scroller.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var stage = preload("res://scripts/ui/components/battlefield_view.gd").new()
+	stage.target_selected.connect(_select_target)
+	stage.target_previewed.connect(_show_target_preview)
+	stage.preview_left.connect(func(): if not selected_card.is_empty(): _show_preview(selected_card))
+	stage.layout_requested.connect(_queue_gameplay_layout)
+	var actors: Array = presenter.actors().map(func(actor): return {"actor": actor,
+		"hostile": presenter.relationship(actor, GameSession.input_actor_id()) == "Enemy",
+		"intent": presenter.intent_for(str(actor.get("instanceId", "")))})
+	stage.apply_model(actors, presentation)
 	gameplay_column.add_child(stage)
 	stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	gameplay_column.move_child(stage, 0)
-
-func _actor_card(actor: Dictionary, hostile: bool) -> Control:
-	var panel := preload("res://scripts/ui/actor_panel.gd").new()
-	var id := str(actor.get("instanceId", ""))
-	panel.name = "ActorView_" + id.validate_node_name()
-	panel.setup(actor, hostile, presentation, presenter.intent_for(id), false, true)
-	panel.minimum_size_changed.connect(_queue_gameplay_layout)
-	panel.target_selected.connect(_select_target)
-	panel.target_button.mouse_entered.connect(func(): _show_target_preview(id))
-	panel.target_button.focus_entered.connect(func(): _show_target_preview(id))
-	panel.target_button.mouse_exited.connect(func():
-		if not selected_card.is_empty(): _show_preview(selected_card))
-	actor_portraits[id] = panel.portrait_view
-	target_buttons[id] = panel.target_button
-	return panel
+	battlefield_actors = stage.actor_scroll
+	actor_portraits = stage.portraits
+	target_buttons = stage.targets
 
 func _build_hand() -> void:
 	var section := hand_section if is_instance_valid(hand_section) else VBoxContainer.new()
@@ -357,24 +304,21 @@ func _drop_card(id: String, point: Vector2) -> void:
 
 func _build_footer() -> void:
 	_ensure_floating_hud()
-	detail_label = RichTextLabel.new()
-	detail_label.name = "ActionPreview"
-	detail_label.bbcode_enabled = false
-	detail_label.custom_minimum_size = Vector2(0, 42)
-	detail_label.add_theme_font_size_override("normal_font_size", 14)
-	detail_label.text = I18n.text("Select a card, then choose a highlighted target.")
-	var row := HBoxContainer.new()
-	row.name = "TurnControls"
-	row.add_theme_constant_override("separation", 8)
-	var feedback := VBoxContainer.new()
-	feedback.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	feedback.add_theme_constant_override("separation", 0)
-	detail_label.custom_minimum_size.x = 200
-	detail_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	feedback.add_child(detail_label)
+	var row = preload("res://scripts/ui/components/turn_controls_view.gd").new()
+	var feedback = preload("res://scripts/ui/components/action_preview_view.gd").new()
+	feedback.mount(I18n.text("Select a card, then choose a highlighted target."))
 	row.add_child(feedback)
+	detail_label = feedback.detail_label; selection_label = feedback.selection_label; queue_label = feedback.queue_label
+	row.next_requested.connect(_next_frame)
+	row.cancel_requested.connect(_cancel_selection)
+	row.end_requested.connect(_end_turn)
+	row.reconnect_requested.connect(_reconnect)
+	row.system_requested.connect(_execute_system)
+	row.mount(I18n, {"confirm_action": Preferences.action_label("confirm_action"), "end_turn": Preferences.action_label("end_turn")},
+		_system_candidate(["PASS", "PASS_PRIORITY"]), floating_hud.host)
+	next_frame_button = row.next_frame_button; selection_actions = row.selection_actions; reconnect_button = row.reconnect_button
+	action_buttons.append_array(row.buttons)
 	choices = VBoxContainer.new()
-	# Explicit choices float above the dock; their presence cannot move the hand.
 	candidate_panel = PanelContainer.new()
 	candidate_panel.name = "CandidatePanel"
 	candidate_panel.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -389,60 +333,11 @@ func _build_footer() -> void:
 	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	alternatives.add_child(choices)
 	candidate_panel.add_child(alternatives)
-	selection_label = AppTheme.caption("", 13, 80)
-	feedback.add_child(selection_label)
-	selection_label.hide() # Hint already appears beside the action; keep the data hook.
-	queue_label = AppTheme.caption("", 13, 80)
-	queue_label.add_theme_color_override("font_color", AppTheme.TEAL)
-	queue_label.custom_minimum_size.y = 18
-	feedback.add_child(queue_label)
-	var context_slot := CenterContainer.new()
-	context_slot.name = "ContextActionSlot"
-	context_slot.custom_minimum_size = Vector2(190, 44)
-	next_frame_button = _button(I18n.text("NEXT ANIMATION  [%s]") % Preferences.action_label("confirm_action"), _next_frame, 180)
-	next_frame_button.clip_text = true
-	next_frame_button.tooltip_text = next_frame_button.text
-	context_slot.add_child(next_frame_button)
-	selection_actions = HBoxContainer.new()
-	selection_actions.add_theme_constant_override("separation", 6)
-	var cancel := _button(I18n.text("CANCEL SELECTION"), _cancel_selection, 180)
-	cancel.set_meta("selection_only", true)
-	action_buttons.append(cancel)
-	selection_actions.add_child(cancel)
-	# Inspection remains in the hand toolbar; do not duplicate it in the turn dock.
-	cancel.clip_text = true
-	cancel.tooltip_text = cancel.text
-	context_slot.add_child(selection_actions)
-	row.add_child(context_slot)
-	var system_slot := CenterContainer.new()
-	system_slot.name = "SystemActionSlot"
-	system_slot.custom_minimum_size = Vector2(100, 44)
-	var pass_candidate := _system_candidate(["PASS", "PASS_PRIORITY"])
-	if not pass_candidate.is_empty():
-		var pass_label := "PASS PRIORITY" if str(pass_candidate.command.get("actionType", "")) == "PASS_PRIORITY" else "PASS"
-		var pass_button := _button(I18n.text(pass_label), func(): _execute_system(pass_candidate), 100)
-		pass_button.clip_text = true
-		pass_button.tooltip_text = pass_button.text
-		action_buttons.append(pass_button)
-		system_slot.add_child(pass_button)
-	row.add_child(system_slot)
-	var end := _button(I18n.text("END TURN  [%s]") % Preferences.action_label("end_turn"), _end_turn, 195)
-	end.name = "EndTurnButton"
-	end.add_theme_stylebox_override("normal", AppTheme.box(Color("#705033"), 10, AppTheme.GOLD, 2))
-	end.set_meta("requires_end", true)
-	action_buttons.append(end)
-	row.add_child(end)
-	reconnect_button = _button(I18n.text("RECONNECT"), _reconnect, 130)
-	floating_hud.host.add_child(reconnect_button)
-	reconnect_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	reconnect_button.offset_right = 150
-	reconnect_button.offset_bottom = 44
 	bottom_hud.add_child(row)
 
 func _build_character_sidebar() -> Control:
 	_ensure_floating_hud()
 	if not is_instance_valid(character_sidebar_reopen):
-		# The collapsed affordance is an overlay, not an empty column in CombatBody.
 		character_sidebar_reopen = _button("‹", _toggle_character_sidebar, 36)
 		character_sidebar_reopen.name = "CharacterSidebarReopen"
 		character_sidebar_reopen.z_index = 1
@@ -450,157 +345,20 @@ func _build_character_sidebar() -> Control:
 		character_sidebar_reopen.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		character_sidebar_reopen.offset_left = -44
 		character_sidebar_reopen.offset_bottom = 44
-	character_sidebar = PanelContainer.new()
-	character_sidebar.name = "CharacterSidebar"
-	character_sidebar.mouse_filter = Control.MOUSE_FILTER_STOP
-	floating_hud.host.add_child(character_sidebar)
-	character_sidebar.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	character_sidebar.offset_left = -328
-	character_sidebar.offset_bottom = 520
-	character_sidebar.add_theme_stylebox_override("panel", AppTheme.box(Color("#171927"), 12, Color("#454660"), 1))
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	character_sidebar.add_child(column)
-	var toolbar := HBoxContainer.new()
-	toolbar.add_theme_constant_override("separation", 6)
-	character_sidebar_title = AppTheme.title(I18n.text("CHARACTER"), 16, AppTheme.GOLD)
-	character_sidebar_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	character_sidebar_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	toolbar.add_child(character_sidebar_title)
-	var toggle := _button("›", _toggle_character_sidebar, 36)
-	toggle.name = "CharacterSidebarToggle"
-	toggle.custom_minimum_size = Vector2(36, 36)
-	toolbar.add_child(toggle)
-	column.add_child(toolbar)
-	character_sidebar_content = ScrollContainer.new()
-	character_sidebar_content.name = "CharacterSidebarContent"
-	character_sidebar_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	character_sidebar_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	character_sidebar_content.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	character_sidebar_content.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	var details := VBoxContainer.new()
-	details.name = "CharacterSidebarDetails"
-	details.custom_minimum_size.x = 272
-	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	details.add_theme_constant_override("separation", 7)
-	_populate_character_sidebar(details)
-	character_sidebar_content.add_child(details)
-	column.add_child(character_sidebar_content)
+	var view = preload("res://scripts/ui/components/character_sidebar_view.gd").new()
+	view.collapse_requested.connect(_toggle_character_sidebar)
+	view.apply_model({"presentation": presentation, "run": GameSession.run, "combat": GameSession.combat,
+		"actors": presenter.actors(), "input_actor": GameSession.input_actor_id(), "zones": GameSession.card_zones,
+		"setting": GameSession.selected_setting, "setting_id": GameSession.selected_setting_id}, I18n)
+	character_sidebar = view
+	floating_hud.host.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	view.offset_left = -328
+	view.offset_bottom = 520
+	character_sidebar_content = view.content_scroll
+	character_sidebar_title = view.title_label
 	_apply_character_sidebar_state()
-	return character_sidebar
-
-func _populate_character_sidebar(details: VBoxContainer) -> void:
-	var actor := _player_actor()
-	if actor.is_empty():
-		details.add_child(AppTheme.muted(I18n.text("Character data is unavailable."), 13, 260))
-		return
-	var definition_id := str(actor.get("definitionId", ""))
-	var actor_name := I18n.content_name(definition_id, str(actor.get("name", actor.get("instanceId", ""))))
-	var name_label := AppTheme.title(actor_name, 20)
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.custom_minimum_size.x = 260
-	details.add_child(name_label)
-	if not definition_id.is_empty():
-		details.add_child(AppTheme.caption(definition_id, 11, 260))
-	_add_sidebar_section(details, I18n.text("Resources"))
-	var resources: Dictionary = actor.get("resources", {}) if actor.get("resources", {}) is Dictionary else {}
-	var resource_projection: Dictionary = GameSession.run.get("characterResources", {})
-	if str(resource_projection.get("ownerId", "")) == str(actor.get("instanceId", "")) and str(resource_projection.get("authority", "")) == "ActiveEncounter":
-		resources = resource_projection.get("resources", {}).duplicate(true)
-	var ordered_resources: Array = presentation.get("resource_order", []).duplicate()
-	for resource_id in resources:
-		if resource_id not in ordered_resources:
-			ordered_resources.append(resource_id)
-	for resource_id in ordered_resources:
-		if not resources.has(resource_id) or not (resources[resource_id] is Dictionary):
-			continue
-		var resource_view := preload("res://scripts/ui/resource_view.gd").new()
-		resource_view.name = "CharacterResource_" + str(resource_id).validate_node_name()
-		resource_view.set_meta("resource_id", str(resource_id))
-		resource_view.custom_minimum_size.x = 260
-		resource_view.setup(str(resource_id), resources[resource_id], presentation.get("resources", {}).get(resource_id, {}))
-		details.add_child(resource_view)
-	_add_sidebar_section(details, I18n.text("Statuses"))
-	var statuses: Array = actor.get("statuses", []).filter(func(status): return status is Dictionary and bool(status.get("isActive", true)))
-	if statuses.is_empty():
-		details.add_child(AppTheme.muted(I18n.text("No active statuses"), 12, 260))
-	else:
-		for status in statuses:
-			var status_text := "%s ×%s" % [I18n.content_name(str(status.get("statusId", "status"))), int(status.get("stacks", 1))]
-			var duration := int(status.get("duration", -1))
-			if duration >= 0:
-				status_text += "  ·  " + I18n.text("Duration: %s") % duration
-			details.add_child(_sidebar_item(status_text, AppTheme.EMBER))
-	_add_sidebar_section(details, I18n.text("Relics"))
-	var relics: Array = GameSession.run.get("relics", []) if GameSession.run.get("relics", []) is Array else []
-	if relics.is_empty():
-		details.add_child(AppTheme.muted(I18n.text("No relics"), 12, 260))
-	else:
-		for relic in relics:
-			details.add_child(_sidebar_item(_owned_content_label(relic, ["definitionId", "relicId", "id"]), AppTheme.GOLD))
-	var modifiers: Array = GameSession.run.get("modifiers", []) if GameSession.run.get("modifiers", []) is Array else []
-	if not modifiers.is_empty():
-		_add_sidebar_section(details, I18n.text("Modifiers"))
-		for modifier in modifiers:
-			details.add_child(_sidebar_item(_owned_content_label(modifier, ["modifierId", "definitionId", "id"]), AppTheme.TEAL))
-	_add_sidebar_section(details, I18n.text("RUN INFO"))
-	var activation: Dictionary = GameSession.combat.get("activation", {}) if GameSession.combat.get("activation", {}) is Dictionary else {}
-	_add_sidebar_value(details, I18n.text("Round"), str(int(activation.get("round", GameSession.combat.get("currentTurn", 1)))))
-	_add_sidebar_value(details, I18n.text("Deck"), I18n.text("%s cards") % zone_presenter.total_cards())
-	_add_sidebar_value(details, I18n.text("Playable"), str(zone_presenter.playable_cards().size()))
-	var setting := GameSession.selected_setting
-	_add_sidebar_value(details, I18n.text("Setting"), I18n.text(str(setting.get("displayName", GameSession.selected_setting_id))))
-
-func _player_actor() -> Dictionary:
-	var actors: Array = presenter.actors()
-	for actor in actors:
-		var binding: Dictionary = actor.get("controllerBinding", {}) if actor.get("controllerBinding", {}) is Dictionary else {}
-		if str(binding.get("kind", "")).to_lower() == "player":
-			return actor
-	var input_actor_id := GameSession.input_actor_id()
-	for actor in actors:
-		if str(actor.get("instanceId", "")) == input_actor_id:
-			return actor
-	return actors[0] if not actors.is_empty() else {}
-
-func _add_sidebar_section(parent: VBoxContainer, text: String) -> void:
-	var title := AppTheme.title(text.to_upper(), 12, AppTheme.GOLD)
-	title.custom_minimum_size = Vector2(260, 24)
-	title.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	parent.add_child(title)
-
-func _sidebar_item(text: String, color: Color) -> Label:
-	var label := AppTheme.muted(text, 12, 260)
-	label.add_theme_color_override("font_color", color)
-	label.tooltip_text = text
-	return label
-
-func _owned_content_label(item, id_keys: Array) -> String:
-	if not (item is Dictionary):
-		return I18n.content_name(str(item))
-	var id := ""
-	for key in id_keys:
-		if item.has(key) and not str(item[key]).is_empty():
-			id = str(item[key])
-			break
-	var result := I18n.content_name(id, id)
-	var stacks := int(item.get("stacks", 1))
-	if stacks > 1:
-		result += " ×%s" % stacks
-	return result
-
-func _add_sidebar_value(parent: VBoxContainer, label_text: String, value_text: String) -> void:
-	var row := HBoxContainer.new()
-	row.custom_minimum_size.x = 260
-	var label := AppTheme.muted(label_text, 12, 112)
-	label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	row.add_child(label)
-	var value := AppTheme.caption(value_text, 12, 140)
-	value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	value.tooltip_text = value_text
-	row.add_child(value)
-	parent.add_child(row)
+	return view
 
 func _toggle_character_sidebar() -> void:
 	character_sidebar_expanded = not character_sidebar_expanded
