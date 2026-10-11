@@ -3,14 +3,26 @@ extends Control
 signal travel_requested(choice: Dictionary)
 var nodes: Array = []
 var markers := {}
+var buttons := {}
 
 func setup(route: Array) -> void:
 	nodes = route.duplicate(true)
+	markers.clear()
+	var live: Array = []
 	custom_minimum_size = Vector2(278, nodes.size() * 76 + 12)
 	for index in nodes.size():
 		var node: Dictionary = nodes[index]
 		markers[str(node.id)] = Vector2(18, index * 76 + 38)
-		var button := Button.new()
+		var id := str(node.id)
+		live.append(id)
+		var button: Button = buttons.get(id)
+		if button == null:
+			button = Button.new()
+			button.name = "Stop_" + id.validate_node_name()
+			button.pressed.connect(func(): travel_requested.emit(button.get_meta("travel", {}).duplicate(true)))
+			add_child(button)
+			buttons[id] = button
+		button.set_meta("travel", node.travel.duplicate(true))
 		button.position = Vector2(46, index * 76 + 6)
 		button.size = Vector2(230, 64)
 		button.text = str(node.name) + "\n" + (I18n.text("YOU ARE HERE") if node.current else (I18n.text("COMPLETED") if node.resolved else I18n.content_name(str(node.kind))))
@@ -22,8 +34,9 @@ func setup(route: Array) -> void:
 		button.tooltip_text = str(node.name) + "\n" + str(node.get("description", ""))
 		if str(node.get("risk", "")) == "High":
 			button.add_theme_color_override("font_color", AppTheme.EMBER)
-		button.pressed.connect(func(): travel_requested.emit(node.travel))
-		add_child(button)
+	for id in buttons.keys():
+		if id not in live:
+			remove_child(buttons[id]); buttons[id].queue_free(); buttons.erase(id)
 	queue_redraw()
 
 func _draw() -> void:

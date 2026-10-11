@@ -34,6 +34,14 @@ static func children(parent: Node, desired: Node) -> void:
 		node.queue_free()
 
 static func patch(current: Node, incoming: Node) -> void:
+	if current is CardView and incoming is CardView:
+		current.visual_context = incoming.visual_context
+		current.configure(incoming.model)
+		current.disabled = incoming.disabled
+		return
+	if current.get_script() == preload("res://scripts/ui/route_view.gd"):
+		current.setup(incoming.nodes)
+		return
 	if current is Control and incoming is Control:
 		for property in ["custom_minimum_size", "size_flags_horizontal", "size_flags_vertical", "mouse_filter",
 				"tooltip_text", "visible", "clip_contents"]:
@@ -50,6 +58,8 @@ static func patch(current: Node, incoming: Node) -> void:
 	if current is Label:
 		for property in ["horizontal_alignment", "vertical_alignment", "autowrap_mode", "text_overrun_behavior", "max_lines_visible"]:
 			current.set(property, incoming.get(property))
+	if current is BaseButton:
+		current.disabled = incoming.disabled
 	if current is Range:
 		current.min_value = incoming.min_value
 		current.max_value = incoming.max_value
