@@ -18,6 +18,7 @@ func configure(data: Dictionary) -> void:
 	_configuration_key = presentation_key
 	configuration_count += 1
 	model = data.duplicate(true)
+	if has_meta("visual_preferences_revision"): remove_meta("visual_preferences_revision")
 	text = ""
 	for child in get_children():
 		remove_child(child)
@@ -150,7 +151,7 @@ func _cost_zone(data: Dictionary) -> Control:
 		if index > 0: zone.add_child(AppTheme.title("+", 11))
 		zone.add_child(_cost_chip(costs[index]))
 	if not bool(data.get("costsKnown", true)):
-		zone.add_child(AppTheme.title(visual_context.translator.text("Alternative cost — inspect"), 11))
+		zone.add_child(AppTheme.title(str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 11))
 		return zone
 	if costs.is_empty():
 		var fallback := str(data.get("cost", ""))
@@ -211,7 +212,7 @@ func _make_custom_tooltip(for_text: String) -> Object:
 	return detail
 
 func _cost_accessible_text(data: Dictionary) -> String:
-	if not data.get("costsKnown", true): return visual_context.translator.text("Alternative cost — inspect")
+	if not data.get("costsKnown", true): return str(data.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect")))
 	var parts: Array[String] = []
 	for cost in data.get("costs", []):
 		parts.append("%s %s" % [visual_context.translator.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
@@ -290,8 +291,22 @@ func fly_to(destination: Vector2, overlay: Node) -> void:
 	tween.tween_property(ghost, "global_position", destination - size * .5, .22 / visual_context.animation_speed).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 	tween.tween_property(ghost, "scale", Vector2(.45, .45), .22 / visual_context.animation_speed)
 	tween.tween_property(ghost, "modulate:a", 0.0, .22 / visual_context.animation_speed)
-	await tween.finished
-	ghost.queue_free()
+	var completion := FlightCompletion.new()
+	tween.finished.connect(completion.complete)
+	ghost.tree_exiting.connect(completion.complete)
+	await completion.finished
+	if is_instance_valid(ghost) and not ghost.is_queued_for_deletion(): ghost.queue_free()
+
+class FlightCompletion extends RefCounted:
+	signal finished
+	var done := false
+	func complete() -> void:
+		if done: return
+		done = true
+		finished.emit()
+
+func _exit_tree() -> void:
+	if motion: motion.kill()
 
 
 func _init(context = null) -> void:

@@ -275,6 +275,11 @@ Esse teste usa transporte injetado, verifica isolamento dos snapshots, fallback,
 envelopes, falhas de sincronização e dependências proibidas entre camadas.
 Veja [como substituir a interface](ARCHITECTURE.md).
 
+Para trocar apenas aparência/layout, use o [guia de perfis visuais](../../docs/design/GODOT_VISUAL_PROFILES.md): tema semântico, recursos de fonte, composição de combate e manifestos de arte. Mão, controllers e playback são compartilhados. O tema de produção está preservado; o perfil contrastante/lateral é somente uma prova de teste, não o redesign Marfim final.
+
+Regressões da arquitetura visual podem ser executadas isoladamente com
+`tools/test-godot-ui.ps1`. As [capturas e certificação da refatoração](../../docs/design/interface-refactor/2026-10-11/README.md) registram limites, métricas e diagnósticos de encerramento, separadamente da baseline original.
+
 ## Inspeção e histórico
 
 Selecione uma carta e use **Inspecionar carta** para consultar escolhas,

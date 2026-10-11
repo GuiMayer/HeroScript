@@ -39,9 +39,9 @@ func configure(model: Dictionary, style: Resource, mode := DisplayMode.INSPECTIO
 	for option in options:
 		var parts: Array[String] = []
 		for cost in option: parts.append("%s %s" % [visual_context.translator.number(float(cost.get("amount", 0))), str(cost.get("name", cost.get("resourceId", "")))])
-		payments.append(" + ".join(parts) if not parts.is_empty() else (str(model.get("cost", "0")) if model.get("costsKnown", true) else visual_context.translator.text("Alternative cost — inspect")))
+		payments.append(" + ".join(parts) if not parts.is_empty() else (str(model.get("cost", "0")) if model.get("costsKnown", true) else str(model.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect")))))
 	body.add_child(AppTheme.caption(visual_context.translator.text("Cost: %s") % (" " + visual_context.translator.text("OR") + " ").join(payments), 14, 260))
-	if not model.get("costsKnown", true): body.add_child(AppTheme.caption(visual_context.translator.text("Alternative cost — inspect"), 14, 260))
+	if not model.get("costsKnown", true): body.add_child(AppTheme.caption(str(model.get("costUnknownLabel", visual_context.translator.text("Alternative cost — inspect"))), 14, 260))
 	var requirements: Array = model.get("requirements", [])
 	if mode == DisplayMode.TOOLTIP: requirements = requirements.slice(0, 1)
 	for requirement in requirements: body.add_child(AppTheme.caption(visual_context.translator.text("Requires: %s") % str(requirement.get("text", "")), 14, 260))

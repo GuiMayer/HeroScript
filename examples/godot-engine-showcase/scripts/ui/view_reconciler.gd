@@ -34,6 +34,9 @@ static func children(parent: Node, desired: Node) -> void:
 		node.queue_free()
 
 static func patch(current: Node, incoming: Node) -> void:
+	if current.get_script() == preload("res://scripts/ui/dialogue_panel.gd"):
+		current.apply_model(incoming.model)
+		return
 	if current is CardView and incoming is CardView:
 		current.visual_context = incoming.visual_context
 		current.configure(incoming.model)
@@ -43,8 +46,9 @@ static func patch(current: Node, incoming: Node) -> void:
 		current.setup(incoming.nodes)
 		return
 	if current is Control and incoming is Control:
+		if current.has_meta("visual_preferences_revision"): current.remove_meta("visual_preferences_revision")
 		for property in ["custom_minimum_size", "size_flags_horizontal", "size_flags_vertical", "mouse_filter",
-				"tooltip_text", "visible", "clip_contents"]:
+				"tooltip_text", "visible", "clip_contents", "theme_type_variation"]:
 			current.set(property, incoming.get(property))
 		# Canonical style/font overrides are replaced before preferences are applied.
 		for key in current.get_meta_list():
@@ -70,5 +74,5 @@ static func patch(current: Node, incoming: Node) -> void:
 		for key in ["slot_key", "is_placeholder"]:
 			if key in current: current.set(key, incoming.get(key))
 	for key in incoming.get_meta_list():
-		if not str(key).begins_with("base_"): current.set_meta(key, incoming.get_meta(key))
+		if not str(key).begins_with("base_") and key != "visual_preferences_revision": current.set_meta(key, incoming.get_meta(key))
 	children(current, incoming)

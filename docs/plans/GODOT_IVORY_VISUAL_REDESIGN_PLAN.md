@@ -8,6 +8,8 @@ Direção escolhida pelo autor: [conceito 02 — Marfim](../design/interface-con
 
 Dependência de arquitetura adicionada após a revisão do frontend: [reestruturação da UI para estilos substituíveis](GODOT_UI_ARCHITECTURE_REFACTOR_PLAN.md). Executar primeiro os contratos/componentização desse plano e compartilhar sua infraestrutura de tema; não criar sistemas paralelos em ambos. A seção 7 do novo plano define a ordem combinada, preservando esta direção artística.
 
+Atualização: as onze etapas da reestruturação foram implementadas. `VisualThemeProfile`, perfis de layout, contexto injetado, componentes, controllers e shell já existem; a repaginação deve reutilizá-los conforme o [guia visual](../design/GODOT_VISUAL_PROFILES.md). Isso não conclui as etapas artísticas Marfim deste documento.
+
 ## 1. Objetivo e limites
 
 Transformar a apresentação do jogo em uma interface de papel marfim, tinta escura e vermelhão, identificada por feixes finos de linhas paralelas com mudanças de direção de 45°. O resultado deve parecer uma linguagem visual deliberada e consistente, não apenas o tema atual com novas cores.

@@ -3,7 +3,10 @@
 ## Direção das dependências
 
 ```text
-ui/ → application/GameSession → engine/EngineGateway → engine/HTTPTransport → REST
+ui/views → ui/controllers → application/GameSession → engine/EngineGateway → engine/HTTPTransport → REST
+	↑          ↑
+	└─ presentation/Presenters + ViewModels (cópias defensivas)
+	└─ VisualContext + Theme/Layout/Art resources (somente apresentação)
 			│
 			└─ receipt_received → presentation/Playback → animações da UI
 
@@ -31,6 +34,8 @@ O novo `ActivityPresenter` relaciona ofertas, preços e navegação anunciados;
 | Escolhas de progressão | transformar opções anunciadas em escolhas enviáveis | inventar IDs, preços ou regras de upgrade |
 | Playback | copiar frames do recibo, manter cursor e emitir frame apresentado | enviar comandos, recalcular efeitos, alterar snapshots |
 | Presenters | indexar snapshots, descrever aplicações canônicas e organizar histórico/linhagem | consultar HTTP, executar regras ou modificar a sessão |
+| Controllers de tela | seleção, intenção publicada, envio, validação local e epochs | construir nodes/estilos, HTTP ou cálculo de regras |
+| Contexto visual / perfis | tradução, preferências projetadas, papéis, geometria e artes | conhecer gateway ou alterar envelopes |
 | Componentes visuais | apresentar atores/resources/cartas e emitir intenção de input | escolher alvos legais ou decidir o resultado do comando |
 | UI | seleção, layout, navegação, tradução, áudio, input e ritmo de apresentação | declarar o resultado de uma regra |
 | Bootstrap | injetar gateway e ligar sinais às preferências/playback | implementar regras ou desenhar telas |
@@ -43,12 +48,16 @@ mudança futura de contrato de dados.
 
 ## Trocar o visual
 
-1. Reutilize os serviços montados pelo `bootstrap.gd` e substitua os scripts e
-   cenas de `ui/`. O `main.tscn` atual aponta para `ui/main.gd`.
+1. Para uma skin, use `VisualThemeProfile`, `CombatLayoutProfile`, manifesto e
+   componentes existentes. `Main.apply_visual_profile` e
+   `CombatScreen.replace_composition` são as entradas de substituição. Consulte
+   o [guia de perfis e composição](../../docs/design/GODOT_VISUAL_PROFILES.md).
+   Uma UI completamente nova também pode reutilizar os serviços do bootstrap.
 2. Leia `GameSession.run`, `combat`, `legal_actions` e `activity_choices()`.
    Faça a seleção e renderização com os novos componentes visuais.
-3. Envie `submit_candidate(candidate)` para uma escolha de combate e
-   `submit_activity(choice)` para progressão. A sessão/gateway cuidam do
+3. Nas telas existentes, delegue aos controllers de combate/atividade;
+   eles usam `submit_candidate(candidate)` e `submit_activity(choice)`.
+   A sessão/gateway cuidam do
    payload, versão observada e identidade do comando.
 4. Use `start_campaign`, `start_sandbox`, `continue_run`, `timeline`,
    `branch_tree`, `create_branch`, `verify` e `simulate_end_turn` como casos de
@@ -69,8 +78,10 @@ não simula estados intermediários por conta própria.
 Atualizar o snapshot não significa reconstruir a navegação. Enquanto o contexto
 permanece o mesmo, `ui/main.gd` conserva a instância de `CombatScreen` ou
 `ActivityScreen` e chama `refresh_state(presentation)`. A tela cria um presenter
-novo sobre cópias defensivas do snapshot atual e troca sua composição
-sincronamente, sem um frame intermediário vazio. A troca de instância fica
+novo sobre cópias defensivas do snapshot atual e reconcilia a composição por
+identidade: atores, ofertas, mapa e mão conservam os nodes válidos. Algumas
+subtrees alteradas usam uma árvore desejada temporária, nunca uma segunda view
+ativa. Uma projeção igual não recompõe a árvore. A troca de instância fica
 reservada para uma transição real de contexto.
 
 Regras de implementação:
@@ -104,6 +115,17 @@ A sessão serializa operações e rejeita leituras de gerações descartadas.
 Respostas incertas preservam o envelope em memória para recuperação idempotente;
 não há promessa de reenvio automático após fechar o processo. A UI separa
 estados de seleção, envio, reprodução, recuperação e pause das regras de turno.
+
+`ApplicationShell` possui host, pausa, notificações e restauração de foco.
+`CombatFeedback` possui somente os efeitos transitórios dos frames do playback.
+Overview, inspeção e diálogo recebem o mesmo `VisualContext` que seus pais.
+`dispose()` invalida coordenação/epochs e encerra os recursos locais da view.
+Fechar o feedback durante uma animação de carta também libera sua espera.
+
+O schema de configurações está separado da construção de seus controles;
+setters/persistência pertencem ao `SettingsController`. Histórico/replay/timeline,
+sandbox e códice compartilham o contrato `ScreenView`, sem inventar um controller
+para páginas que só precisam de consulta e navegação.
 
 ## Injeção e testes
 

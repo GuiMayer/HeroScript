@@ -34,16 +34,21 @@ func _render(data: Dictionary, play_entry_animation: bool) -> void:
 	_run_snapshot = GameSession.run
 	_choices_snapshot = GameSession.activity_choices()
 	_zone_snapshot = GameSession.card_zones
-	var key: Array = [_run_snapshot, _choices_snapshot, _zone_snapshot, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast, AppTheme.profile.presentation_key()]
-	if _projection_key == key and get_child_count() > 0: return
+	controller.bind(_run_snapshot, _choices_snapshot)
+	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(_run_snapshot, _choices_snapshot, data, I18n)
+	var display_run := _run_snapshot.duplicate(true)
+	display_run.erase("sequence") # Still refreshed in controller; only the diagnostic tooltip renders it.
+	var key: Array = [display_run, _choices_snapshot, _zone_snapshot, data, I18n.locale, Preferences.text_scale, Preferences.high_contrast, AppTheme.profile.presentation_key()]
+	if _projection_key == key and get_child_count() > 0:
+		var title := find_child("RunTitle", true, false)
+		if title: title.tooltip_text = "Seed: %s · Sequence: %s" % [_run_snapshot.get("seed", 0), _run_snapshot.get("sequence", 0)]
+		return
 	_projection_key = key.duplicate(true)
 	var previous_route_scroll := _scroll_value("RouteScroll")
 	var previous_action_scroll := _scroll_value("ActionScroll")
 	render_epoch += 1
 	presentation = data.duplicate(true)
 	animate_card_entry = play_entry_animation
-	controller.bind(_run_snapshot, _choices_snapshot)
-	presenter = preload("res://scripts/presentation/activity_presenter.gd").new(_run_snapshot, _choices_snapshot, data, I18n)
 	if get_child_count() == 0:
 		_build_contents()
 	else:
@@ -123,8 +128,10 @@ func _build_header() -> void:
 	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var metadata: Dictionary = _run_snapshot.get("metadata", {})
 	var run_title := I18n.content_name(str(_run_snapshot.get("runDefinitionId", "")), str(metadata.get("displayName", I18n.text("THE EMBER PATH"))))
-	title_box.add_child(AppTheme.title(run_title, 30))
-	title_box.tooltip_text = "Seed: %s · Sequence: %s" % [_run_snapshot.get("seed", 0), _run_snapshot.get("sequence", 0)]
+	var heading := AppTheme.title(run_title, 30)
+	heading.name = "RunTitle"
+	heading.tooltip_text = "Seed: %s · Sequence: %s" % [_run_snapshot.get("seed", 0), _run_snapshot.get("sequence", 0)]
+	title_box.add_child(heading)
 	title_box.add_child(AppTheme.muted(I18n.text("Build your deck. Choose your path."), 14, 240))
 	row.add_child(title_box)
 	row.add_child(_button(I18n.text("VERIFY REPLAY"), _verify, 185))
@@ -213,7 +220,7 @@ func _build_actions() -> void:
 	var choices := _choices_snapshot
 	var dialogue: Dictionary = preload("res://scripts/presentation/dialogue_presenter.gd").build(_run_snapshot, choices, I18n)
 	if not dialogue.is_empty():
-		var panel := preload("res://scripts/ui/dialogue_panel.gd").new()
+		var panel := preload("res://scripts/ui/dialogue_panel.gd").new(visual_context)
 		panel.setup(dialogue)
 		panel.choice_requested.connect(coordinator._execute)
 		choice_buttons.append_array(panel.choice_buttons)
@@ -256,14 +263,26 @@ func _build_actions() -> void:
 			var card := CardView.new(visual_context)
 			card.animate_entry = animate_card_entry
 			model["availability"] = label
-			if str(model.cost).is_empty(): model["cost"] = I18n.text("DECK CHOICE")
+			# Offer price is not a card's play cost. This projection has no engine
+			# inspection of the offered container, so report unknown instead of zero.
+			var price := str(model.cost)
+			model["cost"] = ""
+			model["costsKnown"] = false
+			model["costUnknownLabel"] = I18n.text("Cost unavailable")
 			card.configure(model)
 			if primary.get_child_count() == 0: card.set_meta("initial_focus", true)
 			card.pressed.connect(func(): coordinator._confirm_ref(reference_id))
 			card.name = "Choice_" + reference_id
 			card.set_meta("activity_choice", true)
 			choice_buttons.append(card)
-			primary.add_child(card)
+			var offer := VBoxContainer.new()
+			offer.name = "Offer_" + reference_id
+			offer.add_child(card)
+			if not price.is_empty():
+				var price_label := AppTheme.caption(I18n.text("Acquisition price: %s") % price, 14, 200)
+				price_label.name = "AcquisitionPrice"
+				offer.add_child(price_label)
+			primary.add_child(offer)
 		else:
 			var column := VBoxContainer.new()
 			column.name = "Offer_" + reference_id

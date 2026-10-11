@@ -1,5 +1,7 @@
 param(
     [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation'),
+    [string]$ApiUrl = '',
+    [int]$TimeoutSeconds = 180,
     [string]$Godot = 'C:\Program Files (x86)\Steam\steamapps\common\Godot Engine\godot.windows.opt.tools.64.exe'
 )
 $ErrorActionPreference = 'Stop'
@@ -26,15 +28,19 @@ foreach ($test in @('import') + $Tests) {
     $arguments = @('--headless','--path',"`"$project`"")
     if ($test -eq 'import') { $arguments += @('--editor','--import','--quit') }
     else { $arguments += @('--script',"res://tests/$test.gd",'--','--layout-smoke') }
+    if ($ApiUrl -and $test -ne 'import') { $arguments += "--api-url=$ApiUrl" }
     $watch = [Diagnostics.Stopwatch]::StartNew()
     $process = Start-Process -FilePath $Godot -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-    if (-not $process.WaitForExit(90000)) {
+    if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
         Stop-Process -Id $process.Id
         throw "Timeout in $test; logs: $project"
     }
     $process.WaitForExit()
     $lines = @(Get-Content -LiteralPath $stdout) + @(Get-Content -LiteralPath $stderr)
-    $errors = @($lines | Where-Object { $_ -match 'SCRIPT ERROR:|Parse Error:|\[FAIL\]' })
+    # Godot reports retained process-wide script resources as an ERROR at exit.
+    # Keep that diagnostic in the report, separate from functional/script/RID
+    # errors. Certification must inspect it, not infer clean teardown from exit 0.
+    $errors = @($lines | Where-Object { $_ -match 'ERROR:|Parse Error:|\[FAIL\]' -and $_ -notmatch '^ERROR: \d+ resources still in use at exit' })
     $result = [ordered]@{test=$test;exit_code=$process.ExitCode;checks=@($lines | Where-Object { $_ -match '^\[PASS\]' }).Count;
         elapsed_ms=$watch.ElapsedMilliseconds;diagnostics=@($lines | Where-Object { $_ -match 'WARNING:|ERROR:|leaked|still in use|\[FAIL\]' })}
     $results.Add($result)

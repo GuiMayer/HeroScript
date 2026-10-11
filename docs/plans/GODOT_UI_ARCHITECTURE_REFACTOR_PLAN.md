@@ -2,7 +2,9 @@
 
 Data: 2026-10-11.
 
-Status: plano; sem implementação de código nesta etapa.
+Status: onze etapas implementadas, com commits separados. Certificação funcional offline/REST e capturas registradas; há diagnósticos residuais de recursos ao encerrar detalhados no relatório, sem promessa de teardown inteiramente limpo.
+
+Entrega: [guia de perfis/layout/componentes](../design/GODOT_VISUAL_PROFILES.md) e [certificação comparativa](../design/interface-refactor/2026-10-11/README.md). O tema atual foi preservado; o redesign artístico Marfim continua separado.
 
 Escopo: cliente em `examples/godot-engine-showcase/`. Complementa o [plano visual Marfim](GODOT_IVORY_VISUAL_REDESIGN_PLAN.md), mas não depende dessa paleta. A arquitetura deve permitir outras direções visuais no futuro sem refazer integração, seleção, mão ou playback.
 
@@ -436,3 +438,25 @@ Marfim continua a direção escolhida. A base atual é um perfil de preservaçã
 - [Godot — containers e propriedade do layout](https://docs.godotengine.org/en/stable/tutorials/ui/gui_containers.html).
 
 Essas referências orientam o uso dos recursos nativos. A estrutura de controllers, modelos e etapas é uma decisão proposta para o código atual do projeto, não uma exigência literal da Godot.
+
+## 10. Registro de execução
+
+| Etapa | Entrega | Commit |
+| --- | --- | --- |
+| 1 | Queries públicas, records defensivos e contrato `ScreenView`. | `1e86d95` |
+| 2 | `CombatController` e estado de interação único. | `f656905` |
+| 3 | Header/campo/sidebar/preview/turno reutilizáveis e cena de composição. | `ad8dce7` |
+| 4 | Reconciliação por identidade, leituras por render e inspeção revisionada. | `1ca95c3` |
+| 5 | Perfil semântico, variantes nativas e aplicação reversível de estilo. | `349e24e` |
+| 6 | Contexto explícito, recursos genéricos e manifesto por perfil. | `e6b4389` |
+| 7 | Shell, camadas, foco/modal e feedback separados da coordenação. | `db676c4` |
+| 8 | `ActivityController`, mapa/ofertas persistentes e callbacks vivos. | `d9555a0` |
+| 9 | Schema/controller de preferências e contrato nas telas restantes. | `fcd8a71` |
+| 10 | Perfil contrastante e composição lateral sobre a mesma mão/controller. | `77655bf` |
+| 11 | Regressões, REST isolada, capturas, guia, auditoria e reparos detectados na certificação. | Presente entrega de certificação. |
+
+Na certificação foram completadas fontes opcionais do perfil e corrigidos: callbacks de diálogo retidos, contexto do overview, encerramento do voo de carta e reaplicação redundante de estilos. Sidebar ignora versões que não alteram informação exibida; jornada conserva a árvore quando somente a sequência muda, mas atualiza controller e tooltip diagnóstico.
+
+Não houve mudança de regra/conteúdo da engine. As cores conhecidas de recursos foram movidas para o JSON visual, substituindo o mapa de IDs embutido no componente. O teste de diálogo foi alinhado à identidade do jogador anunciada pelo setting; não foi removida a proteção de isolamento da sessão.
+
+Os gates funcionais passaram: 1.092 checks em 22 suites offline e 357 checks em três suites REST. O servidor REST de QA usou persistência exclusiva em `.runtime/ui-api-qa`, não as partidas do jogador. O teste de encerramento valida ausência de novos nodes órfãos e quantidade limitada de objetos em 30 ciclos. A retenção residual de scripts/perfil e os dois objetos de áudio preexistentes permanecem explícitos no relatório.

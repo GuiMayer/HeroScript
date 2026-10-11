@@ -25,10 +25,10 @@ func setup(id: String, state: Dictionary, appearance: Dictionary = {}) -> void:
 		bar.min_value = float(state.minimum)
 		bar.max_value = float(state.maximum)
 		bar.value = model.current
-	var tone := Color.from_string(str(appearance.get("color", "")), AppTheme.TEAL)
+	var tone := Color.from_string(str(appearance.get("color", "")), AppTheme.color("resource.unknown"))
 	bar.add_theme_stylebox_override("fill", AppTheme.box(tone, 5))
 	amount.text = visual_context.translator.number(model.current)
-	if state.has("maximum"): amount.text += "/" + visual_context.translator.number(float(state.maximum))
+	if state.has("maximum") and str(appearance.get("display", "bar")) != "counter": amount.text += "/" + visual_context.translator.number(float(state.maximum))
 	amount.size_flags_horizontal = Control.SIZE_FILL if bar.visible else Control.SIZE_EXPAND_FILL
 	bar.tooltip_text = amount.text
 	amount.tooltip_text = amount.text

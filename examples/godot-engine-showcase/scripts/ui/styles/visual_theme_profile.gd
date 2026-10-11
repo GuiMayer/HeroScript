@@ -7,6 +7,8 @@ extends Resource
 @export var screen_margin := Vector2(48, 24)
 @export var corner_radius := 9
 @export var body_font_size := 17
+@export var body_font: Font
+@export var title_font: Font
 @export var art_manifest := "res://data/art_manifest.json"
 const DEFAULTS := {
 	"text.primary": "#f5ecd8",
@@ -75,7 +77,7 @@ func role_for(value: Color) -> String:
 		if color(role).is_equal_approx(value): return str(role)
 	return ""
 func presentation_key() -> String:
-	return JSON.stringify([profile_id, colors, font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, art_manifest])
+	return JSON.stringify([profile_id, colors, font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest])
 
 
 func font_size(role: String, fallback: float) -> float: return float(font_sizes.get(role, fallback))

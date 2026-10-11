@@ -21,8 +21,15 @@ func _run() -> void:
 	AppTheme.apply_view_preferences(panel)
 	check(label.get_theme_color("font_color") == alternate.color("text.primary"), "existing text adopts semantic role")
 	var before_fonts: String = alternate.presentation_key()
-	alternate.font_sizes = {"section": 23}
+	alternate.font_sizes = {"section_title": 23}
 	check(before_fonts != alternate.presentation_key(), "typography invalidates the visual profile")
+	AppTheme.apply_view_preferences(panel)
+	check(label.get_theme_font_size("font_size") == 23, "profile typography applies to existing semantic title")
+	var test_font := SystemFont.new()
+	alternate.body_font = test_font
+	alternate.title_font = test_font
+	var font_theme := AppTheme.build()
+	check(font_theme.default_font == test_font and font_theme.get_font("font", "ScreenTitle") == test_font, "font resources live in the native theme, not controllers")
 	alternate.font_sizes = {}
 	var before_art: String = alternate.presentation_key()
 	alternate.setting_art_manifests = {"fixture": "res://data/labs/art_manifest_context_test.json"}

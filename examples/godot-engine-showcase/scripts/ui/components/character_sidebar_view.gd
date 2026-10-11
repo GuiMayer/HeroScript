@@ -15,10 +15,16 @@ var _setting: Dictionary
 var _setting_id: String
 var _projection := {}
 func apply_model(model: Dictionary, i18n) -> void:
-	var projection := model.duplicate(true)
-	projection["locale"] = i18n.locale
+	# Compare only facts rendered by this passive panel; a command sequence or
+	# unrelated timeline field does not change any character information.
+	var projection := {"locale": i18n.locale, "profile": visual_context.profile.presentation_key(),
+		"presentation": model.presentation, "actors": model.actors, "input_actor": model.input_actor,
+		"zones": model.zones, "setting": model.setting, "setting_id": model.setting_id,
+		"resources": model.run.get("characterResources", {}), "relics": model.run.get("relics", []),
+		"modifiers": model.run.get("modifiers", []),
+		"round": model.combat.get("activation", {}).get("round", model.combat.get("currentTurn", 1))}
 	if _projection == projection: return
-	_projection = projection
+	_projection = projection.duplicate(true)
 	if get_child_count() > 0:
 		var desired = get_script().new()
 		desired.visual_context = visual_context

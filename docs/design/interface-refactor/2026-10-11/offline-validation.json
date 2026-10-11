@@ -1,0 +1,200 @@
+[
+  {
+    "test": "import",
+    "exit_code": 0,
+    "checks": 0,
+    "elapsed_ms": 8058,
+    "diagnostics": []
+  },
+  {
+    "test": "ui_contracts",
+    "exit_code": 0,
+    "checks": 20,
+    "elapsed_ms": 496,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "combat_controller",
+    "exit_code": 0,
+    "checks": 11,
+    "elapsed_ms": 588,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "ui_reconciliation",
+    "exit_code": 0,
+    "checks": 4,
+    "elapsed_ms": 2821,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "theme_contracts",
+    "exit_code": 0,
+    "checks": 10,
+    "elapsed_ms": 724,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "component_context",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 814,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "activity_reconciliation",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 2435,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "settings_contracts",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 388,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "view_replacement",
+    "exit_code": 0,
+    "checks": 13,
+    "elapsed_ms": 3476,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "ui_lifecycle",
+    "exit_code": 0,
+    "checks": 7,
+    "elapsed_ms": 3005,
+    "diagnostics": []
+  },
+  {
+    "test": "layers",
+    "exit_code": 0,
+    "checks": 67,
+    "elapsed_ms": 704,
+    "diagnostics": []
+  },
+  {
+    "test": "card_preview_separation",
+    "exit_code": 0,
+    "checks": 35,
+    "elapsed_ms": 784,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "card_presentation",
+    "exit_code": 0,
+    "checks": 55,
+    "elapsed_ms": 1326,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "card_hand_lab",
+    "exit_code": 0,
+    "checks": 118,
+    "elapsed_ms": 5594,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "hand_ux",
+    "exit_code": 0,
+    "checks": 37,
+    "elapsed_ms": 4013,
+    "diagnostics": [
+      "WARNING: 12 ObjectDB instances were leaked at exit (run with `--verbose` for details).",
+      "ERROR: 4 resources still in use at exit (run with --verbose for details)."
+    ]
+  },
+  {
+    "test": "pause_layers",
+    "exit_code": 0,
+    "checks": 24,
+    "elapsed_ms": 2789,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "combat_stage_layout",
+    "exit_code": 0,
+    "checks": 441,
+    "elapsed_ms": 14580,
+    "diagnostics": []
+  },
+  {
+    "test": "card_play_selection",
+    "exit_code": 0,
+    "checks": 22,
+    "elapsed_ms": 2794,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "resolutions",
+    "exit_code": 0,
+    "checks": 88,
+    "elapsed_ms": 3543,
+    "diagnostics": []
+  },
+  {
+    "test": "setting_progression",
+    "exit_code": 0,
+    "checks": 29,
+    "elapsed_ms": 2831,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "world_one",
+    "exit_code": 0,
+    "checks": 69,
+    "elapsed_ms": 734,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "volatile_core",
+    "exit_code": 0,
+    "checks": 11,
+    "elapsed_ms": 483,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  },
+  {
+    "test": "foundations",
+    "exit_code": 0,
+    "checks": 4,
+    "elapsed_ms": 395,
+    "diagnostics": [
+      "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+    ]
+  }
+]

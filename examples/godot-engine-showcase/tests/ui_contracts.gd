@@ -26,5 +26,13 @@ func _run() -> void:
 	for path in ["res://scripts/presentation/combat_presenter.gd", "res://scripts/presentation/view_models.gd"]:
 		var code := FileAccess.get_file_as_string(path)
 		check(not code.contains("GameSession") and not code.contains("AppTheme") and not code.contains("extends Control"), "passive presentation boundary: " + path)
+	for file in ["combat_controller", "activity_controller", "settings_controller"]:
+		var code := FileAccess.get_file_as_string("res://scripts/ui/controllers/" + file + ".gd")
+		check(not code.contains("HTTPRequest") and not code.contains("AppTheme") and not code.contains("Container.new") and not code.contains("StyleBox"), "controller owns no rendering or transport: " + file)
+	for file in ["card_view", "card_hand_view", "card_details_panel", "card_effect_text", "resource_view", "actor_panel", "art_slot", "inspection_dialog", "hand_overview_dialog", "dialogue_panel"]:
+		var code := FileAccess.get_file_as_string("res://scripts/ui/" + file + ".gd")
+		check(not code.contains("GameSession") and not code.contains("Preferences.") and not code.contains("I18n.") and not code.contains("EngineGateway"), "component uses injected presentation dependencies: " + file)
+	var references: Array = presenter.action_options("a")
+	check(references.size() == 1 and references[0].reference.begins_with(presenter.context_key()), "action references belong to the published projection context")
 	root.get_node("GameAudio").shutdown()
 	quit(0 if failures == 0 else 1)

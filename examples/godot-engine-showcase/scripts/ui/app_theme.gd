@@ -36,7 +36,8 @@ const MIN_READABLE_TEXT_WIDTH := 112.0
 static func build(high_contrast := false) -> Theme:
 	var result := Theme.new()
 	result.default_font_size = roundi(profile.body_font_size * text_scale)
-	result.set_font_size("font_size", "Label", roundi(17 * text_scale))
+	if profile.body_font: result.default_font = profile.body_font
+	result.set_font_size("font_size", "Label", roundi(profile.font_size("body", profile.body_font_size) * text_scale))
 	result.set_color("font_color", "Label", INK)
 	if high_contrast:
 		result.set_constant("outline_size", "Label", 2)
@@ -79,6 +80,8 @@ static func build(high_contrast := false) -> Theme:
 	result.set_color("font_color", "DangerAction", BLOOD)
 	for variant in ["ScreenTitle", "SectionTitle", "Caption"]:
 		result.set_type_variation(variant, "Label")
+	for variant in ["ScreenTitle", "SectionTitle"]:
+		if profile.title_font: result.set_font("font", variant, profile.title_font)
 	result.set_color("font_color", "Caption", MUTED)
 	return result
 
@@ -105,6 +108,8 @@ static func box(color: Color, radius := 8, border := Color.TRANSPARENT, width :=
 static func title(text: String, size := 34, color = null) -> Label:
 	var label := Label.new()
 	label.text = text
+	if size >= 28: label.theme_type_variation = "ScreenTitle"
+	elif size >= 20: label.theme_type_variation = "SectionTitle"
 	label.set_meta("font_role", "screen_title" if size >= 28 else ("section_title" if size >= 20 else ("body" if size >= 15 else "caption")))
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", INK if color == null else color)
@@ -113,6 +118,7 @@ static func title(text: String, size := 34, color = null) -> Label:
 
 static func muted(text: String, size := 15, min_width := 0.0) -> Label:
 	var label := Label.new()
+	label.set_meta("font_role", "caption")
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.theme_type_variation = "Caption"
@@ -124,6 +130,7 @@ static func muted(text: String, size := 15, min_width := 0.0) -> Label:
 
 static func caption(text: String, size := 15, min_width := 0) -> Label:
 	var label := Label.new()
+	label.set_meta("font_role", "caption")
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.theme_type_variation = "Caption"
@@ -155,10 +162,12 @@ static func panel(content: Control, color = null) -> PanelContainer:
 	wrapper.add_child(content)
 	return wrapper
 
-static func apply_view_preferences(node: Node, scale_override := -1.0, contrast_override = null) -> void:
+static func apply_view_preferences(node: Node, scale_override := -1.0, contrast_override = null, revision: Array = []) -> void:
 	var effective_scale: float = text_scale if scale_override < 0 else scale_override
 	var effective_contrast: bool = high_contrast_enabled if contrast_override == null else bool(contrast_override)
-	if node is Control:
+	if revision.is_empty(): revision = [profile.presentation_key(), effective_scale, effective_contrast]
+	if node is Control and node.get_meta("visual_preferences_revision", []) != revision:
+		node.set_meta("visual_preferences_revision", revision.duplicate())
 		if node.has_meta("text_role") and not str(node.get_meta("text_role")).is_empty():
 			node.add_theme_color_override("font_color", color(str(node.get_meta("text_role"))))
 		for font_key in ["font_size", "normal_font_size", "bold_font_size", "italics_font_size", "bold_italics_font_size"]:
@@ -181,4 +190,4 @@ static func apply_view_preferences(node: Node, scale_override := -1.0, contrast_
 				style.border_color = node.get_meta("semantic_border_color", Color.WHITE)
 				style.set_border_width_all(2)
 			node.add_theme_stylebox_override(style_name, style)
-	for child in node.get_children(): apply_view_preferences(child, effective_scale, effective_contrast)
+	for child in node.get_children(): apply_view_preferences(child, effective_scale, effective_contrast, revision)

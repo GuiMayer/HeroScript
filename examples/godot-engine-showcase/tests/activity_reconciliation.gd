@@ -47,6 +47,16 @@ func _run() -> void:
 	await settle()
 	check(load("res://scripts/ui/view_reconciler.gd").replaced == before, "unchanged activity does not build staging view")
 	check(route.nodes[0].current, "retained route projection is current")
+	session._run.sequence += 1
+	screen.refresh_state(router.presentation)
+	await settle()
+	check(load("res://scripts/ui/view_reconciler.gd").replaced == before and screen.get_node("ActivityHeader").find_child("RunTitle", true, false).tooltip_text.contains(str(session._run.sequence)), "sequence-only update preserves the tree but refreshes diagnostic context")
+	session._run.shops = [{"shopInstanceId": "shop", "items": [{"itemId": "offer", "cardId": "defend", "costs": [{"resourceId": "gold", "amount": 30}]}]}]
+	session._available_commands = [{"type": "BUY_SHOP_ITEM", "validPayload": {"shopInstanceId": "shop", "itemIds": ["offer"]}}]
+	screen.refresh_state(router.presentation)
+	await settle()
+	var offer_card = screen.choice_buttons.filter(func(item): return item is CardView)[0]
+	check(not offer_card.model.costsKnown and str(offer_card.model.cost).is_empty() and screen.find_child("AcquisitionPrice", true, false).text.contains("30"), "acquisition price stays outside the face; missing play cost is unknown, never invented")
 	router.queue_free()
 	await settle()
 	root.get_node("GameAudio").shutdown()

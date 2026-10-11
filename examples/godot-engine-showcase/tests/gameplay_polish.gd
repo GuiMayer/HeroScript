@@ -20,6 +20,7 @@ func settle() -> void:
 func _run() -> void:
 	prefs = root.get_node("Preferences")
 	session = root.get_node("GameSession")
+	session.failed.connect(func(error): print("GAMEPLAY_REQUEST_FAILED ", error))
 	translator = root.get_node("I18n")
 	original = {"locale": translator.locale, "size": prefs.window_resolution, "fullscreen": prefs.fullscreen,
 		"scale": prefs.text_scale, "run": prefs.last_run_id, "auto": prefs.auto_animations}
@@ -204,6 +205,7 @@ func _run() -> void:
 	var ending = router.host.get_child(0)
 	var ending_replay: Button = ending.find_child("EndingReplayButton", true, false)
 	check(is_instance_valid(ending_replay), "run result exposes real replay playback")
+	if not is_instance_valid(ending_replay): _finish(); return
 	ending_replay.pressed.emit()
 	var replay_screen = router.host.get_child(0)
 	for _attempt in 400:

@@ -1,0 +1,353 @@
+{
+  "source_revision": "77655bf94795dba866851a37013d1fb394f5e8d1",
+  "captured_at_utc": "2026-10-11T20:42:30.4639509Z",
+  "isolated_project": "C:\\Users\\usuario\\.gemini\\antigravity\\scratch\\HeroScript\\.runtime\\ivory-baseline\\d2d68687c34649609828c44f553878af",
+  "isolation": "Custom user directory in generated project; no live API, player preferences or run commands",
+  "results": [
+    {
+      "name": "import",
+      "exit_code": 0,
+      "elapsed_ms": 8598,
+      "pass_count": 0,
+      "diagnostics": []
+    },
+    {
+      "name": "layers",
+      "exit_code": 0,
+      "elapsed_ms": 655,
+      "pass_count": 67,
+      "diagnostics": []
+    },
+    {
+      "name": "card_preview_separation",
+      "exit_code": 0,
+      "elapsed_ms": 690,
+      "pass_count": 35,
+      "diagnostics": [
+        "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    },
+    {
+      "name": "card_presentation",
+      "exit_code": 0,
+      "elapsed_ms": 1769,
+      "pass_count": 55,
+      "diagnostics": [
+        "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    },
+    {
+      "name": "card_hand_lab",
+      "exit_code": 0,
+      "elapsed_ms": 6159,
+      "pass_count": 118,
+      "diagnostics": []
+    },
+    {
+      "name": "hand_ux",
+      "exit_code": 0,
+      "elapsed_ms": 4099,
+      "pass_count": 37,
+      "diagnostics": [
+        "WARNING: 12 ObjectDB instances were leaked at exit (run with `--verbose` for details).",
+        "ERROR: 4 resources still in use at exit (run with --verbose for details)."
+      ]
+    },
+    {
+      "name": "pause_layers",
+      "exit_code": 0,
+      "elapsed_ms": 2969,
+      "pass_count": 24,
+      "diagnostics": []
+    },
+    {
+      "name": "combat_stage_layout",
+      "exit_code": 0,
+      "elapsed_ms": 14467,
+      "pass_count": 441,
+      "diagnostics": [
+        "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    },
+    {
+      "name": "card_play_selection",
+      "exit_code": 0,
+      "elapsed_ms": 2890,
+      "pass_count": 22,
+      "diagnostics": [
+        "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    },
+    {
+      "name": "resolutions",
+      "exit_code": 0,
+      "elapsed_ms": 3445,
+      "pass_count": 88,
+      "diagnostics": []
+    },
+    {
+      "name": "visual_baseline",
+      "exit_code": 0,
+      "elapsed_ms": 33944,
+      "pass_count": 51,
+      "diagnostics": [
+        "WARNING: 2 ObjectDB instances were leaked at exit (run with `--verbose` for details)."
+      ]
+    }
+  ],
+  "ui_inventory": [
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/activity_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 19,
+      "app_theme_references": 35
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/actor_panel.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 13,
+      "app_theme_references": 16
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/actor_portrait.gd",
+      "color_constructor_count": 4,
+      "embedded_color_count": 3,
+      "theme_override_count": 0,
+      "app_theme_references": 5
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/app_theme.gd",
+      "color_constructor_count": 1,
+      "embedded_color_count": 1,
+      "theme_override_count": 8,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/art_slot.gd",
+      "color_constructor_count": 1,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_details_panel.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 2,
+      "app_theme_references": 19
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_effect_text.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 4,
+      "app_theme_references": 1
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_hand_view.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 3,
+      "app_theme_references": 7
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_view.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 25,
+      "app_theme_references": 42
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_visual_style.gd",
+      "color_constructor_count": 7,
+      "embedded_color_count": 7,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/card_zone_tool_dialog.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 1,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/codex_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 2,
+      "app_theme_references": 3
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/combat_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 7,
+      "app_theme_references": 11
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/dialogue_panel.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 4,
+      "app_theme_references": 13
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/ember_background.gd",
+      "color_constructor_count": 2,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 5
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/floating_hud.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/focus_navigation.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/game_audio.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_hit_surface.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_interaction.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_layout.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_overview_dialog.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 8
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/hand_visual_style.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/historical_combat_view.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 2
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/inspection_dialog.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/main.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 5,
+      "app_theme_references": 24
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/resource_view.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 2,
+      "app_theme_references": 2
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/route_view.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 4,
+      "app_theme_references": 13
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/run_history_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 2,
+      "app_theme_references": 11
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/run_replay_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 2,
+      "app_theme_references": 11
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/sandbox_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 4,
+      "app_theme_references": 10
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/screen_view.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/settings_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 14,
+      "app_theme_references": 29
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/timeline_screen.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 1,
+      "app_theme_references": 5
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/view_reconciler.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 0
+    },
+    {
+      "file": "examples/godot-engine-showcase/scripts/ui/visual_context.gd",
+      "color_constructor_count": 0,
+      "embedded_color_count": 0,
+      "theme_override_count": 0,
+      "app_theme_references": 1
+    }
+  ],
+  "rest_validation": "Not run: offline fixture baseline, not an engine integration test"
+}

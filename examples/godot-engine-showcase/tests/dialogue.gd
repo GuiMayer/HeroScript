@@ -35,14 +35,16 @@ func _run() -> void:
 	root.add_child(transport)
 	transport.base_url = prefs.api_url
 	var response: Dictionary = await transport.request(HTTPClient.METHOD_POST, "/api/v1/runs", {
-		"settingId": "default", "modeId": "dialogue_demo", "playerEntityId": "dialogue-ui-test",
+		"settingId": "default", "modeId": "dialogue_demo", "playerEntityId": session.selected_setting.launch.playerEntityId,
 		"contentRevision": session.content_revision, "seed": int(Time.get_unix_time_from_system())})
 	transport.queue_free()
 	if not response.ok:
 		check(false, "create dialogue run: " + str(response))
 		_finish()
 		return
-	check(await session.continue_run(str(response.data.runId)), "connect dialogue run")
+	var opened: bool = await session.continue_run(str(response.data.runId), "dialogue_demo")
+	check(opened, "connect dialogue run")
+	if not opened: _finish(); return
 	router.open_game()
 	await settle()
 	await click_start()

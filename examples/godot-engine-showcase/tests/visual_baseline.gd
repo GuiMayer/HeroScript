@@ -37,8 +37,8 @@ func settle() -> void:
 
 func actor(id: String, definition: String, side: String) -> Dictionary:
 	return {"instanceId": id, "definitionId": definition, "sideId": side, "resources": {
-		"health": {"current": 48, "maximum": 72}, "block": {"current": 8, "maximum": 999},
-		"energy": {"current": 3, "maximum": 3}, "mana": {"current": 5, "maximum": 8}}, "statuses": []}
+		"health": {"current": 48, "minimum": 0, "maximum": 72}, "block": {"current": 8, "minimum": 0, "maximum": 999},
+		"energy": {"current": 3, "minimum": 0, "maximum": 3}, "mana": {"current": 5, "minimum": 0, "maximum": 8}}, "statuses": []}
 
 func load_combat() -> void:
 	session._run = {"runId": "visual-baseline", "sequence": 1, "playerEntityId": "hero", "lifecycle": "Active"}

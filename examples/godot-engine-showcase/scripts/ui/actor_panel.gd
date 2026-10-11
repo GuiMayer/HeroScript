@@ -80,7 +80,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		else:
 			var amount := AppTheme.muted("%s %s" % [visual_context.translator.number(float(resources[id].get("current", 0))), visual_context.translator.content_name(id)], 14)
 			amount.autowrap_mode = TextServer.AUTOWRAP_OFF
-			amount.add_theme_color_override("font_color", Color(str(appearance.get("color", "#e7b75d"))))
+			amount.add_theme_color_override("font_color", Color.from_string(str(appearance.get("color", "")), AppTheme.color("resource.unknown")))
 			amount.tooltip_text = "%s: %s / %s" % [visual_context.translator.content_name(id), resources[id].get("current", 0), resources[id].get("maximum", 0)]
 			counters.add_child(amount)
 	content.add_child(counters)

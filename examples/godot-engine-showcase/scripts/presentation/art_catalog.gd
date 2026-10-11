@@ -2,7 +2,9 @@ extends RefCounted
 ## Stable visual slots only. No rules, REST calls or mutable run state.
 const MANIFEST := "res://data/art_manifest.json"
 static var _manifests: Dictionary = {}
-static var _textures: Dictionary = {}
+
+static func clear() -> void:
+	_manifests.clear()
 
 static func invalidate(path := MANIFEST) -> void:
 	_manifests.erase(path)
@@ -26,5 +28,6 @@ static func resolve(category: String, content_id: String, manifest_path := MANIF
 static func texture_for(slot: Dictionary) -> Texture2D:
 	var path := str(slot.get("path", ""))
 	if path.is_empty() or not ResourceLoader.exists(path): return null
-	if not _textures.has(path): _textures[path] = load(path) as Texture2D
-	return _textures[path]
+	# ResourceLoader already reuses live textures by path. A second strong static
+	# cache keeps GPU resources alive after the last view has gone away.
+	return load(path) as Texture2D

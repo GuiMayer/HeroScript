@@ -1,0 +1,30 @@
+[
+  {
+    "test": "import",
+    "exit_code": 0,
+    "checks": 0,
+    "elapsed_ms": 10259,
+    "diagnostics": []
+  },
+  {
+    "test": "hand_online",
+    "exit_code": 0,
+    "checks": 150,
+    "elapsed_ms": 30704,
+    "diagnostics": []
+  },
+  {
+    "test": "dialogue",
+    "exit_code": 0,
+    "checks": 32,
+    "elapsed_ms": 7925,
+    "diagnostics": []
+  },
+  {
+    "test": "gameplay_polish",
+    "exit_code": 0,
+    "checks": 175,
+    "elapsed_ms": 81038,
+    "diagnostics": []
+  }
+]

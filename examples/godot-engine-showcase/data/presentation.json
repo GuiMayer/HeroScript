@@ -322,31 +322,37 @@
   "resources": {
     "health": {
       "display": "bar",
+      "color": "#ce5269",
       "symbol": "H",
       "cost_color": "#d85f68"
     },
     "block": {
       "display": "counter",
+      "color": "#e7b75d",
       "symbol": "B",
       "cost_color": "#8395b8"
     },
     "energy": {
       "display": "counter",
+      "color": "#e7b75d",
       "symbol": "E",
       "cost_color": "#e29b45"
     },
     "mana": {
       "display": "counter",
+      "color": "#e7b75d",
       "symbol": "M",
       "cost_color": "#5d87dc"
     },
     "gold": {
       "display": "counter",
+      "color": "#e7b75d",
       "symbol": "G",
       "cost_color": "#d6b759"
     },
     "power_points": {
       "display": "counter",
+      "color": "#e7b75d",
       "symbol": "P",
       "cost_color": "#b077d1"
     }

@@ -417,7 +417,7 @@ func _clear_ghost() -> void:
 	_ghost = null
 func show_overview() -> void:
 	if reading_modal: return
-	var dialog = load("res://scripts/ui/hand_overview_dialog.gd").new()
+	var dialog = load("res://scripts/ui/hand_overview_dialog.gd").new(visual_context)
 	dialog.setup(order.map(func(id): return _cards[id].model.duplicate(true)), scope, interaction.selected)
 	var return_focus := {"id": active_card_id()}
 	dialog.card_chosen.connect(func(id): return_focus.id = id; reveal(id); selection_requested.emit(id))
@@ -455,3 +455,12 @@ static func empty_state(message: String) -> Control:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	state.add_child(label)
 	return state
+
+func dispose() -> void:
+	if visual_context.changed.is_connected(_preferences_changed): visual_context.changed.disconnect(_preferences_changed)
+	cancel_gesture()
+	for tween in _motions.values():
+		if tween: tween.kill()
+	_motions.clear()
+
+func _exit_tree() -> void: dispose()
