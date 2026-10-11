@@ -441,3 +441,11 @@ func _confirm_ref(reference_id: String) -> void:
 	_confirm_choice(choice, model, _choice_label(choice, model))
 func _exit_tree() -> void:
 	if _owns_controller and controller: controller.dispose()
+
+
+func apply_model(model) -> void:
+	refresh_state(model)
+func apply_visual_profile(_profile) -> void:
+	refresh_state(presentation)
+func dispose() -> void:
+	if _owns_controller and controller: controller.dispose()

@@ -1,4 +1,4 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 ## Read-only playback over persisted run commits. No gameplay command is submitted here.
 
 var router
@@ -21,6 +21,7 @@ var playing := false
 
 func setup(owner, run_id: String, from_history := false) -> void:
 	router = owner
+	mount(owner.visual_context)
 	replay_run_id = run_id
 	return_to_history = from_history
 	add_theme_constant_override("separation", 10)
@@ -237,3 +238,8 @@ func _button(text: String, action: Callable) -> Button:
 	var value := AppTheme.button(text)
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
 	return value
+
+
+func dispose() -> void:
+	request_epoch += 1
+	playing = false

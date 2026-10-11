@@ -1,4 +1,4 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 
 const KINDS := ["cards", "entities", "resources", "status-effects", "relics", "modifiers", "modes", "combat-rules", "runs"]
 
@@ -10,6 +10,7 @@ var current_items: Array = []
 
 func setup(owner) -> void:
 	router = owner
+	mount(owner.visual_context)
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new()
 	var titles := VBoxContainer.new()
@@ -76,3 +77,7 @@ func _button(text: String, action: Callable, width := 0) -> Button:
 	value.custom_minimum_size.y = 42
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
 	return value
+
+
+func dispose() -> void:
+	request_epoch += 1

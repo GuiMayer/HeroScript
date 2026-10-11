@@ -1,4 +1,4 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 
 var router
 var presentation: Dictionary
@@ -10,6 +10,7 @@ var launch_button: Button
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	mount(owner.visual_context)
 	presentation = data
 	add_theme_constant_override("separation", 16)
 	var header := HBoxContainer.new()

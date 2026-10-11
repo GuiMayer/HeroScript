@@ -1,9 +1,8 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 
 const Presenter = preload("res://scripts/presentation/combat_presenter.gd")
 const CardZonePresenter = preload("res://scripts/presentation/card_zone_presenter.gd")
 const HandView = preload("res://scripts/ui/card_hand_view.gd")
-var visual_context
 var presenter
 var zone_presenter
 var router
@@ -68,6 +67,7 @@ func _ready() -> void:
 
 func setup(owner, data: Dictionary) -> void:
 	router = owner
+	mount(owner.visual_context)
 	visual_context = owner.visual_context
 	feedback = preload("res://scripts/ui/components/combat_feedback.gd").new(visual_context)
 	add_child(feedback)
@@ -696,3 +696,14 @@ func _open_zone_tools() -> void:
 func _execute_zone_flow(payload: Dictionary) -> void:
 	var accepted: bool = await controller.execute_zone_flow(payload)
 	if is_inside_tree() and accepted: router.open_game()
+
+
+func apply_model(model) -> void:
+	refresh_state(model)
+func apply_visual_profile(_profile) -> void:
+	refresh_state(presentation)
+
+func apply_interaction(_state) -> void: _update_controls()
+func dispose() -> void:
+	if controller: controller.dispose()
+	if feedback: feedback.dispose()

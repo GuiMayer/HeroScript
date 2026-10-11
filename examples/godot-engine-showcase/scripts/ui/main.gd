@@ -111,6 +111,7 @@ func _screen() -> VBoxContainer:
 func _clear_host() -> void:
 	navigation_epoch += 1
 	for child in host.get_children():
+		if child.has_method("dispose"): child.dispose()
 		host.remove_child(child)
 		child.queue_free()
 
@@ -365,8 +366,8 @@ func _button(text: String, action: Callable, width := 0) -> Button:
 func _on_session_changed() -> void:
 	if current_screen == "combat" and host.get_child_count() > 0:
 		var screen = host.get_child(0)
-		if screen.has_method("_update_controls"):
-			screen._update_controls()
+		if screen.has_method("apply_interaction"):
+			screen.apply_interaction(null)
 
 func _apply_preferences() -> void:
 	visual_context.update_from(Preferences, I18n, AppTheme.profile)

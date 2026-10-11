@@ -1,8 +1,10 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 ## Categorized, immediately-applied local preferences. This screen never changes game rules.
 
 const FocusNavigation = preload("res://scripts/ui/focus_navigation.gd")
+const Schema = preload("res://scripts/ui/styles/settings_schema.gd")
 const CATEGORY_IDS := ["general", "audio", "display", "accessibility", "controls", "connection"]
+var controller
 
 var router
 var close_action: Callable
@@ -19,6 +21,8 @@ var saved_label: Label
 
 func setup(owner, on_close: Callable) -> void:
 	router = owner
+	mount(owner.visual_context)
+	controller = preload("res://scripts/ui/controllers/settings_controller.gd").new(Preferences, I18n, GameSession)
 	close_action = on_close
 	add_theme_constant_override("separation", 14)
 	_build_header()
@@ -158,17 +162,17 @@ func _build_general_page() -> void:
 		language.add_item("English" if code == "en" else "Português (Brasil)")
 	language.selected = I18n.LOCALES.find(I18n.locale)
 	language.item_selected.connect(func(index):
-		Preferences.locale = I18n.LOCALES[index]
-		Preferences.save()
-		I18n.set_locale(Preferences.locale))
+		controller.set_option("locale", I18n.LOCALES[index], false)
+		controller.commit()
+)
 	_add_option(I18n.text("Interface language"), I18n.text("Choose the language used by interface and content."), language)
-	var speed := _slider_control(Preferences.animation_speed, .25, 2.0, .05,
+	var speed := _slider_control(controller.read("animation_speed"), .25, 2.0, .05,
 		func(value): return "%s×" % I18n.number(value),
-		func(value): Preferences.animation_speed = value, "AnimationSpeedSlider")
+		func(value): controller.set_option("animation_speed", value, false), "AnimationSpeedSlider")
 	_add_option(I18n.text("Animation playback speed"),
 		I18n.text("Controls presentation speed only; simulation results never change."), speed)
-	var automatic := _toggle_control(Preferences.auto_animations,
-		func(value): Preferences.auto_animations = value, "AutomaticAnimationsToggle")
+	var automatic := _toggle_control(controller.read("auto_animations"),
+		func(value): controller.set_option("auto_animations", value, false), "AutomaticAnimationsToggle")
 	_add_option(I18n.text("Automatic animation playback"),
 		I18n.text("Advance the action queue automatically after the engine resolves a command."), automatic)
 	_add_section(I18n.text("CARD HAND"))
@@ -176,34 +180,34 @@ func _build_general_page() -> void:
 	hand_mode.name = "HandLayoutSelector"
 	hand_mode.add_item(I18n.text("Adaptive fan"))
 	hand_mode.add_item(I18n.text("Reading — no overlap"))
-	hand_mode.select(1 if Preferences.hand_layout_mode == "reading" else 0)
+	hand_mode.select(1 if controller.read("hand_layout_mode") == "reading" else 0)
 	hand_mode.item_selected.connect(func(index):
-		Preferences.hand_layout_mode = "reading" if index == 1 else "adaptive"
-		Preferences.save(); _mark_saved())
+		controller.set_option("hand_layout_mode", "reading" if index == 1 else "adaptive", false)
+		controller.commit(); _mark_saved())
 	_add_option(I18n.text("Hand layout"), I18n.text("Keep card text size; choose overlap or horizontal reading."), hand_mode)
 	_add_option(I18n.text("Card highlight lift"), I18n.text("Highlight intensity does not change card values or text size."),
-		_slider_control(Preferences.hand_emphasis, 0.0, 1.0, .1, _format_percent,
-			func(value): Preferences.hand_emphasis = value, "HandEmphasisSlider"))
+		_slider_control(controller.read("hand_emphasis"), 0.0, 1.0, .1, _format_percent,
+			func(value): controller.set_option("hand_emphasis", value, false), "HandEmphasisSlider"))
 	_add_option(I18n.text("Drag cards to play"), I18n.text("Optional. Click selection and target choices remain available."),
-		_toggle_control(Preferences.hand_drag_enabled, func(value): Preferences.hand_drag_enabled = value, "HandDragToggle"))
+		_toggle_control(controller.read("hand_drag_enabled"), func(value): controller.set_option("hand_drag_enabled", value, false), "HandDragToggle"))
 
 func _build_audio_page() -> void:
 	_add_section(I18n.text("VOLUME"))
 	_add_option(I18n.text("Master volume"), I18n.text("Overall output level."),
-		_slider_control(Preferences.master_volume, 0.0, 1.0, .01, _format_percent,
-			func(value): Preferences.master_volume = value, "MasterVolumeSlider"))
+		_slider_control(controller.read("master_volume"), 0.0, 1.0, .01, _format_percent,
+			func(value): controller.set_option("master_volume", value, false), "MasterVolumeSlider"))
 	_add_option(I18n.text("Music"), I18n.text("Background music level."),
-		_slider_control(Preferences.music_volume, 0.0, 1.0, .01, _format_percent,
-			func(value): Preferences.music_volume = value, "MusicVolumeSlider"))
+		_slider_control(controller.read("music_volume"), 0.0, 1.0, .01, _format_percent,
+			func(value): controller.set_option("music_volume", value, false), "MusicVolumeSlider"))
 	_add_option(I18n.text("Sound effects"), I18n.text("Cards, hits and interface feedback."),
-		_slider_control(Preferences.sfx_volume, 0.0, 1.0, .01, _format_percent,
-			func(value): Preferences.sfx_volume = value, "SfxVolumeSlider"))
+		_slider_control(controller.read("sfx_volume"), 0.0, 1.0, .01, _format_percent,
+			func(value): controller.set_option("sfx_volume", value, false), "SfxVolumeSlider"))
 
 func _build_display_page() -> void:
 	_add_section(I18n.text("WINDOW"))
-	var fullscreen := _toggle_control(Preferences.fullscreen, func(value):
-		Preferences.fullscreen = value
-		Preferences.save()
+	var fullscreen := _toggle_control(controller.read("fullscreen"), func(value):
+		controller.set_option("fullscreen", value, false)
+		controller.commit()
 		_mark_saved()
 		if is_instance_valid(resolution_selector): resolution_selector.disabled = value,
 		"FullscreenToggle", false)
@@ -211,14 +215,14 @@ func _build_display_page() -> void:
 	resolution_selector = OptionButton.new()
 	resolution_selector.name = "ResolutionSelector"
 	resolution_selector.custom_minimum_size = Vector2(300, 44)
-	var resolutions := Preferences.resolution_options()
+	var resolutions: Array[Vector2i] = controller.resolution_options()
 	for resolution in resolutions:
 		resolution_selector.add_item("%s × %s" % [resolution.x, resolution.y])
 		resolution_selector.set_item_metadata(resolution_selector.item_count - 1, resolution)
-	resolution_selector.select(resolutions.find(Preferences.window_resolution))
-	resolution_selector.disabled = Preferences.fullscreen
+	resolution_selector.select(resolutions.find(controller.read("window_resolution")))
+	resolution_selector.disabled = controller.read("fullscreen")
 	resolution_selector.item_selected.connect(func(index):
-		Preferences.set_resolution(resolution_selector.get_item_metadata(index))
+		controller.set_resolution(resolution_selector.get_item_metadata(index))
 		_mark_saved())
 	_add_option(I18n.text("Window resolution"),
 		I18n.text("Used in windowed mode. Ultrawide resolutions are supported."), resolution_selector)
@@ -226,13 +230,13 @@ func _build_display_page() -> void:
 func _build_accessibility_page() -> void:
 	_add_section(I18n.text("READABILITY AND MOTION"))
 	_add_option(I18n.text("Text size"), I18n.text("Adjusts menu and gameplay text from 90% to 120%."),
-		_slider_control(Preferences.text_scale, .9, 1.2, .05, _format_percent,
-			func(value): Preferences.text_scale = value, "TextScaleSlider"))
+		_slider_control(controller.read("text_scale"), .9, 1.2, .05, _format_percent,
+			func(value): controller.set_option("text_scale", value, false), "TextScaleSlider"))
 	_add_option(I18n.text("High contrast"),
 		I18n.text("Uses darker surfaces and stronger outlines throughout the interface."),
-		_toggle_control(Preferences.high_contrast, func(value): Preferences.high_contrast = value, "HighContrastToggle"))
+		_toggle_control(controller.read("high_contrast"), func(value): controller.set_option("high_contrast", value, false), "HighContrastToggle"))
 	_add_option(I18n.text("Reduced motion"), I18n.text("Disables decorative motion and shortens transitions."),
-		_toggle_control(Preferences.reduced_motion, func(value): Preferences.reduced_motion = value, "ReducedMotionToggle"))
+		_toggle_control(controller.read("reduced_motion"), func(value): controller.set_option("reduced_motion", value, false), "ReducedMotionToggle"))
 
 func _build_controls_page() -> void:
 	_add_section(I18n.text("GAMEPLAY ACTIONS"))
@@ -243,7 +247,7 @@ func _build_controls_page() -> void:
 		"confirm_action": I18n.text("Next animation"),
 		"inspect_card": I18n.text("Inspect card"), "hand_overview": I18n.text("Hand overview")
 	}
-	for action in Preferences.ACTIONS:
+	for action in controller.actions():
 		var button := AppTheme.button(_binding_label(action), 235)
 		button.name = "Binding_" + action
 		button.pressed.connect(func(): GameAudio.ui(); _capture(action, button))
@@ -261,7 +265,7 @@ func _build_connection_page() -> void:
 	editor.add_theme_constant_override("separation", 8)
 	var api := LineEdit.new()
 	api.name = "ApiAddressInput"
-	api.text = Preferences.api_url
+	api.text = controller.read("api_url")
 	api.placeholder_text = "http://127.0.0.1:5271"
 	api.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	api.custom_minimum_size.y = 44
@@ -317,9 +321,10 @@ func _slider_control(value: float, minimum: float, maximum: float, step: float,
 	row.add_theme_constant_override("separation", 12)
 	var slider := HSlider.new()
 	slider.name = node_name
-	slider.min_value = minimum
-	slider.max_value = maximum
-	slider.step = step
+	var spec: Dictionary = Schema.for_control(node_name)
+	slider.min_value = float(spec.get("min", minimum))
+	slider.max_value = float(spec.get("max", maximum))
+	slider.step = float(spec.get("step", step))
 	slider.value = value
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var amount := Label.new()
@@ -331,7 +336,7 @@ func _slider_control(value: float, minimum: float, maximum: float, step: float,
 	slider.value_changed.connect(func(next_value):
 		amount.text = str(formatter.call(float(next_value)))
 		setter.call(float(next_value))
-		Preferences.save()
+		controller.commit()
 		_mark_saved())
 	row.add_child(slider)
 	row.add_child(amount)
@@ -347,7 +352,7 @@ func _toggle_control(value: bool, setter: Callable, node_name: String, persist :
 	toggle.toggled.connect(func(enabled):
 		toggle.text = I18n.text("ON") if enabled else I18n.text("OFF")
 		setter.call(enabled)
-		if persist: Preferences.save()
+		if persist: controller.commit()
 		_mark_saved())
 	return toggle
 
@@ -355,23 +360,13 @@ func _format_percent(value: float) -> String:
 	return "%s%%" % roundi(value * 100.0)
 
 func _category_title(category_id: String) -> String:
-	return {
-		"general": "GENERAL", "audio": "AUDIO", "display": "DISPLAY",
-		"accessibility": "ACCESSIBILITY", "controls": "CONTROLS", "connection": "CONNECTION"
-	}.get(category_id, "GENERAL")
+	return str(Schema.CATEGORIES.get(category_id, Schema.CATEGORIES.general)[0])
 
 func _category_description(category_id: String) -> String:
-	return {
-		"general": "Language and basic gameplay presentation.",
-		"audio": "Balance music and interface feedback.",
-		"display": "Window mode, resolution and presentation.",
-		"accessibility": "Readability and motion preferences.",
-		"controls": "Keyboard and gamepad bindings.",
-		"connection": "HeroScript service connection."
-	}.get(category_id, "Language and basic gameplay presentation.")
+	return str(Schema.CATEGORIES.get(category_id, Schema.CATEGORIES.general)[1])
 
 func _binding_label(action: String) -> String:
-	return Preferences.action_label(action) + "   /   " + Preferences.controller_label(action)
+	return controller.action_label(action) + "   /   " + controller.controller_label(action)
 
 func _capture(action: String, button: Button) -> void:
 	capture_action = action
@@ -386,7 +381,7 @@ func _input(event: InputEvent) -> void:
 		capture_action = ""
 		_refresh_bindings()
 		return
-	var error := Preferences.remap_event(capture_action, event)
+	var error: String = controller.remap_event(capture_action, event)
 	if not error.is_empty():
 		router.show_error(I18n.text(error))
 		return
@@ -406,19 +401,14 @@ func _refresh_bindings() -> void:
 
 func _reset_bindings() -> void:
 	capture_action = ""
-	Preferences.reset_bindings()
+	controller.reset_bindings()
 	_refresh_bindings()
 	_mark_saved()
 
 func _save_connection(value: String) -> void:
-	if value.strip_edges().trim_suffix("/") == Preferences.api_url:
-		return
-	if GameSession.busy or GameSession.has_pending_command:
-		router.show_error(I18n.text("Finish or recover the current operation before changing the connection."))
-	elif not Preferences.set_api_url(value):
-		router.show_error(I18n.text("Use an HTTP or HTTPS address."))
-	else:
-		_mark_saved()
+	var error: String = controller.save_connection(value)
+	if not error.is_empty(): router.show_error(I18n.text(error))
+	else: _mark_saved()
 
 func _mark_saved() -> void:
 	if not is_instance_valid(saved_label):
@@ -438,7 +428,7 @@ func _rewire_focus() -> void:
 
 func _close() -> void:
 	capture_action = ""
-	Preferences.save()
+	controller.commit()
 	close_action.call()
 
 func _button(text: String, action: Callable, width := 0) -> Button:

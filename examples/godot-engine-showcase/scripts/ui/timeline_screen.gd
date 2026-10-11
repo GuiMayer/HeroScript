@@ -1,4 +1,4 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 
 const TimelinePresenter = preload("res://scripts/presentation/timeline_presenter.gd")
 var router
@@ -30,6 +30,7 @@ var selected_entry: Dictionary = {}
 
 func setup(owner) -> void:
 	router = owner
+	mount(owner.visual_context)
 	screen_run_id = str(GameSession.run.get("runId", ""))
 	history_allowed = GameSession.allows_tool("timeline.inspect_state")
 	fork_allowed = GameSession.allows_tool("timeline.branch.create")
@@ -77,7 +78,7 @@ func setup(owner) -> void:
 	scrubber.step = 1
 	scrubber.value_changed.connect(func(value): _select(int(value)))
 	right.add_child(scrubber)
-	history_view = preload("res://scripts/ui/historical_combat_view.gd").new()
+	history_view = preload("res://scripts/ui/historical_combat_view.gd").new(visual_context)
 	history_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right.add_child(history_view)
 	frame_text = RichTextLabel.new()
@@ -271,14 +272,14 @@ func _simulate() -> void:
 	if not _valid(): return
 	working = false
 	if response.ok:
-		var dialog := preload("res://scripts/ui/inspection_dialog.gd").new()
+		var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
 		dialog.setup(I18n.text("Simulation"), I18n.text("Simulation completed without changing the run."), response.data)
 		add_child(dialog)
 		dialog.popup_centered()
 	else: router.show_error(I18n.error(response))
 
 func _inspect_raw() -> void:
-	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new()
+	var dialog := preload("res://scripts/ui/inspection_dialog.gd").new(visual_context)
 	dialog.setup(I18n.text("Commands"), details.text, selected_entry)
 	add_child(dialog)
 	dialog.popup_centered()
@@ -287,3 +288,7 @@ func _button(text: String, action: Callable) -> Button:
 	var value := AppTheme.button(text)
 	value.pressed.connect(func(): GameAudio.ui(); action.call())
 	return value
+
+
+func dispose() -> void:
+	request_epoch += 1

@@ -1,4 +1,4 @@
-extends VBoxContainer
+extends "res://scripts/ui/screen_view.gd"
 ## Read-only archive browser. It never activates a run unless Continue is chosen.
 
 var router
@@ -14,6 +14,7 @@ var unlock_summary: Label
 
 func setup(owner) -> void:
 	router = owner
+	mount(owner.visual_context)
 	add_theme_constant_override("separation", 12)
 	var header := HBoxContainer.new()
 	header.add_child(AppTheme.title(I18n.text("JOURNEY HISTORY"), 30))
