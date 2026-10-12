@@ -34,7 +34,57 @@
       "defend": "card_defend",
       "fireball": "card_fire",
       "heal": "card_heal",
-      "arcane_bolt": "card_fire"
+      "arcane_bolt": "card_strike",
+      "ascendant_strike": "card_strike",
+      "ascendant_fracture": "card_strike",
+      "expose_weakness": "card_strike",
+      "execution": "card_strike",
+      "cull_weakest": "card_strike",
+      "w1_strike": "card_strike",
+      "w1_sweep": "card_strike",
+      "w1_shield_bash": "card_strike",
+      "w1_fracture": "card_strike",
+      "w1_riposte": "card_strike",
+      "w1_pierce": "card_strike",
+      "ascendant_kinetic_guard": "card_defend",
+      "fading_guard": "card_defend",
+      "equilibrium": "card_defend",
+      "w1_guard": "card_defend",
+      "w1_fortify": "card_defend",
+      "w1_bulwark": "card_defend",
+      "w1_reserve": "card_defend",
+      "w1_dampen": "card_defend",
+      "ascendant_elemental_burst": "card_fire",
+      "prismatic_burst": "card_fire",
+      "w1_scorch": "card_fire",
+      "w1_inferno": "card_fire",
+      "cleanse": "card_heal",
+      "renewal": "card_heal",
+      "w1_mend": "card_heal",
+      "w1_renewal": "card_heal",
+      "w1_release": "card_condense",
+      "w1_release_guard": "card_condense",
+      "w1_catalyst": "card_condense",
+      "w1_detonate": "card_condense",
+      "venom_cut": "card_poison",
+      "w1_poison": "card_poison",
+      "chain_lightning": "card_multihit",
+      "ascendant_support_cascade": "card_multihit",
+      "w1_flurry": "card_multihit",
+      "w1_barrage": "card_multihit",
+      "w1_venom_flurry": "card_multihit",
+      "piercing_ray": "card_precision",
+      "ascendant_critical_lance": "card_precision",
+      "battle_focus": "card_precision",
+      "w1_precision": "card_precision",
+      "w1_focus": "card_precision",
+      "w1_lance": "card_precision",
+      "tactical_recall": "card_recall",
+      "w1_recall": "card_recall",
+      "w1_insight": "card_recall",
+      "w1_rehearse": "card_recall",
+      "conjure_spark": "card_spark",
+      "w1_momentum": "card_spark"
     },
     "actors": {
       "spire_adept": "actor_adept",
@@ -88,31 +138,31 @@
       "placeholder": true
     },
     "core_strike": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/strike.svg",
       "placeholder": true
     },
     "core_guard": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/guard.svg",
       "placeholder": true
     },
     "core_heal": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/spark.svg",
       "placeholder": true
     },
     "core_charge_card": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/condense.svg",
       "placeholder": true
     },
     "core_release": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/condense.svg",
       "placeholder": true
     },
     "core_recover": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/spark.svg",
       "placeholder": true
     },
     "core_empower_card": {
-      "path": "res://assets/ivory/unknown.svg",
+      "path": "res://assets/ivory/condense.svg",
       "placeholder": true
     },
     "card_unknown": {
@@ -137,6 +187,36 @@
     },
     "card_heal": {
       "path": "res://assets/ivory/spark.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_condense": {
+      "path": "res://assets/ivory/condense.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_poison": {
+      "path": "res://assets/ivory/poison.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_multihit": {
+      "path": "res://assets/ivory/multihit.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_precision": {
+      "path": "res://assets/ivory/precision.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_recall": {
+      "path": "res://assets/ivory/recall.svg",
+      "fit": "contain",
+      "placeholder": true
+    },
+    "card_spark": {
+      "path": "res://assets/ivory/energy.svg",
       "fit": "contain",
       "placeholder": true
     },
