@@ -93,7 +93,7 @@ func setup(actor: Dictionary, hostile: bool, presentation: Dictionary, intent: S
 		if id not in ordered: ordered.append(id)
 	for id in ordered:
 		if not resources.has(id): continue
-		var appearance: Dictionary = presentation.get("resources", {}).get(id, {})
+		var appearance: Dictionary = visual_context.resource_appearance(str(id), presentation.get("resources", {}).get(id, {}))
 		if str(appearance.get("display", "bar")) == "bar":
 			var resource := preload("res://scripts/ui/resource_view.gd").new(visual_context)
 			resource.name = "Resource_" + str(id).validate_node_name()
@@ -135,7 +135,7 @@ func fit_battlefield_height(available: float) -> void:
 	fixed += _battlefield_content.get_theme_constant("separation") * (_battlefield_content.get_child_count() - 1)
 	for child in _battlefield_content.get_children():
 		if child != target_button and child is Control: fixed += child.get_combined_minimum_size().y
-	target_button.custom_minimum_size.y = clampf(available - fixed - 1, 60, 100)
+	target_button.custom_minimum_size.y = clampf(available - fixed - 1, 60, visual_context.profile.actor_art_max_height)
 
 
 func _init(context = null) -> void:

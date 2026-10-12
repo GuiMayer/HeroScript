@@ -10,6 +10,8 @@ extends Resource
 @export var body_font: Font
 @export var title_font: Font
 @export var printed_surfaces := false
+@export var resource_color_overrides: Dictionary = {}
+@export var actor_art_max_height := 100.0
 @export var card_style: CardVisualStyle
 @export var art_manifest := "res://data/art_manifest.json"
 const DEFAULTS := {
@@ -82,7 +84,7 @@ func role_for(value: Color) -> String:
 		if color(role).is_equal_approx(value): return str(role)
 	return ""
 func presentation_key() -> String:
-	return JSON.stringify([profile_id, colors, font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest, printed_surfaces, card_style.presentation_key() if card_style else ""])
+	return JSON.stringify([profile_id, colors, font_sizes, setting_art_manifests, screen_margin, corner_radius, body_font_size, body_font, title_font, art_manifest, printed_surfaces, resource_color_overrides, actor_art_max_height, card_style.presentation_key() if card_style else ""])
 
 
 func font_size(role: String, fallback: float) -> float: return float(font_sizes.get(role, fallback))

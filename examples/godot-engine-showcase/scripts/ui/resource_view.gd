@@ -28,6 +28,7 @@ func _init(context = null) -> void:
 func setup(id: String, state: Dictionary, appearance: Dictionary = {}) -> void:
 	theme = visual_context.theme
 	_model = {"resourceId": id, "state": state.duplicate(true), "appearance": appearance.duplicate(true)}
+	appearance = visual_context.resource_appearance(id, appearance)
 	var model = preload("res://scripts/presentation/view_models.gd").ResourceValue.new(state)
 	label.text = visual_context.translator.content_name(id).to_upper()
 	var bounded: bool = model.has_bounds and is_finite(model.current) and model.current >= float(state.minimum) and model.current <= float(state.maximum)

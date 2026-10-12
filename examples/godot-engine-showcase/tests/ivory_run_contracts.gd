@@ -15,6 +15,8 @@ func _run() -> void:
 		var texture = load("res://scripts/presentation/art_catalog.gd").texture_for(slot)
 		check(texture != null and str(slot.path).begins_with("res://assets/ivory/"), "native printed actor/fallback art resolves: " + id)
 	var prior: Resource = context.scenery_profile
+	check(context.resource_appearance("energy", {"color": "#eeee00"}).color == "#7e4b15", "profile resource palette overrides presentation tone without changing resource semantics")
+	check(context.resource_appearance("custom", {"color": "#123456", "display": "counter"}) == {"color": "#123456", "display": "counter"}, "unknown resources preserve authored presentation")
 	context.profile = load("res://data/themes/preserved.tres")
 	check(context.scenery_profile == prior, "changing UI does not implicitly change scene art")
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout

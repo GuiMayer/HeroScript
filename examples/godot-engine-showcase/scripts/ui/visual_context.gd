@@ -34,7 +34,11 @@ func set_resource_styles(styles: Dictionary) -> void:
 	_resource_styles = styles.duplicate(true)
 	changed.emit()
 func resource_style(id: String) -> Dictionary:
-	return _resource_styles.get(id, {}).duplicate(true)
+	return resource_appearance(id, _resource_styles.get(id, {}))
+func resource_appearance(id: String, appearance: Dictionary = {}) -> Dictionary:
+	var result := appearance.duplicate(true)
+	if profile.resource_color_overrides.has(id): result.color = profile.resource_color_overrides[id]
+	return result
 func presentation_key() -> String:
 	return JSON.stringify([_options, _resource_styles, translator.locale, setting_id, profile.presentation_key()])
 var text_scale: float:
