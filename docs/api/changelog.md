@@ -1,5 +1,10 @@
 # Changelog do contrato público
 
+## v1 — 2026-10-12
+
+- Diálogos expõem `speakerId` opcional e `interactionKind` (`Choice`/`Continue`). São metadata de apresentação, não autorização para transições automáticas. Uma opção única continua `Choice` por padrão. Defaults null/Choice são omitidos da serialização para preservar snapshots sem esses campos; o validator rejeita valores de enum desconhecidos.
+- Cliente Godot separa mapa, ofertas e cena narrativa. Leitura/páginas/histórico não criam comandos nem um cursor de replay alternativo. Consulte os [contratos visuais da run](../design/GODOT_RUN_GRAPHICS_CONTRACTS.md).
+
 ## v1 — 2026-10-10
 
 - Engine `28`: identidades de execução de efeitos ordenam tags semanticamente

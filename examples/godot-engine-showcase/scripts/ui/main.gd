@@ -45,8 +45,9 @@ var _menu_paper: ColorRect
 
 func _ready() -> void:
 	_entry_profile = AppTheme.profile
-	_gameplay_profile = _entry_profile
+	_gameplay_profile = preload("res://data/themes/ivory_run.tres")
 	visual_context = preload("res://scripts/ui/visual_context.gd").from_nodes(Preferences, I18n)
+	visual_context.set_scenery_profile(preload("res://data/themes/ivory_scenery.tres"))
 	AppTheme.configure_preferences(Preferences.text_scale, Preferences.high_contrast)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	for argument in OS.get_cmdline_user_args():

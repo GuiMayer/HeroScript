@@ -42,7 +42,7 @@ Registre cada arquivo em `data/configs/default/package.json` com `kind: "dialogu
 }
 ```
 
-Cada nó tem uma fala, um interlocutor opcional, um retrato opcional, efeitos de entrada e uma lista ordenada de respostas. Uma resposta sem `nextNodeId` encerra a conversa. Para diálogo linear, use uma única resposta `Continue` apontando para o próximo nó. O jogador confirma cada transição: não há execução automática de ciclos.
+Cada nó tem uma fala, um interlocutor opcional, um retrato opcional, efeitos de entrada e uma lista ordenada de respostas. `speakerId` é metadata visual estável opcional, independente do nome traduzido. Uma resposta sem `nextNodeId` encerra a conversa. Para diálogo linear, declare `interactionKind: "Continue"` e `nextNodeId`; o default é `Choice`, mesmo para uma única opção ou uma opção com custo. Metadata não executa consequências nem permite ignorar custos/condições. Defaults ausentes são omitidos da serialização. O jogador confirma cada transição: não há execução automática de ciclos.
 
 `text` é o fallback em inglês. `translations` associa códigos como `pt_BR` a textos traduzidos. IDs de nós, escolhas, recursos e flags são estáveis e independentes do idioma. Traduzir ou mudar o visual não altera a decisão enviada à engine.
 
@@ -85,9 +85,9 @@ Nos commits brutos, o estado persistido fica em `stateAfter.narrative` (definiç
 
 ## Godot e substituição visual
 
-`activity_choices.gd` converte apenas os IDs anunciados em payloads. `dialogue_presenter.gd` localiza texto e cria o modelo visual. `dialogue_panel.gd` apresenta esse modelo e emite uma intenção com o payload anunciado. A tela de atividade encaminha a intenção para `GameSession`, que usa o gateway e o transporte REST existentes. O painel não conhece HTTP nem executa condições.
+`activity_choices.gd` converte apenas os IDs anunciados em payloads. `DialoguePresenter` localiza texto, preserva identidade/revisão e só associa comandos da mesma instância e nó. `DialogueScreen`/`DialogueController` coordenam a cena dedicada e encaminham opções atuais para `GameSession`. `DialogueView`/`DialoguePanel` não conhecem HTTP nem condições/consequências. Não há diálogo operacional embutido na tela de ofertas.
 
-Retratos usam a categoria `portraits` de `data/art_manifest.json`; substitua o slot e o arquivo da arte para trocar o retrato. Textos longos e escolhas ficam na área rolável; botões usam o foco e o tema do jogo. Pause e configurações continuam disponíveis durante a conversa. A UI oferece histórico de falas, com disponibilidade sinalizada por botão e texto, além da cor.
+Retratos usam a categoria `portraits` do manifesto do perfil visual; substitua o slot e a arte sem mudar regras. A cena Marfim tem palco superior, caixa de fala e opções inferiores. Texto instantâneo é default; revelação opcional e páginas pertencem a `DialogueReading`. O atalho remapeável confirm_action só revela/avança leitura; escolhas exigem seus botões e ficam bloqueadas até a última página. História é um modal rolável somente leitura, sem rollback. Pause/configurações continuam disponíveis. Após concluir e resolver a parada, retorna ao mapa; viajar permanece uma decisão separada.
 
 Esta entrega implementa conversas em atividades da run. Interromper uma resolução de combate, diálogos simultâneos, dublagem sincronizada e um editor visual de grafos ainda exigem extensões próprias; não são simulados pela interface.
 

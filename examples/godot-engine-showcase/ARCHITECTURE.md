@@ -77,7 +77,7 @@ não simula estados intermediários por conta própria.
 
 Atualizar o snapshot não significa reconstruir a navegação. Enquanto o contexto
 permanece o mesmo, `ui/main.gd` conserva a instância de `CombatScreen` ou
-`ActivityScreen` e chama `refresh_state(presentation)`. A tela cria um presenter
+`ActivityScreen`, `MapScreen` ou `DialogueScreen` e chama `refresh_state(presentation)`. A tela cria um presenter
 novo sobre cópias defensivas do snapshot atual e reconcilia a composição por
 identidade: atores, ofertas, mapa e mão conservam os nodes válidos. Algumas
 subtrees alteradas usam uma árvore desejada temporária, nunca uma segunda view
@@ -85,6 +85,10 @@ ativa. Uma projeção igual não recompõe a árvore. A troca de instância fica
 reservada para uma transição real de contexto.
 
 Regras de implementação:
+
+- mapa, ofertas e diálogo possuem cenas/coordenadores separados; não há um painel narrativo operacional embutido nas ofertas;
+- `DialogueReading` e `MapCamera` guardam leitura/gesto local, sem acesso à engine; histórico não dá rollback e páginas não são nós de gameplay;
+- uma opção de diálogo é contextual à run/branch/sequence/instância/nó/revisão; opções antigas ou de outra conversa não são enviadas;
 
 - identidade de tela, foco semântico e posições de scroll pertencem à UI, não à
   run;

@@ -2,7 +2,7 @@
 
 Implementação: 2026-10-11. Cliente: `examples/godot-engine-showcase`.
 
-Este guia descreve a infraestrutura entregue pelo [plano de arquitetura](../plans/GODOT_UI_ARCHITECTURE_REFACTOR_PLAN.md). O [menu principal](IVORY_MAIN_MENU.md), os [menus secundários e a pausa](IVORY_MENUS_AND_PAUSE.md) já usam Marfim; as telas de gameplay conservam o perfil anterior. O laboratório de cartas usa os mesmos componentes no Marfim. A composição lateral permanece uma fixture de teste; não existe seletor público de skins nem redesign global concluído.
+Este guia descreve a infraestrutura entregue pelo [plano de arquitetura](../plans/GODOT_UI_ARCHITECTURE_REFACTOR_PLAN.md). Menu, pausa, laboratório e run usam Marfim. A run possui perfis independentes `ivory_run.tres` / `ivory_scenery.tres`; a carta usa a anatomia compartilhada, com arte mais compacta no perfil de gameplay para acomodar fontes ampliadas. A composição lateral permanece uma fixture de teste; não existe seletor público de skins.
 
 ## Donos e fronteiras
 
@@ -29,7 +29,7 @@ Os modelos fazem cópias defensivas e preservam extensões desconhecidas. `Card`
 
 `AppTheme` é a fachada única do perfil ativo da aplicação. `PrimaryAction`, `SecondaryAction`, `DangerAction`, `ScreenTitle`, `SectionTitle` e `Caption` usam variações nativas de Theme. Estilos locais duplicam StyleBox antes de alterá-lo. Escala é calculada sobre valores canônicos, evitando multiplicação sucessiva e restauração de cores de um perfil anterior.
 
-A aplicação tem um perfil global ativo; este contrato não promete duas skins simultâneas independentes na mesma árvore. Os componentes recebem explicitamente preferências/tradução/artes pelo contexto, sem acesso à sessão.
+A fachada da aplicação tem um perfil ativo; componentes injetados e modais podem possuir contextos simultâneos independentes. A mesma factory de estilo constrói seus Themes locais, sem acesso à sessão.
 
 Na migração incremental, o router aplica Marfim nas rotas de menu/configurações/histórico/códice/laboratório e no replay vindo do histórico; restaura o perfil de gameplay nas rotas da run. `Main.apply_visual_profile()` também define o perfil de gameplay usado nas próximas navegações. A pausa usa contexto derivado e Theme nativo próprio, construídos/reaplicados por `AppTheme.scoped_profile()` síncrono, sem mudar o perfil global ou a geração do gameplay. A composição do menu principal está em `MainMenuView`, com geometria em `MenuVisualStyle`, sem callbacks REST ou referências à sessão dentro da view.
 
@@ -38,6 +38,7 @@ Na migração incremental, o router aplica Marfim nas rotas de menu/configuraç�
 - `CardVisualStyle`: raridade/borda, comparação numérica branco/vermelho/azul, face e limites de tooltip/inspeção. Não migre essa política para o tema global.
 - `HandVisualStyle`: largura mínima selecionável, leque, elevação, duração e limiar de drag. Não define capacidade da pilha nem limite de cartas.
 - `VisualContext.set_resource_styles(presentation.resources)`: aparência dos custos/recursos, separada de quantidade e efeito. Um recurso desconhecido usa aparência neutra; a engine continua definindo sua semântica.
+- `VisualThemeProfile.resource_color_overrides`: paleta visual opcional por resource, aplicada em custos/HUD/sidebar; IDs desconhecidos preservam a apresentação publicada. `actor_art_max_height` limita somente a geometria do placeholder.
 - `ResourceView`: só usa barra quando o snapshot publica limites válidos e o valor está dentro deles. Valores sem limites ou fora deles permanecem visíveis como texto; não são truncados nem tratados implicitamente como vida.
 - Ofertas de cartas mostram o preço de aquisição fora da face. Sem custo de uso publicado, mostram “custo indisponível”; preço da loja não é interpretado como custo de jogar a carta.
 
@@ -76,7 +77,7 @@ Views emitem referências de intenção, resolvidas contra o controller atual. A
 
 RunSceneryHost pertence ao shell e possui ambiente e CombatSceneryView. BattlefieldView possui HUD/superfícies de alvo, não as artes. Equipes e relações não são reduzidas a hostile. O renderer Control usa anchors públicos no espaço da viewport para alinhar arte e alvo, sem dar input à arte. SceneryVisualProfile/mappings JSON e perfil da UI são independentes.
 
-VisualContext possui factory de estilo/Theme locais, usando a mesma implementação da fachada AppTheme. MapLayoutProfile controla o grafo; MapLayout calcula posições e traçados sem sessão ou permissões. RouteView só habilita as escolhas publicadas, com scroll/foco em grafos largos e fallback para ciclos/desconexões.
+VisualContext possui factory de estilo/Theme locais, usando a mesma implementação da fachada AppTheme. MapLayoutProfile controla o grafo; MapLayout calcula posições e traçados sem sessão ou permissões, agrupando ciclos por SCC. RouteView permite inspecionar qualquer nó publicado; somente a ação separada do inspector pode viajar por uma escolha atual. Pan/overview/filtro não executam comandos.
 
 CombatInspectionCoordinator limita/coalesce leituras por contexto, revisão e alvos. CombatPresentationDriver controla o intervalo sobre o Playback existente; render/tema não reiniciam o ritmo nem criam outra fila. FloatingHUD possui slots explícitos para preview, sidebar, alternativas e reconexão.
 
@@ -104,6 +105,6 @@ Novas cores arbitrárias repetidas fora desses donos devem virar papéis; não t
 
 A certificação e as novas capturas estão em [interface-refactor/2026-10-11](interface-refactor/2026-10-11/README.md). A [baseline original](interface-baseline/2026-10-11/README.md) permanece intocada. Medidas de refresh síncrono não medem rede/GPU nem tempo clique→resultado.
 
-A continuação específica de combate/jornada está nos [contratos da run](GODOT_RUN_GRAPHICS_CONTRACTS.md) e na [comparação de 2026-10-12](run-graphics-after/2026-10-12/README.md). A verificação offline/visual passou; certificação REST com QA isolado permanece pendente, conforme o [progresso de implementação](../plans/GODOT_RUN_GRAPHICS_IMPLEMENTATION_PROGRESS.md).
+A continuação específica de combate/jornada está nos [contratos da run](GODOT_RUN_GRAPHICS_CONTRACTS.md) e na [comparação de 2026-10-12](run-graphics-after/2026-10-12/README.md). A [certificação Marfim](ivory-run/2026-10-12/README.md) registra a ativação, novas capturas e testes REST em QA isolado normal, com seus limites explícitos.
 
 Referências nativas: [Theme e variantes](https://docs.godotengine.org/en/stable/tutorials/ui/gui_skinning.html), [organização de cenas](https://docs.godotengine.org/en/stable/tutorials/best_practices/scene_organization.html) e [retenção de static variables](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_basics.html#static-variables).

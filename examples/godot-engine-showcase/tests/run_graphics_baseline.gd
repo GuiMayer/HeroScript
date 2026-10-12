@@ -35,7 +35,7 @@ func _run() -> void:
 			session._combat.actors.append(guest)
 			session._combat.relationships["rules"] = [{"fromSideId": "player", "toSideId": "neutral", "relationship": "Neutral"}]
 			combat.refresh_state(router.presentation); await capture(language + "-combat-third-team")
-			load_combat(); load_journey(false); router.show_activity(); await capture(language + "-journey")
+			load_combat(); load_journey(false); router.show_map(); await capture(language + "-journey")
 			load_journey(true); router.show_activity(); await capture(language + "-reward")
 			load_journey(false)
 			session._run.map.nodes[0].activity.type = "Shop"
@@ -47,7 +47,7 @@ func _run() -> void:
 			session._available_commands = [{"type": "APPLY_PREPARATION_OPTION", "validPayload": {"preparationInstanceId": "rest", "optionIds": ["recover"]}}]
 			router.show_activity(); await capture(language + "-preparation")
 			session._run.map.nodes[0].activity.type = "Dialogue"
-			session._run["dialogues"] = [{"activityNodeId": "encounter", "title": {"text": "A conversation"}, "speaker": {"text": "Keeper"}, "text": {"text": "A fixture with choices, not rules."}, "choices": [{"choiceId": "listen", "text": {"text": "Listen"}, "available": true}]}]
+			session._run["dialogues"] = [{"dialogueInstanceId": "dialogue", "nodeId": "encounter", "activityNodeId": "encounter", "title": {"text": "A conversation"}, "speaker": {"text": "Keeper"}, "text": {"text": "A fixture with choices, not rules."}, "choices": [{"choiceId": "listen", "text": {"text": "Listen"}, "available": true}]}]
 			session._available_commands = [{"type": "CHOOSE_DIALOGUE_OPTION", "validPayload": {"dialogueInstanceId": "dialogue", "nodeId": "encounter", "choiceIds": ["listen"]}}]
 			router.show_activity(); await capture(language + "-dialogue")
 			session._run.lifecycle = "Completed"; router.show_activity(); await capture(language + "-ending")

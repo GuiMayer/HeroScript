@@ -28,10 +28,13 @@ func refresh_state(data: Dictionary) -> void:
 	view.apply_projection(_model, visual_context)
 	_interaction()
 func _start_if_needed() -> void:
-	if not _alive or _start_attempted or not _model.is_empty(): return
+	if not _alive or not is_inside_tree() or get_tree().paused or controller.locked() or _start_attempted or not _model.is_empty(): return
 	_start_attempted = true
 	if await controller.execute_published("START_DIALOGUE") and _alive: router.open_game()
+func _process(_delta: float) -> void:
+	if _model.is_empty() and not _start_attempted: _start_if_needed()
 func _intent(action: String, arguments: Array) -> void:
+	if not _alive or not is_inside_tree(): return
 	match action:
 		"pause": router.toggle_pause()
 		"map": router.show_activity(true)
@@ -56,8 +59,9 @@ func _interaction() -> void:
 func apply_interaction(_state) -> void: _interaction()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
+	if not _alive: return
 	if is_instance_valid(view):
-		if router.dialogue_reading_states.size() >= 16: router.dialogue_reading_states.erase(router.dialogue_reading_states.keys()[0])
+		if router.dialogue_reading_states.size() >= 16 and not router.dialogue_reading_states.has(_reading_scope()): router.dialogue_reading_states.erase(router.dialogue_reading_states.keys()[0])
 		router.dialogue_reading_states[_reading_scope()] = view.capture_local_state()
 	_alive = false
 	if controller: controller.dispose()

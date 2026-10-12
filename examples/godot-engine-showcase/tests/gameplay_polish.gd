@@ -38,29 +38,28 @@ func _run() -> void:
 		check(false, "start isolated test journey")
 		_finish()
 		return
-	router.show_activity()
+	router.show_map()
 	await settle()
 	var initial_activity = router.host.get_child(0)
-	check(initial_activity.presenter.route().size() == session.run.map.nodes.size(), "all engine map nodes are represented")
+	check(initial_activity.view.route.nodes.size() == session.run.map.nodes.size(), "all engine map nodes are represented")
 	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(initial_activity).is_empty(), "activity text remains readable")
 	check(not is_instance_valid(initial_activity.find_child("AbandonRunButton", true, false)), "activity screen does not expose run abandonment")
-	var initial_route_scroll: ScrollContainer = initial_activity.find_child("RouteScroll", true, false)
+	var initial_route_scroll: ScrollContainer = initial_activity.find_child("MapScroll", true, false)
 	initial_route_scroll.scroll_vertical = 120
 	await settle()
 	var route_scroll_before_refresh := initial_route_scroll.scroll_vertical
-	router.show_activity()
+	router.show_map()
 	await settle()
 	check(router.host.get_child(0) == initial_activity, "journey refresh preserves the activity screen")
-	check(initial_activity.find_child("RouteScroll", true, false).scroll_vertical == route_scroll_before_refresh,
+	check(initial_activity.find_child("MapScroll", true, false).scroll_vertical == route_scroll_before_refresh,
 		"journey refresh preserves the map scroll position")
-	check(initial_activity.view.choice_buttons.all(func(button): return not button.has_method("configure") or not button.animate_entry),
-		"journey refresh does not replay offer-card entrance animations")
+	check(initial_activity.view.route.buttons.values().all(func(button): return button.size.x >= 168), "map refresh keeps readable inspection nodes")
 	prefs.fullscreen = false
 	prefs.set_resolution(Vector2i(1280, 720), false)
 	prefs.text_scale = 1.2
 	prefs.save()
 	translator.set_locale("pt_BR")
-	router.show_activity()
+	router.show_map()
 	await settle()
 	var accessible_activity = router.host.get_child(0)
 	check(preload("res://tests/layout_inspector.gd").vertical_text_issues(accessible_activity).is_empty(),
@@ -180,7 +179,7 @@ func _run() -> void:
 					var offer: Dictionary = activity.presenter.offer(item)
 					check(not str(offer.cost).is_empty(), "shop shows the published price")
 					var before: String = JSON.stringify(session.run)
-					activity._confirm_choice(item, offer, activity._choice_label(item, offer))
+					activity._confirm_choice(item, offer, activity.view._choice_label(item, offer))
 					await settle()
 					var modal: ConfirmationDialog
 					for child in activity.get_children():

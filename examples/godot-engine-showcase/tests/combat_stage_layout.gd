@@ -75,6 +75,8 @@ func _run() -> void:
 				var first_card_top: float = hand.scroll.get_global_rect().position.y + hand.visual_style.padding
 				check(screen.view.target_buttons.values().all(func(button): return button.get_parent().get_global_rect().end.y <= first_card_top), "actor information remains above even raised cards")
 				check(not screen.view.battlefield_actors.get_v_scroll_bar().visible, "authored actors fit without vertical scrolling")
+				if screen.view.battlefield_actors.get_v_scroll_bar().visible:
+					print("[LAYOUT] ", JSON.stringify({"stage": screen.view.battlefield_actors.size, "hand": hand.scroll.size, "dock": screen.view.bottom_hud.size, "actors": screen.view.target_buttons.values().map(func(button): return [button.size, button.get_parent().size])}))
 				var before: Rect2 = screen.view.bottom_hud.get_global_rect()
 				screen._choose_card("fixture-0")
 				await settle()

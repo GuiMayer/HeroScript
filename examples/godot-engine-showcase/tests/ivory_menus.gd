@@ -60,7 +60,8 @@ func _run() -> void:
 	var prefs = root.get_node("Preferences")
 	var i18n = root.get_node("I18n")
 	var session = root.get_node("GameSession")
-	var original := AppTheme.profile
+	var entry_profile := AppTheme.profile
+	var original: Resource = load("res://data/themes/ivory_run.tres")
 	var saved_file := FileAccess.get_file_as_string(prefs.SAVE_PATH) if FileAccess.file_exists(prefs.SAVE_PATH) else ""
 	var requests: int = root.get_node("GameServices").diagnostics().size()
 	prefs.reduced_motion = true
@@ -103,7 +104,7 @@ func _run() -> void:
 			var snapshot := JSON.stringify([session.run, session.combat, session.legal_actions])
 			var reads: int = session._gateway.reads
 			var generation := AppTheme.generation
-			check(AppTheme.profile == original and not card.visual_style.printed_face, "combat retains its prior theme and cards")
+			check(AppTheme.profile == original and card.visual_style.printed_face, "combat uses the independent ivory run profile and printed cards")
 			router.toggle_pause()
 			await settle()
 			check(AppTheme.profile == original and AppTheme.generation == generation and card.get_theme_stylebox("normal") == card_theme and card.configuration_count == card_count and session._gateway.reads == reads, "pause styling cannot recolor/rebuild gameplay or trigger engine reads")
@@ -138,7 +139,7 @@ func _run() -> void:
 			check(AppTheme.profile == original, "replay opened from run result retains the run theme")
 	router.queue_free()
 	await settle()
-	check(AppTheme.profile == original and requests == root.get_node("GameServices").diagnostics().size(), "menu suite leaves no palette change or real HTTP request")
+	check(AppTheme.profile == entry_profile and requests == root.get_node("GameServices").diagnostics().size(), "menu suite leaves no palette change or real HTTP request")
 	check(saved_file == (FileAccess.get_file_as_string(prefs.SAVE_PATH) if FileAccess.file_exists(prefs.SAVE_PATH) else ""), "visual suite never writes player preferences")
 	if not output_dir.is_empty():
 		var report := FileAccess.open(output_dir.path_join("captures.json"), FileAccess.WRITE)

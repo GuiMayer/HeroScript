@@ -12,7 +12,7 @@ func _run() -> void:
 	root.add_child(panel)
 	var model := {"title": "Dialogue", "speaker": "Speaker", "text": "First", "portrait": "unknown", "history": [],
 		"options": [{"id": "same", "text": "Choose", "cost": "", "reason": "", "available": true, "command": {"payload": {"node": "first"}}}]}
-	panel.setup(model)
+	panel.apply_model(model)
 	panel.choice_requested.connect(func(choice): calls.append(choice))
 	var retained: Button = panel.choice_buttons[0]
 	model.text = "Second"
@@ -24,8 +24,10 @@ func _run() -> void:
 	retained.pressed.emit()
 	panel.choice_buttons[1].pressed.emit()
 	check(panel.choice_buttons[0] == retained and calls.size() == 2 and calls[0].payload.node == "second" and calls[1].payload.node == "new", "retained and new dialogue choices resolve current payload through the live panel")
-	panel.get_node("ConversationHistoryToggle").toggled.emit(true)
-	check(panel.get_node("ConversationHistory").visible, "reconciled conversation history toggle targets the live view")
+	panel._open_history()
+	var history: Window = panel.get_children().filter(func(child): return child is Window)[0]
+	check(history.visible, "conversation history opens in an independent read-only modal")
+	history.queue_free()
 	var context = load("res://scripts/ui/visual_context.gd").new(null, {"reduced_motion": false})
 	var orphan_before: int = int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
 	var hand = load("res://scripts/ui/card_hand_view.gd").new(context)

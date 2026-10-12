@@ -580,5 +580,20 @@
   "A second limited recovery option; unlock, not permanent stats.": "A second limited recovery option; unlock, not permanent stats.",
   "Action preview: %s": "Action preview: %s",
   "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.": "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.",
-  "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.": "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes."
+  "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.": "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.",
+  "CONVERSATION": "CONVERSATION",
+  "MAP": "MAP",
+  "Loading conversation…": "Loading conversation…",
+  "Resume conversation": "Resume conversation",
+  "Reveal text gradually": "Reveal text gradually",
+  "Reveal text": "Reveal text",
+  "Next page": "Next page",
+  "Center current": "Center current",
+  "Next choices": "Next choices",
+  "Overview": "Overview",
+  "Legend": "Legend",
+  "All node types": "All node types",
+  "Unavailable": "Unavailable",
+  "Risk: %s": "Risk: %s",
+  "Selecting a node only inspects it. Travel requires a published option.": "Selecting a node only inspects it. Travel requires a published option."
 }

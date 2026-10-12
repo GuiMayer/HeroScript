@@ -6,9 +6,9 @@ Atualizado em 2026-10-12. Regras e fatos da partida continuam na engine; estes c
 
 | Dono | Responsabilidade | Não faz |
 | --- | --- | --- |
-| CombatScreen / ActivityScreen | Adaptar a sessão, conectar intenções e navegar | Construir cartas/atores/mapa ou calcular efeitos |
+| CombatScreen / ActivityScreen / MapScreen / DialogueScreen | Adaptar a sessão, conectar intenções e navegar | Construir cartas/atores/mapa ou calcular efeitos |
 | CombatController / ActivityController | Validar opções atuais, seleção, submissão, recuperação e verificações | Criar nodes/temas |
-| CombatView / JourneyView / ActivityOptionsView | Layout, conteúdo visual, foco, scroll, modais de leitura e intenções | Consultar sessão/HTTP/preferências globais ou executar comandos |
+| CombatView / JourneyView / ActivityOptionsView / MapView / DialogueView | Layout, conteúdo visual, foco, scroll, modais de leitura e intenções | Consultar sessão/HTTP/preferências globais ou executar comandos |
 | CombatInspectionCoordinator | Cache de leitura por contexto, revisão e alvos; coalescência e descarte | Guardar cenas ou produzir comandos |
 | Playback / CombatPresentationDriver | Cursor único / ritmo desse cursor | Refazer resultados de combate |
 | ApplicationShell.RunSceneryHost | Ambiente e instância visual de combate | Controlar a run |
@@ -49,7 +49,15 @@ O fallback usa o backgroundId `combat`. Não se deduz definição de encontro a 
 
 MapLayout retorna rects, markers, arestas com paths, bounds, indicador de ciclos e diagnostics. O cache usa topologia ordenada por IDs e perfil. A largura disponível limita o painel/scroll, não reduz fontes ou modifica permissões. Estado atual/resolvido/risco/travel não muda a geometria.
 
-DAGs usam camadas; ramos paralelos usam faixas. Resíduos cíclicos usam uma linha estável, preservando arestas de retorno/self edges. Referências a nós ausentes não criam nós fictícios. IDs vazios/duplicados geram diagnóstico visual, não correção da run.
+DAGs usam camadas; ramos paralelos usam faixas. Componentes fortemente conectados agrupam ciclos, e sua condensação mantém os nós posteriores em camadas posteriores. Arestas de retorno/self edges são preservadas. Referências ausentes não criam nós fictícios. IDs vazios/duplicados geram diagnóstico visual, não correção da run.
+
+MapScreen é uma cena própria. Selecionar/focar um nó inspeciona; travel exige sua referência publicada atual. Pan, legenda, overview e destaque por tipo são leitura local. Estado de leitura é limitado a 16 contextos setting/run/branch. O avanço automático ocorre somente quando ADVANCE_NODE é a única opção de gameplay; a conclusão de conversa estabelece uma barreira para permitir ler o mapa antes de viajar. Depois de travel explícito, um único START_ENCOUNTER/CREATE_CARD_SELECTION/CREATE_SHOP/CREATE_PREPARATION publicado pode abrir a atividade. Nenhuma escolha de prêmio/custo é automatizada.
+
+## Diálogo dedicado
+
+DialoguePresenter preserva run/branch/sequence/instância/nó/revisão e só associa opções a comandos da mesma instância/nó. DialogueController envia o payload publicado; não interpreta consequências. DialogueView/DialoguePanel apresentam retrato, fala, escolhas/custos/indisponibilidade e histórico em modal somente leitura.
+
+DialogueReading controla exclusivamente páginas e revelação opcional (instantâneo por padrão). O atalho remapeável confirm_action revela/avança a leitura, nunca escolhe. As opções ficam bloqueadas até concluir a última página e enquanto a sessão estiver bloqueada. Restaurar leitura não envia REST; outro branch/nó/revisão/idioma não reutiliza uma página incompatível. A leitura permanece local ao cliente; não entra no journal ou hash da run.
 
 ## Inspeção e apresentação
 
@@ -59,4 +67,4 @@ O driver controla apenas o intervalo entre avanços. Uma nova geração de recei
 
 ## Validação
 
-Fixtures não iniciam runs na API pessoal. O runner usa diretório de usuário isolado. Ver o [progresso e limites de certificação](../plans/GODOT_RUN_GRAPHICS_IMPLEMENTATION_PROGRESS.md). A validação online com servidor QA isolado ainda está pendente.
+Fixtures não iniciam runs na API pessoal. O runner usa diretório de usuário isolado. A [certificação da run Marfim](ivory-run/2026-10-12/README.md) registra testes offline/online em QA normal isolado, capturas e limites, incluindo ferramentas privilegiadas não habilitadas e diagnósticos de encerramento.

@@ -1,5 +1,5 @@
 param(
-    [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation','settings_contracts','settings_interaction','settings_recovery','connection_epoch','run_graphics_updates','run_visual_contexts','combat_collaborators','map_geometry','map_graph_view','run_graphics_architecture','activity_reconciliation'),
+    [string[]]$Tests = @('ui_contracts','layers','card_presentation','card_preview_separation','settings_contracts','settings_interaction','settings_recovery','connection_epoch','run_graphics_updates','run_visual_contexts','combat_collaborators','map_geometry','map_graph_view','run_graphics_architecture','activity_reconciliation','map_selection','dialogue_contracts','dialogue_coordination','dialogue_reading','activity_ingress','ivory_run_contracts'),
     [string]$ApiUrl = '',
     [string]$VisualTest = '',
     [string]$VisualOutputDirectory = '',

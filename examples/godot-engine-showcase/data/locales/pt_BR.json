@@ -580,5 +580,20 @@
   "A second limited recovery option; unlock, not permanent stats.": "Outra opção limitada de cura; desbloqueio de conteúdo, não atributos.",
   "Action preview: %s": "Previsão da ação: %s",
   "World one: an energy-only branching act with persistent health, card transformations, five build families and a two-state boss.": "Mundo 1: rotas ramificadas, apenas energia, vida persistente, transformação de cartas, cinco famílias de builds e um chefe com dois estados.",
-  "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.": "Transforme a identidade das cartas, armazene potência e libere uma única ativação. Afinidades, múltiplos acertos, excedente e atributos persistentes."
+  "Transform card identities, store potency and release a single proc. Affinities, multi-hit, overflow and persistent attributes.": "Transforme a identidade das cartas, armazene potência e libere uma única ativação. Afinidades, múltiplos acertos, excedente e atributos persistentes.",
+  "CONVERSATION": "CONVERSA",
+  "MAP": "MAPA",
+  "Loading conversation…": "Carregando conversa…",
+  "Resume conversation": "Retomar conversa",
+  "Reveal text gradually": "Revelar texto aos poucos",
+  "Reveal text": "Revelar texto",
+  "Next page": "Próxima página",
+  "Center current": "Centralizar posição",
+  "Next choices": "Próximas escolhas",
+  "Overview": "Visão geral",
+  "Legend": "Legenda",
+  "All node types": "Todos os tipos",
+  "Unavailable": "Indisponível",
+  "Risk: %s": "Risco: %s",
+  "Selecting a node only inspects it. Travel requires a published option.": "Selecionar um local apenas mostra seus detalhes. Viajar exige uma opção publicada pela engine."
 }

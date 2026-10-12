@@ -43,6 +43,11 @@ pela API REST. Para acessar o ato novo, reinicie pelo launcher, selecione
 **Ascendant Matrix** e inicie uma **nova run**: continuar um save antigo mantém
 o conteúdo e a revisão daquela tentativa.
 
+A run usa o tema **Marfim**, com UI e cenário independentes. Mapa e diálogos
+possuem cenas próprias: inspecionar uma rota não viaja, e ler/revelar uma fala
+não escolhe uma consequência. Consulte os [contratos visuais](docs/design/GODOT_RUN_GRAPHICS_CONTRACTS.md)
+e o [progresso da entrega](docs/plans/GODOT_IVORY_RUN_IMPLEMENTATION_PROGRESS.md).
+
 ### Requisitos
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download/dotnet/10.0) — a versão

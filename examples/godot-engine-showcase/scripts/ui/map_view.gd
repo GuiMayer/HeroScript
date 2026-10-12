@@ -83,7 +83,7 @@ func _build() -> void:
 func _inspect(id: String) -> void:
 	_selected = id
 	route.set_selection(id)
-	var projection: Array = [id, route.nodes, _choices, visual_context.presentation_key()]
+	var projection: Array = [id, route.nodes, _choices, _run.get("dialogues", []), visual_context.presentation_key()]
 	if projection == _inspector_key: return
 	_inspector_key = projection.duplicate(true)
 	for child in _inspector.get_children(): _inspector.remove_child(child); child.queue_free()
@@ -104,8 +104,10 @@ func _inspect(id: String) -> void:
 			if type in ["ADVANCE_NODE", "ABANDON_RUN"]: continue
 			if type == "CHOOSE_DIALOGUE_OPTION": continue
 			_action(_presenter.choice_label(choice), choice)
-		if str(node.kind) == "Dialogue" and not node.resolved and not _run.get("dialogues", []).is_empty():
+		var active_dialogue: bool = _run.get("dialogues", []).any(func(item): return str(item.get("activityNodeId", "")) == id and not bool(item.get("completed", false)))
+		if str(node.kind) == "Dialogue" and not node.resolved and active_dialogue:
 			var resume := visual_context.styles.button(visual_context.translator.text("Resume conversation"))
+			resume.name = "MapResumeDialogue"
 			resume.pressed.connect(func(): intent_requested.emit("resume_dialogue", [])); _inspector.add_child(resume)
 	visual_context.styles.apply_view_preferences(_inspector)
 func _action(label: String, choice: Dictionary) -> void:

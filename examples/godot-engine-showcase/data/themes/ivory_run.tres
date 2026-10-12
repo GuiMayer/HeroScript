@@ -2,7 +2,7 @@
 [ext_resource type="Script" path="res://scripts/ui/styles/visual_theme_profile.gd" id="1"]
 [ext_resource type="FontFile" path="res://assets/fonts/cinzel/Cinzel.ttf" id="2"]
 [ext_resource type="FontFile" path="res://assets/fonts/source-sans-3/SourceSans3.ttf" id="3"]
-[ext_resource type="Resource" path="res://data/themes/ivory_card_style.tres" id="4"]
+[ext_resource type="Resource" path="res://data/themes/ivory_run_card_style.tres" id="4"]
 [sub_resource type="FontVariation" id="Body"]
 base_font = ExtResource("3")
 variation_opentype = { 2003265652: 500.0 }

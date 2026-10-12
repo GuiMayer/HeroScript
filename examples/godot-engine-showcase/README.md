@@ -280,7 +280,9 @@ Esse teste usa transporte injetado, verifica isolamento dos snapshots, fallback,
 envelopes, falhas de sincronização e dependências proibidas entre camadas.
 Veja [como substituir a interface](ARCHITECTURE.md).
 
-Para trocar apenas aparência/layout, use o [guia de perfis visuais](../../docs/design/GODOT_VISUAL_PROFILES.md): tema semântico, recursos de fonte, composição de combate e manifestos de arte. Mão, controllers e playback são compartilhados. O tema de produção está preservado; o perfil contrastante/lateral é somente uma prova de teste, não o redesign Marfim final.
+Para trocar apenas aparência/layout, use o [guia de perfis visuais](../../docs/design/GODOT_VISUAL_PROFILES.md): tema semântico, fontes, composição e manifestos de arte. Mão, controllers e playback são compartilhados. Marfim é o padrão da run, com perfis separados de UI/cenário; o laboratório mantém sua variante de carta mais alta. O perfil contrastante/lateral permanece uma prova de teste.
+
+O mapa é uma tela própria: clique ou foco inspeciona; **Viajar** confirma uma opção publicada. Pan, centralização, próximas escolhas, visão geral e destaque por tipo alteram somente a leitura. Diálogos abrem outra cena, com retrato, caixa de fala, opções/custos e histórico de leitura. O texto aparece instantaneamente por padrão; a revelação gradual é opcional. O atalho de confirmação revela/avança páginas, mas nunca escolhe uma consequência. Ao concluir a conversa, o cliente volta ao mapa antes de viajar.
 
 Regressões da arquitetura visual podem ser executadas isoladamente com
 `tools/test-godot-ui.ps1`. As [capturas e certificação da refatoração](../../docs/design/interface-refactor/2026-10-11/README.md) registram limites, métricas e diagnósticos de encerramento, separadamente da baseline original.

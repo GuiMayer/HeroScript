@@ -29,8 +29,7 @@ func apply_model(data: Dictionary) -> void:
 	var key := JSON.stringify([model.get("options", []), visual_context.presentation_key()])
 	if key != _choices_key:
 		_choices_key = key
-		for child in _choices.get_children(): _choices.remove_child(child); child.queue_free()
-		choice_buttons.clear()
+		var desired := VBoxContainer.new()
 		for option in model.get("options", []):
 			var button := visual_context.styles.button(str(option.text))
 			button.name = "Choice_" + str(option.id)
@@ -42,8 +41,14 @@ func apply_model(data: Dictionary) -> void:
 			button.tooltip_text = str(option.reason)
 			button.pressed.connect(func():
 				if not button.disabled: choice_requested.emit(button.get_meta("dialogue_command").duplicate(true)))
-			_choices.add_child(button); choice_buttons.append(button)
-			if not str(option.reason).is_empty(): _choices.add_child(visual_context.styles.muted(str(option.reason), 15))
+			desired.add_child(button)
+			if not str(option.reason).is_empty():
+				var reason := visual_context.styles.muted(str(option.reason), 15)
+				reason.name = "Reason_" + str(option.id); desired.add_child(reason)
+		preload("res://scripts/ui/view_reconciler.gd").children(_choices, desired)
+		desired.free(); choice_buttons.clear()
+		for child in _choices.get_children():
+			if child is Button: choice_buttons.append(child)
 	_history.text = visual_context.translator.text("CONVERSATION HISTORY")
 	_history.disabled = model.get("history", []).is_empty()
 	_gradual.text = visual_context.translator.text("Reveal text gradually")

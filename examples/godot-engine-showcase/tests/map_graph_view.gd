@@ -22,7 +22,7 @@ func _run() -> void:
 		check(scroll.get_h_scroll_bar().visible and route.buttons.b.size.x >= 230, "wide graph scrolls without shrinking nodes at %s" % resolution)
 		route.buttons.b.grab_focus(); await settle()
 		check(scroll.scroll_horizontal > 0 and scroll.get_global_rect().intersects(route.buttons.b.get_global_rect()), "focus reveals an offscreen published choice at %s" % resolution)
-	check(route.buttons.a.disabled and not route.buttons.b.disabled and route.buttons.b.text.contains("High risk"), "only published choices enable travel; risk is explicit text")
+	check(not route.buttons.a.disabled and not route.buttons.b.disabled and route.buttons.a.get_meta("travel").is_empty() and route.buttons.b.text.contains("High risk"), "all published nodes are readable but only advertised choices carry travel authority")
 	var positions: Dictionary = route.markers.duplicate(true)
 	var retained: Button = route.buttons.b
 	nodes[0].current = true; nodes.reverse(); route.setup(nodes); await settle()

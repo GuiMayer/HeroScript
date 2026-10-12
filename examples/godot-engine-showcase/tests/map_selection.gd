@@ -37,6 +37,14 @@ func _run() -> void:
 	check(view.camera.dragged and target == Vector2(20, 20), "camera pan is independent from gameplay and uses a threshold")
 	view.camera.cancel()
 	check(not view.camera.pressed, "camera releases its gesture")
+	run.currentNodeId = "c"; run.map.nodes[2].activity.type = "Dialogue"
+	run["dialogues"] = [{"activityNodeId": "a", "completed": false}]
+	presenter = load("res://scripts/presentation/activity_presenter.gd").new(run, [], {}, context.translator)
+	view.apply_projection(run, [], presenter, context); view._inspect("c")
+	check(view.find_child("MapResumeDialogue", true, false) == null, "conversation at another stop does not create a resume action here")
+	run.dialogues.append({"activityNodeId": "c", "completed": false})
+	view.apply_projection(run, [], presenter, context)
+	check(view.find_child("MapResumeDialogue", true, false) != null, "same-stop narrative projection refreshes its resume action without geometry changes")
 	view.queue_free(); for _i in 8: await process_frame
 	root.get_node("GameAudio").shutdown(); await create_timer(.08).timeout
 	quit(0 if failures == 0 else 1)

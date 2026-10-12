@@ -34,6 +34,7 @@ func setup(route: Array) -> void:
 			button = Button.new()
 			button.name = "Stop_" + id.validate_node_name()
 			button.pressed.connect(func(): inspection_requested.emit(str(button.get_meta("node_id", ""))))
+			button.focus_entered.connect(func(): inspection_requested.emit(str(button.get_meta("node_id", ""))))
 			add_child(button)
 			buttons[id] = button
 		button.set_meta("travel", node.travel.duplicate(true))
