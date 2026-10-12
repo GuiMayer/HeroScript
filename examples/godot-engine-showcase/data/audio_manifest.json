@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "music": "",
+  "resource_gain_cues": {
+    "block": "guard"
+  },
+  "events": {
+    "ui": {
+      "clips": [
+        "res://assets/audio/kenney-interface/click_001.ogg",
+        "res://assets/audio/kenney-interface/click_002.ogg",
+        "res://assets/audio/kenney-interface/click_003.ogg"
+      ],
+      "gain_db": -20,
+      "cooldown_ms": 65,
+      "max_instances": 2
+    },
+    "card_select": {
+      "clips": [
+        "res://assets/audio/kenney-interface/select_001.ogg",
+        "res://assets/audio/kenney-interface/select_002.ogg"
+      ],
+      "gain_db": -20,
+      "cooldown_ms": 90,
+      "max_instances": 2
+    },
+    "card_play": {
+      "clips": [
+        "res://assets/audio/kenney-interface/scratch_001.ogg",
+        "res://assets/audio/kenney-interface/scratch_002.ogg",
+        "res://assets/audio/kenney-interface/scratch_003.ogg"
+      ],
+      "gain_db": -15,
+      "cooldown_ms": 100,
+      "max_instances": 2
+    },
+    "card_move": {
+      "clips": [
+        "res://assets/audio/kenney-interface/scratch_002.ogg",
+        "res://assets/audio/kenney-interface/scratch_003.ogg"
+      ],
+      "gain_db": -22,
+      "cooldown_ms": 150,
+      "max_instances": 1
+    },
+    "impact": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactPunch_medium_000.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_001.ogg",
+        "res://assets/audio/kenney-impact/impactPunch_medium_002.ogg"
+      ],
+      "gain_db": -13,
+      "cooldown_ms": 75,
+      "max_instances": 3
+    },
+    "guard": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactWood_light_000.ogg",
+        "res://assets/audio/kenney-impact/impactWood_light_001.ogg"
+      ],
+      "gain_db": -16,
+      "cooldown_ms": 100,
+      "max_instances": 2
+    },
+    "heal": {
+      "clips": [
+        "res://assets/audio/kenney-impact/impactGlass_light_000.ogg",
+        "res://assets/audio/kenney-impact/impactGlass_light_001.ogg"
+      ],
+      "gain_db": -20,
+      "cooldown_ms": 130,
+      "max_instances": 2
+    },
+    "status": {
+      "clips": [
+        "res://assets/audio/kenney-interface/switch_001.ogg"
+      ],
+      "gain_db": -22,
+      "cooldown_ms": 130,
+      "max_instances": 2
+    },
+    "reward": {
+      "clips": [
+        "res://assets/audio/kenney-interface/confirmation_001.ogg"
+      ],
+      "gain_db": -16,
+      "cooldown_ms": 300,
+      "max_instances": 1
+    },
+    "error": {
+      "clips": [
+        "res://assets/audio/kenney-interface/error_003.ogg"
+      ],
+      "gain_db": -20,
+      "cooldown_ms": 300,
+      "max_instances": 1
+    },
+    "turn": {
+      "clips": [
+        "res://assets/audio/kenney-interface/close_001.ogg"
+      ],
+      "gain_db": -18,
+      "cooldown_ms": 200,
+      "max_instances": 1
+    },
+    "cancel": {
+      "clips": [
+        "res://assets/audio/kenney-interface/close_001.ogg"
+      ],
+      "gain_db": -22,
+      "cooldown_ms": 120,
+      "max_instances": 1
+    },
+    "open": {
+      "clips": [
+        "res://assets/audio/kenney-interface/open_001.ogg"
+      ],
+      "gain_db": -20,
+      "cooldown_ms": 120,
+      "max_instances": 1
+    }
+  }
+}

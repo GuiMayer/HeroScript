@@ -365,10 +365,12 @@ func back_to_menu() -> void:
 
 func toggle_pause() -> void:
 	if is_instance_valid(pause_layer):
+		GameAudio.cancel()
 		get_tree().paused = false
 		shell.close_pause()
 		return
 	get_tree().paused = true
+	GameAudio.play_event("open")
 	shell.show_pause(_abandon_choice())
 
 func _pause_settings() -> void:

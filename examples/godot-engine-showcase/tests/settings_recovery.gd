@@ -99,8 +99,8 @@ func _run() -> void:
 	check(controller.save_connection("http://127.0.0.1:59998").is_empty() and not session.available and not services._transport.available and session.card_zones.is_empty() and session.settings.is_empty() and services._transport.base_url == prefs.api_url, "new endpoint clears old content and availability in session and transport")
 	for values in [[0., 0., 0.], [.4, .2, .7], [1., 1., 1.], [1., 0., .5]]:
 		prefs.master_volume = values[0]; prefs.music_volume = values[1]; prefs.sfx_volume = values[2]; prefs.save()
-		check(AudioServer.is_bus_mute(0) == (values[0] == 0.) and is_equal_approx(db_to_linear(audio._music.volume_db), values[1]) and is_equal_approx(db_to_linear(audio._sfx.volume_db), values[2]), "independent music/SFX gains reach exact zero: " + str(values))
-	check(audio._music.playing, "music timeline stays active so unmuting does not restart the track")
+		check(AudioServer.is_bus_mute(0) == (values[0] == 0.) and is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))), values[1]) and is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("SFX"))), values[2]), "independent music/SFX bus gains reach exact zero: " + str(values))
+	check(audio._music.stream == null and not audio._music.playing, "no synthetic drone is retained when no authored music is configured")
 	# Actual replay view and its existing read-only gateway/cursor, not a duplicate scheduler.
 	var gateway := ReplayGateway.new(); gateway.session = session
 	session.configure(gateway); session.available = false

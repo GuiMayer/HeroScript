@@ -88,6 +88,7 @@ func _on_intent(action: String, arguments: Array) -> void:
 	elif action == "pause": router.toggle_pause()
 	elif action == "select_card":
 		if controller.select_card(str(arguments[0])):
+			GameAudio.select_card()
 			view._clear_choices(); view._show_preview(str(arguments[0])); _update_controls()
 	elif action == "_play_option":
 		for option in presenter.action_options(str(arguments[1])):
@@ -128,6 +129,7 @@ func _open_collection(address: Dictionary) -> void:
 		for button in view.find_children("Pile_*", "Button", true, false):
 			if button.get_meta("zone_address") == address and button.is_inside_tree(): button.grab_focus())
 	view.hand.track_reading_modal(dialog); dialog.popup_centered_clamped(Vector2i(1100, 720), .9)
+	GameAudio.play_event("open")
 func _inspect_collection_card(dialog, id: String) -> void:
 	if not is_instance_valid(dialog) or not dialog.collection.cards.has(id): return
 	var scope := presenter.context_key()
@@ -164,7 +166,7 @@ func _toggle_character_sidebar() -> void: view._toggle_character_sidebar()
 func replace_composition(scene: PackedScene, profile: Resource) -> void: view.replace_composition(scene, profile)
 func _on_frame(frame: Dictionary, index: int, total: int) -> void:
 	view.present_frame(frame, index, total)
-	GameAudio.hit()
+	GameAudio.frame(frame)
 func apply_model(model) -> void: refresh_state(model)
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func apply_interaction(_state) -> void: _update_controls()
@@ -209,6 +211,7 @@ func _play_candidate(candidate: Dictionary) -> void:
 		if is_inside_tree():
 			router.open_game()
 	else:
+		GameAudio.error()
 		_update_controls()
 
 
@@ -218,7 +221,11 @@ func _end_turn() -> void:
 
 func _execute_system(candidate: Dictionary) -> void:
 	var accepted: bool = await controller.submit(candidate)
-	if is_inside_tree() and accepted: router.open_game()
+	if not is_inside_tree(): return
+	if accepted:
+		GameAudio.turn()
+		router.open_game()
+	else: GameAudio.error()
 
 
 func _next_frame() -> void:
@@ -233,7 +240,7 @@ func _choose_card(id: String) -> void:
 		_play_candidate(matches[0])
 		return
 	if not controller.select_card(id): return
-	GameAudio.ui()
+	GameAudio.select_card()
 	view._clear_choices()
 	view._show_preview(id)
 	_update_controls()
@@ -243,6 +250,7 @@ func _choose_card(id: String) -> void:
 
 func _cancel_selection() -> void:
 	if not controller.cancel(): return
+	GameAudio.cancel()
 	view.reset_preview()
 	_update_controls()
 
