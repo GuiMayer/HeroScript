@@ -16,12 +16,16 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	context_slot.custom_minimum_size = Vector2(190, 44)
 	next_frame_button = _button(translator.text("NEXT ANIMATION  [%s]") % str(labels["confirm_action"]), next_requested.emit, 180)
 	next_frame_button.clip_text = true
+	preload("res://scripts/ui/combat_chrome.gd").apply(next_frame_button, "advance", next_frame_button.text, visual_context, false, true)
+	next_frame_button.custom_minimum_size.x = 44
 	next_frame_button.tooltip_text = next_frame_button.text
 	context_slot.add_child(next_frame_button)
 	selection_actions = HBoxContainer.new()
 	selection_actions.add_theme_constant_override("separation", 6)
 	var cancel := _button(translator.text("CANCEL SELECTION"), cancel_requested.emit, 180)
 	cancel.set_meta("selection_only", true)
+	preload("res://scripts/ui/combat_chrome.gd").apply(cancel, "cancel", cancel.text, visual_context, false, true)
+	cancel.custom_minimum_size.x = 44
 	buttons.append(cancel)
 	selection_actions.add_child(cancel)
 	# Inspection remains in the hand toolbar; do not duplicate it in the turn dock.
@@ -37,6 +41,8 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 		var pass_label := "PASS PRIORITY" if str(pass_candidate.command.get("actionType", "")) == "PASS_PRIORITY" else "PASS"
 		var pass_button := _button(translator.text(pass_label), func(): system_requested.emit(pass_candidate), 100)
 		pass_button.clip_text = true
+		preload("res://scripts/ui/combat_chrome.gd").apply(pass_button, "arrow", pass_button.text, visual_context, false, true)
+		pass_button.custom_minimum_size.x = 44
 		pass_button.tooltip_text = pass_button.text
 		buttons.append(pass_button)
 		system_slot.add_child(pass_button)
@@ -44,6 +50,8 @@ func mount(translator, labels: Dictionary, pass_option: Dictionary) -> void:
 	var end := _button(translator.text("END TURN  [%s]") % str(labels["end_turn"]), end_requested.emit, 195)
 	end.name = "EndTurnButton"
 	end.theme_type_variation = "PrimaryAction"
+	preload("res://scripts/ui/combat_chrome.gd").apply(end, "arrow", end.text, visual_context, true)
+	end.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	end.set_meta("requires_end", true)
 	buttons.append(end)
 	add_child(end)

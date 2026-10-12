@@ -24,26 +24,30 @@ func apply_model(model: Dictionary) -> void:
 		preload("res://scripts/ui/view_reconciler.gd").patch_contents(self, desired)
 		desired.free()
 		return
-	var title := visual_context.styles.title(str(model.title), 24)
+	var title := visual_context.styles.title(str(model.round), 24)
 	title.tooltip_text = str(model.context)
 	add_child(title)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_child(spacer)
-	add_child(visual_context.styles.title(str(model.round), 18, visual_context.styles.GOLD))
 	var timeline := visual_context.styles.button(str(model.timeline), 165)
 	timeline.name = "TimelineButton"
 	timeline.custom_minimum_size.y = 44
+	preload("res://scripts/ui/combat_chrome.gd").apply(timeline, "timeline", str(model.timeline), visual_context, false, true)
+	timeline.custom_minimum_size.x = 44
 	timeline.pressed.connect(func(): timeline_requested.emit())
 	add_child(timeline)
 	tool_button = visual_context.styles.button(str(model.tools), 125)
 	tool_button.name = "ZoneToolsButton"
 	tool_button.custom_minimum_size.y = 44
+	preload("res://scripts/ui/combat_chrome.gd").apply(tool_button, "tools", str(model.tools), visual_context, false, true)
+	tool_button.custom_minimum_size.x = 44
 	tool_button.visible = bool(model.allow_tools)
 	tool_button.pressed.connect(func(): tools_requested.emit())
 	add_child(tool_button)
 	var pause := visual_context.styles.button(str(model.pause), 100)
 	pause.name = "PauseButton"
 	pause.custom_minimum_size.y = 44
+	preload("res://scripts/ui/combat_chrome.gd").apply(pause, "pause", str(model.pause), visual_context)
 	pause.pressed.connect(func(): pause_requested.emit())
 	add_child(pause)
