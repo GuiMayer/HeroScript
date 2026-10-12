@@ -31,6 +31,7 @@ var continuation_run_id := ""
 var replay_from_history := false
 var _dialogue_return_scope := ""
 var map_reading_states: Dictionary = {}
+var dialogue_reading_states: Dictionary = {}
 var dialogue_return_barrier: bool:
 	get: return _dialogue_return_scope == _run_navigation_scope() and not _dialogue_return_scope.is_empty()
 	set(value): _dialogue_return_scope = _run_navigation_scope() if value else ""

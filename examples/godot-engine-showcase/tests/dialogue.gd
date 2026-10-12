@@ -63,7 +63,7 @@ func _run() -> void:
 			router.show_activity()
 			await settle()
 			panel = router.host.get_child(0).find_child("DialoguePanel", true, false)
-			var speech: Label = panel.find_child("DialogueText", true, false)
+			var speech: RichTextLabel = panel.find_child("DialogueText", true, false)
 			check(speech.text.contains("That ember") if locale == "en" else speech.text.contains("Essa brasa"), "localized speech: " + locale)
 			check(panel.get_global_rect().end.x <= router.size.x + 1, "dialogue width fits: " + str(resolution))
 			check(panel.choice_buttons.all(func(button): return button.size.x > 150 and button.size.y >= 48), "readable choice buttons")

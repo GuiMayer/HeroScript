@@ -16,6 +16,7 @@ func setup(owner, data: Dictionary) -> void:
 	view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_child(view)
 	refresh_state(data)
+	view.restore_local_state(router.dialogue_reading_states.get(_reading_scope(), {}))
 	_start_if_needed.call_deferred()
 func refresh_state(data: Dictionary) -> void:
 	if not _alive: return
@@ -35,7 +36,10 @@ func _intent(action: String, arguments: Array) -> void:
 		"pause": router.toggle_pause()
 		"map": router.show_activity(true)
 		"recover":
-			if await controller.recover() and _alive: router.open_game()
+			if await controller.recover() and _alive:
+				refresh_state(presentation)
+				_start_attempted = false
+				_start_if_needed.call_deferred()
 		"choice":
 			if get_tree().paused or controller.locked(): return
 			if await controller.submit(str(arguments[0])) and _alive:
@@ -52,5 +56,10 @@ func _interaction() -> void:
 func apply_interaction(_state) -> void: _interaction()
 func apply_visual_profile(_profile) -> void: refresh_state(presentation)
 func dispose() -> void:
+	if is_instance_valid(view):
+		if router.dialogue_reading_states.size() >= 16: router.dialogue_reading_states.erase(router.dialogue_reading_states.keys()[0])
+		router.dialogue_reading_states[_reading_scope()] = view.capture_local_state()
 	_alive = false
 	if controller: controller.dispose()
+func _reading_scope() -> String:
+	return JSON.stringify([visual_context.setting_id, _model.get("runId"), _model.get("branchId"), _model.get("dialogueInstanceId"), _model.get("nodeId")])

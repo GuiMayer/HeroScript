@@ -4,7 +4,6 @@ signal intent_requested(action: String, arguments: Array)
 var panel
 var _model: Dictionary = {}
 var _header: HBoxContainer
-var _content: ScrollContainer
 var _locked := false
 var _loading: Label
 var _recover: Button
@@ -13,12 +12,12 @@ func apply_projection(model: Dictionary, context: ContextType) -> void:
 	if not is_instance_valid(_header):
 		_header = HBoxContainer.new(); add_child(_header)
 		var title := context.styles.title(context.translator.text("CONVERSATION"), 26)
+		title.name = "ConversationTitle"
 		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _header.add_child(title)
 		for action in ["map", "pause"]:
 			var button := context.styles.button(context.translator.text("MAP" if action == "map" else "PAUSE"), 110)
+			button.name = "Conversation_" + action
 			button.pressed.connect(func(): intent_requested.emit(action, [])); _header.add_child(button)
-		_content = ScrollContainer.new(); _content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		_content.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; add_child(_content)
 		_loading = context.styles.muted(context.translator.text("Loading conversation…"), 18)
 		add_child(_loading)
 		_recover = context.styles.button(context.translator.text("RECONNECT"), 160)
@@ -26,8 +25,14 @@ func apply_projection(model: Dictionary, context: ContextType) -> void:
 		panel = preload("res://scripts/ui/dialogue_panel.gd").new(context)
 		panel.name = "DialoguePanel"
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		panel.choice_requested.connect(_choice)
-		_content.add_child(panel)
+		add_child(panel)
+	_header.get_node("ConversationTitle").text = context.translator.text("CONVERSATION")
+	_header.get_node("Conversation_map").text = context.translator.text("MAP")
+	_header.get_node("Conversation_pause").text = context.translator.text("PAUSE")
+	_loading.text = context.translator.text("Loading conversation…")
+	_recover.text = context.translator.text("RECONNECT")
 	if not model.is_empty():
 		_model = model.duplicate(true)
 		panel.visual_context = context
@@ -44,4 +49,9 @@ func _choice(command: Dictionary) -> void:
 func set_read_only(value: bool) -> void:
 	_locked = value
 	if is_instance_valid(panel):
-		for button in panel.choice_buttons: button.disabled = value or bool(button.get_meta("engine_disabled", false))
+		panel.set_read_only(value)
+func capture_local_state() -> Dictionary: return panel.capture_local_state()
+func restore_local_state(state: Dictionary) -> void: panel.restore_local_state(state)
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("confirm_action") and not event.is_echo() and panel.visible:
+		panel.advance_reading(); get_viewport().set_input_as_handled()
