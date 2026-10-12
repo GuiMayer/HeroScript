@@ -29,7 +29,9 @@ func node_name(id: String) -> String:
 
 func node_description(node: Dictionary, fallback: String) -> String:
 	var metadata: Dictionary = node.get("metadata", {})
-	return _i18n.content_name(str(node.get("nodeId", "")) + ".description", str(metadata.get("description", fallback)))
+	var authored := str(metadata.get("description", fallback))
+	# Explicit blank fallback prevents untranslated IDs becoming player-facing prose.
+	return _i18n.content_name(str(node.get("nodeId", "")) + ".description", authored if not authored.is_empty() else " ").strip_edges()
 
 func route() -> Array:
 	var result: Array = []

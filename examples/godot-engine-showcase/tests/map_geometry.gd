@@ -22,6 +22,8 @@ func _run() -> void:
 	var cycle: Dictionary = layout.calculate([{"id": "a", "next": ["b"]}, {"id": "b", "next": ["a", "b", "missing"]}], profile)
 	check(cycle.cyclic and cycle.rects.size() == 2 and cycle.edges.size() == 3, "cycles/self/return edges survive and dangling references are safely ignored")
 	check(not cycle.rects.a.intersects(cycle.rects.b), "cyclic nodes never overlap")
+	var connected: Dictionary = layout.calculate([{"id": "a", "next": ["b"]}, {"id": "b", "next": ["a", "exit"]}, {"id": "exit", "next": []}], profile)
+	check(connected.rects.exit.position.y > connected.rects.a.position.y, "SCC layout keeps downstream nodes outside the cyclic row")
 	var graph: Array = []
 	for i in 100: graph.append({"id": "n%03d" % i, "next": ["n%03d" % (i + 1)] if i < 99 else []})
 	var large: Dictionary = layout.calculate(graph, profile)

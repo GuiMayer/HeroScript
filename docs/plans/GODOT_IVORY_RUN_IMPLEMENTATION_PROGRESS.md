@@ -11,6 +11,7 @@ Snapshot anterior: `bce6921`, enviado para `origin/main` antes da implementaçã
 | 2 | Implementada: cena/controller próprios, início publicado único, conclusão pelo RESOLVE_NODE publicado e fronteira de retorno ao mapa por contexto. Diálogo REST: 32 checks; reconciliação de atividade: 7; troca de composição: 13. |
 | 3 | Implementada: mapa dedicado, inspector, inspeção de qualquer nó visível sem comando e ação explícita por referência atual. Atividades não possuem mapa embutido. Estado de leitura por run/branch; 6 checks de seleção, 7 de atividade e diálogo REST aprovado. |
 | 4 | Implementada: perfis de UI/cenário e manifesto Marfim; cartas/fontes do laboratório reutilizadas, atores/fundo SVG próprios. Contextos: 8, tema: 10, custos: 35; nova importação isolada e ivory_run_contracts: 7 checks aprovados. |
-| 5–10 | Pendentes; registrar evidências e commits por entrega. |
+| 5 | Implementada: renderer único de nós inspecionáveis, estados/ícones/texto, mapa amplo e inspector Marfim. Layout SCC estável mantém saída de ciclos em camadas posteriores. 10 checks de geometria, 12 de atualizações, 6 de seleção e 37 checks/18 capturas do marco visual. |
+| 6–10 | Pendentes; registrar evidências e commits por entrega. |
 
 Os testes usam cópia da Godot com user directory próprio e persistência da API em `.runtime/ivory-run-qa`. Não foi utilizado o servidor das partidas pessoais.

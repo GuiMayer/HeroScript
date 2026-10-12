@@ -30,9 +30,9 @@ func _run() -> void:
 	check(route.buttons.a == button and button.get_theme_color("font_color") != AppTheme.EMBER, "risk normalization clears old color including canonical style cache")
 	nodes[0].risk = "High"; route.setup(nodes)
 	check(button.get_theme_color("font_color") == AppTheme.EMBER, "risk can return to High without replacing node")
-	var calls: Array = []; route.travel_requested.connect(func(choice): calls.append(choice))
+	var calls: Array = []; route.inspection_requested.connect(func(id): calls.append(id))
 	nodes[0].travel.payload.targetNodeId = "updated"; route.setup(nodes); button.pressed.emit()
-	check(calls.size() == 1 and calls[0].payload.targetNodeId == "updated", "retained route button emits current published payload")
+	check(calls == ["a"] and button.get_meta("travel").payload.targetNodeId == "updated", "retained map node inspects its ID and stores the latest published travel data")
 	var model: Dictionary = portrait.model; model.contentId = "spire_wisp"
 	check(portrait.model.contentId == "spire_sentinel", "art model is defensively copied")
 	var next_context = load("res://scripts/ui/visual_context.gd").new(context.translator)

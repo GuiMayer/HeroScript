@@ -5,7 +5,8 @@ var visual_context: ContextType = ContextType.new()
 var layout_profile: Resource = preload("res://scripts/ui/styles/map_layout_profile.gd").new()
 var _layout = preload("res://scripts/presentation/map_layout.gd").new()
 var _geometry: Dictionary = {}
-signal travel_requested(choice: Dictionary)
+signal inspection_requested(node_id: String)
+var _selected := ""
 var nodes: Array = []
 var markers := {}
 var buttons := {}
@@ -31,17 +32,35 @@ func setup(route: Array) -> void:
 		if button == null:
 			button = Button.new()
 			button.name = "Stop_" + id.validate_node_name()
-			button.pressed.connect(func(): travel_requested.emit(button.get_meta("travel", {}).duplicate(true)))
+			button.pressed.connect(func(): inspection_requested.emit(str(button.get_meta("node_id", ""))))
 			add_child(button)
 			buttons[id] = button
 		button.set_meta("travel", node.travel.duplicate(true))
+		button.set_meta("node_id", id)
 		button.position = _geometry.rects[id].position
 		button.size = _geometry.rects[id].size
 		button.text = str(node.name) + "\n" + (visual_context.translator.text("YOU ARE HERE") if node.current else (visual_context.translator.text("COMPLETED") if node.resolved else visual_context.translator.content_name(str(node.kind))))
 		if str(node.get("risk", "")) == "High": button.text += " · " + visual_context.translator.text("High risk")
 		button.add_theme_font_size_override("font_size", 14)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		button.disabled = node.travel.is_empty()
+		button.disabled = false # Published visibility permits reading, not travel.
+		button.toggle_mode = true
+		button.set_pressed_no_signal(id == _selected)
+		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var art = button.get_meta("map_art") if button.has_meta("map_art") else null
+		if not is_instance_valid(art):
+			art = preload("res://scripts/ui/art_slot.gd").new(visual_context)
+			button.add_child(art); button.set_meta("map_art", art)
+			art.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+			art.offset_left = 8; art.offset_right = 36; art.offset_top = -14; art.offset_bottom = 14
+		art.rebind_context(visual_context); art.setup("activities", str(node.kind))
+		for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+			var fill := visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked")
+			var border := visual_context.styles.GOLD if node.current or not node.travel.is_empty() else visual_context.styles.color("stroke.route_locked")
+			var box := visual_context.styles.box(fill, visual_context.profile.corner_radius, border, 2 if node.current else 1)
+			box.content_margin_left = 44
+			if state in ["hover", "focus", "pressed"]: box.border_color = visual_context.styles.color("text.primary"); box.border_width_left = 2
+			button.add_theme_stylebox_override(state, box)
 		button.add_theme_color_override("font_disabled_color", visual_context.styles.GOLD if node.current else visual_context.styles.MUTED)
 		button.add_theme_stylebox_override("disabled", visual_context.styles.box(visual_context.styles.color("surface.route_current") if node.current else visual_context.styles.color("surface.route_locked"), 9, visual_context.styles.GOLD if node.current else visual_context.styles.color("stroke.route_locked"), 1))
 		button.tooltip_text = str(node.name) + "\n" + str(node.get("description", ""))
@@ -52,6 +71,10 @@ func setup(route: Array) -> void:
 		if id not in live:
 			remove_child(buttons[id]); buttons[id].queue_free(); buttons.erase(id)
 	queue_redraw()
+
+func set_selection(id: String) -> void:
+	_selected = id
+	for key in buttons: buttons[key].set_pressed_no_signal(str(key) == id)
 
 func _draw() -> void:
 	for edge in _geometry.get("edges", []):

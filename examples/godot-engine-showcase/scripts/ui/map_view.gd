@@ -13,11 +13,21 @@ var _presenter
 var _model_key: Array = []
 var _locked := false
 var _action_buttons: Array[Button] = []
+var _inspector_key: Array = []
+var _resource_badges: Label
 func apply_projection(run: Dictionary, choices: Array, presenter, context: ContextType) -> void:
 	mount(context); theme = context.theme
 	_run = run.duplicate(true); _choices = choices.duplicate(true); _presenter = presenter
 	if not is_instance_valid(route): _build()
 	_header.text = context.translator.content_name(str(run.get("runDefinitionId", "")), str(run.get("metadata", {}).get("displayName", context.translator.text("JOURNEY"))))
+	find_child("MapPauseButton", true, false).text = context.translator.text("PAUSE")
+	var counters: Array[String] = []
+	for resource_id in run.get("resources", {}):
+		counters.append("%s %s" % [context.translator.number(float(run.resources[resource_id].get("current", 0))), context.translator.content_name(str(resource_id))])
+	for resource_id in run.get("characterResources", {}).get("resources", {}):
+		var value: Dictionary = run.characterResources.resources[resource_id]
+		counters.append("%s %s" % [context.translator.number(float(value.get("current", 0))), context.translator.content_name(str(resource_id))])
+	_resource_badges.text = "  ·  ".join(counters)
 	var nodes: Array = presenter.route()
 	var key: Array = [nodes, choices, context.presentation_key()]
 	if key != _model_key:
@@ -33,6 +43,9 @@ func _build() -> void:
 	var header := HBoxContainer.new(); add_child(header)
 	_header = visual_context.styles.title("", 27); _header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_header)
+	_resource_badges = visual_context.styles.muted("", 15)
+	_resource_badges.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_resource_badges)
 	var pause := visual_context.styles.button(visual_context.translator.text("PAUSE"), 100)
 	pause.name = "MapPauseButton"
 	pause.pressed.connect(func(): intent_requested.emit("pause", [])); header.add_child(pause)
@@ -41,7 +54,7 @@ func _build() -> void:
 	_scroll = ScrollContainer.new(); _scroll.name = "MapScroll"
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.follow_focus = true
-	route = preload("res://scripts/ui/map_route_view.gd").new()
+	route = preload("res://scripts/ui/route_view.gd").new()
 	route.inspection_requested.connect(_inspect)
 	_scroll.add_child(route); _body.add_child(_scroll)
 	var inspector_scroll := ScrollContainer.new(); inspector_scroll.custom_minimum_size.x = 300
@@ -52,6 +65,9 @@ func _build() -> void:
 func _inspect(id: String) -> void:
 	_selected = id
 	route.set_selection(id)
+	var projection: Array = [id, route.nodes, _choices, visual_context.presentation_key()]
+	if projection == _inspector_key: return
+	_inspector_key = projection.duplicate(true)
 	for child in _inspector.get_children(): _inspector.remove_child(child); child.queue_free()
 	_action_buttons.clear()
 	var matches: Array = route.nodes.filter(func(node): return str(node.id) == id)
@@ -71,7 +87,7 @@ func _inspect(id: String) -> void:
 			if type == "CHOOSE_DIALOGUE_OPTION": continue
 			var label: String = {"START_ENCOUNTER": "ENTER COMBAT", "START_DIALOGUE": "TALK", "RESOLVE_NODE": "COMPLETE STAGE"}.get(type, type.replace("_", " "))
 			_action(visual_context.translator.text(label), choice)
-		if str(node.kind) == "Dialogue" and not _run.get("dialogues", []).is_empty():
+		if str(node.kind) == "Dialogue" and not node.resolved and not _run.get("dialogues", []).is_empty():
 			var resume := visual_context.styles.button(visual_context.translator.text("Resume conversation"))
 			resume.pressed.connect(func(): intent_requested.emit("resume_dialogue", [])); _inspector.add_child(resume)
 	visual_context.styles.apply_view_preferences(_inspector)

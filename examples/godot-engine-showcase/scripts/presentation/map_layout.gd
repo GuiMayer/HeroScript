@@ -24,29 +24,33 @@ func calculate(nodes: Array, profile: Resource) -> Dictionary:
 	var key := JSON.stringify([topology, profile.presentation_key(), diagnostics])
 	if key == _key: return _result.duplicate(true)
 	calculation_count += 1
+	var components: Array = _strong_components(graph, ids)
+	var owner: Dictionary = {}
+	var condensed: Dictionary = {}
 	var incoming: Dictionary = {}
-	var layers: Dictionary = {}
-	for id in ids: incoming[id] = 0; layers[id] = 0
+	var component_layers: Dictionary = {}
+	var cyclic := false
+	for component in components:
+		var key_id: String = component[0]
+		condensed[key_id] = []; incoming[key_id] = 0; component_layers[key_id] = 0
+		for id in component: owner[id] = key_id
+		if component.size() > 1: cyclic = true
 	for id in ids:
 		for target in graph[id]:
-			if incoming.has(target): incoming[target] += 1
-	var queue: Array = ids.filter(func(id): return incoming[id] == 0)
-	var visited: Array = []
+			if not owner.has(target): continue
+			if id == target: cyclic = true
+			if owner[id] != owner[target] and owner[target] not in condensed[owner[id]]:
+				condensed[owner[id]].append(owner[target]); incoming[owner[target]] += 1
+	var queue: Array = condensed.keys().filter(func(id): return incoming[id] == 0)
 	while not queue.is_empty():
 		queue.sort()
 		var id: String = queue.pop_front()
-		visited.append(id)
-		for target in graph[id]:
-			if not incoming.has(target): continue
-			layers[target] = maxi(layers[target], layers[id] + 1)
+		for target in condensed[id]:
+			component_layers[target] = maxi(component_layers[target], component_layers[id] + 1)
 			incoming[target] -= 1
 			if incoming[target] == 0: queue.append(target)
-	# Cyclic residuals remain visible in a separate stable row. Their actual
-	# directed edges are retained, including return/self edges and downstream nodes.
-	var residual: Array = ids.filter(func(id): return id not in visited)
-	var last_layer := -1
-	for id in visited: last_layer = maxi(last_layer, layers[id])
-	for id in residual: layers[id] = last_layer + 1
+	var layers: Dictionary = {}
+	for id in ids: layers[id] = component_layers[owner[id]]
 	var rows: Dictionary = {}
 	for id in ids:
 		var layer: int = layers[id]
@@ -81,5 +85,43 @@ func calculate(nodes: Array, profile: Resource) -> Dictionary:
 				path = PackedVector2Array([origin, origin + Vector2(-14, 12), destination + Vector2(-14, -12), destination])
 			edges.append({"from": id, "to": target, "return": returning, "path": path})
 	_key = key
-	_result = {"rects": rects, "markers": markers, "edges": edges, "bounds": bounds, "cyclic": not residual.is_empty(), "diagnostics": diagnostics}
+	_result = {"rects": rects, "markers": markers, "edges": edges, "bounds": bounds, "cyclic": cyclic, "diagnostics": diagnostics}
 	return _result.duplicate(true)
+
+
+func _strong_components(graph: Dictionary, ids: Array) -> Array:
+	# Iterative Kosaraju: stable IDs, no recursion depth dependence, O(V+E).
+	var seen: Dictionary = {}
+	var order: Array = []
+	var reverse: Dictionary = {}
+	for id in ids: reverse[id] = []
+	for id in ids:
+		for target in graph[id]:
+			if reverse.has(target): reverse[target].append(id)
+	for root_id in ids:
+		if seen.has(root_id): continue
+		seen[root_id] = true
+		var stack: Array = [[root_id, 0]]
+		while not stack.is_empty():
+			var frame: Array = stack[-1]
+			var edges: Array = graph[frame[0]]
+			if frame[1] >= edges.size():
+				order.append(frame[0]); stack.pop_back(); continue
+			var target: String = edges[frame[1]]
+			frame[1] += 1
+			if graph.has(target) and not seen.has(target):
+				seen[target] = true; stack.append([target, 0])
+	seen.clear()
+	var result: Array = []
+	order.reverse()
+	for root_id in order:
+		if seen.has(root_id): continue
+		var component: Array = []
+		var stack: Array = [root_id]; seen[root_id] = true
+		while not stack.is_empty():
+			var id: String = stack.pop_back(); component.append(id)
+			for target in reverse[id]:
+				if not seen.has(target): seen[target] = true; stack.append(target)
+		component.sort(); result.append(component)
+	result.sort_custom(func(a, b): return str(a[0]) < str(b[0]))
+	return result
