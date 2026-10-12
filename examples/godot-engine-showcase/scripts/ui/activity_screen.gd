@@ -112,6 +112,7 @@ func _recover_actions() -> void:
 
 
 func _maybe_auto_advance(ticket := -1) -> void:
+	if router.dialogue_return_barrier: return
 	if (ticket >= 0 and ticket != render_epoch) or controller.auto_advancing or not is_inside_tree() or \
 		router.current_screen != "activity" or GameSession.busy or get_tree().paused:
 		return

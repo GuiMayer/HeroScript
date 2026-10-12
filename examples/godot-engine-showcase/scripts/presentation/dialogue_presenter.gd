@@ -33,7 +33,9 @@ static func build(run: Dictionary, choices: Array, translator) -> Dictionary:
 			"cost": " + ".join(price), "available": bool(option.get("available", false)) and not command.is_empty(),
 			"reason": localized(option.unavailableText, translator.locale) if option.get("unavailableText") is Dictionary else "",
 			"interactionKind": str(option.get("interactionKind", "Choice")),
-			"reference": preload("res://scripts/presentation/activity_presenter.gd").option_reference(command) if not command.is_empty() else "",
+			"reference": JSON.stringify([run.get("runId", ""), run.get("branchId", ""), run.get("sequence", 0),
+				dialogue.get("contentRevision", ""), dialogue.get("dialogueInstanceId", ""), dialogue.get("nodeId", ""),
+				preload("res://scripts/presentation/activity_presenter.gd").option_reference(command)]).sha256_text() if not command.is_empty() else "",
 			"command": command})
 	var history: Array = []
 	for entry in dialogue.get("transcript", []):

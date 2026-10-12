@@ -12,13 +12,6 @@ var animate_card_entry := false
 var _key: Array = []
 func _build_actions() -> void:
 	var choices := _choices_snapshot
-	var dialogue: Dictionary = preload("res://scripts/presentation/dialogue_presenter.gd").build(_run_snapshot, choices, visual_context.translator)
-	if not dialogue.is_empty():
-		var panel := preload("res://scripts/ui/dialogue_panel.gd").new(visual_context)
-		panel.setup(dialogue)
-		panel.choice_requested.connect(_execute)
-		choice_buttons.append_array(panel.choice_buttons)
-		action_panel.add_child(panel)
 	if choices.is_empty():
 		action_panel.add_child(visual_context.styles.muted(visual_context.translator.text("Waiting for the next available action.")))
 		var retry := _button(visual_context.translator.text("REFRESH ACTIONS"), _recover_actions)

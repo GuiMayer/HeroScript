@@ -103,6 +103,10 @@ func _run() -> void:
 	_finish()
 
 func click_start() -> void:
+	if router.current_screen == "dialogue":
+		await wait_command()
+		check(not session.run.get("dialogues", []).is_empty(), "entering dialogue uses the single published start command")
+		return
 	var screen = router.host.get_child(0)
 	var button: Button
 	for item in screen.view.choice_buttons:
